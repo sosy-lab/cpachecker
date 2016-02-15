@@ -853,16 +853,14 @@ public class ARGPathExporter {
       }
 
       // Merge nodes with empty or repeated edges
-      Supplier<Iterator<Edge>> redundantEdgeIteratorSupplier = new Supplier<Iterator<Edge>>() {
+      Supplier<Iterator<Edge>> redundantEdgeIteratorSupplier =
+          new Supplier<Iterator<Edge>>() {
 
-        @Override
-        public Iterator<Edge> get() {
-          return FluentIterable
-              .from(leavingEdges.values())
-              .filter(isRedundant).iterator();
-        }
-
-      };
+            @Override
+            public Iterator<Edge> get() {
+              return FluentIterable.from(leavingEdges.values()).filter(isEdgeRedundant).iterator();
+            }
+          };
       Iterator<Edge> redundantEdgeIterator = redundantEdgeIteratorSupplier.get();
       while (redundantEdgeIterator.hasNext()) {
         Edge edge = redundantEdgeIterator.next();
@@ -885,9 +883,11 @@ public class ARGPathExporter {
             Element targetNode = nodes.get(edge.target);
             if (targetNode == null) {
               targetNode = createNewNode(doc, edge.target);
-              addInvariantsData(doc, targetNode, edge.target);
+              if (!ExpressionTrees.getFalse()
+                  .equals(addInvariantsData(doc, targetNode, edge.target))) {
+                waitlist.push(edge.target);
+              }
               nodes.put(edge.target, targetNode);
-              waitlist.push(edge.target);
             }
             createNewEdge(doc, edge, targetNode);
           }
@@ -896,7 +896,8 @@ public class ARGPathExporter {
       doc.appendTo(pTarget);
     }
 
-    private void addInvariantsData(GraphMlBuilder pDoc, Element pNode, String pStateId) {
+    private ExpressionTree<Object> addInvariantsData(
+        GraphMlBuilder pDoc, Element pNode, String pStateId) {
       ExpressionTree<Object> tree = getStateInvariant(pStateId);
       if (!tree.equals(ExpressionTrees.getTrue())) {
         pDoc.addDataElementChild(pNode, KeyDef.INVARIANT, tree.toString());
@@ -905,57 +906,103 @@ public class ARGPathExporter {
           pDoc.addDataElementChild(pNode, KeyDef.INVARIANTSCOPE, scope);
         }
       }
+      return tree;
     }
 
-    private final Predicate<Edge> isRedundant = new Predicate<Edge>() {
+    private final Predicate<String> isNodeRedundant =
+        new Predicate<String>() {
 
-      @Override
-      public boolean apply(final Edge pEdge) {
-        // An edge is never redundant if there are conflicting scopes
-        ExpressionTree<Object> sourceTree = getStateInvariant(pEdge.source);
-        if (sourceTree != null) {
-          String sourceScope = stateScopes.get(pEdge.source);
-          String targetScope = stateScopes.get(pEdge.target);
-          if (sourceScope != null && targetScope != null && !sourceScope.equals(targetScope)) {
+          @Override
+          public boolean apply(String pNode) {
+            if (!ExpressionTrees.getTrue().equals(getStateInvariant(pNode))) {
+              return false;
+            }
+            if (!nodeFlags.get(pNode).isEmpty()) {
+              return false;
+            }
+            if (!violatedProperties.get(pNode).isEmpty()) {
+              return false;
+            }
+            if (enteringEdges.get(pNode).isEmpty()) {
+              return false;
+            }
+            if (leavingEdges.get(pNode).size() == 1) {
+              return false;
+            }
+            for (Edge edge : enteringEdges.get(pNode)) {
+              if (!edge.label.keyValues.isEmpty()) {
+                return false;
+              }
+            }
+            return true;
+          }
+        };
+
+    private final Predicate<Edge> isEdgeRedundant =
+        new Predicate<Edge>() {
+
+          @Override
+          public boolean apply(final Edge pEdge) {
+            if (isNodeRedundant.apply(pEdge.target)) {
+              return true;
+            }
+
+            // An edge is never redundant if there are conflicting scopes
+            ExpressionTree<Object> sourceTree = getStateInvariant(pEdge.source);
+            if (sourceTree != null) {
+              String sourceScope = stateScopes.get(pEdge.source);
+              String targetScope = stateScopes.get(pEdge.target);
+              if (sourceScope != null && targetScope != null && !sourceScope.equals(targetScope)) {
+                return false;
+              }
+            }
+            // An edge is never redundant if there are different invariants
+            if (!getStateInvariant(pEdge.target).equals(sourceTree)) {
+              return false;
+            }
+
+            // An edge is redundant if it is the only leaving edge of a
+            // node and it is empty or all its non-assumption contents
+            // are summarized by a preceding edge
+            if ((!pEdge.label.hasTransitionRestrictions()
+                        || FluentIterable.from(enteringEdges.get(pEdge.source))
+                            .anyMatch(
+                                new Predicate<Edge>() {
+
+                                  @Override
+                                  public boolean apply(Edge pPrecedingEdge) {
+                                    return pPrecedingEdge.label.summarizes(pEdge.label);
+                                  }
+                                })
+                        || pEdge.label.keyValues.size() == 1
+                            && pEdge.label.keyValues.containsKey(KeyDef.FUNCTIONEXIT))
+                    && (leavingEdges.get(pEdge.source).size() == 1)
+                || FluentIterable.from(leavingEdges.get(pEdge.source))
+                    .allMatch(
+                        new Predicate<Edge>() {
+
+                          @Override
+                          public boolean apply(Edge pLeavingEdge) {
+                            return pLeavingEdge.label.keyValues.isEmpty();
+                          }
+                        })) {
+              return true;
+            }
             return false;
           }
-        }
-        // An edge is never redundant if there are different invariants
-        if (!getStateInvariant(pEdge.target).equals(sourceTree)) {
-          return false;
-        }
-
-        // An edge is redundant if it is the only leaving edge of a
-        // node and it is empty or all its non-assumption contents
-        // are summarized by a preceding edge
-        if ((!pEdge.label.hasTransitionRestrictions()
-            || FluentIterable.from(enteringEdges.get(pEdge.source)).anyMatch(new Predicate<Edge>() {
-
-              @Override
-              public boolean apply(Edge pPrecedingEdge) {
-                return pPrecedingEdge.label.summarizes(pEdge.label);
-              }
-
-            })
-            || pEdge.label.keyValues.size() == 1 && pEdge.label.keyValues.containsKey(KeyDef.FUNCTIONEXIT))
-            && (leavingEdges.get(pEdge.source).size() == 1) || FluentIterable.from(leavingEdges.get(pEdge.source)).allMatch(new Predicate<Edge>() {
-
-              @Override
-              public boolean apply(Edge pLeavingEdge) {
-                return pLeavingEdge.label.keyValues.isEmpty();
-              }
-            })) {
-          return true;
-        }
-        return false;
-      }
-
-    };
+        };
 
     private void mergeNodes(final Edge pEdge) {
-      final String source = pEdge.source;
-      final String target = pEdge.target;
-      Preconditions.checkArgument(isRedundant.apply(pEdge));
+      Preconditions.checkArgument(isEdgeRedundant.apply(pEdge));
+
+      // By default, merge into the predecessor,
+      // but if the successor is redundant while the predecessor is not,
+      // merge into the successor.
+      boolean intoPredecessor =
+          isNodeRedundant.apply(pEdge.target) || !isNodeRedundant.apply(pEdge.target);
+
+      final String source = intoPredecessor ? pEdge.source : pEdge.target;
+      final String target = intoPredecessor ? pEdge.target : pEdge.source;
 
       // Merge the flags
       nodeFlags.putAll(source, nodeFlags.removeAll(target));
@@ -973,7 +1020,7 @@ public class ARGPathExporter {
       } else {
         newScope = null;
       }
-      ExpressionTree<Object> newTree = mergeStateInvariantsInfoFirst(source, target);
+      ExpressionTree<Object> newTree = mergeStateInvariantsIntoFirst(source, target);
       if (newTree != null) {
         if (newScope == null && !ExpressionTrees.isConstant(newTree)) {
           putStateInvariant(source, ExpressionTrees.getTrue());
@@ -986,75 +1033,60 @@ public class ARGPathExporter {
       // Merge the violated properties
       violatedProperties.putAll(source, violatedProperties.removeAll(target));
 
-      if (leavingEdges.get(pEdge.source).size() == 1) {
+      // Move the leaving edges
+      FluentIterable<Edge> leavingEdges =
+          FluentIterable.from(Lists.newArrayList(this.leavingEdges.get(target)));
+      // Remove the edges from their successors
+      for (Edge leavingEdge : leavingEdges) {
+        boolean removed = removeEdge(leavingEdge);
+        assert removed;
+      }
+      // Create the replacement edges
+      leavingEdges =
+          leavingEdges.transform(
+              new Function<Edge, Edge>() {
 
+                @Override
+                public Edge apply(Edge pOldEdge) {
+                  TransitionCondition label = new TransitionCondition();
+                  label.keyValues.putAll(pEdge.label.keyValues);
+                  label.keyValues.putAll(pOldEdge.label.keyValues);
+                  return new Edge(source, pOldEdge.target, label);
+                }
+              });
+      // Add them as leaving edges to the source node
+      // and them as entering edges to their target nodes
+      for (Edge leavingEdge : leavingEdges) {
+        putEdge(leavingEdge);
+      }
 
-        // Move the leaving edges
-        FluentIterable<Edge> leavingEdges = FluentIterable.from(Lists.newArrayList(this.leavingEdges.get(target)));
-        // Remove the edges from their successors
-        for (Edge leavingEdge : leavingEdges) {
-          boolean removed = removeEdge(leavingEdge);
-          assert removed;
-        }
-        // Create the replacement edges
-        leavingEdges = leavingEdges
-            .transform(new Function<Edge, Edge>() {
+      // Move the entering edges
+      FluentIterable<Edge> enteringEdges =
+          FluentIterable.from(Lists.newArrayList(this.enteringEdges.get(target)));
+      // Remove the edges from their predecessors
+      for (Edge enteringEdge : enteringEdges) {
+        boolean removed = removeEdge(enteringEdge);
+        assert removed;
+      }
+      // Create the replacement edges
+      enteringEdges =
+          enteringEdges
+              .filter(Predicates.not(Predicates.equalTo(pEdge)))
+              .transform(
+                  new Function<Edge, Edge>() {
 
-              @Override
-              public Edge apply(Edge pOldEdge) {
-                TransitionCondition label = new TransitionCondition();
-                label.keyValues.putAll(pEdge.label.keyValues);
-                label.keyValues.putAll(pOldEdge.label.keyValues);
-                return new Edge(source, pOldEdge.target, label);
-              }
-
-            });
-        // Add them as leaving edges to the source node
-        // and them as entering edges to their target nodes
-        for (Edge leavingEdge : leavingEdges) {
-          putEdge(leavingEdge);
-        }
-
-        // Move the entering edges
-        FluentIterable<Edge> enteringEdges = FluentIterable.from(Lists.newArrayList(this.enteringEdges.get(target)));
-        // Remove the edges from their predecessors
-        for (Edge enteringEdge : enteringEdges) {
-          boolean removed = removeEdge(enteringEdge);
-          assert removed;
-        }
-        // Create the replacement edges
-        enteringEdges = enteringEdges
-            .filter(Predicates.not(Predicates.equalTo(pEdge)))
-            .transform(new Function<Edge, Edge>() {
-
-              @Override
-              public Edge apply(Edge pOldEdge) {
-                TransitionCondition label = new TransitionCondition();
-                label.keyValues.putAll(pEdge.label.keyValues);
-                label.keyValues.putAll(pOldEdge.label.keyValues);
-                return new Edge(pOldEdge.source, source, label);
-              }
-
-            });
-        // Add them as entering edges to the source node
-        // and add them as leaving edges to their source nodes
-        for (Edge enteringEdge : enteringEdges) {
-          putEdge(enteringEdge);
-        }
-      } else {
-        Collection<Edge> removed = Lists.newArrayList(leavingEdges.get(pEdge.source));
-        Collection<Edge> toMove = Lists.newArrayList(enteringEdges.get(pEdge.source));
-        for (Edge old : toMove) {
-          removeEdge(old);
-          String s = old.source;
-          TransitionCondition condition = old.label;
-          for (Edge rem : removed) {
-            removeEdge(rem);
-            String t = rem.target;
-            Edge newEdge = new Edge(s, t, condition);
-            putEdge(newEdge);
-          }
-        }
+                    @Override
+                    public Edge apply(Edge pOldEdge) {
+                      TransitionCondition label = new TransitionCondition();
+                      label.keyValues.putAll(pEdge.label.keyValues);
+                      label.keyValues.putAll(pOldEdge.label.keyValues);
+                      return new Edge(pOldEdge.source, source, label);
+                    }
+                  });
+      // Add them as entering edges to the source node
+      // and add them as leaving edges to their source nodes
+      for (Edge enteringEdge : enteringEdges) {
+        putEdge(enteringEdge);
       }
 
     }
@@ -1142,7 +1174,7 @@ public class ARGPathExporter {
      *
      * @return the merged invariant. {@code null} if neither state had an invariant.
      */
-    private @Nullable ExpressionTree<Object> mergeStateInvariantsInfoFirst(
+    private @Nullable ExpressionTree<Object> mergeStateInvariantsIntoFirst(
         String pStateId, String pOtherStateId) {
       ExpressionTree<Object> prev = stateInvariants.get(pStateId);
       ExpressionTree<Object> other = stateInvariants.get(pOtherStateId);
