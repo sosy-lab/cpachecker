@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import java.util.List;
+
 import org.sosy_lab.cpachecker.core.defaults.WrappingPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -34,11 +36,14 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
+import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Table;
 
 public class AdjustAutomatonPrecisionAdjustment extends WrappingPrecisionAdjustment {
+
+  private Table<AutomatonInternalState, AutomatonPrecision, List<AutomatonTransition>> relevanTransCache = HashBasedTable.create();
 
   public AdjustAutomatonPrecisionAdjustment(final PrecisionAdjustment pWrappedPrecOp) {
     super(pWrappedPrecOp);
@@ -53,26 +58,45 @@ public class AdjustAutomatonPrecisionAdjustment extends WrappingPrecisionAdjustm
     final AutomatonPrecision pi = (AutomatonPrecision) pPrecision;
     final Automaton a = state.getOwningAutomaton();
 
-    Builder<AutomatonTransition> relevantTransitions = ImmutableList.<AutomatonTransition>builder();
-    boolean hasIrrelevantTransitions = false;
+    List<AutomatonTransition> relevantTransitions = null;
 
-    for (AutomatonTransition trans: state.getLeavingTransitions()) {
+    relevantTransitions = relevanTransCache.get(state.getInternalState(), pi);
 
-      ImmutableSet<? extends SafetyProperty> transProps = a.getIsRelevantForProperties(trans);
-      final boolean transRelevantForActiveProps = !(pi.getBlacklist().containsAll(transProps));
+    if (relevantTransitions == null) {
+      boolean hasIrrelevantTransitions = false;
 
-      if (transRelevantForActiveProps) {
-        relevantTransitions.add(trans);
+      if (state.getInternalState().equals(AutomatonInternalState.INACTIVE)
+          || state.getInternalState().equals(AutomatonInternalState.INTERMEDIATEINACTIVE)) {
+
+        // All outgoing transitions of the state "INACTIVE" are considered to be relevant.
+        relevantTransitions = state.getLeavingTransitions();
+
       } else {
-        hasIrrelevantTransitions = true;
+        relevantTransitions = Lists.newArrayListWithExpectedSize(state.getLeavingTransitions().size());
+
+        for (AutomatonTransition trans: state.getLeavingTransitions()) {
+
+          ImmutableSet<? extends SafetyProperty> transProps = a.getIsRelevantForProperties(trans);
+          final boolean transRelevantForActiveProps = !(pi.getBlacklist().containsAll(transProps));
+
+          if (transRelevantForActiveProps) {
+            relevantTransitions.add(trans);
+          } else {
+            hasIrrelevantTransitions = true;
+          }
+        }
+      }
+
+      if (hasIrrelevantTransitions) {
+        relevanTransCache.put(state.getInternalState(), pi, relevantTransitions);
+      } else {
+        relevanTransCache.put(state.getInternalState(), pi, state.getLeavingTransitions());
       }
     }
 
-    if (hasIrrelevantTransitions) {
-      ImmutableList<AutomatonTransition> remainingTrans = relevantTransitions.build();
-
+    if (relevantTransitions.size() != state.getLeavingTransitions().size()) {
       final AutomatonState adjustedState = AutomatonState.automatonStateFactory(
-          state.getVars(), state.getInternalState(), remainingTrans,
+          state.getVars(), state.getInternalState(), relevantTransitions,
           state.getAutomatonCPA(),
           state.getAssumptions(),
           state.getShadowCode(),
