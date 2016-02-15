@@ -19,7 +19,7 @@
      The time limit used for evaluation was 9 minutes to ensure computation of certificate partitioning and
      if enabled computation of partial certificate within time limit.
 -->
-<benchmark tool="cpachecker" timelimit="540" memlimit="3500">
+<benchmark tool="cpachecker" timelimit="540 s" memlimit="3500 MB">
 <option name="-heap">2500M</option>
 <option name="-noout"/>
 <option name="-disable-java-assertions"/>

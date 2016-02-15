@@ -42,11 +42,11 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGUnknownValue;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 
 /**
@@ -132,7 +132,7 @@ public class ValueAnalysisSMGCommunicator {
       LValueAssignmentVisitor visitor = smgEvaluator.getLValueAssignmentVisitor(cfaEdge, smgState);
 
       try {
-        value = pOperand.accept(visitor).getObject();
+        value = pOperand.accept(visitor).get(0).getObject();
       } catch (CPATransferException e) {
         if (e instanceof UnrecognizedCCodeException) {
           throw (UnrecognizedCCodeException) e;

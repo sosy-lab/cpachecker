@@ -35,7 +35,7 @@ import java_cup.runtime.SymbolFactory;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.Type;
@@ -114,7 +114,6 @@ parser code {:
 /* Predefined Symbols */
 terminal String DECLAREFUN, DEFINEFUN, ASSERT;
 terminal String SYMBOL, NUMERAL, DECIMAL;
-terminal String STRING;
 terminal String LPAR, RPAR;
 
 non terminal String symbol, numeral;

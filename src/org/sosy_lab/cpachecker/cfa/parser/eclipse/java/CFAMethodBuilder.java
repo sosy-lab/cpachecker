@@ -66,7 +66,6 @@ import org.eclipse.jdt.core.dom.SwitchCase;
 import org.eclipse.jdt.core.dom.SwitchStatement;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 import org.eclipse.jdt.core.dom.WhileStatement;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -117,6 +116,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JConstructorType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.Pair;
 
 /**
  * Builder to traverse AST.
@@ -314,8 +314,7 @@ class CFAMethodBuilder extends ASTVisitor {
   }
 
 
-  private void handleReturnFromObject(FileLocation fileloc,
-                                       String rawSignature, ITypeBinding cb) {
+  private void handleReturnFromObject(FileLocation fileloc, ITypeBinding cb) {
 
     assert cb.isClass() : cb.getName() + " is no Object Return";
 
@@ -343,12 +342,10 @@ class CFAMethodBuilder extends ASTVisitor {
     if (declaration.isConstructor()) {
       FileLocation fileloc = astCreator.getFileLocation(declaration);
 
-      String rawSignature = declaration.toString();
-
       ITypeBinding declaringClass =
           declaration.resolveBinding().getDeclaringClass();
 
-      handleReturnFromObject(fileloc, rawSignature, declaringClass);
+      handleReturnFromObject(fileloc, declaringClass);
     }
 
     handleEndVisitMethodDeclaration();
@@ -2462,7 +2459,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     addNonStaticFieldMember();
 
     //TODO insertFileOfType
-    handleReturnFromObject(FileLocation.DUMMY, classBinding.getName(), classBinding);
+    handleReturnFromObject(FileLocation.DUMMY, classBinding);
     handleEndVisitMethodDeclaration();
   }
 
@@ -2550,7 +2547,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
     addSuperInvocation(pSuperConstructorToInvoke, parametersAsIdExpressions);
 
-    handleReturnFromObject(FileLocation.DUMMY, pClassToCreateFor.getName(), pClassToCreateFor);
+    handleReturnFromObject(FileLocation.DUMMY, pClassToCreateFor);
     handleEndVisitMethodDeclaration();
   }
 

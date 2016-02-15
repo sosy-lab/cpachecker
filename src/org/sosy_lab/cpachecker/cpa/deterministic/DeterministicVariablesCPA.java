@@ -26,9 +26,6 @@ package org.sosy_lab.cpachecker.cpa.deterministic;
 import java.io.PrintStream;
 import java.util.Collection;
 
-import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -62,12 +59,10 @@ public class DeterministicVariablesCPA implements ConfigurableProgramAnalysis, S
     return AutomaticCPAFactory.forType(DeterministicVariablesCPA.class);
   }
 
-  private DeterministicVariablesCPA(final Configuration pConfig,
-      final ShutdownNotifier pShutdownNotifier)
-          throws InvalidConfigurationException {
+  private DeterministicVariablesCPA() {
 
     domain   = DelegateAbstractDomain.<DeterministicVariablesState>getInstance();
-    transfer = new DeterministicVariablesTransferRelation(pConfig);
+    transfer = new DeterministicVariablesTransferRelation();
     merge    = new MergeJoinOperator(domain);
     stop     = new StopSepOperator(domain);
   }

@@ -31,7 +31,7 @@ import java.io.PrintStream;
 import java.util.Map;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.common.configuration.Configuration;
@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentEx
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofGenerator;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 import com.google.common.base.Strings;
@@ -93,7 +94,8 @@ public class CPAMain {
     cpaConfig.enableLogging(logManager);
 
     // create everything
-    ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
+    final ShutdownManager shutdownManager = ShutdownManager.create();
+    final ShutdownNotifier shutdownNotifier = shutdownManager.getNotifier();
     CPAchecker cpachecker = null;
     ProofGenerator proofGenerator = null;
     ResourceLimitChecker limits = null;
@@ -105,10 +107,10 @@ public class CPAMain {
       }
       dumpConfiguration(options, cpaConfig, logManager);
 
-      limits = ResourceLimitChecker.fromConfiguration(cpaConfig, logManager, shutdownNotifier);
+      limits = ResourceLimitChecker.fromConfiguration(cpaConfig, logManager, shutdownManager);
       limits.start();
 
-      cpachecker = new CPAchecker(cpaConfig, logManager, shutdownNotifier);
+      cpachecker = new CPAchecker(cpaConfig, logManager, shutdownManager);
       if (options.doPCC) {
         proofGenerator = new ProofGenerator(cpaConfig, logManager, shutdownNotifier);
       }
@@ -119,7 +121,7 @@ public class CPAMain {
     }
 
     // This is for shutting down when Ctrl+C is caught.
-    ShutdownHook shutdownHook = new ShutdownHook(shutdownNotifier);
+    ShutdownHook shutdownHook = new ShutdownHook(shutdownManager);
     Runtime.getRuntime().addShutdownHook(shutdownHook);
 
     // This is for actually forcing a termination when CPAchecker
@@ -321,6 +323,7 @@ public class CPAMain {
     // setup output streams
     PrintStream console = options.printStatistics ? System.out : null;
     OutputStream file = null;
+    @SuppressWarnings("resource") // not necessary for Closer, it handles this itself
     Closer closer = Closer.create();
 
     if (options.exportStatistics && options.exportStatisticsFile != null) {

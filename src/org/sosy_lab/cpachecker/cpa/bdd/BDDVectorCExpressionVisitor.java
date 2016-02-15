@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
 /**
  * This Visitor implements evaluation of simply typed expressions.
@@ -137,7 +137,7 @@ public class BDDVectorCExpressionVisitor
       case BINARY_OR:
       case BINARY_XOR: {
 
-        result = arithmeticOperation(lVal, rVal, bvmgr, binaryOperator, calculationType, machineModel);
+        result = arithmeticOperation(lVal, rVal, bvmgr, binaryOperator);
         result = castCValue(result, binaryExpr.getExpressionType(), bvmgr, machineModel);
 
         break;
@@ -150,7 +150,7 @@ public class BDDVectorCExpressionVisitor
       case LESS_THAN:
       case LESS_EQUAL: {
 
-        final Region tmp = booleanOperation(lVal, rVal, bvmgr, binaryOperator, calculationType, machineModel);
+        final Region tmp = booleanOperation(lVal, rVal, bvmgr, binaryOperator, calculationType);
         // return 1 if expression holds, 0 otherwise
 
         int size = 32;
@@ -177,8 +177,7 @@ public class BDDVectorCExpressionVisitor
   }
 
   private static Region[] arithmeticOperation(final Region[] l, final Region[] r, final BitvectorManager bvmgr,
-                                              final BinaryOperator op, final CType calculationType,
-                                              final MachineModel machineModel) {
+                                              final BinaryOperator op) {
 
     switch (op) {
       case PLUS:
@@ -209,8 +208,7 @@ public class BDDVectorCExpressionVisitor
   }
 
   protected static Region booleanOperation(final Region[] l, final Region[] r, final BitvectorManager bvmgr,
-                                         final BinaryOperator op, final CType calculationType,
-                                         final MachineModel machineModel) {
+                                         final BinaryOperator op, final CType calculationType) {
 
     boolean signed = true;
     if (calculationType instanceof CSimpleType) {

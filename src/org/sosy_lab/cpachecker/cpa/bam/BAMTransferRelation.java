@@ -36,9 +36,7 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -66,6 +64,8 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Triple;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
@@ -210,13 +210,23 @@ public class BAMTransferRelation implements TransferRelation {
     return result;
   }
 
-  /** When a block-start-location is reached, we start a new sub-analysis for the entered block. */
+  /**
+   * When a block-start-location is reached, we start a new sub-analysis for the entered block.
+   *
+   * @param pState the abstract state at the location
+   * @param node the node of the location
+   */
   protected boolean startNewBlockAnalysis(final AbstractState pState, final CFANode node) {
     return partitioning.isCallNode(node) && !partitioning.getBlockForCallNode(node).equals(currentBlock);
   }
 
-  /** When finding a block-exit-location, we do not return any further states.
-   * This stops the current running CPA-algorithm, when its waitlist is emtpy. */
+  /**
+   * When finding a block-exit-location, we do not return any further states.
+   * This stops the current running CPA-algorithm, when its waitlist is emtpy.
+   *
+   * @param pState the abstract state at the location
+   * @param node the node of the location
+   */
   protected boolean exitBlockAnalysis(final AbstractState pState, final CFANode node) {
     return currentBlock != null && currentBlock.isReturnNode(node);
   }
@@ -411,7 +421,14 @@ public class BAMTransferRelation implements TransferRelation {
     return imbueAbstractStatesWithPrecision(reached, statesForFurtherAnalysis);
   }
 
-  /** We try to get a smaller set of states for further analysis. */
+  /**
+   * We try to get a smaller set of states for further analysis.
+   *
+   * @param reducedResult the result states
+   * @param cachedReturnStates the cached return states
+   * @throws CPAException may be thrown in subclass
+   * @throws InterruptedException may be thrown in subclass
+   */
   protected Collection<AbstractState> filterResultStatesForFurtherAnalysis(
       final Collection<AbstractState> reducedResult, final Collection<AbstractState> cachedReturnStates)
           throws CPAException, InterruptedException {

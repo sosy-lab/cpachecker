@@ -132,7 +132,7 @@ public class SMG {
   }
 
   /**
-   * Add an object {@link pObj} to the SMG.
+   * Add an object to the SMG.
    *
    * Keeps consistency: no.
    *
@@ -144,7 +144,7 @@ public class SMG {
   }
 
   /**
-   * Remove {@link pValue} from the SMG. This method does not remove
+   * Remove pValue from the SMG. This method does not remove
    * any edges leading from/to the removed value.
    *
    * Keeps consistency: no
@@ -156,7 +156,7 @@ public class SMG {
     neq.removeValue(pValue);
   }
   /**
-   * Remove {@link pObj} from the SMG. This method does not remove
+   * Remove pObj from the SMG. This method does not remove
    * any edges leading from/to the removed object.
    *
    * Keeps consistency: no
@@ -170,7 +170,7 @@ public class SMG {
   }
 
   /**
-   * Remove {@link pObj} and all edges leading from/to it from the SMG
+   * Remove pObj and all edges leading from/to it from the SMG
    *
    * Keeps consistency: no
    *
@@ -194,7 +194,7 @@ public class SMG {
   }
 
   /**
-   * Add {@link pObj} object to the SMG, with validity set to {@link pValidity}.
+   * Add pObj object to the SMG, with validity set to pValidity.
    *
    * Keeps consistency: no.
    *
@@ -208,7 +208,7 @@ public class SMG {
   }
 
   /**
-   * Add {@link pValue} value to the SMG.
+   * Add pValue value to the SMG.
    *
    * Keeps consistency: no.
    *
@@ -219,7 +219,7 @@ public class SMG {
   }
 
   /**
-   * Add {@link pEdge} Points-To edge to the SMG.
+   * Add pEdge Points-To edge to the SMG.
    *
    * Keeps consistency: no.
    *
@@ -230,7 +230,7 @@ public class SMG {
   }
 
   /**
-   * Add {@link pEdge} Has-Value edge to the SMG.
+   * Add pEdge Has-Value edge to the SMG.
    *
    * Keeps consistency: no
    *
@@ -241,7 +241,7 @@ public class SMG {
   }
 
   /**
-   * Remove {@link pEdge} Has-Value edge from the SMG.
+   * Remove pEdge Has-Value edge from the SMG.
    *
    * Keeps consistency: no
    *
@@ -252,7 +252,7 @@ public class SMG {
   }
 
   /**
-   * Remove the Points-To edge from the SMG with the value {@link pValue} as Source.
+   * Remove the Points-To edge from the SMG with the value pValue as Source.
    *
    * Keeps consistency: no
    *
@@ -263,13 +263,13 @@ public class SMG {
   }
 
   /**
-   * Sets the validity of the object {@link pObject} to {@link pValidity}.
-   * Throws {@link IllegalArgumentException} if {@link pObject} is
+   * Sets the validity of the object pObject to pValidity.
+   * Throws {@link IllegalArgumentException} if pObject is
    * not present in SMG.
    *
    * Keeps consistency: no
    *
-   * @param pObj An object.
+   * @param pObject An object.
    * @param pValidity Validity to set.
    */
   public void setValidity(SMGObject pObject, boolean pValidity) {
@@ -293,10 +293,6 @@ public class SMG {
 
   /**
    * Adds a neq relation between two values to the SMG
-   *
-   * @param pV1
-   * @param pV2
-   *
    * Keeps consistency: no
    */
   public void addNeqRelation(Integer pV1, Integer pV2) {
@@ -390,14 +386,14 @@ public class SMG {
   }
 
   /**
-   * Getter for obtaining an object, pointed by a value {@link pValue}. Constant.
+   * Getter for obtaining an object, pointed by a value pValue. Constant.
    *
    * @param pValue An origin value.
-   * @return The object pointed by the value {@link pValue}, if such exists.
-   * Null, if {@link pValue} does not point to any
+   * @return The object pointed by the value pValue, if such exists.
+   * Null, if pValue does not point to any
    * object.
    *
-   * Throws {@link IllegalArgumentException} if {@link pValue} is
+   * Throws {@link IllegalArgumentException} if pValue is
    * not present in the SMG.
    *
    * TODO: Test
@@ -416,12 +412,12 @@ public class SMG {
   }
 
   /**
-   * Getter for determining if the object {@link pObject} is valid. Constant.
-   * Throws {@link IllegalArgumentException} if {@link pObject} is
+   * Getter for determining if the object pObject is valid. Constant.
+   * Throws {@link IllegalArgumentException} if pObject is
    * not present in the SMG.
    *
    * @param pObject An object.
-   * @return True if {@link pObject} is valid, False if it is invalid.
+   * @return True if Object is valid, False if it is invalid.
    */
   final public boolean isObjectValid(SMGObject pObject) {
     if ( ! objects.contains(pObject)) {
@@ -468,7 +464,7 @@ public class SMG {
    *
    * @param value the source of the {@link SMGEdgePointsTo} edge.
    * @return true, if the {@link SMGEdgePointsTo} edge with the source
-   * {@link value} exists, otherwise false.
+   * value exists, otherwise false.
    */
   public boolean isPointer(Integer value) {
     return pt_edges.containsKey(value);
@@ -480,7 +476,7 @@ public class SMG {
    *
    * @param value the source of the {@link SMGEdgePointsTo} edge.
    * @return the {@link SMGEdgePointsTo} edge with the
-   * {@link value} as source.
+   * value as source.
    */
   public SMGEdgePointsTo getPointer(Integer value) {
     return pt_edges.get(value);

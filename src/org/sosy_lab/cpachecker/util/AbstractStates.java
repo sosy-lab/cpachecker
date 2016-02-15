@@ -28,18 +28,20 @@ import static com.google.common.collect.FluentIterable.from;
 
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -121,10 +123,27 @@ public final class AbstractStates {
     return e == null ? null : e.getLocationNode();
   }
 
+  public static Iterable<CFANode> extractLocations(AbstractState pState) {
+    AbstractStateWithLocations e = extractStateByType(pState, AbstractStateWithLocations.class);
+    return e == null ? null : e.getLocationNodes();
+  }
+
+  public static Iterable<CFAEdge> getOutgoingEdges(AbstractState pState) {
+    return extractStateByType(pState, AbstractStateWithLocation.class).getOutgoingEdges();
+  }
+
   public static final Function<AbstractState, CFANode> EXTRACT_LOCATION = new Function<AbstractState, CFANode>() {
     @Override
     public CFANode apply(AbstractState pArg0) {
       return extractLocation(pArg0);
+    }
+  };
+
+  public static final Function<AbstractState, Iterable<CFANode>> EXTRACT_LOCATIONS =
+      new Function<AbstractState, Iterable<CFANode>>() {
+    @Override
+    public Iterable<CFANode> apply(AbstractState pArg0) {
+      return extractLocations(pArg0);
     }
   };
 

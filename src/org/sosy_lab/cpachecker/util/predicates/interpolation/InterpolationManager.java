@@ -43,10 +43,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -57,21 +55,15 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.VariableClassification;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.ITPStrategy;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.NestedInterpolation;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.SequentialInterpolation;
@@ -79,12 +71,17 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.Sequential
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.TreeInterpolation;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.TreeInterpolationWithSolver;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.WellScopedInterpolation;
-import org.sosy_lab.solver.Model;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BasicProverEnvironment;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
+import org.sosy_lab.solver.api.Model.ValueAssignment;
 import org.sosy_lab.solver.api.ProverEnvironment;
+import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
@@ -104,7 +101,7 @@ public final class InterpolationManager {
   private final Timer interpolantVerificationTimer = new Timer();
   private int reusedFormulasOnSolverStack = 0;
 
-  public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+  public void printStatistics(PrintStream out) {
     out.println("  Counterexample analysis:            " + cexAnalysisTimer + " (Max: " + cexAnalysisTimer.getMaxTime().formatAs(TimeUnit.SECONDS) + ", Calls: " + cexAnalysisTimer.getNumberOfIntervals() + ")");
     if (cexAnalysisGetUsefulBlocksTimer.getNumberOfIntervals() > 0) {
       out.println("    Cex.focusing:                     " + cexAnalysisGetUsefulBlocksTimer + " (Max: " + cexAnalysisGetUsefulBlocksTimer.getMaxTime().formatAs(TimeUnit.SECONDS) + ")");
@@ -221,10 +218,6 @@ public final class InterpolationManager {
     }
   }
 
-  public Appender dumpCounterexample(CounterexampleTraceInfo cex) {
-    return fmgr.dumpFormula(bfmgr.and(cex.getCounterExampleFormulas()));
-  }
-
   /**
    * Counterexample analysis.
    * This method is just an helper to delegate the actual work
@@ -235,8 +228,6 @@ public final class InterpolationManager {
    *                           The first state (root) of the path is missing, because it is always TRUE.
    *                           (can be empty, if well-scoped interpolation is disabled or not required)
    * @param elementsOnPath the ARGElements on the path (may be empty if no branching information is required)
-   * @throws CPAException
-   * @throws InterruptedException
    */
   public CounterexampleTraceInfo buildCounterexampleTrace(
       final List<BooleanFormula> pFormulas,
@@ -356,7 +347,7 @@ public final class InterpolationManager {
 
         // Maybe the solver can handle the formulas if we do not attempt to interpolate
         timer4.start();
-        try (ProverEnvironment prover = solver.newProverEnvironmentWithModelGeneration()) {
+        try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
           for (BooleanFormula block : f) {
             prover.push(block);
           }
@@ -602,8 +593,6 @@ public final class InterpolationManager {
    * @param pProver The solver.
    * @param elementsOnPath The ARGElements of the paths represented by f.
    * @return Information about the error path, including a satisfying assignment.
-   * @throws CPATransferException
-   * @throws InterruptedException
    */
   private CounterexampleTraceInfo getErrorPath(List<BooleanFormula> f,
       BasicProverEnvironment<?> pProver, Set<ARGState> elementsOnPath)
@@ -615,7 +604,8 @@ public final class InterpolationManager {
     BooleanFormula branchingFormula = pmgr.buildBranchingFormula(elementsOnPath);
 
     if (bfmgr.isTrue(branchingFormula)) {
-      return CounterexampleTraceInfo.feasible(f, RichModel.of(getModel(pProver)), ImmutableMap.<Integer, Boolean>of());
+      return CounterexampleTraceInfo.feasible(
+          f, getModel(pProver), ImmutableMap.<Integer, Boolean>of());
     }
 
     // add formula to solver environment
@@ -626,8 +616,9 @@ public final class InterpolationManager {
     boolean stillSatisfiable = !pProver.isUnsat();
 
     if (stillSatisfiable) {
-      Model model = getModel(pProver);
-      return CounterexampleTraceInfo.feasible(f, RichModel.of(model), pmgr.getBranchingPredicateValuesFromModel(model));
+      List<ValueAssignment> model = getModel(pProver);
+      return CounterexampleTraceInfo.feasible(
+          f, model, pmgr.getBranchingPredicateValuesFromModel(model));
 
     } else {
       // this should not happen
@@ -636,18 +627,18 @@ public final class InterpolationManager {
       dumpInterpolationProblem(f);
       dumpFormulaToFile("formula", branchingFormula, f.size());
 
-      return CounterexampleTraceInfo.feasible(f, RichModel.empty(),
-          ImmutableMap.<Integer, Boolean>of());
+      return CounterexampleTraceInfo.feasible(
+          f, ImmutableList.<ValueAssignment>of(), ImmutableMap.<Integer, Boolean>of());
     }
   }
 
-  private Model getModel(BasicProverEnvironment<?> pItpProver) {
+  private List<ValueAssignment> getModel(BasicProverEnvironment<?> pItpProver) {
     try {
-      return pItpProver.getModel();
+      return ImmutableList.copyOf(pItpProver.getModel());
     } catch (SolverException e) {
       logger.log(Level.WARNING, "Solver could not produce model, variable assignment of error path can not be dumped.");
       logger.logDebugException(e);
-      return Model.empty();
+      return ImmutableList.of();
     }
   }
 
@@ -682,7 +673,6 @@ public final class InterpolationManager {
    *
    * When an instance won't be used anymore, call {@link #close()}.
    *
-   * @param <T>
    */
   public class Interpolator<T> {
 
@@ -705,7 +695,6 @@ public final class InterpolationManager {
      * @param f the formulas for the path
      * @param elementsOnPath the ARGElements on the path (may be empty if no branching information is required)
      * @return counterexample info with predicated information
-     * @throws CPAException
      */
     private CounterexampleTraceInfo buildCounterexampleTrace(
         List<BooleanFormula> f,
@@ -805,10 +794,8 @@ public final class InterpolationManager {
      * list that is used if {@link #reuseInterpolationEnvironment} is enabled.
      *
      * @param traceFormulas The list of formulas to check, each formula with its index of where it should be added in the list of interpolation groups.
-     * @param itpGroupsIds The list where to store the references to the interpolation groups. This is just a list of 'identifiers' for the formulas.
-     * @param itpProver The solver to use.
+     * @param formulasWithStatesAndGroupdIds The list where to store the references to the interpolation groups. This is just a list of 'identifiers' for the formulas.
      * @return True if the formulas are unsatisfiable.
-     * @throws InterruptedException
      */
     private boolean checkInfeasabilityOfTrace(
         final List<Triple<BooleanFormula, AbstractState, Integer>> traceFormulas,

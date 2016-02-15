@@ -28,11 +28,13 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -89,8 +91,11 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
   @Option(secure=true, description="at most that many intervals will be tracked per variable, -1 if number not restricted")
   private int threshold = -1;
 
-  public IntervalAnalysisTransferRelation(Configuration config) throws InvalidConfigurationException {
+  private final LogManager logger;
+
+  public IntervalAnalysisTransferRelation(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this);
+    logger = pLogger;
   }
 
   @Override
@@ -123,8 +128,7 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
   /**
    * Handles return from one function to another function.
    *
-   * @param state previous abstract state.
-   * @param functionReturnEdge return edge from a function to its call site.
+   * @param cfaEdge return edge from a function to its call site.
    * @return new abstract state.
    */
   @Override
@@ -159,20 +163,26 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
   /**
    * This method handles function calls.
    *
-   * @param previousState the previous state of the analysis, before the function call
    * @param callEdge the respective CFA edge
    * @return the successor state
-   * @throws UnrecognizedCCodeException
    */
   @Override
   protected Collection<IntervalAnalysisState> handleFunctionCallEdge(CFunctionCallEdge callEdge,
       List<CExpression> arguments, List<CParameterDeclaration> parameters,
       String calledFunctionName) throws UnrecognizedCCodeException {
-    assert (parameters.size() == arguments.size());
+
+    if (callEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs()) {
+      assert parameters.size() <= arguments.size();
+      logger.log(Level.WARNING, "Ignoring parameters passed as varargs to function",
+          callEdge.getSuccessor().getFunctionDefinition().toASTString());
+    } else {
+      assert parameters.size() == arguments.size();
+    }
+
     IntervalAnalysisState newState = IntervalAnalysisState.copyOf(state);
 
     // set the interval of each formal parameter to the interval of its respective actual parameter
-    for (int i = 0; i < arguments.size(); i++) {
+    for (int i = 0; i < parameters.size(); i++) {
       // get value of actual parameter in caller function context
       Interval interval = evaluateInterval(state, arguments.get(i));
       String formalParameterName = parameters.get(i).getQualifiedName();
@@ -185,9 +195,7 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
   /**
    * This method handles the statement edge which leads the function to the last node of its CFA (not same as a return edge).
    *
-   * @param state the analysis state
-   * @param expression the expression
-   * @param CReturnStatementEdge the CFA edge corresponding to this statement
+   * @param returnEdge the CFA edge corresponding to this statement
    * @return the successor states
    */
   @Override
@@ -210,7 +218,6 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
   /**
    * This method handles assumptions.
    *
-   * @param state the analysis state
    * @param expression the expression containing the assumption
    * @param cfaEdge the CFA edge corresponding to this expression
    * @param truthValue flag to determine whether this is the then- or the else-branch of the assumption
@@ -366,7 +373,7 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
   /**
    * This method return the negated counter part for a given operator
    *
-   * @param operator
+   * @param operator the operator to negate
    * @return the negated counter part of the given operator
    */
   private static BinaryOperator negateOperator(BinaryOperator operator) {
@@ -399,7 +406,6 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
    *
    * So far, only primitive types are supported, pointers are not supported either.
    *
-   * @param state the analysis state
    * @param declarationEdge the CFA edge
    * @return the successor state
    */
@@ -436,7 +442,6 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
   /**
    * This method handles unary and binary statements.
    *
-   * @param state the analysis state
    * @param expression the current expression
    * @param cfaEdge the CFA edge
    * @return the successor

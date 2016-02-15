@@ -34,7 +34,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -352,14 +352,14 @@ public class LiveVariables {
     // be chosen later on
     LiveVariablesConfiguration liveVarConfig = new LiveVariablesConfiguration(config);
 
-    ShutdownNotifier liveVarsNotifier = ShutdownNotifier.createWithParent(shutdownNotifier);
+    ShutdownManager liveVarsShutdown = ShutdownManager.createWithParent(shutdownNotifier);
     List<ResourceLimit> limits;
     if (liveVarConfig.overallLivenessCheckTime.isEmpty()) {
       limits = Collections.emptyList();
     } else {
       limits = Collections.singletonList((ResourceLimit)WalltimeLimit.fromNowOn(liveVarConfig.overallLivenessCheckTime));
     }
-    ResourceLimitChecker limitChecker = new ResourceLimitChecker(liveVarsNotifier, limits);
+    ResourceLimitChecker limitChecker = new ResourceLimitChecker(liveVarsShutdown, limits);
 
     limitChecker.start();
     LiveVariables liveVarObject = create0(variableClassification.orNull(), globalsList, logger, shutdownNotifier, cfa, liveVarConfig);
@@ -390,16 +390,16 @@ public class LiveVariables {
       throw new AssertionError("Unhandled case statement: " + config.evaluationStrategy);
     }
 
-    ShutdownNotifier liveVarsNotifier = ShutdownNotifier.createWithParent(shutdownNotifier);
+    ShutdownManager liveVarsShutdown = ShutdownManager.createWithParent(shutdownNotifier);
     List<ResourceLimit> limits;
     if (config.partwiseLivenessCheckTime.isEmpty()) {
       limits = Collections.emptyList();
     } else {
       limits = Collections.singletonList((ResourceLimit)WalltimeLimit.fromNowOn(config.partwiseLivenessCheckTime));
     }
-    ResourceLimitChecker limitChecker = new ResourceLimitChecker(liveVarsNotifier, limits);
+    ResourceLimitChecker limitChecker = new ResourceLimitChecker(liveVarsShutdown, limits);
 
-    Optional<AnalysisParts> parts = getNecessaryAnalysisComponents(cfa, logger, liveVarsNotifier, config.evaluationStrategy);
+    Optional<AnalysisParts> parts = getNecessaryAnalysisComponents(cfa, logger, liveVarsShutdown.getNotifier(), config.evaluationStrategy);
     Multimap<CFANode, Wrapper<ASimpleDeclaration>> liveVariables = null;
 
     limitChecker.start();
@@ -525,8 +525,7 @@ public class LiveVariables {
         default: throw new AssertionError("Unhandled case statement: " + evaluationStrategy);
       }
 
-      ReachedSetFactory reachedFactory = new ReachedSetFactory(config,
-                                                               logger);
+      ReachedSetFactory reachedFactory = new ReachedSetFactory(config);
       ConfigurableProgramAnalysis cpa = new CPABuilder(config,
                                                        logger,
                                                        shutdownNotifier,

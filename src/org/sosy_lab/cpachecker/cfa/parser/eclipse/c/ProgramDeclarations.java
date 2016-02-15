@@ -33,7 +33,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -51,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -117,7 +117,6 @@ public class ProgramDeclarations {
   /**
    * Tries to complete all elaborated types either with the type from the parameter
    * or if this is already renamed with the complete type that is not renamed
-   * @param type
    */
   private void completeElaboratedTypes(CComplexType type) {
     // this is a renamed type we cannot use it as realType because
@@ -182,7 +181,6 @@ public class ProgramDeclarations {
    *
    * @param typeName the exact typeName that should be found
    * @param origName the origName that is ok to be found if no exact match occured before
-   * @return
    */
   public CComplexType lookupType(String typeName, String origName) {
     CComplexTypeDeclaration returnType = types.get(typeName);
@@ -314,11 +312,6 @@ public class ProgramDeclarations {
   /**
    * This method checks the equality of two types (with regards to fields inside
    * of structs).
-   *
-   * @param type1
-   * @param type2
-   * @param compareWithNameOfType In case of an anonymous struct field the
-   * @return
    */
   private static boolean areEqualTypes(CType type1, CType type2) {
     return areEqualTypes(type1, type2, new HashMap<Pair<CType, CType>, Boolean>());

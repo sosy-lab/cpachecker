@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -68,11 +69,6 @@ public abstract class VariableTrackingPrecision implements Precision {
    * This method creates a precision which cannot be refined, all decisions about
    * the tracking of variables depend on the configuration options and the variable
    * classification.
-   *
-   * @param config
-   * @param vc the variable classification that should be used
-   * @return
-   * @throws InvalidConfigurationException
    */
   public static VariableTrackingPrecision createStaticPrecision(Configuration config, Optional<VariableClassification> vc, Class<? extends ConfigurableProgramAnalysis> cpaClass)
           throws InvalidConfigurationException {
@@ -105,10 +101,7 @@ public abstract class VariableTrackingPrecision implements Precision {
    * This method creates a refinable precision. The baseline should usually be
    * a static precision, where the most configuration options are handled.
    *
-   * @param config
    * @param pBaseline The precision which should be used as baseline.
-   * @return
-   * @throws InvalidConfigurationException
    */
   public static VariableTrackingPrecision createRefineablePrecision(Configuration config, VariableTrackingPrecision pBaseline) throws InvalidConfigurationException {
     Preconditions.checkNotNull(pBaseline);
@@ -168,7 +161,6 @@ public abstract class VariableTrackingPrecision implements Precision {
 
   /**
    * This method returns the size of the refinable precision, i.e., the number of elements contained.
-   * @return
    */
   public abstract int getSize();
 
@@ -176,7 +168,6 @@ public abstract class VariableTrackingPrecision implements Precision {
    * This method transforms the precision and writes it using the given writer.
    *
    * @param writer the write to write the precision to
-   * @throws IOException
    */
   public abstract void serialize(Writer writer) throws IOException;
 
@@ -192,7 +183,6 @@ public abstract class VariableTrackingPrecision implements Precision {
    * Only precisions of the same class can track the same variables.
    *
    * @param otherPrecision the precision to compare the tracking behavior
-   * @return
    */
   public abstract boolean tracksTheSameVariablesAs(VariableTrackingPrecision otherPrecision);
 
@@ -443,6 +433,20 @@ public abstract class VariableTrackingPrecision implements Precision {
           trackFloatVariables,
           trackAddressedVariables
           );
+    }
+
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(ConfigurablePrecision.class)
+          .add("CPA", cpaClass.getSimpleName())
+          .add("blacklist", variableBlacklist)
+          .add("whitelist", variableWhitelist)
+          .add("trackBooleanVariables", trackBooleanVariables)
+          .add("trackIntEqualVariables", trackIntEqualVariables)
+          .add("trackIntAddVariables", trackIntAddVariables)
+          .add("trackFloatVariables", trackFloatVariables)
+          .add("trackAddressedVariables", trackAddressedVariables)
+          .toString();
     }
 
   }

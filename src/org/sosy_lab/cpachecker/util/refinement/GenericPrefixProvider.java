@@ -30,7 +30,6 @@ import java.util.Deque;
 import java.util.List;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -48,6 +47,7 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefBasedInterpolator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.FluentIterable;
@@ -71,8 +71,6 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
    *
    * @param pLogger the logger to use
    * @param pCfa the cfa in use
-   * @param pInitial the initial state for starting the exploration
-   * @throws InvalidConfigurationException
    */
   public GenericPrefixProvider(
       final StrongestPostOperator<S> pStrongestPost,
@@ -97,7 +95,6 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
    *
    * @param path the path to check
    * @return the list of prefix of the path that are feasible by themselves
-   * @throws CPAException
    */
   @Override
   public List<InfeasiblePrefix> extractInfeasiblePrefixes(final ARGPath path)
@@ -113,7 +110,6 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
    * @param path the path to check
    * @param pInitial the initial state
    * @return the list of prefix of the path that are feasible by themselves
-   * @throws CPAException
    */
   public List<InfeasiblePrefix> extractInfeasiblePrefixes(
       final ARGPath path,
@@ -142,14 +138,8 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
         if (!successor.isPresent()) {
           logger.log(Level.FINE, "found infeasible prefix: ", outgoingEdge, " did not yield a successor");
 
-
-          // for interpolation, one transition after the infeasible transition is needed,
-          // so we add exactly that extra transition to the successor state
           ARGState lastState = path.asStatesList().get(feasiblePrefixBuilder.size());
-          CFAEdge lastEdge = path.getInnerEdges().get(feasiblePrefixBuilder.size());
-          ARGPath infeasiblePrefix = feasiblePrefixBuilder.build(lastState,
-                                                                 BlankEdge.buildNoopEdge(lastEdge.getPredecessor(),
-                                                                                         lastEdge.getSuccessor()));
+          ARGPath infeasiblePrefix = feasiblePrefixBuilder.build(lastState);
 
           // add infeasible prefix
           prefixes.add(buildInfeasiblePrefix(infeasiblePrefix));
@@ -159,9 +149,7 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
 
           // if the loop is ending after this iteration we need to set the feasible prefix
           if (!iterator.hasNext()) {
-            feasiblePrefix = feasiblePrefixBuilder.build(currentState,
-                                                          BlankEdge.buildNoopEdge(outgoingEdge.getPredecessor(),
-                                                                                  outgoingEdge.getSuccessor()));
+            feasiblePrefix = feasiblePrefixBuilder.build(currentState);
 
             // continue with feasible prefix
           } else {
@@ -213,7 +201,7 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
     UseDefRelation useDefRelation = new UseDefRelation(infeasiblePrefix,
         cfa.getVarClassification().isPresent()
             ? cfa.getVarClassification().get().getIntBoolVars()
-            : Collections.<String>emptySet());
+            : Collections.<String>emptySet(), false);
 
     List<Pair<ARGState, ValueAnalysisInterpolant>> interpolants = new UseDefBasedInterpolator(
         infeasiblePrefix,

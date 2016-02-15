@@ -1,77 +1,101 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.logging.Level;
+import java.util.concurrent.TimeUnit;
+
+import javax.annotation.Nullable;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Verify;
 
 @Options(prefix="cpa.slicing")
-public class FormulaSlicingManager implements IFormulaSlicingManager {
+public class FormulaSlicingManager implements IFormulaSlicingManager, StatisticsProvider {
+
+  /**
+   * Statistics for formula slicing.
+   */
+  private static class Stats implements Statistics {
+    final Timer formulaSlicingTimer = new Timer();
+
+    @Override
+    public void printStatistics(PrintStream out, Result result,
+        ReachedSet reached) {
+      out.printf("Time spent in formula slicing: %s (Max: %s), (Avg: %s)%n",
+          formulaSlicingTimer,
+          formulaSlicingTimer.getMaxTime().formatAs(TimeUnit.SECONDS),
+          formulaSlicingTimer.getAvgTime().formatAs(TimeUnit.SECONDS));
+    }
+
+    @Nullable
+    @Override
+    public String getName() {
+      return "Formula Slicing Manager";
+    }
+  }
+
   private final PathFormulaManager pfmgr;
   private final BooleanFormulaManager bfmgr;
   private final FormulaManagerView fmgr;
-  private final LogManager logger;
   private final CFA cfa;
   private final LoopTransitionFinder loopTransitionFinder;
   private final InductiveWeakeningManager inductiveWeakeningManager;
   private final Solver solver;
-  private final FormulaSlicingStatistics statistics;
+  private final Stats statistics;
 
   @Option(secure=true, description="Check target states reachability")
   private boolean checkTargetStates = true;
 
-  @Option(secure=true, description="Check abstract state subsumption using SMT")
-  private boolean expensiveSubsumptionCheck = true;
-
   public FormulaSlicingManager(
       Configuration config,
       PathFormulaManager pPfmgr,
-      FormulaManagerView pFmgr, LogManager pLogger,
+      FormulaManagerView pFmgr,
       CFA pCfa,
       LoopTransitionFinder pLoopTransitionFinder,
-      InductiveWeakeningManager pInductiveWeakeningManager, Solver pSolver,
-      FormulaSlicingStatistics pStatistics)
+      InductiveWeakeningManager pInductiveWeakeningManager, Solver pSolver)
       throws InvalidConfigurationException {
     config.inject(this);
     fmgr = pFmgr;
     pfmgr = pPfmgr;
-    logger = pLogger;
     cfa = pCfa;
     loopTransitionFinder = pLoopTransitionFinder;
     inductiveWeakeningManager = pInductiveWeakeningManager;
     solver = pSolver;
     bfmgr = pFmgr.getBooleanFormulaManager();
-    statistics = pStatistics;
+    statistics = new Stats();
   }
 
   @Override
@@ -93,24 +117,6 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
     return Collections.singleton(out);
   }
-
-  @Override
-  public SlicingState join(SlicingState newState,
-      SlicingState oldState) throws CPAException, InterruptedException {
-    Preconditions.checkState(oldState.isAbstracted() == newState.isAbstracted());
-
-    SlicingState out;
-    if (oldState.isAbstracted()) {
-      out = joinAbstractedStates(oldState.asAbstracted(),
-          newState.asAbstracted());
-    } else {
-      out = joinIntermediateStates(oldState.asIntermediate(),
-          newState.asIntermediate());
-    }
-
-    return out;
-  }
-
 
   /**
    * Slicing is performed in the {@code strengthen} call.
@@ -264,17 +270,12 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
         return true;
       }
 
-      if (expensiveSubsumptionCheck) {
-        try {
-          return isLessOrEqual(
-              pState1.asAbstracted().getAbstraction(),
-              pState2.asAbstracted().getAbstraction()
-          );
-        } catch (SolverException e) {
-          throw new CPAException("Solver failed on a query", e);
-        }
-      } else {
-        return true;
+      try {
+        return isLessOrEqual(
+                pState1.asAbstracted().getAbstraction(),
+                pState2.asAbstracted().getAbstraction());
+      } catch (SolverException e) {
+        throw new CPAException("Solver failed on a query", e);
       }
     }
   }
@@ -291,8 +292,12 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
   private SlicingIntermediateState joinIntermediateStates(
       SlicingIntermediateState newState,
       SlicingIntermediateState oldState) throws InterruptedException {
-    Preconditions.checkState(newState.getAbstractParent().equals(
-        oldState.getAbstractParent()));
+
+    if (!newState.getAbstractParent().equals(oldState.getAbstractParent())) {
+
+      // No merge.
+      return oldState;
+    }
 
     if (newState.isMergedInto(oldState)) {
       return oldState;
@@ -313,41 +318,6 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     oldState.setMergedInto(out);
     return out;
   }
-
-  private SlicingState joinAbstractedStates(
-      SlicingAbstractedState newState,
-      SlicingAbstractedState oldState) throws InterruptedException {
-    Preconditions.checkState(newState.getNode() == oldState.getNode());
-
-    // The only state with a generating state not being present
-    // is the initial one, and that should not be merged.
-    Preconditions.checkState(newState.getGeneratingState().isPresent() &&
-        oldState.getGeneratingState().isPresent());
-
-    if (newState.getAbstraction().equals(bfmgr.makeBoolean(false))
-        || newState.getAbstraction().equals(oldState.getAbstraction())
-        || oldState == newState) {
-      return oldState;
-    }
-    if (oldState.getAbstraction().equals(bfmgr.makeBoolean(false))) {
-      return newState;
-    }
-    logger.log(Level.INFO, "Joining abstracted states",
-        "this should be quite rare");
-
-    return SlicingAbstractedState.of(
-        fmgr.simplify(bfmgr.or(newState.getAbstraction(),
-            oldState.getAbstraction())),
-        oldState.getSSA(),
-        oldState.getPointerTargetSet(),
-        fmgr,
-        newState.getNode(),
-
-        // todo: this might not be valid if they both are not coming from the loop.
-        oldState.getGeneratingState()
-    );
-  }
-
 
   private SlicingIntermediateState abstractStateToIntermediate(
       SlicingAbstractedState pSlicingAbstractedState) {
@@ -417,5 +387,25 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
     return Optional.of(PrecisionAdjustmentResult.create(
         pState, SingletonPrecision.getInstance(), Action.CONTINUE));
+  }
+
+  @Override
+  public SlicingState merge(SlicingState pState1, SlicingState pState2) throws InterruptedException {
+    Preconditions.checkState(pState1.isAbstracted() == pState2.isAbstracted());
+
+    if (pState1.isAbstracted()) {
+
+      // No merge.
+      return pState2;
+    } else {
+      SlicingIntermediateState iState1 = pState1.asIntermediate();
+      SlicingIntermediateState iState2 = pState2.asIntermediate();
+      return joinIntermediateStates(iState1, iState2);
+    }
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(statistics);
   }
 }

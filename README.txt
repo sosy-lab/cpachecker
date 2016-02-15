@@ -29,8 +29,8 @@ Verifying a Program with CPAchecker
    If you use your own program, remember to pre-process it as mentioned above.
    Example: doc/examples/example.c
    A good source for more example programs is the benchmark set of the
-   TACAS 2013 Competition on Software Verification (http://sv-comp.sosy-lab.org/),
-   which can be checked out from https://svn.sosy-lab.org/software/sv-benchmarks/trunk.
+   International Competition on Software Verification (http://sv-comp.sosy-lab.org/),
+   which can be checked out from https://github.com/sosy-lab/sv-benchmarks.
 
 2. If you want to enable certain analyses like predicate analysis,
    choose a configuration file. This file defines for example which CPAs are used.

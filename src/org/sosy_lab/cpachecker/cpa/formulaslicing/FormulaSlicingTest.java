@@ -91,8 +91,6 @@ public class FormulaSlicingTest {
         .put("analysis.traversal.order", "bfs")
         .put("analysis.traversal.useCallstack", "true")
         .put("analysis.traversal.useReversePostorder", "true")
-
-        // To make debugging easier.
         .put("cpa.predicate.ignoreIrrelevantVariables", "false")
 
         .put("log.consoleLevel", "FINE")

@@ -23,83 +23,310 @@
  */
 package org.sosy_lab.cpachecker.util.refinement;
 
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
-import java.util.Set;
+import java.util.TreeSet;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
-import com.google.common.base.Function;
 import com.google.common.base.Optional;
-import com.google.common.collect.Iterables;
 
 public class PrefixSelector {
 
   private final Optional<VariableClassification> classification;
   private final Optional<LoopStructure> loopStructure;
 
-  public enum PrefixPreference {
-    // returns the original error path
-    NONE(),
+  public InfeasiblePrefix selectSlicedPrefix(List<PrefixPreference> pPrefixPreference,
+      List<InfeasiblePrefix> pInfeasiblePrefixes) {
 
-    // use this only if you are feeling lucky
-    RANDOM(),
+    List<Comparator<InfeasiblePrefix>> comparators = createComparators(pPrefixPreference);
 
-    // sensible alternative options
-    LENGTH_SHORT(),
-    LENGTH_LONG(),
+    TreeSet<InfeasiblePrefix> sortedPrefixes = new TreeSet<>(new ChainedComparator(comparators));
+    sortedPrefixes.addAll(pInfeasiblePrefixes);
 
-    // heuristics based on approximating cost via variable domain types
-    DOMAIN_GOOD_SHORT(FIRST_LOWEST_SCORE),
-    DOMAIN_GOOD_LONG(LAST_LOWEST_SCORE),
-    DOMAIN_BAD_SHORT(FIRST_HIGHEST_SCORE),
-    DOMAIN_BAD_LONG(LAST_HIGHEST_SCORE),
+    return sortedPrefixes.first();
+  }
 
-    // same as above, but in addition, prefers narrow precisions
-    DOMAIN_GOOD_WIDTH_NARROW_SHORT(FIRST_LOWEST_SCORE),
+  public int obtainScoreForPrefixes(final List<InfeasiblePrefix> pPrefixes, final PrefixPreference pPreference) {
 
-    // same as above, but more precise
-    DOMAIN_PRECISE_GOOD_SHORT(FIRST_LOWEST_SCORE),
-    DOMAIN_PRECISE_GOOD_LONG(LAST_LOWEST_SCORE),
-    DOMAIN_PRECISE_BAD_SHORT(FIRST_HIGHEST_SCORE),
-    DOMAIN_PRECISE_BAD_LONG(LAST_HIGHEST_SCORE),
+    int minScore = Integer.MAX_VALUE;
 
-    // heuristics based on approximating the depth of the refinement root
-    PIVOT_SHALLOW_SHORT(FIRST_LOWEST_SCORE),
-    PIVOT_SHALLOW_LONG(LAST_LOWEST_SCORE),
-    PIVOT_DEEP_SHORT(FIRST_HIGHEST_SCORE),
-    PIVOT_DEEP_LONG(LAST_HIGHEST_SCORE),
-
-    // heuristic based on the length of the interpolant sequence (+ loop-counter heuristic)
-    WIDTH_NARROW_SHORT(FIRST_LOWEST_SCORE),
-    WIDTH_NARROW_LONG(LAST_LOWEST_SCORE),
-    WIDTH_WIDE_SHORT(FIRST_HIGHEST_SCORE),
-    WIDTH_WIDE_LONG(LAST_HIGHEST_SCORE),
-
-    // same as above, but in addition, avoids loop counters based on domain-type scores
-    WIDTH_NARROW_NO_LOOP_SHORT(FIRST_LOWEST_SCORE),
-
-    // heuristic based on counting the number of assignments related to the use-def-chain
-    ASSIGNMENTS_FEWEST_SHORT(FIRST_LOWEST_SCORE),
-    ASSIGNMENTS_FEWEST_LONG(LAST_LOWEST_SCORE),
-    ASSIGNMENTS_MOST_SHORT(FIRST_HIGHEST_SCORE),
-    ASSIGNMENTS_MOST_LONG(LAST_HIGHEST_SCORE),
-
-    // heuristic based on counting the number of assumption related to the use-def-chain
-    ASSUMPTIONS_FEWEST_SHORT(FIRST_LOWEST_SCORE),
-    ASSUMPTIONS_FEWEST_LONG(LAST_LOWEST_SCORE),
-    ASSUMPTIONS_MOST_SHORT(FIRST_HIGHEST_SCORE),
-    ASSUMPTIONS_MOST_LONG(LAST_HIGHEST_SCORE);
-
-    PrefixPreference () {}
-
-    PrefixPreference (Function<Pair<Integer, Integer>, Boolean> scorer) {
-      this.scorer = scorer;
+    if (!classification.isPresent()) {
+      return minScore;
     }
 
-    private Function<Pair<Integer, Integer>, Boolean> scorer = INDIFFERENT_SCOREKEEPER;
+    Scorer scorer = new ScorerFactory(classification, loopStructure).createScorer(pPreference);
+
+    for (InfeasiblePrefix prefix : pPrefixes) {
+      minScore = Math.min(minScore, scorer.computeScore(prefix));
+    }
+
+    return minScore;
+  }
+
+  private List<Comparator<InfeasiblePrefix>> createComparators(List<PrefixPreference> pPrefixPreference) {
+
+    ScorerFactory factory = new ScorerFactory(classification, loopStructure);
+
+    List<Comparator<InfeasiblePrefix>> comparators = new ArrayList<>();
+    for(PrefixPreference preference : pPrefixPreference) {
+      comparators.add(factory.createScorer(preference).getComparator());
+    }
+
+    return comparators;
+  }
+
+  private static class ChainedComparator implements Comparator<InfeasiblePrefix>, Serializable {
+
+    private static final long serialVersionUID = -6359291861139423226L;
+
+    private final List<Comparator<InfeasiblePrefix>> comparators;
+
+    public ChainedComparator(final List<Comparator<InfeasiblePrefix>> pComparators) {
+      comparators = pComparators;
+    }
+
+    @Override
+    public int compare(final InfeasiblePrefix onePrefix, final InfeasiblePrefix otherPrefix) {
+      for (Comparator<InfeasiblePrefix> comparator : comparators) {
+        int result = comparator.compare(onePrefix, otherPrefix);
+
+        if (result != 0) {
+          return result;
+        }
+      }
+
+      return 0;
+    }
+  }
+
+  public static final List<PrefixPreference> NO_SELECTION =
+      Collections.singletonList(PrefixPreference.NONE);
+
+  public enum PrefixPreference {
+
+    // heuristics based on the length of the infeasible prefix
+    LENGTH_MIN,
+    LENGTH_MAX,
+
+    // heuristics based on domain-type score over variables in the interpolant sequence
+    DOMAIN_MIN,
+    DOMAIN_MAX,
+
+    // heuristics based on loop-counter variables referenced in the interpolant sequence
+    LOOPS_MIN,
+    LOOPS_MAX,
+
+    // heuristics based on approximating the depth of the refinement root
+    PIVOT_MIN,
+    PIVOT_MAX,
+
+    // heuristic based on the width of the interpolant sequence
+    WIDTH_MIN,
+    WIDTH_MAX,
+
+    // heuristic based on counting the number of assignments over variables in the interpolant sequence
+    ASSIGNMENTS_MIN,
+    ASSIGNMENTS_MAX,
+
+    // heuristic based on counting the number of assumptions over variables in the interpolant sequence
+    ASSUMPTIONS_MIN,
+    ASSUMPTIONS_MAX,
+
+    // use this only if you are feeling lucky
+    RANDOM,
+
+    // signals to not perform any selection
+    NONE
+  }
+
+  private static class ScorerFactory {
+
+    private final Optional<VariableClassification> classification;
+    private final Optional<LoopStructure> loopStructure;
+
+    public ScorerFactory(final Optional<VariableClassification> pClassification,
+        final Optional<LoopStructure> pLoopStructure) {
+      classification = pClassification;
+      loopStructure = pLoopStructure;
+    }
+
+    public Scorer createScorer(PrefixPreference pPreference) {
+      switch (pPreference) {
+        case LENGTH_MIN:
+          return new LengthScorer();
+        case LENGTH_MAX:
+          return new LengthScorer().invert();
+        case DOMAIN_MIN:
+          return new DomainScorer(classification, loopStructure);
+        case DOMAIN_MAX:
+          return new DomainScorer(classification, loopStructure).invert();
+        case LOOPS_MIN:
+          return new LoopScorer(classification, loopStructure);
+        case LOOPS_MAX:
+          return new LoopScorer(classification, loopStructure).invert();
+        case WIDTH_MIN:
+          return new WidthScorer();
+        case WIDTH_MAX:
+          return new WidthScorer().invert();
+        case PIVOT_MIN:
+          return new DepthScorer();
+        case PIVOT_MAX:
+          return new DepthScorer().invert();
+        case ASSIGNMENTS_MIN:
+          return new AssignmentScorer(classification);
+        case ASSIGNMENTS_MAX:
+          return new AssignmentScorer(classification).invert();
+        case ASSUMPTIONS_MIN:
+          return new AssumptionScorer(classification);
+        case ASSUMPTIONS_MAX:
+          return new AssumptionScorer(classification).invert();
+        case RANDOM:
+          return new RandomScorer();
+
+        // illegal arguments
+        case NONE:
+        default:
+          throw new IllegalArgumentException("Illegal prefix preference " + pPreference + " given!");
+      }
+    }
+  }
+
+  private abstract static class Scorer {
+
+    protected int sign = 1;
+
+    public abstract int computeScore(final InfeasiblePrefix pPrefix);
+
+    public Scorer invert() {
+      sign = sign * (-1);
+
+      return this;
+    }
+
+    public Comparator<InfeasiblePrefix> getComparator() {
+      return new Comparator<InfeasiblePrefix>() {
+
+        @Override
+        public int compare(InfeasiblePrefix onePrefix, InfeasiblePrefix otherPrefix) {
+          return computeScore(onePrefix) - computeScore(otherPrefix);
+        }};
+    }
+  }
+
+  private static class DomainScorer extends Scorer {
+
+    private final Optional<VariableClassification> classification;
+    private final Optional<LoopStructure> loopStructure;
+
+    public DomainScorer(final Optional<VariableClassification> pClassification,
+        final Optional<LoopStructure> pLoopStructure) {
+      classification = pClassification;
+      loopStructure = pLoopStructure;
+    }
+
+    @Override
+    public int computeScore(final InfeasiblePrefix pPrefix) {
+      return sign * classification.get().obtainDomainTypeScoreForVariables(pPrefix.extractSetOfVariables(), loopStructure);
+    }
+  }
+
+  private static class LoopScorer extends Scorer {
+
+    private final Optional<VariableClassification> classification;
+    private final Optional<LoopStructure> loopStructure;
+
+    public LoopScorer(final Optional<VariableClassification> pClassification,
+        final Optional<LoopStructure> pLoopStructure) {
+      classification = pClassification;
+      loopStructure = pLoopStructure;
+    }
+
+    @Override
+    public int computeScore(final InfeasiblePrefix pPrefix) {
+      int score = classification.get().obtainDomainTypeScoreForVariables(pPrefix.extractSetOfVariables(), loopStructure);
+
+      if(score != Integer.MAX_VALUE) {
+        score = 0;
+      }
+
+      return sign * score;
+    }
+  }
+
+  private static class WidthScorer extends Scorer {
+
+    @Override
+    public int computeScore(final InfeasiblePrefix pPrefix) {
+      return sign * pPrefix.getNonTrivialLength();
+    }
+  }
+
+  private static class DepthScorer extends Scorer {
+
+    @Override
+    public int computeScore(final InfeasiblePrefix pPrefix) {
+      return sign * pPrefix.getDepthOfPivotState();
+    }
+  }
+
+  private static class LengthScorer extends Scorer {
+
+    @Override
+    public int computeScore(final InfeasiblePrefix pPrefix) {
+      return sign * pPrefix.getPath().size();
+    }
+  }
+
+  private static class AssignmentScorer extends Scorer {
+
+    private final Optional<VariableClassification> classification;
+
+    public AssignmentScorer(final Optional<VariableClassification> pClassification) {
+      classification = pClassification;
+    }
+
+    @Override
+    public int computeScore(final InfeasiblePrefix pPrefix) {
+      int count = 0;
+      for (String variable : pPrefix.extractSetOfVariables()) {
+        count = count + classification.get().getAssignedVariables().count(variable);
+      }
+
+      return sign * count;
+    }
+  }
+
+  private static class AssumptionScorer extends Scorer {
+
+    private final Optional<VariableClassification> classification;
+
+    public AssumptionScorer(final Optional<VariableClassification> pClassification) {
+      classification = pClassification;
+    }
+
+    @Override
+    public int computeScore(final InfeasiblePrefix pPrefix) {
+      int count = 0;
+      for (String variable : pPrefix.extractSetOfVariables()) {
+        count = count + classification.get().getAssumedVariables().count(variable);
+      }
+
+      return sign * count;
+    }
+  }
+
+  private static class RandomScorer extends Scorer {
+
+    @Override
+    public int computeScore(final InfeasiblePrefix pPrefix) {
+      return new Random().nextInt(1000);
+    }
   }
 
   public PrefixSelector(Optional<VariableClassification> pClassification,
@@ -107,248 +334,4 @@ public class PrefixSelector {
     classification  = pClassification;
     loopStructure   = pLoopStructure;
   }
-
-  public InfeasiblePrefix selectSlicedPrefix(PrefixPreference pPrefixPreference,
-      List<InfeasiblePrefix> pInfeasiblePrefixes) {
-
-    switch (pPrefixPreference) {
-    case LENGTH_SHORT:
-      return pInfeasiblePrefixes.get(0);
-
-    case LENGTH_LONG:
-      return Iterables.getLast(pInfeasiblePrefixes);
-
-    case RANDOM:
-      return pInfeasiblePrefixes.get(new Random().nextInt(pInfeasiblePrefixes.size()));
-
-    // scoring based on domain-types
-    case DOMAIN_GOOD_SHORT:
-    case DOMAIN_GOOD_LONG:
-    case DOMAIN_BAD_SHORT:
-    case DOMAIN_BAD_LONG:
-    //
-    // scoring based on domain-types and width of precision
-    case DOMAIN_GOOD_WIDTH_NARROW_SHORT:
-    //
-    // scoring based on width of precision
-    case WIDTH_NARROW_SHORT:
-    case WIDTH_NARROW_LONG:
-    case WIDTH_WIDE_SHORT:
-    case WIDTH_WIDE_LONG:
-    //
-    // scoring based on width of precision and presence of loop counters
-    case WIDTH_NARROW_NO_LOOP_SHORT:
-    //
-    // scoring based on depth of pivot state
-    case PIVOT_SHALLOW_SHORT:
-    case PIVOT_SHALLOW_LONG:
-    case PIVOT_DEEP_SHORT:
-    case PIVOT_DEEP_LONG:
-    //
-    //
-    case ASSIGNMENTS_FEWEST_SHORT:
-    case ASSIGNMENTS_FEWEST_LONG:
-    case ASSIGNMENTS_MOST_SHORT:
-    case ASSIGNMENTS_MOST_LONG:
-    case ASSUMPTIONS_FEWEST_SHORT:
-    case ASSUMPTIONS_FEWEST_LONG:
-    case ASSUMPTIONS_MOST_SHORT:
-    case ASSUMPTIONS_MOST_LONG:
-      return obtainScoreBasedPrefix(pPrefixPreference, pInfeasiblePrefixes);
-
-    default:
-      assert (false) : "invalid prefix-preference " + pPrefixPreference + " given";
-      return null;
-    }
-  }
-
-  private InfeasiblePrefix obtainScoreBasedPrefix(PrefixPreference pPrefixPreference,
-      List<InfeasiblePrefix> pInfeasiblePrefixes) {
-    if (!classification.isPresent()) {
-      // TODO: log user-warning here
-      return pInfeasiblePrefixes.get(0);
-    }
-
-    Integer bestScore = null;
-    InfeasiblePrefix bestPrefix = null;
-
-    for (InfeasiblePrefix currentPrefix : pInfeasiblePrefixes) {
-      int score = obtainScoreForPrefix(pPrefixPreference, currentPrefix);
-
-      if (pPrefixPreference.scorer.apply(Pair.of(score, bestScore))) {
-        bestScore = score;
-        bestPrefix = currentPrefix;
-      }
-    }
-
-    return bestPrefix;
-  }
-
-  private int obtainScoreForPrefix(PrefixPreference pPrefixPreference, InfeasiblePrefix pPrefix) {
-    switch (pPrefixPreference) {
-    case DOMAIN_GOOD_SHORT:
-    case DOMAIN_GOOD_LONG:
-    case DOMAIN_BAD_SHORT:
-    case DOMAIN_BAD_LONG:
-      return obtainDomainTypeScoreForPath(pPrefix);
-
-    case DOMAIN_GOOD_WIDTH_NARROW_SHORT:
-      return obtainDomainTypeScoreAndWidthForPath(pPrefix);
-
-    case WIDTH_NARROW_SHORT:
-    case WIDTH_NARROW_LONG:
-    case WIDTH_WIDE_SHORT:
-    case WIDTH_WIDE_LONG:
-      return obtainWidthOfPrecisionForPath(pPrefix);
-
-    case WIDTH_NARROW_NO_LOOP_SHORT:
-      return obtainWidthOfPrecisionAndFilterLoopCounters(pPrefix);
-
-    case PIVOT_SHALLOW_SHORT:
-    case PIVOT_SHALLOW_LONG:
-    case PIVOT_DEEP_SHORT:
-    case PIVOT_DEEP_LONG:
-      return obtainPivotStateDepthForPath(pPrefix);
-
-    case ASSIGNMENTS_FEWEST_SHORT:
-    case ASSIGNMENTS_FEWEST_LONG:
-    case ASSIGNMENTS_MOST_SHORT:
-    case ASSIGNMENTS_MOST_LONG:
-      return obtainAssignmentCountForPath(pPrefix);
-
-    case ASSUMPTIONS_FEWEST_SHORT:
-    case ASSUMPTIONS_FEWEST_LONG:
-    case ASSUMPTIONS_MOST_SHORT:
-    case ASSUMPTIONS_MOST_LONG:
-      return obtainAssumptionCountForPath(pPrefix);
-
-    default:
-      assert false;
-      return -1;
-    }
-  }
-
-  private int obtainDomainTypeScoreForPath(final InfeasiblePrefix pPrefix) {
-    return classification.get().obtainDomainTypeScoreForVariables(extractVariablesFromItpSequence(pPrefix), loopStructure);
-  }
-
-  private int obtainDomainTypeScoreAndWidthForPath(final InfeasiblePrefix pPrefix) {
-    int score = classification.get().obtainDomainTypeScoreForVariables(extractVariablesFromItpSequence(pPrefix), loopStructure);
-
-    if (score * 1000 < score) {
-      return Integer.MAX_VALUE;
-    }
-    score = score * 1000;
-
-    int width = obtainWidthOfPrecisionForPath(pPrefix);
-
-    // if overflow, return MAX penalty
-    if((score + width) < score) {
-      return Integer.MAX_VALUE;
-    }
-
-    return score + width;
-  }
-
-  private int obtainWidthOfPrecisionForPath(final InfeasiblePrefix pPrefix) {
-    return pPrefix.getNonTrivialLength();
-  }
-
-  private int obtainWidthOfPrecisionAndFilterLoopCounters(final InfeasiblePrefix pPrefix) {
-    int score = obtainDomainTypeScoreForPath(pPrefix);
-
-    if(score == Integer.MAX_VALUE) {
-      return Integer.MAX_VALUE;
-    }
-
-    return obtainWidthOfPrecisionForPath(pPrefix);
-  }
-
-  private int obtainPivotStateDepthForPath(final InfeasiblePrefix pPrefix) {
-    return pPrefix.getDepthOfPivotState();
-  }
-
-  private int obtainAssignmentCountForPath(final InfeasiblePrefix pPrefix) {
-    int count = 0;
-    for (String variable : extractVariablesFromItpSequence(pPrefix)) {
-      count = count + classification.get().getAssignedVariables().count(variable);
-
-      // special case for (RERS)-input variables
-      // this variable has always (at least) 6 values (1, 2, 3, 4, 5, 6)
-      // but it is only assigned implicitly thru assume edges
-      if (variable.endsWith("::input")) {
-        count = 6;
-        break;
-      }
-    }
-
-    return count;
-  }
-
-  private int obtainAssumptionCountForPath(final InfeasiblePrefix pPrefix) {
-    int count = 0;
-    for (String variable : extractVariablesFromItpSequence(pPrefix)) {
-      count = count + classification.get().getAssumedVariables().count(variable);
-    }
-
-    return count;
-  }
-
-  private Set<String> extractVariablesFromItpSequence(final InfeasiblePrefix pPrefix) {
-    return pPrefix.extractSetOfVariables();
-  }
-
-  public int obtainScoreForPrefixes(final List<InfeasiblePrefix> pPrefixes, final PrefixPreference pPreference) {
-    if (!classification.isPresent()) {
-      return Integer.MAX_VALUE;
-    }
-
-    int bestScore = Integer.MAX_VALUE;
-    for (InfeasiblePrefix currentPrefix : pPrefixes) {
-
-      int score = this.obtainDomainTypeScoreForPath(currentPrefix);
-      if (pPreference.scorer.apply(Pair.of(score, bestScore))) {
-        bestScore = score;
-      }
-    }
-
-    return bestScore;
-  }
-
-  //*************************//
-  //  functions for scoring  //
-  //*************************//
-  private static final Function<Pair<Integer, Integer>, Boolean> INDIFFERENT_SCOREKEEPER = new Function<Pair<Integer, Integer>, Boolean>() {
-    @Override
-    public Boolean apply(Pair<Integer, Integer> prefixParameters) {
-      return Boolean.TRUE;
-    }};
-
-  private static final Function<Pair<Integer, Integer>, Boolean> FIRST_HIGHEST_SCORE = new Function<Pair<Integer, Integer>, Boolean>() {
-    @Override
-    public Boolean apply(Pair<Integer, Integer> prefixParameters) {
-      return prefixParameters.getSecond() == null
-          || prefixParameters.getFirst() > prefixParameters.getSecond();
-    }};
-
-  private static final Function<Pair<Integer, Integer>, Boolean> LAST_HIGHEST_SCORE = new Function<Pair<Integer, Integer>, Boolean>() {
-    @Override
-    public Boolean apply(Pair<Integer, Integer> prefixParameters) {
-      return prefixParameters.getSecond() == null
-          || prefixParameters.getFirst() >= prefixParameters.getSecond();
-    }};
-
-  private static final Function<Pair<Integer, Integer>, Boolean> FIRST_LOWEST_SCORE = new Function<Pair<Integer, Integer>, Boolean>() {
-    @Override
-    public Boolean apply(Pair<Integer, Integer> prefixParameters) {
-      return prefixParameters.getSecond() == null
-          || prefixParameters.getFirst() < prefixParameters.getSecond();
-    }};
-
-  private static final Function<Pair<Integer, Integer>, Boolean> LAST_LOWEST_SCORE = new Function<Pair<Integer, Integer>, Boolean>() {
-    @Override
-    public Boolean apply(Pair<Integer, Integer> prefixParameters) {
-      return prefixParameters.getSecond() == null
-          || prefixParameters.getFirst() <= prefixParameters.getSecond();
-    }};
 }

@@ -38,9 +38,7 @@ import java.util.logging.Level;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -51,7 +49,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
@@ -67,6 +65,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -85,44 +84,47 @@ import com.google.common.collect.Sets;
  */
 public class CProgramScope implements Scope {
 
-  private static final Function<CFANode, Iterable<? extends CSimpleDeclaration>> TO_C_SIMPLE_DECLARATIONS =
-      new Function<CFANode, Iterable<? extends CSimpleDeclaration>>() {
-
-        @Override
-        public Iterable<? extends CSimpleDeclaration> apply(CFANode pNode) {
-
-          return CFAUtils.leavingEdges(pNode).transformAndConcat(new Function<CFAEdge, Iterable<? extends CSimpleDeclaration>>() {
+  private static final Function<CFANode, Iterable<? extends CSimpleDeclaration>>
+      TO_C_SIMPLE_DECLARATIONS =
+          new Function<CFANode, Iterable<? extends CSimpleDeclaration>>() {
 
             @Override
-            public Iterable<? extends CSimpleDeclaration> apply(CFAEdge pEdge) {
+            public Iterable<? extends CSimpleDeclaration> apply(final CFANode pNode) {
 
-              if (pEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
-                CDeclaration dcl = ((CDeclarationEdge) pEdge).getDeclaration();
-                return Collections.singleton(dcl);
-              }
-              if (pEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
-                FunctionCallEdge fce = (FunctionCallEdge) pEdge;
-                AFunctionDeclaration decl = fce.getSuccessor().getFunctionDefinition();
-                return from(decl.getParameters()).filter(CSimpleDeclaration.class);
-              }
+              return CFAUtils.leavingEdges(pNode)
+                  .transformAndConcat(
+                      new Function<CFAEdge, Iterable<? extends CSimpleDeclaration>>() {
 
-              if (pEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
-                MultiEdge edge = (MultiEdge) pEdge;
-                Collection<CSimpleDeclaration> result = new ArrayList<>();
+                        @Override
+                        public Iterable<? extends CSimpleDeclaration> apply(CFAEdge pEdge) {
 
-                for (CFAEdge innerEdge : edge.getEdges()) {
-                  Iterables.addAll(result, apply(innerEdge));
-                }
+                          if (pEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
+                            CDeclaration dcl = ((CDeclarationEdge) pEdge).getDeclaration();
+                            return Collections.singleton(dcl);
+                          }
 
-                return result;
-              }
+                          if (pNode instanceof FunctionEntryNode) {
+                            FunctionEntryNode entryNode = (FunctionEntryNode) pNode;
+                            return from(entryNode.getFunctionParameters())
+                                .filter(CSimpleDeclaration.class);
+                          }
 
-              return Collections.emptySet();
+                          if (pEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
+                            MultiEdge edge = (MultiEdge) pEdge;
+                            Collection<CSimpleDeclaration> result = new ArrayList<>();
+
+                            for (CFAEdge innerEdge : edge.getEdges()) {
+                              Iterables.addAll(result, apply(innerEdge));
+                            }
+
+                            return result;
+                          }
+
+                          return Collections.emptySet();
+                        }
+                      });
             }
-
-          });
-        }
-      };
+          };
 
   private static final Predicate<CSimpleDeclaration> HAS_NAME = new Predicate<CSimpleDeclaration>() {
 
@@ -291,7 +293,7 @@ public class CProgramScope implements Scope {
 
   @Override
   public boolean isGlobalScope() {
-    return false;
+    return functionName == null;
   }
 
   @Override
@@ -304,8 +306,8 @@ public class CProgramScope implements Scope {
 
     CSimpleDeclaration result;
 
-    if (simulatesFunctionScope()) {
-      result = qualifiedDeclarations.get(getCurrentFunctionName() + "::" + pName);
+    if (!isGlobalScope()) {
+      result = qualifiedDeclarations.get(createScopedNameOf(pName));
       if (result != null) {
         return result;
       }
@@ -331,8 +333,8 @@ public class CProgramScope implements Scope {
   @Override
   public CComplexType lookupType(String pName) {
     CComplexType result = null;
-    if (simulatesFunctionScope()) {
-      String functionQualifiedName = getCurrentFunctionName() + "::" + pName;
+    if (!isGlobalScope()) {
+      String functionQualifiedName = createScopedNameOf(pName);
       result = lookupQualifiedComplexType(functionQualifiedName, qualifiedTypes);
       if (result != null) {
         return result;
@@ -360,8 +362,8 @@ public class CProgramScope implements Scope {
   @Override
   public CType lookupTypedef(String pName) {
     CType result = null;
-    if (simulatesFunctionScope()) {
-      String functionQualifiedName = getCurrentFunctionName() + "::" + pName;
+    if (!isGlobalScope()) {
+      String functionQualifiedName = createScopedNameOf(pName);
       result = lookupQualifiedComplexType(functionQualifiedName, qualifiedTypeDefs);
       if (result != null) {
         return result;
@@ -391,7 +393,7 @@ public class CProgramScope implements Scope {
 
   @Override
   public String createScopedNameOf(String pName) {
-    if (simulatesFunctionScope()) {
+    if (!isGlobalScope()) {
       return getCurrentFunctionName() + "::" + pName;
     }
     return pName;
@@ -423,18 +425,13 @@ public class CProgramScope implements Scope {
    * Create a CProgramScope that tries to simulate a function scope.
    *
    * @param pFunctionName the
-   * @return
    */
   public CProgramScope createFunctionScope(String pFunctionName) {
     return new CProgramScope(this, pFunctionName);
   }
 
-  public boolean simulatesFunctionScope() {
-    return functionName != null;
-  }
-
   public String getCurrentFunctionName() {
-    Preconditions.checkState(simulatesFunctionScope());
+    Preconditions.checkState(!isGlobalScope());
     return functionName;
   }
 

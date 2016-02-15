@@ -29,19 +29,19 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
@@ -70,9 +70,7 @@ public abstract class ITPStrategy<T> {
    *
    * @param interpolator is the interface towards the SMT-solver and
    *          contains an ITP-solver with all formulas asserted on its solver-stack.
-   * @param itpGroupsIds are the identifiers for the asserted formulae
-   *          and can be used to access them for interpolation.
-   * @param formulasWithStatesAndGroupdIds is a list of (F,E,T) where
+   * @param formulasWithStateAndGroupId is a list of (F,E,T) where
    *          the path formula F starting at an abstract state E (abstraction state?)
    *          corresponds with the ITP-group T.
    *          We assume the sorting of the list matches the order
@@ -98,7 +96,7 @@ public abstract class ITPStrategy<T> {
    *          the path formula F starting at an abstract state E corresponds
    *          with the ITP-group T. We assume the sorting of the list matches
    *          the order of abstract states along the counterexample.
-   * @param interpolants computed with {@link getInterpolants} and will be checked.
+   * @param interpolants computed with {@link #getInterpolants} and will be checked.
    */
   public void checkInterpolants(final Solver solver,
       final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds,

@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.arg.counterexamples;
 
 import java.util.List;
 
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 
 import com.google.common.collect.ImmutableList;
 

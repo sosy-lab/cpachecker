@@ -45,8 +45,6 @@ import org.eclipse.cdt.core.dom.ast.IASTProblemDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -66,8 +64,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Triple;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
@@ -80,7 +81,7 @@ import com.google.common.collect.TreeMultimap;
  * Builder to traverse AST.
  *
  * After instantiating this class,
- * call {@link #analyzeTranslationUnit(IASTTranslationUnit, String)}
+ * call {@link #analyzeTranslationUnit(IASTTranslationUnit, String, Scope)}
  * once for each translation unit that should be used
  * and finally call {@link #createCFA()}.
  */
@@ -101,6 +102,7 @@ class CFABuilder extends ASTVisitor {
 
 
   private GlobalScope fileScope = new GlobalScope();
+  private Scope artificialScope;
   private ProgramDeclarations programDeclarations = new ProgramDeclarations();
   private ASTConverter astCreator;
   private final Function<String, String> niceFileNameFunction;
@@ -134,15 +136,21 @@ class CFABuilder extends ASTVisitor {
     shouldVisitTranslationUnit = true;
   }
 
-  public void analyzeTranslationUnit(IASTTranslationUnit ast, String staticVariablePrefix) throws InvalidConfigurationException {
+  public void analyzeTranslationUnit(
+      IASTTranslationUnit ast, String staticVariablePrefix, Scope pFallbackScope)
+      throws InvalidConfigurationException {
     sideAssignmentStack = new Sideassignments();
-    fileScope = new GlobalScope(new HashMap<String, CSimpleDeclaration>(),
-                                new HashMap<String, CSimpleDeclaration>(),
-                                new HashMap<String, CFunctionDeclaration>(),
-                                new HashMap<String, CComplexTypeDeclaration>(),
-                                new HashMap<String, CTypeDefDeclaration>(),
-                                programDeclarations,
-                                staticVariablePrefix);
+    artificialScope = pFallbackScope;
+    fileScope =
+        new GlobalScope(
+            new HashMap<String, CSimpleDeclaration>(),
+            new HashMap<String, CSimpleDeclaration>(),
+            new HashMap<String, CFunctionDeclaration>(),
+            new HashMap<String, CComplexTypeDeclaration>(),
+            new HashMap<String, CTypeDefDeclaration>(),
+            programDeclarations,
+            staticVariablePrefix,
+            artificialScope);
     astCreator = new ASTConverter(config, fileScope, logger, niceFileNameFunction, sourceOriginMapping, machine, staticVariablePrefix, sideAssignmentStack);
     functionDeclarations.add(Triple.of((List<IASTFunctionDefinition>)new ArrayList<IASTFunctionDefinition>(), staticVariablePrefix, fileScope));
 
@@ -352,7 +360,8 @@ class CFABuilder extends ASTVisitor {
                                         ImmutableMap<String, CTypeDefDeclaration> typedefs,
                                         ImmutableMap<String, CSimpleDeclaration> globalVars) {
 
-    FunctionScope localScope = new FunctionScope(functions, types, typedefs, globalVars, fileName);
+    FunctionScope localScope =
+        new FunctionScope(functions, types, typedefs, globalVars, fileName, artificialScope);
     CFAFunctionBuilder functionBuilder;
 
     try {

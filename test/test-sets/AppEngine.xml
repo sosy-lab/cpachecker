@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
-<benchmark tool="cpachecker" timelimit="540" memlimit="2000" cpuCores="2">
+<benchmark tool="cpachecker" timelimit="540 s" memlimit="2 GB" cpuCores="2">
   <option name="-noout"/>
   <option name="-nolog"/>
   <option name="-heap">1200M</option>
@@ -180,6 +180,6 @@
 
   <columns>
     <column title="total">time for CPAchecker</column>
-    <column title="reached">reached set</column>
+    <column title="reached">Size of reached set</column>
   </columns>
 </benchmark>

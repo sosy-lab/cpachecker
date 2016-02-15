@@ -26,26 +26,44 @@ package org.sosy_lab.cpachecker.core.algorithm.invariants;
 import static com.google.common.base.Preconditions.*;
 
 import java.io.PrintStream;
+import java.util.ArrayDeque;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.LazyFutureTask;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -53,6 +71,11 @@ import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithmForInvariantGeneration;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateGenerator;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.EdgeFormulaNegation;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.ExpressionTreeLocationInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.StaticCandidateProvider;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -61,18 +84,45 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.solver.SolverException;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 /**
  * Generate invariants using k-induction.
  */
-public class KInductionInvariantGenerator implements InvariantGenerator, StatisticsProvider {
+public class KInductionInvariantGenerator extends AbstractInvariantGenerator implements StatisticsProvider {
+
+  @Options(prefix="invariantGeneration.kInduction")
+  private static class KInductionInvariantGeneratorOptions {
+
+    @FileOption(Type.OPTIONAL_INPUT_FILE)
+    @Option(
+      secure = true,
+      description =
+          "Provides additional candidate invariants to the k-induction invariant generator."
+    )
+    private Path invariantsAutomatonFile = null;
+
+    @Option(secure = true, description = "Guess some candidates for the k-induction invariant generator from the CFA.")
+    private boolean guessCandidatesFromCFA = true;
+
+    @Option(secure = true, description = "For correctness-witness validation: Shut down if a candidate invariant is found to be incorrect.")
+    private boolean terminateOnCounterexample = false;
+  }
 
   private static class KInductionInvariantGeneratorStatistics extends BMCStatistics {
 
@@ -97,7 +147,7 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
   private final ReachedSetFactory reachedSetFactory;
 
   private final LogManager logger;
-  private final ShutdownNotifier shutdownNotifier;
+  private final ShutdownManager shutdownManager;
 
   private final boolean async;
 
@@ -115,57 +165,65 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
   };
 
   public static KInductionInvariantGenerator create(final Configuration pConfig,
-      final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
-      final CFA pCFA, final ReachedSetFactory pReachedSetFactory)
+      final LogManager pLogger, final ShutdownManager pShutdownManager,
+      final CFA pCFA, final ReachedSetFactory pReachedSetFactory, TargetLocationProvider pTargetLocationProvider)
           throws InvalidConfigurationException, CPAException {
 
     return new KInductionInvariantGenerator(
+        pConfig,
+        pLogger.withComponentName("KInductionInvariantGenerator"),
+        pShutdownManager,
+        pCFA,
+        pReachedSetFactory,
+        true,
+        getCandidateInvariants(
             pConfig,
-            pLogger.withComponentName("KInductionInvariantGenerator"),
-            ShutdownNotifier.createWithParent(pShutdownNotifier),
+            pLogger,
             pCFA,
+            pShutdownManager,
             pReachedSetFactory,
-            true,
-            Optional.<CandidateGenerator>absent());
+            pTargetLocationProvider));
   }
 
   public static KInductionInvariantGenerator create(final Configuration pConfig,
-      final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
-      final CFA pCFA, final ReachedSetFactory pReachedSetFactory, CandidateGenerator candidateGenerator)
+      final LogManager pLogger, final ShutdownManager pShutdownManager,
+      final CFA pCFA, final ReachedSetFactory pReachedSetFactory, CandidateGenerator candidateGenerator, boolean pAsync)
           throws InvalidConfigurationException, CPAException {
 
     return new KInductionInvariantGenerator(
             pConfig,
             pLogger.withComponentName("KInductionInvariantGenerator"),
-            ShutdownNotifier.createWithParent(pShutdownNotifier),
+            pShutdownManager,
             pCFA,
             pReachedSetFactory,
-            true,
-            Optional.of(candidateGenerator));
+            pAsync,
+            candidateGenerator);
   }
 
   private KInductionInvariantGenerator(final Configuration config, final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier, final CFA cfa,
+      final ShutdownManager pShutdownNotifier, final CFA cfa,
       final ReachedSetFactory pReachedSetFactory, final boolean pAsync,
-      final Optional<CandidateGenerator> pCandidateGenerator)
+      final CandidateGenerator pCandidateGenerator)
           throws InvalidConfigurationException, CPAException {
     logger = pLogger;
-    shutdownNotifier = pShutdownNotifier;
+    shutdownManager = pShutdownNotifier;
+
     reachedSetFactory = pReachedSetFactory;
     async = pAsync;
 
-    CPABuilder invGenBMCBuilder = new CPABuilder(config, logger, pShutdownNotifier, pReachedSetFactory);
+    CPABuilder invGenBMCBuilder =
+        new CPABuilder(config, logger, shutdownManager.getNotifier(), pReachedSetFactory);
     cpa = invGenBMCBuilder.buildCPAWithSpecAutomatas(cfa);
-    Algorithm cpaAlgorithm = CPAAlgorithm.create(cpa, logger, config, pShutdownNotifier);
+    Algorithm cpaAlgorithm = CPAAlgorithm.create(cpa, logger, config, shutdownManager.getNotifier());
     algorithm = new BMCAlgorithmForInvariantGeneration(
         cpaAlgorithm, cpa, config, logger, pReachedSetFactory,
-        pShutdownNotifier, cfa, stats, pCandidateGenerator);
+        shutdownManager, cfa, stats, pCandidateGenerator);
 
     PredicateCPA predicateCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
     if (predicateCPA == null) {
       throw new InvalidConfigurationException("Predicate CPA required");
     }
-    if (async && !predicateCPA.getSolver().getFormulaManager().getVersion().toLowerCase().contains("smtinterpol")) {
+    if (async && !predicateCPA.getSolver().getVersion().toLowerCase().contains("smtinterpol")) {
       throw new InvalidConfigurationException("Solver does not support concurrent execution, use SMTInterpol instead.");
     }
   }
@@ -187,20 +245,23 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
       invariantGenerationFuture = new LazyFutureTask<>(task);
     }
 
-    shutdownNotifier.registerAndCheckImmediately(shutdownListener);
+    shutdownManager.getNotifier().registerAndCheckImmediately(shutdownListener);
   }
+
+  private final AtomicBoolean cancelled = new AtomicBoolean();
 
   @Override
   public void cancel() {
     checkState(invariantGenerationFuture != null);
-    shutdownNotifier.requestShutdown("Invariant generation cancel requested.");
+    shutdownManager.requestShutdown("Invariant generation cancel requested.");
+    cancelled.set(true);
   }
 
   @Override
   public InvariantSupplier get() throws CPAException, InterruptedException {
     checkState(invariantGenerationFuture != null);
 
-    if (async && !invariantGenerationFuture.isDone()) {
+    if (async && (!invariantGenerationFuture.isDone()) || cancelled.get()) {
       // grab intermediate result that is available so far
       return algorithm.getCurrentInvariants();
 
@@ -211,10 +272,16 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
         Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
         throw new UnexpectedCheckedException("invariant generation", e.getCause());
       } catch (CancellationException e) {
-        shutdownNotifier.shutdownIfNecessary();
+        shutdownManager.getNotifier().shutdownIfNecessary();
         throw e;
       }
     }
+  }
+
+  @Override
+  public ExpressionTreeSupplier getAsExpressionTree() throws CPAException, InterruptedException {
+    get();
+    return algorithm.getCurrentInvariantsAsExpressionTree();
   }
 
   @Override
@@ -244,7 +311,7 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
     @Override
     public InvariantSupplier call() throws InterruptedException, CPAException {
       stats.invariantGeneration.start();
-      shutdownNotifier.shutdownIfNecessary();
+      shutdownManager.getNotifier().shutdownIfNecessary();
 
       try {
         ReachedSet reachedSet = reachedSetFactory.create();
@@ -262,5 +329,177 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
         CPAs.closeIfPossible(algorithm, logger);
       }
     }
+  }
+
+  private static CandidateGenerator getCandidateInvariants(
+      Configuration pConfig,
+      LogManager pLogger,
+      CFA pCFA,
+      final ShutdownManager pShutdownManager,
+      ReachedSetFactory pReachedSetFactory,
+      TargetLocationProvider pTargetLocationProvider)
+      throws InvalidConfigurationException, CPAException {
+
+    final Set<CandidateInvariant> candidates = Sets.newLinkedHashSet();
+    if (pCFA.getAllLoopHeads().isPresent()) {
+      candidates.add(new TargetLocationCandidateInvariant(pCFA.getAllLoopHeads().get()));
+    }
+
+    KInductionInvariantGeneratorOptions options = new KInductionInvariantGeneratorOptions();
+    pConfig.inject(options);
+
+    if (options.guessCandidatesFromCFA) {
+      for (AssumeEdge assumeEdge : getRelevantAssumeEdges(pTargetLocationProvider.tryGetAutomatonTargetLocations(pCFA.getMainFunction()))) {
+        candidates.add(new EdgeFormulaNegation(pCFA.getLoopStructure().get().getAllLoopHeads(), assumeEdge));
+      }
+    }
+
+    final Multimap<String, CFANode> candidateGroupLocations = HashMultimap.create();
+    if (options.invariantsAutomatonFile != null) {
+      ConfigurationBuilder configBuilder = Configuration.builder();
+      String machineModelOption = "analysis.machineModel";
+      if (pConfig.hasProperty(machineModelOption)) {
+        configBuilder.copyOptionFrom(pConfig, machineModelOption);
+      }
+      configBuilder.setOption("cpa", "cpa.arg.ARGCPA");
+      configBuilder.setOption("ARGCPA.cpa", "cpa.composite.CompositeCPA");
+      configBuilder.setOption(
+          "CompositeCPA.cpas",
+          "cpa.location.LocationCPA, "
+              + "cpa.callstack.CallstackCPA, "
+              + "cpa.functionpointer.FunctionPointerCPA");
+      Configuration config = configBuilder.build();
+      ShutdownNotifier notifier = pShutdownManager.getNotifier();
+      CPABuilder builder = new CPABuilder(config, pLogger, notifier, pReachedSetFactory);
+      ConfigurableProgramAnalysis cpa =
+          builder.buildCPAs(pCFA, Arrays.asList(options.invariantsAutomatonFile));
+      CPAAlgorithm algorithm = CPAAlgorithm.create(cpa, pLogger, config, notifier);
+      ReachedSet reachedSet = pReachedSetFactory.create();
+      CFANode rootNode = pCFA.getMainFunction();
+      StateSpacePartition partition = StateSpacePartition.getDefaultPartition();
+      reachedSet.add(
+          cpa.getInitialState(rootNode, partition),
+          cpa.getInitialPrecision(rootNode, partition));
+      try {
+        algorithm.run(reachedSet);
+      } catch (InterruptedException e) {
+        // Candidate collection was interrupted,
+        // but instead of throwing the exception here,
+        // let it be thrown by the invariant generator.
+      }
+      Set<CFANode> visited = Sets.newHashSet();
+      Multimap<CFANode, ExpressionTreeLocationInvariant> potentialAdditionalCandidates =
+          HashMultimap.create();
+      for (AbstractState abstractState : reachedSet) {
+        Iterable<CFANode> locations = AbstractStates.extractLocations(abstractState);
+        Iterables.addAll(visited, locations);
+        for (AutomatonState automatonState :
+            AbstractStates.asIterable(abstractState).filter(AutomatonState.class)) {
+          ExpressionTree<AExpression> candidate = automatonState.getCandidateInvariants();
+          if (!candidate.equals(ExpressionTrees.getTrue())) {
+            String groupId = automatonState.getInternalStateName();
+            candidateGroupLocations.putAll(groupId, locations);
+            for (CFANode location : locations) {
+              potentialAdditionalCandidates.removeAll(location);
+              CandidateInvariant candidateInvariant =
+                  new ExpressionTreeLocationInvariant(groupId, location, candidate);
+              candidates.add(candidateInvariant);
+              // Check if there are any leaving return edges:
+              // The predecessors are also potential matches for the invariant
+              for (FunctionReturnEdge returnEdge :
+                  CFAUtils.leavingEdges(location).filter(FunctionReturnEdge.class)) {
+                CFANode successor = returnEdge.getSuccessor();
+                if (!candidateGroupLocations.containsEntry(groupId, successor)
+                    && !visited.contains(successor)) {
+                  potentialAdditionalCandidates.put(
+                      successor,
+                      new ExpressionTreeLocationInvariant(groupId, successor, candidate));
+                }
+              }
+            }
+          }
+        }
+      }
+      for (Map.Entry<CFANode, Collection<ExpressionTreeLocationInvariant>> potentialCandidates :
+          potentialAdditionalCandidates.asMap().entrySet()) {
+        if (!visited.contains(potentialCandidates.getKey())) {
+          for (ExpressionTreeLocationInvariant candidateInvariant :
+              potentialCandidates.getValue()) {
+            candidateGroupLocations.put(
+                candidateInvariant.getGroupId(), potentialCandidates.getKey());
+            candidates.add(candidateInvariant);
+          }
+        }
+      }
+    }
+
+    if (options.terminateOnCounterexample) {
+      return new StaticCandidateProvider(candidates) {
+
+        @Override
+        public Iterator<CandidateInvariant> iterator() {
+          final Iterator<CandidateInvariant> iterator = super.iterator();
+          return new Iterator<CandidateInvariant>() {
+
+            private CandidateInvariant candidate;
+
+            @Override
+            public boolean hasNext() {
+              return iterator.hasNext();
+            }
+
+            @Override
+            public CandidateInvariant next() {
+              return candidate = iterator.next();
+            }
+
+            @Override
+            public void remove() {
+              if (candidate instanceof ExpressionTreeLocationInvariant) {
+                ExpressionTreeLocationInvariant expressionTreeLocationInvariant =
+                    (ExpressionTreeLocationInvariant) candidate;
+
+                // Remove the location from the group
+                String groupId = expressionTreeLocationInvariant.getGroupId();
+                Collection<CFANode> remainingLocations = candidateGroupLocations.get(groupId);
+                remainingLocations.removeAll(expressionTreeLocationInvariant.getLocations());
+
+                // If no location remains, the invariant has been disproved at all possible locations
+                if (remainingLocations.isEmpty()) {
+                  pShutdownManager.requestShutdown("Incorrect invariant: " + candidate.toString());
+                }
+              }
+              iterator.remove();
+            }
+          };
+        }
+      };
+    }
+    return new StaticCandidateProvider(candidates);
+  }
+
+  /**
+   * Gets the relevant assume edges.
+   *
+   * @param pTargetLocations the predetermined target locations.
+   *
+   * @return the relevant assume edges.
+   */
+  private static Set<AssumeEdge> getRelevantAssumeEdges(Collection<CFANode> pTargetLocations) {
+    final Set<AssumeEdge> assumeEdges = Sets.newLinkedHashSet();
+    Set<CFANode> visited = Sets.newHashSet(pTargetLocations);
+    Queue<CFANode> waitlist = new ArrayDeque<>(pTargetLocations);
+    while (!waitlist.isEmpty()) {
+      CFANode current = waitlist.poll();
+      for (CFAEdge enteringEdge : CFAUtils.enteringEdges(current)) {
+        CFANode predecessor = enteringEdge.getPredecessor();
+        if (enteringEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
+          assumeEdges.add((AssumeEdge)enteringEdge);
+        } else if (visited.add(predecessor)) {
+          waitlist.add(predecessor);
+        }
+      }
+    }
+    return assumeEdges;
   }
 }

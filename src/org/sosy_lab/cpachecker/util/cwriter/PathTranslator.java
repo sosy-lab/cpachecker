@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.cwriter;
 import static com.google.common.base.Predicates.in;
 import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.concat;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
@@ -72,6 +73,15 @@ public abstract class PathTranslator {
       return pArg0.toASTString();
     }
   };
+
+  protected final static CFunctionEntryNode extractFunctionCallLocation(ARGState state) {
+    // We assume, that each node has one location.
+    // TODO: the location is invalid for all concurrent programs,
+    //       because interleaving threads are not handled.
+    return FluentIterable.from(extractLocations(state))
+        .filter(CFunctionEntryNode.class)
+        .first().orNull();
+  }
 
   protected final List<String> mGlobalDefinitionsList = new ArrayList<>();
   protected final List<String> mFunctionDecls = new ArrayList<>();
@@ -97,7 +107,7 @@ public abstract class PathTranslator {
 
   /**
    * Translate a single linear path to code.
-   * @param pPath
+   * @param pPath the path to translate
    * @param callback A callback that receives each <code>ARGState</code>
    * along with their edges and can then determine what code to generate
    * from it. The default behavior of a <code>ProcessEdgeFunction</code>
@@ -112,7 +122,7 @@ public abstract class PathTranslator {
     Stack<FunctionBody> functionStack = new Stack<>();
 
     // create the first function and put in into the stack
-    startFunction(firstElement, functionStack, extractLocation(firstElement));
+    startFunction(firstElement, functionStack, extractFunctionCallLocation(firstElement));
 
     while (pathIt.hasNext()) {
       pathIt.advance();
@@ -136,7 +146,7 @@ public abstract class PathTranslator {
       Stack<FunctionBody> newStack = new Stack<>();
 
       // create the first function and put in into newStack
-      startFunction(firstElement, newStack, extractLocation(firstElement));
+      startFunction(firstElement, newStack, extractFunctionCallLocation(firstElement));
 
       waitlist.addAll(getRelevantChildrenOfState(firstElement, newStack, elementsOnPath));
     }
@@ -153,9 +163,16 @@ public abstract class PathTranslator {
     }
   }
 
+  /**
+   * Start the function, puts another body on the function stack.
+   *
+   * @param firstFunctionElement the first state inside the function
+   * @param functionStack the current callstack
+   * @param predecessor the previous node
+   */
   protected String startFunction(ARGState firstFunctionElement, Stack<FunctionBody> functionStack, CFANode predecessor) {
     // create the first stack element using the first element of the function
-    CFunctionEntryNode functionStartNode = (CFunctionEntryNode) extractLocation(firstFunctionElement);
+    CFunctionEntryNode functionStartNode = extractFunctionCallLocation(firstFunctionElement);
     String freshFunctionName = getFreshFunctionName(functionStartNode);
 
     String lFunctionHeader = functionStartNode.getFunctionDefinition().getType().toASTString(freshFunctionName);
@@ -174,9 +191,9 @@ public abstract class PathTranslator {
 
   /**
    * Processes an edge of the CFA and will write code to the output function body.
-   * @param childElement
-   * @param edge
-   * @param functionStack
+   * @param childElement the state after the given edge
+   * @param edge the edge to process
+   * @param functionStack the current callstack
    */
   void processEdge(ARGState childElement, CFAEdge edge, Stack<FunctionBody> functionStack) {
     FunctionBody currentFunction = functionStack.peek();

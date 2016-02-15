@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -56,7 +55,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -124,48 +122,58 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
         throws CPATransferException, InterruptedException {
     Preconditions.checkNotNull(cfaEdge);
     Preconditions.checkArgument(!(cfaEdge instanceof MultiEdge),
-        "MultiEdges cannot be supported by ThreadingCPA, because we need interleaving steps for chains of edges.");
-    final ThreadingState threadingState = (ThreadingState) state;
+        "MultiEdges cannot be supported by ThreadingCPA, "
+        + "because we need interleaving steps for chains of edges.");
 
-    // filter out all states, where the edge is not available
-    final Set<String> activeThreads = new HashSet<>();
-    for (String id : threadingState.getThreadIds()) {
-      Pair<AbstractState, AbstractState> threadPos = threadingState.getThreadLocation(id);
-      if (Iterables.contains(((LocationState)threadPos.getSecond()).getOutgoingEdges(), cfaEdge)) {
-        activeThreads.add(id);
-      }
-    }
+    final ThreadingState threadingState = exitThreads((ThreadingState) state);
 
-    assert activeThreads.size() == 1 : "multiple thread active: " + activeThreads;
-    // then either the same function is ccalled in different threads -> not supported.
-    // (or CompositeCPA and ThreadingCPA do not work together)
-
-    String activeThread = Iterables.getOnlyElement(activeThreads);
+    final String activeThread = getActiveThread(cfaEdge, threadingState);
 
     // check if atomic lock exists and is set for current thread
-    if (useAtomicLocks && threadingState.hasLock(ATOMIC_LOCK) && !threadingState.hasLock(activeThread, ATOMIC_LOCK)) {
+    if (useAtomicLocks && threadingState.hasLock(ATOMIC_LOCK)
+        && !threadingState.hasLock(activeThread, ATOMIC_LOCK)) {
       return Collections.emptySet();
     }
 
     // TODO we should exit after analyzing the edge, not before.
+
+    // check, if we can abort the complete analysis of all other threads after this edge.
     if (isEndOfMainFunction(cfaEdge) || isTerminatingEdge(cfaEdge)) {
       // VERIFIER_assume not only terminates the current thread, but the whole program
       return Collections.emptySet();
     }
 
     // get all possible successors
-    Collection<ThreadingState> results = getAbstractSuccessorsFromWrappedCPAs(activeThread, threadingState, precision, cfaEdge);
+    Collection<ThreadingState> results = getAbstractSuccessorsFromWrappedCPAs(
+        activeThread, threadingState, precision, cfaEdge);
 
     if (useLocalAccessLocks) {
       results = handleLocalAccessLock(cfaEdge, threadingState, activeThread, results);
     }
 
-    if (isLastEdgeOfThread(cfaEdge)) {
-      // if thread does not exit with "pthread_exit"
-      results = exitThread(threadingState, activeThread, results);
+    return getAbstractSuccessorsForEdge0(cfaEdge, threadingState, activeThread, results);
+  }
+
+  /** Search for the thread, where the current edge is available.
+   * The result should be exactly one thread, that is denoted as 'active'.
+   *
+   * This method is needed, because we use the CompositeCPA to choose the edge,
+   * and when we have several locations in the threadingState,
+   * only one of them has an outgoing edge matching the current edge.
+   */
+  private String getActiveThread(final CFAEdge cfaEdge, final ThreadingState threadingState) {
+    final Set<String> activeThreads = new HashSet<>();
+    for (String id : threadingState.getThreadIds()) {
+      if (Iterables.contains(threadingState.getThreadLocation(id).getOutgoingEdges(), cfaEdge)) {
+        activeThreads.add(id);
+      }
     }
 
-    return getAbstractSuccessorsForEdge0(cfaEdge, threadingState, activeThread, results);
+    assert activeThreads.size() == 1 : "multiple active threads are not allowed: " + activeThreads;
+    // then either the same function is called in different threads -> not supported.
+    // (or CompositeCPA and ThreadingCPA do not work together)
+
+    return Iterables.getOnlyElement(activeThreads);
   }
 
   /** handle all edges related to thread-management:
@@ -189,9 +197,11 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
           case THREAD_MUTEX_UNLOCK:
             return removeLock(activeThread, statement, results);
           case THREAD_JOIN:
-            return joinThread(threadingState, activeThread, statement, results);
+            return joinThread(threadingState, statement, results);
           case THREAD_EXIT:
-            return exitThread(threadingState, activeThread, results);
+            // this function-call is already handled in the beginning with isLastNodeOfThread.
+            // return exitThread(threadingState, activeThread, results);
+            // TODO check for code like "x=4; pthread_exit(); x=5; return 0;", that would be invalid.
           default:
             // nothing to do, return results
           }
@@ -244,29 +254,29 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       throws CPATransferException, InterruptedException {
 
     final Collection<ThreadingState> results = new HashSet<>();
-    Pair<AbstractState, AbstractState> threadPos = threadingState.getThreadLocation(activeThread);
 
     // compute new locations
     Collection<? extends AbstractState> newLocs = locationCPA.getTransferRelation().
-        getAbstractSuccessorsForEdge(threadPos.getSecond(), precision, cfaEdge);
+        getAbstractSuccessorsForEdge(threadingState.getThreadLocation(activeThread), precision, cfaEdge);
 
     // compute new stacks
     Collection<? extends AbstractState> newStacks = callstackCPA.getTransferRelation().
-        getAbstractSuccessorsForEdge(threadPos.getFirst(), precision, cfaEdge);
+        getAbstractSuccessorsForEdge(threadingState.getThreadCallstack(activeThread), precision, cfaEdge);
 
     // combine them pairwise, all combinations needed
     for (AbstractState loc : newLocs) {
       for (AbstractState stack : newStacks) {
-        results.add(threadingState.updateThreadAndCopy(activeThread, Pair.of(stack, loc)));
+        results.add(threadingState.updateThreadAndCopy(activeThread, stack, loc));
       }
     }
 
     return results;
   }
 
-  /** the current thread will terminate after this edge */
-  private boolean isLastEdgeOfThread(CFAEdge edge) {
-    return 0 == edge.getSuccessor().getNumLeavingEdges();
+  /** checks whether the location is the last node of a thread,
+   * i.e. the current thread will terminate after this node. */
+  private boolean isLastNodeOfThread(CFANode node) {
+    return 0 == node.getNumLeavingEdges();
   }
 
   /** the whole program will terminate after this edge */
@@ -279,27 +289,26 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     return cfa.getMainFunction().getExitNode() == edge.getSuccessor();
   }
 
-  private Collection<ThreadingState> exitThread(
-      final ThreadingState threadingState, final String activeThread,
-      final Collection<ThreadingState> results) {
-
-    // update all successors
-    final Collection<ThreadingState> newResults = new ArrayList<>();
-    for (ThreadingState ts : results) {
-      if (useLocalAccessLocks) {
-        ts = ts.removeLockAndCopy(activeThread, LOCAL_ACCESS_LOCK);
-      }
-      if (ts.hasLockForThread(activeThread)) {
-        logger.log(Level.WARNING, "dying thread", activeThread, "has remaining locks in state", ts);
-      }
-      ts = ts.removeThreadAndCopy(activeThread);
-      if (ts.getThreadIds().isEmpty()) {
-        // we have exited all threads, no successor
-      } else {
-        newResults.add(ts);
+  private ThreadingState exitThreads(ThreadingState tmp) {
+    // clean up exited threads.
+    // this is done before applying any other step.
+    for (String id : tmp.getThreadIds()) {
+      if (isLastNodeOfThread(tmp.getThreadLocation(id).getLocationNode())) {
+        tmp = exitThread(tmp, id);
       }
     }
-    return newResults;
+    return tmp;
+  }
+
+  /** remove the thread-id from the state, and cleanup remaining locks of this thread. */
+  private ThreadingState exitThread(ThreadingState ts, final String id) {
+    if (useLocalAccessLocks) {
+      ts = ts.removeLockAndCopy(id, LOCAL_ACCESS_LOCK);
+    }
+    if (ts.hasLockForThread(id)) {
+      logger.log(Level.WARNING, "dying thread", id, "has remaining locks in state", ts);
+    }
+    return ts.removeThreadAndCopy(id);
   }
 
   private Collection<ThreadingState> startNewThread(
@@ -332,20 +341,19 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       functionName = CFACloner.getFunctionName(functionName, newThreadNum);
     }
 
-    CFANode functioncallNode = Preconditions.checkNotNull(cfa.getFunctionHead(functionName), functionName);
-    Pair<AbstractState, AbstractState> p = Pair.of(
-        callstackCPA.getInitialState(functioncallNode, StateSpacePartition.getDefaultPartition()),
-        locationCPA.getInitialState(functioncallNode, StateSpacePartition.getDefaultPartition()));
-
     if (threadingState.getThreadIds().contains(id.getName())) {
       throw new UnrecognizedCodeException("multiple thread assignments to same LHS not supported", id);
     }
+
+    CFANode functioncallNode = Preconditions.checkNotNull(cfa.getFunctionHead(functionName), functionName);
+    AbstractState initialStack = callstackCPA.getInitialState(functioncallNode, StateSpacePartition.getDefaultPartition());
+    AbstractState initialLoc = locationCPA.getInitialState(functioncallNode, StateSpacePartition.getDefaultPartition());
 
     // update all successors
     final Collection<ThreadingState> newResults = new ArrayList<>();
     for (ThreadingState ts : results) {
       if (maxNumberOfThreads == -1 || ts.getThreadIds().size() <= maxNumberOfThreads) {
-        ts = ts.addThreadAndCopy(id.getName(), newThreadNum, p);
+        ts = ts.addThreadAndCopy(id.getName(), newThreadNum, initialStack, initialLoc);
         newResults.add(ts);
       }
     }
@@ -424,7 +432,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     return newResults;
   }
 
-  private Collection<ThreadingState> joinThread(ThreadingState threadingState, String activeThread,
+  private Collection<ThreadingState> joinThread(ThreadingState threadingState,
       AStatement statement, Collection<ThreadingState> results) throws UnrecognizedCodeException {
 
     // first check for some possible errors and unsupported parts

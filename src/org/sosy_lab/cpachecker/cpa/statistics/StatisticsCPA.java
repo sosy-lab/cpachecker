@@ -228,7 +228,7 @@ public class StatisticsCPA implements StatisticsProvider, ConfigurableProgramAna
     mergeOperator = mergeOp;
     stopOperator = new StopSepOperator(abstractDomain);
 
-    this.transferRelation = new StatisticsTransferRelation(config, pLogger);
+    this.transferRelation = new StatisticsTransferRelation();
   }
 
   public StatisticsStateFactory getFactory() {

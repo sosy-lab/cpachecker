@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicIn
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolantManager;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
 import org.sosy_lab.cpachecker.util.refinement.GenericRefiner;
@@ -116,9 +116,13 @@ public class SymbolicValueAnalysisRefiner
 
 
     final GenericPrefixProvider<ForgettingCompositeState> prefixProvider =
-        new GenericPrefixProvider<>(strongestPostOperator,
-                                    ForgettingCompositeState.getInitialState(),
-                                    logger, cfa, config, ValueAnalysisCPA.class);
+        new GenericPrefixProvider<>(
+            strongestPostOperator,
+            ForgettingCompositeState.getInitialState(cfa.getMachineModel()),
+            logger,
+            cfa,
+            config,
+            ValueAnalysisCPA.class);
 
     final ElementTestingSymbolicEdgeInterpolator edgeInterpolator =
         new ElementTestingSymbolicEdgeInterpolator(feasibilityChecker,

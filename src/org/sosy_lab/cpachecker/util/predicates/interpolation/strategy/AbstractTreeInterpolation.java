@@ -34,20 +34,21 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -76,7 +77,7 @@ public abstract class AbstractTreeInterpolation<T> extends ITPStrategy<T> {
    *          the path formula F starting at an abstract state E corresponds
    *          with the ITP-group T. We assume the sorting of the list matches
    *          the order of abstract states along the counterexample.
-   * @param interpolants computed with {@link getInterpolants} and will be checked.
+   * @param interpolants computed with {@link InterpolationManager#getInterpolants} and will be checked.
    */
   @Override
   public void checkInterpolants(final Solver solver,
@@ -274,8 +275,7 @@ public abstract class AbstractTreeInterpolation<T> extends ITPStrategy<T> {
    * A subtree is connected with the whole tree with the calling statement
    * (i.e. the function call edge with arg-to-param-assignment).
    *
-   * @param itpGroupsIds formulas from the solver-stack, sorted according control flow
-   * @param orderedFormulas formulas and abstract states, sorted according to position on the solver-stack.
+   * @param formulasWithStatesAndGroupdIds formulas and abstract states, sorted according to position on the solver-stack.
    *                        we assume DIRECTION.FORWARDS as order, such that itpGroups and orderedFormulas are sorted equal.
    *
    * @return Pair (formulas := tree-elements, startOfSubTree := tree-structure),
@@ -351,7 +351,7 @@ public abstract class AbstractTreeInterpolation<T> extends ITPStrategy<T> {
    * For function-entries (START-point) we use TRUE,
    * for function-returns (END-point) both function-summary and function-execution (merged into one formula).
    *
-   * @param orderedFormulas contains the input formulas and abstract states
+   * @param formulasWithStatesAndGroupdIds contains the input formulas and abstract states
    * @param itps tree-interpolants
    * @return interpolants linear chain of interpolants, created from the tree-interpolants
    */

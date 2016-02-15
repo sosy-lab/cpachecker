@@ -51,7 +51,6 @@ import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.CopyOnWriteSortedMap;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -103,6 +102,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -205,8 +205,6 @@ public class CFASingleLoopTransformation {
    * Applies the single loop transformation to the given CFA.
    *
    * @param pInputCFA the control flow automaton to be transformed.
-   * @param pVarClassification the variable classification.
-   * @param pLoopStructure the current loop structure.
    *
    * @return a new CFA with at most one loop.
    * @throws InvalidConfigurationException if the configuration this transformer was created with is invalid.
@@ -297,7 +295,7 @@ public class CFASingleLoopTransformation {
    * @param pStartNode the start node of the new control flow automaton.
    * @param pNewPredecessorsToPC the mapping of program counter value assignment predecessors to program counter values. Must be mutable.
    * @param pNewSuccessorsToPC the mapping of program counter value assumption successors to program counter values. Must be mutable.
-   * @param pGlobalNewToOld
+   * @param pGlobalNewToOld a mapping from TODO
    * @throws InterruptedException if a shutdown has been requested by the registered shutdown notifier.
    */
   private void simplify(CFANode pStartNode,
@@ -378,8 +376,6 @@ public class CFASingleLoopTransformation {
    * assume edges mapped to their respective program counter value.
    * @param pGlobalNewToOld the mapping of new control flow nodes to old control
    * flow nodes.
-   *
-   * @throws InterruptedException if a shutdown has been requested by the registered shutdown notifier.
    */
   private void fixSummaryEdges(FunctionEntryNode pStartNode,
       ImmutableBiMap<Integer, CFANode> pNewSuccessorsToPC,
@@ -741,7 +737,6 @@ public class CFASingleLoopTransformation {
    *
    * @return the CFA represented by the nodes reachable from the start node.
    *
-   * @throws InvalidConfigurationException if the configuration is invalid.
    * @throws InterruptedException if a shutdown has been requested by the registered shutdown notifier.
    */
   private MutableCFA buildCFA(FunctionEntryNode pStartNode, CFANode pLoopHead,

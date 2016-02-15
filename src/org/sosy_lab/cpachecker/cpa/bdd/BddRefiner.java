@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.bdd;
 import java.io.PrintStream;
 import java.util.Collection;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -35,8 +34,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.counterexample.RichModel;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -57,6 +55,7 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvid
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
@@ -82,7 +81,7 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
   private int numberOfValueAnalysisRefinements           = 0;
   private int numberOfSuccessfulValueAnalysisRefinements = 0;
 
-  public static BddRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
+  public static BddRefiner create(ConfigurableProgramAnalysis cpa) throws InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(BddRefiner.class.getSimpleName() + " could not find the BDDCPA");
     }
@@ -101,7 +100,7 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
 
   private static BddRefiner initialiseValueAnalysisRefiner(
       ConfigurableProgramAnalysis cpa, BDDCPA pBddCpa)
-          throws CPAException, InvalidConfigurationException {
+          throws InvalidConfigurationException {
     Configuration config  = pBddCpa.getConfiguration();
     LogManager logger     = pBddCpa.getLogger();
     CFA cfa               = pBddCpa.getCFA();
@@ -153,7 +152,9 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
       }
     }
 
-    return CounterexampleInfo.feasible(pErrorPath, RichModel.empty());
+    // we use the imprecise version of the CounterexampleInfo, due to the possible
+    // merges which are done in the BDD Analysis
+    return CounterexampleInfo.feasibleImprecise(pErrorPath);
   }
 
   /**

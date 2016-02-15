@@ -36,9 +36,9 @@ final class SMGJoinMapTargetAddress {
   private SMGNodeMapping mapping2;
   private Integer value;
 
-  public SMGJoinMapTargetAddress(SMG pSMG1, SMG pSMG2, SMG destSMG,
-                             SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
-                             Integer pAddress1, Integer pAddress2) {
+  public SMGJoinMapTargetAddress(SMG pSMG1, SMG destSMG, SMGNodeMapping pMapping1,
+                             SMGNodeMapping pMapping2, Integer pAddress1,
+                             Integer pAddress2) {
     smg = destSMG;
     mapping1 = pMapping1;
     mapping2 = pMapping2;
@@ -60,7 +60,12 @@ final class SMGJoinMapTargetAddress {
       }
     }
 
-    value = SMGValueFactory.getNewValue();
+    if(pAddress1 == pAddress2) {
+      value = pAddress1;
+    } else {
+      value = SMGValueFactory.getNewValue();
+    }
+
     smg.addValue(value);
     smg.addPointsToEdge(new SMGEdgePointsTo(value, target, pt.getOffset()));
     mapping1.map(pAddress1, value);

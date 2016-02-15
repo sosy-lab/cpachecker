@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -79,13 +79,12 @@ public class CoverageReport {
 
     this.reportWriters = Lists.newArrayList();
     this.reportWriters.add(new CoverageReportGcov(pConfig, pLogger));
-    this.reportWriters.add(new CoverageReportStdoutSummary(pConfig, pLogger));
+    this.reportWriters.add(new CoverageReportStdoutSummary(pConfig));
 
   }
 
   public void writeCoverageReport(
       final PrintStream pStatisticsOutput,
-      final Result pResult,
       final ReachedSet pReached,
       final CFA pCfa) {
 

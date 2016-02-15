@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.base.Preconditions.*;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -119,6 +119,9 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
   /**
    * Returns the edge from current state to child or Null, if there is no edge.
    * Both forward and backward analysis must be considered!
+   *
+   * If there are several edges between the states,
+   * only one of them will be returned, non-deterministically.
    */
   @Nullable
   public CFAEdge getEdgeToChild(ARGState pChild) {
@@ -128,26 +131,38 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     // by an analysis. Possible traces might be 'interrupted' by covered states.
     // Covered states do not have children, so we expect the return value null in this case.
 
-    CFANode currentLoc = extractLocation(this);
-    CFANode childLoc = extractLocation(pChild);
+    final Iterable<CFANode> currentLocs = extractLocations(this);
+    final Iterable<CFANode> childLocs = extractLocations(pChild);
 
-    if (currentLoc.hasEdgeTo(childLoc)) { // Forwards
-      return currentLoc.getEdgeTo(childLoc);
+    // first try to get a normal edge
+    for (CFANode currentLoc : currentLocs) {
+      for (CFANode childLoc : childLocs) {
+        if (currentLoc.hasEdgeTo(childLoc)) { // Forwards
+          return currentLoc.getEdgeTo(childLoc);
 
-    } else if (currentLoc.getLeavingSummaryEdge() != null
-            && currentLoc.getLeavingSummaryEdge().getSuccessor().equals(childLoc)) { // Forwards
-      return currentLoc.getLeavingSummaryEdge();
-
-    } else if (childLoc.hasEdgeTo(currentLoc)) { // Backwards
-      return childLoc.getEdgeTo(currentLoc);
-
-    } else if (currentLoc.getEnteringSummaryEdge() != null
-          && currentLoc.getEnteringSummaryEdge().getSuccessor().equals(childLoc)) { // Backwards
-      return currentLoc.getEnteringSummaryEdge();
-
-    } else {
-      return null;
+        } else if (childLoc.hasEdgeTo(currentLoc)) { // Backwards
+          return childLoc.getEdgeTo(currentLoc);
+        }
+      }
     }
+
+    // then try to get a special edge, just to have some edge.
+    for (CFANode currentLoc : currentLocs) {
+      for (CFANode childLoc : childLocs) {
+        if (currentLoc.getLeavingSummaryEdge() != null
+            && currentLoc.getLeavingSummaryEdge().getSuccessor().equals(childLoc)) { // Forwards
+          return currentLoc.getLeavingSummaryEdge();
+
+        } else if (currentLoc.getEnteringSummaryEdge() != null
+            && currentLoc.getEnteringSummaryEdge().getSuccessor().equals(childLoc)) { // Backwards
+          return currentLoc.getEnteringSummaryEdge();
+
+        }
+      }
+    }
+
+    // there is no edge
+    return null;
   }
 
   public Set<ARGState> getSubgraph() {
@@ -421,7 +436,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
    * children of this element, and it will also cover all elements which are
    * currently covered by this element.
    *
-   * @param replacement
+   * @param replacement the replacement for this state
    */
   public void replaceInARGWith(ARGState replacement) {
     assert !destroyed : "Don't use destroyed ARGState " + this;

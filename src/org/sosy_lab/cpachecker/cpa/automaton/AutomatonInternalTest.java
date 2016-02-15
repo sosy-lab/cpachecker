@@ -83,7 +83,7 @@ public class AutomatonInternalTest {
   }
 
   @Test
-  public void testScanner() throws InvalidConfigurationException, IOException {
+  public void testScanner() throws IOException {
     ComplexSymbolFactory sf1 = new ComplexSymbolFactory();
     try (Reader input = defaultSpec.openBufferedStream()) {
       AutomatonScanner s = new AutomatonScanner(input, defaultSpecPath, logger, sf1);
@@ -188,7 +188,7 @@ public class AutomatonInternalTest {
   }
 
   @Test
-  public void testJokerReplacementInAST() throws InvalidAutomatonException, InvalidConfigurationException {
+  public void testJokerReplacementInAST() {
     // tests the replacement of Joker expressions in the AST comparison
     final String pattern = "$20 = $5($1, $?);";
     final String source = "var1 = function(var2, egal);";
@@ -217,7 +217,7 @@ public class AutomatonInternalTest {
   }
 
   @Test
-  public void testASTcomparison() throws InvalidAutomatonException, InvalidConfigurationException {
+  public void testASTcomparison() {
 
    assert_().about(astMatcher).that("x= $?;").matches("x=5;");
    assert_().about(astMatcher).that("x= 10;").doesNotMatch("x=5;");

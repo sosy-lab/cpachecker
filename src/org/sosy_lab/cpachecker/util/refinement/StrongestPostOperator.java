@@ -80,7 +80,7 @@ public interface StrongestPostOperator<S extends ForgetfulState<?>> {
    * the user has to handle this with {@link #getStrongestPost}.
    * This method is important for the analysis of recursive procedures in combination with BAM.
    *
-   * @param state the state before exiting the function
+   * @param next the state before exiting the function
    *        (but after assigning a value to the return-variable, if necessary)
    * @param edge the function-return-edge,
    *        where the return-variable is copied into the calling scope and

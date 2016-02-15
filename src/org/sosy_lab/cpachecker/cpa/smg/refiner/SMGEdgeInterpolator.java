@@ -32,6 +32,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathPosition;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
@@ -76,7 +77,7 @@ public class SMGEdgeInterpolator extends GenericEdgeInterpolator<SMGState, SMGSt
 
   @Override
   public SMGInterpolant deriveInterpolant(ARGPath pErrorPath, CFAEdge pCurrentEdge, Deque<SMGState> pCallstack,
-      int pOffset, SMGInterpolant pInputInterpolant) throws CPAException, InterruptedException {
+      PathPosition pOffset, SMGInterpolant pInputInterpolant) throws CPAException, InterruptedException {
     numberOfInterpolationQueries = 0;
     return super.deriveInterpolant(pErrorPath, pCurrentEdge, pCallstack, pOffset, pInputInterpolant);
   }

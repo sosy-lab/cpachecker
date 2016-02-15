@@ -40,6 +40,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  */
 public abstract class Address {
 
+  private Address() {} // for visibility
+
   /**
    * Adds a concrete value to the address. Is for example used in pointer arithmetic in C.
    * This method may only be called if the address is concrete.

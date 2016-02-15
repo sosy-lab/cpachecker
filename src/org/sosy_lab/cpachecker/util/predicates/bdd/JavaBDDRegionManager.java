@@ -29,6 +29,7 @@ import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingSt
 
 import java.io.PrintStream;
 import java.lang.ref.PhantomReference;
+import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -39,12 +40,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import net.sf.javabdd.BDD;
-import net.sf.javabdd.BDDFactory;
-import net.sf.javabdd.JFactory;
-
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -52,21 +48,30 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.PredicateOrderingStrategy;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.regions.Region;
+import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FunctionDeclaration;
+import org.sosy_lab.solver.api.QuantifiedFormulaManager.Quantifier;
+import org.sosy_lab.solver.visitors.BooleanFormulaVisitor;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
+import net.sf.javabdd.BDD;
+import net.sf.javabdd.BDDFactory;
+import net.sf.javabdd.JFactory;
 /**
  * A wrapper for the javabdd (http://javabdd.sf.net) package.
  *
@@ -88,7 +93,7 @@ class JavaBDDRegionManager implements RegionManager {
   private final ReferenceQueue<JavaBDDRegion> referenceQueue =
       new ReferenceQueue<>();
   // In this map we store the info which BDD to free after a JavaBDDRegion object was GCed.
-  private final Map<PhantomReference<JavaBDDRegion>, BDD> referenceMap = Maps
+  private final Map<Reference<? extends JavaBDDRegion>, BDD> referenceMap = Maps
       .newIdentityHashMap();
 
   @Option(secure = true, description = "Initial size of the BDD node table in percentage of available Java heap memory (only used if initTableSize is 0).")
@@ -137,20 +142,20 @@ class JavaBDDRegionManager implements RegionManager {
     try {
       Method gcCallback =
           JavaBDDRegionManager.class.getDeclaredMethod("gcCallback",
-              new Class[]{Integer.class, BDDFactory.GCStats.class});
+              Integer.class, BDDFactory.GCStats.class);
       gcCallback.setAccessible(true);
       factory.registerGCCallback(this, gcCallback);
 
       Method resizeCallback =
           JavaBDDRegionManager.class.getDeclaredMethod("resizeCallback",
-              new Class[]{Integer.class, Integer.class});
+              Integer.class, Integer.class);
       resizeCallback.setAccessible(true);
       factory.registerResizeCallback(this, resizeCallback);
 
       Method reorderCallback =
           JavaBDDRegionManager.class
-              .getDeclaredMethod("reorderCallback", new Class[]{
-                  Integer.class, BDDFactory.ReorderStats.class});
+              .getDeclaredMethod("reorderCallback", Integer.class,
+                  BDDFactory.ReorderStats.class);
       reorderCallback.setAccessible(true);
       factory.registerReorderCallback(this, reorderCallback);
 
@@ -225,7 +230,6 @@ class JavaBDDRegionManager implements RegionManager {
           .putIf(cacheSize >= 0, "Size of BDD cache", cacheSize)
           .put(cleanupQueueSize)
           .put(cleanupTimer)
-
           .put(
               "Time for BDD garbage collection",
               TimeSpan.ofMillis(stats.sumtime).formatAs(SECONDS)
@@ -304,9 +308,8 @@ class JavaBDDRegionManager implements RegionManager {
     cleanupTimer.start();
     try {
       int count = 0;
-      PhantomReference<? extends JavaBDDRegion> ref;
-      while ((ref =
-          (PhantomReference<? extends JavaBDDRegion>)referenceQueue
+      Reference<? extends JavaBDDRegion> ref;
+      while ((ref = referenceQueue
               .poll()) != null) {
         count++;
 
@@ -477,7 +480,7 @@ class JavaBDDRegionManager implements RegionManager {
 
     try (FormulaToRegionConverter converter =
              new FormulaToRegionConverter(fmgr, atomToRegion)) {
-      return wrap(converter.visit(pF));
+      return wrap(bfmgr.visit(converter, pF));
     }
   }
 
@@ -641,38 +644,44 @@ class JavaBDDRegionManager implements RegionManager {
    * the BDDRegions again, and calling
    * cleanupReferences() would be too big.
    */
-  private class FormulaToRegionConverter extends
-      BooleanFormulaManagerView.BooleanFormulaVisitor<BDD> implements
-      AutoCloseable {
+  private class FormulaToRegionConverter
+      implements AutoCloseable,
+                BooleanFormulaVisitor<BDD> {
 
     private final Function<BooleanFormula, Region> atomToRegion;
     private final Map<BooleanFormula, BDD> cache = new HashMap<>();
+    private final BooleanFormulaManager bfmgr;
 
     FormulaToRegionConverter(FormulaManagerView pFmgr,
         Function<BooleanFormula, Region> pAtomToRegion) {
-      super(pFmgr);
       atomToRegion = pAtomToRegion;
+      bfmgr = pFmgr.getBooleanFormulaManager();
     }
 
     @Override
-    protected BDD visitTrue() {
+    public BDD visitTrue() {
       return factory.one();
     }
 
     @Override
-    protected BDD visitFalse() {
+    public BDD visitFalse() {
       return factory.zero();
     }
 
     @Override
-    protected BDD visitAtom(BooleanFormula pAtom) {
+    public BDD visitBoundVar(BooleanFormula var, int deBruijnIdx) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public BDD visitAtom(BooleanFormula pAtom, FunctionDeclaration decl) {
       return ((JavaBDDRegion)atomToRegion.apply(pAtom)).getBDD().id();
     }
 
     private BDD convert(BooleanFormula pOperand) {
       BDD operand = cache.get(pOperand);
       if (operand == null) {
-        operand = visit(pOperand);
+        operand = bfmgr.visit(this, pOperand);
         cache.put(pOperand, operand);
       }
       return operand.id(); // copy BDD so the one in the cache won't be consumed
@@ -687,7 +696,7 @@ class JavaBDDRegionManager implements RegionManager {
     }
 
     @Override
-    protected BDD visitNot(BooleanFormula pOperand) {
+    public BDD visitNot(BooleanFormula pOperand) {
       BDD operand = convert(pOperand);
       BDD result = operand.not();
       operand.free();
@@ -705,45 +714,47 @@ class JavaBDDRegionManager implements RegionManager {
       return operand1.applyWith(operand2, operator);
     }
 
-    private BDD visitMulti(BDDFactory.BDDOp operator,
-        BooleanFormula... pOperands) {
-      checkArgument(pOperands.length >= 2);
+    private BDD visitMulti(BDDFactory.BDDOp operator, List<BooleanFormula> pOperands) {
+      checkArgument(pOperands.size() >= 2);
 
-      BDD result = convert(pOperands[0]);
-      for (int i = 1; i < pOperands.length; i++) {
+      BDD result = convert(pOperands.get(0));
+      for (int i = 1; i < pOperands.size(); i++) {
         // optimization: applyWith() destroys arg0 and arg1,
         // but this is ok, because we would free them otherwise anyway
-        result = result.applyWith(convert(pOperands[i]), operator);
+        result = result.applyWith(convert(pOperands.get(i)), operator);
       }
 
       return result;
     }
 
     @Override
-    protected BDD visitAnd(BooleanFormula... pOperands) {
+    public BDD visitAnd(List<BooleanFormula> pOperands) {
       return visitMulti(BDDFactory.and, pOperands);
     }
 
     @Override
-    protected BDD visitOr(BooleanFormula... pOperands) {
+    public BDD visitOr(List<BooleanFormula> pOperands) {
       return visitMulti(BDDFactory.or, pOperands);
     }
 
     @Override
-    protected BDD visitEquivalence(BooleanFormula pOperand1,
-        BooleanFormula pOperand2) {
+    public BDD visitXor(BooleanFormula operand1, BooleanFormula operand2) {
+      return visitBinary(operand1, operand2, BDDFactory.xor);
+    }
+
+    @Override
+    public BDD visitEquivalence(BooleanFormula pOperand1, BooleanFormula pOperand2) {
       return visitBinary(pOperand1, pOperand2, BDDFactory.biimp);
     }
 
     @Override
-    protected BDD visitImplication(BooleanFormula pOperand1,
-        BooleanFormula pOperand2) {
+    public BDD visitImplication(BooleanFormula pOperand1, BooleanFormula pOperand2) {
       return visitBinary(pOperand1, pOperand2, BDDFactory.imp);
     }
 
     @Override
-    protected BDD visitIfThenElse(BooleanFormula pCondition,
-        BooleanFormula pThenFormula, BooleanFormula pElseFormula) {
+    public BDD visitIfThenElse(
+        BooleanFormula pCondition, BooleanFormula pThenFormula, BooleanFormula pElseFormula) {
       BDD condition = convert(pCondition);
       BDD thenBDD = convert(pThenFormula);
       BDD elseBDD = convert(pElseFormula);
@@ -754,6 +765,11 @@ class JavaBDDRegionManager implements RegionManager {
       thenBDD.free();
       elseBDD.free();
       return result;
+    }
+
+    @Override
+    public BDD visitQuantifier(Quantifier q, List<Formula> args, BooleanFormula pBody) {
+      throw new UnsupportedOperationException();
     }
   }
 }

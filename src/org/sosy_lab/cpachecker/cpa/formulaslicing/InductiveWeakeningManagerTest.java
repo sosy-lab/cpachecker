@@ -15,16 +15,14 @@ import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
-import org.sosy_lab.solver.FormulaManagerFactory;
 import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.collect.ImmutableMap;
@@ -32,34 +30,32 @@ import com.google.common.collect.ImmutableMap;
 public class InductiveWeakeningManagerTest {
   private CFACreator creator;
   private LogManager logger;
-  private PathFormulaManager pfmgr;
   private FormulaManagerView fmgr;
   private InductiveWeakeningManager inductiveWeakeningManager;
+  private Configuration config;
+  private ShutdownNotifier notifier;
 
   @Before public void setUp() throws Exception {
-    Configuration config = TestDataTools.configurationForTest().setOptions(
+    config = TestDataTools.configurationForTest().setOptions(
         ImmutableMap.of(
             "cpa.predicate.solver", "Z3",
             "log.consoleLevel", "FINE",
 
             // For easier debugging.
             "cpa.predicate.handlePointerAliasing", "false",
+            "cpa.predicate.ignoreIrrelevantVariables", "false",
 
             "analysis.interprocedural", "false"
         )
     ).build();
-    ShutdownNotifier notifier = ShutdownNotifier.create();
+    notifier = ShutdownNotifier.createDummy();
     logger = new BasicLogManager(config,
         new StreamHandler(System.out, new SimpleFormatter()));
     creator = new CFACreator(config, logger, notifier);
-    FormulaManagerFactory factory = new FormulaManagerFactory(config, logger, notifier);
-    fmgr = new FormulaManagerView(factory, config, logger);
-    // todo: non-deprecated constructor.
-    pfmgr = new PathFormulaManagerImpl(fmgr, config, logger, notifier,
-        MachineModel.LINUX32, AnalysisDirection.FORWARD);
-    Solver solver = new Solver(fmgr, factory, config, logger);
-    inductiveWeakeningManager = new InductiveWeakeningManager(config, fmgr, solver,
-        factory.getFormulaManager().getUnsafeFormulaManager(), logger);
+    Solver solver = Solver.create(config, logger, notifier);
+    fmgr = solver.getFormulaManager();
+
+    inductiveWeakeningManager = new InductiveWeakeningManager(config, fmgr, solver, logger);
   }
 
   @After public void tearDown() throws Exception {
@@ -67,10 +63,16 @@ public class InductiveWeakeningManagerTest {
   }
 
   @Test public void testSlicingVerySimple() throws Exception {
-    PathFormula f = toPathFormula(toCFA("int x, y; x = 1; y = 0;"));
+    CFA cfa = toCFA("int x, y; x = 1; y = 0;");
+    PathFormulaManager pfmgr = new PathFormulaManagerImpl(fmgr, config, logger, notifier,
+        cfa, AnalysisDirection.FORWARD);
+    PathFormula f = toPathFormula(pfmgr, cfa);
     logger.log(Level.INFO, "Sliced formula: ", f);
 
-    PathFormula loop = toPathFormula(toCFA("int x; x++;"), f.getSsa());
+    cfa = toCFA("int x; x++;");
+    pfmgr = new PathFormulaManagerImpl(fmgr, config, logger, notifier,
+        cfa, AnalysisDirection.FORWARD);
+    PathFormula loop = toPathFormula(pfmgr, cfa, f.getSsa());
     logger.log(Level.INFO, "Loop transition: ", loop);
 
     BooleanFormula slice = inductiveWeakeningManager.slice(f, loop,
@@ -78,24 +80,36 @@ public class InductiveWeakeningManagerTest {
 
     logger.log(Level.INFO, "Obtained slice", slice);
 
-    BooleanFormula expectedFormula = fmgr.uninstantiate(toPathFormula(toCFA("int y; y = 0;"))
+    cfa = toCFA("int y; y = 0;");
+    pfmgr = new PathFormulaManagerImpl(fmgr, config, logger, notifier,
+        cfa, AnalysisDirection.FORWARD);
+    BooleanFormula expectedFormula = fmgr.uninstantiate(toPathFormula(pfmgr, cfa)
         .getFormula());
 
     assertThat(slice).isEqualTo(expectedFormula);
   }
 
   @Test public void slicingSimpleRearranged() throws Exception {
-    PathFormula f = toPathFormula(toCFA("int x, y; y = 0; x = 1;"));
+    CFA cfa = toCFA("int x, y; y = 0; x = 1;");
+    PathFormulaManager pfmgr = new PathFormulaManagerImpl(fmgr, config, logger, notifier,
+        cfa, AnalysisDirection.FORWARD);
+    PathFormula f = toPathFormula(pfmgr, cfa);
     logger.log(Level.INFO, "Sliced formula: ", f);
 
-    PathFormula loop = toPathFormula(toCFA("int x; x++;"), f.getSsa());
+    cfa = toCFA("int x; x++;");
+    pfmgr = new PathFormulaManagerImpl(fmgr, config, logger, notifier,
+        cfa, AnalysisDirection.FORWARD);
+    PathFormula loop = toPathFormula(pfmgr, cfa, f.getSsa());
     logger.log(Level.INFO, "Loop transition: ", loop);
 
     BooleanFormula slice = inductiveWeakeningManager.slice(f, loop,
         fmgr.getBooleanFormulaManager().makeBoolean(true));
     logger.log(Level.INFO, "Obtained slice", slice);
 
-    BooleanFormula expectedFormula = fmgr.uninstantiate(toPathFormula(toCFA("int y; y = 0;"))
+    cfa = toCFA("int y; y = 0;");
+    pfmgr = new PathFormulaManagerImpl(fmgr, config, logger, notifier,
+        cfa, AnalysisDirection.FORWARD);
+    BooleanFormula expectedFormula = fmgr.uninstantiate(toPathFormula(pfmgr, cfa)
         .getFormula());
 
     assertThat(slice).isEqualTo(expectedFormula);
@@ -103,9 +117,7 @@ public class InductiveWeakeningManagerTest {
   }
 
   @Test public void testSlicingComplex() throws Exception {
-    // FIXME Tests should not rely on a user manually checking log message
-    // but instead use proper assertions, otherwise they are useless as regression tests.
-    PathFormula input = toPathFormula(toCFA(
+    CFA cfa = toCFA(
         "int x, y, p, nondet;",
         "x = 5;",
         "y = 10;",
@@ -115,9 +127,17 @@ public class InductiveWeakeningManagerTest {
         "} else {",
           "p = 2;",
         "}"
-    ));
+    );
+    PathFormulaManager pfmgr = new PathFormulaManagerImpl(fmgr, config, logger, notifier,
+        cfa, AnalysisDirection.FORWARD);
+    // FIXME Tests should not rely on a user manually checking log message
+    // but instead use proper assertions, otherwise they are useless as regression tests.
+    PathFormula input = toPathFormula(pfmgr, cfa);
 
-    PathFormula loopTransition = toPathFormula(toCFA("int x; x += 1;"));
+    cfa = toCFA("int x; x += 1;");
+    pfmgr = new PathFormulaManagerImpl(fmgr, config, logger, notifier,
+        cfa, AnalysisDirection.FORWARD);
+    PathFormula loopTransition = toPathFormula(pfmgr, cfa);
 
     BooleanFormula slice = inductiveWeakeningManager.slice(
         input, loopTransition,
@@ -126,11 +146,11 @@ public class InductiveWeakeningManagerTest {
     logger.log(Level.INFO, "Obtained slice", slice);
   }
 
-  private PathFormula toPathFormula(CFA cfa) throws Exception {
-    return toPathFormula(cfa, SSAMap.emptySSAMap());
+  private PathFormula toPathFormula(PathFormulaManager pfmgr, CFA cfa) throws Exception {
+    return toPathFormula(pfmgr, cfa, SSAMap.emptySSAMap());
   }
 
-  private PathFormula toPathFormula(CFA cfa, SSAMap initialSSA) throws Exception {
+  private PathFormula toPathFormula(PathFormulaManager pfmgr, CFA cfa, SSAMap initialSSA) throws Exception {
     return TestDataTools.toPathFormula(cfa, initialSSA,
         fmgr, pfmgr, true);
   }

@@ -26,12 +26,12 @@ package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.refinement.GenericFeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 
@@ -49,14 +50,13 @@ public class ValueAnalysisFeasibilityChecker
 
   private final StrongestPostOperator<ValueAnalysisState> strongestPostOp;
   private final VariableTrackingPrecision precision;
+  private final MachineModel machineModel;
 
   /**
    * This method acts as the constructor of the class.
    *
    * @param pLogger the logger to use
    * @param pCfa the cfa in use
-   * @param pInitial the initial state for starting the exploration
-   * @throws InvalidConfigurationException
    */
   public ValueAnalysisFeasibilityChecker(
       final StrongestPostOperator<ValueAnalysisState> pStrongestPostOp,
@@ -65,15 +65,17 @@ public class ValueAnalysisFeasibilityChecker
       final Configuration config
   ) throws InvalidConfigurationException {
 
-    super(pStrongestPostOp,
-          new ValueAnalysisState(),
-          ValueAnalysisCPA.class,
-          pLogger,
-          config,
-          pCfa);
+    super(
+        pStrongestPostOp,
+        new ValueAnalysisState(pCfa.getMachineModel()),
+        ValueAnalysisCPA.class,
+        pLogger,
+        config,
+        pCfa);
 
     strongestPostOp = pStrongestPostOp;
     precision = VariableTrackingPrecision.createStaticPrecision(config, pCfa.getVarClassification(), ValueAnalysisCPA.class);
+    machineModel = pCfa.getMachineModel();
   }
 
   public List<Pair<ValueAnalysisState, CFAEdge>> evaluate(final ARGPath path)
@@ -81,7 +83,7 @@ public class ValueAnalysisFeasibilityChecker
 
     try {
       List<Pair<ValueAnalysisState, CFAEdge>> reevaluatedPath = new ArrayList<>();
-      ValueAnalysisState next = new ValueAnalysisState();
+      ValueAnalysisState next = new ValueAnalysisState(machineModel);
 
       PathIterator iterator = path.pathIterator();
       while (iterator.hasNext()) {

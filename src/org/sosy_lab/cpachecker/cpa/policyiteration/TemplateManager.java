@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
+import java.math.BigInteger;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
@@ -17,6 +18,8 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -39,11 +42,11 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BitvectorFormula;
 import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
@@ -100,6 +103,11 @@ public class TemplateManager {
       + "in variable classification")
   private boolean filterIntAddVars = false;
 
+  @Option(secure=true,
+      description="Do not generate templates with threshold larger than specified."
+          + " Set to '-1' for no limit.")
+  private long templateConstantThreshold = 100;
+
   private enum VarFilteringStrategy {
     ALL_LIVE,
     ONE_LIVE,
@@ -132,6 +140,7 @@ public class TemplateManager {
   private final HashMultimap<CFANode, Template> cache = HashMultimap.create();
   private final ImmutableList<ASimpleDeclaration> allVariables;
   private final VariableClassification variableClassification;
+  private final CBinaryExpressionBuilder expressionBuilder;
 
   public TemplateManager(
       LogManager pLogger,
@@ -167,6 +176,8 @@ public class TemplateManager {
 
     allVariables = ImmutableList.copyOf(
         cfa.getLiveVariables().get().getAllLiveVariables());
+    expressionBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(),
+        logger);
   }
 
   public PolicyPrecision precisionForNode(CFANode node) {
@@ -357,7 +368,7 @@ public class TemplateManager {
   /**
    * Convert {@code template} to {@link Formula}, using
    * {@link org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap} and
-   * context provided by {@code contextFormula}.
+   * the context provided by {@code contextFormula}.
    *
    * @return Resulting formula.
    */
@@ -387,11 +398,10 @@ public class TemplateManager {
       if (coeff == Rational.ZERO) {
         continue;
       } else if (coeff == Rational.NEG_ONE) {
-        multipliedItem = fmgr.makeNegate(item, true);
+        multipliedItem = fmgr.makeNegate(item);
       } else if (coeff != Rational.ONE){
         multipliedItem = fmgr.makeMultiply(
-            item, fmgr.makeNumber(item, entry.getValue()), true
-        );
+            item, fmgr.makeNumber(item, entry.getValue()));
       } else {
         multipliedItem = item;
       }
@@ -399,7 +409,7 @@ public class TemplateManager {
       if (sum == null) {
         sum = multipliedItem;
       } else {
-        sum = fmgr.makePlus(sum, multipliedItem, true);
+        sum = fmgr.makePlus(sum, multipliedItem);
       }
     }
 
@@ -555,6 +565,8 @@ public class TemplateManager {
           out.addAll(extractTemplatesFromEdge(child));
         }
         break;
+      default:
+        // nothing to do here
     }
     return out;
   }
@@ -713,13 +725,64 @@ public class TemplateManager {
 
   private boolean addTemplateToExtra(Template t) {
     // Do not add intervals.
-    if (t.size() == 1) return false;
+    if (t.size() == 1) {
+      return false;
+    }
+    for (Entry<CIdExpression, Rational> e : t.getLinearExpression()) {
+
+      // Do not add templates whose coefficients are already overflowing.
+      if (isOverflowing(t, e.getValue())) {
+        return false;
+      } else if (templateConstantThreshold != -1 &&
+          e.getValue().compareTo(Rational.ofLong(templateConstantThreshold)) >= 1) {
+        return false;
+      }
+    }
 
     boolean out = extraTemplates.add(t);
     if (out) {
       statistics.incWideningTemplatesGenerated();
     }
     return out;
+  }
+
+  public boolean isOverflowing(Template template, Rational v) {
+    CSimpleType templateType = getTemplateType(template);
+    if (templateType.getType().isIntegerType()) {
+      BigInteger maxValue = cfa.getMachineModel()
+          .getMaximalIntegerValue(templateType);
+      BigInteger minValue = cfa.getMachineModel()
+          .getMinimalIntegerValue(templateType);
+
+      // The bound obtained is larger than the highest representable
+      // value, ignore it.
+      if (v.compareTo(Rational.ofBigInteger(maxValue)) == 1
+          || v.compareTo(Rational.ofBigInteger(minValue)) == -1) {
+        logger.log(Level.FINE, "Bound too high, ignoring",
+            v);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public CSimpleType getTemplateType(Template t) {
+    CExpression sum = null;
+
+    // also note: there is an overall _expression_ type.
+    // Wonder how that one is computed --- it actually depends on the order of
+    // the operands.
+    for (Entry<CIdExpression, Rational> e: t.getLinearExpression()) {
+      CIdExpression expr = e.getKey();
+      if (sum == null) {
+        sum = expr;
+      } else {
+        sum = expressionBuilder.buildBinaryExpressionUnchecked(
+            sum, expr, BinaryOperator.PLUS);
+      }
+    }
+    assert sum != null;
+    return (CSimpleType) sum.getExpressionType();
   }
 
   public Iterable<ASimpleDeclaration> getVarsForNode(CFANode node) {
@@ -732,7 +795,9 @@ public class TemplateManager {
 
   private Formula normalizeLength(Formula f, int maxBitvectorSize,
       FormulaManagerView fmgr) {
-    if (!(f instanceof BitvectorFormula)) return f;
+    if (!(f instanceof BitvectorFormula)) {
+      return f;
+    }
     BitvectorFormula bv = (BitvectorFormula) f;
     return fmgr.getBitvectorFormulaManager().extend(
         bv,
@@ -754,7 +819,9 @@ public class TemplateManager {
       } catch (UnrecognizedCCodeException e) {
         throw new UnsupportedOperationException();
       }
-      if (!(item instanceof BitvectorFormula)) continue;
+      if (!(item instanceof BitvectorFormula)) {
+        continue;
+      }
       BitvectorFormula b = (BitvectorFormula) item;
       length = Math.max(
           fmgr.getBitvectorFormulaManager().getLength(b),

@@ -23,28 +23,30 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
+import java.util.Collection;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
 
+import com.google.common.base.Optional;
+
 interface EdgeAppender {
 
-  void appendNewEdge(GraphMlBuilder pDoc, String pFrom, String pTo, CFAEdge pEdge);
-
-  void appendNewEdge(final GraphMlBuilder pDoc,
-      String pFrom, String pTo,
+  void appendNewEdge(
+      final GraphMlBuilder pDoc,
+      String pFrom,
+      String pTo,
       CFAEdge pEdge,
-      ARGState pFromState,
+      Optional<Collection<ARGState>> pFromState,
       Map<ARGState, CFAEdgeWithAssumptions> pValueMap);
 
-  void appendNewEdgeToSink(GraphMlBuilder pDoc, String pFrom, CFAEdge pEdge);
-
-  void appendNewEdgeToSink(final GraphMlBuilder pDoc,
+  void appendNewEdgeToSink(
+      final GraphMlBuilder pDoc,
       String pFrom,
       CFAEdge pEdge,
-      ARGState pFromState,
+      Optional<Collection<ARGState>> pFromState,
       Map<ARGState, CFAEdgeWithAssumptions> pValueMap);
 
 }

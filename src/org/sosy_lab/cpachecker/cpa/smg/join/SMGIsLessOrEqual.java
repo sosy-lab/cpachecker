@@ -51,9 +51,6 @@ public class SMGIsLessOrEqual {
   /**
    *
    * Checks, if smg2 is less or equal to smg1.
-   *
-   * @param pSMG1
-   * @param pSMG2
    * @return true, iff smg1 is less or equal to smg2, false otherwise.
    */
   public static boolean isLessOrEqual(CLangSMG pSMG1, CLangSMG pSMG2) {

@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
-<benchmark tool="cpachecker" timelimit="900" hardtimelimit="1000" memlimit="8000" cpuCores="2">
+<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="8 GB" cpuCores="2">
   <!-- This file contains regression tests from the LDV project.
        It expects the git repository git@bitbucket.org:dbeyer/ldv-benchmarks.git
        to be checked out at test/programs/ldv-benchmarks. -->
@@ -47,6 +47,16 @@
       <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-32_7a-fs--ceph--ceph.ko-ldv_main5_false-unreach-label.cil.out.c</exclude>
       <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-32_7a-fs--ncpfs--ncpfs.ko-ldv_main0_false-unreach-label.cil.out.c</exclude>
       <exclude>../programs/ldv-benchmarks/unsafes/68_1a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-68_1a-drivers--staging--keucr--keucr.ko-ldv_main0_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/130_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-130_7a-drivers--usb--atm--cxacru.ko-ldv_main0_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/68_1a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-68_1a-drivers--media--usb--gspca--gspca_benq.ko-ldv_main0_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/43_2a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-43_2a-fs--f2fs--f2fs.ko-ldv_main5_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/130_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-130_7a-drivers--usb--atm--cxacru.ko-ldv_main0_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/134_1a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-134_1a-drivers--tty--synclink.ko-ldv_main0_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-32_7a-drivers--scsi--mpt2sas--mpt2sas.ko-ldv_main3_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/68_1a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-68_1a-drivers--media--usb--gspca--gspca_benq.ko-ldv_main0_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-drivers--scsi--mpt3sas--mpt3sas.ko-ldv_main3_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/08_1a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-08_1a-drivers--fmc--fmc-chardev.ko-ldv_main0_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-fs--logfs--logfs.ko-ldv_main6_false-unreach-label.cil.out.c</exclude>
     </tasks>
   </rundefinition>
 </benchmark>

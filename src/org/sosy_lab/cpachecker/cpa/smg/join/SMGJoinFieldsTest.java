@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.junit.Assert;
@@ -38,7 +40,9 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.collect.Iterables;
 
@@ -57,6 +61,98 @@ public class SMGJoinFieldsTest {
   public void setUp() {
     smg1 = new SMG(MachineModel.LINUX64);
     smg2 = new SMG(MachineModel.LINUX64);
+  }
+
+  @Test
+  public void joinNulliefiedAndUndefinedFieldsTest() {
+    SMGRegion obj1 = new SMGRegion(16, "1");
+    SMGRegion obj2 = new SMGRegion(16, "1");
+
+    SMGRegion oth1 = new SMGRegion(16, "1");
+    SMGRegion oth2 = new SMGRegion(16, "1");
+
+    SMGEdgeHasValue obj1hv1at0 = new SMGEdgeHasValue(5, 0, obj1, 0);
+    SMGEdgeHasValue obj1hv2at7 = new SMGEdgeHasValue(2, 7, obj1, 0);
+    SMGEdgeHasValue obj1hv3at9 = new SMGEdgeHasValue(7, 9, obj1, value1);
+
+    SMGEdgeHasValue obj2hv1at0 = new SMGEdgeHasValue(4, 0, obj2, 100);
+    SMGEdgePointsTo obj2pt1to0 = new SMGEdgePointsTo(100, oth2, 0);
+    SMGEdgeHasValue obj2hv2at4 = new SMGEdgeHasValue(3, 4, obj2, 0);
+    SMGEdgeHasValue obj2hv3at8 = new SMGEdgeHasValue(8, 8, obj2, value2);
+
+    SMGEdgeHasValue oth1hv1at0 = new SMGEdgeHasValue(5, 0, oth1, 0);
+    SMGEdgeHasValue oth1hv2at7 = new SMGEdgeHasValue(2, 7, oth1, 0);
+    SMGEdgeHasValue oth1hv3at9 = new SMGEdgeHasValue(7, 9, oth1, value1);
+
+    SMGEdgeHasValue oth2hv1at0 = new SMGEdgeHasValue(4, 0, oth2, 100);
+    SMGEdgeHasValue oth2hv2at4 = new SMGEdgeHasValue(3, 4, oth2, 0);
+    SMGEdgeHasValue oth2hv3at8 = new SMGEdgeHasValue(8, 8, oth2, value2);
+
+    smg1.addObject(obj1);
+    smg1.addObject(oth1);
+    smg2.addObject(obj2);
+    smg2.addObject(oth2);
+
+    smg1.addHasValueEdge(obj1hv1at0);
+    smg1.addHasValueEdge(obj1hv2at7);
+    smg1.addHasValueEdge(obj1hv3at9);
+    smg1.addHasValueEdge(oth1hv1at0);
+    smg1.addHasValueEdge(oth1hv2at7);
+    smg1.addHasValueEdge(oth1hv3at9);
+
+    smg2.addHasValueEdge(obj2hv1at0);
+    smg2.addPointsToEdge(obj2pt1to0);
+    smg2.addHasValueEdge(obj2hv2at4);
+    smg2.addHasValueEdge(obj2hv3at8);
+    smg2.addHasValueEdge(oth2hv1at0);
+    smg2.addHasValueEdge(oth2hv2at4);
+    smg2.addHasValueEdge(oth2hv3at8);
+
+    SMGJoinFields join = new SMGJoinFields(smg1, smg2, obj1, obj2);
+
+    Assert.assertEquals(join.getStatus(), SMGJoinStatus.INCOMPARABLE);
+
+    Map<Integer, Pair<Integer, Integer>> fieldMap1 = new HashMap<>();
+    Map<Integer, Pair<Integer, Integer>> fieldMap2 = new HashMap<>();
+
+    fieldMap1.put(0, Pair.of(0, 4));
+    fieldMap1.put(4, Pair.of(0, 1));
+    fieldMap1.put(8, Pair.of(-1, 8));
+    fieldMap1.put(9, Pair.of(value1, 7));
+
+    fieldMap2.put(0, Pair.of(100, 4));
+    fieldMap2.put(4, Pair.of(0, 1));
+    fieldMap2.put(8, Pair.of(value2, 8));
+    fieldMap2.put(9, Pair.of(-1, 7));
+
+    checkFields(smg1, fieldMap1, obj1);
+
+
+  }
+
+  private void checkFields(SMG pSmg, Map<Integer, Pair<Integer, Integer>> pFieldMap, SMGObject pObj) {
+
+    SMGEdgeHasValueFilter filterOnSMG = SMGEdgeHasValueFilter.objectFilter(pObj);
+    Set<SMGEdgeHasValue> edges = pSmg.getHVEdges(filterOnSMG);
+
+    Assert.assertTrue(edges.size() == pFieldMap.keySet().size());
+
+    for (SMGEdgeHasValue edge : edges) {
+
+      int offset = edge.getOffset();
+
+      Assert.assertTrue(pFieldMap.containsKey(offset));
+
+      int value = edge.getValue();
+      int length = edge.getSizeInBytes(MachineModel.LINUX64);
+      Pair<Integer, Integer> expectedValueAndLength = pFieldMap.get(offset);
+
+      int eValue = expectedValueAndLength.getFirst();
+      int eLength = expectedValueAndLength.getSecond();
+
+      Assert.assertTrue(eValue == value || eValue == -1);
+      Assert.assertTrue(eLength == length);
+    }
   }
 
   @Test
@@ -113,7 +209,7 @@ public class SMGJoinFieldsTest {
     Assert.assertSame(obj1, newHv.getObject());
     Assert.assertEquals(4, newHv.getSizeInBytes(MachineModel.LINUX64));
     Assert.assertEquals(2, newHv.getOffset());
-    Assert.assertTrue(newHv.isCompatibleField(nonPointer, MachineModel.LINUX64));
+    Assert.assertTrue(newHv.isCompatibleField(nonPointer));
   }
 
   @Test
@@ -332,8 +428,7 @@ public class SMGJoinFieldsTest {
     smg1.addObject(obj1);
     smg2.addObject(obj2);
 
-    SMGJoinFields jf = new SMGJoinFields(smg1, smg2, obj1, obj2);
-    jf.getStatus(); // Avoid dead store warning
+    new SMGJoinFields(smg1, smg2, obj1, obj2);
   }
 
   @Test
@@ -476,8 +571,7 @@ public class SMGJoinFieldsTest {
     SMGRegion obj2 = new SMGRegion(32, "Object 2");
     smg2.addObject(obj2);
 
-    SMGJoinFields jf = new SMGJoinFields(smg1, smg2, obj1, obj2);
-    jf.getStatus(); // Avoid dead store warning
+    new SMGJoinFields(smg1, smg2, obj1, obj2);
   }
 
   @Test(expected=IllegalArgumentException.class)
@@ -489,7 +583,6 @@ public class SMGJoinFieldsTest {
     SMGRegion obj2 = new SMGRegion(32, "Object 2");
     smg1.addObject(obj1);
 
-    SMGJoinFields jf = new SMGJoinFields(smg1, smg2, obj1, obj2);
-    jf.getStatus(); // Avoid dead store warning
+    new SMGJoinFields(smg1, smg2, obj1, obj2);
   }
 }

@@ -212,11 +212,11 @@ public class StateSimplifier {
           dependents.removeAll(parents);
 
           // remove all infos already known as deletable
-          Iterables.filter(dependents, new Predicate<ActivityInfo>() {
+          Iterables.removeIf(dependents, new Predicate<ActivityInfo>() {
 
             @Override
             public boolean apply(ActivityInfo pActivityInfo) {
-              return pActivityInfo.getActivity() != Activity.DELETED;
+              return pActivityInfo.getActivity() == Activity.DELETED;
             }
           });
 

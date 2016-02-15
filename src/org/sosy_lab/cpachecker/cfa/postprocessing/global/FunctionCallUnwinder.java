@@ -32,12 +32,11 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.FunctionCallCollector;
 import org.sosy_lab.cpachecker.cfa.Language;
@@ -69,7 +68,7 @@ public class FunctionCallUnwinder {
 
   private final MutableCFA cfa;
 
-  public FunctionCallUnwinder(final MutableCFA pCfa, final Configuration config, final LogManager pLogger)
+  public FunctionCallUnwinder(final MutableCFA pCfa, final Configuration config)
           throws InvalidConfigurationException {
     config.inject(this);
     this.cfa = pCfa;

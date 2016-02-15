@@ -31,25 +31,25 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
  */
 public interface AbstractQueryableState extends AbstractState {
 
-  public String getCPAName();
+  String getCPAName();
 
   /**
    * Checks whether this AbstractState satisfies the property.
    * Each CPA defines which properties can be evaluated.
-   * @param property
+   * @param property the property to be checked
    * @return if the property is satisfied
    * @throws InvalidQueryException if the property is not given in the (CPA-specific) syntax
    */
-  public boolean checkProperty(String property) throws InvalidQueryException;
+  boolean checkProperty(String property) throws InvalidQueryException;
 
-  public Object evaluateProperty(String property) throws InvalidQueryException;
+  Object evaluateProperty(String property) throws InvalidQueryException;
 
   /**
    * Modifies the internal state of this AbstractState.
    * Each CPA defines a separate language for definition of modifications.
-   * @param modification
-   * @throws InvalidQueryException
+   * @param modification how the state should be modified
+   * @throws InvalidQueryException if the modification is not given in the (CPA-specific) syntax
    */
-  public void modifyProperty(String modification) throws InvalidQueryException;
+  void modifyProperty(String modification) throws InvalidQueryException;
 
 }

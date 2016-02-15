@@ -28,7 +28,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -38,7 +37,6 @@ import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -51,14 +49,14 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.Converter;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.Converter.PrecisionConverter;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.FormulaParser;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -129,7 +127,6 @@ public class PredicateMapParser {
    * Parse a file in the format described above and create a PredicatePrecision
    * object with all the predicates.
    * @param file The file to parse.
-   * @param initialGlobalPredicates A additional set of global predicates (for all locations).
    * @return A PredicatePrecision containing all the predicates from the file.
    * @throws IOException If the file cannot be read.
    * @throws PredicateParsingFailedException If there is a syntax error in the file.
@@ -145,7 +142,7 @@ public class PredicateMapParser {
   }
 
   /**
-   * @see #parsePredicates(Path, CFA, Collection, FormulaManager, AbstractionManager, LogManager)
+   * @see #parsePredicates(Path)
    * Instead of reading from a file, this method reads from a BufferedReader
    * (available primarily for testing).
    */

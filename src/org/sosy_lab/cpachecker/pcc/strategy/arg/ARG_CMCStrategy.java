@@ -38,7 +38,6 @@ import java.util.logging.Level;
 import java.util.zip.ZipInputStream;
 
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -57,6 +56,7 @@ import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
 import org.sosy_lab.cpachecker.pcc.strategy.util.cmc.AssumptionAutomatonGenerator;
 import org.sosy_lab.cpachecker.pcc.strategy.util.cmc.PartialCPABuilder;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.base.Preconditions;
@@ -151,7 +151,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
 
   private boolean checkAndReadSequentially() {
     try {
-      final ReachedSetFactory factory = new ReachedSetFactory(globalConfig, logger);
+      final ReachedSetFactory factory = new ReachedSetFactory(globalConfig);
       List<ARGState> incompleteStates = new ArrayList<>();
       ConfigurableProgramAnalysis cpa;
 
@@ -227,7 +227,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
   private boolean checkAndReadInterleaved() throws InterruptedException, CPAException {
     final ConfigurableProgramAnalysis[] cpas = new ConfigurableProgramAnalysis[roots.length];
     try {
-      final ReachedSetFactory factory = new ReachedSetFactory(globalConfig, logger);
+      final ReachedSetFactory factory = new ReachedSetFactory(globalConfig);
       final AtomicBoolean checkResult = new AtomicBoolean(true);
       final Semaphore partitionsAvailable = new Semaphore(0);
 

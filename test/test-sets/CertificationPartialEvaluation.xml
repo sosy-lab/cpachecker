@@ -12,7 +12,7 @@
      rundefinition of that analysis. Verification uses the best traversal order for each program.
      The time limit used for evaluation was 7 minutes to ensure computation of partial certificate within time limit.
 -->
-<benchmark tool="cpachecker" timelimit="420" memlimit="3500">
+<benchmark tool="cpachecker" timelimit="420 s" memlimit="3500 MB">
 <option name="-heap">2500M</option>
 <option name="-noout"/>
 <option name="-disable-java-assertions"/>

@@ -31,7 +31,6 @@ import java.util.List;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -39,11 +38,11 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 
 /**
  * Refinement strategy similar based on the general idea of McMillan's Impact
@@ -90,10 +89,8 @@ class ImpactRefinementStrategy extends RefinementStrategy {
   // (we sometimes needs this to refer to the previous block).
   private AbstractionFormula lastAbstraction = null;
 
-  protected ImpactRefinementStrategy(final Configuration config, final LogManager logger,
-      final Solver pSolver,
-      final PredicateAbstractionManager pPredAbsMgr)
-          throws InvalidConfigurationException {
+  protected ImpactRefinementStrategy(final Configuration config, final Solver pSolver,
+      final PredicateAbstractionManager pPredAbsMgr) throws InvalidConfigurationException {
     super(pSolver);
 
     bfmgr = pSolver.getFormulaManager().getBooleanFormulaManager();

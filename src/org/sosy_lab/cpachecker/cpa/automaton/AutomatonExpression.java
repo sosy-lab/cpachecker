@@ -125,7 +125,6 @@ interface AutomatonExpression {
     /**
      * Copies the failure messages from the passed result.
      * This Method assumes that the parameter fulfills canNotEvaluate() == true !
-     * @param pResA
      */
     public ResultValue(ResultValue<?> pRes) {
       assert pRes.canNotEvaluate;

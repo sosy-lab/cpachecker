@@ -35,7 +35,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -64,7 +63,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JMethodType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
-import org.sosy_lab.cpachecker.exceptions.JParserException;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.collect.SortedSetMultimap;
 
@@ -101,7 +100,7 @@ class DynamicBindingCreator {
 
 
 
-  public void trackAndCreateDynamicBindings() throws JParserException {
+  public void trackAndCreateDynamicBindings() {
 
     /*
      *  It starts with a map of all parsed methods while parsing the Java source Code,

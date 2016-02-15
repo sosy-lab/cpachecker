@@ -24,10 +24,11 @@
 package org.sosy_lab.cpachecker.util.ci.translators;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
-import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.sign.SIGN;
 import org.sosy_lab.cpachecker.cpa.sign.SignState;
@@ -38,9 +39,8 @@ import com.google.common.base.Preconditions;
 
 public class SignRequirementsTranslator extends CartesianRequirementsTranslator<SignState> {
 
-  public SignRequirementsTranslator(final Configuration pConfig, final ShutdownNotifier pShutdownNotifier,
-      final LogManager pLog) {
-    super(SignState.class, pConfig, pShutdownNotifier, pLog);
+  public SignRequirementsTranslator(final LogManager pLog) {
+    super(SignState.class, pLog);
   }
 
   @Override
@@ -49,10 +49,13 @@ public class SignRequirementsTranslator extends CartesianRequirementsTranslator<
   }
 
   @Override
-  protected List<String> getListOfIndependentRequirements(final SignState pRequirement, final SSAMap pIndices) {
+  protected List<String> getListOfIndependentRequirements(final SignState pRequirement, final SSAMap pIndices,
+      final @Nullable Collection<String> pRequiredVars) {
     List<String> list = new ArrayList<>();
     for (String var : pRequirement.getSignMapView().keySet()) {
-      list.add(getRequirement(getVarWithIndex(var, pIndices),pRequirement.getSignMapView().get(var)));
+      if (pRequiredVars == null || pRequiredVars.contains(var)) {
+        list.add(getRequirement(getVarWithIndex(var, pIndices),pRequirement.getSignMapView().get(var)));
+      }
     }
     return list;
   }

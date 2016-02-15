@@ -23,14 +23,13 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 /**
  * Trivial implementation of an invariant generator
  * that does nothing and always returns the invariant true.
  */
-public class DoNothingInvariantGenerator implements InvariantGenerator {
+public class DoNothingInvariantGenerator extends AbstractInvariantGenerator {
 
   @Override
   public void start(CFANode pInitialLocation) { }
@@ -39,15 +38,7 @@ public class DoNothingInvariantGenerator implements InvariantGenerator {
   public void cancel() { }
 
   @Override
-  public InvariantSupplier get()  {
-    return InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
-  }
-
-  @Override
   public boolean isProgramSafe() {
     return false;
   }
-
-  @Override
-  public void injectInvariant(CFANode pLocation, AssumeEdge pAssumption) { }
 }

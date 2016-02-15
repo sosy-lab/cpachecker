@@ -208,13 +208,6 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
   /**
    * This constructor gets a Refiner object instead of generating it
    * from the refiner parameter.
-   *
-   * @param algorithm
-   * @param pRefiner
-   * @param config
-   * @param logger
-   * @throws InvalidConfigurationException
-   * @throws CPAException
    */
   public CEGARAlgorithm(Algorithm algorithm, Refiner pRefiner, Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);

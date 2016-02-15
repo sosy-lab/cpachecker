@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
-import static org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.IS_POINTER_SIGNED;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.isSimpleType;
 
 import java.math.BigInteger;
@@ -35,7 +34,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -82,19 +80,20 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.VariableClassification;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FormulaType;
 
 import com.google.common.base.Optional;
 
@@ -298,7 +297,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
             isRelevantField(compositeType, memberName)) {
           fields.add(Pair.of(compositeType, memberName));
           addValueImportConstraints(cfaEdge,
-                                    fmgr.makePlus(address, fmgr.makeNumber(voidPointerFormulaType, offset), IS_POINTER_SIGNED),
+                                    fmgr.makePlus(address, fmgr.makeNumber(voidPointerFormulaType, offset)),
                                     newBase,
                                     fields,
                                     ssa,
@@ -329,7 +328,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    *    char s[] = { 'a', 'b', 'c', '\0' }, t[] = { 'a', 'b', 'c' };
    *
    * @param e     The string that has to be expanded
-   * @param type
+   * @param type the type of the array
    * @return      List of character-literal expressions
    */
   private static List<CCharLiteralExpression> expandStringLiteral(final CStringLiteralExpression e,
@@ -506,11 +505,15 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
   @Override
   protected BooleanFormula makeAssignment(
-      final CLeftHandSide lhs, final CLeftHandSide lhsForChecking, final CRightHandSide rhs,
+      final CLeftHandSide lhs, final CLeftHandSide lhsForChecking, CRightHandSide rhs,
       final CFAEdge edge, final String function,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
           throws UnrecognizedCCodeException, InterruptedException {
+
+    if (rhs instanceof CExpression) {
+      rhs = makeCastFromArrayToPointerIfNecessary((CExpression)rhs, lhs.getExpressionType());
+    }
 
     AssignmentHandler assignmentHandler = new AssignmentHandler(this, edge, function, ssa, pts, constraints, errorConditions);
     return assignmentHandler.handleAssignment(lhs, lhsForChecking, rhs, false, null);

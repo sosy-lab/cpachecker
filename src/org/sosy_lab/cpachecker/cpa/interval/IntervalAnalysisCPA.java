@@ -111,8 +111,6 @@ public class IntervalAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, 
    * This method acts as the constructor of the interval analysis CPA.
    *
    * @param config the configuration of the CPAinterval analysis CPA.
-
-   * @throws InvalidConfigurationException
    */
   private IntervalAnalysisCPA(Configuration config, LogManager logger,
       ShutdownNotifier shutdownNotifier, CFA cfa)
@@ -125,7 +123,7 @@ public class IntervalAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, 
 
     stopOperator        = new StopSepOperator(abstractDomain);
 
-    transferRelation    = new IntervalAnalysisTransferRelation(config);
+    transferRelation    = new IntervalAnalysisTransferRelation(config, logger);
 
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
 

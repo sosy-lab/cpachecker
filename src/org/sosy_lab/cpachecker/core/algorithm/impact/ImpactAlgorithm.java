@@ -35,7 +35,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -58,18 +57,19 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -292,12 +292,6 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
    * Preconditions:
    * v may be covered by w ({@link #mayCover(Vertex, Vertex, Precision)}).
    * v is not coverable by w in its current state.
-   *
-   * @param v
-   * @param w
-   * @return
-   * @throws CPAException
-   * @throws InterruptedException
    */
   private boolean forceCover(Vertex v, Vertex w, Precision prec)
       throws CPAException, InterruptedException, SolverException {
@@ -350,8 +344,6 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     assert interpolants.size() == formulas.size() - 1;
     assert interpolants.size() ==  path.size();
 
-    List<Vertex> changedElements = new ArrayList<>();
-
     for (Pair<BooleanFormula, Vertex> interpolationPoint : Pair.zipList(interpolants, path)) {
       BooleanFormula itp = interpolationPoint.getFirst();
       Vertex p = interpolationPoint.getSecond();
@@ -366,7 +358,6 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
       if (!solver.implies(stateFormula, itp)) {
         p.setStateFormula(bfmgr.and(stateFormula, itp));
         p.cleanCoverage();
-        changedElements.add(p);
       }
     }
 

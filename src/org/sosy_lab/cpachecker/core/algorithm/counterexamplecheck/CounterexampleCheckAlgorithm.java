@@ -98,7 +98,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
 
   public CounterexampleCheckAlgorithm(Algorithm algorithm,
       ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger,
-      ShutdownNotifier pShutdownNotifier, CFA cfa, String filename) throws InvalidConfigurationException, CPAException {
+      ShutdownNotifier pShutdownNotifier, CFA cfa, String filename) throws InvalidConfigurationException {
     this.algorithm = algorithm;
     this.logger = logger;
     config.inject(this);

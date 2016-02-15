@@ -23,97 +23,99 @@
  */
 package org.sosy_lab.cpachecker.cpa.threading;
 
-import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
-
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Collections2;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.FluentIterable;
 
 /** This immutable state represents a location state combined with a callstack state. */
-public class ThreadingState implements AbstractState, AbstractStateWithLocation, Graphable, Partitionable {
+public class ThreadingState implements AbstractState, AbstractStateWithLocations, Graphable, Partitionable {
 
   final static int MIN_THREAD_NUM = 0;
 
   // String :: identifier for the thread TODO change to object or memory-location
-  // List<Pair<CallstackState, LocationState>> :: thread-position
-  private final PersistentMap<String, Pair<AbstractState, AbstractState>> states;
-
-  // Each thread is assigned to an Integer
-  // TODO do we really need this? -> needed for identification of cloned functions.
-  private final PersistentMap<String, Integer> threadNums;
+  // CallstackState +  LocationState :: thread-position
+  private final PersistentMap<String, ThreadState> threads;
 
   // String :: lock-id  -->  String :: thread-id
   private final PersistentMap<String, String> locks;
 
   public ThreadingState() {
-    this.states = PathCopyingPersistentTreeMap.of();
+    this.threads = PathCopyingPersistentTreeMap.of();
     this.locks = PathCopyingPersistentTreeMap.of();
-    this.threadNums = PathCopyingPersistentTreeMap.of();
   }
 
   private ThreadingState(
-      PersistentMap<String, Pair<AbstractState, AbstractState>> pStates,
-      PersistentMap<String, String> pLocks,
-      PersistentMap<String, Integer> pThreadNums) {
-    this.states = pStates;
+      PersistentMap<String, ThreadState> pThreads,
+      PersistentMap<String, String> pLocks) {
+    this.threads = pThreads;
     this.locks = pLocks;
-    this.threadNums = pThreadNums;
  }
 
-  public ThreadingState addThreadAndCopy(String id, int num, Pair<AbstractState, AbstractState> state) {
+  public ThreadingState addThreadAndCopy(String id, int num, AbstractState stack, AbstractState loc) {
     Preconditions.checkNotNull(id);
-    Preconditions.checkArgument(!states.containsKey(id), "thread already exists");
-    Preconditions.checkArgument(!threadNums.containsValue(num), "thread-number already exists");
-    return new ThreadingState(states.putAndCopy(id, state), locks, threadNums.putAndCopy(id, num));
+    Preconditions.checkArgument(!threads.containsKey(id), "thread already exists");
+    return new ThreadingState(
+        threads.putAndCopy(id, new ThreadState(loc, stack, num)),
+        locks);
   }
 
-  public ThreadingState updateThreadAndCopy(String id, Pair<AbstractState, AbstractState> state) {
+  public ThreadingState updateThreadAndCopy(String id, AbstractState stack, AbstractState loc) {
     Preconditions.checkNotNull(id);
-    Preconditions.checkArgument(states.containsKey(id), "updating non-existing thread");
-    return new ThreadingState(states.putAndCopy(id, state), locks, threadNums);
+    Preconditions.checkArgument(threads.containsKey(id), "updating non-existing thread");
+    return new ThreadingState(
+        threads.putAndCopy(id,  new ThreadState(loc, stack, threads.get(id).getNum())),
+        locks);
   }
 
   public ThreadingState removeThreadAndCopy(String id) {
     Preconditions.checkNotNull(id);
-    Preconditions.checkState(states.containsKey(id), "leaving non-existing thread: " + id);
-    Preconditions.checkState(threadNums.containsKey(id), "leaving non-existing thread: " + id);
-    return new ThreadingState(states.removeAndCopy(id), locks, threadNums.removeAndCopy(id));
+    Preconditions.checkState(threads.containsKey(id), "leaving non-existing thread: " + id);
+    return new ThreadingState(
+        threads.removeAndCopy(id),
+        locks);
   }
 
   public Set<String> getThreadIds() {
-    return states.keySet();
+    return threads.keySet();
   }
 
-  public Pair<AbstractState, AbstractState> getThreadLocation(String id) {
-    return Preconditions.checkNotNull(states.get(id));
+  public AbstractState getThreadCallstack(String id) {
+    return Preconditions.checkNotNull(threads.get(id).getCallstack());
   }
 
-  Set<Integer> getThreadNums() {
-    Set<Integer> result = new HashSet<>(threadNums.values());
-    Preconditions.checkState(result.size() == threadNums.size());
+  public LocationState getThreadLocation(String id) {
+    return (LocationState) Preconditions.checkNotNull(threads.get(id).getLocation());
+  }
+
+  private Set<Integer> getThreadNums() {
+    Set<Integer> result = new HashSet<>();
+    for (ThreadState ts : threads.values()) {
+      result.add(ts.getNum());
+    }
+    Preconditions.checkState(result.size() == threads.size());
     return result;
   }
 
   int getSmallestMissingThreadNum() {
     int num = MIN_THREAD_NUM;
     // TODO loop is not efficient for big number of threads
-    while(threadNums.containsValue(num)) {
+    final Set<Integer> threadNums = getThreadNums();
+    while(threadNums.contains(num)) {
       num++;
     }
     return num;
@@ -122,15 +124,15 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocation,
   public ThreadingState addLockAndCopy(String threadId, String lockId) {
     Preconditions.checkNotNull(lockId);
     Preconditions.checkNotNull(threadId);
-    Preconditions.checkArgument(states.containsKey(threadId), "blocking non-existant thread: " + threadId + " with lock: " + lockId);
-    return new ThreadingState(states, locks.putAndCopy(lockId, threadId), threadNums);
+    Preconditions.checkArgument(threads.containsKey(threadId), "blocking non-existant thread: " + threadId + " with lock: " + lockId);
+    return new ThreadingState(threads, locks.putAndCopy(lockId, threadId));
   }
 
   public ThreadingState removeLockAndCopy(String threadId, String lockId) {
     Preconditions.checkNotNull(threadId);
     Preconditions.checkNotNull(lockId);
-    Preconditions.checkArgument(states.containsKey(threadId), "unblocking non-existant thread: " + threadId + " with lock: " + lockId);
-    return new ThreadingState(states, locks.removeAndCopy(lockId), threadNums);
+    Preconditions.checkArgument(threads.containsKey(threadId), "unblocking non-existant thread: " + threadId + " with lock: " + lockId);
+    return new ThreadingState(threads, locks.removeAndCopy(lockId));
   }
 
   /** returns whether any of the threads has the lock */
@@ -151,11 +153,9 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocation,
   @Override
   public String toString() {
     return "( threads={\n"
-        + Joiner.on(",\n ").withKeyValueSeparator("=").join(states)
-        + "}\n with locks={"
+        + Joiner.on(",\n ").withKeyValueSeparator("=").join(threads)
+        + "}\n and locks={"
         + Joiner.on(",\n ").withKeyValueSeparator("=").join(locks)
-        + "}\n and ids={"
-        + Joiner.on(",\n ").withKeyValueSeparator("=").join(threadNums)
         + "})";
   }
 
@@ -165,33 +165,49 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocation,
       return false;
     }
     ThreadingState ts = (ThreadingState)other;
-    return states.equals(ts.states)
-        && locks.equals(ts.locks)
-        && threadNums.equals(ts.threadNums);
+    return threads.equals(ts.threads)
+        && locks.equals(ts.locks);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(states, locks, threadNums);
+    return Objects.hash(threads, locks);
   }
 
+  private FluentIterable<AbstractStateWithLocations> getLocations() {
+    return FluentIterable.from(threads.values()).transform(
+        new Function<ThreadState, AbstractStateWithLocations>() {
+          @Override
+          public AbstractStateWithLocations apply(ThreadState s) {
+            return (AbstractStateWithLocations) s.getLocation();
+          }
+        });
+  }
+
+  private final static Function<AbstractStateWithLocations, Iterable<CFANode>> LOCATION_NODES =
+      new Function<AbstractStateWithLocations, Iterable<CFANode>>() {
+        @Override
+        public Iterable<CFANode> apply(AbstractStateWithLocations loc) {
+          return loc.getLocationNodes();
+        }
+      };
+
+  private final static Function<AbstractStateWithLocations, Iterable<CFAEdge>> OUTGOING_EDGES =
+      new Function<AbstractStateWithLocations, Iterable<CFAEdge>>() {
+        @Override
+        public Iterable<CFAEdge> apply(AbstractStateWithLocations loc) {
+          return loc.getOutgoingEdges();
+        }
+      };
+
   @Override
-  public CFANode getLocationNode() {
-    Preconditions.checkState(!states.isEmpty());
-    // return node of first thread
-    // TODO correct? maybe we can improve this??
-    return ((AbstractStateWithLocation)states.values().iterator().next().getSecond()).getLocationNode();
+  public Iterable<CFANode> getLocationNodes() {
+    return getLocations().transformAndConcat(LOCATION_NODES);
   }
 
   @Override
   public Iterable<CFAEdge> getOutgoingEdges() {
-    return Iterables.concat(Collections2.transform(states.values(),
-        new Function<Pair<AbstractState, AbstractState>,Iterable<CFAEdge>>() {
-      @Override
-      public Iterable<CFAEdge> apply(Pair<AbstractState, AbstractState> p) {
-        return leavingEdges(((AbstractStateWithLocation)p.getSecond()).getLocationNode());
-      }
-    }));
+    return getLocations().transformAndConcat(OUTGOING_EDGES);
   }
 
   @Override
@@ -199,7 +215,7 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocation,
     StringBuilder sb = new StringBuilder();
 
     sb.append("[");
-    Joiner.on(",\n ").withKeyValueSeparator("=").appendTo(sb, states);
+    Joiner.on(",\n ").withKeyValueSeparator("=").appendTo(sb, threads);
     sb.append("]");
 
     return sb.toString();
@@ -212,6 +228,56 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocation,
 
   @Override
   public Object getPartitionKey() {
-    return states;
+    return threads;
+  }
+
+  /** A ThreadState describes the state of a single thread. */
+  private static class ThreadState {
+
+    // String :: identifier for the thread TODO change to object or memory-location
+    // CallstackState +  LocationState :: thread-position
+    private final AbstractState location;
+    private final AbstractState callstack;
+
+    // Each thread is assigned to an Integer
+    // TODO do we really need this? -> needed for identification of cloned functions.
+    private final int num;
+
+    ThreadState(AbstractState pLocation, AbstractState pCallstack, int  pNum) {
+      location = pLocation;
+      callstack =pCallstack;
+      num= pNum;
+    }
+
+    public AbstractState getLocation() {
+      return location;
+    }
+
+    public AbstractState getCallstack() {
+      return callstack;
+    }
+
+    public int getNum() {
+      return num;
+    }
+
+    @Override
+    public String toString() {
+      return location + " " + callstack + " @@ " + num;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (o == null || !(o instanceof ThreadState)) {
+        return false;
+      }
+      ThreadState other = (ThreadState)o;
+      return location.equals(other.location) && callstack.equals(other.callstack) && num == other.num;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(location, callstack, num);
+    }
   }
 }

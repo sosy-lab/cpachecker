@@ -35,11 +35,11 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.regions.Region;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.collect.ImmutableSet;
 
@@ -146,8 +146,11 @@ public class AbstractionFormula implements Serializable {
     return new SerializationProxy(this);
   }
 
-  private void readObject(ObjectInputStream in)
-      throws IOException, ClassNotFoundException {
+  /**
+   * javadoc to remove unused parameter warning
+   * @param in an input stream
+   */
+  private void readObject(ObjectInputStream in) throws IOException {
     throw new InvalidObjectException("Proxy required");
   }
 

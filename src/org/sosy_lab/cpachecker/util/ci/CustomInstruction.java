@@ -34,7 +34,6 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -81,10 +80,12 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.Iterables;
 
 // Note that this class is not complete yet. Most of the comments are just for me and my advisor, they will disappear later!
 public class CustomInstruction{
@@ -179,19 +180,13 @@ public class CustomInstruction{
 
     sb.append("(");
     if (inputVariables.size() > 0) {
-      sb.append("|");
-      Joiner.on("|, |").appendTo(sb, inputVariables);
-      sb.append("|");
+      Joiner.on(", ").appendTo(sb, Iterables.transform(inputVariables, CIUtils.GET_SMTNAME));
     }
 
     sb.append(") -> (");
 
     if (outputVariables.size() > 0) {
-      sb.append("|");
-      Joiner.on("@1|, |").appendTo(sb, outputVariables);
-      if (outputVariables.size() > 0) {
-        sb.append("@1|");
-      }
+      Joiner.on(", ").appendTo(sb, Iterables.transform(outputVariables, CIUtils.GET_SMTNAME_WITH_INDEX));
     }
     sb.append(")");
 
@@ -257,11 +252,11 @@ public class CustomInstruction{
       try {
         Integer.parseInt(var);
       } catch (NumberFormatException e) {
-        outputVariableList.add("(declare-fun |" + var + "| () Int)");
+        outputVariableList.add("(declare-fun " + CIUtils.getSMTName(var) + " () Int)");
       }
     }
     for (String var : outputVariables) {
-      outputVariableList.add("(declare-fun |" + var + "@1| () Int)");
+      outputVariableList.add("(declare-fun " + CIUtils.getSMTName(var+"@1") + " () Int)");
     }
     return Pair.of(outputVariableList, sb.toString());
   }
@@ -270,7 +265,6 @@ public class CustomInstruction{
    * Returns String of the given variable: if it is an outputVariable (= variable@1 0), otherwise (= variable 0)
    * @param var String of variable
    * @param isOutputVariable boolean if the variable is an output variable
-   * @return
    */
   private String getAssignmentOfVariableToZero(final String var, final boolean isOutputVariable) {
     StringBuilder sb = new StringBuilder();
@@ -284,22 +278,22 @@ public class CustomInstruction{
 
     sb.append("(= ");
     if (!isNumber) {
-      sb.append("|");
+      if(isOutputVariable) {
+        sb.append(CIUtils.getSMTName(var+"@1"));
+      } else {
+        sb.append(CIUtils.getSMTName(var));
+      }
+    } else{
+      sb.append(var);
     }
-    sb.append(var);
-    if (isOutputVariable) {
-      sb.append("@1");
-    }
-    if (!isNumber) {
-      sb.append("|");
-    }
+
     sb.append(" 0)");
     return sb.toString();
   }
 
   /**
    * Returns AppliedCustomInstruction which begins at the given aciStartNode.
-   * @param aciStartNode
+   * @param aciStartNode the starting node of the instruction to be returned
    * @return the resulting AppliedCustomInstruction
    * @throws InterruptedException due to the shutdownNotifier
    * @throws AppliedCustomInstructionParsingFailedException if the matching of the variables of ci and aci
@@ -368,7 +362,33 @@ public class CustomInstruction{
       ssaMapBuilder.setIndex(var,new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false), 1);
     }
 
-    return new AppliedCustomInstruction(aciStartNode, aciEndNodes, getFakeSMTDescriptionForACI(mapping), ssaMapBuilder.build());
+    List<String> inVars = getVariablesOrdered(mapping, inputVariables);
+    List<String> outVars = getVariablesOrdered(mapping, outputVariables);
+    List<String> inVarsConst = new ArrayList<>(inputVariables.size());
+
+    for(String ciVar: inputVariables) {
+      inVarsConst.add(mapping.get(ciVar));
+    }
+
+    return new AppliedCustomInstruction(aciStartNode, aciEndNodes, inVars, outVars, inVarsConst, getFakeSMTDescriptionForACI(mapping), ssaMapBuilder.build());
+  }
+
+  private List<String> getVariablesOrdered(final Map<String, String> pMapping,
+      final List<String> pVariables) {
+    List<String> result = new ArrayList<>(pVariables.size());
+
+    String aciVar;
+    for (String ciVar : pVariables) {
+      assert (pMapping.containsKey(ciVar));
+      aciVar = pMapping.get(ciVar);
+      try {
+        Integer.parseInt(aciVar);
+      } catch (NumberFormatException ex) {
+        result.add(aciVar);
+      }
+    }
+
+    return result;
   }
 
   /**
@@ -426,11 +446,11 @@ public class CustomInstruction{
       try {
         Integer.parseInt(map.get(var));
       } catch (NumberFormatException e) {
-        outputVariableList.add("(declare-fun |" + map.get(var) + "| () Int)");
+        outputVariableList.add("(declare-fun " + CIUtils.getSMTName(map.get(var))+ " () Int)");
       }
     }
     for (String var : outputVariables) {
-      outputVariableList.add("(declare-fun |" + map.get(var) + "@1| () Int)");
+      outputVariableList.add("(declare-fun " + CIUtils.getSMTName(map.get(var)+"@1") + " () Int)");
     }
 
     return Pair.of(outputVariableList, sb.toString());
@@ -446,9 +466,7 @@ public class CustomInstruction{
    * @param ciEdge CFAEdge of CustomInstruction (CI)
    * @param aciEdge CFAEdge of AppliedCustomInstruction (ACI)
    * @param ciVarToAciVar Map of variables of CI and ACI
-   * @param currentCiVarToAciVar Map of variables of CI and ACI of the current edge
    * @param outVariables Collection of output variables
-   * @throws AppliedCustomInstructionParsingFailedException
    */
   private void computeMappingOfCiAndAci(final CFAEdge ciEdge, final CFAEdge aciEdge,
       final Map<String, String> ciVarToAciVar, final Collection<String> outVariables)
@@ -463,7 +481,7 @@ public class CustomInstruction{
         // no additional check needed.
         return;
       case AssumeEdge:
-        compareAssumeEdge((CAssumeEdge) ciEdge, (CAssumeEdge) aciEdge, ciVarToAciVar, outVariables);
+        compareAssumeEdge((CAssumeEdge) ciEdge, (CAssumeEdge) aciEdge, ciVarToAciVar);
         return;
       case StatementEdge:
         compareStatementEdge((CStatementEdge) ciEdge, (CStatementEdge) aciEdge, ciVarToAciVar, outVariables);
@@ -472,10 +490,10 @@ public class CustomInstruction{
         compareDeclarationEdge((CDeclarationEdge) ciEdge, (CDeclarationEdge) aciEdge, ciVarToAciVar, outVariables);
         return;
       case ReturnStatementEdge:
-        compareReturnStatementEdge((CReturnStatementEdge) ciEdge, (CReturnStatementEdge) aciEdge, ciVarToAciVar, outVariables);
+        compareReturnStatementEdge((CReturnStatementEdge) ciEdge, (CReturnStatementEdge) aciEdge, ciVarToAciVar);
         return;
       case FunctionCallEdge:
-        compareFunctionCallEdge((CFunctionCallEdge)ciEdge, (CFunctionCallEdge)aciEdge, ciVarToAciVar, outVariables);
+        compareFunctionCallEdge((CFunctionCallEdge)ciEdge, (CFunctionCallEdge)aciEdge, ciVarToAciVar);
         return;
       case FunctionReturnEdge:
         // no additional check needed.
@@ -485,11 +503,14 @@ public class CustomInstruction{
         return;
       case CallToReturnEdge:
         compareStatementsOfStatementEdge(((CFunctionSummaryEdge) ciEdge).getExpression(), ((CFunctionSummaryEdge) aciEdge).getExpression(), ciVarToAciVar, outVariables);
+        return;
+      default:
+        throw new AssertionError("Unhandeled enum value in switch: " + ciEdge.getEdgeType());
     }
   }
 
   private void compareAssumeEdge(final CAssumeEdge ciEdge, final CAssumeEdge aciEdge,
-      final Map<String,String> ciVarToAciVar, final Collection<String> outVariables) throws AppliedCustomInstructionParsingFailedException {
+      final Map<String,String> ciVarToAciVar) throws AppliedCustomInstructionParsingFailedException {
 
     if (ciEdge.getTruthAssumption() != aciEdge.getTruthAssumption()) {
       throw new AppliedCustomInstructionParsingFailedException("The truthAssumption of the CAssumeEdges " + ciEdge + " and " + aciEdge + "are different!");
@@ -546,14 +567,14 @@ public class CustomInstruction{
       ciStmt.getLeftHandSide().accept(new StructureExtendedComparisonVisitor(aciStmt.getLeftHandSide(), ciVarToAciVar, currentCiVarToAciVar));
       outVariables.addAll(currentCiVarToAciVar.values());
 
-      compareFunctionCallExpressions(ciStmt.getFunctionCallExpression(), aciStmt.getFunctionCallExpression(), ciVarToAciVar, outVariables);
+      compareFunctionCallExpressions(ciStmt.getFunctionCallExpression(), aciStmt.getFunctionCallExpression(), ciVarToAciVar);
     }
 
     else if (ci instanceof CFunctionCallStatement && aci instanceof CFunctionCallStatement) {
       CFunctionCallStatement ciStmt = (CFunctionCallStatement) ci;
       CFunctionCallStatement aciStmt = (CFunctionCallStatement) aci;
 
-      compareFunctionCallExpressions(ciStmt.getFunctionCallExpression(), aciStmt.getFunctionCallExpression(), ciVarToAciVar, outVariables);
+      compareFunctionCallExpressions(ciStmt.getFunctionCallExpression(), aciStmt.getFunctionCallExpression(), ciVarToAciVar);
     }
 
     else {
@@ -562,8 +583,7 @@ public class CustomInstruction{
   }
 
   private void compareFunctionCallExpressions(final CFunctionCallExpression exp,
-      final CFunctionCallExpression aexp, final Map<String, String> ciVarToAciVar,
-      final Collection<String> outVariables) throws AppliedCustomInstructionParsingFailedException {
+      final CFunctionCallExpression aexp, final Map<String, String> ciVarToAciVar) throws AppliedCustomInstructionParsingFailedException {
     if (!exp.getExpressionType().equals(aexp.getExpressionType())){
       throw new AppliedCustomInstructionParsingFailedException("The expressionType of the CStatementEdges " + exp + " and " + aexp + " are different!");
     }
@@ -667,8 +687,7 @@ public class CustomInstruction{
   }
 
   private void compareReturnStatementEdge(final CReturnStatementEdge ciEdge,
-      final CReturnStatementEdge aciEdge, final Map<String,String> ciVarToAciVar,
-      final Collection<String> outVariables)
+      final CReturnStatementEdge aciEdge, final Map<String,String> ciVarToAciVar)
           throws AppliedCustomInstructionParsingFailedException {
 
     if (ciEdge.getExpression().isPresent() && aciEdge.getExpression().isPresent()){
@@ -681,7 +700,7 @@ public class CustomInstruction{
   }
 
   private void compareFunctionCallEdge(final CFunctionCallEdge ciEdge, final CFunctionCallEdge aciEdge,
-      final Map<String,String> ciVarToAciVar, final Collection<String> outVariables) throws AppliedCustomInstructionParsingFailedException {
+      final Map<String,String> ciVarToAciVar) throws AppliedCustomInstructionParsingFailedException {
 
     if(ciEdge.getSuccessor() != aciEdge.getSuccessor()) {
       throw new AppliedCustomInstructionParsingFailedException("Applied custom instruction calls different method than custom instruction.");

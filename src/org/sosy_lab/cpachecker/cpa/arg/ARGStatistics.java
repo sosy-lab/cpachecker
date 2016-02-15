@@ -39,7 +39,6 @@ import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -49,14 +48,12 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
-import org.sosy_lab.cpachecker.core.counterexample.RichModel;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithConcreteCex;
 import org.sosy_lab.cpachecker.core.interfaces.IterationStatistics;
@@ -65,6 +62,7 @@ import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
 import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA.PartitionState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
@@ -91,7 +89,7 @@ public class ARGStatistics implements IterationStatistics {
   @Option(secure=true, name="proofWitness",
       description="export a proof as .graphml file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path proofWitness = Paths.get("ARG.graphml");
+  private Path proofWitness = null;
 
   @Option(secure=true, name="simplifiedARG.file",
       description="export final ARG as .dot file, showing only loop heads and function entries/exits")
@@ -114,8 +112,7 @@ public class ARGStatistics implements IterationStatistics {
   private final LogManager logger;
 
   public ARGStatistics(Configuration config, LogManager pLogger, ARGCPA pCpa,
-      MachineModel pMachineModel, Language pLanguage,
-      @Nullable CEXExporter pCexExporter,
+      MachineModel pMachineModel, @Nullable CEXExporter pCexExporter,
       ARGPathExporter pARGPathExporter) throws InvalidConfigurationException {
     config.inject(this);
 
@@ -299,8 +296,15 @@ public class ARGStatistics implements IterationStatistics {
           // this might be a partial path in BAM, from an intermediate TargetState to root of its ReachedSet.
           // TODO this check does not avoid dummy-paths in BAM, that might exist in main-reachedSet.
         } else {
-          RichModel model = createModelForPath(path);
-          cex = CounterexampleInfo.feasible(path, model);
+          CFAPathWithAssumptions assignments = createAssignmentsForPath(path);
+          // we use the imprecise version of the CounterexampleInfo, due to the possible
+          // merges which are done in the used CPAs, but if we can compute a path with assignments,
+          // it is probably precise
+          if (!assignments.isEmpty()) {
+            cex = CounterexampleInfo.feasiblePrecise(path, assignments);
+          } else {
+            cex = CounterexampleInfo.feasibleImprecise(path);
+          }
         }
       }
       if (cex != null) {
@@ -311,7 +315,7 @@ public class ARGStatistics implements IterationStatistics {
     return counterexamples;
   }
 
-  private RichModel createModelForPath(ARGPath pPath) {
+  private CFAPathWithAssumptions createAssignmentsForPath(ARGPath pPath) {
 
     FluentIterable<ConfigurableProgramAnalysisWithConcreteCex> cpas =
         CPAs.asIterable(cpa).filter(ConfigurableProgramAnalysisWithConcreteCex.class);
@@ -330,10 +334,10 @@ public class ARGStatistics implements IterationStatistics {
       }
     }
 
-    if(result == null) {
-      return RichModel.empty();
+    if (result == null) {
+      return CFAPathWithAssumptions.empty();
     } else {
-      return RichModel.empty().withAssignmentInformation(result);
+      return result;
     }
   }
 

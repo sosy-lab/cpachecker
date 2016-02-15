@@ -28,16 +28,13 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.solver.api.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
 
 
 public class CtoFormulaTypeHandlerWithArrays extends CtoFormulaTypeHandler {
 
-  public CtoFormulaTypeHandlerWithArrays(LogManager pLogger, FormulaEncodingOptions pOptions,
-      MachineModel pMachineModel, FormulaManagerView pFmgr) {
-    super(pLogger, pOptions, pMachineModel, pFmgr);
+  public CtoFormulaTypeHandlerWithArrays(LogManager pLogger, MachineModel pMachineModel) {
+    super(pLogger, pMachineModel);
   }
 
   @Override

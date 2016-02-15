@@ -25,13 +25,12 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.base.Preconditions.*;
 
-import java.io.Serializable;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
 
 
-public final class CElaboratedType implements CComplexType, Serializable {
+public final class CElaboratedType implements CComplexType {
 
   private static final long serialVersionUID = -3566628634889842927L;
   private final ComplexTypeKind kind;

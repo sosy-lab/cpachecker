@@ -92,8 +92,6 @@ import org.eclipse.cdt.core.dom.ast.gnu.c.IGCCASTArrayRangeDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTArrayDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTArrayRangeDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTFunctionCallExpression;
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -172,6 +170,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Triple;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -628,6 +628,14 @@ class ASTConverter {
     // TODO: consider always adding a const modifier if there is an initializer
     CType type = (initializer == null) ? CTypes.withoutConst(pType) : pType;
 
+    if (type instanceof CArrayType) {
+      // Replace with pointer type.
+      // This should actually be handled by Eclipse, because the C standard says in §5.4.2.1 (3)
+      // that array types of operands are converted to pointer types except in a very few
+      // specific cases (for which there will never be a temporary variable).
+      type = new CPointerType(type.isConst(), type.isVolatile(), ((CArrayType) type).getType());
+    }
+
     CVariableDeclaration decl = new CVariableDeclaration(loc,
                                                scope.isGlobalScope(),
                                                CStorageClass.AUTO,
@@ -651,6 +659,8 @@ class ASTConverter {
       CIdExpression tmp = createTemporaryVariable(e);
       sideAssignmentStack.addConditionalExpression(e, tmp);
       return tmp;
+    default:
+      // nothing to do here
     }
 
     Pair<BinaryOperator, Boolean> opPair = operatorConverter.convertBinaryOperator(e);
@@ -1268,7 +1278,12 @@ class ASTConverter {
       return simplifyUnaryNotExpression(operand);
 
     default:
-      CType type = typeConverter.convert(e.getExpressionType());
+      CType type;
+      if (e.getOperator() == IASTUnaryExpression.op_alignOf) {
+        type = CNumericTypes.INT;
+      } else {
+        type = typeConverter.convert(e.getExpressionType());
+      }
       return new CUnaryExpression(fileLoc, type, operand, operatorConverter.convertUnaryOperator(e));
     }
   }

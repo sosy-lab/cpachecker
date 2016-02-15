@@ -34,7 +34,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -109,7 +109,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
   StatCounter totalSecondaryExtraRefinementsSelected = new StatCounter("Times selected refinement (primary was SAT)");
   StatCounter totalSecondaryExtraRefinementsFinished = new StatCounter("Times finished refinement (primary was SAT)");
 
-  public static ValueAnalysisDelegatingRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
+  public static ValueAnalysisDelegatingRefiner create(ConfigurableProgramAnalysis cpa) throws InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(ValueAnalysisDelegatingRefiner.class.getSimpleName() + " could not find the ValueAnalysisCPA");
     }
@@ -118,7 +118,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
   }
 
   private static ValueAnalysisDelegatingRefiner initialiseDelegatingRefiner(ConfigurableProgramAnalysis cpa)
-      throws CPAException, InvalidConfigurationException {
+      throws InvalidConfigurationException {
 
     ValueAnalysisCPA valueCpa = ((WrapperCPA)cpa).retrieveWrappedCpa(ValueAnalysisCPA.class);
     if (valueCpa == null) {
@@ -250,7 +250,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       return Integer.MAX_VALUE;
     }
 
-    return classfier.obtainScoreForPrefixes(vaPrefixes, PrefixPreference.DOMAIN_GOOD_LONG);
+    return classfier.obtainScoreForPrefixes(vaPrefixes, PrefixPreference.DOMAIN_MIN);
   }
 
   /** Experimental **/
@@ -258,7 +258,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
   private int obtainScoreForPredicateDomain(final ARGPath pErrorPath) throws CPAException, InterruptedException {
     List<InfeasiblePrefix> paPrefixes = getPrefixesOfPredicateDomain(pErrorPath);
 
-    return classfier.obtainScoreForPrefixes(paPrefixes, PrefixPreference.DOMAIN_GOOD_LONG);
+    return classfier.obtainScoreForPrefixes(paPrefixes, PrefixPreference.DOMAIN_MIN);
   }
 
   private List<InfeasiblePrefix> getPrefixesOfValueDomain(final ARGPath pErrorPath)

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component inheritJdk="true">
 	<contentEntry url="file://$MODULE_DIR$">
+		<excludeFolder url="file://$MODULE_DIR$/results"/>
 		<excludeFolder url="file://$MODULE_DIR$/src/org/sosy_lab/cpachecker/appengine"/>
 		<excludeFolder url="file://$MODULE_DIR$/test/programs/benchmarks"/>
 		<excludeFolder url="file://$MODULE_DIR$/test/results"/>
@@ -51,6 +52,8 @@
 		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/jsylvan.jar!/"/>
 	</lib>
 	<lib name="apron.jar" scope="COMPILE">
+		<srcroot url="jar://$MODULE_DIR$/lib/apron.jar!/"/>
+		<relative-module-src project-related="jar://$PROJECT_DIR$/lib/apron.jar!/"/>
 		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/apron.jar!/"/>
 	</lib>
 	<lib name="gmp.jar" scope="COMPILE">
@@ -62,6 +65,8 @@
 		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/test/guava-testlib.jar!/"/>
 	</lib>
 	<lib name="annotations.jar" scope="COMPILE">
+		<srcroot url="jar://$MODULE_DIR$/lib/java/build/annotations.jar!/"/>
+		<relative-module-src project-related="jar://$PROJECT_DIR$/lib/java/build/annotations.jar!/"/>
 		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/build/annotations.jar!/"/>
 	</lib>
 	<lib name="truth.jar" scope="COMPILE">
@@ -71,6 +76,11 @@
 	</lib>
 	<lib name="smt-parser.jar" scope="COMPILE">
 		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/runtime/smt-parser.jar!/"/>
+	</lib>
+	<lib name="error_prone_annotations.jar" scope="COMPILE">
+		<srcroot url="jar://$MODULE_DIR$/lib/java-contrib/error_prone_annotations-sources.jar!/"/>
+		<relative-module-src project-related="jar://$PROJECT_DIR$/lib/java-contrib/error_prone_annotations-sources.jar!/"/>
+		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/build/error_prone_annotations.jar!/"/>
 	</lib>
 	<lib name="objenesis.jar" scope="COMPILE">
 		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/test/objenesis.jar!/"/>
@@ -109,13 +119,20 @@
 	<lib name="meconsole010.jar" scope="COMPILE">
 		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/meconsole010.jar!/"/>
 	</lib>
-	<lib name="princess.jar" scope="COMPILE">
-		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/runtime/princess.jar!/"/>
+	<lib name="princess-assertionless.jar" scope="COMPILE">
+		<srcroot url="jar://$MODULE_DIR$/lib/java-contrib/princess-sources-assertionless.zip!/"/>
+		<relative-module-src project-related="jar://$PROJECT_DIR$/lib/java-contrib/princess-sources-assertionless.zip!/"/>
+		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/runtime/princess-assertionless.jar!/"/>
 	</lib>
 	<lib name="scala-library.jar" scope="COMPILE">
 		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/runtime/scala-library.jar!/"/>
 	</lib>
 	<lib name="scala-actors.jar" scope="COMPILE">
 		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/runtime/scala-actors.jar!/"/>
+	</lib>
+	<lib name="javasmt.jar" scope="COMPILE">
+		<srcroot url="jar://$MODULE_DIR$/lib/java-contrib/javasmt-sources.jar!/"/>
+		<relative-module-src project-related="jar://$PROJECT_DIR$/lib/java-contrib/javasmt-sources.jar!/"/>
+		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/runtime/javasmt.jar!/"/>
 	</lib>
 </component>

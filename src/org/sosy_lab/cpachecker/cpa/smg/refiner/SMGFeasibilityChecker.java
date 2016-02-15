@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
@@ -69,8 +68,7 @@ public class SMGFeasibilityChecker implements FeasibilityChecker<SMGState> {
   private final CFANode mainFunction;
 
   public SMGFeasibilityChecker(StrongestPostOperator<SMGState> pStrongestPostOp, LogManager pLogger, CFA pCfa,
-      Configuration pConfig, SMGState pInitialState,
-      ConfigurableProgramAnalysis pCPA) throws InvalidConfigurationException {
+      Configuration pConfig, SMGState pInitialState) throws InvalidConfigurationException {
     strongestPostOp = pStrongestPostOp;
     initialState = pInitialState;
     logger = pLogger;
@@ -111,10 +109,10 @@ public class SMGFeasibilityChecker implements FeasibilityChecker<SMGState> {
       SMGState next = new SMGState(pStartingPoint);
       CFAEdge edge = null;
 
-      PathIterator iterator = pPath.pathIterator();
+      PathIterator iterator = pPath.fullPathIterator();
 
       if(!iterator.hasNext()) {
-        return ReachabilityResult.isReachable(pStartingPoint);
+        return ReachabilityResult.isReachable(pStartingPoint, null);
       }
 
       while (iterator.hasNext()) {
@@ -150,7 +148,7 @@ public class SMGFeasibilityChecker implements FeasibilityChecker<SMGState> {
         iterator.advance();
       }
 
-      return ReachabilityResult.isReachable(next);
+      return ReachabilityResult.isReachable(next, edge);
     } catch (CPATransferException e) {
       throw new CPAException("Computation of successor failed for checking path: " + e.getMessage(), e);
     }
@@ -224,7 +222,7 @@ public class SMGFeasibilityChecker implements FeasibilityChecker<SMGState> {
 
     if(result.isReachable()) {
 
-      return isTarget(result.getLastState(), pPath.asEdgesList().get(pPath.asEdgesList().size() - 1), pAutomaton);
+      return isTarget(result.getLastState(), result.getLastEdge(), pAutomaton);
     } else {
       return false;
     }
@@ -232,14 +230,16 @@ public class SMGFeasibilityChecker implements FeasibilityChecker<SMGState> {
 
   private static class ReachabilityResult {
 
-    private static final ReachabilityResult NOT_REACHABLE = new ReachabilityResult(false, null);
+    private static final ReachabilityResult NOT_REACHABLE = new ReachabilityResult(false, null, null);
 
     private final boolean isReachable;
     private final SMGState lastState;
+    private final CFAEdge lastEdge;
 
-    private ReachabilityResult(boolean pIsReachable, SMGState pLastState) {
+    private ReachabilityResult(boolean pIsReachable, SMGState pLastState, CFAEdge pLastEdge) {
       isReachable = pIsReachable;
       lastState = pLastState;
+      lastEdge = pLastEdge;
     }
 
     public boolean isReachable() {
@@ -247,14 +247,17 @@ public class SMGFeasibilityChecker implements FeasibilityChecker<SMGState> {
     }
 
     public SMGState getLastState() {
-
       assert isReachable == true : "Getting the last state of the path is only supported if the last state is reachable.";
-
       return lastState;
     }
 
-    public static ReachabilityResult isReachable(SMGState lastState) {
-      return new ReachabilityResult(true, lastState);
+    public CFAEdge getLastEdge() {
+      assert isReachable == true : "Getting the last edge of the path is only supported if the last state is reachable.";
+      return lastEdge;
+    }
+
+    public static ReachabilityResult isReachable(SMGState lastState, CFAEdge lastEdge) {
+      return new ReachabilityResult(true, lastState, lastEdge);
     }
 
     public static ReachabilityResult isNotReachable() {

@@ -31,7 +31,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -173,16 +173,16 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       state = handleFunctionReturn(state, (CFunctionReturnEdge) pEdge, pPrecision);
       break;
     case ReturnStatementEdge:
-      state = handleReturnStatement(state, (CReturnStatementEdge) pEdge, pPrecision);
+      state = handleReturnStatement(state, (CReturnStatementEdge) pEdge);
       break;
     case AssumeEdge:
-      state = handleAssume(state, (CAssumeEdge) pEdge, pPrecision);
+      state = handleAssume(state, (CAssumeEdge) pEdge);
       break;
     case DeclarationEdge:
-      state = handleDeclaration(state, (CDeclarationEdge) pEdge, pPrecision);
+      state = handleDeclaration(state, (CDeclarationEdge) pEdge);
       break;
     case FunctionCallEdge:
-      state = handleFunctionCall(state, (CFunctionCallEdge) pEdge, pPrecision);
+      state = handleFunctionCall(state, (CFunctionCallEdge) pEdge);
       break;
     case StatementEdge:
       state = handleStatement(state, (CStatementEdge) pEdge, pPrecision);
@@ -202,11 +202,11 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     return state;
   }
 
-  private InvariantsState handleAssume(InvariantsState pState, AssumeEdge pEdge, InvariantsPrecision pPrecision) throws UnrecognizedCodeException {
-    return handleAssume(pState, pEdge, pPrecision, getExpressionToFormulaVisitor(pEdge, pState));
+  private InvariantsState handleAssume(InvariantsState pState, AssumeEdge pEdge) throws UnrecognizedCodeException {
+    return handleAssume(pState, pEdge, getExpressionToFormulaVisitor(pEdge, pState));
   }
 
-  private InvariantsState handleAssume(InvariantsState pState, AssumeEdge pEdge, InvariantsPrecision pPrecision, ExpressionToFormulaVisitor pExpressionToFormulaVisitor) throws UnrecognizedCodeException {
+  private InvariantsState handleAssume(InvariantsState pState, AssumeEdge pEdge, ExpressionToFormulaVisitor pExpressionToFormulaVisitor) throws UnrecognizedCodeException {
     AExpression expression = pEdge.getExpression();
 
     // Create a formula representing the edge expression
@@ -226,10 +226,10 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       assumption = compoundIntervalFormulaManager.logicalNot(assumption);
     }
 
-    return handleAssumption(pState, pEdge, assumption, pPrecision);
+    return handleAssumption(pState, assumption);
   }
 
-  private InvariantsState handleAssumption(InvariantsState pState, CFAEdge pEdge, BooleanFormula<CompoundInterval> pAssumption, InvariantsPrecision pPrecision) {
+  private InvariantsState handleAssumption(InvariantsState pState, BooleanFormula<CompoundInterval> pAssumption) {
     /*
      * Assume the state of the expression:
      */
@@ -237,7 +237,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     return result;
   }
 
-  private InvariantsState handleDeclaration(InvariantsState pElement, CDeclarationEdge pEdge, InvariantsPrecision pPrecision) throws UnrecognizedCodeException {
+  private InvariantsState handleDeclaration(InvariantsState pElement, CDeclarationEdge pEdge) throws UnrecognizedCodeException {
     if (!(pEdge.getDeclaration() instanceof CVariableDeclaration)) {
       return pElement;
     }
@@ -264,7 +264,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     return pElement.assign(varName, value);
   }
 
-  private InvariantsState handleFunctionCall(final InvariantsState pElement, final CFunctionCallEdge pEdge, InvariantsPrecision pPrecision) throws UnrecognizedCodeException {
+  private InvariantsState handleFunctionCall(final InvariantsState pElement, final CFunctionCallEdge pEdge) throws UnrecognizedCodeException {
 
     InvariantsState newElement = pElement;
     List<String> formalParams = pEdge.getSuccessor().getFunctionParameterNames();
@@ -279,7 +279,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       NumeralFormula<CompoundInterval> assumptionExpression =
           actualParams.get(0).accept(actualParamExpressionToFormulaVisitor);
       BooleanFormula<CompoundInterval> assumption = compoundIntervalFormulaManager.fromNumeral(assumptionExpression);
-      return handleAssumption(pElement, pEdge, assumption, pPrecision);
+      return handleAssumption(pElement, assumption);
     }
 
     formalParams = FluentIterable.from(formalParams).limit(limit).toList();
@@ -347,7 +347,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
         }
       }
       value = handlePotentialOverflow(pElement, value, leftHandSide.getExpressionType());
-      return handleAssignment(pElement, pEdge.getPredecessor().getFunctionName(), pEdge, leftHandSide, value, pPrecision);
+      return handleAssignment(pElement, pEdge, leftHandSide, value, pPrecision);
     }
 
     return pElement;
@@ -355,7 +355,6 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
   private InvariantsState handleAssignment(
       InvariantsState pElement,
-      String pFunctionName,
       CFAEdge pEdge,
       CExpression pLeftHandSide,
       NumeralFormula<CompoundInterval> pValue,
@@ -391,7 +390,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     return ExpressionToFormulaVisitor.handlePotentialOverflow(compoundIntervalManagerFactory, pFormula, machineModel, pType, pState.getEnvironment());
   }
 
-  private InvariantsState handleReturnStatement(InvariantsState pElement, CReturnStatementEdge pEdge, InvariantsPrecision pPrecision) throws UnrecognizedCodeException {
+  private InvariantsState handleReturnStatement(InvariantsState pElement, CReturnStatementEdge pEdge) throws UnrecognizedCodeException {
     // If the return edge has no statement, no return value is passed: "return;"
     if (!pEdge.getExpression().isPresent()) {
       return pElement;
@@ -422,7 +421,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
           NumeralFormula<CompoundInterval> value = InvariantsFormulaManager.INSTANCE.asVariable(
               bitVectorInfo,
               MemoryLocation.valueOf(var.get().getQualifiedName()));
-          result = handleAssignment(pElement, pFunctionReturnEdge.getSuccessor().getFunctionName(), pFunctionReturnEdge, funcExp.getLeftHandSide(), value, pPrecision);
+          result = handleAssignment(pElement, pFunctionReturnEdge, funcExp.getLeftHandSide(), value, pPrecision);
         }
       } else {
         Iterator<CExpression> actualParamIterator = summaryEdge.getExpression().getFunctionCallExpression().getParameterExpressions().iterator();
@@ -472,7 +471,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
     for (AbstractStateWithAssumptions assumptionState : FluentIterable.from(pOtherElements).filter(AbstractStateWithAssumptions.class)) {
       for (AssumeEdge edge : assumptionState.getAsAssumeEdges(pCfaEdge.getSuccessor().getFunctionName())) {
-        state = handleAssume(state, edge, (InvariantsPrecision) pPrecision, getExpressionToFormulaVisitor(pCfaEdge, state));
+        state = handleAssume(state, edge, getExpressionToFormulaVisitor(pCfaEdge, state));
         if (state == null) {
           return Collections.emptySet();
         }

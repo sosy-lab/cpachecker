@@ -1,9 +1,10 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
-<benchmark tool="cpachecker" timelimit="100" hardtimelimit="120" memlimit="2000" cpuCores="1">
+<benchmark tool="cpachecker" timelimit="100 s" hardtimelimit="120 s" memlimit="2 GB" cpuCores="1">
     <option name="-noout" />
 
     <option name="-policy-refinement"/>
+    <option name="-setprop">cpa.stator.policy.linearizePolicy=true</option>
 
     <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
 

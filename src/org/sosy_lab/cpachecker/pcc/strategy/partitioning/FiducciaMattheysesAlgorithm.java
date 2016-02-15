@@ -32,8 +32,8 @@ import java.util.TreeMap;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
@@ -103,7 +103,7 @@ public class FiducciaMattheysesAlgorithm {
     if(min <= 0) {
       return false;
     }
-    return Math.max(pSizeP1, pSizeP2)/min <= balanceCriterion;
+    return Math.max(pSizeP1, pSizeP2)/(double)min <= balanceCriterion;
   }
 
   private Optional<Pair<Long, TreeMap<Long, LinkedList<Integer>>>> tryPickBestGain(

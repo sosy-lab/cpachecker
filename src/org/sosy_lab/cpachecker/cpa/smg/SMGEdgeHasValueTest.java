@@ -119,14 +119,14 @@ public class SMGEdgeHasValueTest {
     SMGEdgeHasValue obj2_at4 = new SMGEdgeHasValue(mockType, 4, object2, value);
     SMGEdgeHasValue obj2_12at0 = new SMGEdgeHasValue(mockType12b, 0, object2, value);
 
-    Assert.assertTrue(obj1_at0.isCompatibleField(obj1_at0, MachineModel.LINUX64));
-    Assert.assertFalse(obj1_at0.isCompatibleField(obj1_at2, MachineModel.LINUX64));
-    Assert.assertFalse(obj1_at0.isCompatibleField(obj1_at4, MachineModel.LINUX64));
-    Assert.assertFalse(obj1_at0.isCompatibleField(obj1_12at0, MachineModel.LINUX64));
-    Assert.assertTrue(obj1_at0.isCompatibleField(obj2_at0, MachineModel.LINUX64));
-    Assert.assertFalse(obj1_at0.isCompatibleField(obj2_at2, MachineModel.LINUX64));
-    Assert.assertFalse(obj1_at0.isCompatibleField(obj2_at4, MachineModel.LINUX64));
-    Assert.assertFalse(obj1_at0.isCompatibleField(obj2_12at0, MachineModel.LINUX64));
+    Assert.assertTrue(obj1_at0.isCompatibleField(obj1_at0));
+    Assert.assertFalse(obj1_at0.isCompatibleField(obj1_at2));
+    Assert.assertFalse(obj1_at0.isCompatibleField(obj1_at4));
+    Assert.assertFalse(obj1_at0.isCompatibleField(obj1_12at0));
+    Assert.assertTrue(obj1_at0.isCompatibleField(obj2_at0));
+    Assert.assertFalse(obj1_at0.isCompatibleField(obj2_at2));
+    Assert.assertFalse(obj1_at0.isCompatibleField(obj2_at4));
+    Assert.assertFalse(obj1_at0.isCompatibleField(obj2_12at0));
   }
 
   @Test

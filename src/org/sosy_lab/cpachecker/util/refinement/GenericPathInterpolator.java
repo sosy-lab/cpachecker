@@ -34,7 +34,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -52,6 +51,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector.PrefixPreference;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
@@ -75,7 +75,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
   private boolean pathSlicing = true;
 
   @Option(secure=true, description="which prefix of an actual counterexample trace should be used for interpolation")
-  private PrefixPreference prefixPreference = PrefixPreference.DOMAIN_GOOD_SHORT;
+  private List<PrefixPreference> prefixPreference = Lists.newArrayList(PrefixPreference.DOMAIN_MIN, PrefixPreference.LENGTH_MIN);
 
   /**
    * the offset in the path from where to cut-off the subtree, and restart the analysis
@@ -153,14 +153,13 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
    * @param pInterpolant the initial interpolant, i.e. the initial state,
    *    with which to check the error path.
    * @return a sliced infeasible prefix of the error path
-   * @throws CPAException
    */
   protected ARGPath performRefinementSelection(
       ARGPath pErrorPath,
       final I pInterpolant
   ) throws CPAException, InterruptedException {
 
-    if(prefixPreference == PrefixPreference.NONE) {
+    if(!isRefinementSelectionEnabled()) {
       return pErrorPath;
     }
 
@@ -200,9 +199,6 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
    * @param pInterpolant an initial interpolant
    *    (only non-trivial when interpolating error path suffixes in global refinement)
    * @return the mapping of {@link ARGState}s to {@link Interpolant}s
-   *
-   * @throws InterruptedException
-   * @throws CPAException
    */
   protected Map<ARGState, I> performEdgeBasedInterpolation(
       ARGPath pErrorPathPrefix,
@@ -224,7 +220,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
         pInterpolant = interpolator.deriveInterpolant(pErrorPathPrefix,
                                                      pathIterator.getOutgoingEdge(),
                                                      callstack,
-                                                     pathIterator.getIndex(),
+                                                     pathIterator.getPosition(),
                                                      pInterpolant);
       }
 
@@ -261,9 +257,6 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
    * This method returns a sliced error path (prefix). In case the sliced error path becomes feasible,
    * i.e., because slicing is not fully precise in presence of, e.g., structs or arrays, the original
    * error path (prefix) that was given as input is returned.
-   *
-   * @throws InterruptedException
-   * @throws CPAException
    */
   private ARGPath sliceErrorPath(final ARGPath pErrorPathPrefix)
       throws CPAException, InterruptedException {
@@ -275,10 +268,10 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
     Set<ARGState> useDefStates = new UseDefRelation(pErrorPathPrefix,
         cfa.getVarClassification().isPresent()
           ? cfa.getVarClassification().get().getIntBoolVars()
-          : Collections.<String>emptySet()).getUseDefStates();
+          : Collections.<String>emptySet(), false).getUseDefStates();
 
     ArrayDeque<Pair<FunctionCallEdge, Boolean>> functionCalls = new ArrayDeque<>();
-    ArrayList<CFAEdge> abstractEdges = Lists.newArrayList(pErrorPathPrefix.asEdgesList());
+    ArrayList<CFAEdge> abstractEdges = Lists.newArrayList(pErrorPathPrefix.getInnerEdges());
 
     PathIterator iterator = pErrorPathPrefix.pathIterator();
     while (iterator.hasNext()) {
@@ -344,21 +337,25 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
    * the original error path, but are not anymore in the (shorter) prefix.
    *
    * The property that every state on the path beneath the first state with an
-   * false interpolant is needed by some code in {@link org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolationTree},
-   * i.e., for global refinement. This property could also be enforced there,
-   * but interpolant creation should only happen during interpolation, and not
-   * in the data structure holding the interpolants.
+   * false interpolant is needed by some code in ValueAnalysisInterpolationTree
+   * a subclass of {@link InterpolationTree}, i.e., for global refinement. This
+   * property could also be enforced there, but interpolant creation should only
+   * happen during interpolation, and not in the data structure holding the interpolants.
    *
    * @param errorPath the original error path
-   * @param errorPathPrefix the possible shorter error path prefix
-   * @param interpolants the current interpolant map
+   * @param pErrorPathPrefix the possible shorter error path prefix
+   * @param pInterpolants the current interpolant map
    */
   protected final void propagateFalseInterpolant(final ARGPath errorPath,
       final ARGPath pErrorPathPrefix,
       final Map<ARGState, I> pInterpolants
   ) {
     if(errorPath != pErrorPathPrefix) {
-      for (ARGState state : errorPath.obtainSuffix(pErrorPathPrefix.size()).asStatesList()) {
+      PathIterator it = errorPath.pathIterator();
+      for (int i = 0; i < pErrorPathPrefix.size(); i++) {
+        it.advance();
+      }
+      for (ARGState state : it.getSuffixInclusive().asStatesList()) {
         pInterpolants.put(state, interpolantManager.getFalseInterpolant());
       }
     }
@@ -377,6 +374,15 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
   }
 
   /**
+   * This method checks if refinement selection is enabled.
+   *
+   * @return true, if if refinement selection is enabled, else false
+   */
+  protected boolean isRefinementSelectionEnabled() {
+    return !prefixPreference.equals(PrefixSelector.NO_SELECTION);
+  }
+
+  /**
    * This method decides if path slicing is possible.
    *
    * It is only possible if the respective option is set,
@@ -389,7 +395,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
    */
   private boolean isPathSlicingPossible(final ARGPath pErrorPathPrefix) {
     return pathSlicing
-        && prefixPreference != PrefixPreference.NONE
+        && isRefinementSelectionEnabled()
         && pErrorPathPrefix.getFirstState().getParents().isEmpty();
   }
 }

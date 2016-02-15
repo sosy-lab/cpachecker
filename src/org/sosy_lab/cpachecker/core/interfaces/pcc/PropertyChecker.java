@@ -42,7 +42,6 @@ public interface PropertyChecker {
    *
    * @param elemToCheck - abstract state for which property satisfaction will be checked
    * @return true if property is successfully checked on abstract state elemToCheck, false otherwise
-   * @throws UnsupportedOperationException
    */
   public boolean satisfiesProperty(AbstractState elemToCheck) throws UnsupportedOperationException;
 

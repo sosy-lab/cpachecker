@@ -113,13 +113,13 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
     try {
       if (numReadThreads == 0) {
         executor = Executors.newFixedThreadPool(numThreads);
-        startReadingThreads(numThreads, executor, checkResult, partitionsRead, partitionChecked);
+        startReadingThreads(numThreads, executor, checkResult, partitionsRead);
         startCheckingThreads(numThreads, executor, checkResult, partitionsRead, partitionChecked, certificate,
             partitionNodes, inOtherPartition,
             initPrec, lock);
       } else {
         readExecutor = Executors.newFixedThreadPool(numReadThreads);
-        startReadingThreads(numReadThreads, readExecutor, checkResult, partitionsRead, partitionChecked);
+        startReadingThreads(numReadThreads, readExecutor, checkResult, partitionsRead);
         checkExecutor = Executors.newFixedThreadPool(numThreads - numReadThreads);
         startCheckingThreads(numThreads - numReadThreads, checkExecutor, checkResult, partitionsRead, partitionChecked,
             certificate, partitionNodes, inOtherPartition,
@@ -168,7 +168,7 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
   }
 
   private void startReadingThreads(final int threads, final ExecutorService pReadingExecutor, final AtomicBoolean pCheckResult,
-      final Semaphore partitionsRead, final Semaphore pPartitionChecked) {
+      final Semaphore partitionsRead) {
     AtomicInteger nextPartitionId = new AtomicInteger(0);
     for (int i = 0; i < threads; i++) {
       pReadingExecutor.execute(new ParallelPartitionReader(pCheckResult, partitionsRead, nextPartitionId, this,

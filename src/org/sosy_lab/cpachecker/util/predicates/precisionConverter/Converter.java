@@ -28,12 +28,12 @@ import static java.lang.String.format;
 import java.util.List;
 import java.util.Set;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.Type;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.UnknownFormulaSymbolException;
+import org.sosy_lab.solver.api.FormulaType;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
@@ -59,12 +59,18 @@ public class Converter {
     this.logger = null;
   }
 
+  /**
+   * @throws UnknownFormulaSymbolException may be thrown in subclasses
+   */
   public String convertFunctionDeclaration(String symbol, Type<String> pFt)
       throws UnknownFormulaSymbolException {
     return format("%s (%s) %s",
       symbol, Joiner.on(' ').join(pFt.getParameterTypes()), pFt.getReturnType());
   }
 
+  /**
+   * @throws UnknownFormulaSymbolException may be thrown in subclasses
+   */
   public String convertFunctionDefinition(String symbol,
       Type<String> type, Pair<String, Type<FormulaType<?>>> initializerTerm)
           throws UnknownFormulaSymbolException {
@@ -77,11 +83,17 @@ public class Converter {
     return wrap(num);
   }
 
+  /**
+   * @throws UnknownFormulaSymbolException may be thrown in subclasses
+   */
   public Pair<String, Type<FormulaType<?>>> convertSymbol(String symbol)
       throws UnknownFormulaSymbolException {
     return wrap(symbol);
   }
 
+  /**
+   * @throws UnknownFormulaSymbolException may be thrown in subclasses
+   */
   public Pair<String, Type<FormulaType<?>>> convertTerm(
       Pair<String, Type<FormulaType<?>>> op, List<Pair<String, Type<FormulaType<?>>>> terms)
           throws UnknownFormulaSymbolException {

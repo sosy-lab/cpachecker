@@ -25,25 +25,42 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 
 import com.google.common.base.Optional;
 
 public abstract class PredicateRefiner implements Refiner {
 
-  public static PredicateCPARefiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
+  @Options(prefix="cpa.predicate.refinement")
+  static class PredicateRefinerOptions {
+
+    @Option(secure=true, name="useInvariantRefinement",
+        description="Should the refinement be done with invariants instead of"
+            + " interpolation? This is currently a heuristic as we cannot be "
+            + "sure that all invariants are good enough to refute a counterexample"
+            + " therefore the fallback is still interpolation.")
+    private boolean useInvariantRefinement = false;
+
+
+    public PredicateRefinerOptions(Configuration config) throws InvalidConfigurationException {
+      config.inject(this);
+    }
+  }
+
+  public static PredicateCPARefiner create(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
     PredicateCPA predicateCpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
     if (predicateCpa == null) {
       throw new InvalidConfigurationException(PredicateRefiner.class.getSimpleName() + " needs a PredicateCPA");
@@ -102,17 +119,33 @@ public abstract class PredicateRefiner implements Refiner {
 
     PrefixProvider prefixProvider = new PredicateBasedPrefixProvider(config, logger, solver, pfmgr);
 
-    return new PredicateCPARefiner(
-        config,
-        logger,
-        pCpa,
-        manager,
-        pathChecker,
-        prefixProvider,
-        pfmgr,
-        pRefinementStrategy,
-        solver,
-        predicateCpa.getAssumesStore(),
-        predicateCpa.getCfa());
+    PredicateRefinerOptions refinementOptions = new PredicateRefinerOptions(config);
+    if (refinementOptions.useInvariantRefinement) {
+      return new PredicateCPARefinerWithInvariants(
+          config,
+          logger,
+          pCpa,
+          manager,
+          pathChecker,
+          prefixProvider,
+          pfmgr,
+          pRefinementStrategy,
+          solver,
+          predicateCpa.getAssumesStore(),
+          predicateCpa.getCfa());
+    } else {
+      return new PredicateCPARefiner(
+          config,
+          logger,
+          pCpa,
+          manager,
+          pathChecker,
+          prefixProvider,
+          pfmgr,
+          pRefinementStrategy,
+          solver,
+          predicateCpa.getAssumesStore(),
+          predicateCpa.getCfa());
+    }
   }
 }

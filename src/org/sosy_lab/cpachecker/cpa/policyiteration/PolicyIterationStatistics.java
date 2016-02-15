@@ -31,6 +31,9 @@ public class PolicyIterationStatistics implements Statistics {
   final Timer simplifyTimer = new Timer();
   final Timer congruenceTimer = new Timer();
   final Timer comparisonTimer = new Timer();
+  final Timer ackermannizationTimer = new Timer();
+  final Timer linearizationTimer = new Timer();
+
   private final CFA cfa;
 
   private BigInteger wideningTemplatesGenerated = BigInteger.ZERO;
@@ -115,6 +118,7 @@ public class PolicyIterationStatistics implements Statistics {
     printTimer(out, simplifyTimer, "simplifying formulas");
     printTimer(out, congruenceTimer, "computing congruence");
     printTimer(out, polyhedraWideningTimer, "computing polyhedra widening");
+    printTimer(out, ackermannizationTimer, "performing ackermannization on policies");
 
     out.printf("Number of templates generated through widening: %s%n",
         wideningTemplatesGenerated);
@@ -129,6 +133,7 @@ public class PolicyIterationStatistics implements Statistics {
 
     out.printf("Latest locationID: %d%n", latestLocationID);
     out.printf("Number of loop heads: %d%n", cfa.getAllLoopHeads().get().size());
+    printTimer(out, linearizationTimer, "formula linearization");
   }
 
   private void printStats(PrintStream out, UpdateStats<?> stats, String description) {
@@ -181,9 +186,10 @@ public class PolicyIterationStatistics implements Statistics {
   }
 
   private void printTimer(PrintStream out, Timer t, String name) {
-    out.printf("Time spent in %s: %s (Max: %s), (Avg: %s)%n",
+    out.printf("Time spent in %s: %s (Max: %s), (Avg: %s), (#intervals = %s)%n",
         name, t, t.getMaxTime().formatAs(TimeUnit.SECONDS),
-        t.getAvgTime().formatAs(TimeUnit.SECONDS));
+        t.getAvgTime().formatAs(TimeUnit.SECONDS),
+        t.getNumberOfIntervals());
   }
 
   @Override

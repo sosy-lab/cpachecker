@@ -31,19 +31,19 @@ import java.util.Deque;
 import java.util.List;
 
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -94,7 +94,6 @@ public class NestedInterpolation<T> extends AbstractTreeInterpolation<T> {
     try (final InterpolatingProverEnvironment<T> itpProver = interpolator.newEnvironment()) {
 
       final List<T> A = new ArrayList<>();
-      final List<T> B = new ArrayList<>();
 
       // If we have entered or exited a function, update the stack of entry points
       final AbstractState abstractionState = checkNotNull(formulasWithStatesAndGroupdIds.get(positionOfA).getSecond());
@@ -115,13 +114,13 @@ public class NestedInterpolation<T> extends AbstractTreeInterpolation<T> {
 
       // add all remaining PHI_j
       for (Triple<BooleanFormula, AbstractState, T> t : Iterables.skip(formulasWithStatesAndGroupdIds, positionOfA + 1)) {
-        B.add(itpProver.push(t.getFirst()));
+        itpProver.push(t.getFirst());
       }
 
       // add all previous function calls
       for (Triple<BooleanFormula,BooleanFormula, CFANode> t : callstack) {
-        B.add(itpProver.push(t.getFirst())); // add PSI_k
-        B.add(itpProver.push(t.getSecond())); // ... and PHI_k
+        itpProver.push(t.getFirst()); // add PSI_k
+        itpProver.push(t.getSecond()); // ... and PHI_k
       }
 
       // update prover with new formulas.
@@ -137,41 +136,41 @@ public class NestedInterpolation<T> extends AbstractTreeInterpolation<T> {
         // case 4, we are returning from a function, rule 4
         Triple<BooleanFormula, BooleanFormula, CFANode> scopingItp = callstack.removeLast();
 
-        final InterpolatingProverEnvironment<T> itpProver2 = interpolator.newEnvironment();
-        final List<T> A2 = new ArrayList<>();
-        final List<T> B2 = new ArrayList<>();
+        try (InterpolatingProverEnvironment<T> itpProver2 = interpolator.newEnvironment()) {
+          final List<T> A2 = new ArrayList<>();
 
-        A2.add(itpProver2.push(itp));
-        //A2.add(itpProver2.push(orderedFormulas.get(positionOfA).getFirst()));
+          A2.add(itpProver2.push(itp));
+          //A2.add(itpProver2.push(orderedFormulas.get(positionOfA).getFirst()));
 
-        A2.add(itpProver2.push(scopingItp.getFirst()));
-        A2.add(itpProver2.push(scopingItp.getSecond()));
+          A2.add(itpProver2.push(scopingItp.getFirst()));
+          A2.add(itpProver2.push(scopingItp.getSecond()));
 
-        // add all remaining PHI_j
-        for (Triple<BooleanFormula, AbstractState, T> t : Iterables.skip(formulasWithStatesAndGroupdIds, positionOfA + 1)) {
-          B2.add(itpProver2.push(t.getFirst()));
+          // add all remaining PHI_j
+          for (Triple<BooleanFormula, AbstractState, T> t :
+              Iterables.skip(formulasWithStatesAndGroupdIds, positionOfA + 1)) {
+            itpProver2.push(t.getFirst());
+          }
+
+          // add all previous function calls
+          for (Triple<BooleanFormula, BooleanFormula, CFANode> t : callstack) {
+            itpProver2.push(t.getFirst()); // add PSI_k
+            itpProver2.push(t.getSecond()); // ... and PHI_k
+          }
+
+          boolean unsat2 = itpProver2.isUnsat();
+          assert unsat2 : "formulas2 were unsat before, they have to be unsat now.";
+
+          // get interpolant of A and B, for B we use the complementary set of A
+          BooleanFormula itp2 = itpProver2.getInterpolant(A2);
+
+          BooleanFormula rebuildItp = rebuildInterpolant(itp, itp2);
+          if (!bfmgr.isTrue(scopingItp.getFirst())) {
+            rebuildItp = bfmgr.and(rebuildItp, scopingItp.getFirst());
+          }
+
+          interpolants.add(rebuildItp);
+          return itp2;
         }
-
-        // add all previous function calls
-        for (Triple<BooleanFormula, BooleanFormula, CFANode> t : callstack) {
-          B2.add(itpProver2.push(t.getFirst())); // add PSI_k
-          B2.add(itpProver2.push(t.getSecond())); // ... and PHI_k
-        }
-
-        boolean unsat2 = itpProver2.isUnsat();
-        assert unsat2 : "formulas2 were unsat before, they have to be unsat now.";
-
-        // get interpolant of A and B, for B we use the complementary set of A
-        BooleanFormula itp2 = itpProver2.getInterpolant(A2);
-        itpProver2.close();
-
-        BooleanFormula rebuildItp = rebuildInterpolant(itp, itp2);
-        if (!bfmgr.isTrue(scopingItp.getFirst())) {
-          rebuildItp = bfmgr.and(rebuildItp, scopingItp.getFirst());
-        }
-
-        interpolants.add(rebuildItp);
-        return itp2;
 
       } else {
         interpolants.add(itp);

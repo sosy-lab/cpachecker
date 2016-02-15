@@ -128,6 +128,8 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
             // TODO Change with inclusion of Boxing, Unboxing
             // Unnecessary to track Primitive types.
             return state;
+          default:
+            // nothing to do here, TODO perhaps throw exceptions in other cases?
       }
     }
 
@@ -212,7 +214,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
 
     // expression is a binary operation, e.g. a = b;
     if (statement instanceof JAssignment) {
-      return handleAssignment((JAssignment) statement, cfaEdge);
+      return handleAssignment((JAssignment) statement);
 
       // external function call - do nothing
     } else if (statement instanceof JMethodOrConstructorInvocation) {
@@ -227,7 +229,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
     return state;
   }
 
-  private RTTState handleAssignment(JAssignment assignExpression, CFAEdge cfaEdge)
+  private RTTState handleAssignment(JAssignment assignExpression)
       throws UnrecognizedCCodeException {
 
     JExpression op1 = assignExpression.getLeftHandSide();

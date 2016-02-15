@@ -41,9 +41,7 @@
     <fileset dir="${lib.dir}">
       <include name="*.jar" />
     </fileset>
-    <fileset dir="${ivy.lib.dir}">
-      <include name="**/*.jar" />
-    </fileset>
+    <fileset dir="${ivy.lib.dir}" includes="runtime/*.jar test/*.jar build/annotations.jar build/error_prone_annotations.jar" />
     <fileset dir="${lib.dir.gae}">
       <include name="**/*.jar" />
     </fileset>
@@ -117,11 +115,9 @@
       </fileset>
       <fileset dir="${ivy.lib.dir}">
         <include name="runtime/*.jar" />
-        <include name="build/*.jar" />
       </fileset>
       <fileset dir="${lib.dir.gae}">
         <include name="runtime/*.jar" />
-        <include name="build/*.jar" />
       </fileset>
       <fileset dir="${gae-sdk.dir}">
         <include name="lib/user/**/*.jar" />

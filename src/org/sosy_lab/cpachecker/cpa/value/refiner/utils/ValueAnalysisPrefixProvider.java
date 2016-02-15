@@ -39,14 +39,16 @@ public class ValueAnalysisPrefixProvider extends GenericPrefixProvider<ValueAnal
    *
    * @param pLogger the logger to use
    * @param pCfa the cfa in use
-   * @param pInitial the initial state for starting the exploration
-   * @throws InvalidConfigurationException
    */
   public ValueAnalysisPrefixProvider(LogManager pLogger, CFA pCfa, Configuration config)
       throws InvalidConfigurationException {
 
-    super(new ValueAnalysisStrongestPostOperator(pLogger, config, pCfa),
-        new ValueAnalysisState(),
-        pLogger, pCfa, config, ValueAnalysisCPA.class);
+    super(
+        new ValueAnalysisStrongestPostOperator(pLogger, config, pCfa),
+        new ValueAnalysisState(pCfa.getMachineModel()),
+        pLogger,
+        pCfa,
+        config,
+        ValueAnalysisCPA.class);
   }
 }

@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.MapsDifference.collectMapsDifferenceTo;
-import static org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.IS_POINTER_SIGNED;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -35,7 +34,6 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.MapsDifference;
 import org.sosy_lab.common.configuration.Configuration;
@@ -57,11 +55,8 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.VariableClassification;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.arrays.CToFormulaConverterWithArrays;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.arrays.CtoFormulaTypeHandlerWithArrays;
@@ -73,13 +68,13 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Formu
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTarget;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
-import org.sosy_lab.solver.AssignableTerm;
-import org.sosy_lab.solver.AssignableTerm.Variable;
-import org.sosy_lab.solver.Model;
-import org.sosy_lab.solver.TermType;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.solver.api.Model.ValueAssignment;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
@@ -103,6 +98,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   @Option(secure=true, description = "Handle arrays using the theory of arrays.")
   private boolean handleArrays = false;
+
+  @Option(secure=true, description="Call 'simplify' on generated formulas.")
+  private boolean simplifyGeneratedPathFormulas = false;
 
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";
   private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
@@ -164,7 +162,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
     if (handleArrays) {
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
-      typeHandler = new CtoFormulaTypeHandlerWithArrays(pLogger, options, pMachineModel, pFmgr);
+      typeHandler = new CtoFormulaTypeHandlerWithArrays(pLogger, pMachineModel);
       converter = new CToFormulaConverterWithArrays(options, fmgr, pMachineModel,
           pVariableClassification, logger, shutdownNotifier, typeHandler, direction);
 
@@ -172,7 +170,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
     } else if (handlePointerAliasing) {
       final FormulaEncodingWithPointerAliasingOptions options = new FormulaEncodingWithPointerAliasingOptions(config);
-      TypeHandlerWithPointerAliasing aliasingTypeHandler = new TypeHandlerWithPointerAliasing(pLogger, pMachineModel, pFmgr, options);
+      TypeHandlerWithPointerAliasing aliasingTypeHandler = new TypeHandlerWithPointerAliasing(pLogger, pMachineModel, options);
       typeHandler = aliasingTypeHandler;
       converter = new CToFormulaConverterWithPointerAliasing(options, fmgr,
           pMachineModel, pVariableClassification, logger, shutdownNotifier,
@@ -180,7 +178,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
     } else {
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
-      typeHandler = new CtoFormulaTypeHandler(pLogger, options, pMachineModel, pFmgr);
+      typeHandler = new CtoFormulaTypeHandler(pLogger, pMachineModel);
       converter = new CtoFormulaConverter(options, fmgr, pMachineModel,
           pVariableClassification, logger, shutdownNotifier, typeHandler, direction);
 
@@ -228,6 +226,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
         pf = new PathFormula(edgeFormula, ssa.build(), pf.getPointerTargetSet(), pf.getLength());
       }
+    }
+    if (simplifyGeneratedPathFormulas) {
+      pf = pf.updateFormula(fmgr.simplify(pf.getFormula()));
     }
     return pf;
   }
@@ -288,7 +289,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final PointerTargetSet newPTS = mergePtsResult.getResult();
     final int newLength = Math.max(pathFormula1.getLength(), pathFormula2.getLength());
 
-    return new PathFormula(newFormula, newSSA.build(), newPTS, newLength);
+    PathFormula out = new PathFormula(newFormula, newSSA.build(), newPTS, newLength);
+    if (simplifyGeneratedPathFormulas) {
+      out = out.updateFormula(fmgr.simplify(out.getFormula()));
+    }
+    return out;
   }
 
   @Override
@@ -463,8 +468,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     for (final PointerTarget target : pts.getAllTargets(returnType)) {
       shutdownNotifier.shutdownIfNecessary();
       final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(typeHandler.getPointerType(), target.getBaseName()),
-                                                  fmgr.makeNumber(typeHandler.getPointerType(), target.getOffset()),
-                                                  IS_POINTER_SIGNED);
+                                                  fmgr.makeNumber(typeHandler.getPointerType(), target.getOffset()));
 
       final BooleanFormula retention = fmgr.assignment(ffmgr.declareAndCallUninterpretedFunction(functionName,
                                                                               newIndex,
@@ -637,18 +641,18 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
    * @return A map from ARG state id to a boolean value indicating direction.
    */
   @Override
-  public Map<Integer, Boolean> getBranchingPredicateValuesFromModel(Model model) {
-    if (model.isEmpty()) {
+  public Map<Integer, Boolean> getBranchingPredicateValuesFromModel(Iterable<ValueAssignment> model) {
+    if (!model.iterator().hasNext()) {
       logger.log(Level.WARNING, "No satisfying assignment given by solver!");
       return Collections.emptyMap();
     }
 
     Map<Integer, Boolean> preds = Maps.newHashMap();
-    for (Map.Entry<AssignableTerm, Object> entry : model.entrySet()) {
-      AssignableTerm a = entry.getKey();
-      String canonicalName = FormulaManagerView.parseName(a.getName()).getFirstNotNull();
-      if (a instanceof Variable && a.getType() == TermType.Boolean) {
+    for (ValueAssignment entry : model) {
+      String canonicalName =
+          FormulaManagerView.parseName(entry.getName()).getFirstNotNull();
 
+      if (fmgr.getFormulaType(entry.getKey()).isBooleanType()) {
         String name = BRANCHING_PREDICATE_NAME_PATTERN.matcher(canonicalName).replaceFirst("");
         if (!name.equals(canonicalName)) {
           // pattern matched, so it's a variable with __ART__ in it

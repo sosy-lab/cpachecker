@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
@@ -70,14 +69,14 @@ import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.util.StateSimplifier;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.solver.SolverException;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
@@ -129,7 +128,7 @@ public class ConstraintsTransferRelation
       ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
 
     FormulaEncodingOptions options = new FormulaEncodingOptions(pConfig);
-    CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(pLogger, options, machineModel, formulaManager);
+    CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(pLogger, machineModel);
 
     converter = new CtoFormulaConverter(options,
                                         formulaManager,
@@ -180,8 +179,7 @@ public class ConstraintsTransferRelation
   }
 
   private ConstraintsState getNewState(ConstraintsState pOldState,
-      AExpression pExpression, ConstraintFactory pFactory, boolean pTruthAssumption, String pFunctionName,
-      FileLocation pFileLocation)
+      AExpression pExpression, ConstraintFactory pFactory, boolean pTruthAssumption, String pFunctionName)
       throws SolverException, InterruptedException, UnrecognizedCodeException {
 
     // assume edges with integer literals are created by statements like __VERIFIER_assume(0);
@@ -313,7 +311,7 @@ public class ConstraintsTransferRelation
   }
 
   private Optional<Constraint> createConstraint(AIdExpression pExpression, ConstraintFactory pFactory,
-      boolean pTruthAssumption) throws UnrecognizedCodeException {
+      boolean pTruthAssumption) {
    Constraint constraint;
 
     if (pTruthAssumption) {
@@ -422,8 +420,6 @@ public class ConstraintsTransferRelation
       final boolean truthAssumption = assume.getTruthAssumption();
       final AExpression edgeExpression = assume.getExpression();
 
-      final FileLocation fileLocation = assume.getFileLocation();
-
       final ConstraintFactory factory =
           ConstraintFactory.getInstance(pFunctionName, valueState, machineModel, logger);
 
@@ -434,8 +430,7 @@ public class ConstraintsTransferRelation
             edgeExpression,
             factory,
             truthAssumption,
-            pFunctionName,
-            fileLocation);
+            pFunctionName);
 
       } catch (SolverException e) {
         throw new CPATransferException(

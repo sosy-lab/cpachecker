@@ -33,15 +33,14 @@ import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.common.Appenders;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
-import com.google.common.collect.Iterables;
 
 
 public class PredicatePersistenceUtils {
@@ -65,14 +64,15 @@ public class PredicatePersistenceUtils {
   }
 
   public static Pair<String, List<String>> splitFormula(FormulaManagerView fmgr, BooleanFormula f) {
-    StringBuilder fullString = new StringBuilder();
-    Appenders.appendTo(fullString, fmgr.dumpFormula(f));
-    List<String> lines = LINE_SPLITTER.splitToList(fullString);
+    String out = Appenders.toString(fmgr.dumpFormula(f));
 
-    String formulaString;
+    int splitIdx = out.indexOf("(assert");
+    String declarationsString = out.substring(0, splitIdx);
+    String formulaString = out.substring(splitIdx, out.length()).replace("\n", "");
+
     List<String> declarations;
 
-    if (lines.isEmpty()) {
+    if (formulaString.isEmpty()) {
       if (fmgr.getBooleanFormulaManager().isTrue(f)) {
         declarations = Collections.emptyList();
         formulaString = "(assert true)";
@@ -80,8 +80,7 @@ public class PredicatePersistenceUtils {
         throw new AssertionError();
       }
     } else {
-      declarations = lines.subList(0, lines.size()-1);
-      formulaString = Iterables.getLast(lines);
+      declarations = LINE_SPLITTER.splitToList(declarationsString);
     }
 
     assert formulaString.startsWith("(assert ") && formulaString.endsWith(")") : "Unexpected formula format: " + formulaString;

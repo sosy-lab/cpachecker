@@ -45,9 +45,9 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import org.sosy_lab.solver.SolverException;
@@ -185,7 +185,7 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
   }
 
   private <T> List<BooleanFormula> extractInterpolantSequence(final List<T> pTerms,
-      final InterpolatingProverEnvironmentWithAssumptions<T> pProver) throws SolverException {
+      final InterpolatingProverEnvironmentWithAssumptions<T> pProver) throws SolverException, InterruptedException {
 
     List<BooleanFormula> interpolantSequence = new ArrayList<>();
 

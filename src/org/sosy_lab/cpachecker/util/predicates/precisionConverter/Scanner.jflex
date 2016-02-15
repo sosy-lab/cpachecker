@@ -14,7 +14,6 @@ import java_cup.runtime.ComplexSymbolFactory.Location;
 %column
 
 %{
-  private StringBuilder string = new StringBuilder();
   private ComplexSymbolFactory sf;
 
   public FormulaScanner(java.io.Reader r, ComplexSymbolFactory sf) {
@@ -67,17 +66,6 @@ Symbol = {SMTLetter} {SMTLetterDigit}*
   {Numeral}              { return symbol(FormulaSymbols.NUMERAL, yytext()); }
   {Decimal}              { return symbol(FormulaSymbols.DECIMAL, yytext()); }
   {WhiteSpace}           { /* ignore */ }
-}
-
-<STRING> {
-  \"                             { String value = string.toString();
-                                   string = null;
-                                   yybegin(YYINITIAL);
-                                   return symbol(FormulaSymbols.STRING, value); }
-  [^\"\\]+                       { string.append( yytext() ); }
-  \\\"                           { string.append('\"'); }
-  \\\\                           { string.append('\\'); }
-  \\                             { string.append('\\'); }
 }
 
 /* error fallback */
