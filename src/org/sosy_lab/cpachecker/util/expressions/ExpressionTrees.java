@@ -558,7 +558,11 @@ public final class ExpressionTrees {
                 LeafExpression<LeafType> other = (LeafExpression<LeafType>) pO2;
                 LeafType o1 = pLeafExpression.getExpression();
                 LeafType o2 = other.getExpression();
-                return leafExpressionComparator.compare(o1, o2);
+                int leafComp = leafExpressionComparator.compare(o1, o2);
+                if (leafComp != 0) {
+                  return leafComp;
+                }
+                return Boolean.compare(pLeafExpression.assumeTruth(), other.assumeTruth());
               }
               return typeOrderComp;
             }
