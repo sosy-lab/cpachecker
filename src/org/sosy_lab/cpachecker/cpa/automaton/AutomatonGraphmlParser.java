@@ -64,9 +64,13 @@ import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -75,7 +79,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -913,14 +919,8 @@ public class AutomatonGraphmlParser {
         for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current)) {
           CFANode succ = leavingEdge.getSuccessor();
           ExpressionTree<AExpression> succTree = memo.get(succ);
-          if (leavingEdge instanceof AssumeEdge) {
-            AssumeEdge assumeEdge = (AssumeEdge) leavingEdge;
-            AExpression expression = assumeEdge.getExpression();
-            if (!expression.toString().contains("__CPAchecker_TMP")) {
-              succTree =
-                  And.of(succTree, LeafExpression.of(expression, assumeEdge.getTruthAssumption()));
-            }
-          }
+
+          // Handle the return statement: Returning 0 means false, 1 means true
           if (leavingEdge instanceof AReturnStatementEdge) {
             AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) leavingEdge;
             Optional<? extends AExpression> optExpression = returnStatementEdge.getExpression();
@@ -937,6 +937,38 @@ public class AutomatonGraphmlParser {
               succTree = ExpressionTrees.getFalse();
             }
           }
+
+          // Handle normal assume edges
+          if (leavingEdge instanceof AssumeEdge) {
+            AssumeEdge assumeEdge = (AssumeEdge) leavingEdge;
+            AExpression expression = assumeEdge.getExpression();
+            if (!expression.toString().contains("__CPAchecker_TMP")) {
+              succTree =
+                  And.of(succTree, LeafExpression.of(expression, assumeEdge.getTruthAssumption()));
+            }
+          }
+
+          // Handle the case that a temporary variable occurred in an assumption
+          Map<AExpression, AExpression> cpacheckerTMPValues =
+              collectCPAcheckerTMPValues(leavingEdge);
+          if (!cpacheckerTMPValues.isEmpty()) {
+            ExpressionTree<AExpression> intermediateTree = ExpressionTrees.getFalse();
+            for (CFAEdge succLeavingEdge : CFAUtils.leavingEdges(succ)) {
+              if (succLeavingEdge instanceof AssumeEdge) {
+                AssumeEdge assumeEdge = (AssumeEdge) succLeavingEdge;
+                AExpression expression =
+                    replaceCPAcheckerTMPVariables(assumeEdge.getExpression(), cpacheckerTMPValues);
+                if (!expression.toString().contains("__CPAchecker_TMP")) {
+                  ExpressionTree<AExpression> succSuccTree =
+                      And.of(
+                          memo.get(succLeavingEdge.getSuccessor()),
+                          LeafExpression.of(expression, assumeEdge.getTruthAssumption()));
+                  intermediateTree = Or.of(intermediateTree, succSuccTree);
+                }
+              }
+            }
+            succTree = intermediateTree;
+          }
           expressionTree = Or.of(expressionTree, succTree);
         }
         memo.put(current, expressionTree);
@@ -950,6 +982,61 @@ public class AutomatonGraphmlParser {
       }
     }
     return memo.get(pNode);
+  }
+
+  private AExpression replaceCPAcheckerTMPVariables(
+      AExpression pExpression, Map<AExpression, AExpression> pTmpValues) {
+    // Short cut if there cannot be any matches
+    if (pTmpValues.isEmpty()) {
+      return pExpression;
+    }
+    AExpression directMatch = pTmpValues.get(pExpression);
+    if (directMatch != null) {
+      return directMatch;
+    }
+    if (pExpression instanceof CBinaryExpression) {
+      CBinaryExpression binaryExpression = (CBinaryExpression) pExpression;
+      CExpression op1 =
+          (CExpression) replaceCPAcheckerTMPVariables(binaryExpression.getOperand1(), pTmpValues);
+      CExpression op2 =
+          (CExpression) replaceCPAcheckerTMPVariables(binaryExpression.getOperand2(), pTmpValues);
+      return new CBinaryExpression(
+          binaryExpression.getFileLocation(),
+          binaryExpression.getExpressionType(),
+          binaryExpression.getCalculationType(),
+          op1,
+          op2,
+          binaryExpression.getOperator());
+    }
+    if (pExpression instanceof CUnaryExpression) {
+      CUnaryExpression unaryExpression = (CUnaryExpression) pExpression;
+      CExpression op =
+          (CExpression) replaceCPAcheckerTMPVariables(unaryExpression.getOperand(), pTmpValues);
+      return new CUnaryExpression(
+          unaryExpression.getFileLocation(),
+          unaryExpression.getExpressionType(),
+          op,
+          unaryExpression.getOperator());
+    }
+    return pExpression;
+  }
+
+  private Map<AExpression, AExpression> collectCPAcheckerTMPValues(CFAEdge pEdge) {
+
+    if (pEdge instanceof AStatementEdge) {
+      AStatement statement = ((AStatementEdge) pEdge).getStatement();
+      if (statement instanceof AExpressionAssignmentStatement) {
+        AExpressionAssignmentStatement expAssignStmt = (AExpressionAssignmentStatement) statement;
+        ALeftHandSide lhs = expAssignStmt.getLeftHandSide();
+        if (lhs instanceof AIdExpression
+            && ((AIdExpression) lhs).getName().contains("__CPAchecker_TMP")) {
+          AExpression rhs = expAssignStmt.getRightHandSide();
+          return Collections.<AExpression, AExpression>singletonMap(lhs, rhs);
+        }
+      }
+    }
+
+    return Collections.emptyMap();
   }
 
   private static AutomatonBoolExpr createViolationAssertion() {
