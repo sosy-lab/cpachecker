@@ -926,9 +926,6 @@ public class ARGPathExporter {
             if (enteringEdges.get(pNode).isEmpty()) {
               return false;
             }
-            if (leavingEdges.get(pNode).size() == 1) {
-              return false;
-            }
             for (Edge edge : enteringEdges.get(pNode)) {
               if (!edge.label.keyValues.isEmpty()) {
                 return false;
@@ -944,6 +941,10 @@ public class ARGPathExporter {
           @Override
           public boolean apply(final Edge pEdge) {
             if (isNodeRedundant.apply(pEdge.target)) {
+              return true;
+            }
+
+            if (pEdge.label.keyValues.isEmpty()) {
               return true;
             }
 
