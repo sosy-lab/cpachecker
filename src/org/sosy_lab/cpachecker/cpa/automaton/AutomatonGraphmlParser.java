@@ -312,6 +312,8 @@ public class AutomatonGraphmlParser {
       // Sink nodes have infinite distance to the target location, encoded as -1
       distances.put(AutomatonGraphmlCommon.SINK_NODE_ID, -1);
 
+      Map<String, AutomatonBoolExpr> stutterConditions = Maps.newHashMap();
+
       Set<Node> visitedEdges = new HashSet<>();
       Queue<Node> waitingEdges = new ArrayDeque<>();
       waitingEdges.addAll(leavingEdges.get(entryNodeId));
@@ -336,7 +338,6 @@ public class AutomatonGraphmlParser {
         Element targetStateNode = docDat.getNodeWithId(targetStateId);
         EnumSet<NodeFlag> targetNodeFlags = docDat.getNodeFlags(targetStateNode);
 
-        final List<AutomatonBoolExpr> assertions = Collections.emptyList();
         boolean leadsToViolationNode = targetNodeFlags.contains(NodeFlag.ISVIOLATION);
         if (leadsToViolationNode) {
           violationStates.add(targetStateId);
@@ -499,29 +500,16 @@ public class AutomatonGraphmlParser {
           conjunctedTriggers = and(conjunctedTriggers, exactEdgeMatch);
         }
 
-        // If the triggers do not apply, none of the above transitions is taken
-        Collection<AutomatonTransition> nonMatchingTransitions = new ArrayList<>();
-        if (graphType == GraphType.ERROR_WITNESS && strictMatching) {
-          // If we are doing strict matching, anything that does not match must go to the sink
-          nonMatchingTransitions.add(createAutomatonSinkTransition(
-              not(conjunctedTriggers),
-              Collections.<AutomatonBoolExpr>emptyList(),
-              Collections.<AutomatonAction>emptyList(),
-              leadsToViolationNode));
-
+        // If the triggers do not apply, none of the above transitions is taken,
+        // so we need to build the stutter condition
+        // as the conjoined negations of the transition conditions.
+        AutomatonBoolExpr stutterCondition = stutterConditions.get(sourceStateId);
+        if (stutterCondition == null) {
+          stutterCondition = not(conjunctedTriggers);
         } else {
-          // If we are more lenient, we just wait in the source state until the witness checker catches up with the witness,
-          // i.e. until some CFA edge matches the triggers
-          nonMatchingTransitions.add(
-              createAutomatonTransition(
-                  not(conjunctedTriggers),
-                  assertions,
-                  Collections.<CStatement>emptyList(),
-                  ExpressionTrees.<AExpression>getTrue(),
-                  Collections.<AutomatonAction>emptyList(),
-                  sourceStateId,
-                  violationStates.contains(sourceStateId)));
+          stutterCondition = and(stutterCondition, not(conjunctedTriggers));
         }
+        stutterConditions.put(sourceStateId, stutterCondition);
 
         if (matchAssumeCase) {
           Set<String> assumeCaseTags = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.CONTROLCASE);
@@ -547,13 +535,11 @@ public class AutomatonGraphmlParser {
           }
         }
 
-        Collection<AutomatonTransition> matchingTransitions = new ArrayList<>();
-
         // If the triggers match, there must be one successor state that moves the automaton forwards
-        matchingTransitions.add(
+        transitions.add(
             createAutomatonTransition(
                 conjunctedTriggers,
-                assertions,
+                Collections.<AutomatonBoolExpr>emptyList(),
                 assumptions,
                 candidateInvariants,
                 actions,
@@ -566,31 +552,58 @@ public class AutomatonGraphmlParser {
           Element sourceNode = docDat.getNodeWithId(sourceStateId);
           Set<NodeFlag> sourceNodeFlags = docDat.getNodeFlags(sourceNode);
           boolean sourceIsViolationNode = sourceNodeFlags.contains(NodeFlag.ISVIOLATION);
-          matchingTransitions.add(
+          transitions.add(
               createAutomatonTransition(
                   and(
                       conjunctedTriggers,
                       new AutomatonBoolExpr.MatchAnySuccessorEdgesBoolExpr(conjunctedTriggers)),
-                  assertions,
+                  Collections.<AutomatonBoolExpr>emptyList(),
                   Collections.<CStatement>emptyList(),
                   ExpressionTrees.<AExpression>getTrue(),
                   Collections.<AutomatonAction>emptyList(),
                   sourceStateId,
                   sourceIsViolationNode));
         }
-        transitions.addAll(matchingTransitions);
-        transitions.addAll(nonMatchingTransitions);
       }
 
       // Create states ----
       List<AutomatonInternalState> automatonStates = Lists.newArrayList();
-      for (String stateId : docDat.getIdToNodeMap().keySet()) {
-        Element stateNode = docDat.getIdToNodeMap().get(stateId);
+      for (Map.Entry<String, Element> stateEntry : docDat.getIdToNodeMap().entrySet()) {
+        String stateId = stateEntry.getKey();
+        Element stateNode = stateEntry.getValue();
         EnumSet<NodeFlag> nodeFlags = docDat.getNodeFlags(stateNode);
 
         List<AutomatonTransition> transitions = stateTransitions.get(stateId);
         if (transitions == null) {
           transitions = new ArrayList<>();
+        }
+
+        // If the transition conditions do not apply, none of the above transitions is taken,
+        // and instead, the stutter condition applies.
+        AutomatonBoolExpr stutterCondition = stutterConditions.get(stateId);
+        if (stutterCondition == null) {
+          stutterCondition = AutomatonBoolExpr.TRUE;
+        }
+        if (graphType == GraphType.ERROR_WITNESS && strictMatching) {
+          // If we are doing strict matching, anything that does not match must go to the sink
+          transitions.add(
+              createAutomatonSinkTransition(
+                  stutterCondition,
+                  Collections.<AutomatonBoolExpr>emptyList(),
+                  Collections.<AutomatonAction>emptyList(),
+                  false));
+
+        } else {
+          // If we are more lenient, we just wait in the source state until the witness checker catches up with the witness,
+          transitions.add(
+              createAutomatonTransition(
+                  stutterCondition,
+                  Collections.<AutomatonBoolExpr>emptyList(),
+                  Collections.<CStatement>emptyList(),
+                  ExpressionTrees.<AExpression>getTrue(),
+                  Collections.<AutomatonAction>emptyList(),
+                  stateId,
+                  violationStates.contains(stateId)));
         }
 
         if (nodeFlags.contains(NodeFlag.ISVIOLATION)) {
