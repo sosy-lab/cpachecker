@@ -391,6 +391,9 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
       Multimap<CFANode, ExpressionTreeLocationInvariant> potentialAdditionalCandidates =
           HashMultimap.create();
       for (AbstractState abstractState : reachedSet) {
+        if (pShutdownManager.getNotifier().shouldShutdown()) {
+          return new StaticCandidateProvider(candidates);
+        }
         Iterable<CFANode> locations = AbstractStates.extractLocations(abstractState);
         Iterables.addAll(visited, locations);
         for (AutomatonState automatonState :
