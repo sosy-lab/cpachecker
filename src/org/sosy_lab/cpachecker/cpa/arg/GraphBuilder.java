@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -291,7 +292,9 @@ public enum GraphBuilder {
     } else {
       String sourceId = pEdge.getPredecessor().toString();
       String targetId = pEdge.getSuccessor().toString();
-      pEdgeAppender.appendNewEdge(pDocument, sourceId, targetId, pEdge, pStates, pValueMap);
+      if (!(pEdge instanceof CFunctionSummaryStatementEdge)) {
+        pEdgeAppender.appendNewEdge(pDocument, sourceId, targetId, pEdge, pStates, pValueMap);
+      }
     }
   }
 
