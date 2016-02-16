@@ -848,8 +848,8 @@ public class ARGPathExporter {
 
       }).toList();
       for (Edge edge : toRemove) {
-        enteringEdges.remove(edge.target, edge);
-        leavingEdges.remove(edge.source, edge);
+        boolean removed = removeEdge(edge);
+        assert removed;
       }
 
       // Merge nodes with empty or repeated edges
