@@ -21,7 +21,6 @@
   <option name="-heap">10000m</option>
   <option name="-spec">test/results/integration-witness-generation.logfiles/witness-generation.${inputfile_name}.files/output/witness.graphml</option>
 
-<!--
   <tasks name="BitVectorsReach">
     <includesfile>../programs/benchmarks/BitVectorsReach-validate.set</includesfile>
   </tasks>
@@ -35,7 +34,6 @@
   <tasks name="HeapMemSafety">
     <includesfile>../programs/benchmarks/HeapMemSafety-validate.set</includesfile>
   </tasks>
--->
   <tasks name="Floats">
     <includesfile>../programs/benchmarks/Floats-validate.set</includesfile>
   </tasks>
