@@ -50,8 +50,9 @@ public class FQLSpecificationUtil {
       NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton3 = ToGuardedAutomatonTranslator.reduceEdgeSets(lGoalAutomaton2);
       NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton4 = ToGuardedAutomatonTranslator.removeEmptySelfLoops(lGoalAutomaton3);
       NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton5 = ToGuardedAutomatonTranslator.removeRedundantEdges(lGoalAutomaton4);
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton6 = ToGuardedAutomatonTranslator.removeSingleStutterEdges(lGoalAutomaton5);
 
-      return lGoalAutomaton5;
+      return lGoalAutomaton6;
     }
 
     return pAutomaton;

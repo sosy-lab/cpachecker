@@ -755,6 +755,86 @@ public class ToGuardedAutomatonTranslator {
     return lNewAutomaton;
   }
 
+  public static NondeterministicFiniteAutomaton<GuardedEdgeLabel> removeSingleStutterEdges(
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton) {
+    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lNewAutomaton = new NondeterministicFiniteAutomaton<>();
+
+    Map<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State> lStateMap = new HashMap<>();
+    lStateMap.put(pAutomaton.getInitialState(), lNewAutomaton.getInitialState());
+
+    Set<State> statesToIgnore = new HashSet<>();
+
+    for (State state : pAutomaton.getStates()) {
+      if (statesToIgnore.contains(state)) {
+        continue;
+      }
+
+      Collection<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge> outgoingEdges =
+          pAutomaton.getOutgoingEdges(state);
+
+      for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge edge : outgoingEdges) {
+        if (Pattern.matches(stutterEdgeLabelPattern, edge.getLabel().toString())) {
+          removeStutterEdge(pAutomaton, lNewAutomaton, lStateMap, state, edge);
+          statesToIgnore.add(edge.getTarget());
+        } else {
+          addEdge(lNewAutomaton, lStateMap, state, edge);
+        }
+      }
+    }
+
+    // set final states
+    for (NondeterministicFiniteAutomaton.State lFinalState : pAutomaton.getFinalStates()) {
+      lNewAutomaton.addToFinalStates(lStateMap.get(lFinalState));
+    }
+
+    return lNewAutomaton;
+  }
+
+  private static void removeStutterEdge(
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton,
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> pNewAutomaton,
+      Map<State, State> pStateMap, State pState,
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge pEdge) {
+
+    State succ = pEdge.getTarget();
+    Collection<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge> succOutgoingEdges =
+        pAutomaton.getOutgoingEdges(succ);
+
+    State source = pStateMap.get(pState);
+    for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge edge : succOutgoingEdges) {
+      State target = pStateMap.get(edge.getTarget());
+
+      if (target == null) {
+        State newState = pNewAutomaton.createState();
+        target = newState;
+        pStateMap.put(edge.getTarget(), target);
+      }
+
+      pNewAutomaton.createEdge(source, target, edge.getLabel());
+    }
+  }
+
+  private static void addEdge(NondeterministicFiniteAutomaton<GuardedEdgeLabel> lNewAutomaton,
+      Map<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State> lStateMap,
+      State state, NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge edge) {
+    State source = lStateMap.get(state);
+    State target = lStateMap.get(edge.getTarget());
+
+    if (source == null) {
+      State newState = lNewAutomaton.createState();
+      source = newState;
+      lStateMap.put(edge.getSource(), source);
+    }
+
+    if (target == null) {
+      State newState = lNewAutomaton.createState();
+      target = newState;
+      lStateMap.put(edge.getTarget(), target);
+    }
+
+    lNewAutomaton.createEdge(source, target, edge.getLabel());
+  }
+
   private static void traverseAutomaton(
       NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton,
       NondeterministicFiniteAutomaton<GuardedEdgeLabel> pNewAutomaton,
