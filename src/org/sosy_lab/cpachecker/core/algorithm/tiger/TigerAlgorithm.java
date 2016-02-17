@@ -1374,8 +1374,10 @@ public class TigerAlgorithm
         variableName = v.getName().substring(
             v.getName().indexOf("::") + 2,
             v.getName().indexOf("@"));
-      } else {
+      } else if (v.getName().contains("@")) {
         variableName = v.getName().substring(0, v.getName().indexOf("@"));
+      } else {
+        variableName = v.getName();
       }
 
       if (inputVariables.contains(variableName)) {
