@@ -26,10 +26,10 @@
   <tasks name="HeapMemSafety">
     <includesfile>../programs/benchmarks/HeapMemSafety-validate.set</includesfile>
   </tasks>
+-->
   <tasks name="Floats">
     <includesfile>../programs/benchmarks/Floats-validate.set</includesfile>
   </tasks>
--->
   <tasks name="ControlFlow">
     <includesfile>../programs/benchmarks/ControlFlow-validate.set</includesfile>
   </tasks>
