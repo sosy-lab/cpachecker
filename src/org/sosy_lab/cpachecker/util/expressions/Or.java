@@ -38,12 +38,15 @@ public class Or<LeafType> extends AbstractExpressionTree<LeafType>
 
   private ImmutableSortedSet<ExpressionTree<LeafType>> operands;
 
+  private final int hashCode;
+
   private Or(ImmutableSortedSet<ExpressionTree<LeafType>> pOperands) {
     assert Iterables.size(pOperands) >= 2;
     assert !Iterables.contains(pOperands, ExpressionTrees.getFalse());
     assert !Iterables.contains(pOperands, ExpressionTrees.getTrue());
     assert !FluentIterable.from(pOperands).anyMatch(Predicates.instanceOf(Or.class));
     operands = pOperands;
+    hashCode = operands.hashCode();
   }
 
   @Override
@@ -59,7 +62,7 @@ public class Or<LeafType> extends AbstractExpressionTree<LeafType>
 
   @Override
   public int hashCode() {
-    return operands.hashCode();
+    return hashCode;
   }
 
   @Override
