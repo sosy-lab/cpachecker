@@ -11,7 +11,7 @@
   <propertyfile>${inputfile_path}/ALL.prp</propertyfile>
   <resultfiles>**.graphml</resultfiles>
 
-  <rundefinition name="sv-comp16-witness">
+  <rundefinition name="witness-validation">
     <!-- special directory to search for witnesses -->
     <requiredfiles>../results/integration-witness-generation.logfiles/witness-generation.${inputfile_name}.files/output/witness.graphml</requiredfiles>
   </rundefinition>
