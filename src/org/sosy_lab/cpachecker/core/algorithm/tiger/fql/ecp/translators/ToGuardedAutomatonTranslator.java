@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -47,8 +48,11 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.StandardECPEdgeSet;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
+import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton.State;
 
 public class ToGuardedAutomatonTranslator {
+
+  private static String stutterEdgeLabelPattern = "Set: 1 Guard: \\[\\]";
 
   public static NondeterministicFiniteAutomaton<GuardedEdgeLabel> toAutomaton(ElementaryCoveragePattern pPattern, GuardedEdgeLabel pAlphaLabel, GuardedEdgeLabel pInverseAlphaLabel, GuardedLabel pOmegaLabel, boolean pUseOmegaLabel) {
     NondeterministicFiniteAutomaton<GuardedLabel> lAutomaton1 = translate(pPattern);
@@ -710,6 +714,7 @@ public class ToGuardedAutomatonTranslator {
     NondeterministicFiniteAutomaton<GuardedEdgeLabel> lNewAutomaton = new NondeterministicFiniteAutomaton<>();
 
     Map<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State> lStateMap = new HashMap<>();
+    lStateMap.put(pAutomaton.getInitialState(), lNewAutomaton.getInitialState());
 
     lStateMap.put(pAutomaton.getInitialState(), lNewAutomaton.getInitialState());
 
@@ -720,7 +725,7 @@ public class ToGuardedAutomatonTranslator {
     }
 
     for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge edge : pAutomaton.getEdges()) {
-      if (!(edge.getSource().equals(edge.getTarget()) && Pattern.matches("E\\d+ \\[\\]", edge.getLabel().toString()))) {
+      if (!(edge.getSource().equals(edge.getTarget()) && Pattern.matches(stutterEdgeLabelPattern, edge.getLabel().toString()))) {
         lNewAutomaton.createEdge(edge.getSource(), edge.getTarget(), edge.getLabel());
       }
     }
@@ -731,6 +736,125 @@ public class ToGuardedAutomatonTranslator {
     }
 
     return lNewAutomaton;
+  }
+
+  public static NondeterministicFiniteAutomaton<GuardedEdgeLabel> removeRedundantEdges(
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton) {
+    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lNewAutomaton = new NondeterministicFiniteAutomaton<>();
+
+    Map<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State> lStateMap = new HashMap<>();
+    lStateMap.put(pAutomaton.getInitialState(), lNewAutomaton.getInitialState());
+
+    traverseAutomaton(pAutomaton, lNewAutomaton, lStateMap, pAutomaton.getInitialState(), null, false);
+
+    // set final states
+    for (NondeterministicFiniteAutomaton.State lFinalState : pAutomaton.getFinalStates()) {
+      lNewAutomaton.addToFinalStates(lStateMap.get(lFinalState));
+    }
+
+    return lNewAutomaton;
+  }
+
+  private static void traverseAutomaton(
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton,
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> pNewAutomaton,
+      Map<State, State> pStateMap, State pState,
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge pIncomingEdge,
+      boolean initialStateTraversed) {
+
+    boolean stateTraversed = true;
+
+    // add new state
+    State newState = pStateMap.get(pState);
+    if (newState == null) {
+      newState = pNewAutomaton.createState();
+      pStateMap.put(pState, newState);
+      stateTraversed = false;
+    }
+
+    // add incoming transition
+    if (pIncomingEdge != null) {
+      State source = pStateMap.get(pIncomingEdge.getSource());
+      pNewAutomaton.createEdge(source, newState, pIncomingEdge.getLabel());
+    }
+
+    if (initialStateTraversed && stateTraversed) {
+      return;
+    }
+
+    Map<GuardedEdgeLabel, List<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>> edges = new HashMap<>();
+
+    for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge edge : pAutomaton.getOutgoingEdges(pState)) {
+      List<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge> curEdges = edges.get(edge.getLabel());
+      if (curEdges == null) {
+        curEdges = new ArrayList<>();
+      }
+      curEdges.add(edge);
+      edges.put(edge.getLabel(), curEdges);
+    }
+
+    for (GuardedEdgeLabel label : edges.keySet()) {
+      List<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge> curEdges = edges.get(label);
+
+      if (curEdges.size() == 2) {
+        NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge edge = isTriangle(curEdges, pAutomaton);
+        if (edge != null) {
+          traverseAutomaton(pAutomaton, pNewAutomaton, pStateMap, edge.getTarget(), edge, true);
+        } else {
+          for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge e : curEdges) {
+            traverseAutomaton(pAutomaton, pNewAutomaton, pStateMap, e.getTarget(), e, true);
+          }
+        }
+      } else {
+        for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge e : curEdges) {
+          traverseAutomaton(pAutomaton, pNewAutomaton, pStateMap, e.getTarget(), e, true);
+        }
+      }
+    }
+  }
+
+  private static NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge isTriangle(
+      List<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge> pCurEdges,
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton) {
+    NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge firstEdge = pCurEdges.get(0);
+    NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge secondEdge = pCurEdges.get(1);
+
+    State firstTargetState = null;
+    State secondTargetState = null;
+
+    State firstTarget = firstEdge.getTarget();
+    Collection<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge> firstTargetOutgoing = pAutomaton.getOutgoingEdges(firstTarget);
+
+    if (firstTargetOutgoing.size() == 1) {
+      for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge edge : firstTargetOutgoing) {
+        if (Pattern.matches(stutterEdgeLabelPattern, edge.getLabel().toString())) {
+          firstTargetState = edge.getTarget();
+        }
+      }
+    } else {
+      firstTargetState = firstTarget;
+    }
+
+    State secondTarget = secondEdge.getTarget();
+    Collection<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge> secondTargetOutgoing = pAutomaton.getOutgoingEdges(secondTarget);
+
+    if (secondTargetOutgoing.size() == 1) {
+      for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge edge : secondTargetOutgoing) {
+        if (Pattern.matches(stutterEdgeLabelPattern, edge.getLabel().toString())) {
+          secondTargetState = edge.getTarget();
+          if (secondTargetState.equals(firstTargetState)) {
+            return firstEdge;
+          }
+        }
+      }
+    } else {
+      secondTargetState = secondEdge.getTarget();
+      if (secondTargetState.equals(firstTargetState)) {
+        return secondEdge;
+      }
+    }
+
+    return null;
   }
 
 }
