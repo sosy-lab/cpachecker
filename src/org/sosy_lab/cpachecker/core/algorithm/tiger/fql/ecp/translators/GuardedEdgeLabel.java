@@ -103,16 +103,16 @@ public class GuardedEdgeLabel extends GuardedLabel {
       mIds.put(mEdgeSet, mIds.size());
     }
 
-    String lIdString = null;
+    String lIdString = "Set: ";
 
     if (mEdgeSet.size() == 1) {
-      lIdString = mEdgeSet.toString();
+      lIdString = lIdString + mEdgeSet.toString();
     }
     else {
-      lIdString = "E" + mIds.get(mEdgeSet);
+      lIdString = lIdString + mIds.get(mEdgeSet);
     }
 
-    return lIdString + " " + getGuards().toString();
+    return lIdString + " Guard: " + getGuards().toString();
   }
 
 }
