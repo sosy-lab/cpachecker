@@ -668,11 +668,8 @@ public class TigerAlgorithm
     final CFAEdge criticalEdge = pCriticalForGoal.getCriticalEdge();
 
     while (it.hasNext()) {
-      ARGState state = it.getAbstractState();
-      if (it.getIndex() != 0) { // get incoming edge is not allowed if index==0
-        if (it.getIncomingEdge().equals(criticalEdge)) {
-          return state;
-        }
+      if (it.getOutgoingEdge().equals(criticalEdge)) {
+        return it.getNextAbstractState();
       }
       it.advance();
     }
