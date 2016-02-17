@@ -767,6 +767,7 @@ public class TigerTest {
     prop.put("tiger.usePowerset", "false");
     prop.put("tiger.useAutomataCrossProduct", "false");
     prop.put("tiger.checkCoverage", "true");
+    prop.put("tiger.limitsPerGoal.time.cpu", "-1");
     prop.put("tiger.allCoveredGoalsPerTestCase", "false");
     prop.put("tiger.fqlQuery",
         "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))+EDGES(@LABEL(G5))+EDGES(@LABEL(G6))+EDGES(@LABEL(G7))).\"EDGES(ID)*\"");
@@ -808,6 +809,32 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(7);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
   }
+
+
+  @Test
+  public void simulator_fase_powerset_noomega() throws Exception {
+    Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
+        new File("config/tiger-variabilityAware-powerset-noOmega.properties"));
+    prop.put("cpa.arg.dumpAfterIteration", "false");
+    prop.put("cpa.predicate.targetStateSatCheck", "false");
+    prop.put("tiger.numberOfTestGoalsPerRun", "-1");
+    prop.put("tiger.usePowerset", "true");
+    prop.put("tiger.useAutomataCrossProduct", "false");
+    prop.put("tiger.checkCoverage", "true");
+    prop.put("tiger.allCoveredGoalsPerTestCase", "false");
+    prop.put("tiger.fqlQuery", "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))+EDGES(@LABEL(G5))+EDGES(@LABEL(G6))+EDGES(@LABEL(G7))).\"EDGES(ID)*\"");
+
+    TestResults results = CPATestRunner.run(prop, FASE_C);
+    AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
+
+    assertThat(result).isInstanceOf(TestSuite.class);
+    TestSuite testSuite = (TestSuite) result;
+
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(7);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(7);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+  }
+
 
 
   @Test
