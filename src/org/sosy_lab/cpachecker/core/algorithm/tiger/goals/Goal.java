@@ -341,6 +341,7 @@ public class Goal implements SafetyProperty {
       final boolean isTarget = mAutomaton.getFinalStates().contains(q);
       final String stateName = Integer.toString(q.ID);
       final List<AutomatonTransition> transitions = Lists.newArrayList();
+      final List<AutomatonTransition> stutterTransitions = Lists.newArrayList();
 
       for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge t : mAutomaton.getOutgoingEdges(q)) {
 
@@ -370,8 +371,15 @@ public class Goal implements SafetyProperty {
             ImmutableSet.<SafetyProperty>of(this),
             ImmutableSet.<SafetyProperty>of());
 
-        transitions.add(ct);
+        if (isStutterTransition) {
+          stutterTransitions.add(ct);
+        } else {
+          transitions.add(ct);
+        }
       }
+
+      // The stutter transitions should be the last ones in the list
+      transitions.addAll(stutterTransitions);
 
       if (isTarget) {
         // Disable the automata after the goal (target state)
@@ -386,7 +394,8 @@ public class Goal implements SafetyProperty {
         transitions.add(t);
       }
 
-      automatonStates.add(new AutomatonInternalState(stateName, transitions, isTarget, true));
+      final boolean nonDetMatchAllTransitions = false;
+      automatonStates.add(new AutomatonInternalState(stateName, transitions, isTarget, nonDetMatchAllTransitions));
     }
 
     try {
