@@ -41,8 +41,8 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPRepetition;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPUnion;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ElementaryCoveragePattern;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.AllCFAEdgesGuardedEdgeLabel;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedEdgeLabel;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.InverseGuardedEdgeLabel;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonAction;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr;
@@ -349,7 +349,7 @@ public class Goal implements SafetyProperty {
         final ImmutableList<AStatement> assumptions = createAssumesForLabel(t.getLabel());
         final ImmutableList<AutomatonAction> actions;
 
-        final boolean matchesAnyting = t.getLabel() instanceof AllCFAEdgesGuardedEdgeLabel;
+        final boolean matchesAnyting = isMatchAnythingTransition(t);
         final boolean matchesCriticalEdge = t.getLabel().contains(criticalEdge);
         final boolean isStutterTransition = t.getTarget().equals(q);
         if (matchesCriticalEdge && !isStutterTransition && !matchesAnyting) {// Ignore stutter transitions
@@ -397,6 +397,17 @@ public class Goal implements SafetyProperty {
     } catch (InvalidConfigurationException| InvalidAutomatonException e) {
       throw new RuntimeException("Conversion failed!", e);
     }
+  }
+
+  private boolean isMatchAnythingTransition(NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge pT) {
+    // TODO: This is a hack because we have not yet a better way if all edges get matched.
+    if (pT.getLabel() instanceof InverseGuardedEdgeLabel) {
+      return false;
+    }
+    if (pT.getLabel().getEdgeSet().size() != 1) {
+      return true;
+    }
+    return false;
   }
 
   private ImmutableList<AStatement> createAssumesForLabel(GuardedEdgeLabel pLabel) {
