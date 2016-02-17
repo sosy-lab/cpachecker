@@ -77,6 +77,11 @@ public abstract class AutomatonAction {
       return defaultResultValue;
     }
 
+    @Override
+    public String toString() {
+      return "CheckFeasibility";
+    }
+
   }
 
   /**

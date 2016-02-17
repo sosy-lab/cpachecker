@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPRepetition;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPUnion;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ElementaryCoveragePattern;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.AllCFAEdgesGuardedEdgeLabel;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonAction;
@@ -325,13 +326,15 @@ public class Goal implements SafetyProperty {
    * @return  A control automaton
    */
   public Automaton createControlAutomaton() {
-    Preconditions.checkNotNull(mAutomaton);
+     Preconditions.checkNotNull(mAutomaton);
 
     // TODO: add/handle alpha, and omega edges!!
 
     final String automatonName = getName();
     final String initialStateName = Integer.toString(mAutomaton.getInitialState().ID);
     final List<AutomatonInternalState> automatonStates = Lists.newArrayList();
+
+    final CFAEdge criticalEdge = getCriticalEdge();
 
     for (State q : mAutomaton.getStates()) {
 
@@ -346,10 +349,10 @@ public class Goal implements SafetyProperty {
         final ImmutableList<AStatement> assumptions = createAssumesForLabel(t.getLabel());
         final ImmutableList<AutomatonAction> actions;
 
-        final CFAEdge criticalEdge = getCriticalEdge();
+        final boolean matchesAnyting = t.getLabel() instanceof AllCFAEdgesGuardedEdgeLabel;
         final boolean matchesCriticalEdge = t.getLabel().contains(criticalEdge);
         final boolean isStutterTransition = t.getTarget().equals(q);
-        if (matchesCriticalEdge && !isStutterTransition) {// Ignore stutter transitions
+        if (matchesCriticalEdge && !isStutterTransition && !matchesAnyting) {// Ignore stutter transitions
           // This ensures that each path is along a critical edge!
           actions = ImmutableList.<AutomatonAction>of(AutomatonAction.CheckFeasibility.getInstance());
         } else {

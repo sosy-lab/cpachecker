@@ -318,19 +318,16 @@ public class AutomatonTransition {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append('"');
     sb.append(trigger);
-    sb.append(" -> ");
     if (!assertion.equals(AutomatonBoolExpr.TRUE)) {
       sb.append("ASSERT ");
       sb.append(assertion);
     }
     if (!actions.isEmpty()) {
+      sb.append(" / ");
       Joiner.on(' ').appendTo(sb, actions);
       sb.append(" ");
     }
-    sb.append(followState);
-    sb.append(";\"");
     return sb.toString();
   }
 
