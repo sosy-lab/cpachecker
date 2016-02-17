@@ -458,7 +458,7 @@ public final class ExpressionTrees {
 
   public static <S, T> ExpressionTree<T> convert(
       ExpressionTree<S> pSource, final Function<? super S, ? extends T> pLeafConverter) {
-    final Function<ExpressionTree<S>, ExpressionTree<T>> treeConverter =
+    final Function<ExpressionTree<S>, ExpressionTree<T>> convert =
         new Function<ExpressionTree<S>, ExpressionTree<T>>() {
 
           @Override
@@ -466,24 +466,34 @@ public final class ExpressionTrees {
             return convert(pTree, pLeafConverter);
           }
         };
-    return pSource.accept(
-        new ExpressionTreeVisitor<S, ExpressionTree<T>, RuntimeException>() {
+    ExpressionTreeVisitor<S, ExpressionTree<T>, RuntimeException> converter =
+        new CachingVisitor<S, ExpressionTree<T>, RuntimeException>() {
 
           @Override
-          public ExpressionTree<T> visit(And<S> pAnd) {
-            return And.of(FluentIterable.from(pAnd).transform(treeConverter));
+          public ExpressionTree<T> cacheMissAnd(And<S> pAnd) {
+            return And.of(FluentIterable.from(pAnd).transform(convert));
           }
 
           @Override
-          public ExpressionTree<T> visit(Or<S> pOr) {
-            return Or.of(FluentIterable.from(pOr).transform(treeConverter));
+          public ExpressionTree<T> cacheMissOr(Or<S> pOr) {
+            return Or.of(FluentIterable.from(pOr).transform(convert));
           }
 
           @Override
-          public ExpressionTree<T> visit(LeafExpression<S> pLeafExpression) {
+          public ExpressionTree<T> cacheMissLeaf(LeafExpression<S> pLeafExpression) {
             return LeafExpression.of(
                 (T) pLeafConverter.apply(pLeafExpression.getExpression()),
                 pLeafExpression.assumeTruth());
+          }
+
+          @Override
+          public ExpressionTree<T> cacheMissTrue() {
+            return ExpressionTrees.getTrue();
+          }
+
+          @Override
+          public ExpressionTree<T> cacheMissFalse() {
+            return ExpressionTrees.getFalse();
           }
 
           @Override
@@ -495,7 +505,8 @@ public final class ExpressionTrees {
           public ExpressionTree<T> visitFalse() {
             return ExpressionTrees.getFalse();
           }
-        });
+        };
+    return pSource.accept(converter);
   }
 
   public static <LeafType> Comparator<ExpressionTree<LeafType>> getComparator() {
