@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.4//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.4.dtd">
 <benchmark tool="cpachecker" timelimit="90 s" hardtimelimit="120 s" memlimit="7 GB" cpuCores="2">
+  <option name="-heap">6000M</option>
 
   <!--
   The benchmarks "integration-error-witness-generation" and
