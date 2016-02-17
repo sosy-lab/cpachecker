@@ -42,8 +42,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import com.google.common.base.Function;
-
 
 public class ExpressionTreeLocationInvariant extends AbstractLocationFormulaInvariant
     implements ExpressionTreeCandidateInvariant {
@@ -88,14 +86,7 @@ public class ExpressionTreeLocationInvariant extends AbstractLocationFormulaInva
 
   @Override
   public ExpressionTree<Object> asExpressionTree() {
-    return ExpressionTrees.convert(expressionTree, new Function<AExpression, Object>() {
-
-      @Override
-      public Object apply(AExpression pExpression) {
-        return pExpression;
-      }
-
-    });
+    return ExpressionTrees.cast(expressionTree);
   }
 
   public String getGroupId() {

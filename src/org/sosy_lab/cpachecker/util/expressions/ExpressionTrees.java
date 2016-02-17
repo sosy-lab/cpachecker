@@ -509,6 +509,23 @@ public final class ExpressionTrees {
     return pSource.accept(converter);
   }
 
+  /**
+   * Cast an expression tree with a source leaf type
+   * to an expression tree with a target leaf type.
+   *
+   * This unchecked cast is safe if the expression tree is immutable,
+   * which every expression tree is required to be by convention.
+   *
+   * @param pToCast the tree to be casted.
+   *
+   * @return the casted tree.
+   */
+  @SuppressWarnings("unchecked")
+  public static <LeafTypeS extends LeafTypeT, LeafTypeT> ExpressionTree<LeafTypeT> cast(
+      ExpressionTree<LeafTypeS> pToCast) {
+    return (ExpressionTree<LeafTypeT>) pToCast;
+  }
+
   public static <LeafType> Comparator<ExpressionTree<LeafType>> getComparator() {
     return new ExpressionTreeComparator<>();
   }
