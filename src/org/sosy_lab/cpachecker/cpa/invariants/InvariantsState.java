@@ -80,6 +80,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.Variable;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.VariableSelection;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
@@ -94,6 +95,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 
 /**
@@ -994,7 +996,35 @@ public class InvariantsState implements AbstractState,
   }
 
   private boolean exportFullState(CFANode pReferenceNode) {
-    return pReferenceNode.isLoopStart();
+    Queue<CFANode> waitlist = Queues.newArrayDeque();
+    Set<CFANode> visited = Sets.newHashSet();
+    waitlist.offer(pReferenceNode);
+    visited.add(pReferenceNode);
+    while (!waitlist.isEmpty()) {
+      CFANode current = waitlist.poll();
+      if (current.isLoopStart()) {
+        return true;
+      }
+      Predicate<CFAEdge> epsilonEdge =
+          new Predicate<CFAEdge>() {
+
+            @Override
+            public boolean apply(CFAEdge pEdge) {
+              return AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge);
+            }
+          };
+      for (CFAEdge enteringEdge : CFAUtils.enteringEdges(current).filter(epsilonEdge)) {
+        if (visited.add(enteringEdge.getPredecessor())) {
+          waitlist.offer(enteringEdge.getPredecessor());
+        }
+      }
+      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current).filter(epsilonEdge)) {
+        if (visited.add(leavingEdge.getSuccessor())) {
+          waitlist.offer(leavingEdge.getSuccessor());
+        }
+      }
+    }
+    return false;
   }
 
   private FluentIterable<BooleanFormula<CompoundInterval>> getApproximationFormulas() {
