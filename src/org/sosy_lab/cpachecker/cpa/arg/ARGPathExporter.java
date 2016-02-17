@@ -419,6 +419,14 @@ public class ARGPathExporter {
         final Map<ARGState, CFAEdgeWithAssumptions> pValueMap) {
 
       final TransitionCondition result = new TransitionCondition();
+
+      if (graphType != GraphType.ERROR_WITNESS) {
+        ExpressionTree<Object> invariant = invariantProvider.provideInvariantFor(pEdge, pFromState);
+        String functionName = pEdge.getSuccessor().getFunctionName();
+        putStateInvariant(pTo, invariant);
+        stateScopes.put(pTo, isFunctionScope ? functionName : "");
+      }
+
       if (AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge)) {
         return result;
       }
@@ -601,13 +609,6 @@ public class ARGPathExporter {
             result.put(KeyDef.ASSUMPTIONSCOPE, functionName);
           }
         }
-      }
-
-      if (graphType != GraphType.ERROR_WITNESS) {
-        ExpressionTree<Object> invariant = invariantProvider.provideInvariantFor(pEdge, pFromState);
-        functionName = pEdge.getSuccessor().getFunctionName();
-        putStateInvariant(pTo, invariant);
-        stateScopes.put(pTo, isFunctionScope ? functionName : "");
       }
 
       if (exportAssumeCaseInfo) {
