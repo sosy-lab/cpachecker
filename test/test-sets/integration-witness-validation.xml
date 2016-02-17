@@ -44,7 +44,6 @@
   <tasks name="Simple">
     <includesfile>../programs/benchmarks/Simple-validate.set</includesfile>
   </tasks>
-<!--
   <tasks name="ECA">
     <includesfile>../programs/benchmarks/ECA-validate.set</includesfile>
   </tasks>
@@ -69,6 +68,5 @@
     <includesfile>../programs/benchmarks/BusyBox-validate.set</includesfile>
     <option name="-64"/>
   </tasks>
--->
 
 </benchmark>

@@ -12,6 +12,10 @@
   <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
   <resultfiles>**.graphml</resultfiles>
 
+  <rundefinition name="witness-generation">
+    <option name="-sv-comp16"/>
+  </rundefinition>
+
   <tasks name="BitVectorsReach">
     <includesfile>../programs/benchmarks/BitVectorsReach-validate.set</includesfile>
   </tasks>
@@ -34,7 +38,6 @@
   <tasks name="Simple">
     <includesfile>../programs/benchmarks/Simple-validate.set</includesfile>
   </tasks>
-<!--
   <tasks name="ECA">
     <includesfile>../programs/benchmarks/ECA-validate.set</includesfile>
   </tasks>
@@ -59,9 +62,5 @@
     <includesfile>../programs/benchmarks/BusyBox-validate.set</includesfile>
     <option name="-64"/>
   </tasks>
--->
 
-  <rundefinition name="witness-generation">
-    <option name="-sv-comp16"/>
-  </rundefinition>
 </benchmark>
