@@ -560,10 +560,10 @@ public final class ExpressionTrees {
       final Ordering<Iterable<ExpressionTree<LeafType>>> lexicographicalOrdering =
           Ordering.<ExpressionTree<LeafType>>from(this).lexicographical();
       return pO1.accept(
-          new ExpressionTreeVisitor<LeafType, Integer, RuntimeException>() {
+          new CachingVisitor<LeafType, Integer, RuntimeException>() {
 
             @Override
-            public Integer visit(And<LeafType> pAnd) {
+            protected Integer cacheMissAnd(And<LeafType> pAnd) {
               if (pO2 instanceof And) {
                 And<LeafType> other = (And<LeafType>) pO2;
                 return lexicographicalOrdering.compare(pAnd, other);
@@ -572,7 +572,7 @@ public final class ExpressionTrees {
             }
 
             @Override
-            public Integer visit(Or<LeafType> pOr) {
+            protected Integer cacheMissOr(Or<LeafType> pOr) {
               if (pO2 instanceof Or) {
                 Or<LeafType> other = (Or<LeafType>) pO2;
                 return lexicographicalOrdering.compare(pOr, other);
@@ -581,7 +581,7 @@ public final class ExpressionTrees {
             }
 
             @Override
-            public Integer visit(LeafExpression<LeafType> pLeafExpression) {
+            protected Integer cacheMissLeaf(LeafExpression<LeafType> pLeafExpression) {
               if (pO2 instanceof LeafExpression) {
                 LeafExpression<LeafType> other = (LeafExpression<LeafType>) pO2;
                 LeafType o1 = pLeafExpression.getExpression();
@@ -596,7 +596,7 @@ public final class ExpressionTrees {
             }
 
             @Override
-            public Integer visitTrue() {
+            public Integer cacheMissTrue() {
               if (pO2.equals(ExpressionTrees.getTrue())) {
                 return 0;
               }
@@ -604,7 +604,7 @@ public final class ExpressionTrees {
             }
 
             @Override
-            public Integer visitFalse() {
+            public Integer cacheMissFalse() {
               if (pO2.equals(ExpressionTrees.getFalse())) {
                 return 0;
               }
