@@ -1014,6 +1014,25 @@ public class ARGPathExporter {
       ExpressionTree<Object> targetTree = getStateInvariant(target);
       String sourceScope = stateScopes.get(source);
       String targetScope = stateScopes.get(target);
+
+      if (ExpressionTrees.getTrue().equals(targetTree)
+          && !ExpressionTrees.getTrue().equals(sourceTree)
+          && (targetScope == null || targetScope.equals(sourceScope))) {
+        ExpressionTree<Object> newTargetTree = ExpressionTrees.getFalse();
+        for (Edge e : enteringEdges.get(target)) {
+          newTargetTree = Or.of(newTargetTree, getStateInvariant(e.source));
+        }
+        newTargetTree = And.of(targetTree, newTargetTree);
+        stateInvariants.put(target, newTargetTree);
+        targetTree = newTargetTree;
+      } else if (!ExpressionTrees.getTrue().equals(targetTree)
+          && ExpressionTrees.getTrue().equals(sourceTree)
+          && (sourceScope == null || sourceScope.equals(targetScope))
+          && enteringEdges.get(source).size() <= 1) {
+        stateInvariants.put(source, targetTree);
+        sourceTree = targetTree;
+      }
+
       final String newScope;
       if (ExpressionTrees.isConstant(sourceTree) || sourceScope.equals(targetScope)) {
         newScope = targetScope;
