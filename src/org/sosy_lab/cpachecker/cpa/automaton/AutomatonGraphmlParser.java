@@ -981,7 +981,7 @@ public class AutomatonGraphmlParser {
         }
       }
     }
-    return memo.get(pNode);
+    return ExpressionTrees.simplify(memo.get(pNode));
   }
 
   private AExpression replaceCPAcheckerTMPVariables(
