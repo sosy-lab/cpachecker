@@ -83,7 +83,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -987,9 +987,7 @@ public class InvariantsState implements AbstractState,
 
                   @Override
                   public ExpressionTree<Object> apply(BooleanFormula<CompoundInterval> pFormula) {
-                    return LeafExpression.of(
-                        (Object)
-                            pFormula.accept(
+                    return ExpressionTrees.cast(pFormula.accept(
                                 new ToCodeFormulaVisitor(evaluationVisitor), getEnvironment()));
                   }
                 }));

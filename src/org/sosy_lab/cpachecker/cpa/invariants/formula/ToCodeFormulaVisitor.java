@@ -31,15 +31,25 @@ import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
+import org.sosy_lab.cpachecker.util.expressions.And;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
+import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * Instances of this class are compound state invariants visitors used to
  * convert the visited invariants formulae into bit vector formulae.
  */
-public class ToCodeFormulaVisitor implements
-    ParameterizedNumeralFormulaVisitor<CompoundInterval, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>>, String>,
-    ParameterizedBooleanFormulaVisitor<CompoundInterval, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>>, String> {
+public class ToCodeFormulaVisitor
+    implements ParameterizedNumeralFormulaVisitor<
+            CompoundInterval,
+            Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>>, String>,
+        ParameterizedBooleanFormulaVisitor<
+            CompoundInterval,
+            Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>>,
+            ExpressionTree<String>> {
 
   /**
    * The formula evaluation visitor used to evaluate compound state invariants
@@ -219,7 +229,7 @@ public class ToCodeFormulaVisitor implements
       return pIfThenElse.getNegativeCase().accept(this, pEnvironment);
     }
 
-    String conditionFormula = pIfThenElse.getCondition().accept(this, pEnvironment);
+    ExpressionTree<String> conditionFormula = pIfThenElse.getCondition().accept(this, pEnvironment);
     if (conditionFormula == null) {
       return InvariantsFormulaManager.INSTANCE.union(pIfThenElse.getPositiveCase(), pIfThenElse.getNegativeCase()).accept(this, pEnvironment);
     }
@@ -245,7 +255,8 @@ public class ToCodeFormulaVisitor implements
   }
 
   @Override
-  public String visit(Equal<CompoundInterval> pEqual,
+  public ExpressionTree<String> visit(
+      Equal<CompoundInterval> pEqual,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     BitVectorInfo bitVectorInfo = pEqual.getOperand1().getBitVectorInfo();
 
@@ -276,23 +287,23 @@ public class ToCodeFormulaVisitor implements
         right = pEqual.getOperand1();
       }
       CompoundInterval rightValue = right.accept(evaluationVisitor, pEnvironment);
-      String bf = getFalse();
+      ExpressionTree<String> bf = ExpressionTrees.getFalse();
       for (SimpleInterval interval : rightValue.getIntervals()) {
-        String intervalFormula = getTrue();
+        ExpressionTree<String> intervalFormula = ExpressionTrees.getTrue();
         if (interval.isSingleton()) {
           String value = asBitVectorFormula(bitVectorInfo, interval.getLowerBound());
-          intervalFormula = and(intervalFormula, equal(left, value));
+          intervalFormula = And.of(intervalFormula, equal(left, value));
         } else {
           if (interval.hasLowerBound()) {
             String lb = asBitVectorFormula(bitVectorInfo, interval.getLowerBound());
-            intervalFormula = and(intervalFormula, greaterEqual(left, lb));
+            intervalFormula = And.of(intervalFormula, greaterEqual(left, lb));
           }
           if (interval.hasUpperBound()) {
             String ub = asBitVectorFormula(bitVectorInfo, interval.getUpperBound());
-            intervalFormula = and(intervalFormula, lessEqual(left, ub));
+            intervalFormula = And.of(intervalFormula, lessEqual(left, ub));
           }
         }
-        bf = or(bf, intervalFormula);
+        bf = Or.of(bf, intervalFormula);
       }
       return bf;
     }
@@ -300,7 +311,8 @@ public class ToCodeFormulaVisitor implements
   }
 
   @Override
-  public String visit(LessThan<CompoundInterval> pLessThan,
+  public ExpressionTree<String> visit(
+      LessThan<CompoundInterval> pLessThan,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     BitVectorInfo bitVectorInfo = pLessThan.getOperand1().getBitVectorInfo();
     String operand1 = pLessThan.getOperand1().accept(this, pEnvironment);
@@ -323,7 +335,7 @@ public class ToCodeFormulaVisitor implements
       }
       CompoundInterval rightValue = right.accept(evaluationVisitor, pEnvironment);
       if (rightValue.isBottom()) {
-        return getFalse();
+        return ExpressionTrees.getFalse();
       }
       if (lessThan) {
         if (rightValue.hasUpperBound()) {
@@ -337,84 +349,65 @@ public class ToCodeFormulaVisitor implements
     return lessThan(operand1, operand2);
   }
 
-  private static final String lessThan(String pLess, String pMore) {
-    return String.format("(%s < %s)", pLess, pMore);
+  private static final ExpressionTree<String> lessThan(String pLess, String pMore) {
+    return LeafExpression.of(String.format("(%s < %s)", pLess, pMore));
   }
 
-  private static final String lessEqual(String pLess, String pMore) {
-    return String.format("(%s <= %s)", pLess, pMore);
+  private static final ExpressionTree<String> lessEqual(String pLess, String pMore) {
+    return LeafExpression.of(String.format("(%s <= %s)", pLess, pMore));
   }
 
-  private static final String greaterThan(String pLess, String pMore) {
-    return String.format("(%s > %s)", pLess, pMore);
+  private static final ExpressionTree<String> greaterThan(String pMore, String pLess) {
+    return LeafExpression.of(String.format("(%s > %s)", pMore, pLess));
   }
 
-  private static final String greaterEqual(String pLess, String pMore) {
-    return String.format("(%s >= %s)", pLess, pMore);
+  private static final ExpressionTree<String> greaterEqual(String pMore, String pLess) {
+    return LeafExpression.of(String.format("(%s >= %s)", pMore, pLess));
   }
 
-  private static final String equal(String pLess, String pMore) {
-    return String.format("(%s == %s)", pLess, pMore);
+  private static final ExpressionTree<String> equal(String pLess, String pMore) {
+    return LeafExpression.of(String.format("(%s == %s)", pLess, pMore));
   }
 
-  private static final String and(String pLess, String pMore) {
-    if (pLess.equals(getFalse()) || pMore.equals(getTrue())) {
-      return pLess;
+  private static final ExpressionTree<String> not(ExpressionTree<String> pOp) {
+    if (pOp.equals(ExpressionTrees.getFalse())) {
+      return ExpressionTrees.getTrue();
     }
-    if (pMore.equals(getFalse()) || pLess.equals(getTrue())) {
-      return pMore;
+    if (pOp.equals(ExpressionTrees.getTrue())) {
+      return ExpressionTrees.getFalse();
     }
-    return String.format("(%s && %s)", pLess, pMore);
-  }
-
-  private static final String or(String pLess, String pMore) {
-    if (pLess.equals(getFalse()) || pMore.equals(getTrue())) {
-      return pMore;
+    if (pOp instanceof LeafExpression) {
+      return ((LeafExpression<String>) pOp).negate();
     }
-    if (pMore.equals(getFalse()) || pLess.equals(getTrue())) {
-      return pLess;
-    }
-    return String.format("(%s || %s)", pLess, pMore);
-  }
-
-  private static final String not(String pOp) {
-    if (pOp.equals(getFalse())) {
-      return getTrue();
-    }
-    if (pOp.equals(getTrue())) {
-      return getFalse();
-    }
-    return String.format("(!%s)", pOp);
-  }
-
-  private static final String getTrue() {
-    return "(1)";
-  }
-
-  private static final String getFalse() {
-    return "(0)";
+    return LeafExpression.<String>of(String.format("(!%s)", pOp));
   }
 
   @Override
-  public String visit(LogicalAnd<CompoundInterval> pAnd,
+  public ExpressionTree<String> visit(
+      LogicalAnd<CompoundInterval> pAnd,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    return and(pAnd.getOperand1().accept(this, pEnvironment), pAnd.getOperand2().accept(this, pEnvironment));
+    return And.of(
+        pAnd.getOperand1().accept(this, pEnvironment),
+        pAnd.getOperand2().accept(this, pEnvironment));
   }
 
   @Override
-  public String visit(LogicalNot<CompoundInterval> pNot,
+  public ExpressionTree<String> visit(
+      LogicalNot<CompoundInterval> pNot,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     return not(pNot.getNegated().accept(this, pEnvironment));
   }
 
   @Override
-  public String visitFalse(Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    return getFalse();
+  public ExpressionTree<String> visitFalse(
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+    return ExpressionTrees.getFalse();
   }
 
   @Override
-  public String visitTrue(Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    return getTrue();
+  public ExpressionTree<String> visitTrue(
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+    return ExpressionTrees.getTrue();
   }
 
 }
