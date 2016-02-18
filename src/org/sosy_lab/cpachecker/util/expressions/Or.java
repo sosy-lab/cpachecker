@@ -36,7 +36,7 @@ import com.google.common.collect.Iterables;
 public class Or<LeafType> extends AbstractExpressionTree<LeafType>
     implements Iterable<ExpressionTree<LeafType>> {
 
-  private ImmutableSortedSet<ExpressionTree<LeafType>> operands;
+  private final ImmutableSortedSet<ExpressionTree<LeafType>> operands;
 
   private final int hashCode;
 
@@ -102,7 +102,8 @@ public class Or<LeafType> extends AbstractExpressionTree<LeafType>
                     }
                     return Collections.singleton(pOperand);
                   }
-                }).toSortedSet(ExpressionTrees.<LeafType>getComparator());
+                })
+            .toSortedSet(ExpressionTrees.<LeafType>getComparator());
     // If there are no operands, return the neutral element
     if (operands.isEmpty()) {
       return ExpressionTrees.getFalse();

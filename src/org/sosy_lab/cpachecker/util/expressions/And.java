@@ -103,7 +103,7 @@ public class And<LeafType> extends AbstractExpressionTree<LeafType>
                     return Collections.singleton(pOperand);
                   }
                 })
-                .toSortedSet(ExpressionTrees.<LeafType>getComparator());
+            .toSortedSet(ExpressionTrees.<LeafType>getComparator());
     // If there are no operands, return the neutral element
     if (operands.isEmpty()) {
       return ExpressionTrees.getTrue();
