@@ -107,6 +107,10 @@ public class LeafExpression<LeafType> extends AbstractExpressionTree<LeafType> {
     return false;
   }
 
+  public LeafExpression<LeafType> negate() {
+    return new LeafExpression<>(expression, !assumeTruth);
+  }
+
   public static <LeafType> ExpressionTree<LeafType> of(LeafType pLeafExpression) {
     return of(pLeafExpression, true);
   }
