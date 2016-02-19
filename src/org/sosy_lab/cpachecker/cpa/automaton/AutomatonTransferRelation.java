@@ -115,6 +115,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
 
     for (AutomatonState q: basicResult) {
       if (q.isTarget()) {
+        PropertyStats.INSTANCE.signalRelevancesOfProperties(q.getViolatedProperties());
         targetStates.add(q);
       } else {
         firstToReturnStates.add(q);
