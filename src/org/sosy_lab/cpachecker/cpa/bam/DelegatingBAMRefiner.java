@@ -98,7 +98,7 @@ public class DelegatingBAMRefiner extends AbstractBAMBasedRefiner {
           logger.logf(Level.FINE, "refinement %d of %d was successful", i + 1, refiners.size());
           totalRefinementsFinished.get(i).inc();
           //Temporary hint, other refiners do not know, that the last error path was changed
-          for (int j = 0; j < refiners.size() && i != j; j++) {
+          for (int j = i + 1; j < refiners.size() && i != j; j++) {
             AbstractBAMBasedRefiner nextRefiner = refiners.get(j);
             nextRefiner.informAboutOtherRefinement();
           }
