@@ -72,9 +72,12 @@ public class LeafExpression<LeafType> extends AbstractExpressionTree<LeafType> {
 
   private final boolean assumeTruth;
 
-  private LeafExpression(LeafType pExpression, boolean pAssumeTruth) {
+  private final int hashCode;
+
+  private LeafExpression(LeafType pExpression, boolean pAssumeTruth, int pHashCode) {
     this.expression = Objects.requireNonNull(pExpression);
     this.assumeTruth = pAssumeTruth;
+    this.hashCode = pHashCode;
   }
 
   public LeafType getExpression() {
@@ -93,7 +96,7 @@ public class LeafExpression<LeafType> extends AbstractExpressionTree<LeafType> {
 
   @Override
   public int hashCode() {
-    return Objects.hash(assumeTruth, expression);
+    return hashCode;
   }
 
   @Override
@@ -109,7 +112,7 @@ public class LeafExpression<LeafType> extends AbstractExpressionTree<LeafType> {
   }
 
   public LeafExpression<LeafType> negate() {
-    return new LeafExpression<>(expression, !assumeTruth);
+    return new LeafExpression<>(expression, !assumeTruth, -hashCode);
   }
 
   public static <LeafType> ExpressionTree<LeafType> of(LeafType pLeafExpression) {
@@ -147,7 +150,7 @@ public class LeafExpression<LeafType> extends AbstractExpressionTree<LeafType> {
           ? ExpressionTrees.<LeafType>getTrue()
           : ExpressionTrees.<LeafType>getFalse();
     }
-    return new LeafExpression<>(leafExpression, assumeTruth);
+    return new LeafExpression<>(leafExpression, assumeTruth, assumeTruth ? leafExpression.hashCode() : -leafExpression.hashCode());
   }
 
 }
