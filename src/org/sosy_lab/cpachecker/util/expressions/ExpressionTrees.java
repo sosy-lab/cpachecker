@@ -36,6 +36,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
@@ -468,45 +469,101 @@ public final class ExpressionTrees {
     if (getFalse().equals(pConsequent)) {
       return getFalse().equals(pAntecedent);
     }
-    return pAntecedent.accept(
-        new CachingVisitor<LeafType, Boolean, RuntimeException>() {
+    return implies(
+        pAntecedent,
+        pConsequent,
+        ExpressionTrees.<LeafType>newImpliesVisitor(pConsequent));
+  }
 
-          @Override
-          protected Boolean cacheMissAnd(And<LeafType> pAnd) throws RuntimeException {
-            for (ExpressionTree<LeafType> operand : pAnd) {
-              if (operand.accept(this)) {
-                return true;
-              }
-            }
+  private static <LeafType> boolean implies(
+      ExpressionTree<LeafType> pAntecedent, final ExpressionTree<?> pConsequent,
+      Map<ExpressionTree<?>, ExpressionTreeVisitor<LeafType, Boolean, RuntimeException>> pImpliesVisitors) {
+    if (getTrue().equals(pConsequent)) {
+      return true;
+    }
+    if (getFalse().equals(pConsequent)) {
+      return getFalse().equals(pAntecedent);
+    }
+    ExpressionTreeVisitor<LeafType, Boolean, RuntimeException> impliesVisitor = pImpliesVisitors.get(pConsequent);
+    if (impliesVisitor == null) {
+      impliesVisitor = newImpliesVisitor(pConsequent);
+      pImpliesVisitors.put(pConsequent, impliesVisitor);
+    }
+    return implies(pAntecedent, pConsequent, impliesVisitor);
+  }
+
+  private static <LeafType> ExpressionTreeVisitor<LeafType, Boolean, RuntimeException> newImpliesVisitor(
+      final ExpressionTree<?> pConsequent) {
+    return new CachingVisitor<LeafType, Boolean, RuntimeException>() {
+
+      @Override
+      protected Boolean cacheMissAnd(And<LeafType> pAnd) throws RuntimeException {
+        for (ExpressionTree<LeafType> operand : pAnd) {
+          if (operand.accept(this)) {
+            return true;
+          }
+        }
+        return false;
+      }
+
+      @Override
+      protected Boolean cacheMissOr(Or<LeafType> pOr) throws RuntimeException {
+        for (ExpressionTree<LeafType> operand : pOr) {
+          if (!operand.accept(this)) {
             return false;
           }
+        }
+        return true;
+      }
 
-          @Override
-          protected Boolean cacheMissOr(Or<LeafType> pOr) throws RuntimeException {
-            for (ExpressionTree<LeafType> operand : pOr) {
-              if (!operand.accept(this)) {
-                return false;
-              }
-            }
-            return true;
-          }
+      @Override
+      protected Boolean cacheMissLeaf(LeafExpression<LeafType> pLeafExpression)
+          throws RuntimeException {
+        return pLeafExpression.equals(pConsequent);
+      }
 
-          @Override
-          protected Boolean cacheMissLeaf(LeafExpression<LeafType> pLeafExpression)
-              throws RuntimeException {
-            return pLeafExpression.equals(pConsequent);
-          }
+      @Override
+      protected Boolean cacheMissTrue() throws RuntimeException {
+        return getTrue().equals(pConsequent);
+      }
 
-          @Override
-          protected Boolean cacheMissTrue() throws RuntimeException {
-            return getTrue().equals(pConsequent);
-          }
+      @Override
+      protected Boolean cacheMissFalse() throws RuntimeException {
+        return true;
+      }
+    };
+  }
 
-          @Override
-          protected Boolean cacheMissFalse() throws RuntimeException {
-            return true;
-          }
-        });
+  private static <LeafType, T extends Throwable> boolean implies(
+      ExpressionTree<LeafType> pAntecedent,
+      ExpressionTree<?> pConsequent,
+      ExpressionTreeVisitor<LeafType, Boolean, T> pImpliesVisitor) throws T {
+    if (getTrue().equals(pConsequent)) {
+      return true;
+    }
+    if (getFalse().equals(pConsequent)) {
+      return getFalse().equals(pAntecedent);
+    }
+    return pAntecedent.accept(pImpliesVisitor);
+  }
+
+  public static <LeafType> Simplifier<LeafType> newSimplifier() {
+    return new Simplifier<LeafType>() {
+
+      private final Map<Set<ExpressionTree<LeafType>>, ExpressionTreeVisitor<LeafType, ExpressionTree<LeafType>, RuntimeException>> simplificationVisitors = Maps.newHashMap();
+
+      private final Map<ExpressionTree<?>, ExpressionTreeVisitor<LeafType, Boolean, RuntimeException>> implicationVisitors = Maps.newHashMap();
+
+      @Override
+      public ExpressionTree<LeafType> simplify(ExpressionTree<LeafType> pExpressionTree) {
+        return ExpressionTrees.simplify(
+            pExpressionTree,
+            Collections.<ExpressionTree<LeafType>>emptySet(),
+            simplificationVisitors,
+            implicationVisitors);
+      }
+
+    };
   }
 
   public static <LeafType> ExpressionTree<LeafType> simplify(
@@ -517,7 +574,8 @@ public final class ExpressionTrees {
         Maps
             .<Set<ExpressionTree<LeafType>>,
                 ExpressionTreeVisitor<LeafType, ExpressionTree<LeafType>, RuntimeException>>
-                newHashMap());
+                newHashMap(),
+        Maps.<ExpressionTree<?>, ExpressionTreeVisitor<LeafType, Boolean, RuntimeException>>newHashMap());
   }
 
   private static <LeafType> ExpressionTree<LeafType> simplify(
@@ -526,7 +584,8 @@ public final class ExpressionTrees {
       final Map<
               Set<ExpressionTree<LeafType>>,
               ExpressionTreeVisitor<LeafType, ExpressionTree<LeafType>, RuntimeException>>
-          pVisitors) {
+          pVisitors,
+      final Map<ExpressionTree<?>, ExpressionTreeVisitor<LeafType, Boolean, RuntimeException>> pImpliesVisitors) {
     if (isConstant(pExpressionTree)) {
       return pExpressionTree;
     }
@@ -535,10 +594,10 @@ public final class ExpressionTrees {
       negated = ((LeafExpression<?>) pExpressionTree).negate();
     }
     for (ExpressionTree<LeafType> fact : pExternalKnowledge) {
-      if (negated != null && implies(fact, negated)) {
+      if (negated != null && implies(fact, negated, pImpliesVisitors)) {
         return getFalse();
       }
-      if (implies(fact, pExpressionTree)) {
+      if (implies(fact, pExpressionTree, pImpliesVisitors)) {
         return getTrue();
       }
     }
@@ -557,7 +616,7 @@ public final class ExpressionTrees {
                 knowledgeBase.remove(operandToAdd);
                 knowledgeBase.addAll(pExternalKnowledge);
                 ExpressionTree<LeafType> simplified =
-                    simplify(operandToAdd, knowledgeBase, pVisitors);
+                    simplify(operandToAdd, knowledgeBase, pVisitors, pImpliesVisitors);
                 if (getFalse().equals(simplified)) {
                   return simplified;
                 }
@@ -571,9 +630,11 @@ public final class ExpressionTrees {
             @Override
             public ExpressionTree<LeafType> cacheMissOr(Or<LeafType> pOr) throws RuntimeException {
               Collection<ExpressionTree<LeafType>> operands = Sets.newHashSet();
+
+              // Simplify the operands
               for (ExpressionTree<LeafType> operandToAdd : pOr) {
                 ExpressionTree<LeafType> simplified =
-                    simplify(operandToAdd, pExternalKnowledge, pVisitors);
+                    simplify(operandToAdd, pExternalKnowledge, pVisitors, pImpliesVisitors);
                 if (getTrue().equals(simplified)) {
                   return simplified;
                 }
@@ -581,6 +642,8 @@ public final class ExpressionTrees {
                   operands.add(simplified);
                 }
               }
+
+              // Remove operands that imply other operands
               Collection<ExpressionTree<LeafType>> weakestOperands =
                   new ArrayList<>(operands.size());
               for (ExpressionTree<LeafType> operand : operands) {
@@ -593,10 +656,10 @@ public final class ExpressionTrees {
                   if (op == operand) {
                     continue;
                   }
-                  if (implies(op, negated)) {
+                  if (implies(op, negated, pImpliesVisitors)) {
                     return getTrue();
                   }
-                  if (!skip && implies(operand, op)) {
+                  if (!skip && implies(operand, op, pImpliesVisitors)) {
                     skip = true;
                     if (negated == null) {
                       break;
@@ -607,7 +670,30 @@ public final class ExpressionTrees {
                   weakestOperands.add(operand);
                 }
               }
+
+              if (weakestOperands.size() <= 1) {
+                return Or.of(weakestOperands);
+              }
+
+              Iterator<ExpressionTree<LeafType>> opIt = weakestOperands.iterator();
+              Set<ExpressionTree<LeafType>> commonFacts = Sets.newHashSet(asFacts(opIt.next()));
+              while (!commonFacts.isEmpty() && opIt.hasNext()) {
+                Iterable<ExpressionTree<LeafType>> facts = asFacts(opIt.next());
+                commonFacts.retainAll(facts instanceof Collection ? (Collection<?>) facts : Lists.newArrayList(facts));
+              }
+
+              if (!commonFacts.isEmpty()) {
+                return simplify(And.of(And.of(commonFacts), Or.of(weakestOperands)), pExternalKnowledge, pVisitors, pImpliesVisitors);
+              }
+
               return Or.of(weakestOperands);
+            }
+
+            private Iterable<ExpressionTree<LeafType>> asFacts(ExpressionTree<LeafType> pExpressionTree) {
+              if (isAnd(pExpressionTree)) {
+                return getChildren(pExpressionTree);
+              }
+              return Collections.singleton(pExpressionTree);
             }
 
             @Override
