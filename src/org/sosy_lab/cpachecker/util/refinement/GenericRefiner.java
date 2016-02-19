@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
-import org.sosy_lab.cpachecker.core.interfaces.Refiner;
+import org.sosy_lab.cpachecker.core.interfaces.DelegatableRefiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -74,7 +74,7 @@ import com.google.common.collect.Sets;
  */
 @Options(prefix = "cpa.value.refinement")
 public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Interpolant<S>>
-    implements Refiner, StatisticsProvider {
+    implements StatisticsProvider, DelegatableRefiner {
 
   @Option(secure = true, description = "when to export the interpolation tree"
       + "\nNEVER:   never export the interpolation tree"
@@ -368,6 +368,11 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
 
   private int obtainErrorPathId(ARGPath path) {
     return path.toString().hashCode();
+  }
+
+  @Override
+  public void informAboutOtherRefinement() {
+    previousErrorPathId.clear();
   }
 
   /**

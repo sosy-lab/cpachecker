@@ -30,6 +30,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.DelegatableRefiner;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -49,7 +50,7 @@ import com.google.errorprone.annotations.ForOverride;
  * Warning: Although the ARG is flattened at this point, the elements in it have
  * not been expanded due to performance reasons.
  */
-public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner implements StatisticsProvider {
+public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner implements StatisticsProvider, DelegatableRefiner {
 
   final Timer computePathTimer = new Timer();
   final Timer computeSubtreeTimer = new Timer();

@@ -64,4 +64,9 @@ public class ValueAnalysisBAMRefiner extends AbstractBAMBasedRefiner {
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     refiner.collectStatistics(pStatsCollection);
   }
+
+  @Override
+  public void informAboutOtherRefinement() {
+    refiner.informAboutOtherRefinement();
+  }
 }

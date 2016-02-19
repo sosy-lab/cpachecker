@@ -179,6 +179,11 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner {
     return refiner.performRefinement(pReached, pPath);
   }
 
+  @Override
+  public void informAboutOtherRefinement() {
+    refiner.informAboutOtherRefinement();
+  }
+
   /**
    * This is a small extension of PredicateCPARefiner that overrides
    * {@link #getFormulasForPath(List, ARGState)} so that it respects BAM.

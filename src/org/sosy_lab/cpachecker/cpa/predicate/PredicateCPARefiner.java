@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.DelegatableRefiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -100,7 +101,7 @@ import com.google.common.collect.UnmodifiableIterator;
  * It does, however, produce a nice error path in case of a feasible counterexample.
  */
 @Options(prefix="cpa.predicate.refinement")
-public class PredicateCPARefiner extends AbstractARGBasedRefiner implements StatisticsProvider {
+public class PredicateCPARefiner extends AbstractARGBasedRefiner implements StatisticsProvider, DelegatableRefiner {
 
   @Option(secure=true, description="slice block formulas, experimental feature!")
   private boolean sliceBlockFormulas = false;
@@ -341,6 +342,12 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
    */
   private boolean isRefinementSelectionEnabled() {
     return !prefixPreference.equals(PrefixSelector.NO_SELECTION);
+  }
+
+  @Override
+  public void informAboutOtherRefinement() {
+    //Last path can be wrong if the refinement was performed by the other refiner
+    lastErrorPath = null;
   }
 
   static List<ARGState> transformPath(ARGPath pPath) {
