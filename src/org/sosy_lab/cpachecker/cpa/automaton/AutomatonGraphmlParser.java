@@ -110,6 +110,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Or;
+import org.sosy_lab.cpachecker.util.expressions.Simplifier;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -174,6 +175,7 @@ public class AutomatonGraphmlParser {
   private final MachineModel machine;
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
   private final Function<AStatement, ExpressionTree<AExpression>> fromStatement;
+  private final Simplifier<AExpression> simplifier = ExpressionTrees.newSimplifier();
 
   public AutomatonGraphmlParser(
       Configuration pConfig, LogManager pLogger, CFA pCFA, MachineModel pMachine, Scope pScope)
@@ -971,7 +973,7 @@ public class AutomatonGraphmlParser {
           }
           expressionTree = Or.of(expressionTree, succTree);
         }
-        memo.put(current, expressionTree);
+        memo.put(current, simplifier.simplify(expressionTree));
 
         // Compute nodes than can be handled next
         for (CFANode predecessor : CFAUtils.predecessorsOf(current)) {
@@ -981,7 +983,7 @@ public class AutomatonGraphmlParser {
         }
       }
     }
-    return ExpressionTrees.simplify(memo.get(pNode));
+    return memo.get(pNode);
   }
 
   private AExpression replaceCPAcheckerTMPVariables(
