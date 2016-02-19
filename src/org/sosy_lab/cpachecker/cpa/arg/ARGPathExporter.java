@@ -112,6 +112,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Or;
+import org.sosy_lab.cpachecker.util.expressions.Simplifier;
 import org.w3c.dom.Element;
 
 import com.google.common.base.Charsets;
@@ -355,6 +356,7 @@ public class ARGPathExporter {
     private final GraphType graphType;
 
     private final InvariantProvider invariantProvider;
+    private final Simplifier<Object> simplifier = ExpressionTrees.newSimplifier();
 
     private boolean isFunctionScope = false;
 
@@ -421,7 +423,7 @@ public class ARGPathExporter {
       final TransitionCondition result = new TransitionCondition();
 
       if (graphType != GraphType.ERROR_WITNESS) {
-        ExpressionTree<Object> invariant = invariantProvider.provideInvariantFor(pEdge, pFromState);
+        ExpressionTree<Object> invariant = simplifier.simplify(invariantProvider.provideInvariantFor(pEdge, pFromState));
         String functionName = pEdge.getSuccessor().getFunctionName();
         putStateInvariant(pTo, invariant);
         stateScopes.put(pTo, isFunctionScope ? functionName : "");
@@ -1022,15 +1024,15 @@ public class ARGPathExporter {
         for (Edge e : enteringEdges.get(target)) {
           newTargetTree = Or.of(newTargetTree, getStateInvariant(e.source));
         }
-        newTargetTree = And.of(targetTree, newTargetTree);
+        newTargetTree = simplifier.simplify(And.of(targetTree, newTargetTree));
         stateInvariants.put(target, newTargetTree);
         targetTree = newTargetTree;
       } else if (!ExpressionTrees.getTrue().equals(targetTree)
           && ExpressionTrees.getTrue().equals(sourceTree)
           && (sourceScope == null || sourceScope.equals(targetScope))
           && enteringEdges.get(source).size() <= 1) {
-        stateInvariants.put(source, targetTree);
-        sourceTree = targetTree;
+        sourceTree = simplifier.simplify(targetTree);
+        stateInvariants.put(source, sourceTree);
       }
 
       final String newScope;
@@ -1183,7 +1185,7 @@ public class ARGPathExporter {
         stateInvariants.put(pStateId, pValue);
         return;
       }
-      ExpressionTree<Object> result = Or.of(prev, pValue);
+      ExpressionTree<Object> result = simplifier.simplify(Or.of(prev, pValue));
       stateInvariants.put(pStateId, result);
     }
 
@@ -1206,7 +1208,7 @@ public class ARGPathExporter {
       if (other == null) {
         return prev;
       }
-      ExpressionTree<Object> result = Or.of(prev, other);
+      ExpressionTree<Object> result = simplifier.simplify(Or.of(prev, other));
       stateInvariants.put(pStateId, result);
       return result;
     }
