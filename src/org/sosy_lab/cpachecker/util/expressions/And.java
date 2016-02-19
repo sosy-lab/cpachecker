@@ -30,17 +30,17 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
 public class And<LeafType> extends AbstractExpressionTree<LeafType>
     implements Iterable<ExpressionTree<LeafType>> {
 
-  private final ImmutableSortedSet<ExpressionTree<LeafType>> operands;
+  private final ImmutableSet<ExpressionTree<LeafType>> operands;
 
   private final int hashCode;
 
-  private And(ImmutableSortedSet<ExpressionTree<LeafType>> pOperands) {
+  private And(ImmutableSet<ExpressionTree<LeafType>> pOperands) {
     assert Iterables.size(pOperands) >= 2;
     assert !Iterables.contains(pOperands, ExpressionTrees.getFalse());
     assert !Iterables.contains(pOperands, ExpressionTrees.getTrue());
@@ -88,7 +88,7 @@ public class And<LeafType> extends AbstractExpressionTree<LeafType>
       return ExpressionTrees.getFalse();
     }
     // Filter out trivial operands and flatten the hierarchy
-    ImmutableSortedSet<ExpressionTree<LeafType>> operands =
+    ImmutableSet<ExpressionTree<LeafType>> operands =
         FluentIterable.from(pOperands)
             .filter(Predicates.not(Predicates.equalTo(ExpressionTrees.<LeafType>getTrue())))
             .transformAndConcat(
@@ -103,7 +103,7 @@ public class And<LeafType> extends AbstractExpressionTree<LeafType>
                     return Collections.singleton(pOperand);
                   }
                 })
-            .toSortedSet(ExpressionTrees.<LeafType>getComparator());
+            .toSet();
     // If there are no operands, return the neutral element
     if (operands.isEmpty()) {
       return ExpressionTrees.getTrue();
