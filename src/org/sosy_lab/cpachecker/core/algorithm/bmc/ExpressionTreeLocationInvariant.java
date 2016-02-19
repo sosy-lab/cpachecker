@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import static com.google.common.collect.FluentIterable.from;
 
+import java.lang.ref.WeakReference;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -52,6 +54,8 @@ public class ExpressionTreeLocationInvariant extends AbstractLocationFormulaInva
 
   private final String groupId;
 
+  private final AtomicReference<WeakReference<StoredFormula>> storedFormula = new AtomicReference<>();
+
   public ExpressionTreeLocationInvariant(
       String pGroupId, CFANode pLocation, ExpressionTree<AExpression> pExpressionTree) {
     super(pLocation);
@@ -63,8 +67,17 @@ public class ExpressionTreeLocationInvariant extends AbstractLocationFormulaInva
   @Override
   public BooleanFormula getFormula(FormulaManagerView pFMGR, PathFormulaManager pPFMGR)
       throws CPATransferException, InterruptedException {
+    WeakReference<StoredFormula> weakRefStoredFormula = storedFormula.get();
+    if (weakRefStoredFormula != null) {
+      StoredFormula formula = weakRefStoredFormula.get();
+      if (formula != null && formula.formulaManagerView == pFMGR && formula.pathFormulaManager == pPFMGR) {
+        return formula.formula;
+      }
+    }
     try {
-      return expressionTree.accept(new ToFormulaVisitor(pFMGR, pPFMGR));
+      BooleanFormula result = expressionTree.accept(new ToFormulaVisitor(pFMGR, pPFMGR));
+      storedFormula.set(new WeakReference<>(new StoredFormula(pFMGR, pPFMGR, result)));
+      return result;
     } catch (ToFormulaException e) {
       if (e.isInterruptedException()) {
         throw e.asInterruptedException();
@@ -115,6 +128,22 @@ public class ExpressionTreeLocationInvariant extends AbstractLocationFormulaInva
   @Override
   public String toString() {
     return groupId + " at " + location + ": " + expressionTree.toString();
+  }
+
+  private static class StoredFormula {
+
+    private final FormulaManagerView formulaManagerView;
+
+    private final PathFormulaManager pathFormulaManager;
+
+    private final BooleanFormula formula;
+
+    public StoredFormula(FormulaManagerView pFormulaManagerView, PathFormulaManager pPathFormulaManager, BooleanFormula pFormula) {
+      formulaManagerView = Objects.requireNonNull(pFormulaManagerView);
+      pathFormulaManager = Objects.requireNonNull(pPathFormulaManager);
+      formula = Objects.requireNonNull(pFormula);
+    }
+
   }
 
 }
