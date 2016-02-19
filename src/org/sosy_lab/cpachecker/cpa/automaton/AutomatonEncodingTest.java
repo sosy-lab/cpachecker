@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import java.io.IOException;
 import java.util.Map;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -38,6 +39,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class AutomatonEncodingTest {
 
+  @Ignore
   @Test
   public void testEncodingOfLdvRule100_Safe() throws Exception {
     final String specFile = "test/config/automata/encode/LDV_100_1a.spc";
@@ -109,7 +111,7 @@ public class AutomatonEncodingTest {
       );
 
     Configuration cfg = TestDataTools.configurationForTest()
-        .loadFromFile("config/predicateAnalysis-PredAbsRefiner-ABEl.properties")
+        .loadFromFile("config/predicateAnalysis-PredAbsRefiner-ABEl-bitprecise.properties")
         .setOptions(prop)
         .build();
 
