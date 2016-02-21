@@ -247,6 +247,10 @@ analysis.traversal.useExplicitInformation = false
 # handle states with a deeper loopstack first.
 analysis.traversal.useLoopstack = false
 
+# handle abstract states with fewer running threads first? (needs
+# ThreadingCPA)
+analysis.traversal.useNumberOfThreads = false
+
 # Use an implementation of postorder strategy that allows to select a
 # secondary strategy that is used if there are two states with the same
 # postorder id. The secondary strategy is selected with
