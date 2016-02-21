@@ -118,14 +118,16 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
   @Override
   public Collection<ThreadingState> getAbstractSuccessorsForEdge(
-      AbstractState state, Precision precision, CFAEdge cfaEdge)
+      AbstractState pState, Precision precision, CFAEdge cfaEdge)
         throws CPATransferException, InterruptedException {
     Preconditions.checkNotNull(cfaEdge);
     Preconditions.checkArgument(!(cfaEdge instanceof MultiEdge),
         "MultiEdges cannot be supported by ThreadingCPA, "
         + "because we need interleaving steps for chains of edges.");
 
-    final ThreadingState threadingState = exitThreads((ThreadingState) state);
+    ThreadingState state = (ThreadingState) pState;
+
+    final ThreadingState threadingState = exitThreads(state);
 
     final String activeThread = getActiveThread(cfaEdge, threadingState);
 
@@ -193,9 +195,9 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
           case THREAD_START:
             return startNewThread(threadingState, statement, results);
           case THREAD_MUTEX_LOCK:
-            return addLock(threadingState, activeThread, statement, results);
+            return addLock(threadingState, activeThread, extractLockId(statement), results);
           case THREAD_MUTEX_UNLOCK:
-            return removeLock(activeThread, statement, results);
+            return removeLock(activeThread, extractLockId(statement), results);
           case THREAD_JOIN:
             return joinThread(threadingState, statement, results);
           case THREAD_EXIT:
@@ -360,27 +362,6 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     return newResults;
   }
 
-  private Collection<ThreadingState> addLock(
-      final ThreadingState threadingState, final String activeThread,
-      final AStatement statement, final Collection<ThreadingState> results)
-          throws UnrecognizedCodeException {
-
-    // first check for some possible errors and unsupported parts
-    List<? extends AExpression> params = ((AFunctionCall)statement).getFunctionCallExpression().getParameterExpressions();
-    if (!(params.get(0) instanceof CUnaryExpression)) {
-      throw new UnrecognizedCodeException("unsupported thread locking", params.get(0));
-    }
-//    CExpression expr0 = ((CUnaryExpression)params.get(0)).getOperand();
-//    if (!(expr0 instanceof CIdExpression)) {
-//      throw new UnrecognizedCodeException("unsupported thread lock assignment", expr0);
-//    }
-//  String lockId = ((CIdExpression) expr0).getName();
-
-    String lockId = ((CUnaryExpression)params.get(0)).getOperand().toString();
-
-    return addLock(threadingState, activeThread, lockId, results);
-  }
-
   private Collection<ThreadingState> addLock(final ThreadingState threadingState, final String activeThread,
       String lockId, final Collection<ThreadingState> results) {
     if (threadingState.hasLock(lockId)) {
@@ -397,12 +378,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     return newResults;
   }
 
-  private Collection<ThreadingState> removeLock(
-      final String activeThread,
-      final AStatement statement,
-      final Collection<ThreadingState> results)
-          throws UnrecognizedCodeException {
-
+  private String extractLockId(final AStatement statement) throws UnrecognizedCodeException {
     // first check for some possible errors and unsupported parts
     List<? extends AExpression> params = ((AFunctionCall)statement).getFunctionCallExpression().getParameterExpressions();
     if (!(params.get(0) instanceof CUnaryExpression)) {
@@ -415,8 +391,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 //  String lockId = ((CIdExpression) expr0).getName();
 
     String lockId = ((CUnaryExpression)params.get(0)).getOperand().toString();
-
-    return removeLock(activeThread, lockId, results);
+    return lockId;
   }
 
   private Collection<ThreadingState> removeLock(
