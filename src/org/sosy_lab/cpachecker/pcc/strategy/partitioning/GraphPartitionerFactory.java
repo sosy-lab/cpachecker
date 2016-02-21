@@ -39,6 +39,7 @@ public class GraphPartitionerFactory {
     DFS,
     BFS,
     OPTIMAL,
+    BEST_FIRST,
     FM
   }
 
@@ -54,6 +55,8 @@ public class GraphPartitionerFactory {
       return new ExplorationOrderBalancedGraphPartitioner(false, pShutdownNotifier);
     case OPTIMAL:
       return new ExponentialOptimalBalancedGraphPartitioner(pShutdownNotifier);
+    case BEST_FIRST:
+      return new BestFirstWeightedBalancedGraphPartitioner(pConfig, pLogger, pShutdownNotifier);
     case FM:
       return new FiducciaMattheysesBalancedGraphPartitioner(pConfig, pLogger, pShutdownNotifier);
     default: // RANDOM
