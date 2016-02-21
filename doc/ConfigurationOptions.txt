@@ -1746,6 +1746,9 @@ cpa.slicing.destructiveIterationLimit = -1
 # loop. UNSOUND!
 cpa.slicing.ignoreFunctionCallsInLoop = false
 
+# Perform light quantifier elimination on intermediate variables
+cpa.slicing.performLightQE = false
+
 # Use formula slicing based on counterexamples.
 cpa.slicing.runCounterexampleBasedSlicing = false
 
