@@ -279,6 +279,11 @@ class PredicateCPAStatistics extends AbstractStatistics {
       out.println("  Times cartesian abs was used:    " + valueWithPercentage(as.cartesianAbstractionTime.getNumberOfIntervals(), as.numCallsAbstraction));
       out.println("  Times boolean abs was used:      " + valueWithPercentage(as.booleanAbstractionTime.getNumberOfIntervals(), as.numCallsAbstraction));
       out.println("  Times result was 'false':        " + valueWithPercentage(prec.numAbstractionsFalse, prec.numAbstractions));
+      if (as.inductivePredicatesTime.getNumberOfIntervals() > 0) {
+        out.println(
+            "  Times inductive cache was used:  "
+                + valueWithPercentage(as.numInductivePathFormulaCacheUsed, as.numCallsAbstraction));
+      }
     }
 
     if (trans.satCheckTimer.getNumberOfIntervals() > 0) {

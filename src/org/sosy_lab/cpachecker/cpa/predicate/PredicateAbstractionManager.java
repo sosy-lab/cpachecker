@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionCreator.RegionBuilder;
@@ -100,6 +101,7 @@ public class PredicateAbstractionManager {
     public int numSymbolicAbstractions = 0; // precision completely empty, no computation
     public int numSatCheckAbstractions = 0; // precision was {false}, only sat check
     public int numCallsAbstractionCached = 0; // result was cached, no computation
+    public int numInductivePathFormulaCacheUsed = 0; // loop was cached, no new computation
 
     public int numTotalPredicates = 0;
     public int maxPredicates = 0;
@@ -198,6 +200,8 @@ public class PredicateAbstractionManager {
   // are -1: predicate is false, 0: predicate is don't care,
   // 1: predicate is true
   private final Map<Pair<BooleanFormula, AbstractionPredicate>, Byte> cartesianAbstractionCache;
+
+  private final Map<Pair<PathFormula, CFANode>, Region> loopTransitionsCache = new HashMap<>();
 
   private final BooleanFormulaManagerView bfmgr;
 
@@ -375,12 +379,24 @@ public class PredicateAbstractionManager {
     if (identifyInductivePredicates && inductiveWeakeningMgr != null && location.isLoopStart()) {
       stats.inductivePredicatesTime.start();
       try {
-        PathFormula loopFormula =
-            loopFinder.generateLoopTransition(ssa, pathFormula.getPointerTargetSet(), location);
-        abs =
-            rmgr.makeAnd(
-                abs,
-                identifyInductivePathformulaPart(abstractionFormula, pathFormula, loopFormula));
+        Pair<PathFormula, CFANode> cacheKey = Pair.of(pathFormula, location);
+        Region inductivePart;
+        if (loopTransitionsCache.containsKey(cacheKey)) {
+          inductivePart = loopTransitionsCache.get(cacheKey);
+          stats.numInductivePathFormulaCacheUsed++;
+
+        } else {
+          PointerTargetSet pts = pathFormula.getPointerTargetSet();
+          PathFormula loopFormula = loopFinder.generateLoopTransition(ssa, pts, location);
+          inductivePart = identifyInductivePathformulaPart(pathFormula, loopFormula);
+
+          assert impliesFormulaInductivePart(pathFormula, inductivePart)
+              : "Pathformula has to imply the inductive part of it";
+
+          loopTransitionsCache.put(cacheKey, inductivePart);
+        }
+
+        abs = rmgr.makeAnd(abs, inductivePart);
 
         // Calculate the set of predicates we still need to use for abstraction.
         predicates = from(predicates).filter(not(in(amgr.extractPredicates(abs)))).toSet();
@@ -493,6 +509,14 @@ public class PredicateAbstractionManager {
     }
 
     return result;
+  }
+
+  private boolean impliesFormulaInductivePart(PathFormula pathFormula, Region inductivePart)
+      throws SolverException, InterruptedException {
+    try (ProverEnvironment env = solver.newProverEnvironment()) {
+      env.push(bfmgr.implication(pathFormula.getFormula(), amgr.toConcrete(inductivePart)));
+      return !env.isUnsat();
+    }
   }
 
   private @Nullable AbstractionFormula reuseAbstractionIfPossible(
@@ -730,14 +754,12 @@ public class PredicateAbstractionManager {
   /**
    * This method finds the inductive part of a pathformula and adds it directly
    * to the abstraction formula.
-   *
-   * @param pOldAbs An abstraction formula that determines which variables and predicates are relevant.
    * @param pBlockFormula A path formula that determines which variables and predicates are relevant.
    * @param pLoopFormula the path formula inside the loop
+   *
    * @return A region of predicates from pPredicates that is entailed by (pOldAbs & pBlockFormula)
    */
   private Region identifyInductivePathformulaPart(
-      final AbstractionFormula pOldAbs,
       final PathFormula pBlockFormula,
       final PathFormula pLoopFormula)
       throws SolverException, InterruptedException {
@@ -746,12 +768,7 @@ public class PredicateAbstractionManager {
         inductiveWeakeningMgr.slice(
             pBlockFormula, pLoopFormula, fmgr.getBooleanFormulaManager().makeBoolean(true));
 
-    AbstractionPredicate pred = amgr.makePredicate(fmgr.uninstantiate(inductiveSlice));
-
-    // TODO fix assert
-    // assert amgr.entails(pOldAbs.asRegion(), region);
-
-    return pred.getAbstractVariable();
+    return amgr.makePredicate(fmgr.uninstantiate(inductiveSlice)).getAbstractVariable();
   }
 
   /**
