@@ -87,7 +87,10 @@ def execute_benchmark(benchmark, output_handler):
         heapSize = benchmark.config.cloudClientHeap + numberOfRuns//10 # 100 MB and 100 kB per run
         lib = os.path.join(_ROOT_DIR, "lib", "java-benchmark", "vcloud.jar")
         cmdLine = ["java", "-Xmx"+str(heapSize)+"m", "-jar", lib, "benchmark", "--loglevel", logLevel, \
-                   "--run-collection-meta-information", meta_information]
+                   "--run-collection-meta-information", meta_information, \
+                   "--environment", formatEnvironment(benchmark.environment()), \
+                   "--max-log-file-size", str(benchmark.config.maxLogfileSize), \
+                   "--debug", str(benchmark.config.debug)]
         if benchmark.config.cloudMaster:
             cmdLine.extend(["--master", benchmark.config.cloudMaster])
         if benchmark.config.debug:
@@ -126,6 +129,8 @@ def stop():
     STOPPED_BY_INTERRUPT = True
     # kill cloud-client, should be done automatically, when the subprocess is aborted
 
+def formatEnvironment(environment):
+    return ",".join(k + "=" + v for k,v in environment.items())
 
 def toTabList(l):
     return "\t".join(map(str, l))
@@ -184,9 +189,6 @@ def getBenchmarkDataForCloud(benchmark):
     limitsAndNumRuns = [numberOfRuns, timeLimit, memLimit]
     if coreLimit is not None: limitsAndNumRuns.append(coreLimit)
 
-    # get tool-specific environment
-    env = benchmark.environment()
-
     # get Runs with args and sourcefiles
     sourceFiles = []
     runDefinitions = []
@@ -201,11 +203,7 @@ def getBenchmarkDataForCloud(benchmark):
 
             # we assume, that VCloud-client only splits its input at tabs,
             # so we can use all other chars for the info, that is needed to run the tool.
-            # we build a string-representation of all this info (it's a map),
-            # that can be parsed with python again in cloudRunexecutor.py (this is very easy with eval()) .
-            argMap = {"args":cmdline, "env":env,
-                      "debug":benchmark.config.debug, "maxLogfileSize":bytes_to_mb(benchmark.config.maxLogfileSize)}
-            argString = repr(argMap)
+            argString = json.dumps(cmdline) 
             assert not "\t" in argString # cannot call toTabList(), if there is a tab
 
             log_file = os.path.relpath(run.log_file, benchmark.log_folder)
