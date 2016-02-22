@@ -414,7 +414,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
   }
 
   /**
-   * This class is called after a violation has been found
+   * This method is called after a violation has been found
    * (i.e., the bounded-model-checking formula was satisfied).
    * The formula is still on the solver stack.
    * Subclasses can use this method to further analyze the counterexample
