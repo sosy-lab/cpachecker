@@ -38,8 +38,6 @@ import org.sosy_lab.solver.Model;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 
-import com.google.common.collect.Multimap;
-
 /**
  * Implementation of {@link PathFormulaManager} that delegates to another
  * instance but caches results of some methods.
@@ -165,7 +163,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public Multimap<Integer, Integer> getBranchingPredicateValuesFromModel(Model pModel) {
+  public Map<Integer, Integer> getBranchingPredicateValuesFromModel(Model pModel) {
     return delegate.getBranchingPredicateValuesFromModel(pModel);
   }
 

@@ -816,7 +816,12 @@ public class TigerTest {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variabilityAware-powerset-noOmega.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
+    prop.put("cpa.predicate.targetStateSatCheck", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
+    prop.put("tiger.usePowerset", "true");
+    prop.put("tiger.useAutomataCrossProduct", "false");
+    prop.put("tiger.checkCoverage", "true");
+    prop.put("tiger.allCoveredGoalsPerTestCase", "false");
     prop.put("tiger.fqlQuery", "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))+EDGES(@LABEL(G5))+EDGES(@LABEL(G6))+EDGES(@LABEL(G7))).\"EDGES(ID)*\"");
 
     TestResults results = CPATestRunner.run(prop, FASE_C);

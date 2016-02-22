@@ -44,7 +44,6 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
@@ -57,14 +56,12 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathPosition;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.GraphUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
-import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -79,7 +76,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.SetMultimap;
@@ -377,7 +373,7 @@ public class ARGUtils {
    */
   public static ARGPath getPathFromBranchingInformation(
       ARGState pRoot, Set<? extends AbstractState> pArg,
-      Multimap<Integer, Integer> pTakenBranches) throws IllegalArgumentException {
+      Map<Integer, Integer> pTakenBranches) throws IllegalArgumentException {
 
     checkArgument(pArg.contains(pRoot));
 
@@ -424,14 +420,12 @@ public class ARGUtils {
           stateIdToState.put(childStateId, currentChild);
           childStateIdToEdge.put(childStateId, currentEdge);
 
-          Collection<Integer> candidateBranches = pTakenBranches.get(currentElement.getStateId());
-          if (candidateBranches.size() > 0) {
-            if (candidateBranches.contains(childStateId)) {
-              if (pArg.contains(currentChild)) {
-                child = currentChild;
-                edge = currentEdge;
-                break;
-              }
+          Integer onPath = pTakenBranches.get(currentElement.getStateId());
+          if (onPath != null) {
+            if (onPath.equals(childStateId)) {
+              child = currentChild;
+              edge = currentEdge;
+              break;
             }
           }
         }
@@ -453,18 +447,6 @@ public class ARGUtils {
       }
 
       if (!pArg.contains(child)) {
-        Collection<AbstractStateWithAssumptions> ass = AbstractStates.extractStatesByType(child, AbstractStateWithAssumptions.class);
-        if (ass.size() > 0) {
-          StringBuilder sb = new StringBuilder();
-          for (AbstractStateWithAssumptions a: ass) {
-            ImmutableList<Pair<AStatement, Boolean>> x = a.getAssumptions();
-            if (x.size() > 0) {
-              sb.append(x.toString());
-              sb.append("\n");
-            }
-          }
-          throw new IllegalArgumentException("ARG and direction information from solver disagree! Assumptions: " + sb.toString().trim());
-        }
         throw new IllegalArgumentException("ARG and direction information from solver disagree!");
       }
 
@@ -494,7 +476,7 @@ public class ARGUtils {
    */
   public static ARGPath getPathFromBranchingInformation(
       ARGState root, ARGState target, Set<? extends AbstractState> arg,
-      Multimap<Integer, Integer> branchingInformation) throws IllegalArgumentException {
+      Map<Integer, Integer> branchingInformation) throws IllegalArgumentException {
 
     checkArgument(arg.contains(target));
     checkArgument(target.isTarget());
