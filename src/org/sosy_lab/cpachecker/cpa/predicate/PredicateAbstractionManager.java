@@ -201,7 +201,7 @@ public class PredicateAbstractionManager {
   // 1: predicate is true
   private final Map<Pair<BooleanFormula, AbstractionPredicate>, Byte> cartesianAbstractionCache;
 
-  private final Map<Pair<PathFormula, CFANode>, Region> loopTransitionsCache = new HashMap<>();
+  private final Map<Pair<PathFormula, CFANode>, Region> inductivePathFormulaPartCache = new HashMap<>();
 
   private final BooleanFormulaManagerView bfmgr;
 
@@ -381,8 +381,8 @@ public class PredicateAbstractionManager {
       try {
         Pair<PathFormula, CFANode> cacheKey = Pair.of(pathFormula, location);
         Region inductivePart;
-        if (loopTransitionsCache.containsKey(cacheKey)) {
-          inductivePart = loopTransitionsCache.get(cacheKey);
+        if (inductivePathFormulaPartCache.containsKey(cacheKey)) {
+          inductivePart = inductivePathFormulaPartCache.get(cacheKey);
           stats.numInductivePathFormulaCacheUsed++;
 
         } else {
@@ -393,7 +393,7 @@ public class PredicateAbstractionManager {
           assert impliesFormulaInductivePart(pathFormula, inductivePart)
               : "Pathformula has to imply the inductive part of it";
 
-          loopTransitionsCache.put(cacheKey, inductivePart);
+          inductivePathFormulaPartCache.put(cacheKey, inductivePart);
         }
 
         abs = rmgr.makeAnd(abs, inductivePart);
