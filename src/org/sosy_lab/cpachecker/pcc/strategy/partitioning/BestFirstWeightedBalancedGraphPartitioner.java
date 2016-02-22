@@ -56,7 +56,7 @@ public class BestFirstWeightedBalancedGraphPartitioner implements BalancedGraphP
   @Option(
       secure = true,
       description = "Evaluation function to determine exploration order of best-first-search")
-  private EvaluationFunctions evaluationFunction = EvaluationFunctions.BREADTH_FIRST;
+  private EvaluationFunctions evaluationFunction = EvaluationFunctions.BEST_IMPROVEMENT_FIRST;
 
   public enum EvaluationFunctions {
     BEST_IMPROVEMENT_FIRST,
@@ -65,7 +65,7 @@ public class BestFirstWeightedBalancedGraphPartitioner implements BalancedGraphP
 
   }
 
-  private final double balancePrecision = 1.0d;
+  private final static double balancePrecision = 1.0d;
 
   public BestFirstWeightedBalancedGraphPartitioner(Configuration pConfig, LogManager pLogger,
       ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
@@ -79,7 +79,7 @@ public class BestFirstWeightedBalancedGraphPartitioner implements BalancedGraphP
    * Store the node together with its exploration priority
    * Use this type within PriorityQueue
    */
-  private class NodePriority implements Comparable<NodePriority> {
+  private static class NodePriority implements Comparable<NodePriority> {
 
     private final WeightedNode node;
     private final int priority;
@@ -103,10 +103,33 @@ public class BestFirstWeightedBalancedGraphPartitioner implements BalancedGraphP
 
     @Override
     public int compareTo(NodePriority compNode) {
-      if (compNode == null) { return Integer.MIN_VALUE; }
-      return this.getPriority() - compNode.getPriority();
+      if (compNode == null) { return -1; }
+      if (this.getPriority() == compNode.getPriority()) {
+        return this.getPriority() - compNode.getPriority();
+      } else {//same priority==> use node with higher number
+        int n1 = this.getNode().getNodeNumber();
+        int n2 = compNode.getNode().getNodeNumber();
+        return n2 - n1;
+      }
     }
 
+    @Override
+    public boolean equals(Object obj) {
+      if (obj == null) { return false; }
+      if (obj == this) { return true; }
+
+      if (obj.getClass() == this.getClass()) {
+        NodePriority compNode = (NodePriority) obj;
+        return compareTo(compNode) == 0;
+      }
+      return false;
+    }
+
+
+    @Override
+    public int hashCode() {
+      return this.getPriority() + this.getNode().getNodeNumber();
+    }
   }
 
 
@@ -165,7 +188,6 @@ public class BestFirstWeightedBalancedGraphPartitioner implements BalancedGraphP
 
   /**
    *
-   *
    * Compute priority for node on waitlist to be expanded next, depending on actual situation and chosen evaluation function
    * @param partition The partition predecessor was added to
    * @param priority Priority of predecessor
@@ -179,16 +201,16 @@ public class BestFirstWeightedBalancedGraphPartitioner implements BalancedGraphP
     if (evaluationFunction == EvaluationFunctions.BREADTH_FIRST) {
       return priority + 1; //expand next level nodes, when this level complete
     } else if (evaluationFunction == EvaluationFunctions.DEPTH_FIRST) {
-      return priority - 1; //expand next level nodes, as next step (asumption: PriorityQueue preserves order of inserting)
+      return priority - 1; //expand next level nodes, as next step (assumption: PriorityQueue preserves order of inserting)
     } else if (evaluationFunction == EvaluationFunctions.BEST_IMPROVEMENT_FIRST) {
-     /*
+      /*
       * if node not in partition it has cost of its weight for the actual partition ==> nodeweight is gain
-      * all of its successors which are not in the partition right now, mean cost
+      * all of its successors which are not in the partition right now ==>  cost
       */
-      Set<WeightedNode> successors=wGraph.getSuccessors(node); //successors of this node
+      Set<Integer> successors = wGraph.getIntSuccessors(node); //successors of this node
       successors.removeAll(partition); // successors, that are not in given partition
-      int gain=node.getWeight();
-      return WeightedGraph.calculateWeight(successors)-gain; //chance +/- since least priority is chosen first
+      int gain = node.getWeight();
+      return WeightedGraph.computeWeight(successors, wGraph) - gain; //chance +/- since least priority is chosen first
     } else {
       return 0;
     }

@@ -139,13 +139,40 @@ public class WeightedGraph {
     return getSuccessors(node.getNodeNumber());
   }
 
-  static public int calculateWeight(Set<WeightedNode> nodes){
-    int weight=0;
-    for(WeightedNode node: nodes){
-      weight+=node.getWeight();
+  public Set<Integer> getIntSuccessors(int node) {
+    Set<Integer> successors = new HashSet<>();
+    if (outgoingEdges.get(node) != null) {
+      for (WeightedEdge e : outgoingEdges.get(node)) {
+        successors.add(e.getEndNode().getNodeNumber());
+      }
+    }
+    return successors;
+  }
+
+  public Set<Integer> getIntSuccessors(WeightedNode node) {
+    return getIntSuccessors(node.getNodeNumber());
+
+  }
+
+
+
+
+  static public int computeWeight(Set<WeightedNode> nodes) {
+    int weight = 0;
+    for (WeightedNode node : nodes) {
+      weight += node.getWeight();
     }
     return weight;
   }
+
+  static public int computeWeight(Set<Integer> nodes, WeightedGraph wGraph) {
+    int weight = 0;
+    for (Integer node : nodes) {
+      weight += wGraph.getNode(node).getWeight();
+    }
+    return weight;
+  }
+
 
   public int getNumNodes() {
     return numNodes;
