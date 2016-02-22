@@ -2380,6 +2380,10 @@ pcc.partial.enableLoadDistribution = false
 # false.
 pcc.partial.stopAddingAtReachedSetSize = false
 
+# Evaluation function to determine exploration order of best-first-search
+pcc.partitioning.bestfirst.evaluationFunction = BREADTH_FIRST
+  enum:     [BEST_IMPROVEMENT_FIRST, BREADTH_FIRST, DEPTH_FIRST]
+
 # Balance criterion for pairwise optimization of partitions
 pcc.partitioning.fm.balanceCriterion = 1.5d
 
@@ -2394,7 +2398,7 @@ pcc.partitioning.maxNumElemsPerPartition = 0
 
 # Heuristic for computing partitioning of proof (partial reached set).
 pcc.partitioning.partitioningStrategy = RANDOM
-  enum:     [RANDOM, DFS, BFS, OPTIMAL, FM]
+  enum:     [RANDOM, DFS, BFS, OPTIMAL, BEST_FIRST, FM]
 
 # If enabled uses the number of nodes saved in certificate to compute
 # partition number otherwise the number of states explored during analysis
