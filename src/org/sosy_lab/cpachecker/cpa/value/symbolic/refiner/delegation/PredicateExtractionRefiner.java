@@ -81,7 +81,7 @@ public abstract class PredicateExtractionRefiner implements Refiner {
             logger,
             shutdownNotifier,
             predicateCPA.getPredicateManager(),
-            predicateCPA.getStaticRefiner(),
+            predicateCPA.getStaticRefinerForMining(),
             predicateCPA.getSolver(),
             predicateCPA.getSolver().getFormulaManager()
             );

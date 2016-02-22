@@ -947,6 +947,17 @@ public class TigerAlgorithm
         && !testsuite.areGoalsCoveredOrInfeasible(pTestGoalsToBeProcessed))
         && (algorithmStatus != ReachabilityAnalysisResult.TIMEOUT));
 
+    Path argFile = Paths.get("output", "ARG_ZZZ.dot");
+    try (Writer w = Files.openOutputFile(argFile)) {
+      ARGToDotWriter.write(w, (ARGState) reachedSet.getFirstState(),
+          ARGUtils.CHILDREN_OF_STATE,
+          Predicates.alwaysTrue(),
+          Predicates.alwaysFalse());
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
+    }
+
+
     if (algorithmStatus == ReachabilityAnalysisResult.TIMEOUT) {
       logger.logf(Level.INFO, "Test goal timed out!");
       testsuite.addTimedOutGoals(pTestGoalsToBeProcessed);

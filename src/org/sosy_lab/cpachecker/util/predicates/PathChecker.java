@@ -54,7 +54,7 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.ProverEnvironment;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 
 /**
@@ -112,7 +112,7 @@ public class PathChecker {
 
         model = model.withAssignmentInformation(pathWithAssignments);
 
-        return CounterexampleTraceInfo.feasible(ImmutableList.of(f), model, ImmutableMap.<Integer, Integer>of());
+        return CounterexampleTraceInfo.feasible(ImmutableList.of(f), model, ImmutableMultimap.<Integer, Integer>of());
       }
     }
   }

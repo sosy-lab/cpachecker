@@ -178,6 +178,8 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   private StatCounter numberOfRefinementsWithStrategy2 = new StatCounter("Number of refs with location-based cutoff");
   private StatInt irrelevantPredsInItp = new StatInt(StatKind.SUM, "Number of irrelevant preds in interpolants");
 
+  private StatTimer staticRefinerTime = new StatTimer(StatKind.SUM, "Static refinement time");
+
   private StatTimer predicateCreation = new StatTimer(StatKind.SUM, "Predicate creation");
   private StatTimer precisionUpdate = new StatTimer(StatKind.SUM, "Precision update");
   private StatTimer argUpdate = new StatTimer(StatKind.SUM, "ARG update");
@@ -220,6 +222,9 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
       w1.put(precisionUpdate)
         .put(argUpdate)
+        .spacer();
+
+      w0.put(staticRefinerTime)
         .spacer();
 
       basicRefinementStatistics.printStatistics(out, pResult, pReached);
@@ -281,24 +286,29 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     pRepeatedCounterexample = !lastRefinementUsedHeuristics && pRepeatedCounterexample;
 
     if (useStaticRefinement()) {
-      UnmodifiableReachedSet reached = pReached.asReachedSet();
-      ARGState root = (ARGState)reached.getFirstState();
-
-      PredicatePrecision heuristicPrecision;
+      staticRefinerTime.start();
       try {
-        heuristicPrecision = staticRefiner.extractPrecisionFromCfa(pReached.asReachedSet(), abstractionStatesTrace, atomicPredicates);
-      } catch (CPATransferException | SolverException e) {
-        throw new CPAException("Static refinement failed", e);
-      }
+        UnmodifiableReachedSet reached = pReached.asReachedSet();
+        ARGState root = (ARGState)reached.getFirstState();
 
-      shutdownNotifier.shutdownIfNecessary();
-      for (ARGState refinementRoot : Lists.newArrayList(root.getChildren())) {
-        pReached.removeSubtree(refinementRoot, heuristicPrecision, Predicates.instanceOf(PredicatePrecision.class));
-      }
+        PredicatePrecision heuristicPrecision;
+        try {
+          heuristicPrecision = staticRefiner.extractPrecisionFromCfa(pReached.asReachedSet(), abstractionStatesTrace, atomicPredicates);
+        } catch (CPATransferException | SolverException e) {
+          throw new CPAException("Static refinement failed", e);
+        }
 
-      heuristicsCount++;
-      lastRefinementUsedHeuristics = true;
-      lastRefinementWasStatic = true;
+        shutdownNotifier.shutdownIfNecessary();
+        for (ARGState refinementRoot : Lists.newArrayList(root.getChildren())) {
+          pReached.removeSubtree(refinementRoot, heuristicPrecision, Predicates.instanceOf(PredicatePrecision.class));
+        }
+
+        heuristicsCount++;
+        lastRefinementUsedHeuristics = true;
+        lastRefinementWasStatic = true;
+      } finally {
+        staticRefinerTime.stop();
+      }
     } else {
       lastRefinementUsedHeuristics = false;
       lastRefinementWasStatic = false;
