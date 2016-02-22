@@ -42,6 +42,7 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -994,10 +995,18 @@ public class InvariantsState implements AbstractState,
   }
 
   private boolean exportFullState(CFANode pReferenceNode) {
+    if (pReferenceNode instanceof FunctionEntryNode) {
+      return true;
+    }
     Queue<CFANode> waitlist = Queues.newArrayDeque();
     Set<CFANode> visited = Sets.newHashSet();
     waitlist.offer(pReferenceNode);
     visited.add(pReferenceNode);
+    for (CFAEdge assumeEdge : CFAUtils.enteringEdges(pReferenceNode).filter(AssumeEdge.class)) {
+      if (visited.add(assumeEdge.getPredecessor())) {
+        waitlist.offer(assumeEdge.getPredecessor());
+      }
+    }
     while (!waitlist.isEmpty()) {
       CFANode current = waitlist.poll();
       if (current.isLoopStart()) {
