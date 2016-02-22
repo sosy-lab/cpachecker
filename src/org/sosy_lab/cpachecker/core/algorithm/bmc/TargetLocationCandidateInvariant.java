@@ -71,4 +71,9 @@ public class TargetLocationCandidateInvariant extends AbstractLocationFormulaInv
     // Not implemented
   }
 
+  @Override
+  public String toString() {
+    return "No target locations reachable from: " + getLocations();
+  }
+
 }
