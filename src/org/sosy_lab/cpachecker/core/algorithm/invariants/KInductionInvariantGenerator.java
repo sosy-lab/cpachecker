@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -331,7 +332,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
     }
   }
 
-  private static CandidateGenerator getCandidateInvariants(
+  public static CandidateGenerator getCandidateInvariants(
       Configuration pConfig,
       LogManager pLogger,
       CFA pCFA,
@@ -359,12 +360,15 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
           reachedSet);
     }
 
+    final TargetLocationCandidateInvariant safetyProperty = new TargetLocationCandidateInvariant(pCFA.getAllLoopHeads().get());
     if (pCFA.getAllLoopHeads().isPresent()) {
-      candidates.add(new TargetLocationCandidateInvariant(pCFA.getAllLoopHeads().get()));
+      candidates.add(safetyProperty);
     }
 
     if (options.terminateOnCounterexample) {
       return new StaticCandidateProvider(candidates) {
+
+        private boolean safetyPropertyConfirmed = false;
 
         @Override
         public Iterator<CandidateInvariant> iterator() {
@@ -375,11 +379,14 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
 
             @Override
             public boolean hasNext() {
-              return iterator.hasNext();
+              return !safetyPropertyConfirmed && iterator.hasNext();
             }
 
             @Override
             public CandidateInvariant next() {
+              if (safetyPropertyConfirmed) {
+                throw new NoSuchElementException("No more candidates available: The safety property has already been confirmed.");
+              }
               return candidate = iterator.next();
             }
 
@@ -402,6 +409,14 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
               iterator.remove();
             }
           };
+        }
+
+        @Override
+        public void confirmCandidates(Iterable<CandidateInvariant> pCandidates) {
+          super.confirmCandidates(pCandidates);
+          if (Iterables.contains(pCandidates, safetyProperty)) {
+            safetyPropertyConfirmed = true;
+          }
         }
       };
     }
