@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
@@ -963,6 +964,10 @@ public class InvariantsState implements AbstractState,
                                   return false;
                                 }
                                 if (!fullState && !memoryLocations.contains(pMemoryLocation)) {
+                                  return false;
+                                }
+                                Type type = getType(pMemoryLocation);
+                                if (type instanceof CPointerType) {
                                   return false;
                                 }
                                 if (pFunctionEntryNode.getReturnVariable().isPresent()
