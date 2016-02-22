@@ -109,7 +109,11 @@ public class ToCodeFormulaVisitor
     } else if (!negative) {
       value = value.and(BigInteger.valueOf(2).pow(size).subtract(BigInteger.valueOf(1)));
     }
-    return value.toString();
+    String result = value.toString();
+    if (pBitVectorInfo.isSigned() && value.compareTo(BigInteger.ZERO) < 0 && pBitVectorInfo.getSize() > 32) {
+      result += "LL";
+    }
+    return result;
   }
 
   @Override
