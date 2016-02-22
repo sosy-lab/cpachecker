@@ -2230,6 +2230,9 @@ invariantGeneration.async = false
 # configuration file for invariant generation
 invariantGeneration.config = no default value
 
+# Check candidate invariants in a separate thread asynchronously.
+invariantGeneration.kInduction.async = true
+
 # Guess some candidates for the k-induction invariant generator from the CFA.
 invariantGeneration.kInduction.guessCandidatesFromCFA = true
 

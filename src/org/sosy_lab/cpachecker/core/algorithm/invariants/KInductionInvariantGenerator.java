@@ -123,6 +123,12 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
 
     @Option(secure = true, description = "For correctness-witness validation: Shut down if a candidate invariant is found to be incorrect.")
     private boolean terminateOnCounterexample = false;
+
+    @Option(
+      secure = true,
+      description = "Check candidate invariants in a separate thread asynchronously."
+    )
+    private boolean async = true;
   }
 
   private static class KInductionInvariantGeneratorStatistics extends BMCStatistics {
@@ -170,14 +176,18 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
       final CFA pCFA, final ReachedSetFactory pReachedSetFactory, TargetLocationProvider pTargetLocationProvider)
           throws InvalidConfigurationException, CPAException {
 
+    KInductionInvariantGeneratorOptions options = new KInductionInvariantGeneratorOptions();
+    pConfig.inject(options);
+
     return new KInductionInvariantGenerator(
         pConfig,
         pLogger.withComponentName("KInductionInvariantGenerator"),
         pShutdownManager,
         pCFA,
         pReachedSetFactory,
-        true,
+        options.async,
         getCandidateInvariants(
+            options,
             pConfig,
             pLogger,
             pCFA,
@@ -333,6 +343,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
   }
 
   public static CandidateGenerator getCandidateInvariants(
+      KInductionInvariantGeneratorOptions pOptions,
       Configuration pConfig,
       LogManager pLogger,
       CFA pCFA,
@@ -343,19 +354,16 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
 
     final Set<CandidateInvariant> candidates = Sets.newLinkedHashSet();
 
-    KInductionInvariantGeneratorOptions options = new KInductionInvariantGeneratorOptions();
-    pConfig.inject(options);
-
-    if (options.guessCandidatesFromCFA) {
+    if (pOptions.guessCandidatesFromCFA) {
       for (AssumeEdge assumeEdge : getRelevantAssumeEdges(pTargetLocationProvider.tryGetAutomatonTargetLocations(pCFA.getMainFunction()))) {
         candidates.add(new EdgeFormulaNegation(pCFA.getLoopStructure().get().getAllLoopHeads(), assumeEdge));
       }
     }
 
     final Multimap<String, CFANode> candidateGroupLocations = HashMultimap.create();
-    if (options.invariantsAutomatonFile != null) {
+    if (pOptions.invariantsAutomatonFile != null) {
       ReachedSet reachedSet =
-          analyzeWitness(pConfig, pLogger, pCFA, pShutdownManager, pReachedSetFactory, options);
+          analyzeWitness(pConfig, pLogger, pCFA, pShutdownManager, pReachedSetFactory, pOptions);
       extractCandidatesFromReachedSet(pShutdownManager, candidates, candidateGroupLocations,
           reachedSet);
     }
@@ -365,7 +373,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
       candidates.add(safetyProperty);
     }
 
-    if (options.terminateOnCounterexample) {
+    if (pOptions.terminateOnCounterexample) {
       return new StaticCandidateProvider(candidates) {
 
         private boolean safetyPropertyConfirmed = false;
