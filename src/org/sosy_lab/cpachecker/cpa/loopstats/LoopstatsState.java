@@ -164,8 +164,6 @@ public class LoopstatsState implements AbstractState {
       return pPreviousState;
 
     } else if (pLeavingLoop.equals(activeLoop)) {
-      // Was not active, just track the information that the loop was reached
-      //  but the loop body was not entered.
       pPreviousState.statReceiver.signalLoopLeftAfter(pPreviousState.activeLoops, pPreviousState.getIteration());
     }
 
