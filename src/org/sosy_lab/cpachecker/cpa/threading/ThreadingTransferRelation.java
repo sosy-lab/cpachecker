@@ -31,6 +31,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -46,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
@@ -378,7 +381,25 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     return newResults;
   }
 
-  private String extractLockId(final AStatement statement) throws UnrecognizedCodeException {
+  /** get the name (lockId) of the new lock at the given edge, or NULL if no lock is required. */
+  static @Nullable String getLockId(final CFAEdge cfaEdge) throws UnrecognizedCodeException {
+    if (cfaEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
+      final AStatement statement = ((AStatementEdge)cfaEdge).getStatement();
+      if (statement instanceof AFunctionCall) {
+        final AExpression functionNameExp = ((AFunctionCall)statement).getFunctionCallExpression().getFunctionNameExpression();
+        if (functionNameExp instanceof AIdExpression) {
+          final String functionName = ((AIdExpression)functionNameExp).getName();
+          if (THREAD_MUTEX_LOCK.equals(functionName)) {
+            return extractLockId(statement);
+          }
+        }
+      }
+    }
+    // otherwise no lock is required
+    return null;
+  }
+
+  private static String extractLockId(final AStatement statement) throws UnrecognizedCodeException {
     // first check for some possible errors and unsupported parts
     List<? extends AExpression> params = ((AFunctionCall)statement).getFunctionCallExpression().getParameterExpressions();
     if (!(params.get(0) instanceof CUnaryExpression)) {
