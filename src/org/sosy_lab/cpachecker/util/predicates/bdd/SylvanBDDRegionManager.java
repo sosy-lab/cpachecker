@@ -469,13 +469,8 @@ class SylvanBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public Long visitTrue() {
-      return JSylvan.getTrue();
-    }
-
-    @Override
-    public Long visitFalse() {
-      return JSylvan.getFalse();
+    public Long visitConstant(boolean value) {
+      return value ? JSylvan.getTrue() : JSylvan.getFalse();
     }
 
     @Override
