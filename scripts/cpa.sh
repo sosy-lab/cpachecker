@@ -3,8 +3,9 @@
 # the location of the java command
 [ -z "$JAVA" ] && JAVA=java
 
-# the default heap size of the Java VM
+# the default heap and stack sizes of the Java VM
 DEFAULT_HEAP_SIZE="1200M"
+DEFAULT_STACK_SIZE="1024k"
 
 #------------------------------------------------------------------------------
 # From here on you should not need to change anything
@@ -68,6 +69,10 @@ while [ $# -gt 0 ]; do
        shift
        JAVA_HEAP_SIZE=$1
        ;;
+   "-stack")
+       shift
+       JAVA_STACK_SIZE=$1
+       ;;
    "-debug")
        JAVA_VM_ARGUMENTS="$JAVA_VM_ARGUMENTS -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=5005,suspend=n"
        ;;
@@ -101,6 +106,13 @@ else
   echo "Running CPAchecker with default heap size (${JAVA_HEAP_SIZE}). Specify a larger value with -heap if you have more RAM."
 fi
 
+if [ -n "$JAVA_STACK_SIZE" ]; then
+  echo "Running CPAchecker with Java stack of size ${JAVA_STACK_SIZE}."
+else
+  JAVA_STACK_SIZE="$DEFAULT_STACK_SIZE"
+  echo "Running CPAchecker with default stack size (${JAVA_STACK_SIZE}). Specify a larger value with -stack if needed."
+fi
+
 if [ ! -z "$JAVA_VM_ARGUMENTS" ]; then
   echo "Running CPAchecker with the following extra VM options: $JAVA_VM_ARGUMENTS"
 fi
@@ -124,7 +136,7 @@ esac
 # Stack size is set because on some systems it is too small for recursive algorithms and very large programs.
 # PerfDisableSharedMem avoids hsperfdata in /tmp (disable it to connect easily with VisualConsole and Co.).
 $EXEC "$JAVA" \
-	-Xss1024k \
+	-Xss${DEFAULT_STACK_SIZE} \
 	-XX:+PerfDisableSharedMem \
 	$JAVA_VM_ARGUMENTS \
 	-Xmx${JAVA_HEAP_SIZE} \
