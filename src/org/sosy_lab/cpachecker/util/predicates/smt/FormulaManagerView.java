@@ -1113,6 +1113,13 @@ public class FormulaManagerView {
       }
 
       @Override
+      public TraversalProcess visitQuantifier(Quantifier quantifier,
+          BooleanFormula quantifiedAST, List<Formula> boundVars, BooleanFormula body) {
+        result.add(quantifiedAST);
+        return TraversalProcess.SKIP;
+      }
+
+      @Override
       public TraversalProcess visitAtom(BooleanFormula atom, FunctionDeclaration decl) {
         if (splitArithEqualities && myIsPurelyArithmetic(atom)) {
           result.addAll(extractAtoms(splitNumeralEqualityIfPossible(atom).get(0), false));
