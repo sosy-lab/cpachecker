@@ -488,9 +488,9 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
       for (AutomatonState automatonState :
           AbstractStates.asIterable(abstractState).filter(AutomatonState.class)) {
         ExpressionTree<AExpression> candidate = automatonState.getCandidateInvariants();
+        String groupId = automatonState.getInternalStateName();
+        candidateGroupLocations.putAll(groupId, locations);
         if (!candidate.equals(ExpressionTrees.getTrue())) {
-          String groupId = automatonState.getInternalStateName();
-          candidateGroupLocations.putAll(groupId, locations);
           for (CFANode location : locations) {
             potentialAdditionalCandidates.removeAll(location);
             CandidateInvariant candidateInvariant =
