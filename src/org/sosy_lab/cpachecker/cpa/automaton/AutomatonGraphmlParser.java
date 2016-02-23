@@ -921,6 +921,9 @@ public class AutomatonGraphmlParser {
         for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current)) {
           CFANode succ = leavingEdge.getSuccessor();
           ExpressionTree<AExpression> succTree = memo.get(succ);
+          if (ExpressionTrees.getFalse().equals(succTree)) {
+            continue;
+          }
 
           // Handle the return statement: Returning 0 means false, 1 means true
           if (leavingEdge instanceof AReturnStatementEdge) {
