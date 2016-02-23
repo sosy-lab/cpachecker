@@ -28,6 +28,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -634,16 +635,13 @@ public final class ExpressionTrees {
     if (isConstant(pExpressionTree)) {
       return pExpressionTree;
     }
-    LeafExpression<LeafType> negated = null;
-    if (pExpressionTree instanceof LeafExpression) {
-      negated = ((LeafExpression<LeafType>) pExpressionTree).negate();
+    if (pExternalKnowledge.contains(pExpressionTree)) {
+      return getTrue();
     }
-    for (ExpressionTree<LeafType> fact : pExternalKnowledge) {
-      if (negated != null && implies(fact, negated, pImpliesVisitors)) {
+    if (pExpressionTree instanceof LeafExpression) {
+      LeafExpression<LeafType> negated = ((LeafExpression<LeafType>) pExpressionTree).negate();
+      if (pExternalKnowledge.contains(negated)) {
         return getFalse();
-      }
-      if (implies(fact, pExpressionTree, pImpliesVisitors)) {
-        return getTrue();
       }
     }
     ExpressionTreeVisitor<LeafType, ExpressionTree<LeafType>, RuntimeException> visitor =
@@ -656,6 +654,7 @@ public final class ExpressionTrees {
             public ExpressionTree<LeafType> cacheMissAnd(And<LeafType> pAnd)
                 throws RuntimeException {
               Collection<ExpressionTree<LeafType>> operands = Sets.newHashSet();
+              boolean changed = false;
               for (ExpressionTree<LeafType> operandToAdd : pAnd) {
                 Set<ExpressionTree<LeafType>> knowledgeBase = Sets.newHashSet(pAnd);
                 knowledgeBase.remove(operandToAdd);
@@ -668,13 +667,53 @@ public final class ExpressionTrees {
                 if (!getTrue().equals(simplified)) {
                   operands.add(simplified);
                 }
+                changed |= simplified != operandToAdd;
+              }
+              if (!changed) {
+                return pAnd;
               }
               return And.of(operands);
             }
 
             @Override
             public ExpressionTree<LeafType> cacheMissOr(Or<LeafType> pOr) throws RuntimeException {
+
+              Iterator<ExpressionTree<LeafType>> opIt = pOr.iterator();
+              if (opIt.hasNext()) {
+                int nOperands = 1;
+                Set<ExpressionTree<LeafType>> commonFacts = Sets.newHashSet(asFacts(opIt.next()));
+                if (opIt.hasNext()) {
+                  while (!commonFacts.isEmpty() && opIt.hasNext()) {
+                    Iterable<ExpressionTree<LeafType>> facts = asFacts(opIt.next());
+                    commonFacts.retainAll(facts instanceof Collection ? (Collection<?>) facts : Lists.newArrayList(facts));
+                    ++nOperands;
+                  }
+
+                  if (!commonFacts.isEmpty()) {
+                    ExpressionTree<LeafType> commonFactsTree = And.of(commonFacts);
+                    commonFacts.addAll(pExternalKnowledge);
+
+                    List<ExpressionTree<LeafType>> simplifiedOperands = new ArrayList<>(nOperands);
+                    List<ExpressionTree<LeafType>> operands = new ArrayList<>(nOperands);
+                    for (ExpressionTree<LeafType> operand : pOr) {
+                      ExpressionTree<LeafType> simplified = simplify(operand, commonFacts, pVisitors, pImpliesVisitors);
+                      if (!simplified.equals(getFalse())) {
+                        operands.add(operand);
+                      }
+                      simplifiedOperands.add(simplified);
+                    }
+                    // If an operand was contradictory, remove it and try again
+                    if (operands.size() < simplifiedOperands.size()) {
+                      return simplify(Or.of(operands), pExternalKnowledge, pVisitors, pImpliesVisitors);
+                    }
+
+                    return And.of(simplify(commonFactsTree, commonFacts, pVisitors, pImpliesVisitors), Or.of(simplifiedOperands));
+                  }
+                }
+              }
+
               Collection<ExpressionTree<LeafType>> operands = Sets.newHashSet();
+              boolean changed = false;
 
               // Simplify the operands
               for (ExpressionTree<LeafType> operandToAdd : pOr) {
@@ -686,6 +725,7 @@ public final class ExpressionTrees {
                 if (!getFalse().equals(simplified)) {
                   operands.add(simplified);
                 }
+                changed |= simplified != operandToAdd;
               }
 
               // Remove operands that imply other operands
@@ -713,24 +753,13 @@ public final class ExpressionTrees {
                 }
                 if (!skip) {
                   weakestOperands.add(operand);
+                } else {
+                  changed = true;
                 }
               }
 
-              if (weakestOperands.size() <= 1) {
-                return Or.of(weakestOperands);
-              }
-
-              Iterator<ExpressionTree<LeafType>> opIt = weakestOperands.iterator();
-              Set<ExpressionTree<LeafType>> commonFacts = Sets.newHashSet(asFacts(opIt.next()));
-              while (!commonFacts.isEmpty() && opIt.hasNext()) {
-                Iterable<ExpressionTree<LeafType>> facts = asFacts(opIt.next());
-                commonFacts.retainAll(facts instanceof Collection ? (Collection<?>) facts : Lists.newArrayList(facts));
-              }
-
-              if (!commonFacts.isEmpty()) {
-                ExpressionTree<LeafType> commonFactsTree = And.of(commonFacts);
-                commonFacts.addAll(pExternalKnowledge);
-                return And.of(commonFactsTree, simplify(Or.of(weakestOperands), commonFacts, pVisitors, pImpliesVisitors));
+              if (!changed) {
+                return pOr;
               }
 
               return Or.of(weakestOperands);
