@@ -73,14 +73,6 @@
   </tasks>
 
   <!-- List of run definitions -->
-  <rundefinition name="SMTInterpol-heaparray">
-    <option name="-predicateAnalysis-heaparray"/>
-    <option name="-setprop">solver.solver=SMTINTERPOL</option>
-  </rundefinition>
-  <rundefinition name="SMTInterpol-uf">
-    <option name="-predicateAnalysis"/>
-    <option name="-setprop">solver.solver=SMTINTERPOL</option>
-  </rundefinition>
   <rundefinition name="MathSAT5-heaparray">
     <option name="-predicateAnalysis-heaparray"/>
     <option name="-setprop">solver.solver=MATHSAT5</option>
@@ -88,6 +80,24 @@
   <rundefinition name="MathSAT5-uf">
     <option name="-predicateAnalysis"/>
     <option name="-setprop">solver.solver=MATHSAT5</option>
+  </rundefinition>
+  <rundefinition name="PRINCESS-heaparray">
+    <option name="-predicateAnalysis-heaparray"/>
+    <option name="-setprop">solver.solver=PRINCESS</option>
+    <option name="-setprop">cpa.predicate.encodeFloatAs=INTEGER</option>
+  </rundefinition>
+  <rundefinition name="PRINCESS-uf">
+    <option name="-predicateAnalysis"/>
+    <option name="-setprop">solver.solver=PRINCESS</option>
+    <option name="-setprop">cpa.predicate.encodeFloatAs=INTEGER</option>
+  </rundefinition>
+  <rundefinition name="SMTInterpol-heaparray">
+    <option name="-predicateAnalysis-heaparray"/>
+    <option name="-setprop">solver.solver=SMTINTERPOL</option>
+  </rundefinition>
+  <rundefinition name="SMTInterpol-uf">
+    <option name="-predicateAnalysis"/>
+    <option name="-setprop">solver.solver=SMTINTERPOL</option>
   </rundefinition>
   <rundefinition name="Z3-heaparray">
     <option name="-predicateAnalysis-heaparray"/>
