@@ -90,15 +90,13 @@ public class LoopstatsTransferRelation extends SingleEdgeTransferRelation {
       AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
 
-    final LoopstatsState sucessor = getAbstractSuccessorsForEdge0((LoopstatsState) pState,
-        pPrecision, pCfaEdge);
+    final LoopstatsState sucessor = getAbstractSuccessorsForEdge0((LoopstatsState) pState, pCfaEdge);
 
     return Collections.singleton(sucessor);
   }
 
   private LoopstatsState getAbstractSuccessorsForEdge0(
-      LoopstatsState pPredState, Precision pPrecision, CFAEdge pCfaEdge)
-      throws CPATransferException {
+      LoopstatsState pPredState, CFAEdge pCfaEdge) {
 
     if (pCfaEdge instanceof CFunctionCallEdge) {
       // Such edges do never change loop stack status.

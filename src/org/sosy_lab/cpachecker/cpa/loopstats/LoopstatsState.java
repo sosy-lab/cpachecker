@@ -159,19 +159,19 @@ public class LoopstatsState implements AbstractState {
 
     Loop activeLoop = pPreviousState.peekLoop();
 
-    if (activeLoop == null || pLeavingLoop.equals(activeLoop)) {
-      // Was not active, just track the information that the loop was reached
-      //  but the loop body was not entered.
-
-      pPreviousState.statReceiver.signalLoopLeftAfter(pPreviousState.activeLoops, pPreviousState.getIteration());
-
+    if (!pLeavingLoop.equals(activeLoop)) {
+      // No loop iteration. Just taking the exit edge of the loop
       return pPreviousState;
 
-    } else {
-      return new LoopstatsState(pPreviousState.statReceiver,
+    } else if (pLeavingLoop.equals(activeLoop)) {
+      // Was not active, just track the information that the loop was reached
+      //  but the loop body was not entered.
+      pPreviousState.statReceiver.signalLoopLeftAfter(pPreviousState.activeLoops, pPreviousState.getIteration());
+    }
+
+    return new LoopstatsState(pPreviousState.statReceiver,
           pPreviousState.activeLoops.getTail(),
           pPreviousState.activeIterations.getTail());
-    }
   }
 
   @Override
