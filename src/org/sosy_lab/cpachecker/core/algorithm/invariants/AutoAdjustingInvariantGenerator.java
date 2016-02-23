@@ -108,7 +108,11 @@ public class AutoAdjustingInvariantGenerator<T extends InvariantGenerator> exten
       try {
         return futureResult.get();
       } catch (ExecutionException e) {
-        Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
+        if (e.getCause() instanceof InterruptedException) {
+          return new FormulaAndTreeSupplier(
+              invariantGenerator.get(), invariantGenerator.getAsExpressionTree());
+        }
+        Throwables.propagateIfPossible(e.getCause(), CPAException.class);
         throw new UnexpectedCheckedException("invariant generation", e.getCause());
       }
     }

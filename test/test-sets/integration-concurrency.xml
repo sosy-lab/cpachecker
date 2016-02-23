@@ -49,10 +49,18 @@
     <include>../programs/benchmarks/pthread-wmm/rfi000_*oepc_false-unreach-call.i</include>
     <include>../programs/benchmarks/pthread-wmm/rfi001_*oepc_false-unreach-call.i</include>
     <include>../programs/benchmarks/pthread-wmm/safe006_*oepc_true-unreach-call.i</include>
-    <include>../programs/benchmarks/pthread-wmm/safe007_*oepc_true-unreach-call.i</include>
     <include>../programs/benchmarks/pthread-wmm/safe010_*oepc_false-unreach-call.i</include>
-    <include>../programs/benchmarks/pthread-wmm/safe028_*oepc_true-unreach-call.i</include>
     <include>../programs/benchmarks/pthread-wmm/safe036_*oepc_true-unreach-call.i</include>
+  </tasks>
+  
+  <tasks name="bdd-concurrency">
+    <option name="-bddAnalysis-concurrency"/>
+
+    <include>../programs/benchmarks/pthread-wmm/rfi005_*_false-unreach-call.i</include>
+    <include>../programs/benchmarks/pthread-wmm/rfi010_*_false-unreach-call.i</include>
+    <include>../programs/benchmarks/pthread-wmm/safe014_*_false-unreach-call.i</include>
+    <include>../programs/benchmarks/pthread-wmm/thin000_*_false-unreach-call.i</include>
+    <include>../programs/benchmarks/ldv-races/*_false-unreach-call*.i</include>
   </tasks>
 
   <rundefinition/>

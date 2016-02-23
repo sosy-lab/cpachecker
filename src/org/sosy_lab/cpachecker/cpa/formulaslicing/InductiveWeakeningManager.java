@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.UniqueIdGenerator;
@@ -21,16 +22,20 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
+import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FunctionDeclaration;
 import org.sosy_lab.solver.api.Model;
 import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
+import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
+import org.sosy_lab.solver.visitors.TraversalProcess;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
@@ -66,6 +71,10 @@ public class InductiveWeakeningManager {
       + "destructive slicing strategy. Set to -1 for no limit.")
   private int destructiveIterationLimit = -1;
 
+  @Option(description="Perform light quantifier elimination on intermediate "
+      + "variables")
+  private boolean performLightQE = false;
+
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bfmgr;
   private final Solver solver;
@@ -80,6 +89,7 @@ public class InductiveWeakeningManager {
     logger = pLogger;
     bfmgr = fmgr.getBooleanFormulaManager();
   }
+
 
   /**
    * Find the inductive weakening of {@code input} subject to the loop
@@ -96,18 +106,12 @@ public class InductiveWeakeningManager {
       return bfmgr.makeBoolean(true);
     }
 
-    // Step 0: todo (optional): add quantifiers next to intermediate variables,
-    // perform quantification, run QE_LIGHT to remove the ones we can.
-
     // Step 1: get rid of intermediate variables in "input".
 
     // ...remove atoms containing intermediate variables.
-    BooleanFormula noIntermediate = fmgr.simplify(bfmgr.visit(
-        SlicingPreprocessor.of(fmgr, input.getSsa()), input.getFormula()));
+    BooleanFormula noIntermediate = removeIntermediate(input);
 
-    BooleanFormula noIntermediateNNF = fmgr.applyTactic(noIntermediate,
-        Tactic.NNF);
-    if (noIntermediateNNF.equals(bfmgr.makeBoolean(false))) {
+    if (noIntermediate.equals(bfmgr.makeBoolean(false))) {
 
       // Shortcut, no atoms with only non-intermediate variables existed in the
       // original formula.
@@ -120,7 +124,7 @@ public class InductiveWeakeningManager {
     Map<BooleanFormula, BooleanFormula> selectionVarsInfo = new HashMap<>();
     BooleanFormula annotated = bfmgr.visit(new ConjunctionAnnotator(
         fmgr, new HashMap<BooleanFormula, BooleanFormula>(), selectionVarsInfo),
-        noIntermediateNNF);
+        noIntermediate);
 
     // This is possible since the formula does not have any intermediate
     // variables.
@@ -424,38 +428,6 @@ public class InductiveWeakeningManager {
     return selectorVars;
   }
 
-  private static class SlicingPreprocessor
-      extends BooleanFormulaManagerView.BooleanFormulaTransformationVisitor {
-    private final SSAMap finalSSA;
-    private final FormulaManagerView fmgr;
-
-    protected SlicingPreprocessor(
-        FormulaManagerView pFmgr,
-        Map<BooleanFormula, BooleanFormula> pCache, SSAMap pFinalSSA) {
-      super(pFmgr, pCache);
-      finalSSA = pFinalSSA;
-      fmgr = pFmgr;
-    }
-
-    public static SlicingPreprocessor of(FormulaManagerView fmgr,
-        SSAMap ssa) {
-      return new SlicingPreprocessor(fmgr,
-          new HashMap<BooleanFormula, BooleanFormula>(), ssa);
-    }
-
-    /**
-     * Replace all atoms containing intermediate variables with "true".
-     */
-    @Override
-    public BooleanFormula visitAtom(BooleanFormula atom, FunctionDeclaration decl) {
-
-      if (!fmgr.getDeadFunctionNames(atom, finalSSA).isEmpty()) {
-        return fmgr.getBooleanFormulaManager().makeBoolean(true);
-      }
-      return atom;
-    }
-  }
-
   /**
    * (and a_1 a_2 a_3 ...)
    * -> gets converted to ->
@@ -498,5 +470,69 @@ public class InductiveWeakeningManager {
       selectionVars.put(selector, atom);
       return selector;
     }
+  }
+
+  /**
+   * Perform NNF.
+   *
+   * <p>Try to perform QE_LIGHT.
+   * For those where it did not work, abstract away atoms which contain
+   * bound variables.
+   */
+  private BooleanFormula removeIntermediate(final PathFormula input)
+      throws InterruptedException {
+
+    BooleanFormula nnfied = fmgr.applyTactic(input.getFormula(), Tactic.NNF);
+
+
+    // Run cheap QE if needed.
+    BooleanFormula quantifiedUpdated;
+    if (performLightQE) {
+      BooleanFormula quantified = fmgr.quantifyDeadVariables(
+          nnfied,
+          input.getSsa()
+      );
+      if (quantified == nnfied) {
+
+        // No intermediate variables were found.
+        return quantified;
+      }
+      quantifiedUpdated = fmgr.applyTactic(quantified, Tactic.QE_LIGHT);
+    } else {
+      quantifiedUpdated = nnfied;
+    }
+
+    BooleanFormula out =  bfmgr.visit(
+        new BooleanFormulaTransformationVisitor(fmgr, new HashMap<BooleanFormula, BooleanFormula>()) {
+          @Override
+          public BooleanFormula visitAtom(BooleanFormula pAtom, FunctionDeclaration decl) {
+            if (containsBoundVariables(pAtom) ||
+                !fmgr.getDeadFunctionNames(pAtom, input.getSsa()).isEmpty()) {
+              return bfmgr.makeBoolean(true);
+            } else {
+              return pAtom;
+            }
+          }
+        }, quantifiedUpdated);
+
+    return fmgr.simplify(out);
+  }
+
+  private boolean containsBoundVariables(BooleanFormula atom) {
+    final AtomicBoolean containsBound = new AtomicBoolean(false);
+    fmgr.visitRecursively(
+        new DefaultFormulaVisitor<TraversalProcess>() {
+          @Override
+          protected TraversalProcess visitDefault(Formula f) {
+            return TraversalProcess.CONTINUE;
+          }
+
+          @Override
+          public TraversalProcess visitBoundVariable(Formula f,
+              int deBruijnIdx) {
+            containsBound.set(true);
+            return TraversalProcess.ABORT;
+          }}, atom);
+    return containsBound.get();
   }
 }

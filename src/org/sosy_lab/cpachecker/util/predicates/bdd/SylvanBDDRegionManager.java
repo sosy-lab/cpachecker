@@ -25,21 +25,15 @@ package org.sosy_lab.cpachecker.util.predicates.bdd;
 
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
-import static jsylvan.JSylvan.*;
+import static jsylvan.JSylvan.deref;
+import static jsylvan.JSylvan.makeUnionPar;
+import static jsylvan.JSylvan.ref;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
-import java.io.PrintStream;
-import java.lang.ref.PhantomReference;
-import java.lang.ref.Reference;
-import java.lang.ref.ReferenceQueue;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.concurrent.GuardedBy;
+import com.google.common.base.Function;
+import com.google.common.base.Predicates;
+import com.google.common.collect.Maps;
+import com.google.common.primitives.Longs;
 
 import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -64,10 +58,18 @@ import org.sosy_lab.solver.api.FunctionDeclaration;
 import org.sosy_lab.solver.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.solver.visitors.BooleanFormulaVisitor;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicates;
-import com.google.common.collect.Maps;
-import com.google.common.primitives.Longs;
+import java.io.PrintStream;
+import java.lang.ref.PhantomReference;
+import java.lang.ref.Reference;
+import java.lang.ref.ReferenceQueue;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
+
+import javax.annotation.concurrent.GuardedBy;
 
 import jsylvan.JSylvan;
 
@@ -559,7 +561,8 @@ class SylvanBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public Long visitQuantifier(Quantifier q, List<Formula> boundVars, BooleanFormula pBody) {
+    public Long visitQuantifier(Quantifier q, BooleanFormula quantifiedAST, List<Formula>
+        boundVars, BooleanFormula pBody) {
       throw new UnsupportedOperationException();
     }
   }

@@ -1113,6 +1113,13 @@ public class FormulaManagerView {
       }
 
       @Override
+      public TraversalProcess visitQuantifier(Quantifier quantifier,
+          BooleanFormula quantifiedAST, List<Formula> boundVars, BooleanFormula body) {
+        result.add(quantifiedAST);
+        return TraversalProcess.SKIP;
+      }
+
+      @Override
       public TraversalProcess visitAtom(BooleanFormula atom, FunctionDeclaration decl) {
         if (splitArithEqualities && myIsPurelyArithmetic(atom)) {
           result.addAll(extractAtoms(splitNumeralEqualityIfPossible(atom).get(0), false));
@@ -1381,20 +1388,6 @@ public class FormulaManagerView {
     return manager.substitute(f, m);
   }
 
-  /**
-   * Use a SSA map to conclude what variables of an
-   * [instantiated] formula can be considered 'dead'.
-   *
-   * A variable is considered 'dead' if its SSA index
-   * is different from the index in the SSA map.
-   */
-  public Set<String> getDeadVariableNames(BooleanFormula pFormula, SSAMap pSsa) {
-    return getDeadFunctionNames(pFormula, pSsa, false);
-  }
-
-  /**
-   * Same as {@link #getDeadVariableNames}, but returns UF's as well.
-   */
   public Set<String> getDeadFunctionNames(BooleanFormula pFormula, SSAMap pSsa) {
     return getDeadFunctionNames(pFormula, pSsa, true);
   }
@@ -1405,7 +1398,6 @@ public class FormulaManagerView {
   }
 
   /**
-   * Helper method for {@link #getDeadVariableNames(BooleanFormula, SSAMap)}.
    * Do not make this method public, because the returned formulas have incorrect
    * types (they are not appropriately wrapped).
    */
@@ -1472,11 +1464,26 @@ public class FormulaManagerView {
           Lists.newArrayList(irrelevantVariables.values()),
           pF
       );
+
       eliminationResult = qfmgr.eliminateQuantifiers(quantifiedFormula);
     }
 
     eliminationResult = simplify(eliminationResult); // TODO: Benchmark the effect!
     return eliminationResult;
+  }
+
+  /**
+   * Quantify all intermediate variables in the formula.
+   */
+  public BooleanFormula quantifyDeadVariables(BooleanFormula pF,
+      SSAMap pSSAMap) {
+    Map<String, Formula> irrelevantVariables = myGetDeadVariables(pF, pSSAMap, false);
+    if (irrelevantVariables.isEmpty()) {
+      return pF;
+    }
+    return getQuantifiedFormulaManager().exists(
+        Lists.newArrayList(irrelevantVariables.values()), pF
+    );
   }
 
   /**

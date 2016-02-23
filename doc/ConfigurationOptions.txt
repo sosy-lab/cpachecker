@@ -247,6 +247,10 @@ analysis.traversal.useExplicitInformation = false
 # handle states with a deeper loopstack first.
 analysis.traversal.useLoopstack = false
 
+# handle abstract states with fewer running threads first? (needs
+# ThreadingCPA)
+analysis.traversal.useNumberOfThreads = false
+
 # Use an implementation of postorder strategy that allows to select a
 # secondary strategy that is used if there are two states with the same
 # postorder id. The secondary strategy is selected with
@@ -687,8 +691,8 @@ cpa.arg.errorPath.file = "ErrorPath.%d.txt"
 # counterexamples reported. Only relevant with analysis.stopAfterError=false
 # and cpa.arg.errorPath.exportImmediately=true. Put the weakest and cheapest
 # filter first, e.g., PathEqualityCounterexampleFilter.
-cpa.arg.errorPath.filters = ImmutableList.<Class<? extends CounterexampleFilter>>of(
-          PathEqualityCounterexampleFilter.class)
+cpa.arg.errorPath.filters = [
+          PathEqualityCounterexampleFilter.class]
 
 # export error path as graph
 cpa.arg.errorPath.graph = "ErrorPath.%d.dot"
@@ -706,10 +710,10 @@ cpa.arg.errorPath.source = "ErrorPath.%d.c"
 cpa.arg.export = true
 cpa.arg.file = "ARG.dot"
 
-# inform ARG CPA if it is run in a CPA enabled analysis because then it
-# mustbehave differntly during merge.
 # inform ARG CPA if it is run in an analysis with enabler CPA because then it
 # must behave differntly during merge.
+# inform ARG CPA if it is run in a CPA enabled analysis because then it
+# mustbehave differntly during merge.
 cpa.arg.inCPAEnabledAnalysis = false
 
 # whether to keep covered states in the reached set as addition to keeping
@@ -1754,6 +1758,9 @@ cpa.slicing.destructiveIterationLimit = -1
 # loop. UNSOUND!
 cpa.slicing.ignoreFunctionCallsInLoop = false
 
+# Perform light quantifier elimination on intermediate variables
+cpa.slicing.performLightQE = false
+
 # Use formula slicing based on counterexamples.
 cpa.slicing.runCounterexampleBasedSlicing = false
 
@@ -2231,6 +2238,9 @@ invariantGeneration.async = false
 # configuration file for invariant generation
 invariantGeneration.config = no default value
 
+# Check candidate invariants in a separate thread asynchronously.
+invariantGeneration.kInduction.async = true
+
 # Guess some candidates for the k-induction invariant generator from the CFA.
 invariantGeneration.kInduction.guessCandidatesFromCFA = true
 
@@ -2378,6 +2388,10 @@ pcc.partial.enableLoadDistribution = false
 # false.
 pcc.partial.stopAddingAtReachedSetSize = false
 
+# Evaluation function to determine exploration order of best-first-search
+pcc.partitioning.bestfirst.evaluationFunction = BREADTH_FIRST
+  enum:     [BEST_IMPROVEMENT_FIRST, BREADTH_FIRST, DEPTH_FIRST]
+
 # Balance criterion for pairwise optimization of partitions
 pcc.partitioning.fm.balanceCriterion = 1.5d
 
@@ -2392,7 +2406,7 @@ pcc.partitioning.maxNumElemsPerPartition = 0
 
 # Heuristic for computing partitioning of proof (partial reached set).
 pcc.partitioning.partitioningStrategy = RANDOM
-  enum:     [RANDOM, DFS, BFS, OPTIMAL, FM]
+  enum:     [RANDOM, DFS, BFS, OPTIMAL, BEST_FIRST, FM]
 
 # If enabled uses the number of nodes saved in certificate to compute
 # partition number otherwise the number of states explored during analysis

@@ -71,6 +71,7 @@ public class GenerateReportWithoutGraphs {
     }
   }
 
+  @SuppressWarnings("CheckReturnValue") // TODO should check return value of mkdirs()
   private boolean setupOutputEnvironment() {
     OUTPUT_ROOT.resolve("app").mkdirs();
     try {

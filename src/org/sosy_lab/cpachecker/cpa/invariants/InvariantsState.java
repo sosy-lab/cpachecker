@@ -42,11 +42,14 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
@@ -80,9 +83,10 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.Variable;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.VariableSelection;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -94,6 +98,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 
 /**
@@ -940,37 +945,91 @@ public class InvariantsState implements AbstractState,
     } else {
       memoryLocations = Collections.emptySet();
     }
+    final Predicate<MemoryLocation> isValidMemLoc = new Predicate<MemoryLocation>() {
+
+      @Override
+      public boolean apply(MemoryLocation pMemoryLocation) {
+        if (pMemoryLocation
+            .getIdentifier()
+            .startsWith("__CPAchecker_TMP_")) {
+          return false;
+        }
+        Type type = getType(pMemoryLocation);
+        if (type instanceof CPointerType) {
+          return false;
+        }
+        if (type instanceof CArrayType) {
+          return false;
+        }
+        if (pFunctionEntryNode.getReturnVariable().isPresent()
+            && pMemoryLocation.isOnFunctionStack()
+            && pMemoryLocation
+                .getIdentifier()
+                .equals(
+                    pFunctionEntryNode
+                        .getReturnVariable()
+                        .get()
+                        .getName())) {
+          return false;
+        }
+        return true;
+      }
+
+    };
+    final Predicate<NumeralFormula<CompoundInterval>> isInvalidVar = new Predicate<NumeralFormula<CompoundInterval>>() {
+
+      @Override
+      public boolean apply(NumeralFormula<CompoundInterval> pFormula) {
+        if (pFormula instanceof Variable) {
+          return !isValidMemLoc.apply(((Variable<?>) pFormula).getMemoryLocation());
+        }
+        return false;
+      }
+
+    };
+    final ReplaceVisitor<CompoundInterval> evaluateInvalidVars = new ReplaceVisitor<>(
+        isInvalidVar,
+        new Function<NumeralFormula<CompoundInterval>, NumeralFormula<CompoundInterval>>() {
+
+          @Override
+          public NumeralFormula<CompoundInterval> apply(NumeralFormula<CompoundInterval> pFormula) {
+            CompoundInterval value = pFormula.accept(evaluationVisitor, environment);
+            return InvariantsFormulaManager.INSTANCE.asConstant(pFormula.getBitVectorInfo(), value);
+          }
+
+        });
     return And.of(
         getApproximationFormulas()
+            .transform(new Function<BooleanFormula<CompoundInterval>, BooleanFormula<CompoundInterval>>() {
+
+              @Override
+              public BooleanFormula<CompoundInterval> apply(BooleanFormula<CompoundInterval> pFormula) {
+                return pFormula.accept(evaluateInvalidVars);
+              }
+
+            })
             .filter(
                 new Predicate<BooleanFormula<CompoundInterval>>() {
 
                   @Override
                   public boolean apply(BooleanFormula<CompoundInterval> pFormula) {
-                    return FluentIterable.from(
-                            pFormula.accept(new CollectVarsVisitor<CompoundInterval>()))
+                    if (pFormula.equals(BooleanConstant.getTrue())) {
+                      return false;
+                    }
+                    Set<MemoryLocation> memLocs = pFormula.accept(new CollectVarsVisitor<CompoundInterval>());
+                    if (memLocs.isEmpty()) {
+                      return false;
+                    }
+                    return FluentIterable.from(memLocs)
                         .allMatch(
                             new Predicate<MemoryLocation>() {
 
                               @Override
                               public boolean apply(MemoryLocation pMemoryLocation) {
-                                if (pMemoryLocation
-                                    .getIdentifier()
-                                    .startsWith("__CPAchecker_TMP_")) {
+                                if (!isValidMemLoc.apply(pMemoryLocation)) {
                                   return false;
                                 }
                                 if (!fullState && !memoryLocations.contains(pMemoryLocation)) {
-                                  return false;
-                                }
-                                if (pFunctionEntryNode.getReturnVariable().isPresent()
-                                    && pMemoryLocation.isOnFunctionStack()
-                                    && pMemoryLocation
-                                        .getIdentifier()
-                                        .equals(
-                                            pFunctionEntryNode
-                                                .getReturnVariable()
-                                                .get()
-                                                .getName())) {
                                   return false;
                                 }
                                 final String functionName = pFunctionEntryNode.getFunctionName();
@@ -985,16 +1044,50 @@ public class InvariantsState implements AbstractState,
 
                   @Override
                   public ExpressionTree<Object> apply(BooleanFormula<CompoundInterval> pFormula) {
-                    return LeafExpression.of(
-                        (Object)
-                            pFormula.accept(
-                                new ToCodeFormulaVisitor(evaluationVisitor), getEnvironment()));
+                    ExpressionTree<String> asCode = pFormula.accept(new ToCodeFormulaVisitor(evaluationVisitor), getEnvironment());
+                    return ExpressionTrees.cast(asCode);
                   }
                 }));
   }
 
   private boolean exportFullState(CFANode pReferenceNode) {
-    return pReferenceNode.isLoopStart();
+    if (pReferenceNode instanceof FunctionEntryNode) {
+      return true;
+    }
+    Queue<CFANode> waitlist = Queues.newArrayDeque();
+    Set<CFANode> visited = Sets.newHashSet();
+    waitlist.offer(pReferenceNode);
+    visited.add(pReferenceNode);
+    for (CFAEdge assumeEdge : CFAUtils.enteringEdges(pReferenceNode).filter(AssumeEdge.class)) {
+      if (visited.add(assumeEdge.getPredecessor())) {
+        waitlist.offer(assumeEdge.getPredecessor());
+      }
+    }
+    while (!waitlist.isEmpty()) {
+      CFANode current = waitlist.poll();
+      if (current.isLoopStart()) {
+        return true;
+      }
+      Predicate<CFAEdge> epsilonEdge =
+          new Predicate<CFAEdge>() {
+
+            @Override
+            public boolean apply(CFAEdge pEdge) {
+              return AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge);
+            }
+          };
+      for (CFAEdge enteringEdge : CFAUtils.enteringEdges(current).filter(epsilonEdge)) {
+        if (visited.add(enteringEdge.getPredecessor())) {
+          waitlist.offer(enteringEdge.getPredecessor());
+        }
+      }
+      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current).filter(epsilonEdge)) {
+        if (visited.add(leavingEdge.getSuccessor())) {
+          waitlist.offer(leavingEdge.getSuccessor());
+        }
+      }
+    }
+    return false;
   }
 
   private FluentIterable<BooleanFormula<CompoundInterval>> getApproximationFormulas() {
@@ -1006,7 +1099,9 @@ public class InvariantsState implements AbstractState,
           public boolean apply(@Nullable MemoryLocation pInput) {
             return pInput != null
                 && !pInput.getIdentifier().contains("*")
-                && !pInput.getIdentifier().contains("->");
+                && !pInput.getIdentifier().contains("->")
+                && !pInput.getIdentifier().contains(".")
+                && !pInput.getIdentifier().contains("[");
           }
         };
 

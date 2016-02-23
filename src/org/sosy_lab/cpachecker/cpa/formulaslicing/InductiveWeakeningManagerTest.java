@@ -38,7 +38,7 @@ public class InductiveWeakeningManagerTest {
   @Before public void setUp() throws Exception {
     config = TestDataTools.configurationForTest().setOptions(
         ImmutableMap.of(
-            "cpa.predicate.solver", "Z3",
+            "solver.solver", "Z3",
             "log.consoleLevel", "FINE",
 
             // For easier debugging.
