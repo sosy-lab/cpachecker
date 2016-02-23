@@ -136,7 +136,7 @@ esac
 # Stack size is set because on some systems it is too small for recursive algorithms and very large programs.
 # PerfDisableSharedMem avoids hsperfdata in /tmp (disable it to connect easily with VisualConsole and Co.).
 $EXEC "$JAVA" \
-	-Xss${DEFAULT_STACK_SIZE} \
+	-Xss${JAVA_STACK_SIZE} \
 	-XX:+PerfDisableSharedMem \
 	$JAVA_VM_ARGUMENTS \
 	-Xmx${JAVA_HEAP_SIZE} \
