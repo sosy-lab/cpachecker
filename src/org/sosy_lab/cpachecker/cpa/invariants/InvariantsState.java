@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
@@ -944,6 +945,59 @@ public class InvariantsState implements AbstractState,
     } else {
       memoryLocations = Collections.emptySet();
     }
+    final Predicate<MemoryLocation> isValidMemLoc = new Predicate<MemoryLocation>() {
+
+      @Override
+      public boolean apply(MemoryLocation pMemoryLocation) {
+        if (pMemoryLocation
+            .getIdentifier()
+            .startsWith("__CPAchecker_TMP_")) {
+          return false;
+        }
+        Type type = getType(pMemoryLocation);
+        if (type instanceof CPointerType) {
+          return false;
+        }
+        if (type instanceof CArrayType) {
+          return false;
+        }
+        if (pFunctionEntryNode.getReturnVariable().isPresent()
+            && pMemoryLocation.isOnFunctionStack()
+            && pMemoryLocation
+                .getIdentifier()
+                .equals(
+                    pFunctionEntryNode
+                        .getReturnVariable()
+                        .get()
+                        .getName())) {
+          return false;
+        }
+        return true;
+      }
+
+    };
+    final Predicate<NumeralFormula<CompoundInterval>> isInvalidVar = new Predicate<NumeralFormula<CompoundInterval>>() {
+
+      @Override
+      public boolean apply(NumeralFormula<CompoundInterval> pFormula) {
+        if (pFormula instanceof Variable) {
+          return !isValidMemLoc.apply(((Variable<?>) pFormula).getMemoryLocation());
+        }
+        return false;
+      }
+
+    };
+    final ReplaceVisitor<CompoundInterval> evaluateInvalidVars = new ReplaceVisitor<>(
+        isInvalidVar,
+        new Function<NumeralFormula<CompoundInterval>, NumeralFormula<CompoundInterval>>() {
+
+          @Override
+          public NumeralFormula<CompoundInterval> apply(NumeralFormula<CompoundInterval> pFormula) {
+            CompoundInterval value = pFormula.accept(evaluationVisitor, environment);
+            return InvariantsFormulaManager.INSTANCE.asConstant(pFormula.getBitVectorInfo(), value);
+          }
+
+        });
     return And.of(
         getApproximationFormulas()
             .filter(
@@ -958,27 +1012,10 @@ public class InvariantsState implements AbstractState,
 
                               @Override
                               public boolean apply(MemoryLocation pMemoryLocation) {
-                                if (pMemoryLocation
-                                    .getIdentifier()
-                                    .startsWith("__CPAchecker_TMP_")) {
+                                if (!isValidMemLoc.apply(pMemoryLocation)) {
                                   return false;
                                 }
                                 if (!fullState && !memoryLocations.contains(pMemoryLocation)) {
-                                  return false;
-                                }
-                                Type type = getType(pMemoryLocation);
-                                if (type instanceof CPointerType) {
-                                  return false;
-                                }
-                                if (pFunctionEntryNode.getReturnVariable().isPresent()
-                                    && pMemoryLocation.isOnFunctionStack()
-                                    && pMemoryLocation
-                                        .getIdentifier()
-                                        .equals(
-                                            pFunctionEntryNode
-                                                .getReturnVariable()
-                                                .get()
-                                                .getName())) {
                                   return false;
                                 }
                                 final String functionName = pFunctionEntryNode.getFunctionName();
@@ -993,8 +1030,9 @@ public class InvariantsState implements AbstractState,
 
                   @Override
                   public ExpressionTree<Object> apply(BooleanFormula<CompoundInterval> pFormula) {
-                    return ExpressionTrees.cast(pFormula.accept(
-                                new ToCodeFormulaVisitor(evaluationVisitor), getEnvironment()));
+                    BooleanFormula<CompoundInterval> formula = pFormula.accept(evaluateInvalidVars);
+                    ExpressionTree<String> asCode = formula.accept(new ToCodeFormulaVisitor(evaluationVisitor), getEnvironment());
+                    return ExpressionTrees.cast(asCode);
                   }
                 }));
   }
