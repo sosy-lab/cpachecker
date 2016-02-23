@@ -701,7 +701,7 @@ public final class ExpressionTrees {
                   if (op == operand) {
                     continue;
                   }
-                  if (negated != null && implies(op, negated, pImpliesVisitors)) {
+                  if (negated != null && implies(negated, op, pImpliesVisitors)) {
                     return getTrue();
                   }
                   if (!skip && implies(operand, op, pImpliesVisitors)) {
