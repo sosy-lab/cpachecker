@@ -25,9 +25,8 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import java.lang.ref.WeakReference;
+import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -54,30 +53,39 @@ public class ExpressionTreeLocationInvariant extends AbstractLocationFormulaInva
 
   private final String groupId;
 
-  private final AtomicReference<WeakReference<StoredFormula>> storedFormula = new AtomicReference<>();
+  private final Map<ManagerKey, ToFormulaVisitor> visitorCache;
 
   public ExpressionTreeLocationInvariant(
       String pGroupId, CFANode pLocation, ExpressionTree<AExpression> pExpressionTree) {
+    this(pGroupId, pLocation, pExpressionTree, null);
+  }
+
+  public ExpressionTreeLocationInvariant(
+      String pGroupId, CFANode pLocation, ExpressionTree<AExpression> pExpressionTree, Map<ManagerKey, ToFormulaVisitor> pVisitorCache) {
     super(pLocation);
     groupId = Objects.requireNonNull(pGroupId);
     location = Objects.requireNonNull(pLocation);
     expressionTree = Objects.requireNonNull(pExpressionTree);
+    visitorCache = pVisitorCache;
   }
 
   @Override
   public BooleanFormula getFormula(FormulaManagerView pFMGR, PathFormulaManager pPFMGR)
       throws CPATransferException, InterruptedException {
-    WeakReference<StoredFormula> weakRefStoredFormula = storedFormula.get();
-    if (weakRefStoredFormula != null) {
-      StoredFormula formula = weakRefStoredFormula.get();
-      if (formula != null && formula.formulaManagerView == pFMGR && formula.pathFormulaManager == pPFMGR) {
-        return formula.formula;
+    ManagerKey key = null;
+    ToFormulaVisitor toFormulaVisitor = null;
+    if (visitorCache != null) {
+      key = new ManagerKey(pFMGR, pPFMGR);
+      toFormulaVisitor = visitorCache.get(key);
+    }
+    if (toFormulaVisitor == null) {
+      toFormulaVisitor = new ToFormulaVisitor(pFMGR, pPFMGR);
+      if (visitorCache != null) {
+        visitorCache.put(key, toFormulaVisitor);
       }
     }
     try {
-      BooleanFormula result = expressionTree.accept(new ToFormulaVisitor(pFMGR, pPFMGR));
-      storedFormula.set(new WeakReference<>(new StoredFormula(pFMGR, pPFMGR, result)));
-      return result;
+      return expressionTree.accept(toFormulaVisitor);
     } catch (ToFormulaException e) {
       if (e.isInterruptedException()) {
         throw e.asInterruptedException();
@@ -108,7 +116,7 @@ public class ExpressionTreeLocationInvariant extends AbstractLocationFormulaInva
 
   @Override
   public int hashCode() {
-    return Objects.hash(groupId, location, expressionTree);
+    return Objects.hash(groupId, location, expressionTree, System.identityHashCode(visitorCache));
   }
 
   @Override
@@ -120,7 +128,8 @@ public class ExpressionTreeLocationInvariant extends AbstractLocationFormulaInva
       ExpressionTreeLocationInvariant other = (ExpressionTreeLocationInvariant) pObj;
       return groupId.equals(other.groupId)
           && location.equals(other.location)
-          && expressionTree.equals(other.expressionTree);
+          && expressionTree.equals(other.expressionTree)
+          && visitorCache == other.visitorCache;
     }
     return false;
   }
@@ -130,18 +139,33 @@ public class ExpressionTreeLocationInvariant extends AbstractLocationFormulaInva
     return groupId + " at " + location + ": " + expressionTree.toString();
   }
 
-  private static class StoredFormula {
+  public static class ManagerKey {
 
     private final FormulaManagerView formulaManagerView;
 
     private final PathFormulaManager pathFormulaManager;
 
-    private final BooleanFormula formula;
-
-    public StoredFormula(FormulaManagerView pFormulaManagerView, PathFormulaManager pPathFormulaManager, BooleanFormula pFormula) {
+    public ManagerKey(FormulaManagerView pFormulaManagerView, PathFormulaManager pPathFormulaManager) {
       formulaManagerView = Objects.requireNonNull(pFormulaManagerView);
       pathFormulaManager = Objects.requireNonNull(pPathFormulaManager);
-      formula = Objects.requireNonNull(pFormula);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(formulaManagerView, pathFormulaManager);
+    }
+
+    @Override
+    public boolean equals(Object pObj) {
+      if (this == pObj) {
+        return true;
+      }
+      if (pObj instanceof ManagerKey) {
+        ManagerKey other = (ManagerKey) pObj;
+        return formulaManagerView == other.formulaManagerView
+            && pathFormulaManager == other.pathFormulaManager;
+      }
+      return false;
     }
 
   }

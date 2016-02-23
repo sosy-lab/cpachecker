@@ -75,6 +75,7 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.EdgeFormulaNegation;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.ExpressionTreeLocationInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.ExpressionTreeLocationInvariant.ManagerKey;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.StaticCandidateProvider;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -94,11 +95,13 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
 import org.sosy_lab.solver.SolverException;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
@@ -475,6 +478,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
     Set<CFANode> visited = Sets.newHashSet();
     Multimap<CFANode, ExpressionTreeLocationInvariant> potentialAdditionalCandidates =
         HashMultimap.create();
+    Map<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = Maps.newConcurrentMap();
     for (AbstractState abstractState : reachedSet) {
       if (pShutdownManager.getNotifier().shouldShutdown()) {
         return;
@@ -490,7 +494,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
           for (CFANode location : locations) {
             potentialAdditionalCandidates.removeAll(location);
             CandidateInvariant candidateInvariant =
-                new ExpressionTreeLocationInvariant(groupId, location, candidate);
+                new ExpressionTreeLocationInvariant(groupId, location, candidate, toCodeVisitorCache);
             candidates.add(candidateInvariant);
             // Check if there are any leaving return edges:
             // The predecessors are also potential matches for the invariant
