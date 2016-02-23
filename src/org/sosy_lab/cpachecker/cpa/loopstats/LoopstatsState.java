@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.*;
 
 import javax.annotation.Nonnull;
 
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
@@ -39,22 +40,25 @@ public class LoopstatsState implements AbstractState {
 
   private final ImmutableLoopStack activeLoops;
   private final ImmutableIntegerStack activeIterations;
+  private final ImmutableIntegerStack enteredOnLoopHeadNodeIds;
 
   private int hashCache = 0;
 
   public LoopstatsState(final LoopStatisticsReceiver pStatReceiver,
       final ImmutableLoopStack pActiveLoops,
-      final ImmutableIntegerStack pActiveIterations) {
+      final ImmutableIntegerStack pActiveIterations,
+      final ImmutableIntegerStack pEnteredOnLoopHeads) {
 
     statReceiver = checkNotNull(pStatReceiver);
     activeLoops = checkNotNull(pActiveLoops);
 
     checkArgument(pActiveIterations.size() == pActiveLoops.size());
     activeIterations = pActiveIterations;
+    enteredOnLoopHeadNodeIds = pEnteredOnLoopHeads;
   }
 
   public LoopstatsState(final LoopStatisticsReceiver pStatReceiver) {
-    this(pStatReceiver, ImmutableLoopStack.empty(), ImmutableIntegerStack.empty());
+    this(pStatReceiver, ImmutableLoopStack.empty(), ImmutableIntegerStack.empty(), ImmutableIntegerStack.empty());
   }
 
   private Loop peekLoop() {
@@ -112,7 +116,7 @@ public class LoopstatsState implements AbstractState {
    * @return  A new successor state in the abstract domain of the analysis.
    */
   static @Nonnull LoopstatsState createSuccessorForEnteringLoopBody (final LoopstatsState pPreviousState,
-      final Loop pEnteringLoopBody) {
+      final Loop pEnteringLoopBody, final CFANode pLoopHeadNode) {
 
     Preconditions.checkNotNull(pPreviousState);
     Preconditions.checkNotNull(pEnteringLoopBody);
@@ -120,21 +124,34 @@ public class LoopstatsState implements AbstractState {
     final LoopstatsState result;
 
     Loop lastLoop = pPreviousState.peekLoop();
-    if (lastLoop == null || !pEnteringLoopBody.equals(lastLoop)) {
+    if (!pEnteringLoopBody.equals(lastLoop)) {
 
       // Beginning a new 'instance' of a loop
       result = new LoopstatsState(pPreviousState.statReceiver,
           pPreviousState.activeLoops.push(pEnteringLoopBody),
-          pPreviousState.activeIterations.push(Integer.valueOf(1)));
+          pPreviousState.activeIterations.push(Integer.valueOf(1)),
+          pPreviousState.enteredOnLoopHeadNodeIds.push(pLoopHeadNode.getNodeNumber()));
 
     } else {
 
       // Another iteration of a loop
       Integer prevIterations = pPreviousState.activeIterations.peekHead();
+      Integer prevHead = pPreviousState.enteredOnLoopHeadNodeIds.peekHead();
 
-      result = new LoopstatsState(pPreviousState.statReceiver,
-          pPreviousState.activeLoops,
-          pPreviousState.activeIterations.getTail().push(prevIterations + 1));
+      if (Integer.valueOf(pLoopHeadNode.getNodeNumber()).equals(prevHead)) {
+        // It is only a new iteration if we take the same loop head again...
+        result = new LoopstatsState(pPreviousState.statReceiver,
+            pPreviousState.activeLoops,
+            pPreviousState.activeIterations.getTail().push(prevIterations + 1),
+            pPreviousState.enteredOnLoopHeadNodeIds);
+      } else {
+        // It is a different, nested, loop
+        // TODO: Is this really correct?
+        result = new LoopstatsState(pPreviousState.statReceiver,
+            pPreviousState.activeLoops.push(pEnteringLoopBody),
+            pPreviousState.activeIterations.push(Integer.valueOf(1)),
+            pPreviousState.enteredOnLoopHeadNodeIds.push(pLoopHeadNode.getNodeNumber()));
+      }
     }
 
     pPreviousState.statReceiver.signalNewLoopIteration(result.activeLoops, result.getIteration());
@@ -169,13 +186,14 @@ public class LoopstatsState implements AbstractState {
 
     return new LoopstatsState(pPreviousState.statReceiver,
           pPreviousState.activeLoops.getTail(),
-          pPreviousState.activeIterations.getTail());
+          pPreviousState.activeIterations.getTail(),
+          pPreviousState.enteredOnLoopHeadNodeIds.getTail());
   }
 
   @Override
   public int hashCode() {
     if (hashCache == 0) {
-      hashCache = Objects.hashCode(activeLoops, activeIterations);
+      hashCache = Objects.hashCode(activeLoops, activeIterations, enteredOnLoopHeadNodeIds);
     }
     return hashCache;
   }

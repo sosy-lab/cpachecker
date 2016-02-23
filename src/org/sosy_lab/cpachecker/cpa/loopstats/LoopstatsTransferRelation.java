@@ -74,7 +74,6 @@ public class LoopstatsTransferRelation extends SingleEdgeTransferRelation {
       Iterable<CFAEdge> outgoingEdges = filter(l.getOutgoingEdges(),
                                                not(instanceOf(CFunctionCallEdge.class)));
 
-
       for (CFAEdge e : outgoingEdges) {
         exitEdges.put(e, l);
       }
@@ -125,10 +124,9 @@ public class LoopstatsTransferRelation extends SingleEdgeTransferRelation {
     {
       final Loop enteringLoop = loopEntryEdges.get(pCfaEdge);
       if (enteringLoop != null) {
-        return LoopstatsState.createSuccessorForEnteringLoopBody(pPredState, enteringLoop);
+        return LoopstatsState.createSuccessorForEnteringLoopBody(pPredState, enteringLoop, pCfaEdge.getSuccessor());
       }
     }
-
 
     return pPredState;
   }
