@@ -1000,13 +1000,27 @@ public class InvariantsState implements AbstractState,
         });
     return And.of(
         getApproximationFormulas()
+            .transform(new Function<BooleanFormula<CompoundInterval>, BooleanFormula<CompoundInterval>>() {
+
+              @Override
+              public BooleanFormula<CompoundInterval> apply(BooleanFormula<CompoundInterval> pFormula) {
+                return pFormula.accept(evaluateInvalidVars);
+              }
+
+            })
             .filter(
                 new Predicate<BooleanFormula<CompoundInterval>>() {
 
                   @Override
                   public boolean apply(BooleanFormula<CompoundInterval> pFormula) {
-                    return FluentIterable.from(
-                            pFormula.accept(new CollectVarsVisitor<CompoundInterval>()))
+                    if (pFormula.equals(BooleanConstant.getTrue())) {
+                      return false;
+                    }
+                    Set<MemoryLocation> memLocs = pFormula.accept(new CollectVarsVisitor<CompoundInterval>());
+                    if (memLocs.isEmpty()) {
+                      return false;
+                    }
+                    return FluentIterable.from(memLocs)
                         .allMatch(
                             new Predicate<MemoryLocation>() {
 
@@ -1030,8 +1044,7 @@ public class InvariantsState implements AbstractState,
 
                   @Override
                   public ExpressionTree<Object> apply(BooleanFormula<CompoundInterval> pFormula) {
-                    BooleanFormula<CompoundInterval> formula = pFormula.accept(evaluateInvalidVars);
-                    ExpressionTree<String> asCode = formula.accept(new ToCodeFormulaVisitor(evaluationVisitor), getEnvironment());
+                    ExpressionTree<String> asCode = pFormula.accept(new ToCodeFormulaVisitor(evaluationVisitor), getEnvironment());
                     return ExpressionTrees.cast(asCode);
                   }
                 }));
