@@ -169,12 +169,24 @@ public class FormulaManagerView {
     bitvectorFormulaManager = new BitvectorFormulaManagerView(wrappingHandler, rawBitvectorFormulaManager, manager.getBooleanFormulaManager());
     floatingPointFormulaManager = new FloatingPointFormulaManagerView(wrappingHandler, rawFloatingPointFormulaManager);
     integerFormulaManager = new IntegerFormulaManagerView(wrappingHandler, getIntegerFormulaManager0());
-    quantifiedFormulaManager =
-        new QuantifiedFormulaManagerView(
-            wrappingHandler,
-            manager.getQuantifiedFormulaManager(),
-            booleanFormulaManager,
-            integerFormulaManager);
+
+    try {
+      quantifiedFormulaManager =
+          new QuantifiedFormulaManagerView(
+              wrappingHandler,
+              manager.getQuantifiedFormulaManager(),
+              booleanFormulaManager,
+              integerFormulaManager);
+    } catch (UnsupportedOperationException e) {
+      // do nothing, solver does not support quantification
+    }
+
+    try {
+      arrayFormulaManager =
+          new ArrayFormulaManagerView(wrappingHandler, manager.getArrayFormulaManager());
+    } catch (UnsupportedOperationException e) {
+      // do nothing, solver does not support arrays
+    }
   }
 
   /** Returns the BitvectorFormulaManager or a Replacement based on the Option 'encodeBitvectorAs'. */
@@ -818,9 +830,6 @@ public class FormulaManagerView {
   }
 
   public ArrayFormulaManagerView getArrayFormulaManager() {
-    if (arrayFormulaManager == null) {
-      arrayFormulaManager = new ArrayFormulaManagerView(wrappingHandler, manager.getArrayFormulaManager());
-    }
     return arrayFormulaManager;
   }
 
