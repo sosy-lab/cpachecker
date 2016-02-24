@@ -1,9 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
-import java.util.Collection;
-import java.util.List;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -40,8 +38,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
+import java.util.Collection;
+import java.util.List;
+
+import javax.annotation.Nullable;
 
 
 @Options(prefix="cpa.slicing")
@@ -60,6 +60,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   private final IFormulaSlicingManager manager;
   private final MergeOperator mergeOperator;
   private final LoopTransitionFinder loopTransitionFinder;
+  private final InductiveWeakeningStatistics statistics;
 
   private FormulaSlicingCPA(
       Configuration pConfiguration,
@@ -69,6 +70,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   ) throws InvalidConfigurationException {
     pConfiguration.inject(this);
 
+    statistics = new InductiveWeakeningStatistics();
     Solver solver = Solver.create(pConfiguration, pLogger, shutdownNotifier);
     FormulaManagerView formulaManager = solver.getFormulaManager();
     PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(
@@ -84,7 +86,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
         shutdownNotifier);
 
     InductiveWeakeningManager pInductiveWeakeningManager =
-        new InductiveWeakeningManager(pConfiguration, formulaManager, solver, pLogger);
+        new InductiveWeakeningManager(pConfiguration, formulaManager, solver, pLogger, statistics);
     manager = new FormulaSlicingManager(
         pConfiguration,
         pathFormulaManager, formulaManager, cfa, loopTransitionFinder,
@@ -175,7 +177,8 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
     loopTransitionFinder.collectStatistics(statsCollection);
-    ((StatisticsProvider)manager).collectStatistics(statsCollection);
+    manager.collectStatistics(statsCollection);
+    statsCollection.add(statistics);
   }
 
   @Override

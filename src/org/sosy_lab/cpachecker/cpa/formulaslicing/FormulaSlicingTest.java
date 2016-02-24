@@ -1,17 +1,17 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
 
-import java.util.HashMap;
-import java.util.Map;
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import org.junit.Test;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import java.util.HashMap;
+import java.util.Map;
 
 public class FormulaSlicingTest {
   private static final String TEST_DIR_PATH = "test/programs/formulaslicing/";
@@ -92,6 +92,14 @@ public class FormulaSlicingTest {
         .put("analysis.traversal.useCallstack", "true")
         .put("analysis.traversal.useReversePostorder", "true")
         .put("cpa.predicate.ignoreIrrelevantVariables", "false")
+
+//        .put("cpa.slicing.runNewStrategy", "true")
+        .put("cpa.slicing.runDestructiveSlicing", "false")
+        .put("cpa.slicing.runCounterexampleBasedSlicing", "true")
+
+        // TODO: debug
+//        .put("cpa.slicing.performLightQE", "true")
+        .put("cpa.slicing.removalSelectionStrategy", "least_removals")
 
         .put("log.consoleLevel", "FINE")
         .build());

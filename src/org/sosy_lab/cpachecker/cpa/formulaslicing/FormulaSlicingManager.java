@@ -43,7 +43,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Verify;
 
 @Options(prefix="cpa.slicing")
-public class FormulaSlicingManager implements IFormulaSlicingManager, StatisticsProvider {
+public class FormulaSlicingManager implements IFormulaSlicingManager {
 
   /**
    * Statistics for formula slicing.
