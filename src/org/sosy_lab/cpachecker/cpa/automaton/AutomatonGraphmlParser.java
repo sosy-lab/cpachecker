@@ -86,7 +86,6 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -107,9 +106,9 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
-import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.Simplifier;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -123,6 +122,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.FluentIterable;
@@ -132,7 +132,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteSource;
 
@@ -175,7 +174,8 @@ public class AutomatonGraphmlParser {
   private final MachineModel machine;
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
   private final Function<AStatement, ExpressionTree<AExpression>> fromStatement;
-  private final Simplifier<AExpression> simplifier = ExpressionTrees.newSimplifier();
+  private final ExpressionTreeFactory<AExpression> factory = ExpressionTrees.newCachingFactory();
+  private final Simplifier<AExpression> simplifier = ExpressionTrees.newSimplifier(factory);
 
   public AutomatonGraphmlParser(
       Configuration pConfig, LogManager pLogger, CFA pCFA, MachineModel pMachine, Scope pScope)
@@ -878,117 +878,103 @@ public class AutomatonGraphmlParser {
     return asExpressionTree(entryNode);
   }
 
-  private ExpressionTree<AExpression> asExpressionTree(FunctionEntryNode pNode) {
-    Queue<CFANode> waitlist = Queues.newArrayDeque();
-
-    // Initialize memo with exit node trees
-    FunctionExitNode exitNode = pNode.getExitNode();
+  private ExpressionTree<AExpression> asExpressionTree(FunctionEntryNode pEntry) {
     Map<CFANode, ExpressionTree<AExpression>> memo = Maps.newHashMap();
-    for (CFAEdge enteringEdge : CFAUtils.enteringEdges(exitNode)) {
-      AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) enteringEdge;
-      Optional<? extends AExpression> optExpression = returnStatementEdge.getExpression();
-      assert optExpression.isPresent();
-      if (!optExpression.isPresent()) {
-        return ExpressionTrees.getTrue();
-      }
-      AExpression expression = optExpression.get();
-      if (!(expression instanceof AIntegerLiteralExpression)) {
-        return ExpressionTrees.getTrue();
-      }
-      AIntegerLiteralExpression literal = (AIntegerLiteralExpression) expression;
-      if (literal.getValue().equals(BigInteger.ZERO)) {
-        memo.put(enteringEdge.getPredecessor(), ExpressionTrees.<AExpression>getFalse());
-      } else {
-        memo.put(enteringEdge.getPredecessor(), ExpressionTrees.<AExpression>getTrue());
-      }
-
-      // Compute nodes than can be handled next
-      for (CFANode predecessor : CFAUtils.predecessorsOf(enteringEdge.getPredecessor())) {
-        if (!memo.keySet().contains(predecessor)) {
-          List<CFANode> successorsOfPredecessor = CFAUtils.successorsOf(predecessor).toList();
-          if (memo.keySet().containsAll(successorsOfPredecessor)) {
-            waitlist.offer(predecessor);
-          }
-        }
-      }
-    }
-
+    memo.put(pEntry, ExpressionTrees.<AExpression>getTrue());
+    Set<CFANode> ready = new HashSet<>();
+    ready.add(pEntry);
+    Queue<CFANode> waitlist = new ArrayDeque<>();
+    waitlist.offer(pEntry);
     while (!waitlist.isEmpty()) {
       CFANode current = waitlist.poll();
-      ExpressionTree<AExpression> expressionTree = memo.get(current);
-      if (expressionTree == null) {
-        expressionTree = ExpressionTrees.getFalse();
-        for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current)) {
-          CFANode succ = leavingEdge.getSuccessor();
-          ExpressionTree<AExpression> succTree = memo.get(succ);
-          if (ExpressionTrees.getFalse().equals(succTree)) {
-            continue;
-          }
 
-          // Handle the return statement: Returning 0 means false, 1 means true
-          if (leavingEdge instanceof AReturnStatementEdge) {
-            AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) leavingEdge;
-            Optional<? extends AExpression> optExpression = returnStatementEdge.getExpression();
-            assert optExpression.isPresent();
-            if (!optExpression.isPresent()) {
-              return ExpressionTrees.getTrue();
-            }
-            AExpression expression = optExpression.get();
-            if (!(expression instanceof AIntegerLiteralExpression)) {
-              return ExpressionTrees.getTrue();
-            }
-            AIntegerLiteralExpression literal = (AIntegerLiteralExpression) expression;
-            if (literal.getValue().equals(BigInteger.ZERO)) {
-              succTree = ExpressionTrees.getFalse();
-            }
-          }
+      // Current tree is already complete in this location
+      ExpressionTree<AExpression> currentTree = memo.get(current);
 
-          // Handle normal assume edges
-          if (leavingEdge instanceof AssumeEdge) {
-            AssumeEdge assumeEdge = (AssumeEdge) leavingEdge;
-            AExpression expression = assumeEdge.getExpression();
-            if (assumeEdge.getTruthAssumption() && !expression.toString().contains("__CPAchecker_TMP")) {
-              succTree =
-                  And.of(succTree, LeafExpression.of(expression, assumeEdge.getTruthAssumption()));
-            }
-          }
+      // Compute successor trees
+      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current)) {
 
-          // Handle the case that a temporary variable occurred in an assumption
-          Map<AExpression, AExpression> cpacheckerTMPValues =
-              collectCPAcheckerTMPValues(leavingEdge);
-          if (!cpacheckerTMPValues.isEmpty()) {
-            ExpressionTree<AExpression> intermediateTree = ExpressionTrees.getFalse();
-            for (CFAEdge succLeavingEdge : CFAUtils.leavingEdges(succ)) {
-              if (succLeavingEdge instanceof AssumeEdge) {
-                AssumeEdge assumeEdge = (AssumeEdge) succLeavingEdge;
-                AExpression expression =
-                    replaceCPAcheckerTMPVariables(assumeEdge.getExpression(), cpacheckerTMPValues);
-                if (!expression.toString().contains("__CPAchecker_TMP")) {
-                  ExpressionTree<AExpression> succSuccTree = memo.get(succLeavingEdge.getSuccessor());
-                  if (assumeEdge.getTruthAssumption()) {
-                    succSuccTree = And.of(
-                        succSuccTree,
-                        LeafExpression.of(expression, assumeEdge.getTruthAssumption()));
-                  }
-                  intermediateTree = Or.of(intermediateTree, succSuccTree);
-                }
-              }
-            }
-            succTree = intermediateTree;
-          }
-          expressionTree = Or.of(expressionTree, succTree);
+        CFANode succ = leavingEdge.getSuccessor();
+
+        // Get the tree currently stored for the successor
+        ExpressionTree<AExpression> succTree = memo.get(succ);
+        if (succTree == null) {
+          succTree = ExpressionTrees.getFalse();
         }
-        memo.put(current, simplifier.simplify(expressionTree));
 
-        // Compute nodes than can be handled next
-        for (CFANode predecessor : CFAUtils.predecessorsOf(current)) {
-          if (!memo.containsKey(predecessor) && memo.keySet().containsAll(CFAUtils.successorsOf(predecessor).toList())) {
-            waitlist.offer(predecessor);
+        // Now, build the disjunction of the old tree with the new path
+
+        // Handle the return statement: Returning 0 means false, 1 means true
+        if (leavingEdge instanceof AReturnStatementEdge) {
+          AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) leavingEdge;
+          Optional<? extends AExpression> optExpression = returnStatementEdge.getExpression();
+          assert optExpression.isPresent();
+          if (!optExpression.isPresent()) {
+            return ExpressionTrees.getTrue();
           }
+          AExpression expression = optExpression.get();
+          if (!(expression instanceof AIntegerLiteralExpression)) {
+            return ExpressionTrees.getTrue();
+          }
+          AIntegerLiteralExpression literal = (AIntegerLiteralExpression) expression;
+          // If the value is zero, the current path is 'false', so we do not add it.
+          // If the value is one, we add the current path
+          if (!literal.getValue().equals(BigInteger.ZERO)) {
+            succTree = factory.or(succTree, currentTree);
+          }
+
+          // Handle assume edges
+        } else if (leavingEdge instanceof AssumeEdge) {
+          AssumeEdge assumeEdge = (AssumeEdge) leavingEdge;
+          AExpression expression = assumeEdge.getExpression();
+
+          if (expression.toString().contains("__CPAchecker_TMP")) {
+            for (CFAEdge enteringEdge : CFAUtils.enteringEdges(current)) {
+              Map<AExpression, AExpression> tmpVariableValues =
+                  collectCPAcheckerTMPValues(enteringEdge);
+              if (!tmpVariableValues.isEmpty()) {
+                expression =
+                    replaceCPAcheckerTMPVariables(assumeEdge.getExpression(), tmpVariableValues);
+              }
+              final ExpressionTree<AExpression> newPath;
+              if (assumeEdge.getTruthAssumption()
+                  && !expression.toString().contains("__CPAchecker_TMP")) {
+                newPath =
+                    factory.and(
+                        currentTree, factory.leaf(expression, assumeEdge.getTruthAssumption()));
+              } else {
+                newPath = currentTree;
+              }
+              succTree = factory.or(succTree, newPath);
+            }
+          } else {
+            final ExpressionTree<AExpression> newPath;
+            if (assumeEdge.getTruthAssumption()) {
+              newPath =
+                  factory.and(
+                      currentTree, factory.leaf(expression, assumeEdge.getTruthAssumption()));
+            } else {
+              newPath = currentTree;
+            }
+            succTree = factory.or(succTree, newPath);
+          }
+          // All other edges do not change the path
+        } else {
+          succTree = factory.or(succTree, currentTree);
+        }
+
+        memo.put(succ, succTree);
+      }
+
+      // Prepare successors
+      for (CFANode successor : CFAUtils.successorsOf(current)) {
+        if (CFAUtils.predecessorsOf(successor).allMatch(Predicates.in(ready))
+            && ready.add(successor)) {
+          waitlist.offer(successor);
         }
       }
     }
-    return memo.get(pNode);
+    return simplifier.simplify(memo.get(pEntry.getExitNode()));
   }
 
   private AExpression replaceCPAcheckerTMPVariables(
