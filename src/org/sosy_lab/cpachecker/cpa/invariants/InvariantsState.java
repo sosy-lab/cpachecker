@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaCompoundStateEvalua
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaDepthCountVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaEvaluationVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormulaManager;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.IsLinearVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.PartialEvaluator;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.PushAssumptionToEnvironmentVisitor;
@@ -83,7 +84,6 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.Variable;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.VariableSelection;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -477,44 +477,12 @@ public class InvariantsState implements AbstractState,
     Variable<CompoundInterval> variable = InvariantsFormulaManager.INSTANCE.asVariable(
         bitVectorInfo,
         pMemoryLocation);
-    ContainsVarVisitor<CompoundInterval> containsVarVisitor = new ContainsVarVisitor<>();
 
     // Optimization: If the value being assigned is equivalent to the value already stored, do nothing
     if (getEnvironmentValue(bitVectorInfo, pMemoryLocation).equals(pValue)
         && (pValue instanceof Variable<?> || pValue instanceof Constant<?> && ((Constant<CompoundInterval>) pValue).getValue().isSingleton())
         || variable.accept(new StateEqualsVisitor(getFormulaResolver(), this.environment, compoundIntervalManagerFactory), pValue)) {
       return this;
-    }
-
-    // Avoid self-assignments if an equivalent alternative is available
-    if (pValue.accept(containsVarVisitor, pMemoryLocation)) {
-      NumeralFormula<CompoundInterval> varValue = environment.get(pMemoryLocation);
-      boolean isVarValueConstant = varValue instanceof Constant && ((Constant<CompoundInterval>) varValue).getValue().isSingleton();
-      NumeralFormula<CompoundInterval> alternative = varValue;
-      if (!(alternative instanceof Variable)) {
-        alternative = null;
-        for (Map.Entry<MemoryLocation, NumeralFormula<CompoundInterval>> entry : environment.entrySet()) {
-          NumeralFormula<CompoundInterval> value = entry.getValue();
-          if (!entry.getKey().equals(pMemoryLocation)
-              && (value.equals(variable) || isVarValueConstant && value.equals(varValue))) {
-            alternative = InvariantsFormulaManager.INSTANCE.asVariable(bitVectorInfo, entry.getKey());
-            break;
-          }
-        }
-      }
-      if (alternative != null) {
-        pValue = pValue.accept(new ReplaceVisitor<>(variable, alternative));
-      }
-      CompoundInterval value = pValue.accept(evaluationVisitor, environment);
-      if (value.isSingleton()) {
-        for (Map.Entry<MemoryLocation, NumeralFormula<CompoundInterval>> entry : environment.entrySet()) {
-          NumeralFormula<CompoundInterval> v = entry.getValue();
-          if (v instanceof Constant && value.equals(((Constant<CompoundInterval>) v).getValue())) {
-            pValue = InvariantsFormulaManager.INSTANCE.asVariable(bitVectorInfo, entry.getKey());
-            break;
-          }
-        }
-      }
     }
 
     // Compute the assignment
@@ -526,7 +494,7 @@ public class InvariantsState implements AbstractState,
     return result;
   }
 
-  private InvariantsState assignInternal(MemoryLocation pMemoryLocation, NumeralFormula<CompoundInterval> pValue,
+  private InvariantsState assignInternal(final MemoryLocation pMemoryLocation, NumeralFormula<CompoundInterval> pValue,
       VariableSelection<CompoundInterval> newVariableSelection,
       FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor) {
     NonRecursiveEnvironment resultEnvironment = this.environment;
@@ -544,6 +512,13 @@ public class InvariantsState implements AbstractState,
         pMemoryLocation);
     NumeralFormula<CompoundInterval> previousValue = getEnvironmentValue(bitVectorInfo, pMemoryLocation);
     ReplaceVisitor<CompoundInterval> replaceVisitor = new ReplaceVisitor<>(variable, previousValue);
+    resultEnvironment = resultEnvironment.putAndCopy(pMemoryLocation, pValue.accept(replaceVisitor).accept(partialEvaluator, evaluationVisitor));
+    if (pValue.accept(new IsLinearVisitor<CompoundInterval>(), variable) && pValue.accept(containsVarVisitor, pMemoryLocation)) {
+      CompoundInterval zero = compoundIntervalManagerFactory.createCompoundIntervalManager(bitVectorInfo).singleton(0);
+      previousValue = pValue.accept(new ReplaceVisitor<>(variable, InvariantsFormulaManager.INSTANCE.asConstant(bitVectorInfo, zero)));
+      previousValue = compoundIntervalFormulaManager.subtract(variable, previousValue);
+    }
+    replaceVisitor = new ReplaceVisitor<>(variable, previousValue);
 
     for (Map.Entry<MemoryLocation, NumeralFormula<CompoundInterval>> environmentEntry : this.environment.entrySet()) {
       if (!environmentEntry.getKey().equals(pMemoryLocation)) {
@@ -555,7 +530,6 @@ public class InvariantsState implements AbstractState,
         }
       }
     }
-    resultEnvironment = resultEnvironment.putAndCopy(pMemoryLocation, pValue.accept(replaceVisitor).accept(partialEvaluator, evaluationVisitor));
     return new InvariantsState(newVariableSelection, compoundIntervalManagerFactory, machineModel, abstractionState, resultEnvironment, variableTypes, overflowDetected, includeTypeInformation);
   }
 
@@ -938,10 +912,11 @@ public class InvariantsState implements AbstractState,
     final Set<MemoryLocation> memoryLocations;
     final boolean fullState = exportFullState(pReferenceNode);
     if (!fullState) {
-      memoryLocations = Sets.newHashSet();
+      /*memoryLocations = Sets.newHashSet();
       for (CFAEdge edge : CFAUtils.enteringEdges(pReferenceNode)) {
         memoryLocations.addAll(edgeAnalyzer.getInvolvedVariableTypes(edge).keySet());
-      }
+      }*/
+      return ExpressionTrees.getTrue();
     } else {
       memoryLocations = Collections.emptySet();
     }
@@ -1054,11 +1029,15 @@ public class InvariantsState implements AbstractState,
     if (pReferenceNode instanceof FunctionEntryNode) {
       return true;
     }
+    FluentIterable<AssumeEdge> enteringAssumeEdges = CFAUtils.enteringEdges(pReferenceNode).filter(AssumeEdge.class);
+    if (enteringAssumeEdges.isEmpty()) {
+      return false;
+    }
     Queue<CFANode> waitlist = Queues.newArrayDeque();
     Set<CFANode> visited = Sets.newHashSet();
     waitlist.offer(pReferenceNode);
     visited.add(pReferenceNode);
-    for (CFAEdge assumeEdge : CFAUtils.enteringEdges(pReferenceNode).filter(AssumeEdge.class)) {
+    for (CFAEdge assumeEdge : enteringAssumeEdges) {
       if (visited.add(assumeEdge.getPredecessor())) {
         waitlist.offer(assumeEdge.getPredecessor());
       }
@@ -1073,17 +1052,12 @@ public class InvariantsState implements AbstractState,
 
             @Override
             public boolean apply(CFAEdge pEdge) {
-              return AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge);
+              return !(pEdge instanceof AssumeEdge);
             }
           };
       for (CFAEdge enteringEdge : CFAUtils.enteringEdges(current).filter(epsilonEdge)) {
         if (visited.add(enteringEdge.getPredecessor())) {
           waitlist.offer(enteringEdge.getPredecessor());
-        }
-      }
-      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current).filter(epsilonEdge)) {
-        if (visited.add(leavingEdge.getSuccessor())) {
-          waitlist.offer(leavingEdge.getSuccessor());
         }
       }
     }
