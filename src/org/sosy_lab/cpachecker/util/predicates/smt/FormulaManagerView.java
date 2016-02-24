@@ -826,10 +826,16 @@ public class FormulaManagerView {
   }
 
   public QuantifiedFormulaManagerView getQuantifiedFormulaManager() {
+    if (quantifiedFormulaManager == null) {
+      throw new UnsupportedOperationException("Solver does not support quantification");
+    }
     return quantifiedFormulaManager;
   }
 
   public ArrayFormulaManagerView getArrayFormulaManager() {
+    if (arrayFormulaManager == null) {
+      throw new UnsupportedOperationException("Solver does not support arrays");
+    }
     return arrayFormulaManager;
   }
 
