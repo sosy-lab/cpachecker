@@ -1753,12 +1753,19 @@ cpa.slicing.ignoreFunctionCallsInLoop = false
 # Perform light quantifier elimination on intermediate variables
 cpa.slicing.performLightQE = false
 
+# Strategy for abstracting children during CEX weakening
+cpa.slicing.removalSelectionStrategy = FIRST
+  enum:     [ALL, FIRST, RANDOM, LEAST_REMOVALS]
+
 # Use formula slicing based on counterexamples.
 cpa.slicing.runCounterexampleBasedSlicing = false
 
 # Run destructive formula slicing, which starts with an unsatisfiable set and
 # tries to add elements to it, making sure it stays unsatisfiable.
 cpa.slicing.runDestructiveSlicing = true
+
+# Factorization weakening strategy
+cpa.slicing.runFactorizationStrategy = false
 
 # Use syntactic formula slicing, which uses only the syntactic structure of
 # the formula and does not involve any calls to the SMT solver.
@@ -2381,7 +2388,7 @@ pcc.partial.enableLoadDistribution = false
 pcc.partial.stopAddingAtReachedSetSize = false
 
 # Evaluation function to determine exploration order of best-first-search
-pcc.partitioning.bestfirst.evaluationFunction = BREADTH_FIRST
+pcc.partitioning.bestfirst.evaluationFunction = BEST_IMPROVEMENT_FIRST
   enum:     [BEST_IMPROVEMENT_FIRST, BREADTH_FIRST, DEPTH_FIRST]
 
 # Balance criterion for pairwise optimization of partitions
