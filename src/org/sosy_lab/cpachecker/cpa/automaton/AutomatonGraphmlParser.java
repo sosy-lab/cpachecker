@@ -837,7 +837,7 @@ public class AutomatonGraphmlParser {
       if (!scope.isGlobalScope()) {
         String functionName = scope.getCurrentFunctionName();
         FunctionEntryNode head = cfa.getFunctionHead(functionName);
-        if (head.getReturnVariable().isPresent()) {
+        if (head != null && head.getReturnVariable().isPresent()) {
           assumeCode =
               assumeCode.replace(
                   " \\result ", " " + head.getReturnVariable().get().getName() + " ");
