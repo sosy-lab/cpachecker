@@ -93,6 +93,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
+import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
@@ -475,6 +476,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
   private static void extractCandidatesFromReachedSet(final ShutdownManager pShutdownManager,
       final Set<CandidateInvariant> candidates,
       final Multimap<String, CFANode> candidateGroupLocations, ReachedSet reachedSet) {
+    Set<ExpressionTreeLocationInvariant> expressionTreeLocationInvariants = Sets.newHashSet();
+    Map<String, ExpressionTree<AExpression>> expressionTrees = Maps.newHashMap();
     Set<CFANode> visited = Sets.newHashSet();
     Multimap<CFANode, ExpressionTreeLocationInvariant> potentialAdditionalCandidates =
         HashMultimap.create();
@@ -491,11 +494,16 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
         String groupId = automatonState.getInternalStateName();
         candidateGroupLocations.putAll(groupId, locations);
         if (!candidate.equals(ExpressionTrees.getTrue())) {
+          ExpressionTree<AExpression> previous = expressionTrees.get(groupId);
+          if (previous == null) {
+            previous = ExpressionTrees.getTrue();
+          }
+          expressionTrees.put(groupId, And.of(previous, candidate));
           for (CFANode location : locations) {
             potentialAdditionalCandidates.removeAll(location);
-            CandidateInvariant candidateInvariant =
+            ExpressionTreeLocationInvariant candidateInvariant =
                 new ExpressionTreeLocationInvariant(groupId, location, candidate, toCodeVisitorCache);
-            candidates.add(candidateInvariant);
+            expressionTreeLocationInvariants.add(candidateInvariant);
             // Check if there are any leaving return edges:
             // The predecessors are also potential matches for the invariant
             for (FunctionReturnEdge returnEdge :
@@ -519,9 +527,15 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
             potentialCandidates.getValue()) {
           candidateGroupLocations.put(
               candidateInvariant.getGroupId(), potentialCandidates.getKey());
-          candidates.add(candidateInvariant);
+          expressionTreeLocationInvariants.add(candidateInvariant);
         }
       }
+    }
+    for (ExpressionTreeLocationInvariant expressionTreeLocationInvariant : expressionTreeLocationInvariants) {
+      candidates.add(new ExpressionTreeLocationInvariant(
+          expressionTreeLocationInvariant.getGroupId(),
+          expressionTreeLocationInvariant.getLocation(),
+          expressionTrees.get(expressionTreeLocationInvariant.getGroupId())));
     }
   }
 
