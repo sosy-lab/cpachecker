@@ -154,6 +154,14 @@ public class WeightedGraph {
 
   }
 
+  public Set<WeightedNode> getNeighbors(WeightedNode node){
+    return getNeighbors(node.getNodeNumber());
+  }
+  public Set <WeightedNode> getNeighbors(int node){
+    Set<WeightedNode> neighbors=getSuccessors(node);
+    neighbors.addAll(getPredecessors(node));
+    return neighbors;
+  }
 
 
 
@@ -178,8 +186,31 @@ public class WeightedGraph {
     return numNodes;
   }
 
+  public Set<WeightedEdge> getOutgoingEdges(WeightedNode node) {
+    return getOutgoingEdges(node.getNodeNumber());
+  }
 
+  public Set<WeightedEdge> getOutgoingEdges(int node) {
+    Set<WeightedEdge> edges = outgoingEdges.get(node);
+    if (edges != null) {
+      return edges;
+    } else {
+      return new HashSet<>(0);
+    }
+  }
 
+  public Set<WeightedEdge> getIncomingEdges(WeightedNode node) {
+    return getIncomingEdges(node.getNodeNumber());
+  }
+
+  public Set<WeightedEdge> getIncomingEdges(int node) {
+    Set<WeightedEdge> edges = incomingEdges.get(node);
+    if (edges != null) {
+      return edges;
+    } else {
+      return new HashSet<>(0);
+    }
+  }
 
 
 

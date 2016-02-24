@@ -40,7 +40,8 @@ public class GraphPartitionerFactory {
     BFS,
     OPTIMAL,
     BEST_FIRST,
-    FM
+    FM,
+    FM_K_WAY
   }
 
   public static BalancedGraphPartitioner createPartitioner(
@@ -59,6 +60,8 @@ public class GraphPartitionerFactory {
       return new BestFirstWeightedBalancedGraphPartitioner(pConfig, pLogger, pShutdownNotifier);
     case FM:
       return new FiducciaMattheysesBalancedGraphPartitioner(pConfig, pLogger, pShutdownNotifier);
+    case FM_K_WAY:
+      return new FiducciaMattheysesKWayBalancedGraphPartitioner(pConfig, pLogger, pShutdownNotifier);
     default: // RANDOM
       return new RandomBalancedGraphPartitioner();
     }

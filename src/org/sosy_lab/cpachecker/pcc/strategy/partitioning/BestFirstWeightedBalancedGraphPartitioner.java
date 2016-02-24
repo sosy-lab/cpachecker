@@ -136,7 +136,7 @@ public class BestFirstWeightedBalancedGraphPartitioner implements BalancedGraphP
   @Override
   public List<Set<Integer>> computePartitioning(int pNumPartitions,
       PartialReachedSetDirectedGraph pGraph) throws InterruptedException {
-
+    //TODO: If only one partition ==> special case, no lazy computations
     WeightedGraph wGraph = new WeightedGraph(pGraph); //Transform into weighted graph
 
     BitSet inPartition = new BitSet(wGraph.getNumNodes()); //Indicates whether node already in a partition
