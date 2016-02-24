@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -425,6 +424,7 @@ class KInductionProver implements AutoCloseable {
     ProverEnvironment prover = getProver();
     int numberOfSuccessfulProofs = 0;
     stats.inductionPreparation.stop();
+    push(loopHeadInv); // Assert the known invariants
     for (CandidateInvariant candidateInvariant : candidateInvariants) {
 
       // Obtain the predecessor assertion created earlier
@@ -441,7 +441,6 @@ class KInductionProver implements AutoCloseable {
       stats.inductionCheck.start();
 
       // Try to prove the invariance of the assertion
-      push(loopHeadInv); // Assert the known invariants
       push(predecessorAssertion); // Assert the formula we want to prove at the predecessors
       push(successorViolation); // Assert that the formula is violated at a successor
 
@@ -455,8 +454,15 @@ class KInductionProver implements AutoCloseable {
       // Re-attempt the proof immediately, if new invariants are available
       BooleanFormula oldInvariants = invariants;
       BooleanFormula currentInvariants = getCurrentLoopHeadInvariants(stopLocations);
+      boolean newInvariants = false;
       while (!isInvariant && !currentInvariants.equals(oldInvariants)) {
-        push(fmgr.instantiate(currentInvariants, SSAMap.emptySSAMap().withDefault(1)));
+        invariants = getCurrentLoopHeadInvariants(stopLocations);
+        loopHeadInv = bfmgr.and(from(BMCHelper.assertAt(loopHeadStates, invariants, fmgr)).toList());
+        for (CandidateInvariant ci : confirmedCandidates) {
+          loopHeadInv = bfmgr.and(loopHeadInv, ci.getAssertion(reached, fmgr, pfmgr));
+        }
+        newInvariants = true;
+        push(loopHeadInv);
         isInvariant = prover.isUnsat();
 
         if (!isInvariant && logger.wouldBeLogged(Level.ALL)) {
@@ -480,11 +486,22 @@ class KInductionProver implements AutoCloseable {
       }
       pop(); // Pop invariant successor violation
       pop(); // Pop invariant predecessor assertion
-      pop(); // Pop loop head invariants
+      if (isInvariant) {
+        // Add confirmed candidate
+        loopHeadInv = bfmgr.and(loopHeadInv, candidateInvariant.getAssertion(reached, fmgr, pfmgr));
+        newInvariants = true;
+      }
+      // Update invariants if required
+      if (newInvariants) {
+        pop();
+        push(loopHeadInv);
+      }
       stats.inductionCheck.stop();
 
       logger.log(Level.FINER, "Soundness after induction check:", isInvariant);
     }
+
+    pop(); // Pop loop head invariants
 
     return numberOfSuccessfulProofs == candidateInvariants.size();
   }
