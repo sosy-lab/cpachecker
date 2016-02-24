@@ -281,8 +281,9 @@ public class InductiveWeakeningManager {
       Map<BooleanFormula, BooleanFormula> selectionInfo,
       PathFormula transition) {
     Set<BooleanFormula> out = new HashSet<>();
-    for (BooleanFormula selector : selectionInfo.keySet()) {
-      BooleanFormula atom = selectionInfo.get(selector);
+    for (Entry<BooleanFormula, BooleanFormula> e : selectionInfo.entrySet()) {
+      BooleanFormula selector = e.getKey();
+      BooleanFormula atom = e.getValue();
 
       // Variables which have the SSA index different to the one after the
       // transition.

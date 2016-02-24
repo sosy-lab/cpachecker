@@ -27,7 +27,7 @@ public class InductiveWeakeningStatistics implements Statistics {
     printTimer(out, destructiveWeakeningTime, "Destructive Weakening");
     printTimer(out, cexWeakeningTime, "Counterexample-based Weakening");
     printTimer(out, quantifierEliminationTime, "Light QE");
-    out.printf("# of CEX iterations: %d\n", noCexIterations.get());
+    out.printf("# of CEX iterations: %d%n", noCexIterations.get());
   }
 
   @Override
