@@ -29,13 +29,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedEdge;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedGraph;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedNode;
 
-@Options(prefix = "pcc.partitioning.kwayfm.algorithm")
+//@Options(prefix = "pcc.partitioning.kwayfm.algorithm")
 public class FiducciaMattheysesWeightedKWayAlgorithm {
 
   private final double balanceCriterion;
@@ -44,9 +42,10 @@ public class FiducciaMattheysesWeightedKWayAlgorithm {
   private List<Set<Integer>> actualPartitioning;
   private int[] partitionWeights;
   private int[] nodeToPartition;
-  @Option(
-      secure = true,
-      description = "Local optimization criterion. Minimize the NodeCut of partitions or an approximation of the frameworkspecific overhead")
+
+//  //@Option(
+//      secure = true,
+//      description = "Local optimization criterion. Minimize the NodeCut of partitions or an approximation of the frameworkspecific overhead")
   private OptimizationCriteria optimizationCriterion = OptimizationCriteria.NODECUT;
 
   public enum OptimizationCriteria {
