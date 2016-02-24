@@ -23,9 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import com.google.common.collect.ImmutableSortedSet;
 
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -33,14 +31,14 @@ import org.sosy_lab.solver.api.FunctionDeclaration;
 import org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor;
 import org.sosy_lab.solver.visitors.TraversalProcess;
 
-import com.google.common.collect.ImmutableSortedSet;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 
 public class FormulaMeasuring {
 
   public static class FormulaMeasures {
-    private int trues = 0;
-    private int falses = 0;
     private int conjunctions = 0;
     private int disjunctions = 0;
     private int negations = 0;
@@ -50,9 +48,7 @@ public class FormulaMeasuring {
     public int getAtoms() { return atoms; }
     public int getConjunctions() { return conjunctions; }
     public int getDisjunctions() { return disjunctions; }
-    public int getFalses() { return falses; }
     public int getNegations() { return negations; }
-    public int getTrues() { return trues; }
     public ImmutableSortedSet<String> getVariables() { return ImmutableSortedSet.copyOf(this.variables); }
   }
 
@@ -83,19 +79,6 @@ public class FormulaMeasuring {
 
     @Override
     protected TraversalProcess visitDefault() {
-      return TraversalProcess.CONTINUE;
-    }
-
-    @Override
-    public TraversalProcess visitFalse() {
-      measures.falses++;
-      return TraversalProcess.CONTINUE;
-    }
-
-
-    @Override
-    public TraversalProcess visitTrue() {
-      measures.trues++;
       return TraversalProcess.CONTINUE;
     }
 

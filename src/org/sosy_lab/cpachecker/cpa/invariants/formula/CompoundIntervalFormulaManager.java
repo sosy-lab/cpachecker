@@ -876,7 +876,8 @@ public class CompoundIntervalFormulaManager {
       return InvariantsFormulaManager.INSTANCE.multiply(pToNegate, minusOne);
     }
     // TODO more precise implementation; maybe reintroduce "Negation" as a formula
-    return allPossibleValues(bitVectorInfo);
+    CompoundInterval value = evaluate(pToNegate);
+    return asConstant(bitVectorInfo, cim.negate(value));
   }
 
   private boolean isMinusOne(NumeralFormula<CompoundInterval> pFormula) {

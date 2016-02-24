@@ -169,6 +169,12 @@ public class FormulaManagerView {
     bitvectorFormulaManager = new BitvectorFormulaManagerView(wrappingHandler, rawBitvectorFormulaManager, manager.getBooleanFormulaManager());
     floatingPointFormulaManager = new FloatingPointFormulaManagerView(wrappingHandler, rawFloatingPointFormulaManager);
     integerFormulaManager = new IntegerFormulaManagerView(wrappingHandler, getIntegerFormulaManager0());
+    quantifiedFormulaManager =
+        new QuantifiedFormulaManagerView(
+            wrappingHandler,
+            manager.getQuantifiedFormulaManager(),
+            booleanFormulaManager,
+            integerFormulaManager);
   }
 
   /** Returns the BitvectorFormulaManager or a Replacement based on the Option 'encodeBitvectorAs'. */
@@ -808,14 +814,6 @@ public class FormulaManagerView {
   }
 
   public QuantifiedFormulaManagerView getQuantifiedFormulaManager() {
-    if (quantifiedFormulaManager == null) {
-      quantifiedFormulaManager = new QuantifiedFormulaManagerView(
-          wrappingHandler,
-          manager.getQuantifiedFormulaManager(),
-          booleanFormulaManager,
-          getIntegerFormulaManager()
-      );
-    }
     return quantifiedFormulaManager;
   }
 
@@ -1245,10 +1243,7 @@ public class FormulaManagerView {
       @Override public Boolean visitDefault() {
         return false;
       }
-      @Override public Boolean visitTrue() {
-        return true;
-      }
-      @Override public Boolean visitFalse() {
+      @Override public Boolean visitConstant(boolean constantValue) {
         return true;
       }
       @Override public Boolean visitAtom(BooleanFormula atom, FunctionDeclaration decl) {

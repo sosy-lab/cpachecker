@@ -660,13 +660,8 @@ class JavaBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public BDD visitTrue() {
-      return factory.one();
-    }
-
-    @Override
-    public BDD visitFalse() {
-      return factory.zero();
+    public BDD visitConstant(boolean value) {
+      return value ? factory.one() : factory.zero();
     }
 
     @Override

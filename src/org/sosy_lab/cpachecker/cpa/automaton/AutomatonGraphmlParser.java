@@ -921,6 +921,9 @@ public class AutomatonGraphmlParser {
         for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current)) {
           CFANode succ = leavingEdge.getSuccessor();
           ExpressionTree<AExpression> succTree = memo.get(succ);
+          if (ExpressionTrees.getFalse().equals(succTree)) {
+            continue;
+          }
 
           // Handle the return statement: Returning 0 means false, 1 means true
           if (leavingEdge instanceof AReturnStatementEdge) {
@@ -944,7 +947,7 @@ public class AutomatonGraphmlParser {
           if (leavingEdge instanceof AssumeEdge) {
             AssumeEdge assumeEdge = (AssumeEdge) leavingEdge;
             AExpression expression = assumeEdge.getExpression();
-            if (!expression.toString().contains("__CPAchecker_TMP")) {
+            if (assumeEdge.getTruthAssumption() && !expression.toString().contains("__CPAchecker_TMP")) {
               succTree =
                   And.of(succTree, LeafExpression.of(expression, assumeEdge.getTruthAssumption()));
             }
@@ -961,10 +964,12 @@ public class AutomatonGraphmlParser {
                 AExpression expression =
                     replaceCPAcheckerTMPVariables(assumeEdge.getExpression(), cpacheckerTMPValues);
                 if (!expression.toString().contains("__CPAchecker_TMP")) {
-                  ExpressionTree<AExpression> succSuccTree =
-                      And.of(
-                          memo.get(succLeavingEdge.getSuccessor()),
-                          LeafExpression.of(expression, assumeEdge.getTruthAssumption()));
+                  ExpressionTree<AExpression> succSuccTree = memo.get(succLeavingEdge.getSuccessor());
+                  if (assumeEdge.getTruthAssumption()) {
+                    succSuccTree = And.of(
+                        succSuccTree,
+                        LeafExpression.of(expression, assumeEdge.getTruthAssumption()));
+                  }
                   intermediateTree = Or.of(intermediateTree, succSuccTree);
                 }
               }

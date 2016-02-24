@@ -170,4 +170,8 @@ public class ExpressionTreeLocationInvariant extends AbstractLocationFormulaInva
 
   }
 
+  public CFANode getLocation() {
+    return location;
+  }
+
 }

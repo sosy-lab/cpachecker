@@ -960,24 +960,22 @@ public class ARGPathExporter {
                 return false;
               }
             }
-            // An edge is never redundant if there are different invariants
-            if (!getStateInvariant(pEdge.target).equals(sourceTree)) {
-              return false;
-            }
 
             // An edge is redundant if it is the only leaving edge of a
             // node and it is empty or all its non-assumption contents
             // are summarized by a preceding edge
-            if ((!pEdge.label.hasTransitionRestrictions()
-                        || FluentIterable.from(enteringEdges.get(pEdge.source))
-                            .anyMatch(
-                                new Predicate<Edge>() {
+            boolean hasTransistionRestrictions = pEdge.label.hasTransitionRestrictions();
+            boolean summarizedByPrecedingEdge = FluentIterable.from(enteringEdges.get(pEdge.source))
+                .anyMatch(
+                    new Predicate<Edge>() {
 
-                                  @Override
-                                  public boolean apply(Edge pPrecedingEdge) {
-                                    return pPrecedingEdge.label.summarizes(pEdge.label);
-                                  }
-                                })
+                      @Override
+                      public boolean apply(Edge pPrecedingEdge) {
+                        return pPrecedingEdge.label.summarizes(pEdge.label);
+                      }
+                    });
+            if ((!hasTransistionRestrictions
+                        || summarizedByPrecedingEdge
                         || pEdge.label.keyValues.size() == 1
                             && pEdge.label.keyValues.containsKey(KeyDef.FUNCTIONEXIT))
                     && (leavingEdges.get(pEdge.source).size() == 1)
@@ -1182,7 +1180,7 @@ public class ARGPathExporter {
     private void putStateInvariant(String pStateId, ExpressionTree<Object> pValue) {
       ExpressionTree<Object> prev = stateInvariants.get(pStateId);
       if (prev == null) {
-        stateInvariants.put(pStateId, pValue);
+        stateInvariants.put(pStateId, simplifier.simplify(pValue));
         return;
       }
       ExpressionTree<Object> result = simplifier.simplify(Or.of(prev, pValue));
