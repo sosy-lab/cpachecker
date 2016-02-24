@@ -30,10 +30,12 @@ import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedEdge;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedGraph;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedNode;
 
+@Options(prefix = "pcc.partitioning.kwayfm")
 public class FiducciaMattheysesWeightedKWayAlgorithm {
 
   private final double balanceCriterion;
