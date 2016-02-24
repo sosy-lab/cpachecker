@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedEdge;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedGraph;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedNode;
 
-@Options(prefix = "pcc.partitioning.kwayfm")
+@Options(prefix = "pcc.partitioning.kwayfm.algorithm")
 public class FiducciaMattheysesWeightedKWayAlgorithm {
 
   private final double balanceCriterion;
