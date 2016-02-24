@@ -908,7 +908,6 @@ public class InvariantsState implements AbstractState,
   @Override
   public ExpressionTree<Object> getFormulaApproximation(
       final FunctionEntryNode pFunctionEntryNode, final CFANode pReferenceNode) {
-    EdgeAnalyzer edgeAnalyzer = new EdgeAnalyzer(compoundIntervalManagerFactory, machineModel);
     final Set<MemoryLocation> memoryLocations;
     final boolean fullState = exportFullState(pReferenceNode);
     if (!fullState) {
