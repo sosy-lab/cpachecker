@@ -911,10 +911,6 @@ public class InvariantsState implements AbstractState,
     final Set<MemoryLocation> memoryLocations;
     final boolean fullState = exportFullState(pReferenceNode);
     if (!fullState) {
-      /*memoryLocations = Sets.newHashSet();
-      for (CFAEdge edge : CFAUtils.enteringEdges(pReferenceNode)) {
-        memoryLocations.addAll(edgeAnalyzer.getInvolvedVariableTypes(edge).keySet());
-      }*/
       return ExpressionTrees.getTrue();
     } else {
       memoryLocations = Collections.emptySet();
@@ -1041,19 +1037,18 @@ public class InvariantsState implements AbstractState,
         waitlist.offer(assumeEdge.getPredecessor());
       }
     }
+    Predicate<CFAEdge> epsilonEdge = new Predicate<CFAEdge>() {
+
+          @Override
+          public boolean apply(CFAEdge pEdge) {
+            return !(pEdge instanceof AssumeEdge);
+          }
+        };
     while (!waitlist.isEmpty()) {
       CFANode current = waitlist.poll();
       if (current.isLoopStart()) {
         return true;
       }
-      Predicate<CFAEdge> epsilonEdge =
-          new Predicate<CFAEdge>() {
-
-            @Override
-            public boolean apply(CFAEdge pEdge) {
-              return !(pEdge instanceof AssumeEdge);
-            }
-          };
       for (CFAEdge enteringEdge : CFAUtils.enteringEdges(current).filter(epsilonEdge)) {
         if (visited.add(enteringEdge.getPredecessor())) {
           waitlist.offer(enteringEdge.getPredecessor());
