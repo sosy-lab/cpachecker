@@ -33,6 +33,7 @@ import java.util.Map;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
@@ -109,7 +110,8 @@ public class LoopstatsTransferRelation extends SingleEdgeTransferRelation {
     {
       final Loop leavingLoop = loopExitEdges.get(pCfaEdge);
       if (leavingLoop != null) {
-        return LoopstatsState.createSuccessorForLeavingLoop(pPredState, leavingLoop);
+        LoopstatsState succ = LoopstatsState.createSuccessorForLeavingLoop(pPredState, leavingLoop);
+        return succ;
       }
     }
 
@@ -117,14 +119,18 @@ public class LoopstatsTransferRelation extends SingleEdgeTransferRelation {
       // Such edges may be real loop-exit edges "while () { return; }",
       // but never loop-entry edges.
       // Return here because they might be mis-classified as entry edges.
-      return pPredState;
+
+      // ATTENTION: A 'return' can leave several loops!
+      LoopstatsState succ = LoopstatsState.createSuccessorForFunctionReturn(pPredState, (FunctionReturnEdge) pCfaEdge);
+      return succ;
     }
 
     // We are entering a loop body (edge that leaves a loop head into the loop body)
     {
       final Loop enteringLoop = loopEntryEdges.get(pCfaEdge);
       if (enteringLoop != null) {
-        return LoopstatsState.createSuccessorForEnteringLoopBody(pPredState, enteringLoop, pCfaEdge.getSuccessor());
+        LoopstatsState succ = LoopstatsState.createSuccessorForEnteringLoopBody(pPredState, enteringLoop, pCfaEdge.getSuccessor());
+        return succ;
       }
     }
 

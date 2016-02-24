@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.*;
 import javax.annotation.Nonnull;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
@@ -65,6 +66,10 @@ public class LoopstatsState implements AbstractState {
     return activeLoops.peekHead();
   }
 
+  private Integer peekLoopHeadId() {
+    return enteredOnLoopHeadNodeIds.peekHead();
+  }
+
   public int getDepth() {
     return activeLoops.size();
   }
@@ -81,7 +86,7 @@ public class LoopstatsState implements AbstractState {
     StringBuilder result = new StringBuilder();
     if (peekLoop() != null) {
       result.append("Loop: ");
-      result.append(peekLoop().getLoopHeads());
+      result.append(peekLoop().getLoopHeads() + " @ " + peekLoopHeadId());
       result.append("; iteration: ");
       result.append(getIteration());
       result.append("; nesting: ");
@@ -104,7 +109,8 @@ public class LoopstatsState implements AbstractState {
 
     LoopstatsState other = (LoopstatsState)obj;
     return (this.activeLoops.equals(other.activeLoops))
-        && (this.activeIterations.equals(other.activeIterations));
+        && (this.activeIterations.equals(other.activeIterations)
+        && (this.enteredOnLoopHeadNodeIds.equals(other.enteredOnLoopHeadNodeIds)));
   }
 
   /**
@@ -123,8 +129,12 @@ public class LoopstatsState implements AbstractState {
 
     final LoopstatsState result;
 
-    Loop lastLoop = pPreviousState.peekLoop();
-    if (!pEnteringLoopBody.equals(lastLoop)) {
+    Loop prevLoop = pPreviousState.peekLoop();
+    Integer prevIterations = pPreviousState.activeIterations.peekHead();
+    Integer prevHead = pPreviousState.enteredOnLoopHeadNodeIds.peekHead();
+
+    if (!pEnteringLoopBody.equals(prevLoop)
+        || !Integer.valueOf(pLoopHeadNode.getNodeNumber()).equals(prevHead)) {
 
       // Beginning a new 'instance' of a loop
       result = new LoopstatsState(pPreviousState.statReceiver,
@@ -135,23 +145,10 @@ public class LoopstatsState implements AbstractState {
     } else {
 
       // Another iteration of a loop
-      Integer prevIterations = pPreviousState.activeIterations.peekHead();
-      Integer prevHead = pPreviousState.enteredOnLoopHeadNodeIds.peekHead();
-
-      if (Integer.valueOf(pLoopHeadNode.getNodeNumber()).equals(prevHead)) {
-        // It is only a new iteration if we take the same loop head again...
-        result = new LoopstatsState(pPreviousState.statReceiver,
-            pPreviousState.activeLoops,
-            pPreviousState.activeIterations.getTail().push(prevIterations + 1),
-            pPreviousState.enteredOnLoopHeadNodeIds);
-      } else {
-        // It is a different, nested, loop
-        // TODO: Is this really correct?
-        result = new LoopstatsState(pPreviousState.statReceiver,
-            pPreviousState.activeLoops.push(pEnteringLoopBody),
-            pPreviousState.activeIterations.push(Integer.valueOf(1)),
-            pPreviousState.enteredOnLoopHeadNodeIds.push(pLoopHeadNode.getNodeNumber()));
-      }
+      result = new LoopstatsState(pPreviousState.statReceiver,
+          pPreviousState.activeLoops,
+          pPreviousState.activeIterations.getTail().push(prevIterations + 1),
+          pPreviousState.enteredOnLoopHeadNodeIds);
     }
 
     pPreviousState.statReceiver.signalNewLoopIteration(result.activeLoops, result.getIteration());
@@ -180,7 +177,7 @@ public class LoopstatsState implements AbstractState {
       // No loop iteration. Just taking the exit edge of the loop
       return pPreviousState;
 
-    } else if (pLeavingLoop.equals(activeLoop)) {
+    } else {
       pPreviousState.statReceiver.signalLoopLeftAfter(pPreviousState.activeLoops, pPreviousState.getIteration());
     }
 
@@ -196,6 +193,47 @@ public class LoopstatsState implements AbstractState {
       hashCache = Objects.hashCode(activeLoops, activeIterations, enteredOnLoopHeadNodeIds);
     }
     return hashCache;
+  }
+
+  private static boolean belongsToFunction(Loop pLoop, String pFunction) {
+    if (pLoop == null) {
+      return false;
+    }
+
+    for (CFANode v: pLoop.getLoopHeads()) {
+      if (v.getFunctionName().equals(pFunction)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public static LoopstatsState createSuccessorForFunctionReturn(LoopstatsState pPredState,
+      FunctionReturnEdge pCfaEdge) {
+
+    Preconditions.checkNotNull(pPredState);
+    Preconditions.checkNotNull(pCfaEdge);
+
+    Loop activeLoop = pPredState.peekLoop();
+
+    if (activeLoop == null) {
+      return pPredState;
+    }
+
+    LoopstatsState result = pPredState;
+    final String exitingFunction = pCfaEdge.getPredecessor().getFunctionName();
+
+    while (belongsToFunction(result.peekLoop(), exitingFunction)) {
+      result.statReceiver.signalLoopLeftAfter(result.activeLoops, result.getIteration());
+
+      result = new LoopstatsState(result.statReceiver,
+            result.activeLoops.getTail(),
+            result.activeIterations.getTail(),
+            result.enteredOnLoopHeadNodeIds.getTail());
+    }
+
+    return result;
+
   }
 
 }

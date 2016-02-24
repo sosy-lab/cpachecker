@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.cpa.loopstats;
 
 import java.util.Map;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
@@ -35,6 +37,9 @@ import org.sosy_lab.cpachecker.util.test.TestRunStatisticsParser;
 import com.google.common.collect.ImmutableMap;
 
 public class LoopstatsTest {
+
+  @Rule
+  public Timeout globalTimeout = Timeout.seconds(20); // max 20 seconds per test
 
   @Test
   public void testEncodingOfLdvRule118_Safe() throws Exception {
@@ -89,14 +94,12 @@ public class LoopstatsTest {
     statPA.assertThatNumber("Number of loops").isEqualTo(2);
     statPA.assertThatNumber("Number of loops entered").isAtLeast(2);
     statPA.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(13);
-    statPA.assertThatNumber("Max. nesting of loops").isEqualTo(1);
 
     statBMC.assertThatNumber("Max. unrollings of a loop").isAtMost(14);
     statBMC.assertThatString("Loop with max. unrollings").contains("line 10");
     statBMC.assertThatNumber("Number of loops").isEqualTo(2);
     statBMC.assertThatNumber("Number of loops entered").isAtLeast(2);
     statBMC.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(13);
-    statBMC.assertThatNumber("Max. nesting of loops").isEqualTo(1);
   }
 
   @Test
@@ -217,14 +220,12 @@ public class LoopstatsTest {
     statPA.assertThatNumber("Number of loops").isEqualTo(2);
     statPA.assertThatNumber("Number of loops entered").isAtLeast(2);
     statPA.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(13);
-    statPA.assertThatNumber("Max. nesting of loops").isEqualTo(1);
 
     statBMC.assertThatNumber("Max. unrollings of a loop").isAtMost(14);
     statBMC.assertThatString("Loop with max. unrollings").contains("line 10");
     statBMC.assertThatNumber("Number of loops").isEqualTo(2);
     statBMC.assertThatNumber("Number of loops entered").isAtLeast(2);
     statBMC.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(13);
-    statBMC.assertThatNumber("Max. nesting of loops").isEqualTo(1);
   }
 
   @Test
@@ -244,7 +245,6 @@ public class LoopstatsTest {
     resultsBMC.getCheckerResult().printStatistics(statBMC.getPrintStream());
 
     statPA.assertThatNumber("Max. unrollings of a loop").isAtMost(14);
-    statPA.assertThatString("Loop with max. unrollings").contains("line 10");
     statPA.assertThatNumber("Number of loops").isEqualTo(2);
     statPA.assertThatNumber("Number of loops entered").isAtLeast(2);
     // Actual results might be smaller than expected due to expected result FALSE (if the analysis
@@ -281,14 +281,12 @@ public class LoopstatsTest {
     statPA.assertThatNumber("Number of loops").isEqualTo(2);
     statPA.assertThatNumber("Number of loops entered").isAtLeast(2);
     statPA.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(13);
-    //statPA.assertThatNumber("Max. nesting of loops").isEqualTo(1);
 
     statBMC.assertThatNumber("Max. unrollings of a loop").isAtMost(14);
     statBMC.assertThatString("Loop with max. unrollings").contains("line 13");
     statBMC.assertThatNumber("Number of loops").isEqualTo(2);
     statBMC.assertThatNumber("Number of loops entered").isAtLeast(2);
     statBMC.assertThatNumber("Max. completed unrollings of a loop").isAtLeast(12);
-    //statBMC.assertThatNumber("Max. nesting of loops").isEqualTo(1);
   }
 
   @Test
@@ -327,7 +325,23 @@ public class LoopstatsTest {
     statPA.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(1);
   }
 
+  @Test
+  public void testGoToNestedReturnTrue() throws Exception {
+    final String specFile = "test/config/automata/encode/LDV_118_1a_encode.spc";
+    final String programFile = "test/config/automata/encode/loop_unroll_goto_again_true.c";
 
+    TestResults resultsPA = runWithPredicateAnalysis(specFile, programFile);
+
+    resultsPA.assertIsSafe();
+
+    TestRunStatisticsParser statPA = new TestRunStatisticsParser();
+    resultsPA.getCheckerResult().printStatistics(statPA.getPrintStream());
+
+    statPA.assertThatNumber("Max. unrollings of a loop").isAtMost(1);
+    statPA.assertThatNumber("Number of loops").isEqualTo(1);
+    statPA.assertThatNumber("Number of loops entered").isAtLeast(1);
+    statPA.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(1);
+  }
 
   @Test
   public void testGoToUnrollingFalse() throws Exception {
