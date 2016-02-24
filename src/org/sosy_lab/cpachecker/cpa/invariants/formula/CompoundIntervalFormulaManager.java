@@ -101,7 +101,7 @@ public class CompoundIntervalFormulaManager {
 
   private boolean isDefinitelyFalse(BooleanFormula<CompoundInterval> pFormula) {
     return BooleanConstant.isFalse(pFormula)
-        || isDefinitelyFalse(fromBoolean(BitVectorInfo.from(1, false, true), pFormula));
+        || isDefinitelyFalse(fromBoolean(BitVectorInfo.from(1, false), pFormula));
   }
 
   public boolean isDefinitelyBottom(NumeralFormula<CompoundInterval> pFormula) {
