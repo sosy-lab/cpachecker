@@ -58,6 +58,17 @@ public class FiducciaMattheysesKWayBalancedGraphPartitioner implements BalancedG
     BEST_FIRST
   }
 
+  @Option(
+      secure = true,
+      description = "Local optimization criterion. Minimize the NodeCut of partitions or an approximation of the frameworkspecific overhead")
+  private OptimizationCriteria optimizationCriterion = OptimizationCriteria.NODECUT;
+
+  public enum OptimizationCriteria {
+    //TODO: Framework-specific option, use strategy pattern here
+    EDGECUT,
+    NODECUT
+  }
+
 
   public FiducciaMattheysesKWayBalancedGraphPartitioner(Configuration pConfig, LogManager pLogger,
       ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
@@ -124,7 +135,7 @@ public class FiducciaMattheysesKWayBalancedGraphPartitioner implements BalancedG
       WeightedGraph wGraph, int maxLoad) {
 
     FiducciaMattheysesWeightedKWayAlgorithm fm = new FiducciaMattheysesWeightedKWayAlgorithm(
-        initialPartitioning, balancePrecision, wGraph, maxLoad);
+        initialPartitioning, balancePrecision, wGraph, maxLoad,optimizationCriterion);
     return fm.refinePartitioning();
   }
 

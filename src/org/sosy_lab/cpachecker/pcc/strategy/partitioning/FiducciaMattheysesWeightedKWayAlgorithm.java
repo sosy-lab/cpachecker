@@ -32,8 +32,8 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedEdge;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedGraph;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedNode;
+import org.sosy_lab.cpachecker.pcc.strategy.partitioning.FiducciaMattheysesKWayBalancedGraphPartitioner.OptimizationCriteria;
 
-//@Options(prefix = "pcc.partitioning.kwayfm.algorithm")
 public class FiducciaMattheysesWeightedKWayAlgorithm {
 
   private final double balanceCriterion;
@@ -43,20 +43,12 @@ public class FiducciaMattheysesWeightedKWayAlgorithm {
   private int[] partitionWeights;
   private int[] nodeToPartition;
 
-//  //@Option(
-//      secure = true,
-//      description = "Local optimization criterion. Minimize the NodeCut of partitions or an approximation of the frameworkspecific overhead")
-  private OptimizationCriteria optimizationCriterion = OptimizationCriteria.NODECUT;
-
-  public enum OptimizationCriteria {
-    //TODO: Framework-specific option, use strategy pattern here
-    EDGECUT,
-    NODECUT
-  }
+  private final OptimizationCriteria optimizationCriterion;
 
   public FiducciaMattheysesWeightedKWayAlgorithm(List<Set<Integer>> pInitPartitioning,
-      double pBalanceCriterion, WeightedGraph pWGraph, int pMaxLoad) {
+      double pBalanceCriterion, WeightedGraph pWGraph, int pMaxLoad,OptimizationCriteria opt) {
     super();
+    optimizationCriterion=opt;
     balanceCriterion = pBalanceCriterion;
     wGraph = pWGraph;
     actualPartitioning = pInitPartitioning;
