@@ -71,7 +71,8 @@ public class And<LeafType> extends AbstractExpressionTree<LeafType>
       return true;
     }
     if (pObj instanceof And) {
-      return operands.equals(((And<?>) pObj).operands);
+      And<?> other = (And<?>) pObj;
+      return hashCode == other.hashCode && operands.equals(other.operands);
     }
     return false;
   }
