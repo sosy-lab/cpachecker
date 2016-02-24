@@ -707,7 +707,7 @@ public final class ExpressionTrees {
                       return simplify(Or.of(operands), pExternalKnowledge, pVisitors, pImpliesVisitors);
                     }
 
-                    return And.of(simplify(commonFactsTree, commonFacts, pVisitors, pImpliesVisitors), Or.of(simplifiedOperands));
+                    return And.of(simplify(commonFactsTree, pExternalKnowledge, pVisitors, pImpliesVisitors), Or.of(simplifiedOperands));
                   }
                 }
               }
