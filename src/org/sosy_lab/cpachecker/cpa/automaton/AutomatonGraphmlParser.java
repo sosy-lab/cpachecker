@@ -947,7 +947,7 @@ public class AutomatonGraphmlParser {
           if (leavingEdge instanceof AssumeEdge) {
             AssumeEdge assumeEdge = (AssumeEdge) leavingEdge;
             AExpression expression = assumeEdge.getExpression();
-            if (!expression.toString().contains("__CPAchecker_TMP")) {
+            if (assumeEdge.getTruthAssumption() && !expression.toString().contains("__CPAchecker_TMP")) {
               succTree =
                   And.of(succTree, LeafExpression.of(expression, assumeEdge.getTruthAssumption()));
             }
@@ -964,10 +964,12 @@ public class AutomatonGraphmlParser {
                 AExpression expression =
                     replaceCPAcheckerTMPVariables(assumeEdge.getExpression(), cpacheckerTMPValues);
                 if (!expression.toString().contains("__CPAchecker_TMP")) {
-                  ExpressionTree<AExpression> succSuccTree =
-                      And.of(
-                          memo.get(succLeavingEdge.getSuccessor()),
-                          LeafExpression.of(expression, assumeEdge.getTruthAssumption()));
+                  ExpressionTree<AExpression> succSuccTree = memo.get(succLeavingEdge.getSuccessor());
+                  if (assumeEdge.getTruthAssumption()) {
+                    succSuccTree = And.of(
+                        succSuccTree,
+                        LeafExpression.of(expression, assumeEdge.getTruthAssumption()));
+                  }
                   intermediateTree = Or.of(intermediateTree, succSuccTree);
                 }
               }
