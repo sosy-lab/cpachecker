@@ -77,10 +77,10 @@ public class InductiveWeakeningManager {
   private int destructiveIterationLimit = -1;
 
   @Option(description="Perform light quantifier elimination on intermediate "
-      + "variables")
+      + "variables", secure=true)
   private boolean performLightQE = false;
 
-  @Option(description="Strategy for abstracting children during CEX weakening")
+  @Option(description="Strategy for abstracting children during CEX weakening", secure=true)
   private SELECTION_STRATEGY removalSelectionStrategy = SELECTION_STRATEGY.FIRST;
 
   @Option(description="Factorization weakening strategy", secure=true)
