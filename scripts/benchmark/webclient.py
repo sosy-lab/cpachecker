@@ -584,6 +584,8 @@ class WebInterface:
                         pass
                     elif option == "-disable-java-assertions":
                         params['disableJavaAssertions'] = 'true'
+                    elif option == "-compile":
+                        params['forceCompilation'] = 'true'
                     elif option == "-java":
                         options.append("language=JAVA")
                     elif option == "-32":
