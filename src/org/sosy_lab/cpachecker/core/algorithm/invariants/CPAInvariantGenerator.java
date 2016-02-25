@@ -33,6 +33,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -74,6 +75,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
+import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -92,6 +94,7 @@ import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 /**
  * Class that encapsulates invariant generation by using the CPAAlgorithm
@@ -505,11 +508,27 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     public ExpressionTree<Object> getInvariantFor(CFANode pLocation) {
       ExpressionTree<Object> locationInvariant = ExpressionTrees.getFalse();
 
+      Set<InvariantsState> invStates = Sets.newHashSet();
+
       for (AbstractState locState : lazyLocationMapping.get(pLocation)) {
         ExpressionTree<Object> stateInvariant = ExpressionTrees.getTrue();
 
         for (ExpressionTreeReportingState expressionTreeReportingState :
             AbstractStates.asIterable(locState).filter(ExpressionTreeReportingState.class)) {
+          if (expressionTreeReportingState instanceof InvariantsState) {
+            InvariantsState invState = (InvariantsState) expressionTreeReportingState;
+            boolean skip = false;
+            for (InvariantsState other : invStates) {
+              if (invState.isLessOrEqual(other)) {
+                skip = true;
+                break;
+              }
+            }
+            if (skip) {
+              continue;
+            }
+            invStates.add(invState);
+          }
           stateInvariant =
               And.of(
                   stateInvariant,
