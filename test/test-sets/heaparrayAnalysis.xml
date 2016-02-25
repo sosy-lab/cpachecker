@@ -86,6 +86,12 @@
     <option name="-setprop">solver.solver=PRINCESS</option>
     <option name="-setprop">cpa.predicate.encodeFloatAs=INTEGER</option>
   </rundefinition>
+  <rundefinition name="PRINCESS-heaparray-quantifiers">
+    <option name="-predicateAnalysis-heaparray"/>
+    <option name="-setprop">solver.solver=PRINCESS</option>
+    <option name="-setprop">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="-setprop">cpa.predicate.useQuantifiersOnArrays=true</option>
+  </rundefinition>
   <rundefinition name="PRINCESS-uf">
     <option name="-predicateAnalysis"/>
     <option name="-setprop">solver.solver=PRINCESS</option>
