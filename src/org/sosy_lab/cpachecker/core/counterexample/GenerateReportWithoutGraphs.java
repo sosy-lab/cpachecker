@@ -3,11 +3,14 @@ package org.sosy_lab.cpachecker.core.counterexample;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -126,7 +129,8 @@ public class GenerateReportWithoutGraphs {
     File inputFile = USED_CONFIGURATION_PATH.toFile();
     Map<String, String> config = new HashMap<>();
     String line;
-    try (BufferedReader bufferedConfigReader = new BufferedReader(new FileReader(inputFile))) {
+    try (BufferedReader bufferedConfigReader = new BufferedReader(new InputStreamReader(
+            new FileInputStream(inputFile), Charset.defaultCharset()))) {
       while (null != (line = bufferedConfigReader.readLine())) {
         String[] keyValue = line.split("=", 2);
         config.put(keyValue[0].trim(), keyValue[1].trim());
@@ -136,14 +140,14 @@ public class GenerateReportWithoutGraphs {
           + " reached");
     }
     if(config.containsKey("output.path")){
-      cpaOutDir = config.get("output.path").toString();
+      cpaOutDir = config.get("output.path");
     } else {
       cpaOutDir = "output/";
     }
     if(config.containsKey("analysis.programNames")){
-      String[] sources = config.get("analysis.programNames").toString().split(",");
-      for(int i = 0; i < sources.length; i++){
-        sourceFiles.add(sources[i].trim());
+      String[] sources = config.get("analysis.programNames").split(",");
+      for (String source : sources) {
+        sourceFiles.add(source.trim());
       }
     }
     if(config.containsKey("statistics.file")){
@@ -173,8 +177,10 @@ public class GenerateReportWithoutGraphs {
       outFileName = String.format(OUT_HTML, round);
     }
     File outputFile = OUTPUT_ROOT.resolve(outFileName).toFile();
-    try (BufferedReader bufferedTemplateReader = new BufferedReader(new FileReader(inputFile));
-         BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(outputFile))) {
+    try (BufferedReader bufferedTemplateReader = new BufferedReader(new InputStreamReader(new
+            FileInputStream(inputFile), Charset.defaultCharset()));
+         BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(new 
+                 FileOutputStream(outputFile), Charset.defaultCharset()))) {
       String line;
       while (null != (line = bufferedTemplateReader.readLine())) {
         if (line.contains("CONFIGURATION")) {
@@ -206,7 +212,8 @@ public class GenerateReportWithoutGraphs {
     File file = new File(filePath);
     int iterator = 0;
     if (file.exists() && file.isFile()) {
-      try (BufferedReader bufferedReader = new BufferedReader(new FileReader(file))) {
+      try (BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(
+              new FileInputStream(file), Charset.defaultCharset()))) {
           String line;
           while (null != (line = bufferedReader.readLine())) {
             line = "<pre id=\"statistics-" + iterator + "\">" + line + "</pre>\n";
@@ -227,7 +234,8 @@ public class GenerateReportWithoutGraphs {
     File file = new File(filePath);
     int iterator = 0;
     if (file.exists()) {
-      try (BufferedReader bufferedReader = new BufferedReader(new FileReader(file))) {
+      try (BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(
+              new FileInputStream(file), Charset.defaultCharset()))) {
           String line;
           bufferedWriter.write("<table class=\"sourceContent\" ng-show = \"sourceFileIsSet("
               + sourceFileNumber + ")\">\n");
@@ -251,7 +259,8 @@ public class GenerateReportWithoutGraphs {
       throws IOException {
     File file = new File(filePath);
     if (file.exists() && file.isFile()) {
-      try (BufferedReader bufferedReader = new BufferedReader(new FileReader(file))) {
+      try (BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(
+              new FileInputStream(file), Charset.defaultCharset()))) {
           String line;
           int iterator = 0;
           while (null != (line = bufferedReader.readLine())) {
@@ -272,7 +281,8 @@ public class GenerateReportWithoutGraphs {
     File file = new File(filePath);
     int iterator = 0;
     if (file.exists() && file.isFile()) {
-      try (BufferedReader bufferedReader = new BufferedReader(new FileReader(file))) {
+      try (BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(
+              new FileInputStream(file), Charset.defaultCharset()))) {
           String line;
           while (null != (line = bufferedReader.readLine())) {
             line = "<pre id=\"log-" + iterator + "\">" + line + "</pre>\n";
@@ -298,8 +308,10 @@ public class GenerateReportWithoutGraphs {
       outFileName = String.format(OUT_JS, round);
     }
     File outputFile = OUTPUT_ROOT.resolve(outFileName).toFile();
-    try (BufferedReader bufferedTemplateReader = new BufferedReader(new FileReader(inputFile));
-         BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(outputFile))) {
+    try (BufferedReader bufferedTemplateReader = new BufferedReader(new InputStreamReader(
+            new FileInputStream(inputFile), Charset.defaultCharset()));
+         BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(
+            new FileOutputStream(outputFile), Charset.defaultCharset()))) {
       String line;
       while (null != (line = bufferedTemplateReader.readLine())) {
         if (line.contains("ERRORPATH") && round != -1) {
@@ -328,7 +340,8 @@ public class GenerateReportWithoutGraphs {
   private void insertFCallEdges(String filePath, BufferedWriter bufferedWriter) {
     File inputFile = new File(filePath);
     if (inputFile.exists()) {
-      try (BufferedReader bufferedReader = new BufferedReader(new FileReader(inputFile))) {
+      try (BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(
+              new FileInputStream(inputFile), Charset.defaultCharset()))) {
         String line;
         bufferedWriter.write("var fCallEdges = ");
         while (null != (line = bufferedReader.readLine())) {
@@ -345,7 +358,8 @@ public class GenerateReportWithoutGraphs {
   private void insertCombinedNodesData(String filePath, BufferedWriter bufferedWriter) {
     File inputFile = new File(filePath);
     if (inputFile.exists()) {
-      try (BufferedReader bufferedReader = new BufferedReader(new FileReader(inputFile))) {
+      try (BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(
+              new FileInputStream(inputFile), Charset.defaultCharset()))) {
         String line;
         bufferedWriter.write("var combinedNodes = ");
         while (null != (line = bufferedReader.readLine())) {
@@ -362,7 +376,8 @@ public class GenerateReportWithoutGraphs {
   private void insertCfaInfoData(String filePath, BufferedWriter bufferedWriter) {
     File inputFile = new File(filePath);
     if (inputFile.exists()) {
-      try (BufferedReader bufferedReader = new BufferedReader(new FileReader(inputFile))) {
+      try (BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(
+              new FileInputStream(inputFile), Charset.defaultCharset()))) {
         String line;
         bufferedWriter.write("var cfaInfo = ");
         while (null != (line = bufferedReader.readLine())) {
@@ -379,7 +394,8 @@ public class GenerateReportWithoutGraphs {
   private void insertErrorPathData(String filePath, BufferedWriter bufferedWriter) {
     File inputFile = new File(filePath);
     if (inputFile.exists()) {
-      try (BufferedReader bufferedReader = new BufferedReader(new FileReader(inputFile))) {
+      try (BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(
+              new FileInputStream(inputFile), Charset.defaultCharset()))) {
         String line;
         bufferedWriter.write("var errorPathData = ");
         while (null != (line = bufferedReader.readLine())) {
@@ -421,12 +437,12 @@ public class GenerateReportWithoutGraphs {
     boolean firstFile = true;
     try{
       bufferedWriter.write("var sourceFiles = [");
-      for(int i = 0; i < filePaths.size(); i++){
-        if(firstFile){
-          bufferedWriter.write("\""  + filePaths.get(i) + "\"");
+      for (String filePath : filePaths) {
+        if (firstFile) {
+          bufferedWriter.write("\"" + filePath + "\"");
           firstFile = false;
         } else {
-          bufferedWriter.write(", \""  + filePaths.get(i) + "\"");
+          bufferedWriter.write(", \"" + filePath + "\"");
         }
       }
       bufferedWriter.write("];\n");
