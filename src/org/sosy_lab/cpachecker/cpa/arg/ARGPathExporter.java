@@ -107,11 +107,10 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeType;
-import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
-import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.Simplifier;
 import org.w3c.dom.Element;
 
@@ -183,6 +182,9 @@ public class ARGPathExporter {
   private final Language language;
 
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
+
+  private final ExpressionTreeFactory<Object> factory = ExpressionTrees.newCachingFactory();
+  private final Simplifier<Object> simplifier = ExpressionTrees.newSimplifier(factory);
 
   /**
    * This is a temporary hack to easily obtain specification and verification tasks.
@@ -270,7 +272,7 @@ public class ARGPathExporter {
                         .allocateAssumptionsToEdge(pEdge, concreteState)
                         .getExpStmts()) {
                   stateInvariant =
-                      And.of(
+                      factory.and(
                           stateInvariant,
                           LeafExpression.of((Object) expressionStatement.getExpression()));
                 }
@@ -280,14 +282,14 @@ public class ARGPathExporter {
               for (ExpressionTreeReportingState etrs :
                   AbstractStates.asIterable(state).filter(ExpressionTreeReportingState.class)) {
                 stateInvariant =
-                    And.of(
+                    factory.and(
                         stateInvariant,
                         etrs.getFormulaApproximation(
                             cfa.getFunctionHead(functionName), pEdge.getSuccessor()));
               }
               stateInvariants.add(stateInvariant);
             }
-            ExpressionTree<Object> invariant = Or.of(stateInvariants);
+            ExpressionTree<Object> invariant = factory.or(stateInvariants);
             return invariant;
           }
         });
@@ -356,7 +358,6 @@ public class ARGPathExporter {
     private final GraphType graphType;
 
     private final InvariantProvider invariantProvider;
-    private final Simplifier<Object> simplifier = ExpressionTrees.newSimplifier();
 
     private boolean isFunctionScope = false;
 
@@ -550,7 +551,7 @@ public class ARGPathExporter {
             }
 
             if (!assignments.isEmpty()) {
-              code.add(And.of(
+              code.add(factory.and(
                   FluentIterable.from(assignments)
                   .transform(
                       new Function<AExpressionStatement, ExpressionTree<Object>>() {
@@ -568,7 +569,7 @@ public class ARGPathExporter {
         }
 
         if (graphType != GraphType.PROOF_WITNESS && exportAssumptions && !code.isEmpty()) {
-          ExpressionTree<Object> invariant = Or.of(code);
+          ExpressionTree<Object> invariant = factory.or(code);
           final Function<Object, String> converter =
               new Function<Object, String>() {
 
@@ -1020,9 +1021,9 @@ public class ARGPathExporter {
           && (targetScope == null || targetScope.equals(sourceScope))) {
         ExpressionTree<Object> newTargetTree = ExpressionTrees.getFalse();
         for (Edge e : enteringEdges.get(target)) {
-          newTargetTree = Or.of(newTargetTree, getStateInvariant(e.source));
+          newTargetTree = factory.or(newTargetTree, getStateInvariant(e.source));
         }
-        newTargetTree = simplifier.simplify(And.of(targetTree, newTargetTree));
+        newTargetTree = simplifier.simplify(factory.and(targetTree, newTargetTree));
         stateInvariants.put(target, newTargetTree);
         targetTree = newTargetTree;
       } else if (!ExpressionTrees.getTrue().equals(targetTree)
@@ -1183,7 +1184,7 @@ public class ARGPathExporter {
         stateInvariants.put(pStateId, simplifier.simplify(pValue));
         return;
       }
-      ExpressionTree<Object> result = simplifier.simplify(Or.of(prev, pValue));
+      ExpressionTree<Object> result = simplifier.simplify(factory.or(prev, pValue));
       stateInvariants.put(pStateId, result);
     }
 
@@ -1206,7 +1207,7 @@ public class ARGPathExporter {
       if (other == null) {
         return prev;
       }
-      ExpressionTree<Object> result = simplifier.simplify(Or.of(prev, other));
+      ExpressionTree<Object> result = simplifier.simplify(factory.or(prev, other));
       stateInvariants.put(pStateId, result);
       return result;
     }
