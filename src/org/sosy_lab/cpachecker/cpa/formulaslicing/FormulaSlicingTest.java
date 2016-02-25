@@ -93,12 +93,7 @@ public class FormulaSlicingTest {
         .put("analysis.traversal.useReversePostorder", "true")
         .put("cpa.predicate.ignoreIrrelevantVariables", "false")
 
-//        .put("cpa.slicing.runNewStrategy", "true")
-        .put("cpa.slicing.runDestructiveSlicing", "false")
-        .put("cpa.slicing.runCounterexampleBasedSlicing", "true")
-
-        // TODO: debug
-//        .put("cpa.slicing.performLightQE", "true")
+        .put("cpa.slicing.weakeningStrategy", "cex")
         .put("cpa.slicing.removalSelectionStrategy", "least_removals")
 
         .put("log.consoleLevel", "FINE")

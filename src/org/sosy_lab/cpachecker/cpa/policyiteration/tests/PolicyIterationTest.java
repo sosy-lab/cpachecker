@@ -1,16 +1,16 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration.tests;
 
-import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Map;
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import org.junit.Test;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Integration testing for policy iteration.

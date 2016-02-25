@@ -1,14 +1,14 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.NumeralFormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -23,10 +23,11 @@ import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
 import org.sosy_lab.solver.visitors.TraversalProcess;
 
-import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class FormulaLinearizationManager {
   private final BooleanFormulaManager bfmgr;
@@ -58,62 +59,39 @@ public class FormulaLinearizationManager {
    *  x NOT(EQ(A, B)) => (A > B) \/ (A < B)
    */
   public BooleanFormula linearize(BooleanFormula input) {
-    return bfmgr.visit(new LinearizationManager(
-        fmgr, new HashMap<BooleanFormula, BooleanFormula>()
-    ), input);
+    return bfmgr.visit(new BooleanFormulaTransformationVisitor(fmgr) {
+      @Override
+      public BooleanFormula visitNot(BooleanFormula pOperand) {
+        List<BooleanFormula> split = fmgr.splitNumeralEqualityIfPossible(pOperand);
+
+        // Pattern matching on (NOT (= A B)).
+        if (split.size() == 2) {
+          return bfmgr.or(
+              bfmgr.not(split.get(0)), bfmgr.not(split.get(1))
+          );
+        }
+        return super.visitNot(pOperand);
+      }
+    }, input);
   }
 
   /**
    * Annotate disjunctions with choice variables.
    */
   public BooleanFormula annotateDisjunctions(BooleanFormula input) {
-    return bfmgr.visit(new DisjunctionAnnotationVisitor(fmgr,
-        new HashMap<BooleanFormula, BooleanFormula>()), input);
-  }
-
-  private class LinearizationManager
-      extends BooleanFormulaManagerView.BooleanFormulaTransformationVisitor {
-
-    protected LinearizationManager(
-        FormulaManagerView pFmgr, Map<BooleanFormula, BooleanFormula> pCache) {
-      super(pFmgr, pCache);
-    }
-
-    @Override
-    public BooleanFormula visitNot(BooleanFormula pOperand) {
-      List<BooleanFormula> split = fmgr.splitNumeralEqualityIfPossible(pOperand);
-
-      // Pattern matching on (NOT (= A B)).
-      if (split.size() == 2) {
-        return bfmgr.or(
-            bfmgr.not(split.get(0)), bfmgr.not(split.get(1))
-        );
+    return bfmgr.visit(new BooleanFormulaTransformationVisitor(fmgr) {
+      @Override
+      public BooleanFormula visitOr(List<BooleanFormula> pOperands) {
+        IntegerFormula choiceVar = getFreshVar();
+        List<BooleanFormula> newArgs = new ArrayList<>();
+        for (int i = 0; i < pOperands.size(); i++) {
+          newArgs.add(
+              bfmgr.and(
+                  visitIfNotSeen(pOperands.get(i)), fmgr.makeEqual(choiceVar, ifmgr.makeNumber(i))));
+        }
+        return bfmgr.or(newArgs);
       }
-      return super.visitNot(pOperand);
-    }
-  }
-
-  private class DisjunctionAnnotationVisitor
-      extends BooleanFormulaManagerView.BooleanFormulaTransformationVisitor {
-    // todo: fail fast if the disjunction is inside NOT operator.
-
-    protected DisjunctionAnnotationVisitor(
-        FormulaManagerView pFmgr,
-        Map<BooleanFormula, BooleanFormula> pCache) {
-      super(pFmgr, pCache);
-    }
-
-    @Override
-    public BooleanFormula visitOr(List<BooleanFormula> pOperands) {
-      IntegerFormula choiceVar = getFreshVar();
-      List<BooleanFormula> newArgs = new ArrayList<>();
-      for (int i = 0; i < pOperands.size(); i++) {
-        newArgs.add(
-            bfmgr.and(
-                visitIfNotSeen(pOperands.get(i)), fmgr.makeEqual(choiceVar, ifmgr.makeNumber(i))));
-      }
-      return bfmgr.or(newArgs);
-    }
+    }, input);
   }
 
   private IntegerFormula getFreshVar() {
@@ -173,14 +151,15 @@ public class FormulaLinearizationManager {
       extends BooleanFormulaManagerView.BooleanFormulaTransformationVisitor {
 
     private ReplaceITEVisitor() {
-      super(fmgr, new HashMap<BooleanFormula, BooleanFormula>());
+      super(fmgr);
     }
 
     @Override
     public BooleanFormula visitIfThenElse(
         BooleanFormula pCondition, BooleanFormula pThenFormula, BooleanFormula pElseFormula) {
 
-      if (model.evaluate(pCondition)) {
+      Boolean cond = model.evaluate(pCondition);
+      if (cond != null && cond) {
         return visitIfNotSeen(pThenFormula);
       } else {
         return visitIfNotSeen(pElseFormula);
@@ -224,7 +203,9 @@ public class FormulaLinearizationManager {
           Preconditions.checkState(args.size() == otherArgs.size());
           boolean argsEqual = true;
           for (int i = 0; i<args.size(); i++) {
-            if (!model.evaluate(args.get(i)).equals(model.evaluate(otherArgs.get(i)))) {
+            Object evalA = model.evaluate(args.get(i));
+            Object evalB = model.evaluate(otherArgs.get(i));
+            if (evalA != null && evalB != null && !evalA.equals(evalB)) {
               argsEqual = false;
             }
           }

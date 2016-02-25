@@ -60,7 +60,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   private final IFormulaSlicingManager manager;
   private final MergeOperator mergeOperator;
   private final LoopTransitionFinder loopTransitionFinder;
-  private final InductiveWeakeningStatistics statistics;
+  private final InductiveWeakeningManager inductiveWeakeningManager;
 
   private FormulaSlicingCPA(
       Configuration pConfiguration,
@@ -70,7 +70,6 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   ) throws InvalidConfigurationException {
     pConfiguration.inject(this);
 
-    statistics = new InductiveWeakeningStatistics();
     Solver solver = Solver.create(pConfiguration, pLogger, shutdownNotifier);
     FormulaManagerView formulaManager = solver.getFormulaManager();
     PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(
@@ -85,12 +84,12 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
         pConfiguration, cfa.getLoopStructure().get(), pathFormulaManager, formulaManager, pLogger,
         shutdownNotifier);
 
-    InductiveWeakeningManager pInductiveWeakeningManager =
-        new InductiveWeakeningManager(pConfiguration, formulaManager, solver, pLogger, statistics);
+    inductiveWeakeningManager =
+        new InductiveWeakeningManager(pConfiguration, formulaManager, solver, pLogger);
     manager = new FormulaSlicingManager(
         pConfiguration,
         pathFormulaManager, formulaManager, cfa, loopTransitionFinder,
-        pInductiveWeakeningManager, solver);
+        inductiveWeakeningManager, solver);
     stopOperator = new StopSepOperator(this);
     mergeOperator = this;
   }
@@ -178,7 +177,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   public void collectStatistics(Collection<Statistics> statsCollection) {
     loopTransitionFinder.collectStatistics(statsCollection);
     manager.collectStatistics(statsCollection);
-    statsCollection.add(statistics);
+    inductiveWeakeningManager.collectStatistics(statsCollection);
   }
 
   @Override

@@ -48,7 +48,6 @@ import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.formulaslicing.InductiveWeakeningManager;
-import org.sosy_lab.cpachecker.cpa.formulaslicing.InductiveWeakeningStatistics;
 import org.sosy_lab.cpachecker.cpa.formulaslicing.LoopTransitionFinder;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage.AbstractionNode;
@@ -238,8 +237,7 @@ public class PredicateAbstractionManager {
     solver = pSolver;
 
     if (identifyInductivePredicates && pLoopStructure.isPresent()) {
-      inductiveWeakeningMgr = new InductiveWeakeningManager(config, fmgr, solver, logger,
-          new InductiveWeakeningStatistics());
+      inductiveWeakeningMgr = new InductiveWeakeningManager(config, fmgr, solver, logger);
       loopFinder =
           new LoopTransitionFinder(
               config, pLoopStructure.get(), pfmgr, fmgr, logger, shutdownNotifier);
@@ -768,7 +766,7 @@ public class PredicateAbstractionManager {
       throws SolverException, InterruptedException {
 
     BooleanFormula inductiveSlice =
-        inductiveWeakeningMgr.slice(
+        inductiveWeakeningMgr.findInductiveWeakening(
             pBlockFormula, pLoopFormula, fmgr.getBooleanFormulaManager().makeBoolean(true));
 
     return amgr.makePredicate(fmgr.uninstantiate(inductiveSlice)).getAbstractVariable();
