@@ -559,6 +559,8 @@ class WebInterface:
         # TODO use code from CPAchecker module, it add -stats and sets -timelimit,
         # instead of doing it here manually, too
         options = []
+        specification_texts = []
+        
         if self._tool_name == "CPAchecker":
             options.append("statistics.print=true")
 
@@ -620,7 +622,7 @@ class WebInterface:
                             elif spec_path[-4:] == ".prp":
                                 params['propertyText'] = file_text
                             else:
-                                params['specificationText'] = file_text
+                                specification_texts.append(file_text)
 
                     elif option == "-config":
                         configPath = next(i)
@@ -644,6 +646,7 @@ class WebInterface:
                     break
 
         params['option'] = options
+        params['specificationText'] = specification_texts
         return None
 
     def flush_runs(self):
