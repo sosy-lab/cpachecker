@@ -1035,7 +1035,8 @@ public class ARGPathExporter {
       }
 
       final String newScope;
-      if (ExpressionTrees.isConstant(sourceTree) || sourceScope.equals(targetScope)) {
+      if (ExpressionTrees.isConstant(sourceTree)
+          || Objects.equals(sourceScope, targetScope)) {
         newScope = targetScope;
       } else if (ExpressionTrees.isConstant(targetTree)) {
         newScope = sourceScope;
