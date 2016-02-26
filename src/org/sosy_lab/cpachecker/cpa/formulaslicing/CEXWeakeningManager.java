@@ -77,11 +77,10 @@ public class CEXWeakeningManager {
       InductiveWeakeningStatistics pStatistics,
       Configuration config) throws InvalidConfigurationException {
     config.inject(this);
-    FormulaManagerView fmgr = pFmgr;
     solver = pSolver;
     logger = pLogger;
     statistics = pStatistics;
-    bfmgr = fmgr.getBooleanFormulaManager();
+    bfmgr = pFmgr.getBooleanFormulaManager();
   }
 
   public Set<BooleanFormula> performWeakening(
@@ -113,12 +112,14 @@ public class CEXWeakeningManager {
 
     final Set<BooleanFormula> toAbstract = new HashSet<>(pSelectorsWithIntermediate);
     try (ProverEnvironment env = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-      env.addConstraint(query);
-      env.push();
+      env.push(query);
 
+      // TODO: refactor to use solve-with-assumptions.
+      List<BooleanFormula> selectorConstraints = new ArrayList<>();
       for (BooleanFormula selector : selectionInfo.keySet()) {
-        env.addConstraint(bfmgr.not(selector));
+        selectorConstraints.add(bfmgr.not(selector));
       }
+      env.push(bfmgr.and(selectorConstraints));
 
       logger.log(Level.FINE, "Query = " + query);
 
@@ -135,14 +136,15 @@ public class CEXWeakeningManager {
             logger
         ));
         env.pop();
+        selectorConstraints.clear();
         for (BooleanFormula selector : selectionInfo.keySet()) {
           if (toAbstract.contains(selector)) {
-            env.addConstraint(selector);
+            selectorConstraints.add(selector);
           } else {
-            env.addConstraint(bfmgr.not(selector));
+            selectorConstraints.add(bfmgr.not(selector));
           }
         }
-        env.push();
+        env.push(bfmgr.and(selectorConstraints));
       }
     }
 
