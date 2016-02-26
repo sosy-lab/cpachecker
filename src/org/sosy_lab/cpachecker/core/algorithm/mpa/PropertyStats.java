@@ -61,6 +61,7 @@ public enum PropertyStats implements Statistics {
   private Map<Property, StatCounter> noCoverageCount = Maps.newHashMap();
   private Multimap<Property, AbstractionPredicate> loopRelatedPredicates = HashMultimap.create();
   private Multimap<Property, AbstractionPredicate> loopUnrelatedPredicates = HashMultimap.create();
+  private Multimap<Property, AbstractionPredicate> allPredicates = HashMultimap.create();
 
   public synchronized void clear() {
     refinementCount.clear();
@@ -70,6 +71,7 @@ public enum PropertyStats implements Statistics {
     relevantProperties.clear();
     loopRelatedPredicates.clear();
     loopUnrelatedPredicates.clear();
+    allPredicates.clear();
   }
 
   private final Comparator<Property> propertyRefinementComparator = new Comparator<Property>() {
@@ -266,6 +268,7 @@ public enum PropertyStats implements Statistics {
       boolean pLoopRelated, Set<Property> pPropertiesAtTarget) {
 
     for (Property prop: pPropertiesAtTarget) {
+      allPredicates.put(prop, pPredicate);
       if (pLoopRelated) {
         loopRelatedPredicates.put(prop, pPredicate);
       } else {

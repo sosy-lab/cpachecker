@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpa.PropertyStats;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.NoTimeMeasurement;
@@ -55,6 +56,10 @@ public class DefaultPropertyBudgeting implements PropertyBudgeting {
   @Option(secure=true, name="limit.loopRelatedPrecisionElements",
       description="Disable a property after a specific number of loop-related precision elements is required.")
   private int loopRelatedPrecisionElementsLimit = -1;
+
+  @Option(secure=true, name="limit.refinementsTimesMore",
+      description="Disable a property after it has x times more refinements compared to another property (that has at least one element).")
+  private int refinementsTimesMoreLimit = -1;
 
   @Option(secure=true, name="limit.avgRefineTime",
       description="Disable a property after the avg. time for refinements was exhausted.")
@@ -89,7 +94,7 @@ public class DefaultPropertyBudgeting implements PropertyBudgeting {
     budgetFactor = pBudgetFactor;
   }
 
-  private int maxInfeasibleCexFor(Set<? extends Property> pProperties) {
+  private Pair<Integer, Integer> maxInfeasibleCexFor(Set<? extends Property> pProperties) {
     ARGCPA argCpa = CPAs.retrieveCPA(GlobalInfo.getInstance().getCPA().get(), ARGCPA.class);
     return argCpa.getCexSummary().getMaxInfeasibleCexCountFor(pProperties);
   }
@@ -97,10 +102,23 @@ public class DefaultPropertyBudgeting implements PropertyBudgeting {
   @Override
   public boolean isBudgedExhausted(Property pProperty) {
 
-    int maxInfeasibleCexs = maxInfeasibleCexFor(ImmutableSet.of(pProperty));
+    Pair<Integer, Integer> maxInfeasibleCexs = maxInfeasibleCexFor(ImmutableSet.of(pProperty));
+
+    if (refinementsTimesMoreLimit > 0) {
+      if (maxInfeasibleCexs.getSecond() > 0) {
+        if (maxInfeasibleCexs.getFirst() > 0) {
+          if (refinementsLimit > maxInfeasibleCexs.getFirst()) {
+            float factor = (float) maxInfeasibleCexs.getFirst() / (float) maxInfeasibleCexs.getSecond();
+            if (factor > refinementsTimesMoreLimit) {
+              return true;
+            }
+          }
+        }
+      }
+    }
 
     if (refinementsLimit > 0
-        && maxInfeasibleCexs >= (refinementsLimit * budgetFactor)) {
+        && maxInfeasibleCexs.getFirst() >= (refinementsLimit * budgetFactor)) {
       return true;
     }
 

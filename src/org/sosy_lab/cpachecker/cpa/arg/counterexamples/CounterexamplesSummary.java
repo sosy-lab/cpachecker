@@ -65,6 +65,7 @@ import org.sosy_lab.cpachecker.cpa.coverage.CoverageData;
 import org.sosy_lab.cpachecker.cpa.coverage.CoverageData.CoverageCountMode;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
@@ -113,14 +114,21 @@ public class CounterexamplesSummary implements IterationStatistics {
     });
   }
 
-  public int getMaxInfeasibleCexCountFor(Set<? extends Property> pProperties) {
+  public Pair<Integer, Integer> getMaxInfeasibleCexCountFor(Set<? extends Property> pProperties) {
     int result = Integer.MIN_VALUE;
-    for (Property p : pProperties) {
+    int resultOther = Integer.MIN_VALUE;
+    for (Property p : infeasibleCexFor.elementSet()) {
       int violations = infeasibleCexFor.count(p);
-      result = Math.max(violations, result);
+      if (pProperties.contains(p)) {
+        result = Math.max(violations, result);
+      } else {
+        resultOther = Math.max(violations, resultOther);
+      }
+
     }
-    return result;
+    return Pair.of(result, resultOther);
   }
+
 
   public Multiset<AutomatonInternalState> getFeasibleReachedAcceptingStates() {
     return feasibleReachedAcceptingStates;
