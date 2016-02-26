@@ -108,16 +108,25 @@ public class RelevanceThenIrrelevantThenRelevantOperator extends PartitioningBud
             ImmutableList.of(ImmutableSet.copyOf(irrelevantProperties)));
       } else {
         logger.log(Level.INFO, "Step 2 has been completed");
-        // proceed on the step 3
-      }
 
+        Set<Property> remainingProperties = new HashSet<>();
+        for (Property propertyToCheck : pToCheck) {
+          if (relevantProperties.contains(propertyToCheck)) {
+            remainingProperties.add(propertyToCheck);
+          }
+        }
+
+        if (remainingProperties.size() != 0) {
+          // Step 3 - check all relevant properties
+          logger.logf(Level.INFO, "Step 3 of Relevance algorithm: verify all remaining relevant properties");
+          return create(PartitioningStatus.ONE_FOR_EACH, InfinitePropertyBudgeting.INSTANCE, getPartitionBudgetingOperator(),
+              singletonPartitions(remainingProperties, pPropertyExpenseComparator));
+        }
+      }
     }
 
-
-    // Step 3 - check all relevant properties
-    logger.logf(Level.INFO, "Step 3 of Relevance algorithm: verify all remaining relevant properties");
-    return create(PartitioningStatus.ONE_FOR_EACH, InfinitePropertyBudgeting.INSTANCE, getPartitionBudgetingOperator(),
-        singletonPartitions(pToCheck, pPropertyExpenseComparator));
+    return create(PartitioningStatus.BREAK, InfinitePropertyBudgeting.INSTANCE, getPartitionBudgetingOperator(),
+        ImmutableList.<ImmutableSet<Property>>of());
 
   }
 
