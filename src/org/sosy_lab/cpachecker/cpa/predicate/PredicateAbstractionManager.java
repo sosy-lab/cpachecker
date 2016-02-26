@@ -24,17 +24,28 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Predicates.in;
-import static com.google.common.base.Predicates.not;
+import static com.google.common.base.Predicates.*;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.core.algorithm.bmc.AbstractLocationFormulaInvariant.makeLocationInvariant;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -42,18 +53,24 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.NestedTimer;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.StaticCandidateProvider;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.formulaslicing.InductiveWeakeningManager;
 import org.sosy_lab.cpachecker.cpa.formulaslicing.LoopTransitionFinder;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage.AbstractionNode;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
@@ -73,23 +90,15 @@ import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.api.ProverEnvironment.AllSatCallback;
+import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 
-import java.io.IOException;
-import java.io.Writer;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 @Options(prefix = "cpa.predicate")
 public class PredicateAbstractionManager {
@@ -145,6 +154,11 @@ public class PredicateAbstractionManager {
     ELIMINATION;
   }
 
+  private static enum InductivePredicateStrategy {
+    WEAKENING,
+    CNF_BMC;
+  }
+
   @Option(secure=true, name = "abstraction.cartesian",
       description = "whether to use Boolean (false) or Cartesian (true) abstraction")
   @Deprecated
@@ -184,6 +198,22 @@ public class PredicateAbstractionManager {
   )
   private boolean identifyInductivePredicates = false;
 
+  @Option(
+    secure = true,
+    name = "abstraction.identifyPredicateStrategy",
+    description = "How should the inductive part of the abstractionformula be computed?"
+  )
+  private InductivePredicateStrategy inductivePredicateStrategy =
+      InductivePredicateStrategy.WEAKENING;
+
+  @Option(
+    secure = true,
+    name = "abstraction.bmcConfig",
+    description = "configuration file for checking pathformulas with bmc on inductivity"
+  )
+  @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
+  private Path bmcConfig = Paths.get("config/bmc-invgen.properties");
+
   @Option(secure=true, name = "abstraction.simplify",
       description="Simplify the abstraction formula that is stored to represent the state space. Helpful when debugging (formulas get smaller).")
   private boolean simplifyAbstractionFormula = false;
@@ -212,6 +242,7 @@ public class PredicateAbstractionManager {
 
   private final InductiveWeakeningManager inductiveWeakeningMgr;
   private final LoopTransitionFinder loopFinder;
+  private final CFA cfa;
 
   public PredicateAbstractionManager(
       AbstractionManager pAmgr,
@@ -221,7 +252,7 @@ public class PredicateAbstractionManager {
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      Optional<LoopStructure> pLoopStructure)
+      CFA pCFA)
       throws InvalidConfigurationException, PredicateParsingFailedException {
     shutdownNotifier = pShutdownNotifier;
     config = pConfig;
@@ -235,12 +266,13 @@ public class PredicateAbstractionManager {
     rmgr = amgr.getRegionCreator();
     pfmgr = pPfmgr;
     solver = pSolver;
+    cfa = pCFA;
 
-    if (identifyInductivePredicates && pLoopStructure.isPresent()) {
+    if (identifyInductivePredicates && cfa.getLoopStructure().isPresent()) {
       inductiveWeakeningMgr = new InductiveWeakeningManager(config, fmgr, solver, logger);
       loopFinder =
           new LoopTransitionFinder(
-              config, pLoopStructure.get(), pfmgr, fmgr, logger, shutdownNotifier);
+              config, cfa.getLoopStructure().get(), pfmgr, fmgr, logger, shutdownNotifier);
     } else {
       inductiveWeakeningMgr = null;
       loopFinder = null;
@@ -377,36 +409,28 @@ public class PredicateAbstractionManager {
     }
 
     // compute inductive part of pathformula
-    if (identifyInductivePredicates && inductiveWeakeningMgr != null && location.isLoopStart()) {
-      stats.inductivePredicatesTime.start();
+    if (identifyInductivePredicates) {
       try {
-        Pair<PathFormula, CFANode> cacheKey = Pair.of(pathFormula, location);
-        Region inductivePart;
-        if (inductivePathFormulaPartCache.containsKey(cacheKey)) {
-          inductivePart = inductivePathFormulaPartCache.get(cacheKey);
-          stats.numInductivePathFormulaCacheUsed++;
-
-        } else {
-          PointerTargetSet pts = pathFormula.getPointerTargetSet();
-          PathFormula loopFormula = loopFinder.generateLoopTransition(ssa, pts, location);
-          inductivePart = identifyInductivePathformulaPart(pathFormula, loopFormula);
-
-          assert impliesFormulaInductivePart(pathFormula, inductivePart)
-              : "Pathformula has to imply the inductive part of it";
-
-          inductivePathFormulaPartCache.put(cacheKey, inductivePart);
+        stats.inductivePredicatesTime.start();
+        switch (inductivePredicateStrategy) {
+          case WEAKENING:
+            abs = rmgr.makeAnd(abs, findPredsWithInductiveWeakening(location, pathFormula, ssa));
+            break;
+          case CNF_BMC:
+            abs = rmgr.makeAnd(abs, findPredsWithBMC(location, pathFormula));
+            break;
+          default:
+            throw new AssertionError("Unhandled strategy in switch: " + inductivePredicateStrategy);
         }
-
-        abs = rmgr.makeAnd(abs, inductivePart);
 
         // Calculate the set of predicates we still need to use for abstraction.
         predicates = from(predicates).filter(not(in(amgr.extractPredicates(abs)))).toSet();
 
-      } catch (CPATransferException e) {
+      } catch (
+          InterruptedException | IOException | InvalidConfigurationException | CPAException e) {
         // log the exception and skip finding the inductive part of the pathformula
         logger.logUserException(
             Level.INFO, e, "Skipping finding inductive part of pathformula due to an error.");
-
       } finally {
         stats.inductivePredicatesTime.stop();
       }
@@ -510,6 +534,86 @@ public class PredicateAbstractionManager {
     }
 
     return result;
+  }
+
+  private Region findPredsWithBMC(final CFANode pLocation, PathFormula pPathFormula)
+      throws InterruptedException, IOException, InvalidConfigurationException, CPAException {
+
+    Pair<PathFormula, CFANode> cacheKey = Pair.of(pPathFormula, pLocation);
+
+    if (inductivePathFormulaPartCache.containsKey(cacheKey)) {
+      stats.numInductivePathFormulaCacheUsed++;
+      return inductivePathFormulaPartCache.get(cacheKey);
+    }
+
+    BooleanFormula cnfFormula = fmgr.applyTactic(pPathFormula.getFormula(), Tactic.CNF);
+    Collection<AbstractionPredicate> conjuncts = extractPredicates(cnfFormula);
+    final Map<String, Region> formulaToRegion = new HashMap<>();
+    StaticCandidateProvider candidateGenerator =
+        new StaticCandidateProvider(
+            from(conjuncts)
+                .transform(
+                    new Function<AbstractionPredicate, CandidateInvariant>() {
+                      @Override
+                      public CandidateInvariant apply(AbstractionPredicate pInput) {
+                        String dumpedFormula =
+                            fmgr.dumpFormula(pInput.getSymbolicAtom()).toString();
+                        formulaToRegion.put(dumpedFormula, pInput.getAbstractVariable());
+                        return makeLocationInvariant(pLocation, dumpedFormula);
+                      }
+                    }));
+
+    ReachedSetFactory reached;
+    reached = new ReachedSetFactory(config);
+    ShutdownManager invariantShutdown = ShutdownManager.createWithParent(shutdownNotifier);
+    Configuration invariantConfig = Configuration.builder().loadFromFile(bmcConfig).build();
+    KInductionInvariantGenerator invGen =
+        KInductionInvariantGenerator.create(
+            invariantConfig, logger, invariantShutdown, cfa, reached, candidateGenerator, false);
+
+    invGen.start(cfa.getMainFunction());
+    invGen.get();
+    Set<CandidateInvariant> invariants = candidateGenerator.getConfirmed();
+
+    Region inductivePart = rmgr.makeTrue();
+    for (CandidateInvariant invariant : invariants) {
+      inductivePart = rmgr.makeAnd(inductivePart, formulaToRegion.get(invariant.toString()));
+    }
+    inductivePathFormulaPartCache.put(cacheKey, inductivePart);
+
+    return inductivePart;
+  }
+
+  private Region findPredsWithInductiveWeakening(
+      CFANode location, PathFormula pathFormula, final SSAMap ssa)
+      throws CPATransferException, InterruptedException, SolverException {
+
+    // not all necessary conditions met, skip computation
+    if (inductiveWeakeningMgr == null || !location.isLoopStart()) {
+      logger.log(
+          Level.FINE, "No computation of inductive predicates, condition was not fulfilled.");
+      return rmgr.makeTrue();
+    }
+
+    Pair<PathFormula, CFANode> cacheKey = Pair.of(pathFormula, location);
+
+    // result already cached, do not recompute
+    if (inductivePathFormulaPartCache.containsKey(cacheKey)) {
+      stats.numInductivePathFormulaCacheUsed++;
+      return inductivePathFormulaPartCache.get(cacheKey);
+    }
+
+    // compute inductive weakening of pathformula
+    PointerTargetSet pts = pathFormula.getPointerTargetSet();
+    PathFormula loopFormula = loopFinder.generateLoopTransition(ssa, pts, location);
+    Region inductivePart = identifyInductivePathformulaPart(pathFormula, loopFormula);
+
+    assert impliesFormulaInductivePart(pathFormula, inductivePart)
+        : "Pathformula has to imply the inductive part of it";
+
+    inductivePathFormulaPartCache.put(cacheKey, inductivePart);
+
+    return inductivePart;
   }
 
   private boolean impliesFormulaInductivePart(PathFormula pathFormula, Region inductivePart)

@@ -160,6 +160,11 @@ public abstract class AbstractLocationFormulaInvariant implements LocationFormul
       }
 
       @Override
+      public String toString() {
+        return pInvariant;
+      }
+
+      @Override
       public void assumeTruth(ReachedSet pReachedSet) {
         if (isDefinitelyBooleanFalse) {
           Iterable<AbstractState> targetStates =
