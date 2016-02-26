@@ -322,10 +322,9 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
 
   private Set<Property> remaining(Set<Property> pAll,
       Set<Property> pViolated,
-      Set<Property> pSatisfied,
-      Set<Property> pExhausted) {
+      Set<Property> pSatisfied) {
 
-    return Sets.difference(pAll, Sets.union(Sets.union(pViolated, pSatisfied), pExhausted));
+    return Sets.difference(pAll, Sets.union(pViolated, pSatisfied));
   }
 
   @Override
@@ -480,7 +479,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
                 Sets.union(violated, getInactiveProperties(pReachedSet)));
             satisfied.addAll(active);
 
-            Set<Property> remain = remaining(all, violated, satisfied, exhausted);
+            Set<Property> remain = remaining(all, violated, satisfied);
 
             // On the size of the set 'reached' (assertions and statistics)
             final Integer reachedSetSize = pReachedSet.size();
@@ -506,7 +505,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
           }
 
           // A new partitioning must be computed.
-          Set<Property> remain = remaining(all, violated, satisfied, exhausted);
+          Set<Property> remain = remaining(all, violated, satisfied);
 
           if (remain.isEmpty()) {
             break;
@@ -553,7 +552,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
         //  ... (1) the fixpoint has not been reached
         //  ... (2) or not all properties have been checked so far.
       } while (pReachedSet.hasWaitingState()
-          || remaining(all, violated, satisfied, exhausted).size() > 0 );
+          || remaining(all, violated, satisfied).size() > 0 );
 
       // Compute the overall result:
       //    Violated properties (might have multiple counterexamples)
@@ -562,7 +561,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
       //        (could be derived from the precision of the leaf states)
 
       logger.log(Level.WARNING, String.format("Multi-property analysis terminated: %d violated, %d satisfied, %d unknown",
-          violated.size(), satisfied.size(), remaining(all, violated, satisfied, exhausted).size()));
+          violated.size(), satisfied.size(), remaining(all, violated, satisfied).size()));
 
       return status;
 
