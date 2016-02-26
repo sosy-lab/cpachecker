@@ -41,6 +41,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -54,6 +55,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.PartitioningOperato
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.PartitioningOperator.PartitioningException;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning.CheaperFirstDivideOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning.Partitions;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning.RelevanceThenIrrelevantThenRelevantOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AnalysisCache;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -118,6 +120,22 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
 
   @Option(secure=true, description="Clear the caches of the analysis (CPA) when starting with a new partition.")
   private boolean clearAnalysisCachesOnRestart = false;
+
+  @Option(secure=true, name="time.cpu.relevance.step2",
+      description="Limit for cpu time of one partition in step 2 of Relevance strategy " +
+        "(use seconds or specify a unit; -1 for infinite)")
+  @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
+      defaultUserUnit=TimeUnit.SECONDS,
+      min=-1)
+  private TimeSpan cpuTimeStep2 = TimeSpan.ofNanos(-1); // TODO: implement as Budgeting operator
+
+  @Option(secure=true, name="time.cpu.relevance.step3",
+      description="Limit for cpu time of one partition in step 3 of Relevance strategy " +
+        "(use seconds or specify a unit; -1 for infinite)")
+  @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
+      defaultUserUnit=TimeUnit.SECONDS,
+      min=-1)
+  private TimeSpan cpuTimeStep3 = TimeSpan.ofNanos(-1); // TODO: implement as Budgeting operator
 
   private class MPAStatistics extends AbstractStatistics {
     int numberOfRestarts = 0;
@@ -626,7 +644,20 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
 
       Optional<TimeSpan> partCpuTimeLimit = pBudgeting.getPartitionCpuTimeLimit(pPartitions.getFirstPartition().size());
       if (partCpuTimeLimit.isPresent()) {
-        limits.add(ProcessCpuTimeLimit.fromNowOn(partCpuTimeLimit.get()));
+        if (partitionOperator.getClass().equals(RelevanceThenIrrelevantThenRelevantOperator.class)) {
+          if (pPartitions.getStatus().equals(PartitioningStatus.ALL_IN_ONE)) {
+            limits.add(ProcessCpuTimeLimit.fromNowOn(cpuTimeStep2));
+          }
+          else if (pPartitions.getStatus().equals(PartitioningStatus.ONE_FOR_EACH)) {
+            limits.add(ProcessCpuTimeLimit.fromNowOn(cpuTimeStep3));
+          }
+          else {
+            limits.add(ProcessCpuTimeLimit.fromNowOn(partCpuTimeLimit.get()));
+          }
+        }
+        else {
+          limits.add(ProcessCpuTimeLimit.fromNowOn(partCpuTimeLimit.get()));
+        }
       }
 
       Optional<TimeSpan> partWallTimeLimit = pBudgeting.getPartitionWallTimeLimit(pPartitions.getFirstPartition().size());
