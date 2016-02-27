@@ -41,7 +41,8 @@ public class GraphPartitionerFactory {
     OPTIMAL,
     BEST_FIRST,
     FM,
-    FM_K_WAY
+    FM_K_WAY,
+    MULTILEVEL
   }
 
   public static BalancedGraphPartitioner createPartitioner(
@@ -62,6 +63,8 @@ public class GraphPartitionerFactory {
       return new FiducciaMattheysesBalancedGraphPartitioner(pConfig, pLogger, pShutdownNotifier);
     case FM_K_WAY:
       return new FiducciaMattheysesKWayBalancedGraphPartitioner(pConfig, pLogger, pShutdownNotifier);
+    case MULTILEVEL:
+      return new MultilevelBalancedGraphPartitioner(pConfig, pLogger, pShutdownNotifier);
     default: // RANDOM
       return new RandomBalancedGraphPartitioner();
     }
