@@ -53,6 +53,8 @@ public class MultilevelBalancedGraphPartitioner implements WeightedBalancedGraph
 
   @SuppressWarnings("unused")
   private final Configuration config;
+
+
   //Make this use a local partitioner, global partitioner distinction
   private final PartitioningRefiner refiner;
   private final WeightedBalancedGraphPartitioner globalPartitioner;
@@ -106,7 +108,7 @@ public class MultilevelBalancedGraphPartitioner implements WeightedBalancedGraph
       logger.log(Level.FINE, String.format("Weighted Graph (size: %d) level %d pushed to Stack",
           newGraph.getNumNodes(), level));
     }
-    //Initial Partitioning here
+    //Initial partitioning computed here
     wGraph = levels.pop();
     logger.log(Level.FINE,
         String.format("Weighted Graph (size: %d) popped", wGraph.getNumNodes()));
@@ -124,33 +126,12 @@ public class MultilevelBalancedGraphPartitioner implements WeightedBalancedGraph
   }
 
   /**
-   * compute a matching according to the chosen matching scheme
-   * @param pGraph Graph to be matched
-   * @return a map from the old node to its corresponding new node
-   */
-  @SuppressWarnings("unused")
-  private Map<Integer, Integer> computeMatching(PartialReachedSetDirectedGraph pGraph) {
-    return computeMatching(new WeightedGraph(pGraph));
-  }
-
-  /**
    * Compute a matching according to the chosen matching scheme
    * @param wGraph Weighted graph to be matched
    * @return a map from the old node to its corresponding new node
    */
   private Map<Integer, Integer> computeMatching(WeightedGraph wGraph) {
     return computeRandomMatching(wGraph);
-  }
-
-  /**
-   * Computes a random maximal matching
-   * @param pGraph graph to be matched
-   * @return the computed matching (Matching maps a node to its corresponding new node number!)
-   */
-  @SuppressWarnings("unused")
-  private Map<Integer, Integer> computeRandomMatching(
-      PartialReachedSetDirectedGraph pGraph) {
-    return computeRandomMatching(new WeightedGraph(pGraph));
   }
 
   /**
@@ -196,20 +177,6 @@ public class MultilevelBalancedGraphPartitioner implements WeightedBalancedGraph
     }
     return matching;
   }
-
-  /**
-   * Create a new graph on base of the given matching, i.e. contract edges, compute new node/edge weights
-   * @param matching the matching on which basis graph is created (Matching maps a node to its corresponding new node number!)
-   * @param pGraph graph on which matching is applied
-   * @return the new resulting graph on base of the given matching
-   */
-  @SuppressWarnings("unused")
-  private WeightedGraph createMatchedGraph(Map<Integer, Integer> matching,
-      PartialReachedSetDirectedGraph pGraph) {
-    return createMatchedGraph(matching, new WeightedGraph(pGraph));
-  }
-
-
 
   /**
    * Create a new graph on base of the given matching, i.e. contract edges, compute new node/edge weights
@@ -264,31 +231,6 @@ public class MultilevelBalancedGraphPartitioner implements WeightedBalancedGraph
     int count = new HashSet<>(matching.values()).size();
     return count;
   }
-
-  //  /**
-  //   * Maps given partitioning into another (bigger) one, s.t. matched nodes belong to the same partition as its supernode
-  //   * @param partitioning partitioning to be transformed back
-  //   * @param matching matching according to which the nodes are transformed back  (Matching maps a node to its corresponding new node number!)
-  //   * @return the re-mapped partitioning
-  //   */
-  //  private List<Set<Integer>> retransformPartitioning(List<Set<Integer>> partitioning,
-  //      Map<Integer, Integer> matching) {
-  //    List<Set<Integer>> newPartitioing = new ArrayList<>(partitioning.size());
-  //    Map<Integer, Set<Integer>> newToOldNodes = computeInverseMappping(matching); //kind of inverse of matching-Map
-  //
-  //
-  //
-  //    for (Set<Integer> partition : partitioning) {
-  //      newPartitioing.add(new HashSet<Integer>(2 * partitioning.size()));
-  //      int index = newPartitioing.size() - 1;
-  //      for (Integer node : partition) {
-  //        Set<Integer> contractedNodes = newToOldNodes.get(node);
-  //        newPartitioing.get(index).addAll(contractedNodes);
-  //      }
-  //    }
-  //
-  //    return newPartitioing;
-  //  }
 
   /**
    * Transforms the given matching back into a bigger one, i.e. a super node is mapped
