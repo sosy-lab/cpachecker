@@ -35,7 +35,6 @@ import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PartitioningRefiner;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.WeightedBalancedGraphPartitioner;
@@ -44,7 +43,7 @@ import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedEdge;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedGraph;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedNode;
 
-@Options(prefix = "pcc.partitioning.multilevel")
+//@Options(prefix = "pcc.partitioning.multilevel")
 public class MultilevelBalancedGraphPartitioner implements WeightedBalancedGraphPartitioner {
 
   @SuppressWarnings("unused")
