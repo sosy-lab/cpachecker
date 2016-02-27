@@ -33,12 +33,13 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.interfaces.pcc.BalancedGraphPartitioner;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.PartitioningRefiner;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.WeightedBalancedGraphPartitioner;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedGraph;
 
 @Options(prefix = "pcc.partitioning.kwayfm")
-public class FiducciaMattheysesKWayBalancedGraphPartitioner implements BalancedGraphPartitioner {
+public class FiducciaMattheysesKWayBalancedGraphPartitioner implements WeightedBalancedGraphPartitioner, PartitioningRefiner {
 
   @SuppressWarnings("unused")
   private final ShutdownNotifier shutdownNotifier;
@@ -48,12 +49,12 @@ public class FiducciaMattheysesKWayBalancedGraphPartitioner implements BalancedG
   @Option(secure = true, description = "Balance criterion for pairwise optimization of partitions")
   private double balancePrecision = 1.5d;
 
-  private final BalancedGraphPartitioner partitioner;
+  private final WeightedBalancedGraphPartitioner partitioner;
   @Option(secure = true, description = "Heuristic for computing an initial partitioning of arg")
   private InitPartitioningHeuristics initialPartitioningStrategy =
       InitPartitioningHeuristics.BEST_FIRST;
 
-  public enum InitPartitioningHeuristics {
+  public static enum InitPartitioningHeuristics {
     RANDOM,
     BEST_FIRST
   }
@@ -63,7 +64,7 @@ public class FiducciaMattheysesKWayBalancedGraphPartitioner implements BalancedG
       description = "Local optimization criterion. Minimize the NodeCut of partitions or an approximation of the frameworkspecific overhead")
   private OptimizationCriteria optimizationCriterion = OptimizationCriteria.NODECUT;
 
-  public enum OptimizationCriteria {
+  public static enum OptimizationCriteria {
     //TODO: Framework-specific option, use strategy pattern here
     EDGECUT,
     NODECUT
@@ -82,7 +83,7 @@ public class FiducciaMattheysesKWayBalancedGraphPartitioner implements BalancedG
             new BestFirstWeightedBalancedGraphPartitioner(pConfig, pLogger, pShutdownNotifier);
         break;
       default: // RANDOM
-        partitioner = new RandomBalancedGraphPartitioner();
+        partitioner = new RandomBalancedWeightedGraphPartitioner();
     }
 
   }
@@ -90,16 +91,55 @@ public class FiducciaMattheysesKWayBalancedGraphPartitioner implements BalancedG
   @Override
   public List<Set<Integer>> computePartitioning(int pNumPartitions,
       PartialReachedSetDirectedGraph pGraph) throws InterruptedException {
-    //TODO: Save time, if just one partition is used ==> no improvement steps and so on...
-    List<Set<Integer>> partition = partitioner.computePartitioning(pNumPartitions, pGraph);
-    int maxLoad = computeNodesPerPartition(pNumPartitions, pGraph.getNumNodes());
+    return computePartitioning(pNumPartitions,new WeightedGraph(pGraph));
+
+  }
+
+  @Override
+  public List<Set<Integer>> computePartitioning(int pNumPartitions, WeightedGraph wGraph)
+      throws InterruptedException {
+    if (pNumPartitions <= 0 || wGraph == null) { throw new IllegalArgumentException(
+        "Partitioniong must contain at most 1 partition. Graph may not be null."); }
+    if (pNumPartitions == 1) { //1-partitioning easy special case (Each node in the same partition)
+      return wGraph.getGraphAsOnePartition();
+    }
+    if (pNumPartitions >= wGraph.getNumNodes()) {//Each Node has its own partition
+      return wGraph.getNodesSeperatelyPartitioned(pNumPartitions);
+    }
+
+    //There is more than one partition, and at least one partition contains more than 1 node
+
+    List<Set<Integer>> partition = partitioner.computePartitioning(pNumPartitions, wGraph);
+    refinePartitioning(partition, wGraph, pNumPartitions);
+    return partition;
+  }
+
+  /* (non-Javadoc)
+   * @see org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningRefiner#refinePartitioning(java.util.List, org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph, int)
+   */
+  @Override
+  public int refinePartitioning(List<Set<Integer>> partitioning,
+      PartialReachedSetDirectedGraph pGraph, int numPartitions) {
+    WeightedGraph wGraph = new WeightedGraph(pGraph);
+    return refinePartitioning(partitioning, wGraph, numPartitions);
+  }
+
+  /* (non-Javadoc)
+   * @see org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningRefiner#refinePartitioning(java.util.List, org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedGraph, int)
+   */
+  @Override
+  public int refinePartitioning(List<Set<Integer>> partitioning,
+      WeightedGraph wGraph, int numPartitions) {
+    int maxLoad = wGraph.computePartitionLoad(numPartitions);
+    FiducciaMattheysesWeightedKWayAlgorithm fm = new FiducciaMattheysesWeightedKWayAlgorithm(
+        partitioning, balancePrecision, wGraph, maxLoad,optimizationCriterion);
     int step = 1;
     int maxNumSteps = 50;
     int oldGain = 0;
     int totalGain = 0;
     int timesWithoutImprovement = 0;
     while (step <= maxNumSteps && timesWithoutImprovement < 5) {
-      int newGain = refinePartitioning(partition, pGraph, maxLoad);
+      int newGain = fm.refinePartitioning();
       totalGain += newGain;
       if (oldGain == newGain) {
         timesWithoutImprovement++;
@@ -107,46 +147,10 @@ public class FiducciaMattheysesKWayBalancedGraphPartitioner implements BalancedG
       oldGain = newGain;
       step++;
     }
-    logger.log(Level.FINE, String.format("[KWayFM] refinement gain %d", totalGain));
-    return partition;
+    logger.log(Level.FINE, String.format("[KWayFM] refinement gain %d after % d refinement steps", totalGain,step));
+    return totalGain;
   }
 
-  /**
-   * Refine an initially given partitioning on a given graph according to a FiducciaMattheyses local improvement heuristic
-   * @param initialPartitioning initial partitioning
-   * @param pGraph given graph
-   * @param maxLoad the maximal load per partition
-   * @return the total gain according to the improvements
-   */
-  public int refinePartitioning(List<Set<Integer>> initialPartitioning,
-      PartialReachedSetDirectedGraph pGraph, int maxLoad) {
-    WeightedGraph wGraph = new WeightedGraph(pGraph);
-    return refinePartitioning(initialPartitioning, wGraph, maxLoad);
-  }
 
-  /**
-   * Refine an initially given partitioning on a given weighted graph according to a FiducciaMattheyses local improvement heuristic
-   * @param initialPartitioning initial partitioning; This partitioning is changed!
-   * @param wGraph a given weighted graph
-   * @param maxLoad the maximal load per partition
-   * @return the total gain according to the improvements
-   */
-  public int refinePartitioning(List<Set<Integer>> initialPartitioning,
-      WeightedGraph wGraph, int maxLoad) {
-
-    FiducciaMattheysesWeightedKWayAlgorithm fm = new FiducciaMattheysesWeightedKWayAlgorithm(
-        initialPartitioning, balancePrecision, wGraph, maxLoad,optimizationCriterion);
-    return fm.refinePartitioning();
-  }
-
-  /**
-   * Compute number of nodes which should be used per partition
-   * @param numPartitions number of partitions that should be computed
-   * @param numNodes number of nodes totally available
-   * @return the number of nodes which should be at most in a partition
-   */
-  private int computeNodesPerPartition(int numPartitions, int numNodes) {
-    return numNodes / numPartitions + 1;
-  }
 
 }

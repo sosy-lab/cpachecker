@@ -100,12 +100,12 @@ public class FiducciaMattheysesWeightedKWayAlgorithm {
   }
 
   /**
-   * refines a partition with a greedy KL/FM-algorithm
+   * Refines a partition with a greedy KL/FM-algorithm
    * Visit each node in a randomized order once; check if it can be moved resulting in a better partition
    * @return the total gain due to the node movements
    */
   public int refinePartitioning() {
-    //TODO: If just one partition is used ==> No improvement needs to be calculated
+    //TODO: Use RandomIterator here
     int totalGain = 0;
     List<Integer> permutation = shuffledIndices(wGraph.getNumNodes());
     for (Integer nodeNum : permutation) {
@@ -115,12 +115,14 @@ public class FiducciaMattheysesWeightedKWayAlgorithm {
       for (Integer toPartition : getSuccessorPartitions(nodeNum)) {
         if (isNodeMovable(nodeNum, from, toPartition)) {
           int gain = computeGain(nodeNum, toPartition);
+
           if (gain > maxGain) {
             maxGain = gain;
             to = toPartition;
           }
         }
       }
+    //TODO: Move node even if from==to right here ==> if gain=0, but the balancing constrain is better off, when moving
       moveNode(nodeNum, from, to);
       totalGain += maxGain;
     }
