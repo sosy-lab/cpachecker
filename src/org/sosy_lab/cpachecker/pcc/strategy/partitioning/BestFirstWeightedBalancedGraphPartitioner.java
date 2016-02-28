@@ -63,7 +63,7 @@ public class BestFirstWeightedBalancedGraphPartitioner implements WeightedBalanc
   @Option(
       secure = true,
       description = "[Best-first] Balance criterion for pairwise optimization of partitions")
-  private double balancePrecision = 1.5d;
+  private double balancePrecision = 1.0d;
 
   public BestFirstWeightedBalancedGraphPartitioner(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {

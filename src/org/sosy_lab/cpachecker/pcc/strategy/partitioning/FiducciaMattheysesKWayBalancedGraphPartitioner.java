@@ -48,7 +48,7 @@ public class FiducciaMattheysesKWayBalancedGraphPartitioner
   @Option(
       secure = true,
       description = "[FM-k-way] Balance criterion for pairwise optimization of partitions")
-  private double balancePrecision = 1.5d;
+  private double balancePrecision = 1.2d;
 
 
   @Option(

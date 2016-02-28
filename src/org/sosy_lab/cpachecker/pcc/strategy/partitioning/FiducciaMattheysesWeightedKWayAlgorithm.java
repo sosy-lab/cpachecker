@@ -94,6 +94,7 @@ public class FiducciaMattheysesWeightedKWayAlgorithm {
       int nodeNum = node.getNodeNumber();
       int maxGain = 0;
       int from = getPartition(nodeNum);
+      int maxUnbalancing=node.getWeight();
       int to = from;
       for (Integer toPartition : getSuccessorPartitions(nodeNum)) {
         if (isNodeMovable(nodeNum, from, toPartition)) {
@@ -101,10 +102,16 @@ public class FiducciaMattheysesWeightedKWayAlgorithm {
           if (gain > maxGain) {
             maxGain = gain;
             to = toPartition;
+          }else if(maxGain<=0&&gain==0){
+            //There was no good partner found until now, check if partitions are unbalanced
+            int unbalancing=partitionWeights[from]-partitionWeights[to];
+            if(unbalancing>maxUnbalancing){ //switch it to the most unbalanced partition
+              maxUnbalancing=unbalancing;
+              to = toPartition;
+            }
           }
         }
       }
-      //TODO: Move node even if from==to (no gain was possible) ==> balancing constraint
       moveNode(nodeNum, from, to);
       totalGain += maxGain;
     }
@@ -149,9 +156,9 @@ public class FiducciaMattheysesWeightedKWayAlgorithm {
    * @param fromPartition partition node is in
    * @param toPartition partition node should be stored
    */
-  private void moveNode(int node, int fromPartition, int toPartition) {
+  private boolean moveNode(int node, int fromPartition, int toPartition) {
     if (!isNodeMovable(node, fromPartition, toPartition)) { //Node cannot be moved this way
-      return;
+      return false;
     }
     int nodeWeight = wGraph.getNode(node).getWeight();
     //Update partition weights and partition itself
@@ -160,6 +167,7 @@ public class FiducciaMattheysesWeightedKWayAlgorithm {
     nodeToPartition[node] = toPartition;
     actualPartitioning.get(fromPartition).remove(node);
     actualPartitioning.get(toPartition).add(node);
+    return true; //Node was moved
   }
 
   private int computeGain(int node, int toPartition) {
