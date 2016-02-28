@@ -106,6 +106,7 @@
   <rundefinition name="PRINCESS-oldarray">
     <option name="-predicateAnalysis"/>
     <option name="-setprop">solver.solver=PRINCESS</option>
+    <option name="-setprop">cpa.predicate.encodeFloatAs=INTEGER</option>
     <option name="-setprop">cpa.predicate.handleArrays=true</option>
   </rundefinition>
   <rundefinition name="SMTInterpol-heaparray">
