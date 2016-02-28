@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -37,27 +36,27 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.PartitioningRefiner;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.WeightedBalancedGraphPartitioner;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedGraph;
+import org.sosy_lab.cpachecker.pcc.strategy.partitioning.GlobalGraphPartitionerHeuristicFactory.GlobalPartitioningHeuristics;
 
 @Options(prefix = "pcc.partitioning.kwayfm")
-public class FiducciaMattheysesKWayBalancedGraphPartitioner implements WeightedBalancedGraphPartitioner, PartitioningRefiner {
-
-  @SuppressWarnings("unused")
-  private final ShutdownNotifier shutdownNotifier;
+public class FiducciaMattheysesKWayBalancedGraphPartitioner
+    implements WeightedBalancedGraphPartitioner, PartitioningRefiner {
 
   private final LogManager logger;
+  private final WeightedBalancedGraphPartitioner globalPartitioner;
 
-  @Option(secure = true, description = "Balance criterion for pairwise optimization of partitions")
+  @Option(
+      secure = true,
+      description = "[FM-k-way] Balance criterion for pairwise optimization of partitions")
   private double balancePrecision = 1.5d;
 
-  private final WeightedBalancedGraphPartitioner partitioner;
-  @Option(secure = true, description = "Heuristic for computing an initial partitioning of arg")
-  private InitPartitioningHeuristics initialPartitioningStrategy =
-      InitPartitioningHeuristics.BEST_FIRST;
 
-  public static enum InitPartitioningHeuristics {
-    RANDOM,
-    BEST_FIRST
-  }
+  @Option(
+      secure = true,
+      description = "[FM-k-way] Partitioning method to compute initial partitioning.")
+  private GlobalPartitioningHeuristics globalHeuristic =
+      GlobalPartitioningHeuristics.BEST_IMPROVEMENT_FIRST;
+
 
   @Option(
       secure = true,
@@ -66,32 +65,34 @@ public class FiducciaMattheysesKWayBalancedGraphPartitioner implements WeightedB
 
   public static enum OptimizationCriteria {
     //TODO: Framework-specific option, use strategy pattern here
+    //TODO: Use criterion within constructor
     EDGECUT,
     NODECUT
   }
 
 
-  public FiducciaMattheysesKWayBalancedGraphPartitioner(Configuration pConfig, LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+  public FiducciaMattheysesKWayBalancedGraphPartitioner(Configuration pConfig, LogManager pLogger)
+      throws InvalidConfigurationException {
     pConfig.inject(this);
-    shutdownNotifier = pShutdownNotifier;
     logger = pLogger;
 
-    switch (initialPartitioningStrategy) {
-      case BEST_FIRST:
-        partitioner =
-            new BestFirstWeightedBalancedGraphPartitioner(pConfig, pLogger, pShutdownNotifier);
-        break;
-      default: // RANDOM
-        partitioner = new RandomBalancedWeightedGraphPartitioner();
-    }
+    globalPartitioner = GlobalGraphPartitionerHeuristicFactory.createPartitioner(pConfig, pLogger,
+        globalHeuristic);
+  }
 
+  public FiducciaMattheysesKWayBalancedGraphPartitioner(Configuration pConfig, LogManager pLogger,
+      OptimizationCriteria criterion) throws InvalidConfigurationException {
+    pConfig.inject(this);
+    logger = pLogger;
+    optimizationCriterion = criterion;
+    globalPartitioner = GlobalGraphPartitionerHeuristicFactory.createPartitioner(pConfig, pLogger,
+        globalHeuristic);
   }
 
   @Override
   public List<Set<Integer>> computePartitioning(int pNumPartitions,
       PartialReachedSetDirectedGraph pGraph) throws InterruptedException {
-    return computePartitioning(pNumPartitions,new WeightedGraph(pGraph));
+    return computePartitioning(pNumPartitions, new WeightedGraph(pGraph));
 
   }
 
@@ -109,7 +110,7 @@ public class FiducciaMattheysesKWayBalancedGraphPartitioner implements WeightedB
 
     //There is more than one partition, and at least one partition contains more than 1 node
 
-    List<Set<Integer>> partition = partitioner.computePartitioning(pNumPartitions, wGraph);
+    List<Set<Integer>> partition = globalPartitioner.computePartitioning(pNumPartitions, wGraph);
     refinePartitioning(partition, wGraph, pNumPartitions);
     return partition;
   }
@@ -132,7 +133,7 @@ public class FiducciaMattheysesKWayBalancedGraphPartitioner implements WeightedB
       WeightedGraph wGraph, int numPartitions) {
     int maxLoad = wGraph.computePartitionLoad(numPartitions);
     FiducciaMattheysesWeightedKWayAlgorithm fm = new FiducciaMattheysesWeightedKWayAlgorithm(
-        partitioning, balancePrecision, wGraph, maxLoad,optimizationCriterion);
+        partitioning, balancePrecision, wGraph, maxLoad, optimizationCriterion);
     int step = 1;
     int maxNumSteps = 50;
     int oldGain = 0;
@@ -147,7 +148,8 @@ public class FiducciaMattheysesKWayBalancedGraphPartitioner implements WeightedB
       oldGain = newGain;
       step++;
     }
-    logger.log(Level.FINE, String.format("[KWayFM] refinement gain %d after % d refinement steps", totalGain,step));
+    logger.log(Level.FINE,
+        String.format("[KWayFM] refinement gain %d after % d refinement steps", totalGain, step));
     return totalGain;
   }
 

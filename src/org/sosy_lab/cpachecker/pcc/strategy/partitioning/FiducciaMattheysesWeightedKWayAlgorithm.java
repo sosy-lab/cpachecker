@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -46,9 +44,9 @@ public class FiducciaMattheysesWeightedKWayAlgorithm {
   private final OptimizationCriteria optimizationCriterion;
 
   public FiducciaMattheysesWeightedKWayAlgorithm(List<Set<Integer>> pInitPartitioning,
-      double pBalanceCriterion, WeightedGraph pWGraph, int pMaxLoad,OptimizationCriteria opt) {
+      double pBalanceCriterion, WeightedGraph pWGraph, int pMaxLoad, OptimizationCriteria opt) {
     super();
-    optimizationCriterion=opt;
+    optimizationCriterion = opt;
     balanceCriterion = pBalanceCriterion;
     wGraph = pWGraph;
     actualPartitioning = pInitPartitioning;
@@ -77,20 +75,6 @@ public class FiducciaMattheysesWeightedKWayAlgorithm {
 
 
   /**
-   * Compute permutation of 0..n-1 to randomly iterate over an array
-   * @param n number of list entries
-   * @return a list containing 0..n-1 in a randomized order
-   */
-  private List<Integer> shuffledIndices(int n) {
-    List<Integer> permutation = new ArrayList<>(n);
-    for (int i = 0; i < n; i++) {
-      permutation.add(i);
-    }
-    Collections.shuffle(permutation);
-    return permutation;
-  }
-
-  /**
   * Get partition given node belongs to afterwards structure was initialized
   * @param node node to be looked up
   * @return number of containing partition
@@ -105,24 +89,22 @@ public class FiducciaMattheysesWeightedKWayAlgorithm {
    * @return the total gain due to the node movements
    */
   public int refinePartitioning() {
-    //TODO: Use RandomIterator here
     int totalGain = 0;
-    List<Integer> permutation = shuffledIndices(wGraph.getNumNodes());
-    for (Integer nodeNum : permutation) {
+    for (WeightedNode node : wGraph.randomIterator()) {
+      int nodeNum = node.getNodeNumber();
       int maxGain = 0;
       int from = getPartition(nodeNum);
       int to = from;
       for (Integer toPartition : getSuccessorPartitions(nodeNum)) {
         if (isNodeMovable(nodeNum, from, toPartition)) {
           int gain = computeGain(nodeNum, toPartition);
-
           if (gain > maxGain) {
             maxGain = gain;
             to = toPartition;
           }
         }
       }
-    //TODO: Move node even if from==to right here ==> if gain=0, but the balancing constrain is better off, when moving
+      //TODO: Move node even if from==to (no gain was possible) ==> balancing constraint
       moveNode(nodeNum, from, to);
       totalGain += maxGain;
     }

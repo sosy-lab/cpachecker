@@ -90,10 +90,9 @@ public class WeightedGraph implements Iterable<WeightedNode> {
 
 /**
  * Inserts a new node into the graph structure. This method automatically updates the graph's total node-weight.
- * Used by the addEdge method
  * @param node node to be inserted into the structure
  */
-  private void insertNode(WeightedNode node) {
+  public void insertNode(WeightedNode node) {
     int nodeNum=node.getNodeNumber();
     int nodeWeight=node.getWeight();
     if(nodes[nodeNum]!=null){//The node stored before is deleted, so its weight needs to be subtracted
@@ -276,6 +275,9 @@ public class WeightedGraph implements Iterable<WeightedNode> {
     StringBuilder s = new StringBuilder();
 
     for (int node = 0; node < numNodes; node++) {
+      if(nodes[node]==null){
+        continue;
+      }
       int nodeWeight = getNode(node).getWeight();
       s.append(node).append("(W:").append(nodeWeight).append("):");
       for (WeightedEdge edge : this.getOutgoingEdges(node)) {

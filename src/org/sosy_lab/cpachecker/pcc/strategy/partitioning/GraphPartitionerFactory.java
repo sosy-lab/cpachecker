@@ -58,13 +58,13 @@ public class GraphPartitionerFactory {
     case OPTIMAL:
       return new ExponentialOptimalBalancedGraphPartitioner(pShutdownNotifier);
     case BEST_FIRST:
-      return new BestFirstWeightedBalancedGraphPartitioner(pConfig, pLogger, pShutdownNotifier);
+      return new BestFirstWeightedBalancedGraphPartitioner(pConfig, pLogger);
     case FM:
       return new FiducciaMattheysesBalancedGraphPartitioner(pConfig, pLogger, pShutdownNotifier);
     case FM_K_WAY:
-      return new FiducciaMattheysesKWayBalancedGraphPartitioner(pConfig, pLogger, pShutdownNotifier);
+      return new FiducciaMattheysesKWayBalancedGraphPartitioner(pConfig, pLogger);
     case MULTILEVEL:
-      return new MultilevelBalancedGraphPartitioner(pConfig, pLogger, pShutdownNotifier);
+      return new MultilevelBalancedGraphPartitioner(pConfig, pLogger);
     default: // RANDOM
       return new RandomBalancedGraphPartitioner();
     }

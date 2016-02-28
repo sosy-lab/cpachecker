@@ -32,9 +32,10 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PartitioningRefiner;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.WeightedBalancedGraphPartitioner;
@@ -42,32 +43,38 @@ import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSet
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedEdge;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedGraph;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedNode;
+import org.sosy_lab.cpachecker.pcc.strategy.partitioning.GlobalGraphPartitionerHeuristicFactory.GlobalPartitioningHeuristics;
+import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningRefinerFactory.RefinementHeuristics;
 
-//@Options(prefix = "pcc.partitioning.multilevel")
+@Options(prefix = "pcc.partitioning.multilevel")
 public class MultilevelBalancedGraphPartitioner implements WeightedBalancedGraphPartitioner {
 
-  @SuppressWarnings("unused")
-  private final ShutdownNotifier shutdownNotifier;
-  @SuppressWarnings("unused")
   private final LogManager logger;
 
-  @SuppressWarnings("unused")
-  private final Configuration config;
+  @Option(
+      secure = true,
+      description = "Partitioning method applied in multilevel heuristic to compute initial partitioning.")
+  private GlobalPartitioningHeuristics globalHeuristic =
+      GlobalPartitioningHeuristics.BEST_IMPROVEMENT_FIRST;
+
+  @Option(
+      secure = true,
+      description = "Refinement method applied in multilevel heuristic's uncoarsening phase.")
+  private RefinementHeuristics refinementHeuristic = RefinementHeuristics.FM_NODECUT;
 
 
-  //Make this use a local partitioner, global partitioner distinction
   private final PartitioningRefiner refiner;
   private final WeightedBalancedGraphPartitioner globalPartitioner;
 
-  public MultilevelBalancedGraphPartitioner(Configuration pConfig, LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+  public MultilevelBalancedGraphPartitioner(Configuration pConfig, LogManager pLogger)
+      throws InvalidConfigurationException {
     pConfig.inject(this);
-    shutdownNotifier = pShutdownNotifier;
     logger = pLogger;
-    config = pConfig;
-    //TODO: Use GlobalPartitioningHeuristicFactory, PartitioningRefinerFactory. Make choosable via option(s)
-    refiner = new FiducciaMattheysesKWayBalancedGraphPartitioner(pConfig, pLogger, pShutdownNotifier);
-    globalPartitioner=new BestFirstWeightedBalancedGraphPartitioner(pConfig, pLogger, pShutdownNotifier);
+    globalPartitioner = GlobalGraphPartitionerHeuristicFactory.createPartitioner(pConfig, pLogger,
+        globalHeuristic);
+
+    refiner = PartitioningRefinerFactory.createRefiner(pConfig, pLogger, refinementHeuristic);
+
   }
 
   @Override
@@ -94,37 +101,42 @@ public class MultilevelBalancedGraphPartitioner implements WeightedBalancedGraph
     Stack<WeightedGraph> levels = new Stack<>();//TODO: Maybe not store explicitly ==> Space vs computation time
     Stack<Map<Integer, Integer>> matchings = new Stack<>();
 
-    int levelsToBuild = wGraph.getNumNodes() / pNumPartitions + 1; //TODO: should become kind of logarithmic depth
+    int levelsToBuild = wGraph.getNumNodes() / pNumPartitions + 1; //TODO: should become kind of logarithmic depth,definitely to be changed, actually its the num of partitions build
 
     levels.push(wGraph);
     logger.log(Level.FINE,
-        String.format("Weighted Graph (size: %d) level 0 pushed to Stack", wGraph.getNumNodes()));
+        String.format("[Multilevel] Weighted Graph (size: %d) level 0 pushed to Stack",
+            wGraph.getNumNodes()));
     for (int level = 1; level < levelsToBuild; level++) {
       wGraph = levels.peek();
       Map<Integer, Integer> matching = computeMatching(wGraph);
       matchings.push(matching);
       WeightedGraph newGraph = createMatchedGraph(matching, wGraph);
       levels.push(newGraph);
-      logger.log(Level.FINE, String.format("Weighted Graph (size: %d) level %d pushed to Stack",
-          newGraph.getNumNodes(), level));
+      logger.log(Level.FINE,
+          String.format("[Multilevel] Weighted Graph (size: %d) level %d pushed to Stack",
+              newGraph.getNumNodes(), level));
     }
     //Initial partitioning computed here
     wGraph = levels.pop();
     logger.log(Level.FINE,
-        String.format("Weighted Graph (size: %d) popped", wGraph.getNumNodes()));
+        String.format("[Multilevel] Weighted Graph (size: %d) popped", wGraph.getNumNodes()));
 
     List<Set<Integer>> partitioning = globalPartitioner.computePartitioning(pNumPartitions, wGraph);
+    refiner.refinePartitioning(partitioning, wGraph, pNumPartitions);
+
     while (!levels.isEmpty()) {
       wGraph = levels.pop();
       logger.log(Level.FINE,
-          String.format("Weighted Graph (size: %d) popped", wGraph.getNumNodes()));
+          String.format("[Multilevel] Weighted Graph (size: %d) popped", wGraph.getNumNodes()));
       Map<Integer, Integer> matching = matchings.pop();
       retransformPartitioning(partitioning, matching);
-      refiner.refinePartitioning(partitioning, wGraph, pNumPartitions); //TODO: a refinement consists of several refinement steps
+      refiner.refinePartitioning(partitioning, wGraph, pNumPartitions);
     }
     return partitioning;
   }
 
+  //TODO: Use Interface and factory here to compute matching and make it chhoasble via option
   /**
    * Compute a matching according to the chosen matching scheme
    * @param wGraph Weighted graph to be matched
@@ -159,7 +171,7 @@ public class MultilevelBalancedGraphPartitioner implements WeightedBalancedGraph
             alreadyMatched.set(nodeNum);
             alreadyMatched.set(succNum);
             nodeMatched = true;
-            logger.log(Level.FINE,
+            logger.log(Level.FINER,
                 String.format(
                     "[Multilevel] Node %d and %d matched to supernode %d- matched weight %d",
                     nodeNum, succNum, currentSuperNode, succEdge.getWeight()));
@@ -169,8 +181,9 @@ public class MultilevelBalancedGraphPartitioner implements WeightedBalancedGraph
         if (!nodeMatched) {
           matching.put(nodeNum, currentSuperNode);
           alreadyMatched.set(nodeNum);
-          logger.log(Level.FINE, String.format("[Multilevel] Node %d lonely: Supernode %d", nodeNum,
-              currentSuperNode));
+          logger.log(Level.FINER,
+              String.format("[Multilevel] Node %d lonely: Supernode %d", nodeNum,
+                  currentSuperNode));
         }
         currentSuperNode++;
       }
@@ -204,6 +217,7 @@ public class MultilevelBalancedGraphPartitioner implements WeightedBalancedGraph
       //new node will be the start node of the newly created edges in this iteration
       int newNode = oldAndNewNode.getValue();
       int newNodeWeight = nodeWeights[newNode];
+      newGraph.insertNode(new WeightedNode(newNode, newNodeWeight));
       WeightedNode startNode = new WeightedNode(newNode, newNodeWeight);
       Set<Integer> contractedNeigbors = newToOldNodes.get(newNode);//set of nodes which were contracted into the super-node newNode
       //Now check all outgoing edges from the former node. If an edge leads to a contracted neighbor it is discarded
