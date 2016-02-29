@@ -40,6 +40,10 @@
   <!-- End customized array set -->
   <tasks name="BitVectorsReach">
     <includesfile>../programs/benchmarks/BitVectorsReach.set</includesfile>
+    <!-- Exclude these tasks as they need bitprecise analysis, only supported by
+         MathSAT5 -->
+    <exclude>../programs/benchmarks/bitvector-loops/*</exclude>
+    <exclude>../programs/benchmarks/bitvector-regression/*</exclude>
   </tasks>
   <tasks name="BusyBox">
     <includesfile>../programs/benchmarks/BusyBox.set</includesfile>
