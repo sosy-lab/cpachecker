@@ -36,7 +36,15 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ACastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
@@ -46,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.core.counterexample.Address;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
+import org.sosy_lab.cpachecker.core.counterexample.ConcreteExpressionEvaluator;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcreteStatePathNode;
@@ -54,12 +63,19 @@ import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.core.counterexample.MemoryName;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.Model.ValueAssignment;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -109,6 +125,7 @@ public class AssignmentToPathAllocator {
       ARGPath pPath, Iterable<ValueAssignment> pModel, List<SSAMap> pSSAMaps)
           throws InterruptedException {
 
+    ConcreteExpressionEvaluator evaluator = createPredicateAnalysisEvaluator(pModel);
     AssignableTermsInPath assignableTerms = assignTermsToPathPosition(pSSAMaps, pModel);
     List<ConcreteStatePathNode> pathWithAssignments = new ArrayList<>(pPath.getInnerEdges().size());
     Map<LeftHandSide, Address> addressOfVariables = getVariableAddresses(assignableTerms);
@@ -152,7 +169,7 @@ public class AssignmentToPathAllocator {
 
           ConcreteState concreteState = createSingleConcreteState(
               ssaMap, variableEnvironment, variables,
-              functionEnvironment, memory, addressOfVariables, terms);
+              functionEnvironment, memory, addressOfVariables, terms, evaluator);
 
           singleConcreteStates.add(multiEdgeIndex, concreteState);
           ssaMapIndex++;
@@ -174,14 +191,148 @@ public class AssignmentToPathAllocator {
             createSingleConcreteStateNode(cfaEdge, ssaMap, variableEnvironment,
                 variables,
                 functionEnvironment, memory, addressOfVariables,
-                terms);
-
+                terms, evaluator);
         pathWithAssignments.add(concreteStatePathNode);
         ssaMapIndex++;
       }
     }
 
     return new ConcreteStatePath(pathWithAssignments);
+  }
+
+  private ConcreteExpressionEvaluator createPredicateAnalysisEvaluator(Iterable<ValueAssignment> pModel) {
+
+      Multimap<String, ValueAssignment> uninterpretedFunctions =
+
+
+         FluentIterable.from(pModel).filter(new Predicate<ValueAssignment>() {
+
+          @Override
+          public boolean apply(ValueAssignment pValAssignment) {
+            return pValAssignment.isFunction();
+          }}).index(new Function<ValueAssignment, String>() {
+
+            @Override
+            public String apply(ValueAssignment pValAssignment) {
+              return pValAssignment.getName();
+            }});
+
+    return new PredicateAnalysisConcreteExpressionEvaluator(uninterpretedFunctions);
+  }
+
+  private static class PredicateAnalysisConcreteExpressionEvaluator implements ConcreteExpressionEvaluator {
+
+    private final Multimap<String, ValueAssignment> uninterpretedFunctions;
+
+    public PredicateAnalysisConcreteExpressionEvaluator(
+        Multimap<String, ValueAssignment> pUninterpretedFunction) {
+      uninterpretedFunctions = pUninterpretedFunction;
+    }
+
+    @Override
+    public boolean shouldEvaluateExpressionWithThisEvaluator(AExpression pExp) {
+
+      if (pExp instanceof CExpression) {
+        CExpression cExp = (CExpression) pExp;
+        if (hasUninterpretedFunctionName(cExp)) {
+          String functionName = getUninterpretedFunctionName(cExp);
+          return uninterpretedFunctions.containsKey(functionName);
+        }
+      }
+
+      return false;
+    }
+
+    private String getUninterpretedFunctionName(CExpression pCExp) {
+      //TODO Implement
+      return "";
+    }
+
+    private boolean hasUninterpretedFunctionName(CExpression pCExp) {
+      return pCExp instanceof CBinaryExpression || pCExp instanceof CUnaryExpression || pCExp instanceof CCastExpression;
+    }
+
+    @Override
+    public Value evaluate(ABinaryExpression pBinExp, Value pOp1, Value pOp2) {
+
+      CBinaryExpression cBinExp = (CBinaryExpression) pBinExp;
+      String functionName = getUninterpretedFunctionName(cBinExp);
+      Value[] operands = {pOp1, pOp2};
+
+      for (ValueAssignment valueAssignment : uninterpretedFunctions.get(functionName)) {
+        if (matchOperands(valueAssignment, operands)) {
+          return asValue(valueAssignment.getValue());
+        }
+      }
+
+      return Value.UnknownValue.getInstance();
+    }
+
+    private boolean matchOperands(ValueAssignment pValueAssignment, Value[] operands) {
+      ImmutableList<Object> arguments = pValueAssignment.getArgumentsInterpretation();
+
+      if (arguments.size() != operands.length) { return false; }
+
+      for (int i = 0; i < operands.length; i++) {
+        Value operandI = operands[i];
+        Value argumentI = asValue(arguments.get(i));
+
+        if (!argumentI.equals(operandI)) {
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+    private Value asValue(Object pValue) {
+
+      if (pValue == null || !(pValue instanceof Number)) {
+        return Value.UnknownValue.getInstance();
+      }
+
+      return new NumericValue((Number) pValue);
+    }
+
+    @Override
+    public Value evaluate(AUnaryExpression pUnaryExpression, Value pOperand) {
+
+      if (!pOperand.isNumericValue()) {
+        return UnknownValue.getInstance();
+      }
+
+      CUnaryExpression cUnaryExp = (CUnaryExpression) pUnaryExpression;
+      String functionName = getUninterpretedFunctionName(cUnaryExp);
+      Value[] operands = {pOperand};
+
+      for (ValueAssignment valueAssignment : uninterpretedFunctions.get(functionName)) {
+        if (matchOperands(valueAssignment, operands)) {
+          return asValue(valueAssignment.getValue());
+        }
+      }
+
+      return Value.UnknownValue.getInstance();
+    }
+
+    @Override
+    public Value evaluate(ACastExpression pCastExpression, Value pOperand) {
+
+      if (!pOperand.isNumericValue()) {
+        return UnknownValue.getInstance();
+      }
+
+      CCastExpression cUnaryExp = (CCastExpression) pCastExpression;
+      String functionName = getUninterpretedFunctionName(cUnaryExp);
+      Value[] operands = {pOperand};
+
+      for (ValueAssignment valueAssignment : uninterpretedFunctions.get(functionName)) {
+        if (matchOperands(valueAssignment, operands)) {
+          return asValue(valueAssignment.getValue());
+        }
+      }
+
+      return Value.UnknownValue.getInstance();
+    }
   }
 
   private ConcreteStatePathNode createSingleConcreteStateNode(
@@ -191,12 +342,12 @@ public class AssignmentToPathAllocator {
       Multimap<String, ValueAssignment> functionEnvoirment,
       Map<String, Map<Address, Object>> memory,
       Map<LeftHandSide, Address> addressOfVariables,
-      Collection<ValueAssignment> terms) {
+      Collection<ValueAssignment> terms, ConcreteExpressionEvaluator pEvaluator) {
 
     ConcreteState concreteState = createSingleConcreteState(ssaMap,
         variableEnvoirment, variables,
         functionEnvoirment, memory,
-        addressOfVariables, terms);
+        addressOfVariables, terms, pEvaluator);
 
     return ConcreteStatePath.valueOfPathNode(concreteState, cfaEdge);
   }
@@ -208,8 +359,7 @@ public class AssignmentToPathAllocator {
       Multimap<String, ValueAssignment> functionEnvironment,
       Map<String, Map<Address, Object>> memory,
       Map<LeftHandSide, Address> addressOfVariables,
-      Collection<ValueAssignment> terms) {
-
+      Collection<ValueAssignment> terms, ConcreteExpressionEvaluator pEvaluator) {
     Set<ValueAssignment> termSet = new HashSet<>();
 
     createAssignments(terms, termSet, variableEnvironment, variables, functionEnvironment, memory);
@@ -218,7 +368,7 @@ public class AssignmentToPathAllocator {
 
     Map<String, Memory> allocatedMemory = createAllocatedMemory(memory);
 
-    return new ConcreteState(variables, allocatedMemory, addressOfVariables, memoryName);
+    return new ConcreteState(variables, allocatedMemory, addressOfVariables, memoryName, pEvaluator);
   }
 
   private Map<String, Memory> createAllocatedMemory(Map<String, Map<Address, Object>> pMemory) {
