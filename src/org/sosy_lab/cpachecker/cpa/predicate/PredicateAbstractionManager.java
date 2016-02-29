@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGene
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.formulaslicing.InductiveWeakeningManager;
 import org.sosy_lab.cpachecker.cpa.formulaslicing.LoopTransitionFinder;
+import org.sosy_lab.cpachecker.cpa.formulaslicing.SemiCNFConverter;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage.AbstractionNode;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
@@ -869,9 +870,10 @@ public class PredicateAbstractionManager {
       final PathFormula pLoopFormula)
       throws SolverException, InterruptedException {
 
+    PathFormula semiCNFFormula = pBlockFormula.updateFormula(new SemiCNFConverter(fmgr).toSemiCNF(pBlockFormula.getFormula()));
     BooleanFormula inductiveSlice =
         inductiveWeakeningMgr.findInductiveWeakening(
-            pBlockFormula, pLoopFormula, fmgr.getBooleanFormulaManager().makeBoolean(true));
+            semiCNFFormula, pLoopFormula, fmgr.getBooleanFormulaManager().makeBoolean(true));
 
     return amgr.makePredicate(fmgr.uninstantiate(inductiveSlice)).getAbstractVariable();
   }
