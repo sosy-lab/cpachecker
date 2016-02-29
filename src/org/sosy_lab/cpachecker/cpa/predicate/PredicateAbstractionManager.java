@@ -871,8 +871,14 @@ public class PredicateAbstractionManager {
       final PathFormula pLoopFormula)
       throws SolverException, InterruptedException {
 
-    PathFormula semiCNFFormula = pBlockFormula.updateFormula(new SemiCNFManager(fmgr).convert
-        (pBlockFormula.getFormula()));
+    PathFormula semiCNFFormula;
+    try {
+      semiCNFFormula = pBlockFormula.updateFormula(new SemiCNFManager(fmgr, config).convert
+          (pBlockFormula.getFormula()));
+    } catch (InvalidConfigurationException pE) {
+      throw new UnsupportedOperationException("SemiCNFManager crashed with invalid "
+          + "configuration", pE);
+    }
     BooleanFormula inductiveSlice =
         inductiveWeakeningMgr.findInductiveWeakening(
             semiCNFFormula, pLoopFormula, fmgr.getBooleanFormulaManager().makeBoolean(true));

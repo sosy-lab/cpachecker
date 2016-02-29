@@ -35,11 +35,10 @@ public class SemiCNFManagerTest extends SolverBasedTest0{
 
   @Before
   public void setUp() throws InvalidConfigurationException {
+    Configuration d = Configuration.defaultConfiguration();
     FormulaManagerView mgrView = new FormulaManagerView(
-        mgr,
-        Configuration.defaultConfiguration(),
-        TestLogManager.getInstance());
-    semiCNFManager = new SemiCNFManager(mgrView);
+        mgr, d, TestLogManager.getInstance());
+    semiCNFManager = new SemiCNFManager(mgrView, d);
     bfmgr = mgrView.getBooleanFormulaManager();
   }
 
@@ -92,8 +91,34 @@ public class SemiCNFManagerTest extends SolverBasedTest0{
             )
         )
     );
+  }
 
+  @Test
+  public void testExplicitExpansion() throws Exception {
+    BooleanFormula input = bfmgr.or(
+        bfmgr.and(ImmutableList.of(v("a"), v("b"), v("c"))),
+        bfmgr.and(ImmutableList.of(v("d"), v("e"), v("f")))
+    );
+    BooleanFormula converted = semiCNFManager.convert(input);
+    assertThatFormula(converted).isEquivalentTo(input);
+    assertThatFormula(converted).isEqualTo(
+        bfmgr.and(
+            ImmutableList.of(
+              bfmgr.or(v("a"), v("d")),
+              bfmgr.or(v("a"), v("e")),
+              bfmgr.or(v("a"), v("f")),
+              bfmgr.or(v("b"), v("d")),
+              bfmgr.or(v("b"), v("e")),
+              bfmgr.or(v("b"), v("f")),
+              bfmgr.or(v("c"), v("d")),
+              bfmgr.or(v("c"), v("e")),
+              bfmgr.or(v("c"), v("f"))
+            )
+        )
+    );
+  }
 
-
+  private BooleanFormula v(String name) {
+    return bfmgr.makeVariable(name);
   }
 }

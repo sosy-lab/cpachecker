@@ -3,6 +3,10 @@ package org.sosy_lab.cpachecker.cpa.formulaslicing;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -13,16 +17,25 @@ import org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Convert the formula to form *resembling* CNF, but without exponential
  * explosion and without introducing extra existential quantifiers.
  */
+@Options(prefix="cpa.slicing")
 public class SemiCNFManager {
+
+  @Option(description="Limit for explicit CNF expansion (potentially exponential otherwise)",
+      secure=true)
+  private int expansionDepthLimit = 1;
+
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bfmgr;
 
-  public SemiCNFManager(FormulaManagerView pFmgr) {
+  public SemiCNFManager(FormulaManagerView pFmgr, Configuration options)
+      throws InvalidConfigurationException{
+    options.inject(this);
     bfmgr = pFmgr.getBooleanFormulaManager();
     fmgr = pFmgr;
   }
@@ -68,8 +81,7 @@ public class SemiCNFManager {
    * Convert the formula to semi-CNF form.
    */
   public BooleanFormula convert(BooleanFormula input) throws InterruptedException {
-
-    // TODO: perform explicit expansion up to a certain depth.
+    final AtomicInteger expansionsAllowed = new AtomicInteger(expansionDepthLimit);
 
     input = fmgr.applyTactic(input, Tactic.NNF);
     return bfmgr.visit(new BooleanFormulaTransformationVisitor(fmgr) {
@@ -117,10 +129,27 @@ public class SemiCNFManager {
         BooleanFormula common = bfmgr.and(intersection);
         List<BooleanFormula> branches = new ArrayList<>();
 
+        ArrayList<Set<BooleanFormula>> argsAsConjunctionsWithoutIntersection = new ArrayList<>();
         for (Set<BooleanFormula> args : argsAsConjunctions) {
-          branches.add(bfmgr.and(Sets.difference(args, intersection)));
+          Set<BooleanFormula> newEl = Sets.difference(args, intersection);
+          argsAsConjunctionsWithoutIntersection.add(newEl);
+          branches.add(bfmgr.and(newEl));
         }
-        return bfmgr.and(common, bfmgr.or(branches));
+
+        if (expansionsAllowed.get() > 0) {
+          expansionsAllowed.decrementAndGet();
+
+          // Perform recursive expansion.
+          Set<List<BooleanFormula>> product = Sets.cartesianProduct(argsAsConjunctionsWithoutIntersection);
+          List<BooleanFormula> newArgs = new ArrayList<>(product.size() + 1);
+          newArgs.add(common);
+          for (List<BooleanFormula> l : product) {
+            newArgs.add(bfmgr.or(l));
+          }
+          return bfmgr.and(newArgs);
+        } else {
+          return bfmgr.and(common, bfmgr.or(branches));
+        }
       }
 
     }, input);

@@ -112,7 +112,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     destructiveWeakeningManager = new DestructiveWeakeningManager(statistics, pSolver, fmgr,
         logger, config);
     cexWeakeningManager = new CEXWeakeningManager(fmgr, pSolver, logger, statistics, config);
-    semiCNFManager = new SemiCNFManager(fmgr);
+    semiCNFManager = new SemiCNFManager(fmgr, config);
   }
 
 

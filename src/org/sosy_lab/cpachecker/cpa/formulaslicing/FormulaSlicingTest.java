@@ -45,7 +45,6 @@ public class FormulaSlicingTest {
   }
 
   @Test public void slice_with_branches_true_assert() throws Exception {
-    TruthJUnit.assume().that(weakeningStrategy).isNotEqualTo(WEAKENING_STRATEGY.FACTORIZATION);
     check("slice_with_branches_true_assert.c");
   }
 
