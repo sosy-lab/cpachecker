@@ -27,6 +27,8 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGEdgeHasValueTemplate;
+import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGEdgeHasValueTemplateWithConcreteValue;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGEdgePointsToTemplate;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGObjectTemplate;
 
@@ -37,6 +39,22 @@ import com.google.common.collect.FluentIterable;
  * This class contains smg utilities, for example filters.
  */
 public final class SMGUtils {
+
+
+  public static class FilterFieldsOfValue
+      implements Predicate<SMGEdgeHasValueTemplate> {
+
+    private final int value;
+
+    public FilterFieldsOfValue(int pValue) {
+      value = pValue;
+    }
+
+    @Override
+    public boolean apply(SMGEdgeHasValueTemplate pEdge) {
+      return value == pEdge.getAbstractValue();
+    }
+  }
 
   private SMGUtils() {}
 
@@ -52,6 +70,12 @@ public final class SMGUtils {
     return result;
   }
 
+  public static Set<SMGEdgeHasValue> getFieldsofThisValue(int value, SMG pInputSMG) {
+    SMGEdgeHasValueFilter valueFilter = new SMGEdgeHasValueFilter();
+    valueFilter.filterHavingValue(value);
+    return pInputSMG.getHVEdges(valueFilter);
+  }
+
   public static class FilterTargetTemplate implements Predicate<SMGEdgePointsToTemplate> {
 
     private final SMGObjectTemplate objectTemplate;
@@ -62,6 +86,20 @@ public final class SMGUtils {
 
     @Override
     public boolean apply(SMGEdgePointsToTemplate ptEdge) {
+      return ptEdge.getObjectTemplate() == objectTemplate;
+    }
+  }
+
+  public static class FilterTemplateObjectFieldsWithConcreteValue implements Predicate<SMGEdgeHasValueTemplateWithConcreteValue> {
+
+    private final SMGObjectTemplate objectTemplate;
+
+    public FilterTemplateObjectFieldsWithConcreteValue(SMGObjectTemplate pObjectTemplate) {
+      objectTemplate = pObjectTemplate;
+    }
+
+    @Override
+    public boolean apply(SMGEdgeHasValueTemplateWithConcreteValue ptEdge) {
       return ptEdge.getObjectTemplate() == objectTemplate;
     }
   }
