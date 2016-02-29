@@ -31,6 +31,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
@@ -50,18 +51,18 @@ public class MaterlisationStep {
   private final boolean stop;
 
   /**
-   * These abstract addresses represent the concrete addresses of pointers from outside of the
+   * These addresses templates represent concrete target addresses of pointers from outside of the
    * abstraction, that point to a region in this abstraction. They are used to
-   * create the concrete addresses while materializing a concrete region from this step.
+   * create the concrete addresses while materializing a concrete region from this step
+   * using existing pointer in the smg.
    */
-  private final Set<SMGEdgePointsToTemplate> abstractAdressesToOPointer;
+  private final Set<SMGEdgePointsToTemplate> targetAdressTemplateOfPointer;
 
   /**
    * Abstract pointers representing concrete pointers that lead to
-   * another smgObject within this abstraction generated when materializing this step.
+   * an smgObject within this abstraction generated when materializing this step.
    */
-
-  final private Set<SMGEdgePointsToTemplate> abstractPointers;
+  final private Set<SMGEdgePointsToTemplate> pointerTemplate;
 
   /**
    * These abstract fields with abstract values represent pointers leading from this
@@ -85,7 +86,7 @@ public class MaterlisationStep {
    * These abstract smgObjects represent concrete regions or abstractions
    *  that are generated when materializing smgObjects with this step.
    */
-  final private Set<SMGObjectTemplate> abstractObjects;
+  final private Set<SMGObjectTemplate> objectTemplates;
 
   public MaterlisationStep(Set<SMGObjectTemplate> pAbstractObjects,
       Set<SMGEdgePointsToTemplate> pAbstractPointer,
@@ -94,9 +95,9 @@ public class MaterlisationStep {
       Set<SMGEdgePointsToTemplate> pAbstractAdressesToOPointer,
       Set<SMGEdgeHasValueTemplate> pAbstractFieldsToOPointer,
       boolean pStop) {
-    abstractAdressesToOPointer = ImmutableSet.copyOf(pAbstractAdressesToOPointer);
-    abstractObjects = ImmutableSet.copyOf(pAbstractObjects);
-    abstractPointers = ImmutableSet.copyOf(pAbstractPointer);
+    targetAdressTemplateOfPointer = ImmutableSet.copyOf(pAbstractAdressesToOPointer);
+    objectTemplates = ImmutableSet.copyOf(pAbstractObjects);
+    pointerTemplate = ImmutableSet.copyOf(pAbstractPointer);
     abstractFields = ImmutableSet.copyOf(pAbstractFields);
     abstractFieldsToIPointer = ImmutableSet.copyOf(pAbstractFieldsToIPointer);
     abstractFieldsToOPointer = ImmutableSet.copyOf(pAbstractFieldsToOPointer);
@@ -108,7 +109,7 @@ public class MaterlisationStep {
   }
 
   public Set<SMGObjectTemplate> getAbstractObjects() {
-    return abstractObjects;
+    return objectTemplates;
   }
 
   public Set<SMGEdgeHasValueTemplateWithConcreteValue> getAbstractFields() {
@@ -121,7 +122,7 @@ public class MaterlisationStep {
   }
 
   public Set<SMGEdgePointsToTemplate> getAbstractAdressesToOPointer() {
-    return abstractAdressesToOPointer;
+    return targetAdressTemplateOfPointer;
   }
 
   public Set<SMGEdgeHasValueTemplate> getAbstractFieldsToIPointer() {
@@ -129,7 +130,7 @@ public class MaterlisationStep {
   }
 
   public Set<SMGEdgePointsToTemplate> getAbstractPointers() {
-    return abstractPointers;
+    return pointerTemplate;
   }
 
   public SMG materialize(SMG pSMG, Map<Integer, Integer> pAbstractToConcretePointerMap) {
@@ -140,11 +141,11 @@ public class MaterlisationStep {
     Map<SMGObjectTemplate, Map<Integer, Integer>> abstractObjectToPointersMap =
         new HashMap<>();
 
-    for (SMGEdgePointsToTemplate edge : abstractPointers) {
+    for (SMGEdgePointsToTemplate edge : pointerTemplate) {
       assignAbstractToConcretePointer(edge, abstractObjectToPointersMap, pAbstractToConcretePointerMap, true);
     }
 
-    for(SMGEdgePointsToTemplate edge : abstractAdressesToOPointer) {
+    for(SMGEdgePointsToTemplate edge : targetAdressTemplateOfPointer) {
       assignAbstractToConcretePointer(edge, abstractObjectToPointersMap, pAbstractToConcretePointerMap, false);
     }
 
@@ -157,9 +158,9 @@ public class MaterlisationStep {
     }
 
     /*Second, create the new concrete Objects from abstract smgObjects.*/
-    Map<SMGObjectTemplate, SMGObject> concreteObjectMap = new HashMap<>(abstractObjects.size());
+    Map<SMGObjectTemplate, SMGObject> concreteObjectMap = new HashMap<>(objectTemplates.size());
 
-    for (SMGObjectTemplate abstractObject : abstractObjects) {
+    for (SMGObjectTemplate abstractObject : objectTemplates) {
       Map<Integer, Integer> abstractToConcretePointerForObject =
           abstractObjectToPointersMap.get(abstractObject);
       SMGObject concreteObject =
@@ -170,11 +171,11 @@ public class MaterlisationStep {
     Set<SMGEdgePointsTo> concretePointer = new HashSet<>();
 
     /*Third, create all pointers that point to this abstraction and from this abstraction.*/
-    for (SMGEdgePointsToTemplate abstractPointer : abstractPointers) {
+    for (SMGEdgePointsToTemplate abstractPointer : pointerTemplate) {
       createPointer(abstractPointer, abstractObjectToPointersMap, concreteObjectMap, concretePointer);
     }
 
-    for (SMGEdgePointsToTemplate abstractPointer : abstractAdressesToOPointer) {
+    for (SMGEdgePointsToTemplate abstractPointer : targetAdressTemplateOfPointer) {
       createPointer(abstractPointer, abstractObjectToPointersMap, concreteObjectMap,
           concretePointer);
     }
@@ -191,7 +192,7 @@ public class MaterlisationStep {
 
     /*Fourth, create all values that are contained in this abstraction*/
     for (SMGEdgeHasValueTemplateWithConcreteValue aField : abstractFields) {
-      SMGObjectTemplate templateObject = aField.getAbstractObject();
+      SMGObjectTemplate templateObject = aField.getObjectTemplate();
       int offset = aField.getOffset();
       int value = aField.getValue();
       SMGObject concreteObject = concreteObjectMap.get(templateObject);
@@ -232,7 +233,7 @@ public class MaterlisationStep {
       Map<SMGObjectTemplate, SMGObject> pConcreteObjectMap,
       Map<SMGObjectTemplate, Map<Integer, Integer>> pAbstractObjectToPointersMap,
       Set<SMGEdgeHasValue> concreteHves) {
-    SMGObjectTemplate templateObject = pAbstractField.getAbstractObject();
+    SMGObjectTemplate templateObject = pAbstractField.getObjectTemplate();
     SMGObject object = pConcreteObjectMap.get(templateObject);
     int offset = pAbstractField.getOffset();
     int abstractValue = pAbstractField.getAbstractValue();
@@ -246,7 +247,7 @@ public class MaterlisationStep {
       Map<SMGObjectTemplate, SMGObject> pConcreteObjectMap,
       Set<SMGEdgePointsTo> concretePointer) {
 
-    SMGObjectTemplate templateTarget = pAbstractPointer.getAbstractObject();
+    SMGObjectTemplate templateTarget = pAbstractPointer.getObjectTemplate();
     int offset = pAbstractPointer.getOffset();
     int abstractPointerValue = pAbstractPointer.getAbstractValue();
 
@@ -261,7 +262,7 @@ public class MaterlisationStep {
       Map<SMGObjectTemplate, Map<Integer, Integer>> pAbstractObjectToPointersMap,
       Map<Integer, Integer> pAbstractToConcretePointerMap,
       boolean createNewConcreteValue) {
-    SMGObjectTemplate objectTemplate = edgeOfPointerTemplate.getAbstractObject();
+    SMGObjectTemplate objectTemplate = edgeOfPointerTemplate.getObjectTemplate();
 
     if (!pAbstractObjectToPointersMap.containsKey(objectTemplate)) {
       pAbstractObjectToPointersMap.put(objectTemplate, new HashMap<Integer, Integer>());
@@ -284,31 +285,42 @@ public class MaterlisationStep {
     Set<SMGObjectTemplate> entryRegions;
 
     entryRegions =
-        FluentIterable.from(abstractAdressesToOPointer).filter(
+        FluentIterable.from(targetAdressTemplateOfPointer).filter(
             new Predicate<SMGEdgePointsToTemplate>() {
 
               @Override
               public boolean apply(SMGEdgePointsToTemplate edge) {
-                return edge.getAbstractObject() instanceof SMGRegion;
+                return edge.getObjectTemplate() instanceof SMGRegion;
               }
             }).transform(new Function<SMGEdgePointsToTemplate, SMGObjectTemplate>() {
 
               @Override
               public SMGObjectTemplate apply(SMGEdgePointsToTemplate edge) {
-                return edge.getAbstractObject();
+                return edge.getObjectTemplate();
               }
             }).toSet();
 
     return entryRegions;
   }
 
-  public Set<SMGEdgePointsToTemplate> getPointerToThisTemplate(@SuppressWarnings("unused") SMGObjectTemplate pTemplate) {
-    // TODO Auto-generated method stub
+  public Set<SMGEdgePointsToTemplate> getPointerToThisTemplate(SMGObjectTemplate pTemplate) {
+
+    assert  objectTemplates.contains(pTemplate);
+
+
+
     return null;
+
   }
 
-  public FieldsOfTemplate getFieldsOfThisTemplate(@SuppressWarnings("unused") SMGObjectTemplate template) {
-    // TODO Auto-generated method stub
+  public FieldsOfTemplate getFieldsOfThisTemplate(SMGObjectTemplate pTemplate) {
+
+    assert  objectTemplates.contains(pTemplate);
+
+    @SuppressWarnings("unused")
+    Predicate<SMGEdgePointsToTemplate> objectFilter = new SMGUtils.FilterTargetTemplate(pTemplate);
+
+
     return null;
   }
 

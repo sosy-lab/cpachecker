@@ -36,7 +36,7 @@ public class SMGEdgeTemplate {
     offset = pOffset;
   }
 
-  public SMGObjectTemplate getAbstractObject() {
+  public SMGObjectTemplate getObjectTemplate() {
     return abstractObject;
   }
 
