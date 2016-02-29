@@ -7,6 +7,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.Boo
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
+import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 import org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor;
 
 import java.util.ArrayList;
@@ -17,17 +18,60 @@ import java.util.Set;
  * Convert the formula to form *resembling* CNF, but without exponential
  * explosion and without introducing extra existential quantifiers.
  */
-public class SemiCNFConverter {
+public class SemiCNFManager {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bfmgr;
 
-  public SemiCNFConverter(FormulaManagerView pFmgr) {
+  public SemiCNFManager(FormulaManagerView pFmgr) {
     bfmgr = pFmgr.getBooleanFormulaManager();
     fmgr = pFmgr;
   }
 
-  public BooleanFormula toSemiCNF(BooleanFormula input) {
+  /**
+   * @return whether {@code a} contains {@code b}.
+   */
+  public boolean contains(BooleanFormula a, BooleanFormula b) {
+    return getConjunctionArgs(a).containsAll(getConjunctionArgs(b));
+  }
 
+  /**
+   * @return {@code a /\ b} in semi-CNF form, assuming that both {@code a} and {@code b}
+   * are already in semi-CNF.
+   */
+  public BooleanFormula intersection(BooleanFormula a, BooleanFormula b) {
+    return bfmgr.and(Sets.intersection(
+        getConjunctionArgs(a), getConjunctionArgs(b)
+    ));
+  }
+
+  /**
+   * @return {@code a /\ b} in semi-CNF form, assuming that both {@code a} and {@code b}
+   * are already in semi-CNF.
+   */
+  public BooleanFormula union(BooleanFormula a, BooleanFormula b) {
+    return bfmgr.and(Sets.union(
+        getConjunctionArgs(a), getConjunctionArgs(b)
+    ));
+  }
+
+  /**
+   * @return all semi-clauses found in {@code a}, but not in {@code b}.
+   */
+  public BooleanFormula difference(BooleanFormula a, BooleanFormula b) {
+    return bfmgr.and(Sets.difference(
+        getConjunctionArgs(a), getConjunctionArgs(b)
+    ));
+  }
+
+
+  /**
+   * Convert the formula to semi-CNF form.
+   */
+  public BooleanFormula convert(BooleanFormula input) throws InterruptedException {
+
+    // TODO: perform explicit expansion up to a certain depth.
+
+    input = fmgr.applyTactic(input, Tactic.NNF);
     return bfmgr.visit(new BooleanFormulaTransformationVisitor(fmgr) {
 
       /**
@@ -92,11 +136,11 @@ public class SemiCNFConverter {
     }, input);
   }
 
-  private Set<BooleanFormula> getConjunctionArgs(BooleanFormula f) {
+  private Set<BooleanFormula> getConjunctionArgs(final BooleanFormula f) {
     return bfmgr.visit(new DefaultBooleanFormulaVisitor<Set<BooleanFormula>>() {
       @Override
       protected Set<BooleanFormula> visitDefault() {
-        return ImmutableSet.of();
+        return ImmutableSet.of(f);
       }
 
       @Override

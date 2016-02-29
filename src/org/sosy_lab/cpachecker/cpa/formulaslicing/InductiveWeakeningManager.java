@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -11,6 +12,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.cpa.formulaslicing.CEXWeakeningManager.SELECTION_STRATEGY;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -20,7 +22,9 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.FunctionDeclaration;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
+import org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -44,9 +48,6 @@ public class InductiveWeakeningManager implements StatisticsProvider {
   @Option(description="Granularity of weakening", secure=true)
   private ANNOTATION_MODE selectorAnnotationMode = ANNOTATION_MODE.LITERALS;
 
-  @Option(description="Convert to Semi-CNF form", secure=true)
-  private boolean toSemiCNF = false;
-
   private enum ANNOTATION_MODE {
 
     /**
@@ -55,15 +56,15 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     LITERALS,
 
     /**
-     * Introduce only one selector per disjunction. Less granular.
+     * Introduce only one selector per each argument in the conjunction. Less granular.
      */
-    DISJUNCTIONS
+    CONJUNCTIONS
   }
 
   /**
    * Possible weakening strategies.
    */
-  private enum WEAKENING_STRATEGY {
+  enum WEAKENING_STRATEGY {
 
     /**
      * Remove all atoms containing the literals mentioned in the transition relation.
@@ -78,7 +79,12 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     /**
      * Select literals to abstract based on the counterexamples-to-induction.
      */
-    CEX
+    CEX,
+
+    /**
+     * Convert the input to semi-CNF and use the CEX-based strategy afterwards.
+     */
+    FACTORIZATION
   }
 
   private final FormulaManagerView fmgr;
@@ -88,7 +94,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
   private final SyntacticWeakeningManager syntacticWeakeningManager;
   private final DestructiveWeakeningManager destructiveWeakeningManager;
   private final CEXWeakeningManager cexWeakeningManager;
-  private final SemiCNFConverter semiCNFConverter;
+  private final SemiCNFManager semiCNFManager;
 
   public InductiveWeakeningManager(
       Configuration config,
@@ -106,7 +112,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     destructiveWeakeningManager = new DestructiveWeakeningManager(statistics, pSolver, fmgr,
         logger, config);
     cexWeakeningManager = new CEXWeakeningManager(fmgr, pSolver, logger, statistics, config);
-    semiCNFConverter = new SemiCNFConverter(fmgr);
+    semiCNFManager = new SemiCNFManager(fmgr);
   }
 
 
@@ -126,12 +132,16 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     logger.log(Level.FINE, "Input = " + input.getFormula());
 
 
-    if (toSemiCNF) {
-      logger.log(Level.INFO, "Semi-CNF conversion is on, enabling disjunction-level annotation");
-      selectorAnnotationMode = ANNOTATION_MODE.DISJUNCTIONS;
+    if (weakeningStrategy == WEAKENING_STRATEGY.FACTORIZATION) {
+      logger.log(Level.INFO, "Semi-CNF conversion is on, "
+          + "enabling disjunction-level annotation, CEX-refinement and "
+          + "cheap removal strategy");
+      selectorAnnotationMode = ANNOTATION_MODE.CONJUNCTIONS;
+      weakeningStrategy = WEAKENING_STRATEGY.CEX;
+      cexWeakeningManager.setRemovalSelectionStrategy(SELECTION_STRATEGY.FIRST);
 
       input = input.updateFormula(
-          semiCNFConverter.toSemiCNF(input.getFormula())
+          semiCNFManager.convert(input.getFormula())
       );
     } else {
 
@@ -158,7 +168,8 @@ public class InductiveWeakeningManager implements StatisticsProvider {
 
       // Annotate conjunctions.
       Map<BooleanFormula, BooleanFormula> varsInfoBuilder = new HashMap<>();
-      annotated = annotateLiterals(input.getFormula(), varsInfoBuilder);
+      annotated = annotateWithSelectors(input.getFormula(), varsInfoBuilder);
+      logger.log(Level.FINE, "Annotated formula = " + annotated);
       selectionVarsInfo = ImmutableMap.copyOf(varsInfoBuilder);
       assert !selectionVarsInfo.isEmpty();
 
@@ -211,6 +222,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
             query,
             selectorsWithIntermediate);
       case CEX:
+      case FACTORIZATION:
         return cexWeakeningManager.performWeakening(
             selectionVarsInfo,
             query,
@@ -251,38 +263,89 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     return fmgr.simplify(sliced);
   }
 
-  private BooleanFormula annotateLiterals(
+  private BooleanFormula annotateWithSelectors(
       BooleanFormula input,
       final Map<BooleanFormula, BooleanFormula> selectionVarsInfoToFill) {
+
+    if (selectorAnnotationMode == ANNOTATION_MODE.LITERALS) {
+      return annotateLiterals(input, selectionVarsInfoToFill);
+    } else {
+      assert selectorAnnotationMode == ANNOTATION_MODE.CONJUNCTIONS;
+      return annotateConjunctions(input, selectionVarsInfoToFill);
+    }
+  }
+
+  private BooleanFormula annotateConjunctions(
+      BooleanFormula pInput,
+      final Map<BooleanFormula, BooleanFormula> pSelectionVarsInfoToFill) {
+    Optional<BooleanFormula> out =  bfmgr.visit(
+        new DefaultBooleanFormulaVisitor<Optional<BooleanFormula>>() {
+          @Override
+          protected Optional<BooleanFormula> visitDefault() {
+            return Optional.absent();
+          }
+
+          @Override
+          public Optional<BooleanFormula> visitAnd(List<BooleanFormula> operands) {
+            List<BooleanFormula> annotatedArgs = new ArrayList<>(operands.size());
+            int i = -1;
+            for (BooleanFormula argument : operands) {
+              annotatedArgs.add(
+                  bfmgr.or(
+                      makeSelector(pSelectionVarsInfoToFill, argument, ++i),
+                      argument
+                  )
+              );
+            }
+            return Optional.of(bfmgr.and(annotatedArgs));
+          }
+        },
+        pInput
+    );
+    if (out.isPresent()) {
+      return out.get();
+    } else {
+
+      // Annotate the single argument.
+      return bfmgr.or(
+          pInput,
+          makeSelector(pSelectionVarsInfoToFill, pInput, 0)
+      );
+    }
+  }
+
+  private BooleanFormula annotateLiterals(
+      BooleanFormula pInput,
+      final Map<BooleanFormula, BooleanFormula> pSelectionVarsInfoToFill) {
+
     final UniqueIdGenerator selectorId = new UniqueIdGenerator();
-    final String selectorVar = "_FS_SEL_VAR_";
     return bfmgr.visit(new BooleanFormulaTransformationVisitor(fmgr) {
       @Override
-      public BooleanFormula visitOr(List<BooleanFormula> args) {
-        List<BooleanFormula> processed = visitIfNotSeen(args);
-        if (selectorAnnotationMode == ANNOTATION_MODE.DISJUNCTIONS) {
-          processed.add(makeSelector(bfmgr.or(processed)));
-          return bfmgr.or(processed);
-        } else {
-          return bfmgr.or(processed);
-        }
+      public BooleanFormula visitNot(BooleanFormula negated) {
+        return annotate(bfmgr.not(negated));
       }
 
       @Override
       public BooleanFormula visitAtom(BooleanFormula atom, FunctionDeclaration decl) {
-        if (selectorAnnotationMode == ANNOTATION_MODE.LITERALS) {
-          return bfmgr.or(makeSelector(atom), atom);
-        } else {
-          return atom;
-        }
+        return annotate(atom);
       }
 
-      public BooleanFormula makeSelector(BooleanFormula toAnnotate) {
-        BooleanFormula selector = bfmgr.makeVariable(selectorVar + selectorId.getFreshId());
-        selectionVarsInfoToFill.put(selector, toAnnotate);
-        return selector;
+      BooleanFormula annotate(BooleanFormula input) {
+        return bfmgr.or(makeSelector(pSelectionVarsInfoToFill, input, selectorId.getFreshId()), input);
       }
-    }, input);
+    }, pInput);
+  }
+
+  private BooleanFormula makeSelector(
+      Map<BooleanFormula, BooleanFormula> selectionInfo,
+      BooleanFormula toAnnotate,
+      int counter
+  ) {
+    final String selectorVar = "_FS_SEL_VAR_";
+    BooleanFormula selector = bfmgr.makeVariable(selectorVar + counter);
+    selectionInfo.put(selector, toAnnotate);
+    return selector;
+
   }
 
   /**

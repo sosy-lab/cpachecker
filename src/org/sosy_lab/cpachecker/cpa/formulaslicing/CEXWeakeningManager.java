@@ -42,7 +42,7 @@ public class CEXWeakeningManager {
   /**
    * Selection strategy for CEX-based weakening.
    */
-  private enum SELECTION_STRATEGY {
+  enum SELECTION_STRATEGY {
     /**
      * Abstract all matching children.
      */
@@ -61,6 +61,7 @@ public class CEXWeakeningManager {
     /**
      * Follow the branch which eventually results in least abstractions [on the given model].
      */
+    // TODO: change it to go only until the certain depth, otherwise the complexity is exponential.
     LEAST_REMOVALS
   }
 
@@ -81,6 +82,10 @@ public class CEXWeakeningManager {
     logger = pLogger;
     statistics = pStatistics;
     bfmgr = pFmgr.getBooleanFormulaManager();
+  }
+
+  public void setRemovalSelectionStrategy(SELECTION_STRATEGY strategy) {
+    removalSelectionStrategy = strategy;
   }
 
   public Set<BooleanFormula> performWeakening(

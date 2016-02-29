@@ -4,16 +4,32 @@ package org.sosy_lab.cpachecker.cpa.formulaslicing;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.truth.TruthJUnit;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.cpachecker.cpa.formulaslicing.InductiveWeakeningManager.WEAKENING_STRATEGY;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
 import java.util.HashMap;
 import java.util.Map;
 
+@RunWith(Parameterized.class)
 public class FormulaSlicingTest {
+
+  @Parameters(name = "{0}")
+  public static Object[] weakeningStrategy() {
+    return WEAKENING_STRATEGY.values();
+  }
+
+  @Parameter(0)
+  public WEAKENING_STRATEGY weakeningStrategy;
+
   private static final String TEST_DIR_PATH = "test/programs/formulaslicing/";
 
   @Test public void simplest_true_assert() throws Exception {
@@ -29,6 +45,7 @@ public class FormulaSlicingTest {
   }
 
   @Test public void slice_with_branches_true_assert() throws Exception {
+    TruthJUnit.assume().that(weakeningStrategy).isNotEqualTo(WEAKENING_STRATEGY.FACTORIZATION);
     check("slice_with_branches_true_assert.c");
   }
 
@@ -37,6 +54,7 @@ public class FormulaSlicingTest {
   }
 
   @Test public void slicing_nested_true_assert() throws Exception {
+    TruthJUnit.assume().that(weakeningStrategy).isNotEqualTo(WEAKENING_STRATEGY.FACTORIZATION);
     check("slicing_nested_true_assert.c", ImmutableMap.of(
         "cpa.slicing.ignoreFunctionCallsInLoop", "true"
     ));
@@ -85,7 +103,10 @@ public class FormulaSlicingTest {
             ))
     )
         .put("solver.z3.requireProofs", "false")
-        .put("solver.solver", "Z3")
+
+        // TODO: try w/ different solvers as well.
+//        .put("solver.solver", "z3")
+        .put("solver.solver", "z3")
         .put("specification", "config/specification/default.spc")
         .put("parser.usePreprocessor", "true")
         .put("analysis.traversal.order", "bfs")
@@ -93,7 +114,7 @@ public class FormulaSlicingTest {
         .put("analysis.traversal.useReversePostorder", "true")
         .put("cpa.predicate.ignoreIrrelevantVariables", "false")
 
-        .put("cpa.slicing.weakeningStrategy", "cex")
+        .put("cpa.slicing.weakeningStrategy", weakeningStrategy.toString())
         .put("cpa.slicing.removalSelectionStrategy", "least_removals")
 
         .put("log.consoleLevel", "FINE")
