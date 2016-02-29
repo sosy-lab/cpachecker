@@ -93,24 +93,18 @@ public class SemiCNFManager {
         return bfmgr.and(allArgs);
       }
 
-      /**
-       * Factor out the common term in OR-.
-       */
       @Override
       public BooleanFormula visitOr(List<BooleanFormula> pOperands) {
         List<BooleanFormula> processed = visitIfNotSeen(pOperands);
 
         Set<BooleanFormula> intersection = null;
-        ArrayList<Set<BooleanFormula>> argsReceived = new ArrayList<>();
+        ArrayList<Set<BooleanFormula>> argsAsConjunctions = new ArrayList<>();
         for (BooleanFormula op : processed) {
           Set<BooleanFormula> args = getConjunctionArgs(op);
 
-          if (args.isEmpty()) {
-            // Fail fast.
-            return bfmgr.or(processed);
-          }
+          argsAsConjunctions.add(args);
 
-          argsReceived.add(args);
+          // Factor out the common term.
           if (intersection == null) {
             intersection = args;
           } else {
@@ -118,19 +112,15 @@ public class SemiCNFManager {
           }
         }
 
-        if (intersection != null && !intersection.isEmpty()) {
-          BooleanFormula head = bfmgr.and(intersection);
-          List<BooleanFormula> options = new ArrayList<>();
-          for (Set<BooleanFormula> args : argsReceived) {
-            options.add(bfmgr.and(Sets.difference(args, intersection)));
-          }
-          return bfmgr.and(
-              head,
-              bfmgr.or(options)
-          );
-        } else {
-          return bfmgr.or(processed);
+        assert intersection != null : "Should not be null for a non-zero number of operands.";
+
+        BooleanFormula common = bfmgr.and(intersection);
+        List<BooleanFormula> branches = new ArrayList<>();
+
+        for (Set<BooleanFormula> args : argsAsConjunctions) {
+          branches.add(bfmgr.and(Sets.difference(args, intersection)));
         }
+        return bfmgr.and(common, bfmgr.or(branches));
       }
 
     }, input);
