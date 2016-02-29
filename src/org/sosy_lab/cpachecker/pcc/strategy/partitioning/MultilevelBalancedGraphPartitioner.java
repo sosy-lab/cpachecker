@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -144,7 +145,21 @@ public class MultilevelBalancedGraphPartitioner implements WeightedBalancedGraph
       retransformPartitioning(partitioning, matching);
       refiner.refinePartitioning(partitioning, wGraph, pNumPartitions);
     }
+    removeEmptyPartitions(partitioning);
     return partitioning;
+  }
+
+  /**
+   * Method to remove all empty partitions from the partitioning. Empty partitions may slow down proof checking phase.
+   * @param partitions the partitioning to be cleaned up.
+   */
+  private void removeEmptyPartitions(List<Set<Integer>> partitions) {
+    for (Iterator<Set<Integer>> iter = partitions.listIterator(); iter.hasNext();) {
+      Set<Integer> partition = iter.next();
+      if (partition != null && partition.isEmpty()) {
+        iter.remove();
+      }
+    }
   }
 
   //TODO: Use Interface and factory here to compute matching via @OPTION

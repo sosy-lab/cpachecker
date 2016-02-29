@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -110,9 +111,22 @@ public class FiducciaMattheysesKWayBalancedGraphPartitioner
 
     //There is more than one partition, and at least one partition contains more than 1 node
 
-    List<Set<Integer>> partition = globalPartitioner.computePartitioning(pNumPartitions, wGraph);
-    refinePartitioning(partition, wGraph, pNumPartitions);
-    return partition;
+    List<Set<Integer>> partitioning = globalPartitioner.computePartitioning(pNumPartitions, wGraph);
+    refinePartitioning(partitioning, wGraph, pNumPartitions);
+    removeEmptyPartitions(partitioning);
+    return partitioning;
+  }
+/**
+ *Method to remove all empty partitions from the partitioning. Empty partitions may slow down proof checking phase.
+ * @param partitions the partitioning to be cleaned up.
+ */
+  private void removeEmptyPartitions(List<Set<Integer>> partitions) {
+    for (Iterator<Set<Integer>> iter = partitions.listIterator(); iter.hasNext();) {
+      Set<Integer> partition = iter.next();
+      if (partition != null && partition.isEmpty()) {
+        iter.remove();
+      }
+    }
   }
 
   /* (non-Javadoc)
