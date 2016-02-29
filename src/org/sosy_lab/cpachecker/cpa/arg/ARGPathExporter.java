@@ -1030,8 +1030,13 @@ public class ARGPathExporter {
           && ExpressionTrees.getTrue().equals(sourceTree)
           && (sourceScope == null || sourceScope.equals(targetScope))
           && enteringEdges.get(source).size() <= 1) {
-        sourceTree = simplifier.simplify(targetTree);
-        stateInvariants.put(source, sourceTree);
+        ExpressionTree<Object> newSourceTree = ExpressionTrees.getFalse();
+        for (Edge e : enteringEdges.get(source)) {
+          newSourceTree = factory.or(newSourceTree, getStateInvariant(e.source));
+        }
+        newSourceTree = simplifier.simplify(factory.and(targetTree, newSourceTree));
+        stateInvariants.put(source, newSourceTree);
+        sourceTree = newSourceTree;
       }
 
       final String newScope;
