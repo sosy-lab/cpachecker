@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.core.counterexample.Address;
@@ -244,7 +245,60 @@ public class AssignmentToPathAllocator {
     }
 
     private String getUninterpretedFunctionName(CExpression pCExp) {
-      //TODO Implement
+
+      String typeName = getTypeString(pCExp.getExpressionType());
+
+      if (pCExp instanceof CBinaryExpression) {
+
+        CBinaryExpression binExp = (CBinaryExpression) pCExp;
+        String opString = binExp.getOperator().getOperator();
+
+        switch (binExp.getOperator()) {
+          case MULTIPLY:
+          case MODULO:
+          case DIVIDE:
+            opString = "_" + opString;
+            break;
+          default:
+            // default
+        }
+
+        return typeName + "_" + opString + "_";
+
+      } else if (pCExp instanceof CUnaryExpression) {
+        CUnaryExpression unExp = (CUnaryExpression) pCExp;
+        String op = unExp.getOperator().getOperator();
+
+        return typeName + "_" + op + "_";
+      } else if (pCExp instanceof CCastExpression) {
+        CCastExpression castExp = (CCastExpression) pCExp;
+        CType type2 = castExp.getOperand().getExpressionType();
+        String typeName2 = getTypeString(type2);
+        return "__cast_" + typeName2 + "_to_" + typeName + "__";
+      }
+
+      return "";
+    }
+
+    private String getTypeString(CType pExpressionType) {
+
+      if(pExpressionType instanceof CSimpleType) {
+
+        CSimpleType simpleType = (CSimpleType) pExpressionType;
+
+        switch (simpleType.getType()) {
+          case INT:
+          case CHAR:
+          case BOOL:
+            return "Integer";
+          case FLOAT:
+          case DOUBLE:
+            return "Rational";
+          default:
+            return "";
+        }
+      }
+
       return "";
     }
 
@@ -271,7 +325,9 @@ public class AssignmentToPathAllocator {
     private boolean matchOperands(ValueAssignment pValueAssignment, Value[] operands) {
       ImmutableList<Object> arguments = pValueAssignment.getArgumentsInterpretation();
 
-      if (arguments.size() != operands.length) { return false; }
+      if (arguments.size() != operands.length) {
+        return false;
+      }
 
       for (int i = 0; i < operands.length; i++) {
         Value operandI = operands[i];
