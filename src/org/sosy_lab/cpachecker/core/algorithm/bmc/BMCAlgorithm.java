@@ -328,6 +328,10 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
                           CFANode node = pCFAEdge.getSuccessor();
                           ExpressionTree<Object> result =
                               invariantGenerator.getAsExpressionTree().getInvariantFor(node);
+                          if (ExpressionTrees.getFalse().equals(result)
+                              && !pStates.isPresent()) {
+                            return ExpressionTrees.getTrue();
+                          }
                           return result;
 
                         } catch (CPAException e) {
