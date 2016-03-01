@@ -1025,9 +1025,6 @@ public class InvariantsState implements AbstractState,
       return true;
     }
     FluentIterable<AssumeEdge> enteringAssumeEdges = CFAUtils.enteringEdges(pReferenceNode).filter(AssumeEdge.class);
-    if (enteringAssumeEdges.isEmpty()) {
-      return false;
-    }
     Queue<CFANode> waitlist = Queues.newArrayDeque();
     Set<CFANode> visited = Sets.newHashSet();
     waitlist.offer(pReferenceNode);
