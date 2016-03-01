@@ -76,4 +76,20 @@ public class TargetLocationCandidateInvariant extends AbstractLocationFormulaInv
     return "No target locations reachable from: " + getLocations();
   }
 
+  @Override
+  public int hashCode() {
+    return getLocations().hashCode();
+  }
+
+  @Override
+  public boolean equals(Object pObj) {
+    if (this == pObj) {
+      return true;
+    }
+    if (pObj instanceof TargetLocationCandidateInvariant) {
+      return getLocations().equals(((TargetLocationCandidateInvariant) pObj).getLocations());
+    }
+    return false;
+  }
+
 }
