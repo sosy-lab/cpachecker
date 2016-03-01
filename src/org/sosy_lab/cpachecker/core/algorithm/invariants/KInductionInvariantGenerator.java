@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
 import static com.google.common.base.Preconditions.*;
+import static com.google.common.collect.FluentIterable.from;
 
 import java.io.PrintStream;
 import java.util.ArrayDeque;
@@ -87,6 +88,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.automaton.Automata;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -100,8 +102,11 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
 import org.sosy_lab.solver.SolverException;
 
+import com.google.common.base.Optional;
+import com.google.common.base.Predicates;
 import com.google.common.base.Throwables;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -373,9 +378,13 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
           reachedSet);
     }
 
-    final TargetLocationCandidateInvariant safetyProperty = new TargetLocationCandidateInvariant(pCFA.getAllLoopHeads().get());
+    final TargetLocationCandidateInvariant safetyProperty;
     if (pCFA.getAllLoopHeads().isPresent()) {
+      safetyProperty =
+          new TargetLocationCandidateInvariant(getLoopHeads(pCFA, pTargetLocationProvider));
       candidates.add(safetyProperty);
+    } else {
+      safetyProperty = null;
     }
 
     if (pOptions.terminateOnCounterexample) {
@@ -398,7 +407,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
             @Override
             public CandidateInvariant next() {
               if (safetyPropertyConfirmed) {
-                throw new NoSuchElementException("No more candidates available: The safety property has already been confirmed.");
+                throw new NoSuchElementException(
+                    "No more candidates available: The safety property has already been confirmed.");
               }
               return candidate = iterator.next();
             }
@@ -427,13 +437,30 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
         @Override
         public void confirmCandidates(Iterable<CandidateInvariant> pCandidates) {
           super.confirmCandidates(pCandidates);
-          if (Iterables.contains(pCandidates, safetyProperty)) {
+          if (safetyProperty != null && Iterables.contains(pCandidates, safetyProperty)) {
             safetyPropertyConfirmed = true;
           }
         }
       };
     }
     return new StaticCandidateProvider(candidates);
+  }
+
+  private static Set<CFANode> getLoopHeads(
+      CFA pCFA, TargetLocationProvider pTargetLocationProvider) {
+    if (pCFA.getLoopStructure().isPresent()
+        && pCFA.getLoopStructure().get().getAllLoops().isEmpty()) {
+      return ImmutableSet.of();
+    }
+    Set<CFANode> loopHeads =
+        pTargetLocationProvider.tryGetAutomatonTargetLocations(
+            pCFA.getMainFunction(), Optional.of(Automata.getLoopHeadTargetAutomaton()));
+    if (!pCFA.getLoopStructure().isPresent()) {
+      return loopHeads;
+    }
+    return from(loopHeads)
+        .filter(Predicates.in(pCFA.getLoopStructure().get().getAllLoopHeads()))
+        .toSet();
   }
 
   private static ReachedSet analyzeWitness(Configuration pConfig, LogManager pLogger, CFA pCFA,
