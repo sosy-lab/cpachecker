@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -81,11 +82,13 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 
+import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 
 @Options(prefix="bmc")
 abstract class AbstractBMCAlgorithm implements StatisticsProvider {
@@ -153,8 +156,11 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     reachedSetFactory = pReachedSetFactory;
     cfa = pCFA;
 
+    shutdownNotifier = pShutdownManager.getNotifier();
+    targetLocationProvider = new CachingTargetLocationProvider(reachedSetFactory, shutdownNotifier, logger, pConfig, cfa);
+
     if (induction) {
-      induction = checkIfInductionIsPossible(pCFA, pLogger);
+      induction = checkIfInductionIsPossible(pCFA, pLogger, Optional.of(targetLocationProvider));
     }
 
     if (induction) {
@@ -188,9 +194,6 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
       propagateSafetyInterrupt = null;
     }
 
-    shutdownNotifier = pShutdownManager.getNotifier();
-    targetLocationProvider = new CachingTargetLocationProvider(reachedSetFactory, shutdownNotifier, logger, pConfig, cfa);
-
     if (!pIsInvariantGenerator
         && induction
         && addInvariantsByInduction) {
@@ -214,7 +217,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
   }
 
-  static boolean checkIfInductionIsPossible(CFA cfa, LogManager logger) {
+  static boolean checkIfInductionIsPossible(CFA cfa, LogManager logger, Optional<TargetLocationProvider> pTargetLocationProvider) {
     if (!cfa.getLoopStructure().isPresent()) {
       logger.log(Level.WARNING, "Could not use induction for proving program safety, loop structure of program could not be determined.");
       return false;
@@ -225,6 +228,10 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     if (loops.getCount() == 0) {
       // induction is unnecessary, program has no loops
       return false;
+    }
+
+    if (pTargetLocationProvider.isPresent()) {
+      return !getLoopHeads(cfa, pTargetLocationProvider.get()).isEmpty();
     }
 
     return true;
@@ -502,7 +509,8 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
         invariantGenerator,
         stats,
         reachedSetFactory,
-        shutdownNotifier) : null;
+        shutdownNotifier,
+        getLoopHeads()) : null;
   }
 
   /**
@@ -520,18 +528,31 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
    * @return the loop heads.
    */
   protected Set<CFANode> getLoopHeads() {
-    if (cfa.getLoopStructure().isPresent()
-        && cfa.getLoopStructure().get().getAllLoops().isEmpty()) {
+    return getLoopHeads(cfa, targetLocationProvider);
+  }
+
+  private static Set<CFANode> getLoopHeads(CFA pCFA, TargetLocationProvider pTargetLocationProvider) {
+    if (pCFA.getLoopStructure().isPresent()
+        && pCFA.getLoopStructure().get().getAllLoops().isEmpty()) {
       return Collections.emptySet();
     }
-    Set<CFANode> loopHeads =
-        targetLocationProvider.tryGetAutomatonTargetLocations(
-            cfa.getMainFunction(), Optional.of(Automata.getLoopHeadTargetAutomaton()));
-    if (!cfa.getLoopStructure().isPresent()) {
+    final Set<CFANode> loopHeads =
+        pTargetLocationProvider.tryGetAutomatonTargetLocations(
+            pCFA.getMainFunction(), Optional.of(Automata.getLoopHeadTargetAutomaton()));
+    if (!pCFA.getLoopStructure().isPresent()) {
       return loopHeads;
     }
-    return from(loopHeads)
-        .filter(Predicates.in(cfa.getLoopStructure().get().getAllLoopHeads()))
-        .toSet();
+    LoopStructure loopStructure = pCFA.getLoopStructure().get();
+    return from(loopStructure.getAllLoops()).transformAndConcat(new Function<Loop, Iterable<CFANode>>() {
+
+      @Override
+      public Iterable<CFANode> apply(Loop pLoop) {
+        if (Sets.intersection(pLoop.getLoopNodes(), loopHeads).isEmpty()) {
+          return Collections.emptySet();
+        }
+        return pLoop.getLoopHeads();
+      }
+
+    }).toSet();
   }
 }

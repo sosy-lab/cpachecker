@@ -70,8 +70,11 @@ import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 /**
  * Instances of this class are used to prove the safety of a program by
@@ -129,6 +132,8 @@ class KInductionProver implements AutoCloseable {
   // The CandidateInvariants that have been proven to hold at the loop heads of {@link loop}.
   private final Set<CandidateInvariant> confirmedCandidates = new CopyOnWriteArraySet<>();
 
+  private final ImmutableSet<CFANode> loopHeads;
+
   private boolean invariantGenerationRunning = true;
 
   /**
@@ -142,7 +147,8 @@ class KInductionProver implements AutoCloseable {
       InvariantGenerator pInvariantGenerator,
       BMCStatistics pStats,
       ReachedSetFactory pReachedSetFactory,
-      ShutdownNotifier pShutdownNotifier) {
+      ShutdownNotifier pShutdownNotifier,
+      Set<CFANode> pLoopHeads) {
     cfa = checkNotNull(pCFA);
     logger = checkNotNull(pLogger);
     algorithm = checkNotNull(pAlgorithm);
@@ -162,6 +168,8 @@ class KInductionProver implements AutoCloseable {
 
     invariantsSupplier = InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
     expressionTreeSupplier = ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE;
+
+    loopHeads = ImmutableSet.copyOf(pLoopHeads);
   }
 
   public Collection<CandidateInvariant> getConfirmedCandidates() {
@@ -395,9 +403,11 @@ class KInductionProver implements AutoCloseable {
     }
 
     // Assert the known invariants at the loop head at the first iteration.
-    Set<CFANode> stopLocations = getStopLocations(reached);
+    Set<CFANode> stopLocations = Sets.intersection(getStopLocations(reached), loopHeads);
     Iterable<AbstractState> loopHeadStates =
-        AbstractStates.filterLocations(reached, stopLocations).filter(new Predicate<AbstractState>() {
+        AbstractStates
+        .filterLocations(reached, stopLocations)
+        .filter(new Predicate<AbstractState>() {
 
           @Override
           public boolean apply(AbstractState pArg0) {
@@ -416,7 +426,7 @@ class KInductionProver implements AutoCloseable {
     // Create the formula asserting the faultiness of the successor
     stepCaseBoundsCPA.setMaxLoopIterations(k + 1);
     BMCHelper.unroll(logger, reached, reachedSetInitializer, algorithm, cpa);
-    stopLocations = getStopLocations(reached);
+    stopLocations = Sets.intersection(getStopLocations(reached), loopHeads);
 
     this.previousK = k + 1;
 
@@ -511,7 +521,7 @@ class KInductionProver implements AutoCloseable {
       return;
     }
     for (Loop loop : cfa.getLoopStructure().get().getAllLoops()) {
-      for (CFANode loopHead : loop.getLoopHeads()) {
+      for (CFANode loopHead : from(loop.getLoopHeads()).filter(Predicates.in(loopHeads))) {
         Precision precision =
             cpa.getInitialPrecision(loopHead, StateSpacePartition.getDefaultPartition());
         AbstractState initialState =
