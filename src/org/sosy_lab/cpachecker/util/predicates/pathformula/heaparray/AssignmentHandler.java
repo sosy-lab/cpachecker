@@ -294,19 +294,17 @@ class AssignmentHandler {
     } else {
       final String targetName = CToFormulaConverterWithHeapArray.getArrayName(lhsType);
       final FormulaType<?> targetType = converter.getFormulaTypeFromCType(lhsType);
-      final int oldIndex = converter.getIndex(targetName, lhsType, ssa);
-      final int newIndex = pUseOldSSAIndices
+      final int index = pUseOldSSAIndices
                         ? converter.getIndex(targetName, lhsType, ssa)
                         : converter.getFreshIndex(targetName, lhsType, ssa);
 
-      final IntegerFormula counter = ifmgr.makeVariable(targetName + "@" + oldIndex + "@counter");
-      final ArrayFormula<?, ?> oldArray = afmgr.makeArray(targetName + "@" + oldIndex,
-          FormulaType.IntegerType, targetType);
-      final ArrayFormula<?, ?> newArray = afmgr.makeArray(targetName + "@" + newIndex,
+      final IntegerFormula counter = ifmgr.makeVariable(targetName + "@" + index + "@counter");
+      final ArrayFormula<?, ?> arrayFormula = afmgr.makeArray(targetName + "@" + index,
           FormulaType.IntegerType, targetType);
 
       final BooleanFormula initializationAssignment = formulaManager.makeEqual(
-          newArray, afmgr.store(oldArray, counter, rhsValue.getValue()));
+          afmgr.select(arrayFormula, counter),
+          rhsValue.getValue());
 
       return pQfmgr.forall(ImmutableList.of(counter), initializationAssignment);
     }
