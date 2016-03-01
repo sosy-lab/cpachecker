@@ -30,6 +30,7 @@ import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Queue;
@@ -440,9 +441,15 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
       KInductionInvariantGeneratorOptions options) throws InvalidConfigurationException,
       CPAException {
     ConfigurationBuilder configBuilder = Configuration.builder();
-    String machineModelOption = "analysis.machineModel";
-    if (pConfig.hasProperty(machineModelOption)) {
-      configBuilder.copyOptionFrom(pConfig, machineModelOption);
+    List<String> copyOptions = Arrays.asList(
+        "analysis.machineModel",
+        "cpa.callstack.skipRecursion",
+        "cpa.callstack.skipVoidRecursion",
+        "cpa.callstack.skipFunctionPointerRecursion");
+    for (String copyOption : copyOptions) {
+      if (pConfig.hasProperty(copyOption)) {
+        configBuilder.copyOptionFrom(pConfig, copyOption);
+      }
     }
     configBuilder.setOption("cpa", "cpa.arg.ARGCPA");
     configBuilder.setOption("ARGCPA.cpa", "cpa.composite.CompositeCPA");
@@ -451,6 +458,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
         "cpa.location.LocationCPA, "
             + "cpa.callstack.CallstackCPA, "
             + "cpa.functionpointer.FunctionPointerCPA");
+    configBuilder.setOption("output.disable", "true");
     Configuration config = configBuilder.build();
     ShutdownNotifier notifier = pShutdownManager.getNotifier();
     ReachedSet reachedSet = pReachedSetFactory.create();
