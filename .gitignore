@@ -228,6 +228,9 @@
 .idea/junitgenerator-prj-settings.xml
 .idea/vcs.xml
 .idea/checkstyle-idea.xml
+.idea/ant.xml
+.idea/misc.xml
+.idea/modules.xml
 
 # Generated files.
 src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/FormulaParser.java
