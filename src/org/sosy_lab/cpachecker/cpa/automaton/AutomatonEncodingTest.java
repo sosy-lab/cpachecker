@@ -23,13 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import java.io.IOException;
 import java.util.Map;
 
 import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.cpachecker.util.test.TestResults;
@@ -99,12 +97,33 @@ public class AutomatonEncodingTest {
     stat.assertThatNumber("Max states per location").isAtMost(2);
   }
 
-  private TestResults runWithAutomataEncoding(final String specFile, final String programFile)
-      throws InvalidConfigurationException, IOException, Exception {
+  @Ignore
+  @Test
+  public void testAssumeOnNamedArgument_Safe() throws Exception {
+    final String floatSpecFile = "test/config/automata/encode/SPEC_sqrt.spc";
+    final String floatProgramFile = "test/config/automata/encode/SPEC_sqrt_true.c";
+    final String intSpecFile = "test/config/automata/encode/SPEC_sqrt_int.spc";
+    final String intProgramFile = "test/config/automata/encode/SPEC_sqrt_int_true.c";
+
+    TestResults floatResults = runWithAutomataEncoding(floatSpecFile, floatProgramFile);
+    TestResults intResults = runWithAutomataEncoding(intSpecFile, intProgramFile);
+
+    floatResults.assertIsSafe();
+    intResults.assertIsSafe();
+
+    TestRunStatisticsParser floatStat = new TestRunStatisticsParser();
+    floatResults.getCheckerResult().printStatistics(floatStat.getPrintStream());
+
+    TestRunStatisticsParser intStat = new TestRunStatisticsParser();
+    intResults.getCheckerResult().printStatistics(intStat.getPrintStream());
+  }
+
+  private TestResults runWithAutomataEncoding(final String pSpecFile, final String pProgramFile)
+      throws Exception {
 
     Map<String, String> prop = ImmutableMap.of(
-        "specification",                    specFile,
-        "cpa.predicate.ignoreIrrelevantVariables", "TRUE",
+        "specification",                    pSpecFile,
+        "cpa.predicate.ignoreIrrelevantVariables", "true",
         "cfa.useMultiEdges",                "FALSE",
         "automata.properties.granularity",  "BASENAME",
         "analysis.checkCounterexamples", "FALSE"
@@ -115,23 +134,7 @@ public class AutomatonEncodingTest {
         .setOptions(prop)
         .build();
 
-    TestResults results = CPATestRunner.run(cfg, programFile, false);
-
-    return results;
+    return CPATestRunner.run(cfg, pProgramFile, false);
   }
-
-  @Test
-  public void testAssumeOnNamedArgument_Safe() throws Exception {
-    final String specFile = "test/config/automata/encode/SPEC_sqrt.spc";
-    final String programFile = "test/config/automata/encode/SPEC_sqrt_true.c";
-
-    TestResults results = runWithAutomataEncoding(specFile, programFile);
-
-    results.assertIsSafe();
-
-    TestRunStatisticsParser stat = new TestRunStatisticsParser();
-    results.getCheckerResult().printStatistics(stat.getPrintStream());
-  }
-
 
 }
