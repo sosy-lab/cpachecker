@@ -79,7 +79,7 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
         locks);
   }
 
-  public ThreadingState updateThreadAndCopy(String id, AbstractState stack, AbstractState loc) {
+  public ThreadingState updateLocationAndCopy(String id, AbstractState stack, AbstractState loc) {
     Preconditions.checkNotNull(id);
     Preconditions.checkArgument(threads.containsKey(id), "updating non-existing thread");
     return new ThreadingState(

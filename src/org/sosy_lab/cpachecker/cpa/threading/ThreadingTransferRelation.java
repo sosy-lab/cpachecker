@@ -271,7 +271,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     // combine them pairwise, all combinations needed
     for (AbstractState loc : newLocs) {
       for (AbstractState stack : newStacks) {
-        results.add(threadingState.updateThreadAndCopy(activeThread, stack, loc));
+        results.add(threadingState.updateLocationAndCopy(activeThread, stack, loc));
       }
     }
 
