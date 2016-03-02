@@ -122,30 +122,10 @@ public abstract class PredicateRefiner implements Refiner {
     PredicateRefinerOptions refinementOptions = new PredicateRefinerOptions(config);
     if (refinementOptions.useInvariantRefinement) {
       return new PredicateCPARefinerWithInvariants(
-          config,
-          logger,
-          pCpa,
-          manager,
-          pathChecker,
-          prefixProvider,
-          pfmgr,
-          pRefinementStrategy,
-          solver,
-          predicateCpa.getAssumesStore(),
-          predicateCpa.getCfa());
+          pCpa, manager, pathChecker, prefixProvider, pRefinementStrategy);
     } else {
       return new PredicateCPARefiner(
-          config,
-          logger,
-          pCpa,
-          manager,
-          pathChecker,
-          prefixProvider,
-          pfmgr,
-          pRefinementStrategy,
-          solver,
-          predicateCpa.getAssumesStore(),
-          predicateCpa.getCfa());
+          pCpa, manager, pathChecker, prefixProvider, pRefinementStrategy);
     }
   }
 }

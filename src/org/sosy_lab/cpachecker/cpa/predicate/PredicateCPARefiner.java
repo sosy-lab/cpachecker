@@ -37,7 +37,6 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -143,32 +142,32 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   protected final CFA cfa;
   protected final ShutdownNotifier shutdownNotifier;
 
-  public PredicateCPARefiner(final Configuration pConfig, final LogManager pLogger,
+  // we get the configuration out of the pCPA object and do not need another one
+  @SuppressWarnings("options")
+  public PredicateCPARefiner(
       final ConfigurableProgramAnalysis pCpa,
       final InterpolationManager pInterpolationManager,
       final PathChecker pPathChecker,
       final PrefixProvider pPrefixProvider,
-      final PathFormulaManager pPathFormulaManager,
-      final RefinementStrategy pStrategy,
-      final Solver pSolver,
-      final PredicateAssumeStore pAssumesStore,
-      final CFA pCfa)
-          throws InvalidConfigurationException {
+      final RefinementStrategy pStrategy)
+      throws InvalidConfigurationException {
 
     super(pCpa);
+    PredicateCPA predicateCpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
 
-    pConfig.inject(this, PredicateCPARefiner.class);
+    predicateCpa.getConfiguration().inject(this, PredicateCPARefiner.class);
 
-    assumesStore = pAssumesStore;
-    solver = pSolver;
-    logger = pLogger;
+    assumesStore = predicateCpa.getAssumesStore();
+    solver = predicateCpa.getSolver();
+    shutdownNotifier = predicateCpa.getShutdownNotifier();
+    pfmgr = predicateCpa.getPathFormulaManager();
+    cfa = predicateCpa.getCfa();
+    logger = predicateCpa.getLogger();
+
     formulaManager = pInterpolationManager;
     pathChecker = pPathChecker;
-    pfmgr = pPathFormulaManager;
     fmgr = solver.getFormulaManager();
     strategy = pStrategy;
-    cfa = pCfa;
-    shutdownNotifier = CPAs.retrieveCPA(pCpa, PredicateCPA.class).getShutdownNotifier();
     prefixProvider = pPrefixProvider;
 
     logger.log(Level.INFO, "Using refinement for predicate analysis with " + strategy.getClass().getSimpleName() + " strategy.");

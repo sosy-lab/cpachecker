@@ -56,9 +56,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathCounterTemplate;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.Language;
@@ -87,14 +85,13 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.LoopCollectingEdgeVisitor;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
@@ -179,231 +176,47 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
       + " sliced prefixes with k-induction be tried?")
   private int kInductionTries = 3;
 
-  private Map<Loop, Integer> loopOccurrences = new HashMap<>();
+
+  private final Map<Loop, Integer> loopOccurrences = new HashMap<>();
   private boolean wereInvariantsGenerated = false;
-  private Configuration config;
+
+  private final Configuration config;
+  private final Stats stats = new Stats();
 
   // the previously analyzed counterexample to detect repeated counterexamples
   private List<CFANode> lastErrorPath = null;
 
-  // statistics
-  private final StatTimer totalInvariantGeneration = new StatTimer("Time for invariant generation");
-  private final StatInt totalInvariantRefinements = new StatInt(StatKind.COUNT, "Number of invariants refinements");
-  private final StatInt succInvariantRefinements = new StatInt(StatKind.COUNT, "Number of successful invariants refinements");
-  private final StatInt totalInductiveRefinements = new StatInt(StatKind.COUNT, "Number of invariant refinements with k-induction");
-  private final StatInt succInductiveRefinements = new StatInt(StatKind.COUNT, "Number of successful refinements with k-induction");
-  private final StatInt totalRepeatedCounterexamples = new StatInt(StatKind.COUNT, "Number of repeated counterexamples");
-
-  class Stats extends AbstractStatistics {
-
-    @Override
-    public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-      StatisticsWriter w0 = writingStatisticsTo(out);
-
-      int numberOfRefinements = totalRefinement.getUpdateCount();
-      if (numberOfRefinements > 0) {
-        w0.put(totalRepeatedCounterexamples);
-        w0.put(totalInvariantRefinements);
-        w0.beginLevel().put(succInvariantRefinements);
-        w0.beginLevel().put(totalInvariantGeneration);
-        w0.beginLevel().put(totalInductiveRefinements);
-        w0.beginLevel().beginLevel().put(succInductiveRefinements);
-      }
-    }
-
-    @Override
-    public String getName() {
-      return strategy.getStatistics().getName() + " with Invariants";
-    }
-  }
-
-  class InvCandidateGenerator implements CandidateGenerator {
-
-    private int trieNum = 0;
-    private List<CandidateInvariant> candidates = new ArrayList<>();
-
-    private final BooleanFormulaManager bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
-
-    private final ARGPath argPath;
-    private final List<CFANode> abstractionNodes;
-    private final Set<ARGState> elementsOnPath;
-    private final List<ARGState> abstractionStatesTrace;
-    private final List<InfeasiblePrefix> infeasiblePrefixes;
-    private final List<AbstractLocationFormulaInvariant> foundInvariants = new ArrayList<>();
-
-    private InvCandidateGenerator(ARGPath pPath, List<CFANode> pAbstractionNodes) throws CPAException, InterruptedException {
-      argPath = pPath;
-      abstractionNodes = pAbstractionNodes;
-      elementsOnPath = extractElementsOnPath(argPath);
-      abstractionStatesTrace = transformPath(argPath);
-
-      prefixExtractionTime.start();
-      infeasiblePrefixes = prefixProvider.extractInfeasiblePrefixes(argPath);
-      prefixExtractionTime.stop();
-    }
-
-    @Override
-    public boolean produceMoreCandidates() {
-      if (trieNum >= kInductionTries) {
-        return false;
-      }
-
-      if (infeasiblePrefixes.isEmpty()) {
-        logger.log(Level.WARNING, "Could not create infeasible prefixes for invariant generation.");
-        return false;
-      }
-
-      candidates = newArrayList(concat(from(infeasiblePrefixes).transform(TO_LOCATION_CANDIDATE_INVARIANT)));
-      trieNum++;
-
-      return true;
-    }
-
-    private final Function<InfeasiblePrefix, List<CandidateInvariant>>
-        TO_LOCATION_CANDIDATE_INVARIANT =
-            new Function<InfeasiblePrefix, List<CandidateInvariant>>() {
-              @Override
-              public List<CandidateInvariant> apply(InfeasiblePrefix pInput) {
-                List<BooleanFormula> interpolants;
-                try {
-                  List<BooleanFormula> pathFormula = pInput.getPathFormulae();
-                  // the prefix is not filled up with trues if it is shorter than
-                  // the path so we need to do it ourselves
-                  while (pathFormula.size() < abstractionStatesTrace.size()) {
-                    pathFormula.add(bfmgr.makeBoolean(true));
-                  }
-                  interpolants =
-                      formulaManager
-                          .buildCounterexampleTrace(
-                              pInput.getPathFormulae(),
-                              Lists.<AbstractState>newArrayList(abstractionStatesTrace),
-                              elementsOnPath,
-                              true)
-                          .getInterpolants();
-
-                } catch (CPAException | InterruptedException e) {
-                  logger.logUserException(
-                      Level.WARNING, e, "Could not compute interpolants for k-induction inv-gen");
-                  return Collections.emptyList();
-                }
-
-                List<CandidateInvariant> invCandidates = new ArrayList<>();
-                // add false as last interpolant for the error location
-                interpolants = new ArrayList<>(interpolants);
-                interpolants.add(bfmgr.makeBoolean(false));
-
-                for (Pair<CFANode, BooleanFormula> nodeAndFormula :
-                    Pair.<CFANode, BooleanFormula>zipList(abstractionNodes, interpolants)) {
-                  invCandidates.add(
-                      makeLocationInvariant(
-                          nodeAndFormula.getFirst(),
-                          solver
-                              .getFormulaManager()
-                              .dumpFormula(nodeAndFormula.getSecond())
-                              .toString()));
-                }
-                return invCandidates;
-              }
-            };
-
-    @Override
-    public boolean hasCandidatesAvailable() {
-      return !candidates.isEmpty();
-    }
-
-    @Override
-    public void confirmCandidates(Iterable<CandidateInvariant> pCandidates) {
-      for (CandidateInvariant inv : pCandidates) {
-        candidates.remove(inv);
-        foundInvariants.add((AbstractLocationFormulaInvariant) inv);
-      }
-    }
-
-    @Override
-    public Iterator<CandidateInvariant> iterator() {
-      if (trieNum == 0) {
-        return Collections.<CandidateInvariant>emptyIterator();
-      }
-      return candidates.iterator();
-    }
-
-    public boolean hasFoundInvariants() {
-      return !foundInvariants.isEmpty();
-    }
-
-    @Override
-    public Set<AbstractLocationFormulaInvariant> getConfirmedCandidates() {
-      return new HashSet<>(foundInvariants);
-    }
-
-    public List<BooleanFormula> retrieveConfirmedInvariants() {
-      FluentIterable<AbstractLocationFormulaInvariant> found = from(foundInvariants);
-      List<BooleanFormula> invariants = new ArrayList<>();
-      for (final CFANode node : abstractionNodes) {
-        invariants.add(
-            found
-                .filter(
-                    new Predicate<AbstractLocationFormulaInvariant>() {
-                      @Override
-                      public boolean apply(AbstractLocationFormulaInvariant pInput) {
-                        return getOnlyElement(pInput.getLocations()).equals(node);
-                      }
-                    })
-                .first()
-                .transform(
-                    new Function<AbstractLocationFormulaInvariant, BooleanFormula>() {
-                      @Override
-                      public BooleanFormula apply(AbstractLocationFormulaInvariant pInput) {
-                        try {
-                          return pInput.getFormula(fmgr, pfmgr);
-                        } catch (CPATransferException | InterruptedException e) {
-                          // this should never happen, if it does we log
-                          // the exception and return TRUE as invariant
-                          logger.logUserException(
-                              Level.WARNING,
-                              e,
-                              "Invariant could not be" + " retrieved from InvariantGenerator");
-                          return fmgr.getBooleanFormulaManager().makeBoolean(true);
-                        }
-                      }
-                    })
-                .or(fmgr.getBooleanFormulaManager().makeBoolean(true)));
-      }
-
-      // if we found invariants at least one of them may not be "TRUE"
-      assert !from(invariants).allMatch(equalTo(fmgr.getBooleanFormulaManager().makeBoolean(true)));
-
-      return invariants;
-    }
-  }
-
-  public PredicateCPARefinerWithInvariants(final Configuration pConfig, final LogManager pLogger,
+  // we get the configuration out of the pCPA object and do not need another one
+  @SuppressWarnings("options")
+  public PredicateCPARefinerWithInvariants(
       final ConfigurableProgramAnalysis pCpa,
       final InterpolationManager pInterpolationManager,
       final PathChecker pPathChecker,
       final PrefixProvider pPrefixProvider,
-      final PathFormulaManager pPathFormulaManager,
-      final RefinementStrategy pStrategy,
-      final Solver pSolver,
-      final PredicateAssumeStore pAssumesStore,
-      final CFA pCfa)
-          throws InvalidConfigurationException {
+      final RefinementStrategy pStrategy)
+      throws InvalidConfigurationException {
 
-    super(pConfig, pLogger, pCpa, pInterpolationManager, pPathChecker, pPrefixProvider,
-          pPathFormulaManager, pStrategy, pSolver, pAssumesStore, pCfa);
+    super(pCpa, pInterpolationManager, pPathChecker, pPrefixProvider, pStrategy);
+    PredicateCPA predicateCpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
 
-    pConfig.inject(this, PredicateCPARefinerWithInvariants.class);
-    config = pConfig;
+    config = predicateCpa.getConfiguration();
+    config.inject(this, PredicateCPARefinerWithInvariants.class);
   }
 
   @Override
   public final CounterexampleInfo performRefinement(final ARGReachedSet pReached, final ARGPath allStatesTrace) throws CPAException, InterruptedException {
+    return performRefinement0(pReached, allStatesTrace);
+  }
+
+  private CounterexampleInfo performRefinement0(
+      final ARGReachedSet pReached, final ARGPath allStatesTrace)
+      throws CPAException, InterruptedException {
     final List<CFANode> errorPath = Lists.transform(allStatesTrace.asStatesList(), AbstractStates.EXTRACT_LOCATION);
     final boolean repeatedCounterexample = errorPath.equals(lastErrorPath);
     lastErrorPath = errorPath;
 
     if (repeatedCounterexample) {
-      totalRepeatedCounterexamples.setNextValue(1);
+      stats.totalRepeatedCounterexamples.setNextValue(1);
     }
 
     // nothing was computed up to now, so just call refinement of
@@ -437,7 +250,7 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
 
     // start refinement here, in the previous cases the time gets counted
     // in the super method
-    totalInvariantGeneration.start();
+    stats.totalInvariantGeneration.start();
     logger.log(Level.FINEST, "Starting invariant-generation-based refinement");
 
     Set<ARGState> elementsOnPath = extractElementsOnPath(allStatesTrace);
@@ -471,12 +284,12 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
     if (counterexample.isSpurious()) {
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
 
-      totalInvariantRefinements.setNextValue(1);
+      stats.totalInvariantRefinements.setNextValue(1);
 
       List<BooleanFormula> precisionIncrement = null;
       if (useKInduction) {
         precisionIncrement = findInvariantInterpolants(allStatesTrace, abstractionStatesTrace);
-        totalInductiveRefinements.setNextValue(1);
+        stats.totalInductiveRefinements.setNextValue(1);
       }
 
       if (!useKInduction || (precisionIncrement.isEmpty() && fallbackToInvGen)) {
@@ -484,7 +297,7 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
 
         // successful invariant generation with k-induction
       } else if (useKInduction && !precisionIncrement.isEmpty()) {
-        succInductiveRefinements.setNextValue(1);
+        stats.succInductiveRefinements.setNextValue(1);
       }
 
       // fall-back to interpolation
@@ -498,7 +311,7 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
                     true)
                 .getInterpolants();
       } else {
-        succInvariantRefinements.setNextValue(1);
+        stats.succInvariantRefinements.setNextValue(1);
         wereInvariantsGenerated = true;
       }
 
@@ -508,7 +321,7 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
 
       strategy.performRefinement(pReached, abstractionStatesTrace, precisionIncrement, repeatedCounterexample);
 
-      totalInvariantGeneration.stop();
+      stats.totalInvariantGeneration.stop();
       return CounterexampleInfo.spurious();
 
     } else {
@@ -521,7 +334,7 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
           true);
       CounterexampleInfo cex = handleRealError(allStatesTrace, branchingOccurred, counterexample);
 
-      totalInvariantGeneration.stop();
+      stats.totalInvariantGeneration.stop();
       return cex;
     }
   }
@@ -690,9 +503,208 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
     }
   }
 
+  private class InvCandidateGenerator implements CandidateGenerator {
+
+    private int trieNum = 0;
+    private List<CandidateInvariant> candidates = new ArrayList<>();
+
+    private final BooleanFormulaManager bfmgr =
+        solver.getFormulaManager().getBooleanFormulaManager();
+
+    private final ARGPath argPath;
+    private final List<CFANode> abstractionNodes;
+    private final Set<ARGState> elementsOnPath;
+    private final List<ARGState> abstractionStatesTrace;
+    private final List<InfeasiblePrefix> infeasiblePrefixes;
+    private final List<AbstractLocationFormulaInvariant> foundInvariants = new ArrayList<>();
+
+    private InvCandidateGenerator(ARGPath pPath, List<CFANode> pAbstractionNodes)
+        throws CPAException, InterruptedException {
+      argPath = pPath;
+      abstractionNodes = pAbstractionNodes;
+      elementsOnPath = extractElementsOnPath(argPath);
+      abstractionStatesTrace = transformPath(argPath);
+
+      prefixExtractionTime.start();
+      infeasiblePrefixes = prefixProvider.extractInfeasiblePrefixes(argPath);
+      prefixExtractionTime.stop();
+    }
+
+    @Override
+    public boolean produceMoreCandidates() {
+      if (trieNum >= kInductionTries) {
+        return false;
+      }
+
+      if (infeasiblePrefixes.isEmpty()) {
+        logger.log(Level.WARNING, "Could not create infeasible prefixes for invariant generation.");
+        return false;
+      }
+
+      candidates =
+          newArrayList(concat(from(infeasiblePrefixes).transform(TO_LOCATION_CANDIDATE_INVARIANT)));
+      trieNum++;
+
+      return true;
+    }
+
+    private final Function<InfeasiblePrefix, List<CandidateInvariant>>
+        TO_LOCATION_CANDIDATE_INVARIANT =
+            new Function<InfeasiblePrefix, List<CandidateInvariant>>() {
+              @Override
+              public List<CandidateInvariant> apply(InfeasiblePrefix pInput) {
+                List<BooleanFormula> interpolants;
+                try {
+                  List<BooleanFormula> pathFormula = pInput.getPathFormulae();
+                  // the prefix is not filled up with trues if it is shorter than
+                  // the path so we need to do it ourselves
+                  while (pathFormula.size() < abstractionStatesTrace.size()) {
+                    pathFormula.add(bfmgr.makeBoolean(true));
+                  }
+                  interpolants =
+                      formulaManager
+                          .buildCounterexampleTrace(
+                              pInput.getPathFormulae(),
+                              Lists.<AbstractState>newArrayList(abstractionStatesTrace),
+                              elementsOnPath,
+                              true)
+                          .getInterpolants();
+
+                } catch (CPAException | InterruptedException e) {
+                  logger.logUserException(
+                      Level.WARNING, e, "Could not compute interpolants for k-induction inv-gen");
+                  return Collections.emptyList();
+                }
+
+                List<CandidateInvariant> invCandidates = new ArrayList<>();
+                // add false as last interpolant for the error location
+                interpolants = new ArrayList<>(interpolants);
+                interpolants.add(bfmgr.makeBoolean(false));
+
+                for (Pair<CFANode, BooleanFormula> nodeAndFormula :
+                    Pair.<CFANode, BooleanFormula>zipList(abstractionNodes, interpolants)) {
+                  invCandidates.add(
+                      makeLocationInvariant(
+                          nodeAndFormula.getFirst(),
+                          solver
+                              .getFormulaManager()
+                              .dumpFormula(nodeAndFormula.getSecond())
+                              .toString()));
+                }
+                return invCandidates;
+              }
+            };
+
+    @Override
+    public boolean hasCandidatesAvailable() {
+      return !candidates.isEmpty();
+    }
+
+    @Override
+    public void confirmCandidates(Iterable<CandidateInvariant> pCandidates) {
+      for (CandidateInvariant inv : pCandidates) {
+        candidates.remove(inv);
+        foundInvariants.add((AbstractLocationFormulaInvariant) inv);
+      }
+    }
+
+    @Override
+    public Iterator<CandidateInvariant> iterator() {
+      if (trieNum == 0) {
+        return Collections.<CandidateInvariant>emptyIterator();
+      }
+      return candidates.iterator();
+    }
+
+    public boolean hasFoundInvariants() {
+      return !foundInvariants.isEmpty();
+    }
+
+    @Override
+    public Set<AbstractLocationFormulaInvariant> getConfirmedCandidates() {
+      return new HashSet<>(foundInvariants);
+    }
+
+    public List<BooleanFormula> retrieveConfirmedInvariants() {
+      FluentIterable<AbstractLocationFormulaInvariant> found = from(foundInvariants);
+      List<BooleanFormula> invariants = new ArrayList<>();
+      for (final CFANode node : abstractionNodes) {
+        invariants.add(
+            found
+                .filter(
+                    new Predicate<AbstractLocationFormulaInvariant>() {
+                      @Override
+                      public boolean apply(AbstractLocationFormulaInvariant pInput) {
+                        return getOnlyElement(pInput.getLocations()).equals(node);
+                      }
+                    })
+                .first()
+                .transform(
+                    new Function<AbstractLocationFormulaInvariant, BooleanFormula>() {
+                      @Override
+                      public BooleanFormula apply(AbstractLocationFormulaInvariant pInput) {
+                        try {
+                          return pInput.getFormula(fmgr, pfmgr);
+                        } catch (CPATransferException | InterruptedException e) {
+                          // this should never happen, if it does we log
+                          // the exception and return TRUE as invariant
+                          logger.logUserException(
+                              Level.WARNING,
+                              e,
+                              "Invariant could not be" + " retrieved from InvariantGenerator");
+                          return fmgr.getBooleanFormulaManager().makeBoolean(true);
+                        }
+                      }
+                    })
+                .or(fmgr.getBooleanFormulaManager().makeBoolean(true)));
+      }
+
+      // if we found invariants at least one of them may not be "TRUE"
+      assert !from(invariants).allMatch(equalTo(fmgr.getBooleanFormulaManager().makeBoolean(true)));
+
+      return invariants;
+    }
+  }
+
+  private class Stats extends AbstractStatistics {
+
+    private final StatTimer totalInvariantGeneration =
+        new StatTimer("Time for invariant generation");
+    private final StatInt totalInvariantRefinements =
+        new StatInt(StatKind.COUNT, "Number of invariants refinements");
+    private final StatInt succInvariantRefinements =
+        new StatInt(StatKind.COUNT, "Number of successful invariants refinements");
+    private final StatInt totalInductiveRefinements =
+        new StatInt(StatKind.COUNT, "Number of invariant refinements with k-induction");
+    private final StatInt succInductiveRefinements =
+        new StatInt(StatKind.COUNT, "Number of successful refinements with k-induction");
+    private final StatInt totalRepeatedCounterexamples =
+        new StatInt(StatKind.COUNT, "Number of repeated counterexamples");
+
+    @Override
+    public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+      StatisticsWriter w0 = writingStatisticsTo(out);
+
+      int numberOfRefinements = totalRefinement.getUpdateCount();
+      if (numberOfRefinements > 0) {
+        w0.put(totalRepeatedCounterexamples);
+        w0.put(totalInvariantRefinements);
+        w0.beginLevel().put(succInvariantRefinements);
+        w0.beginLevel().put(totalInvariantGeneration);
+        w0.beginLevel().put(totalInductiveRefinements);
+        w0.beginLevel().beginLevel().put(succInductiveRefinements);
+      }
+    }
+
+    @Override
+    public String getName() {
+      return strategy.getStatistics().getName() + " with Invariants";
+    }
+  }
+
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     super.collectStatistics(pStatsCollection);
-    pStatsCollection.add(new Stats());
+    pStatsCollection.add(stats);
   }
 }
