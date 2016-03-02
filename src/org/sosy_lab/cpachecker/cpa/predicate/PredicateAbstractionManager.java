@@ -575,7 +575,7 @@ public class PredicateAbstractionManager {
 
     invGen.start(cfa.getMainFunction());
     invGen.get();
-    Set<CandidateInvariant> invariants = candidateGenerator.getConfirmed();
+    Set<CandidateInvariant> invariants = candidateGenerator.getConfirmedCandidates();
 
     Region inductivePart = rmgr.makeTrue();
     for (CandidateInvariant invariant : invariants) {

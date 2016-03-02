@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -65,9 +66,9 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.AbstractLocationFormulaInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateInvariant;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.AbstractLocationFormulaInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
@@ -334,6 +335,11 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
 
     public boolean hasFoundInvariants() {
       return !foundInvariants.isEmpty();
+    }
+
+    @Override
+    public Set<AbstractLocationFormulaInvariant> getConfirmedCandidates() {
+      return new HashSet<>(foundInvariants);
     }
 
     public List<BooleanFormula> retrieveConfirmedInvariants() {
