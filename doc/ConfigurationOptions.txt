@@ -1482,10 +1482,6 @@ cpa.predicate.refinement.cexTraceCheckDirection = FORWARDS
   enum:     [FORWARDS, BACKWARDS, ZIGZAG, LOOP_FREE_FIRST, RANDOM, LOWEST_AVG_SCORE,
              HIGHEST_AVG_SCORE, LOOP_FREE_FIRST_BACKWARDS]
 
-# Call buildCounterexampleTrace() n times to produce different interpolants
-# with the solver
-cpa.predicate.refinement.checkCounterexampleNTimes = 1
-
 # Conjunct the formulas that were computed as preconditions to get
 # (infeasible) interpolation problems!
 cpa.predicate.refinement.conjunctPreconditionFormulas = false
