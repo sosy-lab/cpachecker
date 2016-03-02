@@ -43,12 +43,14 @@ import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.error.DummyErrorState;
 
 @Options
 public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
@@ -66,7 +68,7 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
       pOut.println("Time for Result Check:      " + checkTimer);
 
       if (checkTimer.getNumberOfIntervals() > 0) {
-        pOut.println("Speed up checking:        " + ((float) analysisTimer.getSumTime().asNanos()) / checkTimer.getSumTime().asNanos());
+         pOut.println("Speed up checking:        " + ((float) analysisTimer.getSumTime().asNanos()) / checkTimer.getSumTime().asNanos());
       }
 
       if(proofGenStats != null) {
@@ -136,9 +138,9 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
       logger.log(Level.INFO, "Analysis successful.", "Start checking analysis result");
       try {
         if(writeProof) {
-          writeProofAndValidateWrittenProof(pReachedSet);
+          status = writeProofAndValidateWrittenProof(pReachedSet);
         } else {
-          resultCheckingWithoutWritingProof(pReachedSet);
+          status = resultCheckingWithoutWritingProof(pReachedSet);
         }
       } catch (InvalidConfigurationException e) {
         status = status.withSound(false);
@@ -155,6 +157,9 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
       if (status.isSound()) {
         logger.log(Level.INFO, "Analysis result checked successfully.");
         return status;
+      } else {
+        pReachedSet.add(new DummyErrorState(pReachedSet.getFirstState()),
+            SingletonPrecision.getInstance());
       }
       logger.log(Level.INFO, "Analysis result could not be checked.");
 
@@ -179,16 +184,17 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
     ProofCheckAlgorithm checker = new ProofCheckAlgorithm(cpa, config, logger, shutdownNotifier,
         pVerificationResult, analyzedProgram);
     stats.checkingStatsProvider = checker;
-    return checker.run(initializeReachedSetForChecking(config));
+    return checker.run(initializeReachedSetForChecking(config, cpa));
   }
 
-  private ReachedSet initializeReachedSetForChecking(Configuration pConfig) throws InvalidConfigurationException {
+  private ReachedSet initializeReachedSetForChecking(Configuration pConfig,
+      ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
     CoreComponentsFactory factory = new CoreComponentsFactory(pConfig, logger, shutdownNotifier);
-    ReachedSet reached = factory.createReachedSet();
+   ReachedSet reached = factory.createReachedSet();
 
-    reached.add(cpa.getInitialState(analyzedProgram.getMainFunction(),
+    reached.add(pCpa.getInitialState(analyzedProgram.getMainFunction(),
             StateSpacePartition.getDefaultPartition()),
-        cpa.getInitialPrecision(analyzedProgram.getMainFunction(),
+        pCpa.getInitialPrecision(analyzedProgram.getMainFunction(),
             StateSpacePartition.getDefaultPartition()));
 
     return reached;
@@ -219,6 +225,6 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
     stats.checkTimer.start();
     ProofCheckAlgorithm checker = new ProofCheckAlgorithm(checkerCPA, checkConfig, logger, shutdownNotifier, analyzedProgram);
     stats.checkingStatsProvider = checker;
-    return checker.run(initializeReachedSetForChecking(checkConfig));
+    return checker.run(initializeReachedSetForChecking(checkConfig, checkerCPA));
   }
 }
