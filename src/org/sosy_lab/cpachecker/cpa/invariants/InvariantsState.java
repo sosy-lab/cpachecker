@@ -42,7 +42,6 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -83,7 +82,6 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.Union;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Variable;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.VariableSelection;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -98,7 +96,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 
 /**
@@ -908,13 +905,6 @@ public class InvariantsState implements AbstractState,
   @Override
   public ExpressionTree<Object> getFormulaApproximation(
       final FunctionEntryNode pFunctionEntryNode, final CFANode pReferenceNode) {
-    final Set<MemoryLocation> memoryLocations;
-    final boolean fullState = exportFullState(pReferenceNode);
-    if (!fullState) {
-      return ExpressionTrees.getTrue();
-    } else {
-      memoryLocations = Collections.emptySet();
-    }
     final Predicate<MemoryLocation> isValidMemLoc = new Predicate<MemoryLocation>() {
 
       @Override
@@ -999,9 +989,6 @@ public class InvariantsState implements AbstractState,
                                 if (!isValidMemLoc.apply(pMemoryLocation)) {
                                   return false;
                                 }
-                                if (!fullState && !memoryLocations.contains(pMemoryLocation)) {
-                                  return false;
-                                }
                                 final String functionName = pFunctionEntryNode.getFunctionName();
                                 return !pMemoryLocation.isOnFunctionStack()
                                     || pMemoryLocation.getFunctionName().equals(functionName);
@@ -1018,41 +1005,6 @@ public class InvariantsState implements AbstractState,
                     return ExpressionTrees.cast(asCode);
                   }
                 }));
-  }
-
-  private boolean exportFullState(CFANode pReferenceNode) {
-    if (pReferenceNode instanceof FunctionEntryNode) {
-      return true;
-    }
-    FluentIterable<AssumeEdge> enteringAssumeEdges = CFAUtils.enteringEdges(pReferenceNode).filter(AssumeEdge.class);
-    Queue<CFANode> waitlist = Queues.newArrayDeque();
-    Set<CFANode> visited = Sets.newHashSet();
-    waitlist.offer(pReferenceNode);
-    visited.add(pReferenceNode);
-    for (CFAEdge assumeEdge : enteringAssumeEdges) {
-      if (visited.add(assumeEdge.getPredecessor())) {
-        waitlist.offer(assumeEdge.getPredecessor());
-      }
-    }
-    Predicate<CFAEdge> epsilonEdge = new Predicate<CFAEdge>() {
-
-          @Override
-          public boolean apply(CFAEdge pEdge) {
-            return !(pEdge instanceof AssumeEdge);
-          }
-        };
-    while (!waitlist.isEmpty()) {
-      CFANode current = waitlist.poll();
-      if (current.isLoopStart()) {
-        return true;
-      }
-      for (CFAEdge enteringEdge : CFAUtils.enteringEdges(current).filter(epsilonEdge)) {
-        if (visited.add(enteringEdge.getPredecessor())) {
-          waitlist.offer(enteringEdge.getPredecessor());
-        }
-      }
-    }
-    return false;
   }
 
   private FluentIterable<BooleanFormula<CompoundInterval>> getApproximationFormulas() {
