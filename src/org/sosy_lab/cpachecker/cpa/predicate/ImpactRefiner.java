@@ -80,17 +80,6 @@ public abstract class ImpactRefiner implements Refiner {
         predicateCpa.getSolver(),
         predicateCpa.getPredicateManager());
 
-    return new PredicateCPARefiner(
-        config,
-        logger,
-        pCpa,
-        manager,
-        pathChecker,
-        prefixProvider,
-        pfmgr,
-        strategy,
-        solver,
-        predicateCpa.getAssumesStore(),
-        predicateCpa.getCfa());
+    return new PredicateCPARefiner(pCpa, manager, pathChecker, prefixProvider, strategy);
     }
 }
