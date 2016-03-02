@@ -1469,9 +1469,6 @@ cpa.predicate.refinement.atomicInterpolants = true
 # invariant
 cpa.predicate.refinement.atomicInvariants = false
 
-# configuration file for bmc generation
-cpa.predicate.refinement.bmcConfig = "config/bmc-invgen.properties"
-
 # Direction for doing counterexample analysis: from start of trace, from end
 # of trace, or alternatingly from start and end of the trace towards the
 # middle
