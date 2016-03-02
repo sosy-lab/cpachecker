@@ -23,11 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
-import static com.google.common.collect.FluentIterable.from;
-
 import java.io.PrintStream;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
@@ -68,7 +65,6 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-import com.google.common.base.Predicates;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
@@ -220,20 +216,6 @@ public class ValueAnalysisImpactRefiner
     timeRemove.start();
     removeInfeasiblePartsOfArg(pInterpolationTree, pReached);
     timeRemove.stop();
-  }
-
-  private void readdSiblings(final ARGReachedSet pReached, ARGState parent, ARGState currentState,
-      VariableTrackingPrecision newPrec) {
-    Set<ARGState> siblings = from(parent.getChildren()).filter(Predicates.not(Predicates.in(Collections.singleton(currentState)))).toSet();
-
-    for(ARGState sibling : siblings) {
-      if(pReached.asReachedSet().contains(sibling)) {
-        pReached.readdToWaitlist(sibling, newPrec, VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
-        // cut-off not possible here, as we proceed top-down,
-        // so cut-off would remove state that the loop traverses in a later iteration
-        // pReached.cutOffSubtree(sibling.getParents().iterator().next());
-      }
-    }
   }
 
   @Override

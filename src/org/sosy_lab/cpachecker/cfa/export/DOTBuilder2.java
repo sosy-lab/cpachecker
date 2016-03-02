@@ -73,10 +73,6 @@ public final class DOTBuilder2 {
 
   /**
    * output the CFA as DOT and JSON files
-   *
-   * @param cfa
-   * @param outdir
-   * @throws IOException
    */
   public static void writeReport(CFA cfa, Path outdir) throws IOException {
     CFAJSONBuilder jsoner = new CFAJSONBuilder();

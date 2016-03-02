@@ -60,7 +60,7 @@ import com.google.common.collect.Iterables;
 @Options(prefix="cpa.bam")
 public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRelation {
 
-  @Option(secure=true, description="if we connot determine a repeating/covering call-state, "
+  @Option(secure=true, description="if we cannot determine a repeating/covering call-state, "
       + "we will run into CallStackOverflowException. Thus we bound the stack size (unsound!). "
       + "This option only limits non-covered recursion, but not a recursion "
       + "where we find a coverage and re-use the cached block several times. "
@@ -163,7 +163,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
 
       logger.log(Level.INFO, "fixpoint was not reached, starting new iteration", ++iterationCounter);
 
-      reAddStatesForFixPointIteration(pHeadOfMainFunctionState);
+      reAddStatesForFixPointIteration();
 
       // continue;
     }
@@ -172,7 +172,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
   }
 
   /** update waitlists of all reachedsets to re-explore the previously found recursive function-call. */
-  private void reAddStatesForFixPointIteration(final AbstractState pHeadOfMainFunctionState) {
+  private void reAddStatesForFixPointIteration() {
     for (final AbstractState recursionUpdateState : potentialRecursionUpdateStates.keySet()) {
       for (final ReachedSet reachedSet : data.bamCache.getAllCachedReachedStates()) {
         if (reachedSet.contains(recursionUpdateState)) {

@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -342,7 +343,8 @@ public class BoundsCPA extends AbstractCPA implements ReachedSetAdjustingCPA, St
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
-    pOut.println("Bound k:" + this.maxLoopIterations);
+    StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
+    writer.put("Bound k", this.maxLoopIterations);
     int maximumLoopIterationReached = 0;
     for (AbstractState state : pReached) {
       BoundsState loopstackState = AbstractStates.extractStateByType(state, BoundsState.class);
@@ -350,12 +352,13 @@ public class BoundsCPA extends AbstractCPA implements ReachedSetAdjustingCPA, St
         maximumLoopIterationReached = Math.max(maximumLoopIterationReached, loopstackState.getDeepestIteration());
       }
     }
-    pOut.print("Maximum loop iteration reached:" + maximumLoopIterationReached);
+    writer.put("Maximum loop iteration reached", maximumLoopIterationReached);
+    writer.spacer();
   }
 
   @Override
   public String getName() {
-    return "Loopstack CPA";
+    return "Bounds CPA";
   }
 
   public void setMaxLoopIterations(int pMaxLoopIterations) {

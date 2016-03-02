@@ -499,7 +499,9 @@ public class CLangSMG extends SMG {
 
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(objectAtLocation);
 
-    filter.filterAtOffset((int) pLocation.getOffset());
+    if (pLocation.isReference()) {
+      filter.filterAtOffset((int) pLocation.getOffset());
+    }
 
     // Remember, edges may overlap with different types
     Set<SMGEdgeHasValue> edgesToForget = getHVEdges(filter);

@@ -35,11 +35,11 @@ import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * Class for transforming {@link AExpression}s to {@link SymbolicExpression}s.
@@ -91,7 +91,7 @@ public class ExpressionTransformer {
       return MemoryLocation.valueOf(pDeclaration.getName());
 
     } else {
-      return MemoryLocation.valueOf(functionName, pDeclaration.getName(), 0);
+      return MemoryLocation.valueOf(functionName, pDeclaration.getName());
     }
   }
 

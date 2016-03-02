@@ -90,8 +90,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
   }
 
   private Optional<PrecisionAdjustmentResult> prec(SMGState pState, VariableTrackingPrecision pPrecision,
-      LocationState location)
-          throws CPAException, InterruptedException {
+      LocationState location) throws CPAException {
 
     if(!pPrecision.allowsAbstraction()) {
       return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, Action.CONTINUE));

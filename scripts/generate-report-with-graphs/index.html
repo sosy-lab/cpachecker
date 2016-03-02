@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html ng-app='report'>
+<head>
+    <link rel="stylesheet" type="text/css" href="bootstrap-3.3.5-dist/css/bootstrap.min.css"/>
+    <link href="app/generic.css" rel="stylesheet" type="text/css">
+    <link href="prettify.css" rel="stylesheet" type="text/css">
+    <!--the jquery-script is necessary for bootstrap, it has to be added BEFORE the bootstrap-script-->
+    <script type="text/javascript" src="jquery-1.11.3.min.js"></script>
+    <script type="text/javascript" src="bootstrap-3.3.5-dist/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="angular.js"></script>
+    <script type ="text/javascript" src="app/app.js"></script><!--SCRIPT-->
+    <script type="text/javascript" src="prettify.js"></script>
+    <meta charset="UTF-8">
+    <title>CPAchecker Report</title>
+</head>
+<body ng-controller="ReportController as report" onload="prettyPrint(); init()">
+<header class="header">
+
+    <h3><img ng-src="{{report.logo}}"/> Report</h3>
+
+    <em> Generated: {{report.date | date:'yyyy-MM-dd HH:mm:ss'}}</em>
+</header>
+
+<div class="sections" ng-mousemove="report.setWidth($event)" ng-mouseup="report.setMouseUp()">
+    <section id="errorpath_section">
+        <div id="middleLine" ng-mousedown="report.setMouseDown()"></div>
+        <header>
+            <div class="btn-group">
+                <button class="btn btn-success" ng-click="report.clickedErrpathButton($event)">Prev</button>
+                <button class="btn btn-warning" ng-click="report.clickedErrpathButton($event)">Start</button>
+                <button class="btn btn-success" ng-click="report.clickedErrpathButton($event)">Next</button>
+            </div>
+            <button data-toggle="popover" data-placement="right" data-trigger="click" data-content="{{report.help_errorpath}}" class="btn btn-default btn-lg help_button" type="button">
+                <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
+            </button>
+            <div class="input-group input-group-sm">
+                <input type="text" ng-keydown="report.checkIfEnter($event)" class="form-control search-input" placeholder="Search for...">
+                    <span class="input-group-btn">
+                        <button ng-click="report.searchFor()" class="btn btn-default" type="button">
+                            <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+                        </button>
+                    </span>
+            </div>
+            <div id="searchOptions">
+                <label for="optionExactMatch">
+                    <input id="optionExactMatch" type="checkbox" name="searchOption">
+                    Find only exact matches</label>
+            </div>
+            <div id="matches">
+                <p class="markedValues">Matches in 'values': {{report.numOfValueMatches}}</p>
+                <p class="markedDescriptions">Matches in 'description': {{report.numOfDescriptionMatches}}</p>
+            </div>
+        </header>
+        <div class="fileContent">
+            <table id="err_table">
+                <tr id="errpath-{{$index}}" ng-repeat="line in report.errorPathData">
+                    <td ng-click="report.showValues($event)" data-toggle="popover" data-placement="right" data-trigger="click" data-content="{{line.valString}}"><pre>-V-</pre></td>
+                    <td ng-click="report.clickedErrpathElement($event)"><pre class="prettyprint">{{line.desc}}</pre></td>
+                </tr>
+            </table>
+        </div>
+    </section>
+    <section id="externalFiles_section">
+        <ul class="nav nav-pills">
+            <li ng-class="{active: report.tabIsSet(1)}">
+                <a href ng-click="report.setTab(1)">CFA</a>
+            </li>
+            <li ng-class="{active: report.tabIsSet(2)}">
+                <a href ng-click="report.setTab(2)">ARG</a>
+            </li>
+            <li ng-class="{active: report.tabIsSet(3)}">
+                <a href ng-click="report.setTab(3)">Source</a>
+            </li>
+            <li ng-class="{active: report.tabIsSet(4)}">
+                <a href ng-click="report.setTab(4)">Log</a>
+            </li>
+            <li ng-class="{active: report.tabIsSet(5)}">
+                <a href ng-click="report.setTab(5)">Statistics</a>
+            </li>
+            <li ng-class="{active: report.tabIsSet(6)}">
+                <a href ng-click="report.setTab(6)">Configurations</a>
+            </li>
+            <button data-toggle="popover" data-placement="left" data-trigger="click" data-content="{{report.help_externalFiles}}" class="btn btn-default btn-lg help_button" type="button">
+                <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
+            </button>
+        </ul>
+        <div class="fileContent" ng-show="report.tabIsSet(1)">
+            <div class="edit-line">
+                <div class="dropdown">
+                    <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                        Displayed CFA
+                        <span class="caret"></span>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li ng-repeat="func in report.functions"><a ng-click="report.setCFAFunction($index)">{{func}}</a></li>
+                    </ul>
+                </div>
+                <label>{{report.functions[report.selectedCFAFunction]}}</label>
+                <div>
+                    <p>Zoom Factor (%)</p>
+                    <input id="cfa-scalingField" type="number" min="0" max="200" ng-model="report.zoomFactorCFA" ng-change="report.setZoom('cfa-scalingField')"/>
+                </div>
+            </div>
+            <div class="cfaContent">
+<svg  ng-show = "report.cfaFunctionIsSet(0)" width="510pt" height="229pt"
+ viewBox="0.00 0.00 510.21 229.28" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 225.279)">
+<title>main</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-225.279 506.213,-225.279 506.213,4 -4,4"/>
+<!-- 1 -->
+<g id="node1" class="node" ng-click="report.clickedCFAElement($event)"><title>1</title>
+<ellipse fill="none" stroke="black" cx="21.2132" cy="-200.066" rx="21.4286" ry="21.4286"/>
+<text text-anchor="middle" x="21.2132" y="-203.066" font-family="Times,serif" font-size="10.00">N1</text>
+<text text-anchor="middle" x="21.2132" y="-192.066" font-family="Times,serif" font-size="10.00">2</text>
+</g>
+<!-- 5 -->
+<g id="node2" class="node" ng-click="report.clickedCFAElement($event)"><title>5</title>
+<ellipse fill="none" stroke="black" cx="21.2132" cy="-110.64" rx="21.4286" ry="21.4286"/>
+<text text-anchor="middle" x="21.2132" y="-113.64" font-family="Times,serif" font-size="10.00">N5</text>
+<text text-anchor="middle" x="21.2132" y="-102.64" font-family="Times,serif" font-size="10.00">1</text>
+</g>
+<!-- 1&#45;&gt;5 -->
+<g id="edge1" class="edge" ng-click="report.clickedCFAElement($event)"><title>1&#45;&gt;5</title>
+<path fill="none" stroke="black" d="M21.2132,-178.789C21.2132,-167.943 21.2132,-154.364 21.2132,-142.261"/>
+<polygon fill="black" stroke="black" points="24.7133,-142.11 21.2132,-132.11 17.7133,-142.11 24.7133,-142.11"/>
+<text text-anchor="middle" x="69.7132" y="-152.853" font-family="Courier New" font-size="10.00">INIT GLOBAL VARS</text>
+</g>
+<!-- 0 -->
+<g id="node3" class="node" ng-click="report.clickedCFAElement($event)"><title>0</title>
+<ellipse fill="none" stroke="black" cx="21.2132" cy="-21.2132" rx="21.4286" ry="21.4286"/>
+<text text-anchor="middle" x="21.2132" y="-24.2132" font-family="Times,serif" font-size="10.00">N0</text>
+<text text-anchor="middle" x="21.2132" y="-13.2132" font-family="Times,serif" font-size="10.00">0</text>
+</g>
+<!-- 5&#45;&gt;0 -->
+<g id="edge2" class="edge" ng-click="report.clickedCFAElement($event)"><title>5&#45;&gt;0</title>
+<path fill="none" stroke="black" d="M21.2132,-89.3625C21.2132,-78.5165 21.2132,-64.9377 21.2132,-52.8341"/>
+<polygon fill="black" stroke="black" points="24.7133,-52.6832 21.2132,-42.6832 17.7133,-52.6832 24.7133,-52.6832"/>
+<text text-anchor="middle" x="261.713" y="-63.4264" font-family="Courier New" font-size="10.00">int main(int argc, char *argv[]); Function start dummy edge int i = 2; return 0;</text>
+</g>
+</g>
+</svg>
+                </div>
+            </div>
+            <div class="fileContent" ng-show="report.tabIsSet(2)">
+                <div class="edit-line">
+                    <div>
+                        <p>Zoom Factor (%)</p>
+                        <input id="arg-scalingField" type="number" min="0" max="200" ng-model="report.zoomFactorARG" ng-change="report.setZoom('arg-scalingField')"/>
+                    </div>
+                </div>
+                <div class="argContent">
+<svg width="605pt" height="215pt"
+ viewBox="0.00 0.00 605.00 215.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 211)">
+<title>ARG</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-211 601,-211 601,4 -4,4"/>
+<!-- 0 -->
+<g id="0" class="node" ng-click="report.clickedARGElement($event)"><title>0</title>
+<polygon fill="cornflowerblue" stroke="white" points="136,-207 0,-207 0,-166 136,-166 136,-207"/>
+<text text-anchor="middle" x="68" y="-195" font-family="Times,serif" font-size="10.00">0 @ N1</text>
+<text text-anchor="middle" x="68" y="-184" font-family="Times,serif" font-size="10.00">main entry</text>
+<text text-anchor="middle" x="68" y="-173" font-family="Times,serif" font-size="10.00">AbstractionState: ABS0: true</text>
+</g>
+<!-- 1 -->
+<g id="1" class="node" ng-click="report.clickedARGElement($event)"><title>1</title>
+<polygon fill="white" stroke="white" points="95,-119 41,-119 41,-83 95,-83 95,-119"/>
+<text text-anchor="middle" x="68" y="-104" font-family="Times,serif" font-size="10.00">1 @ N5</text>
+<text text-anchor="middle" x="68" y="-93" font-family="Times,serif" font-size="10.00">main</text>
+</g>
+<!-- 0&#45;&gt;1 -->
+<g id="0 &#45;&gt; 1" class="edge" ng-click="report.clickedARGElement($event)"><title>0&#45;&gt;1</title>
+<path fill="none" stroke="black" d="M68,-165.712C68,-154.856 68,-141.231 68,-129.37"/>
+<polygon fill="black" stroke="black" points="71.5001,-129.104 68,-119.104 64.5001,-129.104 71.5001,-129.104"/>
+<text text-anchor="middle" x="140.5" y="-140" font-family="Courier New" font-size="10.00">Line 0: INIT GLOBAL VARS</text>
+</g>
+<!-- 2 -->
+<g id="2" class="node" ng-click="report.clickedARGElement($event)"><title>2</title>
+<polygon fill="white" stroke="white" points="95.5,-36 40.5,-36 40.5,-0 95.5,-0 95.5,-36"/>
+<text text-anchor="middle" x="68" y="-21" font-family="Times,serif" font-size="10.00">2 @ N0</text>
+<text text-anchor="middle" x="68" y="-10" font-family="Times,serif" font-size="10.00">main exit</text>
+</g>
+<!-- 1&#45;&gt;2 -->
+<g id="1 &#45;&gt; 2" class="edge" ng-click="report.clickedARGElement($event)"><title>1&#45;&gt;2</title>
+<path fill="none" stroke="black" d="M68,-82.822C68,-72.1903 68,-58.306 68,-46.2035"/>
+<polygon fill="black" stroke="black" points="71.5001,-46.1532 68,-36.1533 64.5001,-46.1533 71.5001,-46.1532"/>
+<text text-anchor="middle" x="332.5" y="-57" font-family="Courier New" font-size="10.00">Line 1: int main(int argc, char *argv[]); Function start dummy edge int i = 2; return 0;</text>
+</g>
+</g>
+</svg>
+                </div>
+            </div>
+            <div class="fileContent" ng-show="report.tabIsSet(3)">
+                <div class="edit-line">
+                    <div class="dropdown">
+                        <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                            Displayed Sourcefile
+                            <span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li ng-repeat="file in report.sourceFiles"><a ng-click="report.setSourceFile($index)">{{file}}</a></li>
+                        </ul>
+                    </div>
+                    <label>{{report.sourceFiles[report.selectedSourceFile]}}</label>
+                </div>
+<table class="sourceContent" ng-show = "report.sourceFileIsSet(0)">
+<tr id="source-0"><td><pre>0</pre></td><td><pre class="prettyprint">int main(int argc, char *argv[]){</pre></td></tr>
+<tr id="source-1"><td><pre>1</pre></td><td><pre class="prettyprint">  int i = 1 + 1;</pre></td></tr>
+<tr id="source-2"><td><pre>2</pre></td><td><pre class="prettyprint">  return 0;</pre></td></tr>
+<tr id="source-3"><td><pre>3</pre></td><td><pre class="prettyprint">}</pre></td></tr>
+</table>
+            </div>
+            <div class="fileContent" ng-show="report.tabIsSet(4)">
+<p>No Log-File available</p>            </div>
+            <div class="fileContent"  ng-show="report.tabIsSet(5)">
+<pre id="statistics-0">PredicateCPA statistics</pre>
+<pre id="statistics-1">-----------------------</pre>
+<pre id="statistics-2">Number of abstractions:            0 (0% of all post computations)</pre>
+<pre id="statistics-3">Number of strengthen sat checks:   0</pre>
+<pre id="statistics-4">Number of strengthening with abstraction reuse:   0</pre>
+<pre id="statistics-5">Number of coverage checks:         0</pre>
+<pre id="statistics-6">  BDD entailment checks:           0</pre>
+<pre id="statistics-7">Number of SMT sat checks:          0</pre>
+<pre id="statistics-8">  trivial:                         0</pre>
+<pre id="statistics-9">  cached:                          0</pre>
+<pre id="statistics-10"></pre>
+<pre id="statistics-11">Max ABE block size:                       0</pre>
+<pre id="statistics-12">Number of predicates discovered:          0</pre>
+<pre id="statistics-13"></pre>
+<pre id="statistics-14">Number of path formula cache hits:   0 (0%)</pre>
+<pre id="statistics-15"></pre>
+<pre id="statistics-16">Time for post operator:                  0.018s</pre>
+<pre id="statistics-17">  Time for path formula creation:        0.017s</pre>
+<pre id="statistics-18">    Actual computation:                  0.017s</pre>
+<pre id="statistics-19">Time for strengthen operator:            0.000s</pre>
+<pre id="statistics-20">Time for prec operator:                  0.000s</pre>
+<pre id="statistics-21">Time for merge operator:                 0.000s</pre>
+<pre id="statistics-22">Time for coverage check:                 0.000s</pre>
+<pre id="statistics-23">Total time for SMT solver (w/o itp):     0.000s</pre>
+<pre id="statistics-24"></pre>
+<pre id="statistics-25">Number of BDD nodes:                               202</pre>
+<pre id="statistics-26">Size of BDD node table:                            55949</pre>
+<pre id="statistics-27">Size of BDD node cleanup queue:                           0 (count: 1, min: 0, max: 0, avg: 0,00)</pre>
+<pre id="statistics-28">Time for BDD node cleanup:                             0.000s</pre>
+<pre id="statistics-29">Time for BDD garbage collection:                       0.000s (in 0 runs)</pre>
+<pre id="statistics-30"></pre>
+<pre id="statistics-31">PrecisionBootstrap statistics</pre>
+<pre id="statistics-32">-----------------------------</pre>
+<pre id="statistics-33">Init. function predicates:                         0</pre>
+<pre id="statistics-34">Init. global predicates:                           0</pre>
+<pre id="statistics-35">Init. location predicates:                         0</pre>
+<pre id="statistics-36"></pre>
+<pre id="statistics-37">AutomatonAnalysis (AssertionAutomaton) statistics</pre>
+<pre id="statistics-38">-------------------------------------------------</pre>
+<pre id="statistics-39">Number of states:                                  1</pre>
+<pre id="statistics-40">Total time for successor computation:                  0.000s</pre>
+<pre id="statistics-41">Automaton transfers with branching:                0</pre>
+<pre id="statistics-42">Automaton transfer successors:                            6 (count: 6, min: 1, max: 1, avg: 1,00) [1 x 6]</pre>
+<pre id="statistics-43"></pre>
+<pre id="statistics-44">AutomatonAnalysis (ErrorLabelAutomaton) statistics</pre>
+<pre id="statistics-45">--------------------------------------------------</pre>
+<pre id="statistics-46">Number of states:                                  1</pre>
+<pre id="statistics-47">Total time for successor computation:                  0.000s</pre>
+<pre id="statistics-48">Automaton transfers with branching:                0</pre>
+<pre id="statistics-49">Automaton transfer successors:                            6 (count: 6, min: 1, max: 1, avg: 1,00) [1 x 6]</pre>
+<pre id="statistics-50"></pre>
+<pre id="statistics-51">AutomatonAnalysis (TerminatingFunctions) statistics</pre>
+<pre id="statistics-52">---------------------------------------------------</pre>
+<pre id="statistics-53">Number of states:                                  1</pre>
+<pre id="statistics-54">Total time for successor computation:                  0.001s</pre>
+<pre id="statistics-55">Automaton transfers with branching:                0</pre>
+<pre id="statistics-56">Automaton transfer successors:                            6 (count: 6, min: 1, max: 1, avg: 1,00) [1 x 6]</pre>
+<pre id="statistics-57"></pre>
+<pre id="statistics-58">CPA algorithm statistics</pre>
+<pre id="statistics-59">------------------------</pre>
+<pre id="statistics-60">Number of iterations:            3</pre>
+<pre id="statistics-61">Max size of waitlist:            1</pre>
+<pre id="statistics-62">Average size of waitlist:        1</pre>
+<pre id="statistics-63">Number of computed successors:   2</pre>
+<pre id="statistics-64">Max successors for one state:    1</pre>
+<pre id="statistics-65">Number of times merged:          0</pre>
+<pre id="statistics-66">Number of times stopped:         0</pre>
+<pre id="statistics-67">Number of times breaked:         0</pre>
+<pre id="statistics-68"></pre>
+<pre id="statistics-69">Total time for CPA algorithm:         0.029s (Max:     0.029s)</pre>
+<pre id="statistics-70">  Time for choose from waitlist:      0.001s</pre>
+<pre id="statistics-71">  Time for precision adjustment:      0.002s</pre>
+<pre id="statistics-72">  Time for transfer relation:         0.024s</pre>
+<pre id="statistics-73">  Time for stop operator:             0.001s</pre>
+<pre id="statistics-74">  Time for adding to reached set:     0.000s</pre>
+<pre id="statistics-75"></pre>
+<pre id="statistics-76">Predicate-Abstraction Refiner statistics</pre>
+<pre id="statistics-77">----------------------------------------</pre>
+<pre id="statistics-78">  Predicate creation:                                  0.000s</pre>
+<pre id="statistics-79">  Precision update:                                    0.000s</pre>
+<pre id="statistics-80">  ARG update:                                          0.000s</pre>
+<pre id="statistics-81"></pre>
+<pre id="statistics-82">Length of refined path (in blocks):                       0 (count: 0, min: 0, max: 0, avg: 0,00)</pre>
+<pre id="statistics-83">Number of affected states:                                0 (count: 0, min: 0, max: 0, avg: 0,00)</pre>
+<pre id="statistics-84">Length (states) of path with itp 'true':                  0 (count: 0, min: 0, max: 0, avg: 0,00)</pre>
+<pre id="statistics-85">Length (states) of path with itp non-trivial itp:         0 (count: 0, min: 0, max: 0, avg: 0,00)</pre>
+<pre id="statistics-86">Length (states) of path with itp 'false':                 0 (count: 0, min: 0, max: 0, avg: 0,00)</pre>
+<pre id="statistics-87">Different non-trivial interpolants along paths:           0 (count: 0, min: 0, max: 0, avg: 0,00)</pre>
+<pre id="statistics-88">Equal non-trivial interpolants along paths:               0 (count: 0, min: 0, max: 0, avg: 0,00)</pre>
+<pre id="statistics-89">Different precisions along paths:                         0 (count: 0, min: 0, max: 0, avg: 0,00)</pre>
+<pre id="statistics-90">Equal precisions along paths:                             0 (count: 0, min: 0, max: 0, avg: 0,00)</pre>
+<pre id="statistics-91">Number of refs with location-based cutoff:                0</pre>
+<pre id="statistics-92"></pre>
+<pre id="statistics-93">CEGAR algorithm statistics</pre>
+<pre id="statistics-94">--------------------------</pre>
+<pre id="statistics-95">Number of refinements:                0</pre>
+<pre id="statistics-96"></pre>
+<pre id="statistics-97">Counterexample-Check Algorithm statistics</pre>
+<pre id="statistics-98">-----------------------------------------</pre>
+<pre id="statistics-99">Number of counterexample checks:    0</pre>
+<pre id="statistics-100"></pre>
+<pre id="statistics-101">Code Coverage</pre>
+<pre id="statistics-102">-----------------------------</pre>
+<pre id="statistics-103">  Function coverage:      1,000</pre>
+<pre id="statistics-104">  Visited lines:          2</pre>
+<pre id="statistics-105">  Total lines:            2</pre>
+<pre id="statistics-106">  Line coverage:          1,000</pre>
+<pre id="statistics-107"></pre>
+<pre id="statistics-108">CPAchecker general statistics</pre>
+<pre id="statistics-109">-----------------------------</pre>
+<pre id="statistics-110">Number of program locations:     3</pre>
+<pre id="statistics-111">Number of CFA edges:             2</pre>
+<pre id="statistics-112">Number of relevant variables:    0</pre>
+<pre id="statistics-113">Number of functions:             1</pre>
+<pre id="statistics-114">Number of loops:                 0</pre>
+<pre id="statistics-115">Size of reached set:             3</pre>
+<pre id="statistics-116">  Number of reached locations:   3 (100%)</pre>
+<pre id="statistics-117">    Avg states per location:     1</pre>
+<pre id="statistics-118">    Max states per location:     1 (at node N0)</pre>
+<pre id="statistics-119">  Number of reached functions:   1 (100%)</pre>
+<pre id="statistics-120">  Number of partitions:          3</pre>
+<pre id="statistics-121">    Avg size of partitions:      1</pre>
+<pre id="statistics-122">    Max size of partitions:      1</pre>
+<pre id="statistics-123">  Number of target states:       0</pre>
+<pre id="statistics-124"></pre>
+<pre id="statistics-125">Time for analysis setup:          1.978s</pre>
+<pre id="statistics-126">  Time for loading CPAs:          0.649s</pre>
+<pre id="statistics-127">  Time for loading parser:        0.758s</pre>
+<pre id="statistics-128">  Time for CFA construction:      0.476s</pre>
+<pre id="statistics-129">    Time for parsing file(s):     0.292s</pre>
+<pre id="statistics-130">    Time for AST to CFA:          0.093s</pre>
+<pre id="statistics-131">    Time for CFA sanity check:    0.004s</pre>
+<pre id="statistics-132">    Time for post-processing:     0.053s</pre>
+<pre id="statistics-133">      Time for var class.:        0.000s</pre>
+<pre id="statistics-134">    Time for CFA export:          0.016s</pre>
+<pre id="statistics-135">Time for Analysis:                0.034s</pre>
+<pre id="statistics-136">CPU time for analysis:            0.030s</pre>
+<pre id="statistics-137">Total time for CPAchecker:        2.018s</pre>
+<pre id="statistics-138">Total CPU time for CPAchecker:    3.950s</pre>
+<pre id="statistics-139"></pre>
+<pre id="statistics-140">Time for Garbage Collector:       0.049s (in 4 runs)</pre>
+<pre id="statistics-141">Garbage Collector(s) used:    PS MarkSweep, PS Scavenge</pre>
+<pre id="statistics-142">Used heap memory:                 38MB (    36 MiB) max;     20MB (    19 MiB) avg;     48MB (    46 MiB) peak</pre>
+<pre id="statistics-143">Used non-heap memory:             20MB (    19 MiB) max;     13MB (    12 MiB) avg;     20MB (    19 MiB) peak</pre>
+<pre id="statistics-144">Used in PS Old Gen pool:          14MB (    13 MiB) max;      4MB (     4 MiB) avg;     14MB (    13 MiB) peak</pre>
+<pre id="statistics-145">Allocated heap memory:           107MB (   102 MiB) max;     74MB (    71 MiB) avg</pre>
+<pre id="statistics-146">Allocated non-heap memory:        24MB (    23 MiB) max;     24MB (    23 MiB) avg</pre>
+<pre id="statistics-147">Total process virtual memory:   2741MB (  2614 MiB) max;   2699MB (  2574 MiB) avg</pre>
+            </div>
+            <div class="fileContent" ng-show="report.tabIsSet(6)">
+<pre id="config-0">analysis.algorithm.CEGAR = true</pre>
+<pre id="config-1">analysis.checkCounterexamples = true</pre>
+<pre id="config-2">analysis.programNames = ../Schreibtisch/correctExample.c</pre>
+<pre id="config-3">analysis.traversal.order = bfs</pre>
+<pre id="config-4">analysis.traversal.useCallstack = true</pre>
+<pre id="config-5">analysis.traversal.useReversePostorder = true</pre>
+<pre id="config-6">ARGCPA.cpa = cpa.composite.CompositeCPA</pre>
+<pre id="config-7">cegar.refiner = cpa.predicate.PredicateRefiner</pre>
+<pre id="config-8">cfa.useMultiEdges = true</pre>
+<pre id="config-9">CompositeCPA.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.functionpointer.FunctionPointerCPA, cpa.predicate.PredicateCPA</pre>
+<pre id="config-10">counterexample.checker = CPACHECKER</pre>
+<pre id="config-11">counterexample.checker.config = ../cex-checks/valueAnalysis-as-cex-check.properties</pre>
+<pre id="config-12">cpa = cpa.arg.ARGCPA</pre>
+<pre id="config-13">cpa.predicate.blk.alwaysAtFunctions = false</pre>
+<pre id="config-14">cpa.predicate.blk.alwaysAtLoops = true</pre>
+<pre id="config-15">cpa.predicate.maxPreFilledAllocationSize = 0</pre>
+<pre id="config-16">cpa.predicate.memoryAllocationsAlwaysSucceed = true</pre>
+<pre id="config-17">cpa.predicate.refinement.performInitialStaticRefinement = true</pre>
+<pre id="config-18">limits.time.cpu = 900s</pre>
+<pre id="config-19">specification = ../specification/default.spc</pre>
+            </div>
+        </section>
+    </div>
+</body>
+</html>

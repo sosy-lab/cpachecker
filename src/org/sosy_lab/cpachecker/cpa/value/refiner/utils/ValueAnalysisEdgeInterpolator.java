@@ -28,7 +28,6 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisInformation;
@@ -49,18 +48,18 @@ public class ValueAnalysisEdgeInterpolator
       final FeasibilityChecker<ValueAnalysisState> pFeasibilityChecker,
       final StrongestPostOperator<ValueAnalysisState> pStrongestPostOperator,
       final Configuration pConfig,
-      final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
       final CFA pCfa
   ) throws InvalidConfigurationException {
 
-    super(pStrongestPostOperator,
-          pFeasibilityChecker,
-          ValueAnalysisInterpolantManager.getInstance(),
-          new ValueAnalysisState(),
-          ValueAnalysisCPA.class,
-          pConfig,
-          pShutdownNotifier,
-          pCfa);
+    super(
+        pStrongestPostOperator,
+        pFeasibilityChecker,
+        ValueAnalysisInterpolantManager.getInstance(),
+        new ValueAnalysisState(pCfa.getMachineModel()),
+        ValueAnalysisCPA.class,
+        pConfig,
+        pShutdownNotifier,
+        pCfa);
   }
 }

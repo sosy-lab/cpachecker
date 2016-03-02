@@ -24,18 +24,20 @@
 package org.sosy_lab.cpachecker.util.refinement;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 
 
 public class InfeasiblePrefix {
@@ -57,7 +59,6 @@ public class InfeasiblePrefix {
 
   private InfeasiblePrefix(final ARGPath pInfeasiblePrefix,
       final List<Set<String>> pSimpleInterpolantSequence,
-      final List<BooleanFormula> pItpSequence,
       final List<BooleanFormula> pPathFormulas) {
 
     prefix = pInfeasiblePrefix;
@@ -78,7 +79,6 @@ public class InfeasiblePrefix {
 
     return new InfeasiblePrefix(pInfeasiblePrefix,
         simpleInterpolantSequence,
-        pInterpolantSequence,
         pPathFormulas);
   }
 
@@ -93,16 +93,21 @@ public class InfeasiblePrefix {
     return new InfeasiblePrefix(pInfeasiblePrefix, simpleInterpolantSequence);
   }
 
-  public Set<String> extractSetOfVariables() {
-    return FluentIterable.from(interpolantSequence).transformAndConcat(new Function<Set<String>, Iterable<String>>() {
-      @Override
-      public Iterable<String> apply(Set<String> itp) {
-        return itp;
-      }}).toSet();
-  }
+  public Set<String> extractSetOfIdentifiers() {
+    Set<String> variables = extractSetOfVariables();
 
-  public List<Set<String>> extractListOfVariables() {
-    return FluentIterable.from(interpolantSequence).toList();
+    Set<String> identifiers = new HashSet<>(variables.size());
+    for (String variable : variables) {
+      // strip offset of (array) variables
+      if (variable.contains("/")) {
+        identifiers.add(variable.substring(0, variable.lastIndexOf("/")));
+      }
+      else {
+        identifiers.add(variable);
+      }
+    }
+
+    return ImmutableSet.copyOf(identifiers);
   }
 
   public int getNonTrivialLength() {
@@ -134,5 +139,13 @@ public class InfeasiblePrefix {
 
   public List<BooleanFormula> getPathFormulae() {
     return pathFormulas;
+  }
+
+  private Set<String> extractSetOfVariables() {
+    return FluentIterable.from(interpolantSequence).transformAndConcat(new Function<Set<String>, Iterable<String>>() {
+      @Override
+      public Iterable<String> apply(Set<String> itp) {
+        return itp;
+      }}).toSet();
   }
 }

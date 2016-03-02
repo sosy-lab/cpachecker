@@ -1,16 +1,16 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration.tests;
 
-import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Map;
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import org.junit.Test;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Integration testing for policy iteration.
@@ -70,8 +70,8 @@ public class PolicyIterationTest {
   @Test public void pointer_past_abstraction_true_assert() throws Exception {
     check("pointers/pointer_past_abstraction_true_assert.c", ImmutableMap.of(
             "CompositeCPA.cpas", CPAS_W_SLICING,
-            "cpa.stator.policy.generateOctagons", "true",
-            "cpa.slicing.useCounterexampleBasedSlicing", "true"
+            "cpa.stator.policy.generateOctagons", "true"
+//            "cpa.slicing.useCounterexampleBasedSlicing", "true"
         )
     );
   }
@@ -91,7 +91,11 @@ public class PolicyIterationTest {
         ImmutableMap.of(
             "CompositeCPA.cpas", CPAS_W_SLICING,
             "cpa.stator.policy.generateOctagons", "true",
-            "cpa.slicing.useSyntacticFormulaSlicing", "true"
+            "cpa.slicing.useSyntacticFormulaSlicing", "true",
+            "cpa.slicing.runCounterexampleBasedSlicing", "true",
+
+            // TODO: temporary fix.
+            "cpa.stator.policy.linearizePolicy", "false"
         ));
   }
 
@@ -237,6 +241,7 @@ public class PolicyIterationTest {
           .add("cpa.formulaslicing.FormulaSlicingCPA")
           .add("cpa.policyiteration.PolicyCPA")
           .build()
+
   );
 
 }

@@ -24,8 +24,66 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Predicates.*;
+import static com.google.common.base.Predicates.in;
+import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.core.algorithm.bmc.AbstractLocationFormulaInvariant.makeLocationInvariant;
+
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+
+import org.sosy_lab.common.ShutdownManager;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.NestedTimer;
+import org.sosy_lab.common.time.TimeSpan;
+import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.StaticCandidateProvider;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.formulaslicing.InductiveWeakeningManager;
+import org.sosy_lab.cpachecker.cpa.formulaslicing.LoopTransitionFinder;
+import org.sosy_lab.cpachecker.cpa.formulaslicing.SemiCNFManager;
+import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
+import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage.AbstractionNode;
+import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.regions.Region;
+import org.sosy_lab.cpachecker.util.predicates.regions.RegionCreator;
+import org.sosy_lab.cpachecker.util.predicates.regions.RegionCreator.RegionBuilder;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.ProverEnvironment;
+import org.sosy_lab.solver.api.ProverEnvironment.AllSatCallback;
+import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -33,7 +91,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -44,55 +101,6 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
-
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.NestedTimer;
-import org.sosy_lab.common.time.TimeSpan;
-import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
-import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage.AbstractionNode;
-import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
-import org.sosy_lab.cpachecker.util.LiveVariables;
-import org.sosy_lab.cpachecker.util.precondition.segkro.rules.LinCombineRule;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionCreator;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionCreator.RegionBuilder;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView.DefaultBooleanFormulaVisitor;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.statistics.StatTimer;
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.ProverEnvironment;
-import org.sosy_lab.solver.api.ProverEnvironment.AllSatCallback;
-
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Collections2;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 
 @Options(prefix = "cpa.predicate")
 public class PredicateAbstractionManager {
@@ -105,17 +113,20 @@ public class PredicateAbstractionManager {
     public int numSymbolicAbstractions = 0; // precision completely empty, no computation
     public int numSatCheckAbstractions = 0; // precision was {false}, only sat check
     public int numCallsAbstractionCached = 0; // result was cached, no computation
+    public int numInductivePathFormulaCacheUsed = 0; // loop was cached, no new computation
 
     public int numTotalPredicates = 0;
     public int maxPredicates = 0;
     public int numIrrelevantPredicates = 0;
     public int numTrivialPredicates = 0;
+    public int numInductivePredicates = 0;
     public int numCartesianAbsPredicates = 0;
     public int numCartesianAbsPredicatesCached = 0;
     public int numBooleanAbsPredicates = 0;
     public final Timer abstractionReuseTime = new Timer();
     public final StatTimer abstractionReuseImplicationTime = new StatTimer("Time for checking reusability of abstractions");
     public final Timer trivialPredicatesTime = new Timer();
+    public final Timer inductivePredicatesTime = new Timer();
     public final Timer cartesianAbstractionTime = new Timer();
     public final Timer quantifierEliminationTime = new Timer();
     public final Timer booleanAbstractionTime = new Timer();
@@ -143,6 +154,11 @@ public class PredicateAbstractionManager {
     BOOLEAN,
     COMBINED,
     ELIMINATION;
+  }
+
+  private static enum InductivePredicateStrategy {
+    WEAKENING,
+    CNF_BMC;
   }
 
   @Option(secure=true, name = "abstraction.cartesian",
@@ -177,13 +193,32 @@ public class PredicateAbstractionManager {
       description="Identify those predicates where the result is trivially known before abstraction computation and omit them.")
   private boolean identifyTrivialPredicates = false;
 
+  @Option(
+    secure = true,
+    name = "abstraction.identifyInductivePredicates",
+    description = "Identify the inductive predicates in the path formula and omit them"
+  )
+  private boolean identifyInductivePredicates = false;
+
+  @Option(
+    secure = true,
+    name = "abstraction.identifyPredicateStrategy",
+    description = "How should the inductive part of the abstractionformula be computed?"
+  )
+  private InductivePredicateStrategy inductivePredicateStrategy =
+      InductivePredicateStrategy.WEAKENING;
+
+  @Option(
+    secure = true,
+    name = "abstraction.bmcConfig",
+    description = "configuration file for checking pathformulas with bmc on inductivity"
+  )
+  @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
+  private Path bmcConfig = Paths.get("config/bmc-invgen.properties");
+
   @Option(secure=true, name = "abstraction.simplify",
       description="Simplify the abstraction formula that is stored to represent the state space. Helpful when debugging (formulas get smaller).")
   private boolean simplifyAbstractionFormula = false;
-
-  @Option(secure=true, name = "abstraction.elimDeadVariablePreds",
-      description="Eliminate propositions about dead variables in abstraction predicates by running a generalization procedure.")
-  private boolean elimDeadVariablePredsByGeneralization = false;
 
   private boolean warnedOfCartesianAbstraction = false;
 
@@ -199,22 +234,30 @@ public class PredicateAbstractionManager {
   // 1: predicate is true
   private final Map<Pair<BooleanFormula, AbstractionPredicate>, Byte> cartesianAbstractionCache;
 
+  private final Map<Pair<PathFormula, CFANode>, Region> inductivePathFormulaPartCache = new HashMap<>();
+
   private final BooleanFormulaManagerView bfmgr;
 
   private final PredicateAbstractionsStorage abstractionStorage;
 
-  private Optional<LiveVariables> liveVars;
+  private final Configuration config;
+
+  private final InductiveWeakeningManager inductiveWeakeningMgr;
+  private final LoopTransitionFinder loopFinder;
+  private final CFA cfa;
 
   public PredicateAbstractionManager(
       AbstractionManager pAmgr,
       FormulaManagerView pFmgr,
       PathFormulaManager pPfmgr,
       Solver pSolver,
-      Configuration config,
+      Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      Optional<LiveVariables> pLiveVars) throws InvalidConfigurationException, PredicateParsingFailedException {
+      CFA pCFA)
+      throws InvalidConfigurationException, PredicateParsingFailedException {
     shutdownNotifier = pShutdownNotifier;
+    config = pConfig;
 
     config.inject(this, PredicateAbstractionManager.class);
 
@@ -225,7 +268,17 @@ public class PredicateAbstractionManager {
     rmgr = amgr.getRegionCreator();
     pfmgr = pPfmgr;
     solver = pSolver;
-    liveVars = pLiveVars;
+    cfa = pCFA;
+
+    if (identifyInductivePredicates && cfa.getLoopStructure().isPresent()) {
+      inductiveWeakeningMgr = new InductiveWeakeningManager(config, fmgr, solver, logger);
+      loopFinder =
+          new LoopTransitionFinder(
+              config, cfa.getLoopStructure().get(), pfmgr, fmgr, logger, shutdownNotifier);
+    } else {
+      inductiveWeakeningMgr = null;
+      loopFinder = null;
+    }
 
     if (cartesianAbstraction) {
       abstractionType = AbstractionType.CARTESIAN;
@@ -254,6 +307,7 @@ public class PredicateAbstractionManager {
       BooleanFormula instanceFm = fmgr.instantiate(an.getFormula(), extractionSsa);
       extractPredicates(instanceFm);
     }
+
   }
 
   /**
@@ -262,10 +316,9 @@ public class PredicateAbstractionManager {
    * so the indices there should match those from the PathFormula.
    * @param abstractionFormula An AbstractionFormula that is used as input.
    * @param pathFormula A PathFormula that is used as input.
-   * @param predicates The set of predicates used for abstraction.
+   * @param pPredicates The set of predicates used for abstraction.
    * @return An AbstractionFormula instance representing an abstraction of
    *          "abstractionFormula & pathFormula" with pathFormula as the block formula.
-   * @throws InterruptedException
    */
   public AbstractionFormula buildAbstraction(CFANode location,
       AbstractionFormula abstractionFormula, PathFormula pathFormula,
@@ -357,6 +410,34 @@ public class PredicateAbstractionManager {
       stats.trivialPredicatesTime.stop();
     }
 
+    // compute inductive part of pathformula
+    if (identifyInductivePredicates) {
+      try {
+        stats.inductivePredicatesTime.start();
+        switch (inductivePredicateStrategy) {
+          case WEAKENING:
+            abs = rmgr.makeAnd(abs, findPredsWithInductiveWeakening(location, pathFormula, ssa));
+            break;
+          case CNF_BMC:
+            abs = rmgr.makeAnd(abs, findPredsWithBMC(location, pathFormula));
+            break;
+          default:
+            throw new AssertionError("Unhandled strategy in switch: " + inductivePredicateStrategy);
+        }
+
+        // Calculate the set of predicates we still need to use for abstraction.
+        predicates = from(predicates).filter(not(in(amgr.extractPredicates(abs)))).toSet();
+
+      } catch (
+          InterruptedException | IOException | InvalidConfigurationException | CPAException e) {
+        // log the exception and skip finding the inductive part of the pathformula
+        logger.logUserException(
+            Level.INFO, e, "Skipping finding inductive part of pathformula due to an error.");
+      } finally {
+        stats.inductivePredicatesTime.stop();
+      }
+    }
+
     try (ProverEnvironment thmProver = solver.newProverEnvironment()) {
       thmProver.push(f);
 
@@ -379,7 +460,7 @@ public class PredicateAbstractionManager {
         stats.quantifierEliminationTime.start();
         try {
           abs = rmgr.makeAnd(abs,
-              eliminateIrrelevantVariablePropositions(f, location, ssa, thmProver, predicates));
+              eliminateIrrelevantVariablePropositions(f, ssa));
         } finally {
           stats.quantifierEliminationTime.stop();
         }
@@ -455,6 +536,94 @@ public class PredicateAbstractionManager {
     }
 
     return result;
+  }
+
+  private Region findPredsWithBMC(final CFANode pLocation, PathFormula pPathFormula)
+      throws InterruptedException, IOException, InvalidConfigurationException, CPAException {
+
+    Pair<PathFormula, CFANode> cacheKey = Pair.of(pPathFormula, pLocation);
+
+    if (inductivePathFormulaPartCache.containsKey(cacheKey)) {
+      stats.numInductivePathFormulaCacheUsed++;
+      return inductivePathFormulaPartCache.get(cacheKey);
+    }
+
+    BooleanFormula cnfFormula = fmgr.applyTactic(pPathFormula.getFormula(), Tactic.CNF);
+    Collection<AbstractionPredicate> conjuncts = extractPredicates(cnfFormula);
+    final Map<String, Region> formulaToRegion = new HashMap<>();
+    StaticCandidateProvider candidateGenerator =
+        new StaticCandidateProvider(
+            from(conjuncts)
+                .transform(
+                    new Function<AbstractionPredicate, CandidateInvariant>() {
+                      @Override
+                      public CandidateInvariant apply(AbstractionPredicate pInput) {
+                        String dumpedFormula =
+                            fmgr.dumpFormula(pInput.getSymbolicAtom()).toString();
+                        formulaToRegion.put(dumpedFormula, pInput.getAbstractVariable());
+                        return makeLocationInvariant(pLocation, dumpedFormula);
+                      }
+                    }));
+
+    ReachedSetFactory reached;
+    reached = new ReachedSetFactory(config);
+    ShutdownManager invariantShutdown = ShutdownManager.createWithParent(shutdownNotifier);
+    Configuration invariantConfig = Configuration.builder().loadFromFile(bmcConfig).build();
+    KInductionInvariantGenerator invGen =
+        KInductionInvariantGenerator.create(
+            invariantConfig, logger, invariantShutdown, cfa, reached, candidateGenerator, false);
+
+    invGen.start(cfa.getMainFunction());
+    invGen.get();
+    Set<CandidateInvariant> invariants = candidateGenerator.getConfirmed();
+
+    Region inductivePart = rmgr.makeTrue();
+    for (CandidateInvariant invariant : invariants) {
+      inductivePart = rmgr.makeAnd(inductivePart, formulaToRegion.get(invariant.toString()));
+    }
+    inductivePathFormulaPartCache.put(cacheKey, inductivePart);
+
+    return inductivePart;
+  }
+
+  private Region findPredsWithInductiveWeakening(
+      CFANode location, PathFormula pathFormula, final SSAMap ssa)
+      throws CPATransferException, InterruptedException, SolverException {
+
+    // not all necessary conditions met, skip computation
+    if (inductiveWeakeningMgr == null || !location.isLoopStart()) {
+      logger.log(
+          Level.FINE, "No computation of inductive predicates, condition was not fulfilled.");
+      return rmgr.makeTrue();
+    }
+
+    Pair<PathFormula, CFANode> cacheKey = Pair.of(pathFormula, location);
+
+    // result already cached, do not recompute
+    if (inductivePathFormulaPartCache.containsKey(cacheKey)) {
+      stats.numInductivePathFormulaCacheUsed++;
+      return inductivePathFormulaPartCache.get(cacheKey);
+    }
+
+    // compute inductive weakening of pathformula
+    PointerTargetSet pts = pathFormula.getPointerTargetSet();
+    PathFormula loopFormula = loopFinder.generateLoopTransition(ssa, pts, location);
+    Region inductivePart = identifyInductivePathformulaPart(pathFormula, loopFormula);
+
+    assert impliesFormulaInductivePart(pathFormula, inductivePart)
+        : "Pathformula has to imply the inductive part of it";
+
+    inductivePathFormulaPartCache.put(cacheKey, inductivePart);
+
+    return inductivePart;
+  }
+
+  private boolean impliesFormulaInductivePart(PathFormula pathFormula, Region inductivePart)
+      throws SolverException, InterruptedException {
+    try (ProverEnvironment env = solver.newProverEnvironment()) {
+      env.push(bfmgr.implication(pathFormula.getFormula(), amgr.toConcrete(inductivePart)));
+      return !env.isUnsat();
+    }
   }
 
   private @Nullable AbstractionFormula reuseAbstractionIfPossible(
@@ -562,8 +731,7 @@ public class PredicateAbstractionManager {
     return null; //no abstraction could be reused
   }
 
-  private Region eliminateIrrelevantVariablePropositions(BooleanFormula pF, CFANode pLocation, SSAMap pSsa,
-      ProverEnvironment pThmProver, ImmutableSet<AbstractionPredicate> pPredicates) throws InterruptedException, SolverException {
+  private Region eliminateIrrelevantVariablePropositions(BooleanFormula pF, SSAMap pSsa) throws InterruptedException, SolverException {
 
     BooleanFormula eliminationResult = fmgr.uninstantiate(
         fmgr.eliminateDeadVariables(pF, pSsa));
@@ -591,20 +759,16 @@ public class PredicateAbstractionManager {
    * @param pPredicates The set of predicates.
    * @param f The formula that determines which variables and predicates are relevant.
    * @param ssa The SSA map to use for instantiating predicates.
-   * @param pPathFormula
+   * @param pLocation the location that should be used
    * @return A subset of pPredicates.
-   *
-   * @throws InterruptedException
-   * @throws SolverException
    */
   private ImmutableSet<AbstractionPredicate> getRelevantPredicates(
       final Collection<AbstractionPredicate> pPredicates,
       final BooleanFormula f,
       final SSAMap ssa,
-      final CFANode pLocation) throws SolverException, InterruptedException {
+      final CFANode pLocation) {
 
     Set<String> variables = fmgr.extractVariableNames(f);
-    Multimap<Formula, AbstractionPredicate> elimPredicatesOnDeadVariables = HashMultimap.create();
     ImmutableSet.Builder<AbstractionPredicate> predicateBuilder = ImmutableSet.builder();
 
     for (AbstractionPredicate predicate : pPredicates) {
@@ -617,76 +781,20 @@ public class PredicateAbstractionManager {
       }
 
       BooleanFormula instantiatedPredicate = fmgr.instantiate(predicateTerm, ssa);
-      Map<String, Formula> predVariables = fmgr.extractFreeVariableMap(instantiatedPredicate);
+      Set<String> predVariables = fmgr.extractVariableNames(instantiatedPredicate);
 
-      final Set<String> deadPredVariables;
-      if (liveVars.isPresent()) {
-        Set<String> liveVariabes = fmgr.instantiate(
-            liveVars.get().getLiveVariableNamesForNode(pLocation),
-            ssa);
-        deadPredVariables = Sets.difference(predVariables.keySet(), liveVariabes);
-      } else {
-        deadPredVariables = Collections.emptySet();
-      }
-
-      if (!deadPredVariables.isEmpty() && elimDeadVariablePredsByGeneralization) {
-
-        for (String var: deadPredVariables) {
-          elimPredicatesOnDeadVariables.put(predVariables.get(var), predicate);
-        }
-
-      } else if (predVariables.isEmpty()
-          || !Sets.intersection(predVariables.keySet(), variables).isEmpty()) {
+      if (predVariables.isEmpty()
+          || !Sets.intersection(predVariables, variables).isEmpty()) {
         // Predicates without variables occur (for example, talking about UFs).
         // We do not know whether they are relevant, so we have to add them.
         predicateBuilder.add(predicate);
 
       } else {
-        logger.log(Level.FINEST, "Ignoring predicate about variables", predVariables.keySet());
-      }
-    }
-
-    // Do not ignore predicates on dead variables,
-    // but infer new predicates from them that are more general
-    // and that eliminate them.
-    if (!elimPredicatesOnDeadVariables.isEmpty()) {
-      for (Formula deadVar: elimPredicatesOnDeadVariables.keySet()) {
-        Collection<AbstractionPredicate> referencingPreds = elimPredicatesOnDeadVariables.get(deadVar);
-        Collection<AbstractionPredicate> predsWithoutVar = deriveNewPredsWithoutVar(deadVar, referencingPreds);
-        predicateBuilder.addAll(predsWithoutVar);
+        logger.log(Level.FINEST, "Ignoring predicate about variables", predVariables);
       }
     }
 
     return predicateBuilder.build();
-  }
-
-  private Collection<AbstractionPredicate> deriveNewPredsWithoutVar(
-      final Formula pDeadVar,
-      final Collection<AbstractionPredicate> pReferencingPreds)
-          throws SolverException, InterruptedException {
-
-    LinCombineRule linComb = new LinCombineRule(solver, solver.getSmtAstMatcher());
-
-    Multimap<String, Formula> ruleVarBinding = HashMultimap.create();
-    ruleVarBinding.put("e", fmgr.uninstantiate(pDeadVar));
-
-    Collection<BooleanFormula> conjunctiveInputPredicates = Collections2.transform(
-        pReferencingPreds, new Function<AbstractionPredicate, BooleanFormula>() {
-      @Override
-      public BooleanFormula apply(AbstractionPredicate pArg0) {
-        return pArg0.getSymbolicAtom();
-      }
-    });
-
-    Set<BooleanFormula> inferred = linComb.apply(conjunctiveInputPredicates, ruleVarBinding);
-
-    return Collections2.transform(
-        inferred, new Function<BooleanFormula, AbstractionPredicate>() {
-      @Override
-      public AbstractionPredicate apply(BooleanFormula pArg0) {
-        return createPredicateFor(pArg0);
-      }
-    });
   }
 
   /**
@@ -748,6 +856,34 @@ public class PredicateAbstractionManager {
     assert amgr.entails(oldAbs, region);
 
     return region;
+  }
+
+  /**
+   * This method finds the inductive part of a pathformula and adds it directly
+   * to the abstraction formula.
+   * @param pBlockFormula A path formula that determines which variables and predicates are relevant.
+   * @param pLoopFormula the path formula inside the loop
+   *
+   * @return A region of predicates from pPredicates that is entailed by (pOldAbs & pBlockFormula)
+   */
+  private Region identifyInductivePathformulaPart(
+      final PathFormula pBlockFormula,
+      final PathFormula pLoopFormula)
+      throws SolverException, InterruptedException {
+
+    PathFormula semiCNFFormula;
+    try {
+      semiCNFFormula = pBlockFormula.updateFormula(new SemiCNFManager(fmgr, config).convert
+          (pBlockFormula.getFormula()));
+    } catch (InvalidConfigurationException pE) {
+      throw new UnsupportedOperationException("SemiCNFManager crashed with invalid "
+          + "configuration", pE);
+    }
+    BooleanFormula inductiveSlice =
+        inductiveWeakeningMgr.findInductiveWeakening(
+            semiCNFFormula, pLoopFormula, fmgr.getBooleanFormulaManager().makeBoolean(true));
+
+    return amgr.makePredicate(fmgr.uninstantiate(inductiveSlice)).getAbstractVariable();
   }
 
   /**
@@ -953,9 +1089,7 @@ public class PredicateAbstractionManager {
     return result;
   }
 
-  private class AllSatCallbackImpl
-      extends DefaultBooleanFormulaVisitor<BooleanFormula>
-      implements AllSatCallback<Region> {
+  private class AllSatCallbackImpl implements AllSatCallback<Region> {
 
     private final RegionBuilder builder;
 
@@ -966,7 +1100,6 @@ public class PredicateAbstractionManager {
     private Region formula;
 
     private AllSatCallbackImpl() {
-      super(fmgr);
       builder = rmgr.builder(shutdownNotifier);
 
       stats.abstractionSolveTime.start();
@@ -987,11 +1120,13 @@ public class PredicateAbstractionManager {
       // first, let's create the BDD corresponding to the model
       builder.startNewConjunction();
       for (BooleanFormula f : model) {
-        if (bfmgr.isNot(f)) { // todo: possible bug if the predicate contains
-                             // the negation.
-          builder.addNegativeRegion(amgr.getPredicate(visit(f)).getAbstractVariable());
+        Optional<BooleanFormula> inner = fmgr.stripNegation(f);
+        Region region = amgr.getPredicate(inner.or(f)).getAbstractVariable();
+        if (inner.isPresent()) {
+          // TODO: possible bug if the predicate itself contains the negation.
+          builder.addNegativeRegion(region);
         } else {
-          builder.addPositiveRegion(amgr.getPredicate(f).getAbstractVariable());
+          builder.addPositiveRegion(region);
         }
       }
       builder.finishConjunction();
@@ -1000,11 +1135,6 @@ public class PredicateAbstractionManager {
 
       regionTime.stop();
 
-    }
-
-    @Override
-    public BooleanFormula visitNot(BooleanFormula negated) {
-      return negated;
     }
 
     @Override
@@ -1057,8 +1187,8 @@ public class PredicateAbstractionManager {
 
   /**
    * Checks if an abstraction formula and a pathFormula are unsatisfiable.
-   * @param pAbstractionFormula the abstraction formula
-   * @param pPathFormula the path formula
+   * @param abstractionFormula the abstraction formula
+   * @param pathFormula the path formula
    * @return unsat(pAbstractionFormula & pPathFormula)
    */
   public boolean unsat(AbstractionFormula abstractionFormula, PathFormula pathFormula)

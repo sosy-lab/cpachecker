@@ -120,6 +120,8 @@
 		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/meconsole010.jar!/"/>
 	</lib>
 	<lib name="princess-assertionless.jar" scope="COMPILE">
+		<srcroot url="jar://$MODULE_DIR$/lib/java-contrib/princess-sources-assertionless.zip!/"/>
+		<relative-module-src project-related="jar://$PROJECT_DIR$/lib/java-contrib/princess-sources-assertionless.zip!/"/>
 		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/runtime/princess-assertionless.jar!/"/>
 	</lib>
 	<lib name="scala-library.jar" scope="COMPILE">
@@ -128,9 +130,9 @@
 	<lib name="scala-actors.jar" scope="COMPILE">
 		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/runtime/scala-actors.jar!/"/>
 	</lib>
-	<lib name="JavaSMT.jar" scope="COMPILE">
-		<srcroot url="jar://$MODULE_DIR$/lib/java-contrib/JavaSMT-sources.jar!/"/>
-		<relative-module-src project-related="jar://$PROJECT_DIR$/lib/java-contrib/JavaSMT-sources.jar!/"/>
-		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/runtime/JavaSMT.jar!/"/>
+	<lib name="javasmt.jar" scope="COMPILE">
+		<srcroot url="jar://$MODULE_DIR$/lib/java-contrib/javasmt-sources.jar!/"/>
+		<relative-module-src project-related="jar://$PROJECT_DIR$/lib/java-contrib/javasmt-sources.jar!/"/>
+		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/runtime/javasmt.jar!/"/>
 	</lib>
 </component>

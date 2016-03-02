@@ -42,11 +42,11 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BitvectorFormula;
 import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
@@ -398,11 +398,10 @@ public class TemplateManager {
       if (coeff == Rational.ZERO) {
         continue;
       } else if (coeff == Rational.NEG_ONE) {
-        multipliedItem = fmgr.makeNegate(item, true);
+        multipliedItem = fmgr.makeNegate(item);
       } else if (coeff != Rational.ONE){
         multipliedItem = fmgr.makeMultiply(
-            item, fmgr.makeNumber(item, entry.getValue()), true
-        );
+            item, fmgr.makeNumber(item, entry.getValue()));
       } else {
         multipliedItem = item;
       }
@@ -410,7 +409,7 @@ public class TemplateManager {
       if (sum == null) {
         sum = multipliedItem;
       } else {
-        sum = fmgr.makePlus(sum, multipliedItem, true);
+        sum = fmgr.makePlus(sum, multipliedItem);
       }
     }
 
@@ -566,6 +565,8 @@ public class TemplateManager {
           out.addAll(extractTemplatesFromEdge(child));
         }
         break;
+      default:
+        // nothing to do here
     }
     return out;
   }
@@ -724,7 +725,9 @@ public class TemplateManager {
 
   private boolean addTemplateToExtra(Template t) {
     // Do not add intervals.
-    if (t.size() == 1) return false;
+    if (t.size() == 1) {
+      return false;
+    }
     for (Entry<CIdExpression, Rational> e : t.getLinearExpression()) {
 
       // Do not add templates whose coefficients are already overflowing.
@@ -792,7 +795,9 @@ public class TemplateManager {
 
   private Formula normalizeLength(Formula f, int maxBitvectorSize,
       FormulaManagerView fmgr) {
-    if (!(f instanceof BitvectorFormula)) return f;
+    if (!(f instanceof BitvectorFormula)) {
+      return f;
+    }
     BitvectorFormula bv = (BitvectorFormula) f;
     return fmgr.getBitvectorFormulaManager().extend(
         bv,
@@ -814,7 +819,9 @@ public class TemplateManager {
       } catch (UnrecognizedCCodeException e) {
         throw new UnsupportedOperationException();
       }
-      if (!(item instanceof BitvectorFormula)) continue;
+      if (!(item instanceof BitvectorFormula)) {
+        continue;
+      }
       BitvectorFormula b = (BitvectorFormula) item;
       length = Math.max(
           fmgr.getBitvectorFormulaManager().getLength(b),

@@ -324,7 +324,7 @@ public class ValueAnalysisTransferRelation
       String paramName = param.getName();
       Type paramType = param.getType();
 
-      MemoryLocation formalParamName = MemoryLocation.valueOf(calledFunctionName, paramName, 0);
+      MemoryLocation formalParamName = MemoryLocation.valueOf(calledFunctionName, paramName);
 
       if (value.isUnknown()) {
         if (isMissingCExpressionInformation(visitor, exp)) {
@@ -384,7 +384,7 @@ public class ValueAnalysisTransferRelation
         = functionEntryNode.getReturnVariable();
     MemoryLocation functionReturnVar = null;
 
-    if(optionalReturnVarDeclaration.isPresent()) {
+    if (optionalReturnVarDeclaration.isPresent()) {
       functionReturnVar = MemoryLocation.valueOf(optionalReturnVarDeclaration.get().getQualifiedName());
     }
 
@@ -414,7 +414,7 @@ public class ValueAnalysisTransferRelation
 
     Optional<? extends AVariableDeclaration> returnVarName = functionReturnEdge.getFunctionEntry().getReturnVariable();
     MemoryLocation functionReturnVar = null;
-    if(returnVarName.isPresent()) {
+    if (returnVarName.isPresent()) {
       functionReturnVar = MemoryLocation.valueOf(returnVarName.get().getQualifiedName());
     }
 
@@ -496,7 +496,7 @@ public class ValueAnalysisTransferRelation
       }
     }
 
-    if(returnVarName.isPresent()) {
+    if (returnVarName.isPresent()) {
       newElement.forget(functionReturnVar);
     }
 
@@ -577,7 +577,7 @@ public class ValueAnalysisTransferRelation
     // get the value of the expression (either true[1L], false[0L], or unknown[null])
     Value value = getExpressionValue(expression, booleanType, evv);
 
-    if(value.isExplicitlyKnown()) {
+    if (value.isExplicitlyKnown()) {
       deterministicAssumptions.inc();
     }
 
@@ -686,9 +686,9 @@ public class ValueAnalysisTransferRelation
 
     // assign initial value if necessary
     if (decl.isGlobal()) {
-      memoryLocation = MemoryLocation.valueOf(varName,0);
+      memoryLocation = MemoryLocation.valueOf(varName);
     } else {
-      memoryLocation = MemoryLocation.valueOf(functionName, varName, 0);
+      memoryLocation = MemoryLocation.valueOf(functionName, varName);
     }
 
     if (addressedVariables.contains(decl.getQualifiedName())
@@ -947,9 +947,9 @@ public class ValueAnalysisTransferRelation
     String varName = pIdExpression.getName();
 
     if (isGlobal(pIdExpression)) {
-      return MemoryLocation.valueOf(varName, 0);
+      return MemoryLocation.valueOf(varName);
     } else {
-      return MemoryLocation.valueOf(functionName, varName, 0);
+      return MemoryLocation.valueOf(functionName, varName);
     }
   }
 
@@ -1066,10 +1066,13 @@ public class ValueAnalysisTransferRelation
 
   private MemoryLocation createFieldMemoryLocation(MemoryLocation pStruct, int pOffset) {
 
+    long baseOffset = pStruct.isReference() ? pStruct.getOffset() : 0;
+
     if (pStruct.isOnFunctionStack()) {
-      return MemoryLocation.valueOf(pStruct.getFunctionName(), pStruct.getIdentifier(), pStruct.getOffset() + pOffset);
+      return MemoryLocation.valueOf(
+          pStruct.getFunctionName(), pStruct.getIdentifier(), baseOffset + pOffset);
     } else {
-      return MemoryLocation.valueOf(pStruct.getIdentifier(), pStruct.getOffset() + pOffset);
+      return MemoryLocation.valueOf(pStruct.getIdentifier(), baseOffset + pOffset);
     }
   }
 
@@ -1219,10 +1222,12 @@ public class ValueAnalysisTransferRelation
 
       if (isEqualityAssumption(binaryOperator)) {
         if (isEligibleForAssignment(leftValue) && rightValue.isExplicitlyKnown() && isAssignable(lVarInBinaryExp)) {
-          assignConcreteValue(lVarInBinaryExp, leftValue, rightValue, pE.getExpressionType());
+          assignConcreteValue(
+              lVarInBinaryExp, leftValue, rightValue, pE.getOperand2().getExpressionType());
 
         } else if (isEligibleForAssignment(rightValue) && leftValue.isExplicitlyKnown() && isAssignable(rVarInBinaryExp)) {
-          assignConcreteValue(rVarInBinaryExp, rightValue, leftValue, pE.getExpressionType());
+          assignConcreteValue(
+              rVarInBinaryExp, rightValue, leftValue, pE.getOperand1().getExpressionType());
         }
       }
 
@@ -1231,14 +1236,16 @@ public class ValueAnalysisTransferRelation
           MemoryLocation leftMemLoc = getMemoryLocation(lVarInBinaryExp);
 
           if (optimizeBooleanVariables && (booleans.contains(leftMemLoc.getAsSimpleString()) || initAssumptionVars)) {
-            assignableState.assignConstant(leftMemLoc, new NumericValue(1L), pE.getExpressionType());
+            assignableState.assignConstant(
+                leftMemLoc, new NumericValue(1L), pE.getOperand1().getExpressionType());
           }
 
         } else if (optimizeBooleanVariables && (assumingUnknownToBeZero(rightValue, leftValue) && isAssignable(rVarInBinaryExp))) {
           MemoryLocation rightMemLoc = getMemoryLocation(rVarInBinaryExp);
 
           if (booleans.contains(rightMemLoc.getAsSimpleString()) || initAssumptionVars) {
-            assignableState.assignConstant(rightMemLoc, new NumericValue(1L), pE.getExpressionType());
+            assignableState.assignConstant(
+                rightMemLoc, new NumericValue(1L), pE.getOperand2().getExpressionType());
           }
         }
       }
@@ -1358,8 +1365,7 @@ public class ValueAnalysisTransferRelation
       if (declaration != null) {
         assignableState.assignConstant(declaration.getQualifiedName(), pValue);
       } else {
-        MemoryLocation memLoc = MemoryLocation.valueOf(getFunctionName(), pIdExpression.getName(),
-            0);
+        MemoryLocation memLoc = MemoryLocation.valueOf(getFunctionName(), pIdExpression.getName());
         assignableState.assignConstant(memLoc, pValue, pIdExpression.getExpressionType());
       }
     }
@@ -1716,7 +1722,7 @@ public class ValueAnalysisTransferRelation
     return newState;
   }
 
-  private Type getLeftHandType(CFAEdge pEdge) throws UnrecognizedCodeException {
+  private Type getLeftHandType(CFAEdge pEdge) {
     if (pEdge instanceof ADeclarationEdge) {
       ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
       if (declarationEdge.getDeclaration() instanceof AVariableDeclaration) {
@@ -1732,7 +1738,7 @@ public class ValueAnalysisTransferRelation
     return null;
   }
 
-  private String getLeftHandVariable(CFAEdge pEdge) throws UnrecognizedCodeException {
+  private String getLeftHandVariable(CFAEdge pEdge) {
     if (pEdge instanceof ADeclarationEdge) {
       ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
       if (declarationEdge.getDeclaration() instanceof AVariableDeclaration) {
@@ -2035,8 +2041,7 @@ public class ValueAnalysisTransferRelation
     }
   }
 
-  private Collection<ValueAnalysisState> strengthen(RTTState rttState)
-      throws UnrecognizedCCodeException {
+  private Collection<ValueAnalysisState> strengthen(RTTState rttState) {
 
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(oldState);
 

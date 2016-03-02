@@ -104,15 +104,18 @@ public class AppliedCustomInstructionParserTest {
             + "test2(4);"
           + "}";
     cfa = TestDataTools.makeCFA(testProgram);
-    aciParser = new AppliedCustomInstructionParser(ShutdownNotifier.create(),
-        new BasicLogManager(TestDataTools.configurationForTest().build()), cfa);
+    aciParser =
+        new AppliedCustomInstructionParser(
+            ShutdownNotifier.createDummy(),
+            new BasicLogManager(TestDataTools.configurationForTest().build()),
+            cfa);
     GlobalInfo.getInstance().storeCFA(cfa);
     cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
     labelNodes = getLabelNodes(cfa);
   }
 
   @Test
-  public void testGetCFANode() throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException {
+  public void testGetCFANode() throws AppliedCustomInstructionParsingFailedException {
     try {
       aciParser.getCFANode("N57", cfaInfo);
     } catch (CPAException e) {
@@ -129,7 +132,7 @@ public class AppliedCustomInstructionParserTest {
   }
 
   @Test
-  public void testReadCustomInstruction() throws AppliedCustomInstructionParsingFailedException, InterruptedException, NoSuchFieldException, SecurityException {
+  public void testReadCustomInstruction() throws AppliedCustomInstructionParsingFailedException, InterruptedException, SecurityException {
     try {
       aciParser.readCustomInstruction("test4");
     } catch (CPAException e) {
@@ -215,7 +218,7 @@ public class AppliedCustomInstructionParserTest {
   }
 
   @Test
-  public void testParse() throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException, NoSuchFieldException, SecurityException, ParserException, InvalidConfigurationException {
+  public void testParse() throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException, SecurityException, ParserException, InvalidConfigurationException {
     String testProgram = ""
         + "void main() {"
           + "int x;"
@@ -229,8 +232,11 @@ public class AppliedCustomInstructionParserTest {
 
     CFA cfa = TestDataTools.makeCFA(testProgram);
     GlobalInfo.getInstance().storeCFA(cfa);
-    aciParser = new AppliedCustomInstructionParser(ShutdownNotifier.create(), new BasicLogManager(TestDataTools
-            .configurationForTest().build()), cfa);
+    aciParser =
+        new AppliedCustomInstructionParser(
+            ShutdownNotifier.createDummy(),
+            new BasicLogManager(TestDataTools.configurationForTest().build()),
+            cfa);
     Path p = Paths.createTempPath("test_acis", null);
     try (Writer file = Files.openOutputFile(p)) {
       file.append("main\n");

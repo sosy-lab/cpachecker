@@ -50,6 +50,8 @@ import com.google.common.collect.ImmutableSet;
  */
 public class JClassType extends JClassOrInterfaceType implements JReferenceType {
 
+  private static final long serialVersionUID = 2051770436134716617L;
+
   private static final String NAME_OF_CLASS_OBJECT = "java.lang.Object";
   private static final String SIMPLE_NAME_OF_CLASS_OBJECT = "Object";
 

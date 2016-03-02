@@ -32,6 +32,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
@@ -50,7 +51,7 @@ public class SMGStateTest {
   public void setUp() throws SMGInconsistentException {
     consistent_state = new SMGState(logger, MachineModel.LINUX64, true, true, SMGRuntimeCheck.NONE);
     inconsistent_state = new SMGState(logger, MachineModel.LINUX64, true, true, SMGRuntimeCheck.NONE);
-    SMGEdgePointsTo pt = inconsistent_state.addNewHeapAllocation(8, "label");
+    SMGAddressValue pt = inconsistent_state.addNewHeapAllocation(8, "label");
 
     consistent_state.addGlobalObject((SMGRegion)pt.getObject());
     inconsistent_state.addGlobalObject((SMGRegion)pt.getObject());
@@ -131,7 +132,7 @@ public class SMGStateTest {
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     // Add an 16b object and write a 16b value into it
-    SMGEdgePointsTo pt = state.addNewHeapAllocation(16, "OBJECT");
+    SMGAddressValue pt = state.addNewHeapAllocation(16, "OBJECT");
     SMGKnownSymValue new_value = SMGKnownSymValue.valueOf(SMGValueFactory.getNewValue());
     SMGEdgeHasValue hv = state.writeValue(pt.getObject(), 0, mockType16b, new_value).getNewEdge();
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
@@ -191,7 +192,7 @@ public class SMGStateTest {
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     // Add an 16b object and write a 16b zero value into it
-    SMGEdgePointsTo pt = state.addNewHeapAllocation(16, "OBJECT");
+    SMGAddressValue pt = state.addNewHeapAllocation(16, "OBJECT");
     SMGEdgeHasValue hv = state.writeValue(pt.getObject(), 0, mockType16b, SMGKnownSymValue.ZERO).getNewEdge();
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
@@ -226,11 +227,11 @@ public class SMGStateTest {
     SMGState state = new SMGState(logger, MachineModel.LINUX64, true, true, SMGRuntimeCheck.NONE);
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
-    SMGEdgePointsTo pt = state.addNewHeapAllocation(16, "OBJECT");
+    SMGAddressValue pt = state.addNewHeapAllocation(16, "OBJECT");
 
-    Integer pointer = pt.getValue();
+    Integer pointer = pt.getValue().intValue();
 
-    SMGEdgePointsTo pt_obtained = state.getPointerFromValue(pointer);
+    SMGAddressValue pt_obtained = state.getPointerFromValue(pointer);
     Assert.assertEquals(pt_obtained.getObject(), pt.getObject());
   }
 
@@ -239,7 +240,7 @@ public class SMGStateTest {
     SMGState state = new SMGState(logger, MachineModel.LINUX64, true, true, SMGRuntimeCheck.NONE);
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
-    SMGEdgePointsTo pt = state.addNewHeapAllocation(16, "OBJECT");
+    SMGAddressValue pt = state.addNewHeapAllocation(16, "OBJECT");
     SMGKnownSymValue nonpointer = SMGKnownSymValue.valueOf(SMGValueFactory.getNewValue());
     state.writeValue(pt.getObject(), 0, mockType16b, nonpointer);
 

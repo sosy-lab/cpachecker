@@ -25,9 +25,9 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Predicates.equalTo;
 import static com.google.common.collect.FluentIterable.from;
-import static com.google.common.collect.Iterables.concat;
+import static com.google.common.collect.Iterables.*;
 import static com.google.common.collect.Lists.newArrayList;
-import static org.sosy_lab.cpachecker.core.algorithm.bmc.LocationFormulaInvariant.makeLocationInvariant;
+import static org.sosy_lab.cpachecker.core.algorithm.bmc.AbstractLocationFormulaInvariant.makeLocationInvariant;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
@@ -46,7 +46,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -65,13 +65,14 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.AbstractLocationFormulaInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -85,15 +86,16 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.LoopCollectingEdgeVisitor;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
@@ -105,9 +107,12 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Lists;
 import com.google.common.io.CharSink;
 import com.google.common.io.FileWriteMode;
@@ -173,7 +178,7 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
 
   @Option(secure=true, description="configuration file for bmc generation")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-  private Path bmcConfig = Paths.get("config/bmc.properties");
+  private Path bmcConfig = Paths.get("config/bmc-invgen.properties");
 
   @Option(secure=true, description="How often should generating invariants from"
       + " sliced prefixes with k-induction be tried?")
@@ -222,11 +227,14 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
     private int trieNum = 0;
     private List<CandidateInvariant> candidates = new ArrayList<>();
 
+    private final BooleanFormulaManager bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
+
     private final ARGPath argPath;
     private final List<CFANode> abstractionNodes;
     private final Set<ARGState> elementsOnPath;
     private final List<ARGState> abstractionStatesTrace;
     private final List<InfeasiblePrefix> infeasiblePrefixes;
+    private final List<AbstractLocationFormulaInvariant> foundInvariants = new ArrayList<>();
 
     private InvCandidateGenerator(ARGPath pPath, List<CFANode> pAbstractionNodes) throws CPAException, InterruptedException {
       argPath = pPath;
@@ -262,6 +270,12 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
             public List<CandidateInvariant> apply(InfeasiblePrefix pInput) {
               List<BooleanFormula> interpolants;
               try {
+                List<BooleanFormula> pathFormula = pInput.getPathFormulae();
+                // the prefix is not filled up with trues if it is shorter than
+                // the path so we need to do it ourselves
+                while (pathFormula.size() < abstractionStatesTrace.size()) {
+                  pathFormula.add(bfmgr.makeBoolean(true));
+                }
                 interpolants = buildCounterexampleTrace(elementsOnPath, abstractionStatesTrace,
                     pInput.getPathFormulae(), true).getInterpolants();
 
@@ -271,8 +285,15 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
               }
 
               List<CandidateInvariant> invCandidates = new ArrayList<>();
+              // add false as last interpolant for the error location
+              interpolants = new ArrayList<>(interpolants);
+              interpolants.add(bfmgr.makeBoolean(false));
+
               for (Pair<CFANode, BooleanFormula> nodeAndFormula : Pair.<CFANode, BooleanFormula>zipList(abstractionNodes, interpolants)) {
-                invCandidates.add(makeLocationInvariant(nodeAndFormula.getFirst(), nodeAndFormula.getSecond()));
+                invCandidates.add(makeLocationInvariant(nodeAndFormula.getFirst(),
+                                                        solver.getFormulaManager()
+                                                              .dumpFormula(nodeAndFormula.getSecond())
+                                                              .toString()));
               }
               return invCandidates;
             }};
@@ -286,6 +307,7 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
     public void confirmCandidates(Iterable<CandidateInvariant> pCandidates) {
       for (CandidateInvariant inv : pCandidates) {
         candidates.remove(inv);
+        foundInvariants.add((AbstractLocationFormulaInvariant) inv);
       }
     }
 
@@ -297,6 +319,49 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
       return candidates.iterator();
     }
 
+    public boolean hasFoundInvariants() {
+      return !foundInvariants.isEmpty();
+    }
+
+    public List<BooleanFormula> retrieveConfirmedInvariants() {
+      FluentIterable<AbstractLocationFormulaInvariant> found = from(foundInvariants);
+      List<BooleanFormula> invariants = new ArrayList<>();
+      for (final CFANode node : abstractionNodes) {
+        invariants.add(
+            found
+                .filter(
+                    new Predicate<AbstractLocationFormulaInvariant>() {
+                      @Override
+                      public boolean apply(AbstractLocationFormulaInvariant pInput) {
+                        return getOnlyElement(pInput.getLocations()).equals(node);
+                      }
+                    })
+                .first()
+                .transform(
+                    new Function<AbstractLocationFormulaInvariant, BooleanFormula>() {
+                      @Override
+                      public BooleanFormula apply(AbstractLocationFormulaInvariant pInput) {
+                        try {
+                          return pInput.getFormula(fmgr, pfmgr);
+                        } catch (CPATransferException | InterruptedException e) {
+                          // this should never happen, if it does we log
+                          // the exception and return TRUE as invariant
+                          logger.logUserException(
+                              Level.WARNING,
+                              e,
+                              "Invariant could not be" + " retrieved from InvariantGenerator");
+                          return fmgr.getBooleanFormulaManager().makeBoolean(true);
+                        }
+                      }
+                    })
+                .or(fmgr.getBooleanFormulaManager().makeBoolean(true)));
+      }
+
+      // if we found invariants at least one of them may not be "TRUE"
+      assert !from(invariants).allMatch(equalTo(fmgr.getBooleanFormulaManager().makeBoolean(true)));
+
+      return invariants;
+    }
   }
 
   public PredicateCPARefinerWithInvariants(final Configuration pConfig, final LogManager pLogger,
@@ -491,14 +556,13 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
                                                                                 .toList());
     ReachedSetFactory reached;
     try {
-      reached = new ReachedSetFactory(config, logger);
+      reached = new ReachedSetFactory(config);
 
-      ShutdownNotifier notifier = shutdownNotifier;
+      ShutdownManager invariantShutdown = ShutdownManager.createWithParent(shutdownNotifier);
       ResourceLimitChecker limits = null;
       if (!timeForInvariantGeneration.isEmpty()) {
-        notifier = ShutdownNotifier.createWithParent(shutdownNotifier);
         WalltimeLimit l = WalltimeLimit.fromNowOn(timeForInvariantGeneration);
-        limits = new ResourceLimitChecker(notifier, Lists.newArrayList((ResourceLimit)l));
+        limits = new ResourceLimitChecker(invariantShutdown, Collections.<ResourceLimit>singletonList(l));
         limits.start();
       }
 
@@ -509,9 +573,26 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
         throw new InvalidConfigurationException("could not read configuration file for invariant generation: " + e.getMessage(), e);
       }
 
-      KInductionInvariantGenerator invGen = KInductionInvariantGenerator.create(invariantConfig, logger, notifier, cfa, reached, candidateGenerator);
+      KInductionInvariantGenerator invGen = KInductionInvariantGenerator.create(invariantConfig, logger, invariantShutdown, cfa, reached, candidateGenerator, false);
 
-      List<BooleanFormula> invariants = generateInvariants0(pAbstractionStatesTrace, invGen);
+      invGen.start(cfa.getMainFunction());
+      invGen.get(); // let invariant generator do the work
+
+      List<BooleanFormula> invariants;
+
+      if (candidateGenerator.hasFoundInvariants()) {
+        // we do only want to use invariants that can be used to make the program safe
+        if ((!useStrongInvariantsOnly || invGen.isProgramSafe())) {
+          invariants = candidateGenerator.retrieveConfirmedInvariants();
+        } else {
+          invariants = Collections.emptyList();
+          logger.log(Level.INFO, "Invariants found, but they are not strong enough to refute the counterexample");
+        }
+      } else {
+        logger.log(Level.INFO, "No invariants were found.");
+        invariants = Collections.emptyList();
+      }
+
       if (!timeForInvariantGeneration.isEmpty()) {
         limits.cancel();
       }
@@ -551,16 +632,15 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
                                                                   scope, cfa.getLanguage());
 
 
-        ShutdownNotifier notifier = shutdownNotifier;
+        ShutdownManager invariantShutdown = ShutdownManager.createWithParent(shutdownNotifier);
         ResourceLimitChecker limits = null;
         if (!timeForInvariantGeneration.isEmpty()) {
-          notifier = ShutdownNotifier.createWithParent(shutdownNotifier);
           WalltimeLimit l = WalltimeLimit.fromNowOn(timeForInvariantGeneration);
-          limits = new ResourceLimitChecker(notifier, Lists.newArrayList((ResourceLimit)l));
+          limits = new ResourceLimitChecker(invariantShutdown, Collections.<ResourceLimit>singletonList(l));
           limits.start();
         }
 
-        InvariantGenerator invGen = CPAInvariantGenerator.create(config, logger, notifier, Optional.<ShutdownNotifier>absent(), cfa, automata);
+        InvariantGenerator invGen = CPAInvariantGenerator.create(config, logger, invariantShutdown, Optional.<ShutdownManager>absent(), cfa, automata);
 
         List<BooleanFormula> invariants = generateInvariants0(abstractionStatesTrace, invGen);
 
@@ -577,7 +657,7 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
   }
 
   private List<BooleanFormula> generateInvariants0(final List<ARGState> abstractionStatesTrace,
-      InvariantGenerator invGen) throws InvalidConfigurationException, CPAException, InterruptedException {
+      InvariantGenerator invGen) throws CPAException, InterruptedException {
 
     invGen.start(cfa.getMainFunction());
     InvariantSupplier invSup = invGen.get();

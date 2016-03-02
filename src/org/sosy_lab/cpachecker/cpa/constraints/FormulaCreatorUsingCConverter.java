@@ -38,19 +38,17 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.SymbolicExpressionTransformer;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier.Converter;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.solver.AssignableTerm;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.NumeralFormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.FloatingPointFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.NumeralFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
 
 import com.google.common.base.Optional;
 
@@ -105,40 +103,38 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
 
   @Override
   public BooleanFormula transformAssignment(
-      final AssignableTerm pTerm,
-      final Object termAssignment,
-      final VariableMap pVariables
+      final Formula pVariable,
+      final Object pTermAssignment
   ) {
-    Formula variable = getVariableForTerm(pTerm, pVariables);
-    FormulaType<?> variableType = formulaManager.getFormulaType(variable);
+    FormulaType<?> variableType = formulaManager.getFormulaType(pVariable);
     Formula rightFormula = null;
 
     final NumeralFormulaManagerView<NumeralFormula, NumeralFormula.RationalFormula>
         rationalFormulaManager = formulaManager.getRationalFormulaManager();
 
-    if (termAssignment instanceof Number) {
+    if (pTermAssignment instanceof Number) {
 
       BigInteger integerValue = null;
       BigDecimal decimalValue = null;
 
-      if (termAssignment instanceof Long) {
-        integerValue = BigInteger.valueOf((long) termAssignment);
+      if (pTermAssignment instanceof Long) {
+        integerValue = BigInteger.valueOf((long) pTermAssignment);
 
-      } else if (termAssignment instanceof BigInteger) {
-        integerValue = (BigInteger) termAssignment;
+      } else if (pTermAssignment instanceof BigInteger) {
+        integerValue = (BigInteger) pTermAssignment;
 
-      } else if (termAssignment instanceof BigDecimal) {
-        decimalValue = (BigDecimal) termAssignment;
+      } else if (pTermAssignment instanceof BigDecimal) {
+        decimalValue = (BigDecimal) pTermAssignment;
 
-      } else if (termAssignment instanceof Float || termAssignment instanceof Double) {
+      } else if (pTermAssignment instanceof Float || pTermAssignment instanceof Double) {
         assert variableType.isFloatingPointType();
-        final FloatingPointFormula variableAsFloat = (FloatingPointFormula)variable;
+        final FloatingPointFormula variableAsFloat = (FloatingPointFormula)pVariable;
         final Double assignmentAsDouble;
 
-        if (termAssignment instanceof Float) {
-          assignmentAsDouble = ((Float)termAssignment).doubleValue();
+        if (pTermAssignment instanceof Float) {
+          assignmentAsDouble = ((Float)pTermAssignment).doubleValue();
         } else {
-          assignmentAsDouble = (Double)termAssignment;
+          assignmentAsDouble = (Double)pTermAssignment;
         }
 
         if (assignmentAsDouble.isNaN()) {
@@ -154,10 +150,10 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
           decimalValue = BigDecimal.valueOf(assignmentAsDouble);
         }
 
-      } else if (termAssignment instanceof Rational) {
-        rightFormula = rationalFormulaManager.makeNumber((Rational) termAssignment);
+      } else if (pTermAssignment instanceof Rational) {
+        rightFormula = rationalFormulaManager.makeNumber((Rational) pTermAssignment);
       } else {
-        throw new AssertionError("Unhandled assignment number " + termAssignment);
+        throw new AssertionError("Unhandled assignment number " + pTermAssignment);
       }
 
       if (integerValue != null) {
@@ -179,11 +175,11 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
       }
 
     } else {
-      throw new AssertionError("Unhandled assignment object " + termAssignment);
+      throw new AssertionError("Unhandled assignment object " + pTermAssignment);
     }
 
     assert rightFormula != null;
-    return formulaManager.makeEqual(variable, rightFormula);
+    return formulaManager.makeEqual(pVariable, rightFormula);
   }
 
   private BooleanFormula getNanFormula(FloatingPointFormula pFormula) {
@@ -213,22 +209,6 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
 
   private SSAMap.SSAMapBuilder getSsaMapBuilder() {
     return SSAMap.emptySSAMap().builder();
-  }
-
-  /**
-   * Returns a variable of the given {@link VariableMap} representing the given term.
-   * A fitting variable has to be present in the {@link VariableMap}.
-   *
-   * @param pTerm the term to get a corresponding variable for
-   * @param pVariables the map of possible variables
-   * @return a variable representing the given term, in form of a {@link Formula}
-   */
-  private Formula getVariableForTerm(AssignableTerm pTerm, VariableMap pVariables) {
-    final Converter symIdConverter = Converter.getInstance();
-
-    final String name = symIdConverter.normalizeStringEncoding(pTerm.getName());
-
-    return pVariables.get(name);
   }
 
   private static class DummyEdge implements CFAEdge {

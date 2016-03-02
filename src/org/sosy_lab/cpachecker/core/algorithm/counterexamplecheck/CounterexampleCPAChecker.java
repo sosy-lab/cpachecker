@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.Set;
 
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -161,10 +162,11 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       }
 
       Configuration lConfig = lConfigBuilder.build();
-      ShutdownNotifier lShutdownNotifier = ShutdownNotifier.createWithParent(shutdownNotifier);
-      ResourceLimitChecker.fromConfiguration(lConfig, lLogger, lShutdownNotifier).start();
+      ShutdownManager lShutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
+      ResourceLimitChecker.fromConfiguration(lConfig, lLogger, lShutdownManager).start();
 
-      CoreComponentsFactory factory = new CoreComponentsFactory(lConfig, lLogger, lShutdownNotifier);
+      CoreComponentsFactory factory =
+          new CoreComponentsFactory(lConfig, lLogger, lShutdownManager.getNotifier());
       ConfigurableProgramAnalysis lCpas = factory.createCPA(cfa, null, SpecAutomatonCompositionType.TARGET_SPEC);
       Algorithm lAlgorithm = factory.createAlgorithm(lCpas, filename, cfa, null);
       ReachedSet lReached = factory.createReachedSet();
@@ -174,7 +176,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
 
       lAlgorithm.run(lReached);
 
-      lShutdownNotifier.requestShutdown("Analysis terminated");
+      lShutdownManager.requestShutdown("Analysis terminated");
       CPAs.closeCpaIfPossible(lCpas, lLogger);
       CPAs.closeIfPossible(lAlgorithm, lLogger);
 

@@ -5,6 +5,7 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -42,19 +43,17 @@ import org.sosy_lab.cpachecker.cpa.policyiteration.congruence.CongruenceManager;
 import org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra.PolyhedraWideningManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
-import org.sosy_lab.solver.FormulaManagerFactory;
-import org.sosy_lab.solver.api.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 
 /**
- * New version of policy iteration, now with path focusing.
+ * Policy iteration CPA.
  */
 @Options(prefix="cpa.stator.policy")
 public class PolicyCPA extends SingleEdgeTransferRelation
@@ -95,27 +94,22 @@ public class PolicyCPA extends SingleEdgeTransferRelation
     logger = pLogger;
     config = pConfig;
 
-    FormulaManagerFactory formulaManagerFactory = new FormulaManagerFactory(
-        pConfig, pLogger, shutdownNotifier);
-
-    FormulaManager realFormulaManager = formulaManagerFactory.getFormulaManager();
-    FormulaManagerView formulaManager = new FormulaManagerView(
-        formulaManagerFactory, pConfig, pLogger);
-    Solver solver = new Solver(formulaManager, formulaManagerFactory, pConfig, pLogger);
+    Solver solver = Solver.create(config, pLogger, shutdownNotifier);
+    FormulaManagerView formulaManager = solver.getFormulaManager();
     PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(
         formulaManager, pConfig, pLogger, shutdownNotifier, cfa,
         AnalysisDirection.FORWARD);
 
     if (useCachingPathFormulaManager) {
-      pathFormulaManager = new CachingPathFormulaManager(
-          pathFormulaManager
-      );
+      pathFormulaManager = new CachingPathFormulaManager(pathFormulaManager);
     }
 
     InvariantGenerator invariantGenerator;
     if (useInvariantsForAbstraction) {
-      invariantGenerator = CPAInvariantGenerator
-          .create(config, logger, shutdownNotifier, Optional.<ShutdownNotifier>absent(), cfa);
+      ShutdownManager invariantShutdown = ShutdownManager.createWithParent(shutdownNotifier);
+      invariantGenerator =
+          CPAInvariantGenerator.create(
+              config, logger, invariantShutdown, Optional.<ShutdownManager>absent(), cfa);
     } else {
       invariantGenerator = new DoNothingInvariantGenerator();
     }
@@ -139,7 +133,6 @@ public class PolicyCPA extends SingleEdgeTransferRelation
             stateFormulaConversionManager);
     FormulaLinearizationManager formulaLinearizationManager = new
         FormulaLinearizationManager(
-          realFormulaManager.getUnsafeFormulaManager(),
           formulaManager.getBooleanFormulaManager(),
           formulaManager,
         formulaManager.getIntegerFormulaManager(), statistics);

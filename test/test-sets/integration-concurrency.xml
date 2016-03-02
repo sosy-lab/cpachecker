@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
-<benchmark tool="cpachecker" timelimit="90" hardtimelimit="100" memlimit="3000" cpuCores="2">
+<benchmark tool="cpachecker" timelimit="90 s" hardtimelimit="100 s" memlimit="3 GB" cpuCores="2">
 
   <option name="-heap">2000M</option>
   <option name="-noout"/>
@@ -49,10 +49,18 @@
     <include>../programs/benchmarks/pthread-wmm/rfi000_*oepc_false-unreach-call.i</include>
     <include>../programs/benchmarks/pthread-wmm/rfi001_*oepc_false-unreach-call.i</include>
     <include>../programs/benchmarks/pthread-wmm/safe006_*oepc_true-unreach-call.i</include>
-    <include>../programs/benchmarks/pthread-wmm/safe007_*oepc_true-unreach-call.i</include>
     <include>../programs/benchmarks/pthread-wmm/safe010_*oepc_false-unreach-call.i</include>
-    <include>../programs/benchmarks/pthread-wmm/safe028_*oepc_true-unreach-call.i</include>
     <include>../programs/benchmarks/pthread-wmm/safe036_*oepc_true-unreach-call.i</include>
+  </tasks>
+  
+  <tasks name="bdd-concurrency">
+    <option name="-bddAnalysis-concurrency"/>
+
+    <include>../programs/benchmarks/pthread-wmm/rfi005_*_false-unreach-call.i</include>
+    <include>../programs/benchmarks/pthread-wmm/rfi010_*_false-unreach-call.i</include>
+    <include>../programs/benchmarks/pthread-wmm/safe014_*_false-unreach-call.i</include>
+    <include>../programs/benchmarks/pthread-wmm/thin000_*_false-unreach-call.i</include>
+    <include>../programs/benchmarks/ldv-races/*_false-unreach-call*.i</include>
   </tasks>
 
   <rundefinition/>

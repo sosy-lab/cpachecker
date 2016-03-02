@@ -68,9 +68,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -438,8 +438,7 @@ public class BlockFormulaSlicer {
     return true;
   }
 
-  /** This function handles statements like "a = 0;" and calls of external functions.
-   * @param pImportantVars */
+  /** This function handles statements like "a = 0;" and calls of external functions. */
   private boolean handleStatement(CStatementEdge edge,
       Collection<String> importantVars) {
     final AStatement statement = edge.getStatement();
@@ -452,9 +451,7 @@ public class BlockFormulaSlicer {
     // call of external function, "scanf(...)" without assignment
     // internal functioncalls are handled as FunctionCallEdges
     else if (statement instanceof CFunctionCallStatement) {
-      return handleExternalFunctionCall(edge,
-          ((CFunctionCallStatement) statement).
-              getFunctionCallExpression().getParameterExpressions());
+      return true;
 
       // "exp;" -> nothing to do?
     } else if (statement instanceof CExpressionStatement) {
@@ -500,11 +497,6 @@ public class BlockFormulaSlicer {
       // pointer assignment or something else --> important
       return true;
     }
-  }
-
-  private boolean handleExternalFunctionCall(CStatementEdge pEdge,
-      List<CExpression> parameterExpressions) {
-    return true;
   }
 
   /** This function handles functionStatements like "return (x)".

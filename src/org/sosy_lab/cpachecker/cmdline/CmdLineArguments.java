@@ -53,7 +53,7 @@ import com.google.common.collect.Lists;
 /**
  * This classes parses the CPAchecker command line arguments.
  * To add a new argument, handle it in {@link #processArguments(String[])}
- * and list it in {@link #printHelp()}.
+ * and list it in {@link #printHelp(PrintStream)}.
  */
 class CmdLineArguments {
 
@@ -186,7 +186,7 @@ class CmdLineArguments {
           verbose = ("-v".equals(nextArg) || ("-verbose".equals(nextArg)));
         }
         PrintStream out = System.out;
-        OptionCollector.collectOptions(verbose, out);
+        OptionCollector.collectOptions(verbose, true, out);
         System.exit(0);
 
       } else if ("-printUsedOptions".equals(arg)) {

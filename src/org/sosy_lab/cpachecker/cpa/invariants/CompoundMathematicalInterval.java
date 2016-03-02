@@ -86,7 +86,7 @@ public class CompoundMathematicalInterval implements CompoundInterval {
 
   /**
    * Creates a new compound state from the given interval. This should only be
-   * invoked via the {@link CompoundInterval.getInternal} functions.
+   * invoked via the {@link CompoundMathematicalInterval#getInternal} functions.
    *
    * @param pInterval the interval to compose this state from. Must not be
    * {@code null}.
@@ -97,7 +97,7 @@ public class CompoundMathematicalInterval implements CompoundInterval {
 
   /**
    * Creates a new compound state from the given intervals. This should only be
-   * invoked via the {@link CompoundInterval.getInternal} functions.
+   * invoked via the {@link CompoundMathematicalInterval#getInternal} functions.
    *
    * @param pIntervals the intervals to compose this state from. None of the
    * intervals must be {@code null}.
@@ -531,6 +531,9 @@ public class CompoundMathematicalInterval implements CompoundInterval {
     return sb.toString();
   }
 
+  /**
+   * @param pBitVectorInfo the bitVector that should be casted
+   */
   public CompoundInterval cast(BitVectorInfo pBitVectorInfo) {
     return this;
   }
@@ -1039,7 +1042,7 @@ public class CompoundMathematicalInterval implements CompoundInterval {
    * top if they do intersect but are not equal singletons and
    * bottom if one of the states is bottom.
    *
-   * Do not confuse this method with {@link #equals()} which tests two
+   * Do not confuse this method with {@link #equals(Object)} which tests two
    * states for equality; while the states [0,1] and [0,1] are equal
    * states, they do not guarantee that two different concrete states
    * abstracted by those states are equal: one might be 0 while the other

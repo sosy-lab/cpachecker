@@ -32,6 +32,7 @@ public class PolicyIterationStatistics implements Statistics {
   final Timer congruenceTimer = new Timer();
   final Timer comparisonTimer = new Timer();
   final Timer ackermannizationTimer = new Timer();
+  final Timer linearizationTimer = new Timer();
 
   private final CFA cfa;
 
@@ -132,6 +133,7 @@ public class PolicyIterationStatistics implements Statistics {
 
     out.printf("Latest locationID: %d%n", latestLocationID);
     out.printf("Number of loop heads: %d%n", cfa.getAllLoopHeads().get().size());
+    printTimer(out, linearizationTimer, "formula linearization");
   }
 
   private void printStats(PrintStream out, UpdateStats<?> stats, String description) {

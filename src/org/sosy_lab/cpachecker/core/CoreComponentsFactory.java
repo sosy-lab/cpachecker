@@ -27,6 +27,7 @@ import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -51,7 +52,6 @@ import org.sosy_lab.cpachecker.core.algorithm.pcc.AlgorithmWithPropertyCheck;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.PartialARGsCombiner;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.precondition.PreconditionRefinerAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
@@ -133,16 +133,13 @@ public class CoreComponentsFactory {
   @Option(secure=true, name="extractRequirements.customInstruction", description="do analysis and then extract pre- and post conditions for custom instruction from analysis result")
   private boolean useCustomInstructionRequirementExtraction = false;
 
-  @Option(secure=true, name="refinePreconditions",
-      description = "Refine the preconditions until the set of unsafe and safe states are disjoint.")
-  private boolean usePreconditionRefinementAlgorithm = false;
-
   @Option(secure=true, name="restartAlgorithmWithARGReplay",
       description = "run a sequence of analysis, where the previous ARG is inserted into the current ARGReplayCPA.")
   private boolean useRestartAlgorithmWithARGReplay = false;
 
   private final Configuration config;
   private final LogManager logger;
+  private final ShutdownManager shutdownManager;
   private final ShutdownNotifier shutdownNotifier;
 
   private final ReachedSetFactory reachedSetFactory;
@@ -151,11 +148,14 @@ public class CoreComponentsFactory {
   public CoreComponentsFactory(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     config = pConfig;
     logger = pLogger;
-    shutdownNotifier = pShutdownNotifier;
+    // new ShutdownManager, it is important for BMCAlgorithm that it gets a ShutdownManager
+    // that also affects the CPA it is used with
+    shutdownManager = ShutdownManager.createWithParent(pShutdownNotifier);
+    shutdownNotifier = shutdownManager.getNotifier();
 
     config.inject(this);
 
-    reachedSetFactory = new ReachedSetFactory(config, logger);
+    reachedSetFactory = new ReachedSetFactory(config);
     cpaFactory = new CPABuilder(config, logger, shutdownNotifier, reachedSetFactory);
   }
 
@@ -174,7 +174,7 @@ public class CoreComponentsFactory {
       algorithm = new RestartAlgorithm(config, logger, shutdownNotifier, programDenotation, cfa);
 
       if (useARGCombiningAlgorithm) {
-        algorithm = new PartialARGsCombiner(algorithm, config, logger, shutdownNotifier, cfa);
+        algorithm = new PartialARGsCombiner(algorithm, config, logger, shutdownNotifier);
       }
     } else if (useImpactAlgorithm) {
       algorithm = new ImpactAlgorithm(config, logger, shutdownNotifier, cpa, cfa);
@@ -194,7 +194,7 @@ public class CoreComponentsFactory {
       }
 
       if (useBMC) {
-        algorithm = new BMCAlgorithm(algorithm, cpa, config, logger, reachedSetFactory, shutdownNotifier, cfa);
+        algorithm = new BMCAlgorithm(algorithm, cpa, config, logger, reachedSetFactory, shutdownManager, cfa);
       }
 
       if (checkCounterexamples) {
@@ -202,7 +202,7 @@ public class CoreComponentsFactory {
       }
 
       if (useBDDCPARestriction) {
-        algorithm = new BDDCPARestrictionAlgorithm(algorithm, cpa, config, logger, shutdownNotifier, cfa, programDenotation);
+        algorithm = new BDDCPARestrictionAlgorithm(algorithm, cpa, config, logger);
       }
 
       if (collectAssumptions) {
@@ -228,10 +228,6 @@ public class CoreComponentsFactory {
 
       if (useCustomInstructionRequirementExtraction) {
         algorithm = new CustomInstructionRequirementsExtractingAlgorithm(algorithm, cpa, config, logger, shutdownNotifier, cfa);
-      }
-
-      if (usePreconditionRefinementAlgorithm) {
-        algorithm = new PreconditionRefinerAlgorithm(algorithm, cpa, cfa, config, logger, shutdownNotifier);
       }
     }
 

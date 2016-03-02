@@ -70,6 +70,9 @@ public abstract class SMGObject {
     throw new UnsupportedOperationException("isAbstract() called on SMGObject instance, not on a subclass");
   }
 
+  /**
+   * @param visitor the visitor to accept
+   */
   public void accept(SMGObjectVisitor visitor) {
     throw new UnsupportedOperationException("accept() called on SMGObject instance not on a subclass");
   }
@@ -81,6 +84,9 @@ public abstract class SMGObject {
     return false;
   }
 
+  /**
+   * @param pOther object to join with
+   */
   public SMGObject join(SMGObject pOther) {
     throw new UnsupportedOperationException("join() called on SMGObject instance, not on a subclass");
   }

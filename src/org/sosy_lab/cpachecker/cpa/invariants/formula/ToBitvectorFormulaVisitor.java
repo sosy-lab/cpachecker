@@ -28,12 +28,10 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.solver.api.BitvectorFormula;
 import org.sosy_lab.solver.api.BitvectorFormulaManager;
@@ -66,8 +64,7 @@ public class ToBitvectorFormulaVisitor implements
 
   /**
    * Creates a new visitor for converting compound state invariants formulae to
-   * bit vector formulae by using the given formula manager,
-   * {@link ToBooleanFormulaVisitor} and evaluation visitor.
+   * bit vector formulae by using the given formula manager, and evaluation visitor.
    *
    * @param pFmgr the formula manager used.
    * @param pEvaluationVisitor the formula evaluation visitor used to evaluate
@@ -131,7 +128,7 @@ public class ToBitvectorFormulaVisitor implements
     if (summand1 == null || summand2 == null) {
       return evaluate(pAdd, pEnvironment);
     }
-    return this.bvfmgr.add(summand1, summand2, true);
+    return this.bvfmgr.add(summand1, summand2);
   }
 
   @Override
@@ -192,7 +189,7 @@ public class ToBitvectorFormulaVisitor implements
     if (factor1 == null || factor2 == null) {
       return evaluate(pMultiply, pEnvironment);
     }
-    return this.bvfmgr.multiply(factor1, factor2, true);
+    return this.bvfmgr.multiply(factor1, factor2);
   }
 
   @Override
@@ -224,7 +221,7 @@ public class ToBitvectorFormulaVisitor implements
     int sourceSize = sourceInfo.getSize();
     int targetSize = targetInfo.getSize();
     BitvectorFormula sourceFormula = pCast.getCasted().accept(this, pEnvironment);
-    if (sourceSize == targetSize || sourceFormula == null) {
+    if (sourceFormula == null) {
       return sourceFormula;
     }
     if (sourceSize < targetSize) {
@@ -263,7 +260,7 @@ public class ToBitvectorFormulaVisitor implements
         negativeCaseFormula);
   }
 
-  public static Integer getSize(NumeralFormula<CompoundInterval> pFormula, Map<MemoryLocation, CType> pTypes, MachineModel pMachineModel) {
+  public static Integer getSize(NumeralFormula<CompoundInterval> pFormula) {
     return pFormula.getBitVectorInfo().getSize();
   }
 

@@ -30,13 +30,13 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -61,7 +61,6 @@ public class ARGToDotWriter {
    * @param successorFunction A function giving all successors of an ARGState. Only states reachable from root by iteratively applying this function will be dumped.
    * @param displayedElements A predicate for selecting states that should be displayed. States which are only reachable via non-displayed states are ignored, too.
    * @param highlightEdge Which edges to highlight in the graph?
-   * @throws IOException
    */
   public static void write(Appendable sb,
       final ARGState rootState,
@@ -86,7 +85,6 @@ public class ARGToDotWriter {
    * @param successorFunction A function giving all successors of an ARGState. Only states reachable from root by iteratively applying this function will be dumped.
    * @param displayedElements A predicate for selecting states that should be displayed. States which are only reachable via non-displayed states are ignored, too.
    * @param highlightEdge Which edges to highlight in the graph?
-   * @throws IOException
    */
   public static void write(final Appendable sb,
       final Set<ARGState> rootStates,
@@ -117,12 +115,10 @@ public class ARGToDotWriter {
   /**
    * Create String with ARG in the DOT format of Graphviz.
    * Only the states and edges are written, no surrounding graph definition.
-   * @param sb Where to write the ARG into.
    * @param rootState the root element of the ARG
    * @param successorFunction A function giving all successors of an ARGState. Only states reachable from root by iteratively applying this function will be dumped.
    * @param displayedElements A predicate for selecting states that should be displayed. States which are only reachable via non-displayed states are ignored, too.
    * @param highlightEdge Which edges to highlight in the graph?
-   * @throws IOException
    */
   void writeSubgraph(final ARGState rootState,
       final Function<? super ARGState, ? extends Iterable<ARGState>> successorFunction,

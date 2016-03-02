@@ -29,8 +29,6 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.sign.SIGN;
 import org.sosy_lab.cpachecker.cpa.sign.SignState;
@@ -41,9 +39,8 @@ import com.google.common.base.Preconditions;
 
 public class SignRequirementsTranslator extends CartesianRequirementsTranslator<SignState> {
 
-  public SignRequirementsTranslator(final Configuration pConfig, final ShutdownNotifier pShutdownNotifier,
-      final LogManager pLog) {
-    super(SignState.class, pConfig, pShutdownNotifier, pLog);
+  public SignRequirementsTranslator(final LogManager pLog) {
+    super(SignState.class, pLog);
   }
 
   @Override

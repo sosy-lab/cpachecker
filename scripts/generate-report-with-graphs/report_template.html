@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html ng-app='report'>
+<head>
+    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css"/>
+    <link href="app/generic.css" rel="stylesheet" type="text/css">
+    <link href="https://google-code-prettify.googlecode.com/svn/trunk/src/prettify.css" rel="stylesheet" type="text/css">
+    <!--the jquery-script is necessary for bootstrap, it has to be added BEFORE the bootstrap-script-->
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script type="text/javascript" src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular.min.js"></script>
+    <!--SCRIPT-->
+    <script type="text/javascript" src="https://google-code-prettify.googlecode.com/svn/trunk/src/prettify.js"></script>
+    <meta charset="UTF-8">
+    <title>CPAchecker Report</title>
+</head>
+<body ng-controller="ReportController" onload="prettyPrint(); init()">
+<header class="header">
+
+    <h3><img ng-src="{{logo}}"/> Report</h3>
+
+    <em> Generated: {{date | date:'yyyy-MM-dd HH:mm:ss'}}</em>
+</header>
+
+<div class="sections" ng-mousemove="setWidth($event)" ng-mouseup="setMouseUp()">
+    <section id="errorpath_section" ng-controller="ErrorpathController">
+        <div id="middleLine" ng-mousedown="setMouseDown()"></div>
+        <header ng-controller="SearchController">
+            <div class="btn-group">
+                <button class="btn btn-success" ng-click="clickedErrpathButton($event)">Prev</button>
+                <button class="btn btn-warning" ng-click="clickedErrpathButton($event)">Start</button>
+                <button class="btn btn-success" ng-click="clickedErrpathButton($event)">Next</button>
+            </div>
+            <button data-toggle="popover" data-placement="right" data-trigger="click" data-content="{{help_errorpath}}" class="btn btn-default btn-lg help_button" type="button">
+                <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
+            </button>
+            <div class="input-group input-group-sm">
+                <input type="text" ng-keydown="checkIfEnter($event)" class="form-control search-input" placeholder="Search for...">
+                    <span class="input-group-btn">
+                        <button ng-click="searchFor()" class="btn btn-default" type="button">
+                            <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+                        </button>
+                    </span>
+            </div>
+            <div id="searchOptions">
+                <label for="optionExactMatch">
+                    <input id="optionExactMatch" type="checkbox" name="searchOption">
+                    Find only exact matches</label>
+            </div>
+            <div id="matches">
+                <p class="markedValues">Matches in value-assignements (V): {{numOfValueMatches}}</p>
+                <p class="markedDescriptions">Matches in edge-description: {{numOfDescriptionMatches}}</p>
+            </div>
+        </header>
+        <div class="fileContent" ng-controller="ValueAssignmentsController">
+            <table id="err_table">
+                <tr id="errpath-{{$index}}" ng-repeat="line in errorPathData">
+                    <td ng-click="showValues($event)" data-toggle="popover" data-placement="right" data-trigger="click" data-content="{{line.valString}}"><pre>-V-</pre></td>
+                    <td ng-click="clickedErrpathElement($event)"><pre class="prettyprint">{{line.desc}}</pre></td>
+                </tr>
+            </table>
+        </div>
+    </section>
+    <section id="externalFiles_section">
+        <ul class="nav nav-pills">
+            <li ng-class="{active: tabIsSet(1)}">
+                <a href ng-click="setTab(1)">CFA</a>
+            </li>
+            <li ng-class="{active: tabIsSet(2)}">
+                <a href ng-click="setTab(2)">ARG</a>
+            </li>
+            <li ng-class="{active: tabIsSet(3)}">
+                <a href ng-click="setTab(3)">Source</a>
+            </li>
+            <li ng-class="{active: tabIsSet(4)}">
+                <a href ng-click="setTab(4)">Log</a>
+            </li>
+            <li ng-class="{active: tabIsSet(5)}">
+                <a href ng-click="setTab(5)">Statistics</a>
+            </li>
+            <li ng-class="{active: tabIsSet(6)}">
+                <a href ng-click="setTab(6)">Configurations</a>
+            </li>
+            <button data-toggle="popover" data-placement="right" data-trigger="click" data-content="{{help_externalFiles}}" class="btn btn-default btn-lg help_button" type="button">
+                <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
+            </button>
+        </ul>
+        <div class="fileContent" ng-show="tabIsSet(1)" ng-controller="CFAController">
+            <div class="edit-line">
+                <div class="dropdown">
+                    <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                        Displayed CFA
+                        <span class="caret"></span>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li ng-repeat="func in functions"><a ng-click="setCFAFunction($index)">{{func}}</a></li>
+                    </ul>
+                </div>
+                <label>{{functions[selectedCFAFunction]}}</label>
+                <div ng-controller="ZoomController">
+                    <p>Zoom Factor (%)</p>
+                    <input id="cfa-scalingField" type="number" min="0" max="200" ng-model="zoomFactorCFA" ng-change="setZoom('cfa-scalingField')"/>
+                </div>
+            </div>
+            <div class="cfaContent">
+                    <!--CFAFUNCTIONGRAPHS-->
+                </div>
+            </div>
+            <div class="fileContent" ng-show="tabIsSet(2)" ng-controller="ARGController">
+                <div class="edit-line">
+                    <div ng-controller="ZoomController">
+                        <p>Zoom Factor (%)</p>
+                        <input id="arg-scalingField" type="number" min="0" max="200" ng-model="zoomFactorARG" ng-change="setZoom('arg-scalingField')"/>
+                    </div>
+                </div>
+                <div class="argContent">
+                    <!--ARGGRAPHS-->
+                </div>
+            </div>
+            <div class="fileContent" ng-show="tabIsSet(3)" ng-controller="SourceController">
+                <div class="edit-line">
+                    <div class="dropdown">
+                        <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                            Displayed Sourcefile
+                            <span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li ng-repeat="file in sourceFiles"><a ng-click="setSourceFile($index)">{{file}}</a></li>
+                        </ul>
+                    </div>
+                    <label>{{sourceFiles[selectedSourceFile]}}</label>
+                </div>
+                <!--SOURCE-->
+            </div>
+            <div class="fileContent" ng-show="tabIsSet(4)">
+                <!--LOG-->
+            </div>
+            <div class="fileContent"  ng-show="tabIsSet(5)">
+                <!--STATISTICS-->
+            </div>
+            <div class="fileContent" ng-show="tabIsSet(6)">
+                <!--CONFIGURATION-->
+            </div>
+        </section>
+    </div>
+</body>
+</html>

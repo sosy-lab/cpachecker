@@ -25,8 +25,8 @@ package org.sosy_lab.cpachecker.cpa.value.refiner;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -47,10 +48,10 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.GenericPathInterpolator;
 import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
-import org.sosy_lab.cpachecker.util.refinement.PrefixSelector.PrefixPreference;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.refinement.UseDefRelation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -64,9 +65,6 @@ public class ValueAnalysisPathInterpolator
 
   @Option(secure=true, description="whether to perform (more precise) edge-based interpolation or (more efficient) path-based interpolation")
   private boolean performEdgeBasedInterpolation = true;
-
-  @Option(secure=true, description="which prefix of an actual counterexample trace should be used for interpolation")
-  private PrefixPreference prefixPreference = PrefixPreference.DOMAIN_GOOD_SHORT;
 
   /**
    * whether or not to do lazy-abstraction, i.e., when true, the re-starting node
@@ -98,7 +96,6 @@ public class ValueAnalysisPathInterpolator
     super(new ValueAnalysisEdgeInterpolator(pFeasibilityChecker,
             pStrongestPostOperator,
             pConfig,
-            pLogger,
             pShutdownNotifier,
             pCfa),
         pFeasibilityChecker,
@@ -146,16 +143,16 @@ public class ValueAnalysisPathInterpolator
    * use-def-relation. It creates fake interpolants that are not inductive.
    *
    * @param errorPathPrefix the error path prefix to interpolate
-   * @return
    */
   private Map<ARGState, ValueAnalysisInterpolant> performPathBasedInterpolation(ARGPath errorPathPrefix) {
 
-    UseDefRelation useDefRelation = new UseDefRelation(errorPathPrefix,
-        cfa.getVarClassification().isPresent()
-          ? cfa.getVarClassification().get().getIntBoolVars()
-          : Collections.<String>emptySet());
+    Set<String> booleanVariables = cfa.getVarClassification().isPresent()
+      ? cfa.getVarClassification().get().getIntBoolVars()
+      : Collections.<String>emptySet();
 
-    useDefRelation.addAllAssumes(prefixPreference == PrefixPreference.NONE);
+    UseDefRelation useDefRelation = new UseDefRelation(errorPathPrefix,
+        booleanVariables,
+        !isRefinementSelectionEnabled());
 
     Map<ARGState, ValueAnalysisInterpolant> interpolants = new UseDefBasedInterpolator(
         errorPathPrefix,
@@ -238,12 +235,18 @@ public class ValueAnalysisPathInterpolator
 
     // if doing lazy abstraction, use the node closest to the root node where new information is present
     if (doLazyAbstraction) {
-      return errorPath.obtainTransitionAt(interpolationOffset);
+      PathIterator it = errorPath.pathIterator();
+      for (int i = 0; i < interpolationOffset; i++) {
+        it.advance();
+      }
+      return Pair.of(it.getAbstractState(), it.getIncomingEdge());
     }
 
     // otherwise, just use the successor of the root node
     else {
-      return errorPath.obtainTransitionAt(1);
+      PathIterator firstElem = errorPath.pathIterator();
+      firstElem.advance();
+      return Pair.of(firstElem.getAbstractState(), firstElem.getOutgoingEdge());
     }
   }
 }

@@ -26,8 +26,6 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 /**
  * Instances of extending classes traverse a structure of invariants formula
  * in post order.
- *
- * @param <T>
  */
 public abstract class RecursiveNumeralFormulaVisitor<T> implements NumeralFormulaVisitor<T, NumeralFormula<T>> {
 

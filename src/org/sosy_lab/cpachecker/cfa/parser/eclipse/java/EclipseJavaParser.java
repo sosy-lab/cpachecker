@@ -57,7 +57,6 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.Parser;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 import com.google.common.base.Splitter;
 
@@ -150,9 +149,8 @@ class EclipseJavaParser implements Parser {
   /**
    * Parse the program of the Main class in this file into a CFA.
    *
-   * @param fileName  The Main Class File of the program to parse.
+   * @param mainClassName  The Main Class File of the program to parse.
    * @return The CFA.
-   * @throws ParserException If parser or CFA builder cannot handle the  code.
    */
   @Override
   public ParseResult parseFile(String mainClassName, CSourceOriginMapping sourceOriginMapping) throws JParserException {
@@ -209,15 +207,13 @@ class EclipseJavaParser implements Parser {
     return astsOfFoundFiles;
   }
 
-  private Set<Path> getJavaFilesInSourcePaths() throws JParserException {
+  private Set<Path> getJavaFilesInSourcePaths() {
 
     Set<Path> sourceFileToBeParsed = new HashSet<>();
 
     for (String path : javaSourcePaths) {
       sourceFileToBeParsed.addAll(getJavaFilesInPath(path));
     }
-
-
 
     return sourceFileToBeParsed;
   }

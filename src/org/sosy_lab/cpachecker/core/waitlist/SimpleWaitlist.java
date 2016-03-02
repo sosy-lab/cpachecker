@@ -52,9 +52,10 @@ public class SimpleWaitlist extends AbstractWaitlist<Deque<AbstractState>> {
 
     case DFS:
       return waitlist.removeLast();
-    }
 
-    assert false;
-    return null;
+    default:
+      assert false;
+      return null;
+    }
   }
 }

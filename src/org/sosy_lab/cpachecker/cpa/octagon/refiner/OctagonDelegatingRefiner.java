@@ -25,11 +25,12 @@ package org.sosy_lab.cpachecker.cpa.octagon.refiner;
 
 import java.io.PrintStream;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -42,8 +43,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.counterexample.RichModel;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisStrongestPostOpera
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
@@ -74,11 +75,10 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 /**
- * Refiner implementation that delegates to {@link OctagonInterpolationBasedRefiner},
+ * Refiner implementation that delegates to {@link ValueAnalysisPathInterpolator},
  * and if this fails, optionally delegates also to {@link PredicateCPARefiner}.
  */
 @Options(prefix="cpa.octagon.refiner")
@@ -131,7 +131,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
   private final ShutdownNotifier shutdownNotifier;
   private final Configuration config;
 
-  public static OctagonDelegatingRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
+  public static OctagonDelegatingRefiner create(ConfigurableProgramAnalysis cpa) throws InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(OctagonDelegatingRefiner.class.getSimpleName() + " could not find the OctagonCPA");
     }
@@ -207,7 +207,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
 
     // we use the imprecise version of the CounterexampleInfo, due to the possible
     // merges which are done in the OctagonCPA
-    return CounterexampleInfo.feasible(pErrorPath, RichModel.empty());
+    return CounterexampleInfo.feasibleImprecise(pErrorPath);
   }
 
   /**
@@ -217,7 +217,6 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
    * @param errorPath the current error path
    * @returns true, if the value-analysis refinement was successful, else false
    * @throws CPAException when value-analysis interpolation fails
-   * @throws InvalidConfigurationException
    */
   private boolean performValueAnalysisRefinement(final ARGReachedSet reached, final ARGPath errorPath) throws CPAException, InterruptedException {
     numberOfValueAnalysisRefinements++;
@@ -261,7 +260,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
     Precision precision               = reachedSet.getPrecision(reachedSet.getLastState());
     VariableTrackingPrecision octPrecision         = (VariableTrackingPrecision) Precisions.asIterable(precision).filter(VariableTrackingPrecision.isMatchingCPAClass(OctagonCPA.class)).get(0);
 
-    Multimap<CFANode, MemoryLocation> increment = checker.getPrecisionIncrement(octPrecision);
+    Multimap<CFANode, MemoryLocation> increment = checker.getPrecisionIncrement();
     // no newly tracked variables, so the refinement was not successful, TODO why is this code commented out?
     if (increment.isEmpty()) {
     //  return false;
@@ -354,12 +353,12 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
             new OctagonState(logger, octagonCPA.getManager()));
 
       } else {
-        ShutdownNotifier notifier = ShutdownNotifier.createWithParent(shutdownNotifier);
+        ShutdownManager shutdown = ShutdownManager.createWithParent(shutdownNotifier);
         WalltimeLimit l = WalltimeLimit.fromNowOn(timeForOctagonFeasibilityCheck);
-        ResourceLimitChecker limits = new ResourceLimitChecker(notifier, Lists.newArrayList((ResourceLimit)l));
+        ResourceLimitChecker limits = new ResourceLimitChecker(shutdown, Collections.<ResourceLimit>singletonList(l));
 
         limits.start();
-        checker = new OctagonAnalysisFeasabilityChecker(config, notifier, path, octagonCPA.getClass(),
+        checker = new OctagonAnalysisFeasabilityChecker(config, shutdown.getNotifier(), path, octagonCPA.getClass(),
             cfa.getVarClassification(), new OctagonTransferRelation(logger, cfa.getLoopStructure().get()),
             new OctagonState(logger, octagonCPA.getManager()));
         limits.cancel();

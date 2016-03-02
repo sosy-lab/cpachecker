@@ -27,7 +27,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.waitlist.AutomatonFailedMatchesWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.AutomatonMatchesWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.CallstackSortedWaitlist;
@@ -35,6 +34,7 @@ import org.sosy_lab.cpachecker.core.waitlist.ExplicitSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.LoopstackSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.PostorderSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ReversePostorderSortedWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.ThreadingSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariableWaitlist;
@@ -87,6 +87,10 @@ public class ReachedSetFactory {
       description = "traverse in the order defined by the values of an automaton variable")
   String byAutomatonVariable = null;
 
+  @Option(secure=true, name = "traversal.useNumberOfThreads",
+      description = "handle abstract states with fewer running threads first? (needs ThreadingCPA)")
+  boolean useNumberOfThreads = false;
+
   @Option(secure=true, name = "reachedSet",
       description = "which reached set implementation to use?"
       + "\nNORMAL: just a simple set"
@@ -95,7 +99,7 @@ public class ReachedSetFactory {
       + "\nPARTITIONED: partitioning depending on CPAs (e.g Location, Callstack etc.)")
   ReachedSetType reachedSet = ReachedSetType.PARTITIONED;
 
-  public ReachedSetFactory(Configuration config, LogManager logger) throws InvalidConfigurationException {
+  public ReachedSetFactory(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
   }
 
@@ -126,6 +130,9 @@ public class ReachedSetFactory {
     }
     if (byAutomatonVariable != null) {
       waitlistFactory = AutomatonVariableWaitlist.factory(waitlistFactory, byAutomatonVariable);
+    }
+    if (useNumberOfThreads) {
+      waitlistFactory = ThreadingSortedWaitlist.factory(waitlistFactory);
     }
 
     switch (reachedSet) {

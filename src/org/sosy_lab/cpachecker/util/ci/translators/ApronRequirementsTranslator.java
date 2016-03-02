@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.ci.translators;
 
-import gmp.Mpfr;
-
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -36,13 +34,14 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.apron.ApronState;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+
+import com.google.common.collect.Sets;
+import com.google.common.math.DoubleMath;
 
 import apron.Coeff;
 import apron.DoubleScalar;
@@ -55,23 +54,27 @@ import apron.Texpr0CstNode;
 import apron.Texpr0DimNode;
 import apron.Texpr0Node;
 import apron.Texpr0UnNode;
-
-import com.google.common.collect.Sets;
-import com.google.common.math.DoubleMath;
+import gmp.Mpfr;
 
 
 public class ApronRequirementsTranslator extends CartesianRequirementsTranslator<ApronState> {
 
   private Pair<ApronState, Collection<String>> stateToRequiredVars;
 
-  public ApronRequirementsTranslator(Class<ApronState> pAbstractStateClass, Configuration pConfig,
-      ShutdownNotifier pShutdownNotifier, LogManager pLog) {
-    super(pAbstractStateClass, pConfig, pShutdownNotifier, pLog);
+  public ApronRequirementsTranslator(Class<ApronState> pAbstractStateClass, LogManager pLog) {
+    super(pAbstractStateClass, pLog);
   }
 
   @Override
   protected List<String> getVarsInRequirements(ApronState pRequirement) {
     Collection<String> result = getConvexHullRequiredVars(pRequirement, null); // TODO
+    stateToRequiredVars = Pair.of(pRequirement, result);
+    return new ArrayList<>(result);
+  }
+
+  @Override
+  protected List<String> getVarsInRequirements(final ApronState pRequirement, final @Nullable Collection<String> pRequiredVars) {
+    Collection<String> result = getConvexHullRequiredVars(pRequirement, pRequiredVars);
     stateToRequiredVars = Pair.of(pRequirement, result);
     return new ArrayList<>(result);
   }

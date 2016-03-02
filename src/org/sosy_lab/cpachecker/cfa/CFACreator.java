@@ -344,7 +344,6 @@ private boolean classifyNodes = false;
    * @throws InvalidConfigurationException If the main function that was specified in the configuration is not found.
    * @throws IOException If an I/O error occurs.
    * @throws ParserException If the parser or the CFA builder cannot handle the C code.
-   * @throws InterruptedException
    */
   public CFA parseFileAndCreateCFA(String program)
       throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
@@ -370,7 +369,6 @@ private boolean classifyNodes = false;
    * @throws InvalidConfigurationException If the main function that was specified in the configuration is not found.
    * @throws IOException If an I/O error occurs.
    * @throws ParserException If the parser or the CFA builder cannot handle the C code.
-   * @throws InterruptedException
    */
   public CFA parseFileAndCreateCFA(List<String> sourceFiles)
           throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
@@ -617,7 +615,7 @@ private boolean classifyNodes = false;
     }
 
     if (expandFunctionPointerArrayAssignments) {
-      ExpandFunctionPointerArrayAssignments transformer = new ExpandFunctionPointerArrayAssignments(logger, config);
+      ExpandFunctionPointerArrayAssignments transformer = new ExpandFunctionPointerArrayAssignments(logger);
       transformer.replaceFunctionPointerArrayAssignments(cfa);
     }
 
@@ -667,7 +665,7 @@ private boolean classifyNodes = false;
 
     if (useFunctionCallUnwinding) {
       // must be done before adding global vars
-      final FunctionCallUnwinder fca = new FunctionCallUnwinder(cfa, config, logger);
+      final FunctionCallUnwinder fca = new FunctionCallUnwinder(cfa, config);
       cfa = fca.unwindRecursion();
     }
 
@@ -675,7 +673,7 @@ private boolean classifyNodes = false;
       // cloning must be done before adding global vars,
       // current use case is ThreadingCPA, thus we check for the creation of new threads first.
       logger.log(Level.INFO, "program contains concurrency, cloning functions...");
-      final CFACloner cloner = new CFACloner(cfa, config, logger);
+      final CFACloner cloner = new CFACloner(cfa, config);
       cfa = cloner.execute();
     }
 

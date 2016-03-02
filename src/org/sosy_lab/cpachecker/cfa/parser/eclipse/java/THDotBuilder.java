@@ -219,16 +219,15 @@ class THDotBuilder {
       methodDecl = typeHierarchy.getMethodDeclarations(pType);
     }
 
-    addNodeDefinition(pType, isExternType, fieldDecl, methodDecl);
+    addNodeDefinition(pType, fieldDecl, methodDecl);
   }
 
   private void addNodeDefinition(JClassOrInterfaceType pType,
-      boolean pIsExternType, Set<JFieldDeclaration> pFieldDecl,
-      Set<JMethodDeclaration> pMethodDecl) throws IOException {
+      Set<JFieldDeclaration> pFieldDecl, Set<JMethodDeclaration> pMethodDecl) throws IOException {
 
     String nodeName = NameConverter.getNodeName(pType);
 
-    String label = getLabelContentOfNode(pType, pIsExternType, pFieldDecl, pMethodDecl);
+    String label = getLabelContentOfNode(pType, pFieldDecl, pMethodDecl);
 
     sb.append("        " + nodeName + " [\n");
     sb.append("                  label = \"" + label + "\"\n");
@@ -237,34 +236,32 @@ class THDotBuilder {
 
   }
 
-  private String getLabelContentOfNode(JClassOrInterfaceType pType, boolean pIsExternType,
-      Set<JFieldDeclaration> pFieldDecl, Set<JMethodDeclaration> pMethodDecl) {
+  private String getLabelContentOfNode(JClassOrInterfaceType pType, Set<JFieldDeclaration> pFieldDecl,
+      Set<JMethodDeclaration> pMethodDecl) {
 
     StringBuilder label = new StringBuilder();
 
     label.append("{");
-    appendNameRowToLabel(label, pType, pIsExternType);
-    appendAttributesToLabel(label, pType, pFieldDecl);
-    appendMethodsToLabel(label, pType, pMethodDecl);
+    appendNameRowToLabel(label, pType);
+    appendAttributesToLabel(label, pFieldDecl);
+    appendMethodsToLabel(label, pMethodDecl);
     label.append("}");
 
     return label.toString();
   }
 
-  private void appendMethodsToLabel(StringBuilder pLabel, JClassOrInterfaceType pType,
-      Set<JMethodDeclaration> pMethodDecl) {
+  private void appendMethodsToLabel(StringBuilder pLabel, Set<JMethodDeclaration> pMethodDecl) {
 
     for (JMethodDeclaration method : pMethodDecl) {
-      appendMethodToLabel(pLabel, pType, method);
+      appendMethodToLabel(pLabel, method);
     }
   }
 
-  private void appendMethodToLabel(StringBuilder pLabel, JClassOrInterfaceType pType,
-      JMethodDeclaration pMethod) {
+  private void appendMethodToLabel(StringBuilder pLabel, JMethodDeclaration pMethod) {
     String visibilityLabel = getVisibilityLabel(pMethod);
     String methodName = pMethod.getSimpleName();
     String typeString = pMethod.getType().getReturnType().toASTString("");
-    String parameters = getParameterLabel(pLabel, pMethod.getParameters());
+    String parameters = getParameterLabel(pMethod.getParameters());
 
     pLabel.append(visibilityLabel);
     pLabel.append(" ");
@@ -277,7 +274,7 @@ class THDotBuilder {
     pLabel.append("\\l");
   }
 
-  private String getParameterLabel(StringBuilder pLabel, List<JParameterDeclaration> pParameters) {
+  private String getParameterLabel(List<JParameterDeclaration> pParameters) {
 
     List<String> parameterStrings = new ArrayList<>(pParameters.size());
 
@@ -299,18 +296,16 @@ class THDotBuilder {
     return getVisibilityLabel(pMethod.getVisibility());
   }
 
-  private void appendAttributesToLabel(StringBuilder pLabel, JClassOrInterfaceType pType,
-      Set<JFieldDeclaration> pFieldDecl) {
+  private void appendAttributesToLabel(StringBuilder pLabel, Set<JFieldDeclaration> pFieldDecl) {
 
     for (JFieldDeclaration attr : pFieldDecl) {
-      appendAttributToLabel(pLabel, pType, attr);
+      appendAttributToLabel(pLabel, attr);
     }
 
     pLabel.append("|");
   }
 
-  private void appendAttributToLabel(StringBuilder pLabel,
-      JClassOrInterfaceType pType, JFieldDeclaration pAttr) {
+  private void appendAttributToLabel(StringBuilder pLabel, JFieldDeclaration pAttr) {
 
     String visibilityLabel = getVisibilityLabel(pAttr);
     String fieldName = pAttr.getSimpleName();
@@ -343,7 +338,7 @@ class THDotBuilder {
   }
 
   private void appendNameRowToLabel(StringBuilder pLabel,
-      JClassOrInterfaceType pType, boolean pIsExternType) {
+      JClassOrInterfaceType pType) {
 
     String simpleName = pType.getSimpleName();
 

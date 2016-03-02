@@ -52,10 +52,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.RichModel;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
@@ -599,23 +597,14 @@ public class ARGUtils {
    * @param pPathStates The states along the path
    * @param pCounterExample Given to try to write exact variable assignment values
    * into the automaton, may be null
-   * @throws IOException
    */
   public static void producePathAutomaton(Appendable sb, ARGState pRootState,
       Set<ARGState> pPathStates, String name, @Nullable CounterexampleInfo pCounterExample) throws IOException {
 
-    Map<ARGState, CFAEdgeWithAssumptions> valueMap = null;
+    Map<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableMap.of();
 
-    if (pCounterExample != null) {
-      RichModel model = pCounterExample.getTargetPathModel();
-      CFAPathWithAssumptions cfaPath = model.getCFAPathWithAssignments();
-      if (cfaPath != null) {
-        ARGPath targetPath = pCounterExample.getTargetPath();
-        valueMap = model.getExactVariableValues(targetPath);
-      }
-    }
-    if (valueMap == null) {
-      valueMap = ImmutableMap.of();
+    if (pCounterExample != null && pCounterExample.isPreciseCounterExample()) {
+      valueMap = pCounterExample.getExactVariableValues();
     }
 
     sb.append("CONTROL AUTOMATON " + name + "\n\n");
@@ -702,7 +691,6 @@ public class ARGUtils {
    * @param pPathStates The states along the path
    * @param name the name the automaton should have
    * @param loopsToUproll the loops which should be recreated in the automaton
-   * @throws IOException
    */
   public static void producePathAutomatonWithLoops(Appendable sb, ARGState pRootState,
       Set<ARGState> pPathStates, String name, Set<Loop> loopsToUproll) throws IOException {

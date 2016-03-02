@@ -32,7 +32,6 @@ import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -43,9 +42,9 @@ import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingStat
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -75,7 +74,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
    */
   private int maxNumberOfAssignments = 0;
 
-  public AssignmentsInPathCondition(Configuration config, LogManager logger) throws InvalidConfigurationException {
+  public AssignmentsInPathCondition(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
   }
 

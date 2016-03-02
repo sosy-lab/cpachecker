@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cpa.bam.DelegatingBAMRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.BAMPredicateRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * This class allows to create a delegating BAM-refiner
@@ -39,7 +38,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  */
 public class ValueAnalysisDelegatingBAMRefiner extends DelegatingBAMRefiner {
 
-  public static DelegatingBAMRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
+  public static DelegatingBAMRefiner create(ConfigurableProgramAnalysis cpa) throws InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(ValueAnalysisDelegatingRefiner.class.getSimpleName() + " could not find the ValueAnalysisCPA");
     }

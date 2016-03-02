@@ -32,15 +32,18 @@ import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.LazyFutureTask;
-import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -60,29 +63,38 @@ import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier.TrivialInvariantSupplier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
+import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetWrapper;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
+import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.expressions.And;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.expressions.Or;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 /**
  * Class that encapsulates invariant generation by using the CPAAlgorithm
@@ -91,7 +103,7 @@ import com.google.common.base.Throwables;
  * and continuously-refined invariants.
  */
 @Options(prefix="invariantGeneration")
-public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProvider {
+public class CPAInvariantGenerator extends AbstractInvariantGenerator implements StatisticsProvider {
 
   private static class CPAInvariantGeneratorStatistics implements Statistics {
 
@@ -131,15 +143,16 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
   private final CPAAlgorithm algorithm;
   private final ConfigurableProgramAnalysis cpa;
   private final ReachedSetFactory reachedSetFactory;
+  private final CFA cfa;
 
-  private final ShutdownNotifier shutdownNotifier;
+  private final ShutdownManager shutdownManager;
 
   private final int iteration;
 
   // After start(), this will hold a Future for the final result of the invariant generation.
   // We use a Future instead of just the atomic reference below
   // to be able to ask for termination and see thrown exceptions.
-  private Future<InvariantSupplier> invariantGenerationFuture = null;
+  private Future<FormulaAndTreeSupplier> invariantGenerationFuture = null;
 
   private volatile boolean programIsSafe = false;
 
@@ -153,15 +166,39 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
     }
   };
 
-  private Optional<ShutdownNotifier> shutdownOnSafeNotifier;
+  private Optional<ShutdownManager> shutdownOnSafeNotifier;
 
   /**
    * Creates a new {@link CPAInvariantGenerator}.
    *
    * @param pConfig the configuration options.
    * @param pLogger the logger to be used.
-   * @param pShutdownNotifier shutdown notifier to shutdown the invariant generator.
-   * @param pShutdownOnSafeNotifier optional shutdown notifier that will be
+   * @param pShutdownManager shutdown notifier to shutdown the invariant generator.
+   * @param pShutdownOnSafeManager optional shutdown notifier that will be
+   * notified if the invariant generator proves safety.
+   * @param pCFA the CFA to run the CPA on.
+   *
+   * @return a new {@link CPAInvariantGenerator}.
+   *
+   * @throws InvalidConfigurationException if the configuration is invalid.
+   * @throws CPAException if the CPA cannot be created.
+   */
+  public static InvariantGenerator create(final Configuration pConfig,
+      final LogManager pLogger,
+      final ShutdownManager pShutdownManager,
+      final Optional<ShutdownManager> pShutdownOnSafeManager,
+      final CFA pCFA)
+          throws InvalidConfigurationException, CPAException {
+    return create(pConfig, pLogger, pShutdownManager, pShutdownOnSafeManager, pCFA, Collections.<Automaton>emptyList());
+  }
+
+  /**
+   * Creates a new {@link CPAInvariantGenerator}.
+   *
+   * @param pConfig the configuration options.
+   * @param pLogger the logger to be used.
+   * @param pShutdownManager shutdown notifier to shutdown the invariant generator.
+   * @param pShutdownOnSafeManager optional shutdown notifier that will be
    * notified if the invariant generator proves safety.
    * @param pCFA the CFA to run the CPA on.
    * @param additionalAutomata additional specification automata that should be used
@@ -174,92 +211,86 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
    */
   public static InvariantGenerator create(final Configuration pConfig,
       final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier,
-      final Optional<ShutdownNotifier> pShutdownOnSafeNotifier,
-      final CFA pCFA)
-          throws InvalidConfigurationException, CPAException {
-    return create(pConfig, pLogger, pShutdownNotifier, pShutdownOnSafeNotifier, pCFA, Collections.<Automaton>emptyList());
-  }
-
-  /**
-   * Creates a new {@link CPAInvariantGenerator}.
-   *
-   * @param pConfig the configuration options.
-   * @param pLogger the logger to be used.
-   * @param pShutdownNotifier shutdown notifier to shutdown the invariant generator.
-   * @param pShutdownOnSafeNotifier optional shutdown notifier that will be
-   * notified if the invariant generator proves safety.
-   * @param pCFA the CFA to run the CPA on.
-   *
-   * @return a new {@link CPAInvariantGenerator}.
-   *
-   * @throws InvalidConfigurationException if the configuration is invalid.
-   * @throws CPAException if the CPA cannot be created.
-   */
-  public static InvariantGenerator create(final Configuration pConfig,
-      final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier,
-      final Optional<ShutdownNotifier> pShutdownOnSafeNotifier,
+      final ShutdownManager pShutdownManager,
+      final Optional<ShutdownManager> pShutdownOnSafeManager,
       final CFA pCFA,
       final List<Automaton> additionalAutomata)
           throws InvalidConfigurationException, CPAException {
 
     InvariantGeneratorOptions options = new InvariantGeneratorOptions();
     pConfig.inject(options);
+    final ShutdownManager childShutdownManager =
+        ShutdownManager.createWithParent(pShutdownManager.getNotifier());
 
-    CPAInvariantGenerator cpaInvariantGenerator = new CPAInvariantGenerator(
+    CPAInvariantGenerator cpaInvariantGenerator =
+        new CPAInvariantGenerator(
             pConfig,
             pLogger.withComponentName("CPAInvariantGenerator"),
-            ShutdownNotifier.createWithParent(pShutdownNotifier),
-            pShutdownOnSafeNotifier,
+            childShutdownManager,
+            pShutdownOnSafeManager,
             1,
             pCFA,
             additionalAutomata);
+
     InvariantGenerator invariantGenerator = cpaInvariantGenerator;
     final Function<CPAInvariantGenerator, CPAInvariantGenerator> adjust;
     if (options.adjustConditions) {
-      adjust = new Function<CPAInvariantGenerator, CPAInvariantGenerator>() {
+      adjust =
+          new Function<CPAInvariantGenerator, CPAInvariantGenerator>() {
 
-        @Override
-        public CPAInvariantGenerator apply(CPAInvariantGenerator pToAdjust) {
-          ConfigurableProgramAnalysis cpa = pToAdjust.cpa;
-          LogManager logger = pToAdjust.logger;
-          List<AdjustableConditionCPA> conditionCPAs = CPAs.asIterable(cpa).filter(AdjustableConditionCPA.class).toList();
-          CPAInvariantGenerator result = pToAdjust;
-          try {
-            if (adjustConditions(logger, conditionCPAs)) {
-              result = new CPAInvariantGenerator(pConfig, pLogger, pShutdownNotifier, pShutdownOnSafeNotifier, pToAdjust.iteration + 1, pToAdjust.reachedSetFactory, cpa, pToAdjust.algorithm);
+            @Override
+            public CPAInvariantGenerator apply(CPAInvariantGenerator pToAdjust) {
+              ConfigurableProgramAnalysis cpa = pToAdjust.cpa;
+              LogManager logger = pToAdjust.logger;
+              List<AdjustableConditionCPA> conditionCPAs =
+                  CPAs.asIterable(cpa).filter(AdjustableConditionCPA.class).toList();
+              CPAInvariantGenerator result = pToAdjust;
+              try {
+                if (adjustConditions(logger, conditionCPAs)) {
+                  result =
+                      new CPAInvariantGenerator(
+                          pConfig,
+                          pLogger,
+                          childShutdownManager,
+                          pShutdownOnSafeManager,
+                          pToAdjust.iteration + 1,
+                          pCFA,
+                          pToAdjust.reachedSetFactory,
+                          cpa,
+                          pToAdjust.algorithm);
+                }
+              } catch (InvalidConfigurationException e) {
+                pLogger.logUserException(
+                    Level.WARNING, e, "Creating adjusted invariant generator failed");
+              } finally {
+                if (result == pToAdjust) {
+                  CPAs.closeCpaIfPossible(pToAdjust.cpa, pToAdjust.logger);
+                  CPAs.closeIfPossible(pToAdjust.algorithm, pToAdjust.logger);
+                }
+              }
+              return result;
             }
-          } catch (InvalidConfigurationException | CPAException e) {
-            pLogger.logUserException(Level.WARNING, e, "Creating adjusted invariant generator failed");
-          } finally {
-            if (result == pToAdjust) {
-              CPAs.closeCpaIfPossible(pToAdjust.cpa, pToAdjust.logger);
-              CPAs.closeIfPossible(pToAdjust.algorithm, pToAdjust.logger);
+
+            private boolean adjustConditions(
+                LogManager pLogger, List<AdjustableConditionCPA> pConditionCPAs) {
+
+              boolean adjusted = false;
+
+              // Adjust precision if at least one CPA can do it.
+              for (AdjustableConditionCPA cpa : pConditionCPAs) {
+                if (cpa.adjustPrecision()) {
+                  pLogger.log(Level.INFO, "Adjusting precision for CPA", cpa);
+                  adjusted = true;
+                }
+              }
+              if (!adjusted) {
+                pLogger.log(
+                    Level.INFO,
+                    "None of the CPAs could adjust precision, " + "stopping invariant generation");
+              }
+              return adjusted;
             }
-          }
-          return result;
-        }
-
-        private boolean adjustConditions(LogManager pLogger, List<AdjustableConditionCPA> pConditionCPAs) {
-
-          boolean adjusted = false;
-
-          // Adjust precision if at least one CPA can do it.
-          for (AdjustableConditionCPA cpa : pConditionCPAs) {
-            if (cpa.adjustPrecision()) {
-              pLogger.log(Level.INFO, "Adjusting precision for CPA", cpa);
-              adjusted = true;
-            }
-          }
-          if (!adjusted) {
-            pLogger.log(Level.INFO, "None of the CPAs could adjust precision, "
-                + "stopping invariant generation");
-          }
-          return adjusted;
-        }
-
-      };
+          };
     } else {
       adjust = new Function<CPAInvariantGenerator, CPAInvariantGenerator>() {
 
@@ -272,54 +303,64 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
 
       };
     }
-    invariantGenerator = new AdjustableInvariantGenerator<>(pShutdownNotifier, cpaInvariantGenerator, adjust);
+    invariantGenerator =
+        new AdjustableInvariantGenerator<>(
+            pShutdownManager.getNotifier(), cpaInvariantGenerator, adjust);
     if (options.async) {
-      invariantGenerator = new AutoAdjustingInvariantGenerator<>(pShutdownNotifier, cpaInvariantGenerator, adjust);
+      invariantGenerator =
+          new AutoAdjustingInvariantGenerator<>(
+              pShutdownManager.getNotifier(), cpaInvariantGenerator, adjust);
     }
     return invariantGenerator;
   }
 
   private CPAInvariantGenerator(final Configuration config,
       final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier,
-      Optional<ShutdownNotifier> pShutdownOnSafeNotifier,
+      final ShutdownManager pShutdownManager,
+      Optional<ShutdownManager> pShutdownOnSafeManager,
       final int pIteration,
-      final CFA cfa, List<Automaton> pAdditionalAutomata) throws InvalidConfigurationException, CPAException {
+      final CFA pCFA, List<Automaton> pAdditionalAutomata) throws InvalidConfigurationException, CPAException {
     config.inject(this);
     logger = pLogger;
-    shutdownNotifier = pShutdownNotifier;
-    shutdownOnSafeNotifier = pShutdownOnSafeNotifier;
+    shutdownManager = pShutdownManager;
+    shutdownOnSafeNotifier = pShutdownOnSafeManager;
     iteration = pIteration;
 
     Configuration invariantConfig;
     try {
       ConfigurationBuilder configBuilder = Configuration.builder().copyOptionFrom(config, "specification");
+
       configBuilder.loadFromFile(configFile);
       invariantConfig = configBuilder.build();
     } catch (IOException e) {
       throw new InvalidConfigurationException("could not read configuration file for invariant generation: " + e.getMessage(), e);
     }
 
-    reachedSetFactory = new ReachedSetFactory(invariantConfig, logger);
-    cpa = new CPABuilder(invariantConfig, logger, shutdownNotifier, reachedSetFactory).buildsCPAWithWitnessAutomataAndSpecification(cfa, pAdditionalAutomata);
-    algorithm = CPAAlgorithm.create(cpa, logger, invariantConfig, shutdownNotifier);
+    reachedSetFactory = new ReachedSetFactory(invariantConfig);
+    cfa = pCFA;
+    cpa =
+        new CPABuilder(invariantConfig, logger, shutdownManager.getNotifier(), reachedSetFactory)
+            .buildsCPAWithWitnessAutomataAndSpecification(cfa, pAdditionalAutomata);
+    algorithm = CPAAlgorithm.create(cpa, logger, invariantConfig, shutdownManager.getNotifier());
   }
 
   private CPAInvariantGenerator(final Configuration config,
       final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier,
-      Optional<ShutdownNotifier> pShutdownOnSafeNotifier,
+      final ShutdownManager pShutdownManager,
+      Optional<ShutdownManager> pShutdownOnSafeManager,
       final int pIteration,
+      final CFA pCFA,
       ReachedSetFactory pReachedSetFactory,
       ConfigurableProgramAnalysis pCPA,
-      CPAAlgorithm pAlgorithm) throws InvalidConfigurationException, CPAException {
+      CPAAlgorithm pAlgorithm) throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
-    shutdownNotifier = pShutdownNotifier;
-    shutdownOnSafeNotifier = pShutdownOnSafeNotifier;
+    shutdownManager = pShutdownManager;
+    shutdownOnSafeNotifier = pShutdownOnSafeManager;
     iteration = pIteration;
 
     reachedSetFactory = pReachedSetFactory;
+    cfa = pCFA;
     cpa = pCPA;
     algorithm = pAlgorithm;
   }
@@ -328,17 +369,17 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
   public void start(final CFANode initialLocation) {
     checkState(invariantGenerationFuture == null);
 
-    Callable<InvariantSupplier> task = new InvariantGenerationTask(initialLocation);
+    Callable<FormulaAndTreeSupplier> task = new InvariantGenerationTask(initialLocation);
     // create future for lazy synchronous invariant generation
     invariantGenerationFuture = new LazyFutureTask<>(task);
 
-    shutdownNotifier.registerAndCheckImmediately(shutdownListener);
+    shutdownManager.getNotifier().registerAndCheckImmediately(shutdownListener);
   }
 
   @Override
   public void cancel() {
     checkState(invariantGenerationFuture != null);
-    shutdownNotifier.requestShutdown("Invariant generation cancel requested.");
+    shutdownManager.requestShutdown("Invariant generation cancel requested.");
   }
 
   @Override
@@ -351,7 +392,22 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
       Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
       throw new UnexpectedCheckedException("invariant generation", e.getCause());
     } catch (CancellationException e) {
-      shutdownNotifier.shutdownIfNecessary();
+      shutdownManager.getNotifier().shutdownIfNecessary();
+      throw e;
+    }
+  }
+
+  @Override
+  public ExpressionTreeSupplier getAsExpressionTree() throws CPAException, InterruptedException {
+    checkState(invariantGenerationFuture != null);
+
+    try {
+      return invariantGenerationFuture.get();
+    } catch (ExecutionException e) {
+      Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
+      throw new UnexpectedCheckedException("invariant generation", e.getCause());
+    } catch (CancellationException e) {
+      shutdownManager.getNotifier().shutdownIfNecessary();
       throw e;
     }
   }
@@ -378,21 +434,49 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
     pStatsCollection.add(stats);
   }
 
+  private static class LazyLocationMapping {
+
+    private final UnmodifiableReachedSet reachedSet;
+
+    private final AtomicReference<Multimap<CFANode, AbstractState>> statesByLocationRef = new AtomicReference<>();
+
+    public LazyLocationMapping(UnmodifiableReachedSet pReachedSet) {
+      this.reachedSet = Objects.requireNonNull(pReachedSet);
+    }
+
+    public Iterable<AbstractState> get(CFANode pLocation) {
+      if (reachedSet instanceof LocationMappedReachedSet) {
+        return AbstractStates.filterLocation(reachedSet, pLocation);
+      }
+      if (statesByLocationRef.get() == null) {
+        Multimap<CFANode, AbstractState> statesByLocation = HashMultimap.create();
+        for (AbstractState state : reachedSet) {
+          for (CFANode location : AbstractStates.extractLocations(state)) {
+            statesByLocation.put(location, state);
+          }
+        }
+        this.statesByLocationRef.set(statesByLocation);
+        return statesByLocation.get(pLocation);
+      }
+      return statesByLocationRef.get().get(pLocation);
+    }
+
+  }
+
   /**
    * {@link InvariantSupplier} that extracts invariants from a {@link ReachedSet}
    * with {@link FormulaReportingState}s.
    */
   private static class ReachedSetBasedInvariantSupplier implements InvariantSupplier {
 
+    private final LazyLocationMapping lazyLocationMapping;
     private final LogManager logger;
-    private final UnmodifiableReachedSet reached;
 
-    private ReachedSetBasedInvariantSupplier(UnmodifiableReachedSet pReached,
+    private ReachedSetBasedInvariantSupplier(
+        LazyLocationMapping pLazyLocationMapping,
         LogManager pLogger) {
-      checkArgument(!pReached.hasWaitingState());
-      checkArgument(!pReached.isEmpty());
-      reached = pReached;
-      logger = pLogger;
+      logger = Objects.requireNonNull(pLogger);
+      lazyLocationMapping = Objects.requireNonNull(pLazyLocationMapping);
     }
 
     @Override
@@ -400,9 +484,9 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
       BooleanFormulaManager bfmgr = fmgr.getBooleanFormulaManager();
       BooleanFormula invariant = bfmgr.makeBoolean(false);
 
-      for (AbstractState locState : AbstractStates.filterLocation(reached, pLocation)) {
+      for (AbstractState locState : lazyLocationMapping.get(pLocation)) {
         BooleanFormula f = AbstractStates.extractReportedFormulas(fmgr, locState, pfmgr);
-        logger.log(Level.ALL, "Invariant for", pLocation+":", f);
+        logger.log(Level.ALL, "Invariant for", pLocation + ":", f);
 
         invariant = bfmgr.or(invariant, f);
       }
@@ -410,13 +494,91 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
     }
   }
 
+  private static class ReachedSetBasedExpressionTreeSupplier implements ExpressionTreeSupplier {
+
+    private final LazyLocationMapping lazyLocationMapping;
+    private final CFA cfa;
+
+    private ReachedSetBasedExpressionTreeSupplier(LazyLocationMapping pLazyLocationMapping, CFA pCFA) {
+      lazyLocationMapping = Objects.requireNonNull(pLazyLocationMapping);
+      cfa = Objects.requireNonNull(pCFA);
+    }
+
+    @Override
+    public ExpressionTree<Object> getInvariantFor(CFANode pLocation) {
+      ExpressionTree<Object> locationInvariant = ExpressionTrees.getFalse();
+
+      Set<InvariantsState> invStates = Sets.newHashSet();
+      boolean otherReportingStates = false;
+
+      for (AbstractState locState : lazyLocationMapping.get(pLocation)) {
+        ExpressionTree<Object> stateInvariant = ExpressionTrees.getTrue();
+
+        for (ExpressionTreeReportingState expressionTreeReportingState :
+            AbstractStates.asIterable(locState).filter(ExpressionTreeReportingState.class)) {
+          if (expressionTreeReportingState instanceof InvariantsState) {
+            InvariantsState invState = (InvariantsState) expressionTreeReportingState;
+            boolean skip = false;
+            for (InvariantsState other : invStates) {
+              if (invState.isLessOrEqual(other)) {
+                skip = true;
+                break;
+              }
+            }
+            if (skip) {
+              stateInvariant = ExpressionTrees.getFalse();
+              continue;
+            }
+            invStates.add(invState);
+          } else {
+            otherReportingStates = true;
+          }
+          stateInvariant =
+              And.of(
+                  stateInvariant,
+                  expressionTreeReportingState.getFormulaApproximation(
+                      cfa.getFunctionHead(pLocation.getFunctionName()), pLocation));
+        }
+
+        locationInvariant = Or.of(locationInvariant, stateInvariant);
+      }
+
+      if (!otherReportingStates && invStates.size() > 1) {
+        Set<InvariantsState> newInvStates = Sets.newHashSet();
+        for (InvariantsState a : invStates) {
+          boolean skip = false;
+          for (InvariantsState b : invStates) {
+            if (a != b && a.isLessOrEqual(b)) {
+              skip = true;
+              break;
+            }
+          }
+          if (!skip) {
+            newInvStates.add(a);
+          }
+        }
+        if (newInvStates.size() < invStates.size()) {
+          locationInvariant = ExpressionTrees.getFalse();
+          for (InvariantsState state : newInvStates) {
+            locationInvariant =
+                Or.of(
+                    locationInvariant,
+                    state.getFormulaApproximation(
+                        cfa.getFunctionHead(pLocation.getFunctionName()), pLocation));
+          }
+        }
+      }
+
+      return locationInvariant;
+    }
+  }
+
   /**
    * Callable for creating invariants by running the CPAAlgorithm,
    * potentially in a loop with increasing precision.
-   * Returns the final invariants,
-   * and publishes intermediate results to {@link CPAInvariantGenerator#latestInvariant}.
+   * Returns the final invariants.
    */
-  private class InvariantGenerationTask implements Callable<InvariantSupplier> {
+  private class InvariantGenerationTask implements Callable<FormulaAndTreeSupplier> {
 
     private static final String SAFE_MESSAGE = "Invariant generation with abstract interpretation proved specification to hold.";
     private final CFANode initialLocation;
@@ -426,11 +588,11 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
     }
 
     @Override
-    public InvariantSupplier call() throws Exception {
+    public FormulaAndTreeSupplier call() throws Exception {
       stats.invariantGeneration.start();
       try {
 
-        shutdownNotifier.shutdownIfNecessary();
+        shutdownManager.getNotifier().shutdownIfNecessary();
         logger.log(Level.INFO, "Starting iteration", iteration, "of invariant generation with abstract interpretation.");
 
         return runInvariantGeneration(initialLocation);
@@ -440,7 +602,7 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
       }
     }
 
-    private InvariantSupplier runInvariantGeneration(CFANode pInitialLocation)
+    private FormulaAndTreeSupplier runInvariantGeneration(CFANode pInitialLocation)
         throws CPAException, InterruptedException {
 
       ReachedSet taskReached = reachedSetFactory.create();
@@ -450,7 +612,9 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
       while (taskReached.hasWaitingState()) {
         if (!algorithm.run(taskReached).isSound()) {
           // ignore unsound invariant and abort
-          return TrivialInvariantSupplier.INSTANCE;
+          return new FormulaAndTreeSupplier(
+              TrivialInvariantSupplier.INSTANCE,
+              org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE);
         }
       }
 
@@ -463,8 +627,12 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
         }
       }
 
-      return new ReachedSetBasedInvariantSupplier(
-          new UnmodifiableReachedSetWrapper(taskReached), logger);
+      checkState(!taskReached.hasWaitingState());
+      checkState(!taskReached.isEmpty());
+      LazyLocationMapping lazyLocationMapping = new LazyLocationMapping(taskReached);
+      return new FormulaAndTreeSupplier(
+          new ReachedSetBasedInvariantSupplier(lazyLocationMapping, logger),
+          new ReachedSetBasedExpressionTreeSupplier(lazyLocationMapping, cfa));
     }
   }
 }

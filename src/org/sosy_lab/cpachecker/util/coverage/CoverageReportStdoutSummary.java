@@ -30,7 +30,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 @Options
@@ -41,9 +40,7 @@ class CoverageReportStdoutSummary implements CoverageWriter {
       description="print coverage summary to stdout")
   private boolean enabled = true;
 
-  public CoverageReportStdoutSummary(Configuration pConfig, LogManager pLogger)
-      throws InvalidConfigurationException {
-
+  public CoverageReportStdoutSummary(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
   }
 
@@ -72,7 +69,7 @@ class CoverageReportStdoutSummary implements CoverageWriter {
       numTotalLines =+ info.allLines.size();
 
       for (Integer line : info.allLines) {
-        if (info.visitedLines.get(line)) {
+        if (info.getVisitedLine(line) > 0) {
           numVisitedLines += 1;
         }
       }

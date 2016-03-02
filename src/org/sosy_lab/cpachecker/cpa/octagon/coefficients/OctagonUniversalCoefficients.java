@@ -104,6 +104,12 @@ public final class OctagonUniversalCoefficients extends AOctagonCoefficients {
   }
 
   @Override
+  public int hashCode() {
+    // this is a singleton we just use the system hashcode
+    return System.identityHashCode(this);
+  }
+
+  @Override
   public boolean equals(Object other) {
     return other instanceof OctagonUniversalCoefficients;
   }

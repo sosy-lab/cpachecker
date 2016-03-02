@@ -121,7 +121,6 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
   private Class<? extends AbstractState> requirementsStateClass;
 
   private CFA cfa;
-  private final Configuration config;
   private final ConfigurableProgramAnalysis cpa;
 
   /**
@@ -143,7 +142,6 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
     analysis = analysisAlgorithm;
     this.logger = logger;
     this.shutdownNotifier = sdNotifier;
-    this.config = config;
     this.cpa = cpa;
 
     if (!(cpa instanceof ARGCPA)) {
@@ -315,7 +313,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
   private void extractRequirements(final ARGState root, final CustomInstructionApplications cia)
       throws InterruptedException, CPAException {
     CustomInstructionRequirementsWriter writer = new CustomInstructionRequirementsWriter(ciFilePrefix,
-        requirementsStateClass, config, shutdownNotifier, logger, cpa, enableRequirementSlicing);
+        requirementsStateClass, logger, cpa, enableRequirementSlicing);
     Collection<ARGState> ciStartNodes = getCustomInstructionStartNodes(root, cia);
 
     List<Pair<ARGState, Collection<ARGState>>> requirements = new ArrayList<>(ciStartNodes.size());
@@ -352,8 +350,6 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
    * @param root ARGState
    * @param pCustomIA CustomInstructionApplication
    * @return ImmutableSet of ARGState
-   * @throws InterruptedException
-   * @throws CPAException
    */
   private Collection<ARGState> getCustomInstructionStartNodes(final ARGState root, final CustomInstructionApplications pCustomIA)
       throws InterruptedException, CPAException{
@@ -393,7 +389,6 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
    * @param ciStart ARGState
    * @return Collection of ARGState
    * @throws InterruptedException if a shutdown was requested
-   * @throws CPAException
    */
   private Collection<ARGState> findEndStatesFor(final ARGState ciStart, final CustomInstructionApplications pCustomIA)
       throws InterruptedException, CPAException {

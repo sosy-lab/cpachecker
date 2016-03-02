@@ -414,7 +414,8 @@ public class Interval implements Serializable{
   /**
   * This method performs an arithmetical left shift of the interval bounds.
   *
-  * @param Interval offset to perform an arithmetical left shift on the interval bounds. If the offset maybe less than zero an unbound interval is returned.
+  * @param offset Interval offset to perform an arithmetical left shift on the interval
+  *               bounds. If the offset maybe less than zero an unbound interval is returned.
   * @return new interval that represents the result of the arithmetical left shift
   */
   public Interval shiftLeft(Interval offset) {
@@ -439,7 +440,7 @@ public class Interval implements Serializable{
   /**
   * This method performs an arithmetical right shift of the interval bounds. If the offset maybe less than zero an unbound interval is returned.
   *
-  * @param Interval offset to perform an arithmetical right shift on the interval bounds
+  * @param offset Interval offset to perform an arithmetical right shift on the interval bounds
   * @return new interval that represents the result of the arithmetical right shift
   */
   public Interval shiftRight(Interval offset) {

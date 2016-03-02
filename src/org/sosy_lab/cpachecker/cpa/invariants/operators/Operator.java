@@ -38,8 +38,8 @@ public interface Operator<O1, O2, R> {
   /**
    * Applies this operator to the given operands.
    *
-   * @param pFirstOperand the first operand to apply the operator to.
-   * @param pSecondOperand the second operand to apply the operator to.
+   * @param operand1 the first operand to apply the operator to.
+   * @param operand2 the second operand to apply the operator to.
    * @return the value resulting from applying the first operand to the
    * second operand.
    */

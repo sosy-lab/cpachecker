@@ -26,6 +26,9 @@ package org.sosy_lab.cpachecker.cpa.conditions.path;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
 
 /**
@@ -48,13 +51,13 @@ public interface PathCondition {
 
   /**
    * Get the initial element.
-   * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#getInitialState(CFANode)
+   * @see ConfigurableProgramAnalysis#getInitialState(CFANode, StateSpacePartition)
    */
   AvoidanceReportingState getInitialState(CFANode pNode);
 
   /**
    * Get the successor state for an edge.
-   * @see org.sosy_lab.cpachecker.core.interfaces.TransferRelation#getAbstractSuccessors(AbstractState, org.sosy_lab.cpachecker.core.interfaces.Precision, CFAEdge)
+   * @see org.sosy_lab.cpachecker.core.interfaces.TransferRelation#getAbstractSuccessorsForEdge(AbstractState, Precision, CFAEdge)
    */
   AvoidanceReportingState getAbstractSuccessor(AbstractState pState, CFAEdge pEdge);
 

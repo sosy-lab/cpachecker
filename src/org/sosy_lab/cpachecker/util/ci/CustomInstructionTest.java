@@ -71,7 +71,7 @@ public class CustomInstructionTest {
 
   @Before
   public void init() throws NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException,
-      IllegalArgumentException, InvocationTargetException, AppliedCustomInstructionParsingFailedException, IOException,
+      IllegalArgumentException, InvocationTargetException, IOException,
       ParserException, InterruptedException {
     String testProgram = ""
         + "void main(int a){"
@@ -93,7 +93,7 @@ public class CustomInstructionTest {
     input.add("a");
     List<String> output = new ArrayList<>();
     output.add("b");
-    ci = new CustomInstruction(startNode, endNodes, input, output, ShutdownNotifier.create());
+    ci = new CustomInstruction(startNode, endNodes, input, output, ShutdownNotifier.createDummy());
 
     cis = new HashMap<>();
     aci = new AppliedCustomInstruction(startNode, endNodes,
@@ -135,8 +135,7 @@ public class CustomInstructionTest {
   }
 
   @Test
-  public void testIsEndState() throws CPAException, InstantiationException, IllegalAccessException,
-      IllegalArgumentException, InvocationTargetException {
+  public void testIsEndState() throws CPAException, IllegalArgumentException {
     ARGState noLocation = new ARGState(new CallstackState(null, "main", startNode), null);
 
     // test applied custom instruction
@@ -157,8 +156,7 @@ public class CustomInstructionTest {
   }
 
   @Test
-  public void testGetAppliedCustomInstruction() throws InstantiationException, IllegalAccessException,
-      IllegalArgumentException, InvocationTargetException, CPAException {
+  public void testGetAppliedCustomInstruction() throws IllegalArgumentException, CPAException {
     Truth.assertThat(cia.getAppliedCustomInstructionFor(start)).isEqualTo(cis.get(startNode));
     // test if input parameter not a start state
     try {
@@ -177,14 +175,20 @@ public class CustomInstructionTest {
 
   @Test
   public void testGetSignature() {
-    ci = new CustomInstruction(null, null, Collections.<String> emptyList(), Collections.<String> emptyList(), ShutdownNotifier.create());
+    ci =
+        new CustomInstruction(
+            null,
+            null,
+            Collections.<String>emptyList(),
+            Collections.<String>emptyList(),
+            ShutdownNotifier.createDummy());
     Truth.assertThat(ci.getSignature()).isEqualTo("() -> ()");
 
     List<String> inputVars = new ArrayList<>();
     inputVars.add("var");
     List<String> outputVars = new ArrayList<>();
     outputVars.add("var0");
-    ci = new CustomInstruction(null, null, inputVars, outputVars, ShutdownNotifier.create());
+    ci = new CustomInstruction(null, null, inputVars, outputVars, ShutdownNotifier.createDummy());
     Truth.assertThat(ci.getSignature()).isEqualTo("(var) -> (var0@1)");
 
     inputVars = new ArrayList<>();
@@ -194,20 +198,28 @@ public class CustomInstructionTest {
     outputVars.add("var3");
     outputVars.add("f::var4");
     outputVars.add("var5");
-    ci = new CustomInstruction(null, null, inputVars, outputVars, ShutdownNotifier.create());
+    ci = new CustomInstruction(null, null, inputVars, outputVars, ShutdownNotifier.createDummy());
     Truth.assertThat(ci.getSignature()).isEqualTo("(|f::var1|, var2) -> (var3@1, |f::var4@1|, var5@1)");
   }
 
   @Test
   public void testGetFakeSMTDescription() {
-    ci = new CustomInstruction(null, null, Collections.<String> emptyList(), Collections.<String> emptyList(), ShutdownNotifier.create());
+    ci =
+        new CustomInstruction(
+            null,
+            null,
+            Collections.<String>emptyList(),
+            Collections.<String>emptyList(),
+            ShutdownNotifier.createDummy());
     Pair<List<String>, String> pair = ci.getFakeSMTDescription();
     Truth.assertThat(pair.getFirst()).isEmpty();
     Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool true)");
 
     List<String> inputVars = new ArrayList<>();
     inputVars.add("var");
-    ci = new CustomInstruction(null, null, inputVars, Collections.<String> emptyList(), ShutdownNotifier.create());
+    ci =
+        new CustomInstruction(
+            null, null, inputVars, Collections.<String>emptyList(), ShutdownNotifier.createDummy());
     pair = ci.getFakeSMTDescription();
     Truth.assertThat(pair.getFirst()).hasSize(1);
     Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun var () Int)");
@@ -215,7 +227,13 @@ public class CustomInstructionTest {
 
     List<String> outputVars = new ArrayList<>();
     outputVars.add("var1");
-    ci = new CustomInstruction(null, null, Collections.<String> emptyList(), outputVars, ShutdownNotifier.create());
+    ci =
+        new CustomInstruction(
+            null,
+            null,
+            Collections.<String>emptyList(),
+            outputVars,
+            ShutdownNotifier.createDummy());
     pair = ci.getFakeSMTDescription();
     Truth.assertThat(pair.getFirst()).hasSize(1);
     Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun var1@1 () Int)");
@@ -225,7 +243,7 @@ public class CustomInstructionTest {
     inputVars.add("var1");
     outputVars = new ArrayList<>();
     outputVars.add("var2");
-    ci = new CustomInstruction(null, null, inputVars, outputVars, ShutdownNotifier.create());
+    ci = new CustomInstruction(null, null, inputVars, outputVars, ShutdownNotifier.createDummy());
     pair = ci.getFakeSMTDescription();
     Truth.assertThat(pair.getFirst()).hasSize(2);
     Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun var1 () Int)");
@@ -239,7 +257,7 @@ public class CustomInstructionTest {
     outputVars = new ArrayList<>();
     outputVars.add("var3");
     outputVars.add("f::var4");
-    ci = new CustomInstruction(null, null, inputVars, outputVars, ShutdownNotifier.create());
+    ci = new CustomInstruction(null, null, inputVars, outputVars, ShutdownNotifier.createDummy());
     pair = ci.getFakeSMTDescription();
     Truth.assertThat(pair.getFirst()).hasSize(5);
     Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun var () Int)");
@@ -251,7 +269,8 @@ public class CustomInstructionTest {
   }
 
   @Test
-  public void testInspectAppliedCustomInstruction() throws AppliedCustomInstructionParsingFailedException, InterruptedException, IOException, ParserException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+  public void testInspectAppliedCustomInstruction() throws AppliedCustomInstructionParsingFailedException,
+    InterruptedException, IOException, ParserException, SecurityException, IllegalArgumentException {
     String testProgram = ""
         + "extern int f2(int);"
         + "int f(int x) {"
@@ -328,7 +347,7 @@ public class CustomInstructionTest {
     List<String> output = new ArrayList<>();
     output.add("main::x");
     output.add("main::z");
-    ci = new CustomInstruction(startNode, endNodes, input, output, ShutdownNotifier.create());
+    ci = new CustomInstruction(startNode, endNodes, input, output, ShutdownNotifier.createDummy());
 
     aci = ci.inspectAppliedCustomInstruction(aciStartNode);
 
@@ -362,7 +381,7 @@ public class CustomInstructionTest {
   }
 
   @Test
-  public void testGetInputVariables() throws IOException, ParserException, InterruptedException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+  public void testGetInputVariables() throws SecurityException, IllegalArgumentException {
     Truth.assertThat(aci.getInputVariables()).isEmpty();
 
     List<String> inputVariables = new ArrayList<>(1);

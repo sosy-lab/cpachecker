@@ -54,13 +54,13 @@ public class ArrayValue implements Value {
 
 
   // Array type and element type are only used for checking correctness of parameters
-  private final transient JArrayType arrayType;
+  private final JArrayType arrayType;
 
   /*
    * The element type of arrayType. We store this separately so we don't have to call
    * arrayType.getElementType() for each value we add to the array
    */
-  private final transient JType elementType;
+  private final JType elementType;
 
   private final int arraySize;
   private final Value[] values;
@@ -109,7 +109,7 @@ public class ArrayValue implements Value {
    *
    * <p>
    * The given list of values may only contain values of types compatible with the given type
-   * (that is values of the type or subtypes of this type and instances of {@link UnknownValue}).
+   * (that is values of the type or subtypes of this type and instances of {@link Value.UnknownValue}).
    * Otherwise, an <code>IllegalArgumentException</code> is thrown at runtime.
    * </p>
    *

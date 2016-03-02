@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
@@ -69,8 +68,7 @@ public class SMGFeasibilityChecker implements FeasibilityChecker<SMGState> {
   private final CFANode mainFunction;
 
   public SMGFeasibilityChecker(StrongestPostOperator<SMGState> pStrongestPostOp, LogManager pLogger, CFA pCfa,
-      Configuration pConfig, SMGState pInitialState,
-      ConfigurableProgramAnalysis pCPA) throws InvalidConfigurationException {
+      Configuration pConfig, SMGState pInitialState) throws InvalidConfigurationException {
     strongestPostOp = pStrongestPostOp;
     initialState = pInitialState;
     logger = pLogger;

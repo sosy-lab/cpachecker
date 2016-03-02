@@ -55,12 +55,12 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
@@ -203,15 +203,14 @@ public class StateToFormulaWriter implements StatisticsProvider {
 
     // fill the above set and map
     for (CFANode cfaNode : pStates.keySet()) {
-      List<BooleanFormula> formulas = getFormulasForNode(pStates.get(cfaNode), cfaNode);
+      List<BooleanFormula> formulas = getFormulasForNode(pStates.get(cfaNode));
       extractPredicatesAndDefinitions(cfaNode, definitions, cfaNodeToPredicate, formulas);
     }
 
     writeFormulas(pAppendable, definitions, cfaNodeToPredicate);
   }
 
-  /** get formulas representing the abstract states at the cfaNode. */
-  private List<BooleanFormula> getFormulasForNode(Set<FormulaReportingState> states, CFANode cfaNode) {
+  private List<BooleanFormula> getFormulasForNode(Set<FormulaReportingState> states) {
     final List<BooleanFormula> formulas = new ArrayList<>();
     final BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
 
@@ -256,7 +255,7 @@ public class StateToFormulaWriter implements StatisticsProvider {
       CFANode cfaNode,
       Set<String> definitions,
       Multimap<CFANode, String> cfaNodeToPredicate,
-      List<BooleanFormula> predicates) throws IOException {
+      List<BooleanFormula> predicates) {
 
     for (BooleanFormula formula : predicates) {
       String s = fmgr.dumpFormula(formula).toString();

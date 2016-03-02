@@ -23,11 +23,11 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackState;
 import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationStatistics.TemplateUpdateEvent;
 import org.sosy_lab.cpachecker.cpa.policyiteration.Template.Kind;
@@ -37,19 +37,19 @@ import org.sosy_lab.cpachecker.cpa.policyiteration.congruence.CongruenceState;
 import org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra.PolyhedraWideningManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.solver.AssignableTerm;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.OptEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.solver.api.Model;
+import org.sosy_lab.solver.api.OptimizationProverEnvironment;
 import org.sosy_lab.solver.api.ProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -270,7 +270,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
       // Formulas reported by other CPAs.
       BooleanFormula extraInvariant = extractReportedFormulas(pArgState);
-      logger.log(Level.FINE, "Reported formulas: ", extraInvariant);
+      logger.log(Level.INFO, "Reported formulas: ", extraInvariant);
+      logger.flush();
 
       Optional<PolicyAbstractedState> sibling =
           getSiblings(iState, extraInvariant, states.getReached(pArgState));
@@ -371,7 +372,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   private PolicyIntermediateState joinIntermediateStates(
       PolicyIntermediateState newState,
       PolicyIntermediateState oldState
-  ) throws InterruptedException, SolverException {
+  ) throws InterruptedException {
 
     Preconditions.checkState(newState.getNode() == oldState.getNode());
 
@@ -409,7 +410,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       final PolicyAbstractedState oldState,
       final PolicyPrecision precision,
       Map<Template, PolicyBound> updated
-  ) throws CPATransferException, InterruptedException, SolverException {
+  ) throws InterruptedException, SolverException {
     Preconditions.checkState(newState.getNode() == oldState.getNode());
     Preconditions.checkState(
         newState.getLocationID() == oldState.getLocationID());
@@ -501,7 +502,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
     // Maximize for each template subject to the overall constraints.
     statistics.startValueDeterminationTimer();
-    try (OptEnvironment optEnvironment = solver.newOptEnvironment()) {
+    try (OptimizationProverEnvironment optEnvironment = solver.newOptEnvironment()) {
 
       for (BooleanFormula constraint : valDetConstraints.constraints) {
         optEnvironment.addConstraint(constraint);
@@ -526,17 +527,17 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
         optEnvironment.addConstraint(consistencyConstraint);
 
-        OptEnvironment.OptStatus result;
+        OptimizationProverEnvironment.OptStatus result;
         try {
           statistics.startOPTTimer();
           result = optEnvironment.check();
         } finally {
           statistics.stopOPTTimer();
         }
-        if (result != OptEnvironment.OptStatus.OPT) {
+        if (result != OptimizationProverEnvironment.OptStatus.OPT) {
           shutdownNotifier.shutdownIfNecessary();
 
-          if (result == OptEnvironment.OptStatus.UNSAT) {
+          if (result == OptimizationProverEnvironment.OptStatus.UNSAT) {
             if (!runningCheapValueDetermination) {
               throw new CPATransferException("Inconsistent value determination "
                   + "problem");
@@ -634,7 +635,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       final PolicyIntermediateState state,
       final Optional<PolicyAbstractedState> otherState,
       PolicyPrecision precision,
-      BooleanFormula extraPredicate)
+      BooleanFormula extraInvariant)
       throws CPAException, InterruptedException {
 
     logger.log(Level.FINE, "Performing abstraction at node: ", state.getNode());
@@ -652,18 +653,20 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     final PathFormula p = state.getPathFormula();
 
     // Linearize.
+    statistics.linearizationTimer.start();
     final BooleanFormula linearizedFormula = linearizationManager.linearize(
         p.getFormula());
 
     // Add choice variables.
     BooleanFormula annotatedFormula = linearizationManager.annotateDisjunctions(
         linearizedFormula);
+    statistics.linearizationTimer.stop();
 
     final Map<Template, PolicyBound> abstraction = new HashMap<>();
     final BooleanFormula startConstraints =
         stateFormulaConversionManager.getStartConstraints(state, true);
 
-    try (OptEnvironment optEnvironment = solver.newOptEnvironment()) {
+    try (OptimizationProverEnvironment optEnvironment = solver.newOptEnvironment()) {
       optEnvironment.addConstraint(annotatedFormula);
       optEnvironment.addConstraint(startConstraints);
 
@@ -671,7 +674,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
         // Invariant from other CPAs.
         optEnvironment.addConstraint(
-            fmgr.instantiate(extraPredicate, state.getPathFormula().getSsa())
+            fmgr.instantiate(extraInvariant, state.getPathFormula().getSsa())
         );
       }
 
@@ -684,7 +687,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       );
 
       Set<String> formulaVars = fmgr.extractFunctionNames(
-          state.getPathFormula().getFormula(), true);
+          state.getPathFormula().getFormula());
       for (Template template : precision) {
         shutdownNotifier.shutdownIfNecessary();
 
@@ -735,7 +738,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         logger.log(Level.FINE, "Optimizing for ", objective);
         int handle = optEnvironment.maximize(objective);
 
-        OptEnvironment.OptStatus status;
+        OptimizationProverEnvironment.OptStatus status;
         try {
           statistics.startOPTTimer();
           status = optEnvironment.check();
@@ -746,7 +749,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         switch (status) {
           case OPT:
             Optional<Rational> bound = optEnvironment.upper(handle, EPSILON);
-            Map<AssignableTerm, Object> model = optEnvironment.getModel();
+            Model model = optEnvironment.getModel();
 
             // Lower bound on unsigned variables is at least zero.
             boolean unsignedAndLower = template.isUnsigned() &&
@@ -765,8 +768,10 @@ public class PolicyIterationManager implements IPolicyIterationManager {
               }
 
               if (linearizePolicy) {
+                statistics.linearizationTimer.start();
                 annotatedFormula = linearizationManager.convertToPolicy(
-                    annotatedFormula, optEnvironment);
+                    annotatedFormula, model);
+                statistics.linearizationTimer.stop();
               }
 
               PolicyBound policyBound = modelToPolicyBound(
@@ -787,6 +792,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
           case UNDEF:
             shutdownNotifier.shutdownIfNecessary();
             throw new CPATransferException("Solver returned undefined status");
+          default:
+            throw new AssertionError("Unhandled enum value in switch: " + status);
         }
         optEnvironment.pop();
       }
@@ -812,7 +819,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
             stateFormulaConversionManager,
             state.getPathFormula().getSsa(),
             state.getPathFormula().getPointerTargetSet(),
-            extraPredicate,
+            extraInvariant,
             state
         );
   }
@@ -828,11 +835,13 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       PolicyIntermediateState inputState,
       PathFormula inputPathFormula,
       BooleanFormula annotatedFormula,
-      Map<AssignableTerm, Object> model,
+      Model model,
       Rational bound) throws SolverException, InterruptedException {
 
+    statistics.linearizationTimer.start();
     final BooleanFormula policyFormula = linearizationManager.enforceChoice(
         annotatedFormula, model);
+    statistics.linearizationTimer.stop();
     final boolean dependsOnInitial;
 
     if (checkPolicyInitialCondition) {
@@ -860,7 +869,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     PolicyAbstractedState backpointer = inputState.getGeneratingState()
         .getLatestVersion();
 
-    Set<String> policyVars = fmgr.extractFunctionNames(policyFormula, true);
+    Set<String> policyVars = fmgr.extractFunctionNames(policyFormula);
     Set<Template> dependencies;
     if (!dependsOnInitial) {
       dependencies = ImmutableSet.of();
@@ -873,7 +882,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
             pfmgr, fmgr, t,
             stateFormulaConversionManager.getPathFormula(backpointer, fmgr,
                 false)
-        ), true);
+        ));
         if (!Sets.intersection(fVars, policyVars).isEmpty()) {
           dependencies.add(t);
         }
@@ -928,9 +937,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   ) {
     PolicyAbstractedState generatingState = state.getGeneratingState().getLatestVersion();
     Set<String> templateVars = fmgr.extractFunctionNames(
-        templateManager.toFormula(pfmgr, fmgr, pTemplate, state.getPathFormula()),
-        true
-    );
+        templateManager.toFormula(pfmgr, fmgr, pTemplate, state.getPathFormula()));
 
     if (!Sets.intersection(formulaVars, templateVars).isEmpty()) {
       return Optional.absent();
@@ -1051,12 +1058,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       return state2;
     }
 
-    try {
-      return joinIntermediateStates(
-          state1.asIntermediate(), state2.asIntermediate());
-    } catch (SolverException e) {
-      throw new CPAException("Solver Failure", e);
-    }
+    return joinIntermediateStates(state1.asIntermediate(), state2.asIntermediate());
   }
 
   /**

@@ -42,10 +42,10 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -136,9 +136,7 @@ final class BMCHelper {
    * retain as many states as possible.
    *
    * @param pReachedSet the reached set to be adjusted.
-   * @param pReachedSetInitializer initializes the reached set.
-   * @throws InterruptedException
-   * @throws CPAException
+   * @param pInitializer initializes the reached set.
    */
   public static void adjustReachedSet(LogManager pLogger, ReachedSet pReachedSet, ReachedSetInitializer pInitializer, ConfigurableProgramAnalysis pCPA) throws CPAException, InterruptedException {
     Preconditions.checkArgument(!pReachedSet.isEmpty());

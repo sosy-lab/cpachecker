@@ -25,8 +25,9 @@ package org.sosy_lab.cpachecker.util.coverage;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.util.BitSet;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
@@ -45,9 +46,9 @@ class FileCoverageInformation {
     }
   }
 
-  final BitSet visitedLines = new BitSet();
+  final Map<Integer, Integer> visitedLines = new HashMap<>();
   final Set<Integer> allLines = new HashSet<>();
-  final Set<String> visitedFunctions = new HashSet<>();
+  final Map<String, Integer> visitedFunctions = new HashMap<>();
   final Set<FunctionInfo> allFunctions = new HashSet<>();
   final Set<AssumeEdge> allAssumes = new HashSet<>();
   final Set<AssumeEdge> visitedAssumes = new HashSet<>();
@@ -60,8 +61,12 @@ class FileCoverageInformation {
     allAssumes.add(pEdge);
   }
 
-  public void addVisitedFunction(String pName) {
-    visitedFunctions.add(pName);
+  public void addVisitedFunction(String pName, int pCount) {
+    if (visitedFunctions.containsKey(pName)) {
+      visitedFunctions.put(pName, visitedFunctions.get(pName) + pCount);
+    } else {
+      visitedFunctions.put(pName, pCount);
+    }
   }
 
   public void addExistingFunction(String pName, int pFirstLine, int pLastLine) {
@@ -70,7 +75,16 @@ class FileCoverageInformation {
 
   public void addVisitedLine(int pLine) {
     checkArgument(pLine > 0);
-    visitedLines.set(pLine);
+    if (visitedLines.containsKey(pLine)) {
+      visitedLines.put(pLine, visitedLines.get(pLine) + 1);
+    } else {
+      visitedLines.put(pLine, 1);
+    }
+  }
+
+  public int getVisitedLine(int pLine) {
+    checkArgument(pLine > 0);
+    return visitedLines.containsKey(pLine) ? visitedLines.get(pLine) : 0;
   }
 
   public void addExistingLine(int pLine) {

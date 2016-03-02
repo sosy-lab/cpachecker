@@ -52,14 +52,13 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
@@ -98,7 +97,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
   private final Timer coverTime = new Timer();
   private final Timer argUpdate = new Timer();
 
-  private void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
+  private void printStatistics(PrintStream out) {
     if (refinementCalls > 0) {
       out.println("Avg. number of iterations per refinement:   " + div(refinementIterations, refinementCalls));
       out.println("Avg. number of target states per iteration: " + div(totalNumberOfTargetStates, refinementIterations));
@@ -193,7 +192,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
    *
    * The strategy is to first build the predecessor/successor relations for all
    * abstraction states on the paths to the target states, and then call
-   * {@link #performRefinementOnSubgraph(ARGState, List, SetMultimap, Map, ReachedSet, List)}
+   * {@link #performRefinementOnPath(List, ARGState, Map, ReachedSet, InterpolatingProverEnvironment)}
    * on the root state of the ARG.
    */
   private boolean performRefinement0(ReachedSet pReached, List <AbstractState> targets)
@@ -259,7 +258,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
    * (so we do refinement as soon as possible) or a target state is reached
    * (then we found a feasible counterexample).
    * When an infeasible state was found, we call
-   * {@link #performRefinementOnPath(List, ARGState, Map, ReachedSet)}
+   * {@link #performRefinementOnPath(List, ARGState, Map, ReachedSet, InterpolatingProverEnvironment)}
    * to do the actual refinement.
    *
    * Note that the successor and predecessor relation contains only states
@@ -327,7 +326,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
    * Actually perform refinement on one path.
    * We compute the interpolants and then start with the unreachable state
    * going back up in the ARG until the interpolants are simply "true",
-   * calling {@link #performRefinementForState(Formula, ARGState)} once for each
+   * calling {@link #performRefinementForState(BooleanFormula, ARGState)} once for each
    * interpolant and its corresponding state.
    * Afterwards we call {@link #finishRefinementOfPath(ARGState, List, ReachedSet)}
    * once.
@@ -336,7 +335,6 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
    * @param unreachableState The first state in the path which is infeasible (this identifies the path).
    * @param predecessors The predecessor relation of abstraction states.
    * @param reached The reached set.
-   * @throws CPAException
    */
   private <T> void performRefinementOnPath(List<T> itpStack, final ARGState unreachableState,
       Map<ARGState, ARGState> predecessors, ReachedSet reached,
@@ -424,7 +422,6 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
    * @param unreachableState The first state in the path which is infeasible (this identifies the path).
    * @param affectedStates The list of states that were affected by the refinement (ordered from top of ARG to target state).
    * @param reached The reached set.
-   * @throws CPAException
    */
   private void finishRefinementOfPath(final ARGState unreachableState, List<ARGState> affectedStates,
       ReachedSet reached) throws CPAException, InterruptedException {
@@ -462,7 +459,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
 
       @Override
       public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
-        ImpactGlobalRefiner.this.printStatistics(pOut, pResult, pReached);
+        ImpactGlobalRefiner.this.printStatistics(pOut);
       }
     });
   }

@@ -53,7 +53,7 @@ from concurrent.futures import as_completed
 from concurrent.futures import Future
 
 try:
-    import sseclient
+    import sseclient  # @UnresolvedImport
     from requests import HTTPError
 except:
     pass
@@ -170,7 +170,8 @@ try:
                 raise StopIteration()
 
         def __del__(self):
-            self.resp.close()
+            if hasattr(self, 'resp'):
+                self.resp.close()
 
     class SseResultDownloader:
 
@@ -184,6 +185,11 @@ try:
             self._shutdown = False
             self._new_runs = False
             self._state_receive_executor = ThreadPoolExecutor(max_workers=1)
+
+        def _log_future_exception_and_fallback(self, result):
+            if result.exception() is not None:
+                logging.warning('Error during result processing.', exc_info=True)
+                self._fall_back()
 
         def _should_reconnect(self, error):
             if self._new_runs:
@@ -221,7 +227,10 @@ try:
 
                 logging.debug("Creating Server-Send Event connection.")
                 try:
-                    self._sse_client = ShouldReconnectSeeClient(self._run_finished_url, self._should_reconnect, headers=headers, data=params)
+                    self._sse_client = ShouldReconnectSeeClient(
+                        self._run_finished_url, self._should_reconnect,
+                        verify='/etc/ssl/certs',
+                        headers=headers, data=params)
 
                 except Exception as e:
                     logging.warning("Creating SSE connection failed: %s", e)
@@ -276,7 +285,7 @@ try:
                 self._sse_client.resp.close()
             else:
                 future = self._state_receive_executor.submit(self._start_sse_connection)
-                future.add_done_callback(_log_future_exception)
+                future.add_done_callback(self._log_future_exception_and_fallback)
 
         def shutdown(self, wait=True):
             self._shutdown = True
@@ -457,7 +466,7 @@ class WebInterface:
 
         return self._create_and_add_run_future(run_id)
 
-    def submit(self, run, limits, cpu_model, result_files_pattern=None, priority='IDLE', user_pwd=None, svn_branch=None, svn_revision=None):
+    def submit(self, run, limits, cpu_model, result_files_pattern, priority='IDLE', user_pwd=None, svn_branch=None, svn_revision=None):
         """
         Submits a single run to the VerifierCloud.
         @note: flush() should be called after the submission of the last run.
@@ -467,7 +476,7 @@ class WebInterface:
                                             identifier for error messages (run.identifier)
         @param limits: dict of limitations for the run (memlimit, timelimit, corelimit, softtimelimit)
         @param cpu_model: substring of CPU model to use or 'None' for no restriction
-        @param result_files_pattern: the result is filtered with the given glob pattern, defaults to no restriction
+        @param result_files_pattern: the result is filtered with the given glob pattern, '**' is no restriction and None or the empty string do not match any file.
         @param priority: the priority of the submitted run, defaults to 'IDLE'
         @param user_pwd: overrides the user name and password given in the constructor (optional)
         @param svn_branch: overrids the svn branch given in the constructor (optional)
@@ -491,7 +500,7 @@ class WebInterface:
                 params['propertyText'] = propertyText
 
         if MEMLIMIT in limits:
-            params['memoryLimitation'] = str(limits[MEMLIMIT]) + "MB"
+            params['memoryLimitation'] = limits[MEMLIMIT]
         if TIMELIMIT in limits:
             params['timeLimitation'] = limits[TIMELIMIT]
         if SOFTTIMELIMIT in limits:
@@ -505,6 +514,7 @@ class WebInterface:
             params['resultFilesPattern'] = result_files_pattern;
         else:
             params['resultFilesPattern'] = ''
+        
         if priority:
             params['priority'] = priority
 
@@ -549,6 +559,8 @@ class WebInterface:
         # TODO use code from CPAchecker module, it add -stats and sets -timelimit,
         # instead of doing it here manually, too
         options = []
+        specification_texts = []
+        
         if self._tool_name == "CPAchecker":
             options.append("statistics.print=true")
 
@@ -610,7 +622,7 @@ class WebInterface:
                             elif spec_path[-4:] == ".prp":
                                 params['propertyText'] = file_text
                             else:
-                                params['specificationText'] = file_text
+                                specification_texts.append(file_text)
 
                     elif option == "-config":
                         configPath = next(i)
@@ -634,6 +646,7 @@ class WebInterface:
                     break
 
         params['option'] = options
+        params['specificationText'] = specification_texts
         return None
 
     def flush_runs(self):
@@ -791,13 +804,20 @@ class WebInterface:
                 message = ""
                 if response.status == 401:
                     message = 'Error 401: Permission denied. Please check the URL given to --cloudMaster and specify credentials if necessary.'
+                
                 elif response.status == 404:
                     message = 'Error 404: Not found. Please check the URL given to --cloudMaster.'
+                    
                 elif response.status == 503:
                     message = 'Error 503: Service Unavailable.'
-                    sleep(60)
+                    if counter < 5:
+                        logging.debug(message)
+                        sleep(60)
+                        continue
+                    
                 else:
                     message += response.read().decode('UTF-8')
+                    
                 logging.warning(message)
                 raise urllib2.HTTPError(path, response.getcode(), message , response.getheaders(), None)
 
@@ -944,7 +964,3 @@ def _parse_cloud_file(file):
         values[key] = value
 
     return values
-
-def _log_future_exception(result):
-    if result.exception() is not None:
-        logging.warning('Error during result processing.', exc_info=True)

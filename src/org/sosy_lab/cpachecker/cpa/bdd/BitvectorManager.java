@@ -25,15 +25,14 @@ package org.sosy_lab.cpachecker.cpa.bdd;
 
 import java.math.BigInteger;
 
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
+import org.sosy_lab.cpachecker.util.predicates.regions.Region;
+import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 
 public class BitvectorManager {
 
   private final RegionManager rmgr;
 
-  public BitvectorManager(Configuration config, RegionManager pRmgr) {
+  public BitvectorManager(RegionManager pRmgr) {
     this.rmgr = pRmgr;
   }
 

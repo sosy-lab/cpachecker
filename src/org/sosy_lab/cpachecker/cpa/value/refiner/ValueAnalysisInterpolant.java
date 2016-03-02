@@ -33,12 +33,15 @@ import java.util.Set;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.refinement.Interpolant;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+
+import com.google.common.base.Optional;
 
 /**
  * This class represents a Value-Analysis interpolant, itself, just a mere wrapper around a map
@@ -81,8 +84,6 @@ public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState>
 
   /**
    * This method serves as factory method for an initial, i.e. an interpolant representing "true"
-   *
-   * @return
    */
   public static ValueAnalysisInterpolant createInitial() {
     return new ValueAnalysisInterpolant();
@@ -207,7 +208,10 @@ public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState>
       throw new IllegalStateException("Can't reconstruct state from FALSE-interpolant");
 
     } else {
-      return new ValueAnalysisState(PathCopyingPersistentTreeMap.copyOf(assignment), PathCopyingPersistentTreeMap.copyOf(assignmentTypes));
+      return new ValueAnalysisState(
+          Optional.<MachineModel>absent(),
+          PathCopyingPersistentTreeMap.copyOf(assignment),
+          PathCopyingPersistentTreeMap.copyOf(assignmentTypes));
     }
   }
 

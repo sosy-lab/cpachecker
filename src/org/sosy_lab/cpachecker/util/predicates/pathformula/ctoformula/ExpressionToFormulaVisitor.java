@@ -61,10 +61,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FloatingPointFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.FloatingPointFormula;
 import org.sosy_lab.solver.api.Formula;
@@ -177,33 +177,33 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
     switch (op) {
     case PLUS:
       if (!(promT1 instanceof CPointerType) && !(promT2 instanceof CPointerType)) { // Just an addition e.g. 6 + 7
-        ret = mgr.makePlus(f1, f2, signed);
+        ret = mgr.makePlus(f1, f2);
       } else if (!(promT2 instanceof CPointerType)) {
         // operand1 is a pointer => we should multiply the second summand by the size of the pointer target
         ret =  mgr.makePlus(f1, mgr.makeMultiply(f2,
                                                              getPointerTargetSizeLiteral((CPointerType) promT1,
-                                                             calculationType), false), signed);
+                                                             calculationType)));
       } else if (!(promT1 instanceof CPointerType)) {
         // operand2 is a pointer => we should multiply the first summand by the size of the pointer target
         ret =  mgr.makePlus(f2, mgr.makeMultiply(f1,
                                                              getPointerTargetSizeLiteral((CPointerType) promT2,
-                                                             calculationType), false), signed);
+                                                             calculationType)));
       } else {
         throw new UnrecognizedCCodeException("Can't add pointers", edge, exp);
       }
       break;
     case MINUS:
       if (!(promT1 instanceof CPointerType) && !(promT2 instanceof CPointerType)) { // Just a subtraction e.g. 6 - 7
-        ret =  mgr.makeMinus(f1, f2, signed);
+        ret =  mgr.makeMinus(f1, f2);
       } else if (!(promT2 instanceof CPointerType)) {
         // operand1 is a pointer => we should multiply the subtrahend by the size of the pointer target
         ret =  mgr.makeMinus(f1, mgr.makeMultiply(f2,
                                                               getPointerTargetSizeLiteral((CPointerType) promT1,
-                                                                                            calculationType), false), signed);
+                                                                                            calculationType)));
       } else if (promT1 instanceof CPointerType) {
         // Pointer subtraction => (operand1 - operand2) / sizeof (*operand1)
         if (promT1.equals(promT2)) {
-          ret = mgr.makeDivide(mgr.makeMinus(f1, f2, signed),
+          ret = mgr.makeDivide(mgr.makeMinus(f1, f2),
                                      getPointerTargetSizeLiteral((CPointerType) promT1, calculationType),
                                      true);
         } else {
@@ -214,7 +214,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
       }
       break;
     case MULTIPLY:
-      ret =  mgr.makeMultiply(f1, f2, signed);
+      ret =  mgr.makeMultiply(f1, f2);
       break;
     case DIVIDE:
       ret = mgr.makeDivide(f1, f2, signed);
@@ -265,7 +265,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
           result= mgr.makeLessOrEqual(f1, f2, signed);
           break;
         case EQUALS:
-          result= mgr.makeEqual(f1, f2);
+          result= handleEquals(exp, f1, f2);
           break;
         case NOT_EQUALS:
           result= conv.bfmgr.not(mgr.makeEqual(f1, f2));
@@ -293,6 +293,32 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
          : "Returntype and Formulatype do not match in visit(CBinaryExpression): " + exp;
 
     return castedResult;
+  }
+
+  private BooleanFormula handleEquals(CBinaryExpression exp, Formula f1, Formula f2)
+      throws UnrecognizedCCodeException {
+    assert exp.getOperator() == BinaryOperator.EQUALS;
+    CExpression e1 = exp.getOperand1();
+    CExpression e2 = exp.getOperand2();
+    if (e2.equals(CIntegerLiteralExpression.ZERO)
+        && e1 instanceof CBinaryExpression
+        && ((CBinaryExpression) e1).getOperator() == BinaryOperator.BINARY_OR) {
+      // This is code like "(a | b) == 0".
+      // According to LDV, GCC sometimes produces this during weaving,
+      // but for non-bitprecise analysis it can be handled in a better way as (a == 0) || (b == 0).
+      // TODO Maybe refactor AutomatonASTComparator into something generic
+      // and use this to match such cases.
+
+      final CBinaryExpression or = (CBinaryExpression) e1;
+      final Formula zero = f2;
+      final Formula a =
+          processOperand(or.getOperand1(), exp.getCalculationType(), exp.getExpressionType());
+      final Formula b =
+          processOperand(or.getOperand2(), exp.getCalculationType(), exp.getExpressionType());
+
+      return conv.bfmgr.and(mgr.makeEqual(a, zero), mgr.makeEqual(b, zero));
+    }
+    return mgr.makeEqual(f1, f2);
   }
 
   /**
@@ -449,13 +475,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
       operandFormula = conv.makeCast(t, promoted, operandFormula, constraints, edge);
       Formula ret;
       if (op == UnaryOperator.MINUS) {
-        final boolean signed;
-        if (promoted instanceof CSimpleType) {
-          signed = conv.machineModel.isSigned((CSimpleType)promoted);
-        } else {
-          signed = false;
-        }
-        ret = mgr.makeNegate(operandFormula, signed);
+        ret = mgr.makeNegate(operandFormula);
       } else {
         assert op == UnaryOperator.TILDE
               : "This case should be impossible because of switch";
@@ -520,7 +540,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
 
       } else if (conv.options.isExternModelFunction(functionName)) {
         ExternModelLoader loader = new ExternModelLoader(conv.typeHandler, conv.bfmgr, conv.fmgr);
-        BooleanFormula result = loader.handleExternModelFunction(e, parameters, ssa);
+        BooleanFormula result = loader.handleExternModelFunction(parameters, ssa);
         FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(e.getExpressionType());
         return conv.ifTrueThenOneElseZero(returnFormulaType, result);
 
@@ -573,7 +593,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
             FloatingPointFormula zero = mgr.getFloatingPointFormulaManager().makeNumber(0.0, (FormulaType.FloatingPointType)formulaType);
             BooleanFormula isNegative = mgr.makeLessThan(param, zero, true);
             return mgr.getBooleanFormulaManager().ifThenElse(isNegative,
-                mgr.makeNegate(param, true), param);
+                mgr.makeNegate(param), param);
           }
         }
 

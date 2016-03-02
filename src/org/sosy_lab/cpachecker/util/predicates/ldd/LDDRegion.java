@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.ldd;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
 
 public class LDDRegion implements Region {

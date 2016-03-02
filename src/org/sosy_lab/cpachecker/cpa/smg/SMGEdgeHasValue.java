@@ -106,7 +106,7 @@ public class SMGEdgeHasValue extends SMGEdge {
     return true;
   }
 
-  public boolean isCompatibleField(SMGEdgeHasValue other, MachineModel pModel) {
+  public boolean isCompatibleField(SMGEdgeHasValue other) {
     return type.equals(other.type) && (offset == other.offset);
   }
 

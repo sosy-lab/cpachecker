@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.threading;
 
 import java.util.Collection;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -103,9 +102,9 @@ public class ThreadingCPA implements ConfigurableProgramAnalysis, StatisticsProv
     Preconditions.checkNotNull(pNode);
     String mainThread = pNode.getFunctionName();
     ThreadingState ts = new ThreadingState();
-    return ts.addThreadAndCopy(mainThread, ThreadingState.MIN_THREAD_NUM, Pair.of(
+    return ts.addThreadAndCopy(mainThread, ThreadingState.MIN_THREAD_NUM,
             callstackCPA.getInitialState(pNode, pPartition),
-            locationCPA.getInitialState(pNode, pPartition)));
+            locationCPA.getInitialState(pNode, pPartition));
   }
 
   @Override

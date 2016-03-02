@@ -45,9 +45,8 @@ public interface Scope {
   public boolean isGlobalScope();
 
   /**
-   *
-   * @param name
-   * @return
+   * Checks if the given name is already used
+   * @param name the name to check
    */
   public boolean variableNameInUse(String name);
 

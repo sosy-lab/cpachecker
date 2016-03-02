@@ -29,7 +29,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -65,7 +64,7 @@ public class AndersenTransferRelation extends SingleEdgeTransferRelation {
 
   private final LogManager logger;
 
-  public AndersenTransferRelation(Configuration pConfig, LogManager pLogger) {
+  public AndersenTransferRelation(LogManager pLogger) {
     logger = pLogger;
   }
 
@@ -190,8 +189,6 @@ public class AndersenTransferRelation extends SingleEdgeTransferRelation {
    * @param pCfaEdge
   *          Corresponding edge of the CFA.
    * @return <code>element</code>'s successor.
-   *
-   * @throws UnrecognizedCCodeException
    */
   private AndersenState handleAssignmentTo(String pOp1, CRightHandSide pOp2, AndersenState pElement, CFAEdge pCfaEdge)
       throws UnrecognizedCCodeException {

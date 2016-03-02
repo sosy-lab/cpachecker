@@ -102,11 +102,11 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     final MemoryLocation memLoc;
 
     if (varName.getDeclaration() != null) {
-      memLoc = MemoryLocation.valueOf(varName.getDeclaration().getQualifiedName(), 0);
+      memLoc = MemoryLocation.valueOf(varName.getDeclaration().getQualifiedName());
     } else if (!ForwardingTransferRelation.isGlobal(varName)) {
-      memLoc = MemoryLocation.valueOf(getFunctionName(), varName.getName(), 0);
+      memLoc = MemoryLocation.valueOf(getFunctionName(), varName.getName());
     } else {
-      memLoc = MemoryLocation.valueOf(varName.getName(), 0);
+      memLoc = MemoryLocation.valueOf(varName.getName());
     }
 
     if (readableState.contains(memLoc)) {
@@ -163,7 +163,6 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
    * @param pMemberName the name of the member to return the memory location for
    * @param pStructType the type of the struct
    * @return the memory location of the struct member
-   * @throws UnrecognizedCCodeException
    */
   public MemoryLocation evaluateRelativeMemLocForStructMember(MemoryLocation pStartLocation,
       String pMemberName, CCompositeType pStructType) throws UnrecognizedCCodeException {
@@ -177,8 +176,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
   public MemoryLocation evaluateMemLocForArraySlot(
       final MemoryLocation pArrayStartLocation,
       final int pSlotNumber,
-      final CArrayType pArrayType
-  ) throws UnrecognizedCCodeException {
+      final CArrayType pArrayType) {
     MemoryLocationEvaluator locationEvaluator = new MemoryLocationEvaluator(this);
 
     return locationEvaluator.getArraySlotLocationFromArrayStart(pArrayStartLocation, pSlotNumber, pArrayType);
@@ -275,15 +273,15 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
         return null;
       }
 
+      long baseOffset = pStartLocation.isReference() ? pStartLocation.getOffset() : 0;
+
       if (pStartLocation.isOnFunctionStack()) {
 
-        return MemoryLocation.valueOf(pStartLocation.getFunctionName(),
-            pStartLocation.getIdentifier(),
-            pStartLocation.getOffset() + offset);
+        return MemoryLocation.valueOf(
+            pStartLocation.getFunctionName(), pStartLocation.getIdentifier(), baseOffset + offset);
       } else {
 
-        return MemoryLocation.valueOf(pStartLocation.getIdentifier(),
-            offset + pStartLocation.getOffset());
+        return MemoryLocation.valueOf(pStartLocation.getIdentifier(), baseOffset + offset);
       }
     }
 
@@ -328,20 +326,20 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     protected MemoryLocation getArraySlotLocationFromArrayStart(
         final MemoryLocation pArrayStartLocation,
         final int pSlotNumber,
-        final CArrayType pArrayType
-    ) throws UnrecognizedCCodeException {
+        final CArrayType pArrayType) {
 
       long typeSize = evv.getSizeof(pArrayType.getType());
       long offset = typeSize * pSlotNumber;
+      long baseOffset = pArrayStartLocation.isReference() ? pArrayStartLocation.getOffset() : 0;
 
       if (pArrayStartLocation.isOnFunctionStack()) {
 
-        return MemoryLocation.valueOf(pArrayStartLocation.getFunctionName(),
+        return MemoryLocation.valueOf(
+            pArrayStartLocation.getFunctionName(),
             pArrayStartLocation.getIdentifier(),
-            pArrayStartLocation.getOffset() + offset);
+            baseOffset + offset);
       } else {
-        return MemoryLocation.valueOf(pArrayStartLocation.getIdentifier(),
-            offset + pArrayStartLocation.getOffset());
+        return MemoryLocation.valueOf(pArrayStartLocation.getIdentifier(), baseOffset + offset);
       }
     }
 
@@ -349,15 +347,15 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     public MemoryLocation visit(CIdExpression idExp) throws UnrecognizedCCodeException {
 
       if (idExp.getDeclaration() != null) {
-        return MemoryLocation.valueOf(idExp.getDeclaration().getQualifiedName(), 0);
+        return MemoryLocation.valueOf(idExp.getDeclaration().getQualifiedName());
       }
 
       boolean isGlobal = ForwardingTransferRelation.isGlobal(idExp);
 
       if (isGlobal) {
-        return MemoryLocation.valueOf(idExp.getName(), 0);
+        return MemoryLocation.valueOf(idExp.getName());
       } else {
-        return MemoryLocation.valueOf(evv.getFunctionName(), idExp.getName(), 0);
+        return MemoryLocation.valueOf(evv.getFunctionName(), idExp.getName());
       }
     }
 

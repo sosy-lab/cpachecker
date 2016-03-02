@@ -47,7 +47,7 @@ public enum ISIOperator implements Operator<SimpleInterval, BigInteger, SimpleIn
      * this interval to the given value <code>pValue</code>.
      *
      * @param pFirstOperand the simple interval to add the big integer value to.
-     * @param pValue the value to add to any of the values of the first operand interval.
+     * @param pSecondOperand the value to add to any of the values of the first operand interval.
      * @return the interval of possible results from adding any value of
      * the first operand interval to the second operand big integer value.
      */

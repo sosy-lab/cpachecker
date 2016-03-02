@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathPosition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -137,14 +138,13 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
    * @param pCallstack the current call stack
    * @param pOffset offset of the state at where to start the current interpolation
    * @param pInputInterpolant the input interpolant
-   * @throws CPAException
    */
   @Override
   public I deriveInterpolant(
       final ARGPath pErrorPath,
       final CFAEdge pCurrentEdge,
       final Deque<S> pCallstack,
-      final int pOffset,
+      final PathPosition pOffset,
       final I pInputInterpolant
   ) throws CPAException, InterruptedException {
 
@@ -179,7 +179,7 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
       return interpolantManager.createInterpolant(initialSuccessor);
     }
 
-    ARGPath remainingErrorPath = pErrorPath.obtainSuffix(pOffset + 1);
+    ARGPath remainingErrorPath = pOffset.iterator().getSuffixExclusive();
 
     // if the remaining path, i.e., the suffix, is contradicting by itself, then return the TRUE
     // interpolant
@@ -190,7 +190,7 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
       return interpolantManager.getTrueInterpolant();
     }
 
-    for (MemoryLocation currentMemoryLocation : determineMemoryLocationsToInterpolateOn(pCurrentEdge, initialSuccessor)) {
+    for (MemoryLocation currentMemoryLocation : determineMemoryLocationsToInterpolateOn(initialSuccessor)) {
       shutdownNotifier.shutdownIfNecessary();
 
       // temporarily remove the value of the current memory location from the candidate
@@ -223,10 +223,7 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
    * This optimization was removed again in commit r16007 because the payoff did not justify
    * maintaining the code, esp. as other optimizations work equally well with less code.
    */
-  private Set<MemoryLocation> determineMemoryLocationsToInterpolateOn(
-      final CFAEdge pCurrentEdge,
-      final S candidateInterpolant
-  ) {
+  private Set<MemoryLocation> determineMemoryLocationsToInterpolateOn(final S candidateInterpolant) {
     return candidateInterpolant.getTrackedMemoryLocations();
   }
 
@@ -235,8 +232,6 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
    *
    * @param errorPath the error path to check.
    * @return true, if the given error path is contradicting in itself, else false
-   * @throws InterruptedException
-   * @throws CPAException
    */
   private boolean isSuffixContradicting(ARGPath errorPath)
       throws CPAException, InterruptedException {
@@ -256,10 +251,9 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
   /**
    * This method gets the initial successor, i.e. the state following the initial state.
    *
-   * @param initialState the initial state, i.e. the state represented by the input interpolant.
+   * @param pInitialState the initial state, i.e. the state represented by the input interpolant.
    * @param pInitialEdge the initial edge of the error path
    * @return the initial successor
-   * @throws CPAException
    */
   private Optional<S> getInitialSuccessor(
       final S pInitialState,
@@ -289,7 +283,6 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
    * @param remainingErrorPath the error path to check feasibility on
    * @param state the (pseudo) initial state
    * @return true, it the path is feasible, else false
-   * @throws CPAException
    */
   public boolean isRemainingPathFeasible(ARGPath remainingErrorPath, S state)
       throws CPAException, InterruptedException {

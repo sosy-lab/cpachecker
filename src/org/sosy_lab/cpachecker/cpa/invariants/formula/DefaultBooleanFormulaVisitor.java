@@ -33,7 +33,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  * formulae.
  * @param <ReturnType> the type of the visit return values.
  */
-public abstract class DefaultBooleanFormulaVisitor<ConstantType, ReturnType> implements BooleanFormulaVisitor<ConstantType, ReturnType> {
+abstract class DefaultBooleanFormulaVisitor<ConstantType, ReturnType> implements BooleanFormulaVisitor<ConstantType, ReturnType> {
 
   /**
    * Provides a generic visit method that can be applied to any invariants

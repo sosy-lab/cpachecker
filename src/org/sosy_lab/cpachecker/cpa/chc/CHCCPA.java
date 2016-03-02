@@ -32,7 +32,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -97,7 +96,7 @@ public class CHCCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
 
-  private CHCCPA(CFA cfa, Configuration config, LogManager logger)
+  private CHCCPA(Configuration config, LogManager logger)
     throws InvalidConfigurationException {
 
     config.inject(this);

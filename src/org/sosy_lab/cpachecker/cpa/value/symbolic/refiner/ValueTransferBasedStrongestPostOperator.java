@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisStrongestPostOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
@@ -211,11 +211,7 @@ public class ValueTransferBasedStrongestPostOperator
                                  pOperation,
                                  pPrecision);
 
-    if (strengthenResult == null) {
-      // nothing changed
-      return Optional.of(pValues);
-
-    } else if (isContradiction(strengthenResult)) {
+    if (isContradiction(strengthenResult)) {
       return Optional.absent();
 
     } else {

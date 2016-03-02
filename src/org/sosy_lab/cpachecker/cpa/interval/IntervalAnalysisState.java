@@ -39,12 +39,11 @@ import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.CheckTypesOfStringsUtil;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.IntegerFormulaManager;
 import org.sosy_lab.solver.api.NumeralFormula;
-import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 
 import com.google.common.base.Splitter;
 
@@ -78,7 +77,6 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
    *
    * @param intervals the intervals
    * @param referencesMap the reference counts
-   * @param previousState from the previous context
    */
   public IntervalAnalysisState(PersistentMap<String, Interval> intervals, PersistentMap<String, Integer> referencesMap) {
     this.intervals        = intervals;
@@ -136,7 +134,7 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
    *
    * @param variableName name of the variable
    * @param interval the interval to be assigned
-   * @param pThreshold threshold from property explicitAnalysis.threshold
+   * @param pThreshold threshold from property valueAnalysis.threshold
    * @return this
    */
   // see ExplicitState::assignConstant
@@ -454,7 +452,7 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
 
   @Override
   public BooleanFormula getFormulaApproximation(FormulaManagerView pMgr, PathFormulaManager pPfmgr) {
-    NumeralFormulaManagerView<IntegerFormula, IntegerFormula> nfmgr = pMgr.getIntegerFormulaManager();
+    IntegerFormulaManager nfmgr = pMgr.getIntegerFormulaManager();
     List<BooleanFormula> result = new ArrayList<>();
     for (Entry<String, Interval> entry : intervals.entrySet()) {
       Interval interval = entry.getValue();

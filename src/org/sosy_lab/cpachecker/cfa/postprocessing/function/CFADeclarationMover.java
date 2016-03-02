@@ -125,7 +125,7 @@ public class CFADeclarationMover {
       CFAEdge decl = it.next();
       CFANode middleNode = new CFANode(functionName);
       cfa.addNode(middleNode);
-      moveDeclEdgeToNewLocation((CDeclarationEdge)decl, actNode, middleNode, cfa);
+      moveDeclEdgeToNewLocation((CDeclarationEdge)decl, actNode, middleNode);
       actNode = middleNode;
     }
 
@@ -196,7 +196,7 @@ public class CFADeclarationMover {
     }
   }
 
-  private void moveDeclEdgeToNewLocation(CDeclarationEdge edge, CFANode pred, CFANode succ, MutableCFA cfa) {
+  private void moveDeclEdgeToNewLocation(CDeclarationEdge edge, CFANode pred, CFANode succ) {
     CDeclaration decl = edge.getDeclaration();
     if (!(decl instanceof CVariableDeclaration)) {
       throw new AssertionError("Only variable declaration edges should be moved!");
