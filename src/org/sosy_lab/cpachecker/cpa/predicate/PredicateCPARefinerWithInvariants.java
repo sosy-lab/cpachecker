@@ -56,7 +56,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathCounterTemplate;
-import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -72,13 +71,12 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantChecker;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
@@ -176,10 +174,6 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
       + " we fall back to the usual invariant generation with this option toggled,"
       + " otherwise interpolation is used")
   private boolean fallbackToInvGen = true;
-
-  @Option(secure=true, description="configuration file for bmc generation")
-  @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-  private Path bmcConfig = Paths.get("config/bmc-invgen.properties");
 
   @Option(secure=true, description="How often should generating invariants from"
       + " sliced prefixes with k-induction be tried?")
@@ -481,7 +475,7 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
 
       List<BooleanFormula> precisionIncrement = null;
       if (useKInduction) {
-        precisionIncrement = generateInductiveInvariants(allStatesTrace, abstractionStatesTrace);
+        precisionIncrement = findInvariantInterpolants(allStatesTrace, abstractionStatesTrace);
         totalInductiveRefinements.setNextValue(1);
       }
 
@@ -580,39 +574,23 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
     return loopFinder.getRelevantLoops().keySet();
   }
 
-  private List<BooleanFormula> generateInductiveInvariants(ARGPath pPath, List<ARGState> pAbstractionStatesTrace) throws CPAException, InterruptedException {
+  private List<BooleanFormula> findInvariantInterpolants(
+      ARGPath pPath, List<ARGState> pAbstractionStatesTrace)
+      throws CPAException, InterruptedException {
     InvCandidateGenerator candidateGenerator = new InvCandidateGenerator(pPath, from(pAbstractionStatesTrace)
                                                                                 .transform(EXTRACT_LOCATION)
                                                                                 .toList());
-    ReachedSetFactory reached;
+
     try {
-      reached = new ReachedSetFactory(config);
-
-      ShutdownManager invariantShutdown = ShutdownManager.createWithParent(shutdownNotifier);
-      ResourceLimitChecker limits = null;
-      if (!timeForInvariantGeneration.isEmpty()) {
-        WalltimeLimit l = WalltimeLimit.fromNowOn(timeForInvariantGeneration);
-        limits = new ResourceLimitChecker(invariantShutdown, Collections.<ResourceLimit>singletonList(l));
-        limits.start();
-      }
-
-      Configuration invariantConfig;
-      try {
-        invariantConfig = Configuration.builder().loadFromFile(bmcConfig).build();
-      } catch (IOException e) {
-        throw new InvalidConfigurationException("could not read configuration file for invariant generation: " + e.getMessage(), e);
-      }
-
-      KInductionInvariantGenerator invGen = KInductionInvariantGenerator.create(invariantConfig, logger, invariantShutdown, cfa, reached, candidateGenerator, false);
-
-      invGen.start(cfa.getMainFunction());
-      invGen.get(); // let invariant generator do the work
+      KInductionInvariantChecker invChecker =
+          new KInductionInvariantChecker(config, shutdownNotifier, logger, cfa, candidateGenerator);
+      invChecker.checkCandidates();
 
       List<BooleanFormula> invariants;
 
       if (candidateGenerator.hasFoundInvariants()) {
         // we do only want to use invariants that can be used to make the program safe
-        if ((!useStrongInvariantsOnly || invGen.isProgramSafe())) {
+        if (!useStrongInvariantsOnly || invChecker.isProgramSafe()) {
           invariants = candidateGenerator.retrieveConfirmedInvariants();
         } else {
           invariants = Collections.emptyList();
@@ -621,10 +599,6 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
       } else {
         logger.log(Level.INFO, "No invariants were found.");
         invariants = Collections.emptyList();
-      }
-
-      if (!timeForInvariantGeneration.isEmpty()) {
-        limits.cancel();
       }
 
       return invariants;

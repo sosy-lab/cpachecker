@@ -24,20 +24,27 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Predicates.in;
-import static com.google.common.base.Predicates.not;
+import static com.google.common.base.Predicates.*;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.AbstractLocationFormulaInvariant.makeLocationInvariant;
 
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
 
-import org.sosy_lab.common.ShutdownManager;
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -45,7 +52,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.NestedTimer;
 import org.sosy_lab.common.time.TimeSpan;
@@ -54,8 +60,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.StaticCandidateProvider;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantChecker;
 import org.sosy_lab.cpachecker.cpa.formulaslicing.InductiveWeakeningManager;
 import org.sosy_lab.cpachecker.cpa.formulaslicing.LoopTransitionFinder;
 import org.sosy_lab.cpachecker.cpa.formulaslicing.SemiCNFManager;
@@ -85,22 +90,13 @@ import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.api.ProverEnvironment.AllSatCallback;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 
-import java.io.IOException;
-import java.io.Writer;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 @Options(prefix = "cpa.predicate")
 public class PredicateAbstractionManager {
@@ -207,14 +203,6 @@ public class PredicateAbstractionManager {
   )
   private InductivePredicateStrategy inductivePredicateStrategy =
       InductivePredicateStrategy.WEAKENING;
-
-  @Option(
-    secure = true,
-    name = "abstraction.bmcConfig",
-    description = "configuration file for checking pathformulas with bmc on inductivity"
-  )
-  @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-  private Path bmcConfig = Paths.get("config/bmc-invgen.properties");
 
   @Option(secure=true, name = "abstraction.simplify",
       description="Simplify the abstraction formula that is stored to represent the state space. Helpful when debugging (formulas get smaller).")
@@ -428,8 +416,7 @@ public class PredicateAbstractionManager {
         // Calculate the set of predicates we still need to use for abstraction.
         predicates = from(predicates).filter(not(in(amgr.extractPredicates(abs)))).toSet();
 
-      } catch (
-          InterruptedException | IOException | InvalidConfigurationException | CPAException e) {
+      } catch (InterruptedException | InvalidConfigurationException | CPAException e) {
         // log the exception and skip finding the inductive part of the pathformula
         logger.logUserException(
             Level.INFO, e, "Skipping finding inductive part of pathformula due to an error.");
@@ -539,7 +526,7 @@ public class PredicateAbstractionManager {
   }
 
   private Region findPredsWithBMC(final CFANode pLocation, PathFormula pPathFormula)
-      throws InterruptedException, IOException, InvalidConfigurationException, CPAException {
+      throws InterruptedException, InvalidConfigurationException, CPAException {
 
     Pair<PathFormula, CFANode> cacheKey = Pair.of(pPathFormula, pLocation);
 
@@ -565,16 +552,10 @@ public class PredicateAbstractionManager {
                       }
                     }));
 
-    ReachedSetFactory reached;
-    reached = new ReachedSetFactory(config);
-    ShutdownManager invariantShutdown = ShutdownManager.createWithParent(shutdownNotifier);
-    Configuration invariantConfig = Configuration.builder().loadFromFile(bmcConfig).build();
-    KInductionInvariantGenerator invGen =
-        KInductionInvariantGenerator.create(
-            invariantConfig, logger, invariantShutdown, cfa, reached, candidateGenerator, false);
+    KInductionInvariantChecker invChecker =
+        new KInductionInvariantChecker(config, shutdownNotifier, logger, cfa, candidateGenerator);
+    invChecker.checkCandidates();
 
-    invGen.start(cfa.getMainFunction());
-    invGen.get();
     Set<CandidateInvariant> invariants = candidateGenerator.getConfirmedCandidates();
 
     Region inductivePart = rmgr.makeTrue();

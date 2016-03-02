@@ -206,10 +206,15 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
             pTargetLocationProvider));
   }
 
-  public static KInductionInvariantGenerator create(final Configuration pConfig,
-      final LogManager pLogger, final ShutdownManager pShutdownManager,
-      final CFA pCFA, final ReachedSetFactory pReachedSetFactory, CandidateGenerator candidateGenerator, boolean pAsync)
-          throws InvalidConfigurationException, CPAException {
+  static KInductionInvariantGenerator create(
+      final Configuration pConfig,
+      final LogManager pLogger,
+      final ShutdownManager pShutdownManager,
+      final CFA pCFA,
+      final ReachedSetFactory pReachedSetFactory,
+      CandidateGenerator candidateGenerator,
+      boolean pAsync)
+      throws InvalidConfigurationException, CPAException {
 
     return new KInductionInvariantGenerator(
             pConfig,

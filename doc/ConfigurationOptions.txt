@@ -1168,9 +1168,6 @@ cpa.predicate.abs.predicateOrdering.partitions = false
 # use caching of region to formula conversions
 cpa.predicate.abs.useCache = true
 
-# configuration file for checking pathformulas with bmc on inductivity
-cpa.predicate.abstraction.bmcConfig = "config/bmc-invgen.properties"
-
 # DEPRECATED: whether to use Boolean (false) or Cartesian (true) abstraction
 cpa.predicate.abstraction.cartesian = false
 
@@ -2227,6 +2224,14 @@ enabledanalysis.enablerCPA = PREDICATE
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
+
+# Configuration file for the K-Induction algorithm for checking candidates on
+# invariance.
+invariantChecker.kInductionConfig = "config/bmc-invgen.properties"
+
+# Timelimit for invariant generation which may be used during refinement.
+# (Use seconds or specify a unit; 0 for infinite)
+invariantChecker.timeForInvariantCheck = 0ns
 
 # adjust invariant generation conditions if supported by the analysis
 invariantGeneration.adjustConditions = false
