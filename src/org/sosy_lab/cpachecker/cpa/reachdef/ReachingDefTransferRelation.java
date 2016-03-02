@@ -33,6 +33,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
@@ -64,11 +65,11 @@ public class ReachingDefTransferRelation implements TransferRelation {
 
   private CFANode main;
 
-  private LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
   private final ShutdownNotifier shutdownNotifier;
 
   public ReachingDefTransferRelation(LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
-    logger = pLogger;
+    logger = new LogManagerWithoutDuplicates(pLogger);
     shutdownNotifier = pShutdownNotifier;
   }
 
@@ -198,7 +199,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
     } else if (statement instanceof CFunctionCallAssignmentStatement) {
       // handle function call on right hand side to external method
       left = ((CFunctionCallAssignmentStatement) statement).getLeftHandSide();
-      logger.log(Level.WARNING,
+      logger.logOnce(Level.WARNING,
           "Analysis may be unsound if external method redefines global variables",
           "or considers extra global variables.");
     } else {
@@ -213,7 +214,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
     varExtractor.resetWarning();
     String var = left.accept(varExtractor);
     if (varExtractor.getWarning() != null) {
-      logger.log(Level.WARNING, varExtractor.getWarning());
+      logger.logOnce(Level.WARNING, varExtractor.getWarning());
     }
 
     if (var == null) {
