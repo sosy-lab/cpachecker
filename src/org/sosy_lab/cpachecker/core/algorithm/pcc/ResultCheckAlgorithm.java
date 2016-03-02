@@ -64,7 +64,7 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
 
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
-      pOut.println("Time for Analysis:          " + analysisTimer);
+      pOut.println("Time for Verification:          " + analysisTimer);
       pOut.println("Time for Result Check:      " + checkTimer);
 
       if (checkTimer.getNumberOfIntervals() > 0) {
