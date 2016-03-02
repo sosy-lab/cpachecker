@@ -509,6 +509,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
       ExpressionTree<Object> locationInvariant = ExpressionTrees.getFalse();
 
       Set<InvariantsState> invStates = Sets.newHashSet();
+      boolean otherReportingStates = false;
 
       for (AbstractState locState : lazyLocationMapping.get(pLocation)) {
         ExpressionTree<Object> stateInvariant = ExpressionTrees.getTrue();
@@ -525,9 +526,12 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
               }
             }
             if (skip) {
+              stateInvariant = ExpressionTrees.getFalse();
               continue;
             }
             invStates.add(invState);
+          } else {
+            otherReportingStates = true;
           }
           stateInvariant =
               And.of(
@@ -538,6 +542,33 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
 
         locationInvariant = Or.of(locationInvariant, stateInvariant);
       }
+
+      if (!otherReportingStates && invStates.size() > 1) {
+        Set<InvariantsState> newInvStates = Sets.newHashSet();
+        for (InvariantsState a : invStates) {
+          boolean skip = false;
+          for (InvariantsState b : invStates) {
+            if (a != b && a.isLessOrEqual(b)) {
+              skip = true;
+              break;
+            }
+          }
+          if (!skip) {
+            newInvStates.add(a);
+          }
+        }
+        if (newInvStates.size() < invStates.size()) {
+          locationInvariant = ExpressionTrees.getFalse();
+          for (InvariantsState state : newInvStates) {
+            locationInvariant =
+                Or.of(
+                    locationInvariant,
+                    state.getFormulaApproximation(
+                        cfa.getFunctionHead(pLocation.getFunctionName()), pLocation));
+          }
+        }
+      }
+
       return locationInvariant;
     }
   }
