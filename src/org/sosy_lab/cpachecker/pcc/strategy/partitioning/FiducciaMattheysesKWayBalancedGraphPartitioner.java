@@ -38,7 +38,10 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.WeightedBalancedGraphPartitio
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedGraph;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.GlobalGraphPartitionerHeuristicFactory.GlobalPartitioningHeuristics;
-
+/**
+ * Implementation of a greedy FM/KL graph partitioning algorithm mainly based on
+ * the ideas in http://glaros.dtc.umn.edu/gkhome/node/82; For framework the option of a node cut applied as well
+ */
 @Options(prefix = "pcc.partitioning.kwayfm")
 public class FiducciaMattheysesKWayBalancedGraphPartitioner
     implements WeightedBalancedGraphPartitioner, PartitioningRefiner {

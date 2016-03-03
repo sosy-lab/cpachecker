@@ -47,7 +47,10 @@ import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedNode;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.GlobalGraphPartitionerHeuristicFactory.GlobalPartitioningHeuristics;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.MatchingGeneratorFactory.MatchingGenerators;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningRefinerFactory.RefinementHeuristics;
-
+/**
+ * Multilevel graph partitioning algorithm; Behavior: Coarsen down graph, compute initial partitioning, uncoarsen
+ * graph, remap partitioning, refine partitioning, ... Until partitioning on initially given graph is computed.
+ */
 @Options(prefix = "pcc.partitioning.multilevel")
 public class MultilevelBalancedGraphPartitioner implements WeightedBalancedGraphPartitioner {
 

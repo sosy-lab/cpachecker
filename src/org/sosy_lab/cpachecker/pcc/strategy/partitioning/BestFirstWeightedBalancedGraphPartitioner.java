@@ -47,6 +47,9 @@ import com.google.common.collect.Sets;
 /**
  * Compute a greedy graph partitioning in best-first-manner
  * Exploration order according to chosen evaluation function
+ * Mainly based on the GGGP algorithm described in
+ * http://www.cc.gatech.edu/~bader/COURSES/GATECH/CSE6140-Fall2007/papers/KK95a.pdf, with a modified best_improvment
+ *  evaluation function
  */
 @Options(prefix = "pcc.partitioning.bestfirst")
 public class BestFirstWeightedBalancedGraphPartitioner implements WeightedBalancedGraphPartitioner {
