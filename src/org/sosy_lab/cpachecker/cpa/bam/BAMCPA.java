@@ -139,13 +139,14 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
       }
 
       transfer = new BAMTransferRelationWithFixPointForRecursion(config, logger, this, wrappedProofChecker, data, pShutdownNotifier);
+      stop = new BAMStopOperatorForRecursion(pCpa.getStopOperator(), transfer);
     } else {
       transfer = new BAMTransferRelation(config, logger, this, wrappedProofChecker, data, pShutdownNotifier);
+      stop = new BAMStopOperator(pCpa.getStopOperator(), transfer);
     }
 
     prec = new BAMPrecisionAdjustment(pCpa.getPrecisionAdjustment(), data, transfer, logger);
     merge = new BAMMergeOperator(pCpa.getMergeOperator(), transfer);
-    stop = new BAMStopOperator(pCpa.getStopOperator(), transfer);
 
     stats = new BAMCPAStatistics(this, data, config, logger);
     heuristic = getPartitioningHeuristic();

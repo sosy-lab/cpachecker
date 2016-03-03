@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2016  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,29 +25,33 @@ package org.sosy_lab.cpachecker.cpa.bam;
 
 import java.util.Collection;
 
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 
-/** This stop-operator just forwards towards the wrapped stop-operator of the analysis. */
-public class BAMStopOperator implements StopOperator {
+/** This stop-operator just forwards towards the wrapped stop-operator of the analysis.
+ * Additionally, we never 'stop' at a function-call, because of the influence
+ * of the predecessor of the function-call in the 'rebuild'-step. */
+public class BAMStopOperatorForRecursion extends BAMStopOperator {
 
-  private final StopOperator wrappedStop;
-  private final BAMTransferRelation transfer;
-
-  public BAMStopOperator(StopOperator pWrappedStopOperator, BAMTransferRelation pTransfer) {
-    wrappedStop = pWrappedStopOperator;
-    transfer = pTransfer;
+  public BAMStopOperatorForRecursion(StopOperator pWrappedStopOperator,
+      BAMTransferRelation pTransfer) {
+    super(pWrappedStopOperator, pTransfer);
   }
 
   @Override
   public boolean stop(AbstractState pState, Collection<AbstractState> pReached, Precision pPrecision)
       throws CPAException, InterruptedException {
-    if (transfer.breakAnalysis) { return false; }
-    return wrappedStop.stop(pState, pReached, pPrecision);
+    // we never 'stop' at a function-call, because of the influence
+    // of the predecessor of the function-call in the 'rebuild'-step.
+    // example that might cause problems: BallRajamani-SPIN2000-Fig1_false-unreach-call.c
+    if (AbstractStates.extractLocation(pState) instanceof FunctionEntryNode) {
+      return false;
+    }
+    return super.stop(pState, pReached, pPrecision);
   }
-
-
 }
