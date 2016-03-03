@@ -94,6 +94,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -1004,7 +1005,7 @@ public class InvariantsState implements AbstractState,
                     ExpressionTree<String> asCode = pFormula.accept(new ToCodeFormulaVisitor(evaluationVisitor), getEnvironment());
                     return ExpressionTrees.cast(asCode);
                   }
-                }));
+                }).filter(Predicates.notNull()));
   }
 
   private FluentIterable<BooleanFormula<CompoundInterval>> getApproximationFormulas() {
