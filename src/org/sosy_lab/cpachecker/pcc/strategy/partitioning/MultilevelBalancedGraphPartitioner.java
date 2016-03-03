@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 
-import java.util.BitSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -38,6 +37,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.MatchingGenerator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PartitioningRefiner;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.WeightedBalancedGraphPartitioner;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedEdge;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedGraph;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedNode;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.GlobalGraphPartitionerHeuristicFactory.GlobalPartitioningHeuristics;
+import org.sosy_lab.cpachecker.pcc.strategy.partitioning.MatchingGeneratorFactory.MatchingGenerators;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningRefinerFactory.RefinementHeuristics;
 
 @Options(prefix = "pcc.partitioning.multilevel")
@@ -63,9 +64,14 @@ public class MultilevelBalancedGraphPartitioner implements WeightedBalancedGraph
       description = "Refinement method applied in multilevel heuristic's uncoarsening phase.")
   private RefinementHeuristics refinementHeuristic = RefinementHeuristics.FM_NODECUT;
 
+  @Option(
+      secure = true,
+      description = "Matching method applied to coarsen graph down in multilevel heuristic.")
+  private MatchingGenerators matchingGenerator=MatchingGenerators.HEAVY_EDGE;
 
   private final PartitioningRefiner refiner;
   private final WeightedBalancedGraphPartitioner globalPartitioner;
+  private final MatchingGenerator matcher;
 
   public MultilevelBalancedGraphPartitioner(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
@@ -75,6 +81,8 @@ public class MultilevelBalancedGraphPartitioner implements WeightedBalancedGraph
         globalHeuristic);
 
     refiner = PartitioningRefinerFactory.createRefiner(pConfig, pLogger, refinementHeuristic);
+    matcher=MatchingGeneratorFactory.createMatchingGenerator(pLogger, matchingGenerator);
+
 
   }
 
@@ -118,7 +126,7 @@ public class MultilevelBalancedGraphPartitioner implements WeightedBalancedGraph
     //Coarsen the graph
     while (wGraph.getNumNodes() > minGraphSize) {
       wGraph = levels.peek();
-      Map<Integer, Integer> matching = computeMatching(wGraph);
+      Map<Integer, Integer> matching = matcher.computeMatching(wGraph);
       matchings.push(matching);
       wGraph = createMatchedGraph(matching, wGraph);
       levels.push(wGraph);
@@ -162,60 +170,6 @@ public class MultilevelBalancedGraphPartitioner implements WeightedBalancedGraph
     }
   }
 
-  //TODO: Use Interface and factory here to compute matching via @OPTION
-  /**
-   * Compute a matching according to the chosen matching scheme
-   * @param wGraph Weighted graph to be matched
-   * @return a map from the old node to its corresponding new node
-   */
-  private Map<Integer, Integer> computeMatching(WeightedGraph wGraph) {
-    return computeRandomMatching(wGraph);
-  }
-
-  /**
-   * Computes a random maximal matching
-   * @param wGraph  the weighted graph a matching is computed on
-   * @return the computed matching  (Matching maps a node to its corresponding new node number!)
-   */
-  private Map<Integer, Integer> computeRandomMatching(WeightedGraph wGraph) {
-    Map<Integer, Integer> matching = new HashMap<>(wGraph.getNumNodes() / 2);
-    BitSet alreadyMatched = new BitSet(wGraph.getNumNodes());
-    int currentSuperNode = 0;
-
-    for (WeightedNode node : wGraph.randomIterator()) {//randomly iterate over nodes
-      int nodeNum = node.getNodeNumber();
-      if (!alreadyMatched.get(nodeNum)) {
-        boolean nodeMatched = false;
-        //Node wasn't matched, check if unmatched successor exists, take first one
-        //if no match-partner exists, node is lonely
-        for (WeightedEdge succEdge : wGraph.getOutgoingEdges(node)) {
-          WeightedNode succ = succEdge.getEndNode();
-          int succNum = succ.getNodeNumber();
-          if (!alreadyMatched.get(succNum)) {//match both
-            matching.put(nodeNum, currentSuperNode);
-            matching.put(succNum, currentSuperNode);
-            alreadyMatched.set(nodeNum);
-            alreadyMatched.set(succNum);
-            nodeMatched = true;
-            logger.log(Level.FINER,
-                String.format(
-                    "[Multilevel] Node %d and %d matched to supernode %d- matched weight %d",
-                    nodeNum, succNum, currentSuperNode, succEdge.getWeight()));
-            break;
-          }
-        }
-        if (!nodeMatched) {
-          matching.put(nodeNum, currentSuperNode);
-          alreadyMatched.set(nodeNum);
-          logger.log(Level.FINER,
-              String.format("[Multilevel] Node %d lonely: Supernode %d", nodeNum,
-                  currentSuperNode));
-        }
-        currentSuperNode++;
-      }
-    }
-    return matching;
-  }
 
   /**
    * Create a new graph on base of the given matching, i.e. contract edges, compute new node/edge weights
