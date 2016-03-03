@@ -38,10 +38,10 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;

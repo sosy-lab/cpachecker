@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -71,11 +72,15 @@ public abstract class AbstractLocationFormulaInvariant implements LocationFormul
   }
 
   @Override
-  public BooleanFormula getAssertion(Iterable<AbstractState> pReachedSet, FormulaManagerView pFMGR,
-      PathFormulaManager pPFMGR) throws CPATransferException, InterruptedException {
+  public BooleanFormula getAssertion(
+      Iterable<AbstractState> pReachedSet,
+      FormulaManagerView pFMGR,
+      PathFormulaManager pPFMGR,
+      int pDefaultIndex)
+      throws CPATransferException, InterruptedException {
     Iterable<AbstractState> locationStates = AbstractStates.filterLocations(pReachedSet, locations);
-    FluentIterable<BooleanFormula> assertions = FluentIterable.from(
-        BMCHelper.assertAt(locationStates, getFormula(pFMGR, pPFMGR), pFMGR));
+    FluentIterable<BooleanFormula> assertions =
+        FluentIterable.from(BMCHelper.assertAt(locationStates, this, pFMGR, pPFMGR, pDefaultIndex));
     return pFMGR.getBooleanFormulaManager().and(assertions.toList());
   }
 
@@ -93,40 +98,10 @@ public abstract class AbstractLocationFormulaInvariant implements LocationFormul
     return new AbstractLocationFormulaInvariant(pLocation) {
 
       @Override
-      public BooleanFormula getFormula(FormulaManagerView pFMGR, PathFormulaManager pPFMGR)
+      public BooleanFormula getFormula(
+          FormulaManagerView pFMGR, PathFormulaManager pPFMGR, PathFormula pContext)
           throws CPATransferException, InterruptedException {
         return pFMGR.getBooleanFormulaManager().makeBoolean(pValue);
-      }
-    };
-  }
-
-  public static LocationFormulaInvariant makeLocationInvariant(final CFANode pLocation, final BooleanFormula pInvariant) {
-    return new AbstractLocationFormulaInvariant(pLocation) {
-
-      /**
-       * Is the invariant known to be the boolean constant 'false'
-       */
-      private boolean isDefinitelyBooleanFalse = false;
-
-      @Override
-      public BooleanFormula getFormula(FormulaManagerView pFMGR, PathFormulaManager pPFMGR)
-          throws CPATransferException, InterruptedException {
-        if (!isDefinitelyBooleanFalse && pFMGR.getBooleanFormulaManager().isFalse(pInvariant)) {
-          isDefinitelyBooleanFalse = true;
-        }
-        return pInvariant;
-      }
-
-      @Override
-      public void assumeTruth(ReachedSet pReachedSet) {
-        if (isDefinitelyBooleanFalse) {
-          Iterable<AbstractState> targetStates =
-              Lists.newArrayList(AbstractStates.filterLocation(pReachedSet, pLocation));
-          pReachedSet.removeAll(targetStates);
-          for (ARGState s : from(targetStates).filter(ARGState.class)) {
-            s.removeFromARG();
-          }
-        }
       }
     };
   }
@@ -142,7 +117,8 @@ public abstract class AbstractLocationFormulaInvariant implements LocationFormul
       private final Map<FormulaManagerView, BooleanFormula> cachedFormulas = new HashMap<>();
 
       @Override
-      public BooleanFormula getFormula(FormulaManagerView pFMGR, PathFormulaManager pPFMGR)
+      public BooleanFormula getFormula(
+          FormulaManagerView pFMGR, PathFormulaManager pPFMGR, PathFormula pContext)
           throws CPATransferException, InterruptedException {
         BooleanFormula formula;
 

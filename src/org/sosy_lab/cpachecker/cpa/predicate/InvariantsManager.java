@@ -87,6 +87,7 @@ import org.sosy_lab.cpachecker.cpa.formulaslicing.LoopTransitionFinder;
 import org.sosy_lab.cpachecker.cpa.formulaslicing.SemiCNFManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
@@ -517,7 +518,10 @@ class InvariantsManager {
         // the last one will always be false, we don't need it here
         if (s != abstractionStatesTrace.get(abstractionStatesTrace.size() - 1)) {
           CFANode location = extractLocation(s);
-          BooleanFormula invariant = invSup.getInvariantFor(location, fmgr, pfmgr);
+          PredicateAbstractState pas =
+              AbstractStates.extractStateByType(s, PredicateAbstractState.class);
+          BooleanFormula invariant =
+              invSup.getInvariantFor(location, fmgr, pfmgr, pas.getPathFormula());
           invariants.add(Pair.of(invariant, location));
           logger.log(Level.ALL, "Precision increment for location", location, "is", invariant);
         }
@@ -713,7 +717,7 @@ class InvariantsManager {
                           @Override
                           public BooleanFormula apply(AbstractLocationFormulaInvariant pInput) {
                             try {
-                              return pInput.getFormula(fmgr, pfmgr);
+                              return pInput.getFormula(fmgr, pfmgr, null);
                             } catch (CPATransferException | InterruptedException e) {
                               // this should never happen, if it does we log
                               // the exception and return TRUE as invariant

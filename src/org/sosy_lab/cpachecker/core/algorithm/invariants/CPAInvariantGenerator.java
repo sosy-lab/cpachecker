@@ -84,6 +84,7 @@ import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.Or;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -480,7 +481,11 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     }
 
     @Override
-    public BooleanFormula getInvariantFor(CFANode pLocation, FormulaManagerView fmgr, PathFormulaManager pfmgr) {
+    public BooleanFormula getInvariantFor(
+        CFANode pLocation,
+        FormulaManagerView fmgr,
+        PathFormulaManager pfmgr,
+        PathFormula pContext) {
       BooleanFormulaManager bfmgr = fmgr.getBooleanFormulaManager();
       BooleanFormula invariant = bfmgr.makeBoolean(false);
 

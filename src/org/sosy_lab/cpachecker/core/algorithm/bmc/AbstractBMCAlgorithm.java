@@ -403,7 +403,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
 
   protected boolean boundedModelCheck(final ReachedSet pReachedSet, final ProverEnvironment pProver, CandidateInvariant pInductionProblem) throws CPATransferException, InterruptedException, SolverException {
-    BooleanFormula program = bfmgr.not(pInductionProblem.getAssertion(pReachedSet, fmgr, pmgr));
+    BooleanFormula program = bfmgr.not(pInductionProblem.getAssertion(pReachedSet, fmgr, pmgr, 0));
     logger.log(Level.INFO, "Starting satisfiability check...");
     stats.satCheck.start();
     pProver.push(program);
