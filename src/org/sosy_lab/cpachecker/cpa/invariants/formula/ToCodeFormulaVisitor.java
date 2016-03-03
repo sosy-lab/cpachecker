@@ -160,12 +160,46 @@ public class ToCodeFormulaVisitor
 
   @Override
   public String visit(Add<CompoundInterval> pAdd, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    String summand1 = pAdd.getSummand1().accept(this, pEnvironment);
-    String summand2 = pAdd.getSummand2().accept(this, pEnvironment);
-    if (summand1 == null || summand2 == null) {
+    NumeralFormula<CompoundInterval> summand1 = pAdd.getSummand1();
+    NumeralFormula<CompoundInterval> summand2 = pAdd.getSummand2();
+    String summand1Str = summand1.accept(this, pEnvironment);
+    String summand2Str = summand2.accept(this, pEnvironment);
+    if (summand1Str == null || summand2Str == null) {
       return evaluate(pAdd, pEnvironment);
     }
-    return "(" + summand1 + " + " + summand2 + ")";
+    NumeralFormula<CompoundInterval> negated = getNegated(summand1);
+    String negatedStr = negated == null ? null : negated.accept(this, pEnvironment);
+    if (negatedStr != null) {
+      return "(" + summand2Str + " - " + negatedStr + ")";
+    }
+    negated = getNegated(summand2);
+    negatedStr = negated == null ? null : negated.accept(this, pEnvironment);
+    if (negated != null) {
+      return "(" + summand1Str + " - " + negatedStr + ")";
+    }
+    return "(" + summand1Str + " + " + summand2Str + ")";
+  }
+
+  private NumeralFormula<CompoundInterval> getNegated(NumeralFormula<CompoundInterval> pFormula) {
+    if (!(pFormula instanceof Multiply)) {
+      return null;
+    }
+    Multiply<CompoundInterval> multiply = (Multiply<CompoundInterval>) pFormula;
+    if (multiply.getFactor1() instanceof Constant) {
+      Constant<CompoundInterval> constant = (Constant<CompoundInterval>) multiply.getFactor1();
+      CompoundInterval value = constant.getValue();
+      if (value.isSingleton() && value.contains(BigInteger.valueOf(-1))) {
+        return multiply.getFactor2();
+      }
+    }
+    if (multiply.getFactor2() instanceof Constant) {
+      Constant<CompoundInterval> constant = (Constant<CompoundInterval>) multiply.getFactor2();
+      CompoundInterval value = constant.getValue();
+      if (value.isSingleton() && value.contains(BigInteger.valueOf(-1))) {
+        return multiply.getFactor1();
+      }
+    }
+    return null;
   }
 
   @Override
@@ -225,6 +259,11 @@ public class ToCodeFormulaVisitor
     String factor2 = pMultiply.getFactor2().accept(this, pEnvironment);
     if (factor1 == null || factor2 == null) {
       return evaluate(pMultiply, pEnvironment);
+    }
+    NumeralFormula<CompoundInterval> negated = getNegated(pMultiply);
+    String negatedStr = negated == null ? null : negated.accept(this, pEnvironment);
+    if (negatedStr != null) {
+      return "(-" + negatedStr + ")";
     }
     return "(" + factor1 + " * " + factor2 + ")";
   }
