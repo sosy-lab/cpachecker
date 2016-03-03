@@ -1178,13 +1178,6 @@ cpa.predicate.abstraction.computation = BOOLEAN
 # dump the abstraction formulas if they took to long
 cpa.predicate.abstraction.dumpHardQueries = false
 
-# Identify the inductive predicates in the path formula and omit them
-cpa.predicate.abstraction.identifyInductivePredicates = false
-
-# How should the inductive part of the abstractionformula be computed?
-cpa.predicate.abstraction.identifyPredicateStrategy = WEAKENING
-  enum:     [WEAKENING, CNF_BMC]
-
 # Identify those predicates where the result is trivially known before
 # abstraction computation and omit them.
 cpa.predicate.abstraction.identifyTrivialPredicates = false
@@ -1487,23 +1480,11 @@ cpa.predicate.refinement.doAbstractionComputation = false
 # dump all interpolation problems
 cpa.predicate.refinement.dumpInterpolationProblems = false
 
-# Should the automata used for invariant generation be dumped to files?
-cpa.predicate.refinement.dumpInvariantGenerationAutomata = false
-
-# Where to dump the automata that are used to narrow the analysis used for
-# invariant generation.
-cpa.predicate.refinement.dumpInvariantGenerationAutomataFile = "invgen.%d.spc"
-
 # After each refinement, dump the newly found predicates.
 cpa.predicate.refinement.dumpPredicates = false
 
 # File name for the predicates dumped after refinements.
 cpa.predicate.refinement.dumpPredicatesFile = "refinement%04d-predicates.prec"
-
-# If k-induction fails to generate invariants we fall back to the usual
-# invariant generation with this option toggled, otherwise interpolation is
-# used
-cpa.predicate.refinement.fallbackToInvGen = true
 
 # apply deletion-filter to the abstract counterexample, to get a minimal set
 # of blocks, before applying interpolation-based refinement
@@ -1513,9 +1494,13 @@ cpa.predicate.refinement.getUsefulBlocks = false
 # infeasible prefix
 cpa.predicate.refinement.incrementalCexTraceCheck = false
 
-# How often should generating invariants from sliced prefixes with
-# k-induction be tried?
-cpa.predicate.refinement.kInductionTries = 3
+# Which strategy should be used for generating invariants, a comma separated
+# list can be specified. In case one strategy fails, the next one is used.
+cpa.predicate.refinement.invariantGenerationStrategy = Lists.newArrayList(InvariantGenerationStrategy.PF_INDUCTIVE_WEAKENING)
+
+# Where should the generated invariants (if there are some) be used?
+cpa.predicate.refinement.invariantUsageStrategy = ABSTRACTION_FORMULA
+  enum:     [REFINEMENT, ABSTRACTION_FORMULA, COMBINATION, NONE]
 
 # For differing errorpaths, the loop for which invariants should be generated
 # may still be the same, with this option you can set the maximal amount of
@@ -1600,11 +1585,6 @@ cpa.predicate.refinement.useBddInterpolantSimplification = false
 # good enough to refute a counterexample therefore the fallback is still
 # interpolation.
 cpa.predicate.refinement.useInvariantRefinement = false
-
-# Try to generate inductive invariants, by using sliced prefixs and check if
-# they are invariants. If this failes invariant generation via other CPAs
-# will be done or interpolation, depending on the option 'fallbackToInvGen'.
-cpa.predicate.refinement.useKInduction = true
 
 # Invariants that are not strong enough to refute the counterexample can be
 # ignored with this option. (Weak invariants will lead to repeated
@@ -2500,6 +2480,28 @@ precision.variableBlacklist = ""
 # whitelist regex for variables that will always be tracked by the CPA using
 # this precision
 precision.variableWhitelist = ""
+
+# Should the automata used for invariant generation be dumped to files?
+predicate.invariants.dumpInvariantGenerationAutomata = false
+
+# Where to dump the automata that are used to narrow the analysis used for
+# invariant generation.
+predicate.invariants.dumpInvariantGenerationAutomataFile = "invgen.%d.spc"
+
+# How often should generating invariants from sliced prefixes with
+# k-induction be tried?
+predicate.invariants.kInductionTries = 3
+
+# Timelimit for invariant generation which may be used during refinement.
+# (Use seconds or specify a unit; 0 for infinite)
+predicate.invariants.timeForInvariantGeneration = 0ns
+
+# Invariants that are not strong enough to refute the counterexample can be
+# ignored with this option. (Weak invariants will lead to repeated
+# counterexamples, thus taking time which could be used for the rest of the
+# analysis, however, the found invariants may also be better for loops as
+# interpolation.)
+predicate.invariants.useStrongInvariantsOnly = true
 
 # List of property files (INTERNAL USAGE ONLY - DO NOT USE)
 properties = []

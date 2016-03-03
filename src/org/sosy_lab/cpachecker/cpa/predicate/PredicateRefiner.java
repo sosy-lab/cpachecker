@@ -99,6 +99,7 @@ public abstract class PredicateRefiner implements Refiner {
     MachineModel machineModel = predicateCpa.getMachineModel();
     Optional<LoopStructure> loopStructure = predicateCpa.getCfa().getLoopStructure();
     Optional<VariableClassification> variableClassification = predicateCpa.getCfa().getVarClassification();
+    PrefixProvider prefixProvider = predicateCpa.getPrefixProvider();
 
     InterpolationManager manager = new InterpolationManager(
         pfmgr,
@@ -116,8 +117,6 @@ public abstract class PredicateRefiner implements Refiner {
         machineModel,
         pfmgr,
         solver);
-
-    PrefixProvider prefixProvider = new PredicateBasedPrefixProvider(config, logger, solver, pfmgr);
 
     PredicateRefinerOptions refinementOptions = new PredicateRefinerOptions(config);
     if (refinementOptions.useInvariantRefinement) {

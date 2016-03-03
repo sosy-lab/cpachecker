@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import org.sosy_lab.solver.SolverException;
 
 import com.google.common.base.Optional;
@@ -133,6 +134,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicateAssumeStore assumesStore;
   private final AbstractionManager abstractionManager;
   private final InvariantGenerator invariantGenerator;
+  private final PrefixProvider prefixProvider;
+  private final InvariantsManager invariantsManager;
 
   protected PredicateCPA(Configuration config, LogManager logger,
       BlockOperator blk, CFA pCfa, ShutdownNotifier pShutdownNotifier)
@@ -176,6 +179,9 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
     assumesStore = new PredicateAssumeStore(formulaManager);
 
+    prefixProvider = new PredicateBasedPrefixProvider(config, logger, solver, pathFormulaManager);
+    invariantsManager = new InvariantsManager(this);
+
     predicateManager =
         new PredicateAbstractionManager(
             abstractionManager,
@@ -185,7 +191,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
             config,
             logger,
             pShutdownNotifier,
-            cfa);
+            invariantsManager.asRegionInvariantsSupplier());
 
     transfer = new PredicateTransferRelation(this, blk, config, direction, cfa);
 
@@ -288,6 +294,10 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return staticRefiner;
   }
 
+  public PrefixProvider getPrefixProvider() {
+    return prefixProvider;
+  }
+
   @Override
   public PredicateAbstractState getInitialState(CFANode node, StateSpacePartition pPartition) {
     prec.setInitialLocation(node);
@@ -359,5 +369,9 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   public AbstractionManager getAbstractionManager() {
     return abstractionManager;
+  }
+
+  public InvariantsManager getInvariantsManager() {
+    return invariantsManager;
   }
 }
