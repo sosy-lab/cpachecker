@@ -26,37 +26,42 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
-import java.util.Arrays;
-import java.util.List;
+import com.google.common.base.Function;
 
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
-import org.sosy_lab.solver.api.FunctionFormulaManager;
-import org.sosy_lab.solver.api.UfDeclaration;
+import org.sosy_lab.solver.api.FunctionDeclaration;
+import org.sosy_lab.solver.api.FunctionDeclarationKind;
+import org.sosy_lab.solver.api.UFManager;
 
-import com.google.common.base.Function;
+import java.util.Arrays;
+import java.util.List;
 
 
-public class FunctionFormulaManagerView extends BaseManagerView implements FunctionFormulaManager {
+public class FunctionFormulaManagerView extends BaseManagerView implements UFManager {
 
-  private final FunctionFormulaManager manager;
+  private final UFManager manager;
 
   FunctionFormulaManagerView(FormulaWrappingHandler pWrappingHandler,
-      FunctionFormulaManager pManager) {
+      UFManager pManager) {
     super(pWrappingHandler);
     this.manager = pManager;
   }
 
-  private static class ReplaceUninterpretedFunctionDeclaration<T extends Formula> extends UfDeclaration<T> {
+  private static class ReplaceUninterpretedFunctionDeclaration<T extends Formula> implements
+                                                                                  FunctionDeclaration<T> {
 
-    private final UfDeclaration<?> wrapped;
+    private final FunctionDeclaration<?> wrapped;
+    private final FormulaType<T> returnType;
+    private final List<FormulaType<?>> argumentTypes;
 
     ReplaceUninterpretedFunctionDeclaration(
-        UfDeclaration<?> wrapped,
+        FunctionDeclaration<?> wrapped,
         FormulaType<T> pReturnType,
         List<FormulaType<?>> pArgumentTypes) {
-      super(pReturnType, pArgumentTypes);
       this.wrapped = checkNotNull(wrapped);
+      returnType = pReturnType;
+      argumentTypes = pArgumentTypes;
     }
 
     @Override
@@ -77,29 +82,49 @@ public class FunctionFormulaManagerView extends BaseManagerView implements Funct
 
       return wrapped.equals(other.wrapped);
     }
+
+    @Override
+    public FunctionDeclarationKind getKind() {
+      return FunctionDeclarationKind.UF;
+    }
+
+    @Override
+    public String getName() {
+      return wrapped.getName();
+    }
+
+    @Override
+    public FormulaType<T> getType() {
+      return returnType;
+    }
+
+    @Override
+    public List<FormulaType<?>> getArgumentTypes() {
+      return argumentTypes;
+    }
   }
 
   @Override
-  public <T extends Formula> UfDeclaration<T> declareUninterpretedFunction(
+  public <T extends Formula> FunctionDeclaration<T> declareUF(
       String pName, FormulaType<T> pReturnType, List<FormulaType<?>> pArgs) {
     List<FormulaType<?>> newArgs = unwrapType(pArgs);
     FormulaType<?> ret = unwrapType(pReturnType);
-    UfDeclaration<?> func = manager.declareUninterpretedFunction(pName, ret, newArgs);
+    FunctionDeclaration<?> func = manager.declareUF(pName, ret, newArgs);
 
     return new ReplaceUninterpretedFunctionDeclaration<>(func, pReturnType, pArgs);
   }
 
   @Override
-  public <T extends Formula> UfDeclaration<T> declareUninterpretedFunction(
+  public <T extends Formula> FunctionDeclaration<T> declareUF(
       String pName, FormulaType<T> pReturnType, FormulaType<?>... pArgs) {
-    return declareUninterpretedFunction(pName, pReturnType, Arrays.asList(pArgs));
+    return declareUF(pName, pReturnType, Arrays.asList(pArgs));
   }
 
 
   public <T extends Formula> T declareAndCallUninterpretedFunction(
       String pName, int idx, FormulaType<T> pReturnType, List<Formula> pArgs) {
     String name = FormulaManagerView.makeName(pName, idx);
-    return declareAndCallUninterpretedFunction(name, pReturnType, pArgs);
+    return declareAndCallUF(name, pReturnType, pArgs);
   }
 
   public <T extends Formula> T declareAndCallUninterpretedFunction(
@@ -109,7 +134,7 @@ public class FunctionFormulaManagerView extends BaseManagerView implements Funct
 
 
   @Override
-  public <T extends Formula> T declareAndCallUninterpretedFunction(
+  public <T extends Formula> T declareAndCallUF(
       String name, FormulaType<T> pReturnType, List<Formula> pArgs) {
 
     List<FormulaType<?>> argTypes = from(pArgs).
@@ -121,30 +146,30 @@ public class FunctionFormulaManagerView extends BaseManagerView implements Funct
             }}).toList();
 
 
-    UfDeclaration<T> func = declareUninterpretedFunction(name, pReturnType, argTypes);
-    return callUninterpretedFunction(func, pArgs);
+    FunctionDeclaration<T> func = declareUF(name, pReturnType, argTypes);
+    return callUF(func, pArgs);
   }
 
-  public <T extends Formula> T declareAndCallUninterpretedFunction(
+  public <T extends Formula> T declareAndCallUF(
       String pName, FormulaType<T> pReturnType, Formula... pArgs) {
-    return declareAndCallUninterpretedFunction(pName, pReturnType, Arrays.asList(pArgs));
+    return declareAndCallUF(pName, pReturnType, Arrays.asList(pArgs));
   }
 
 
   @Override
-  public <T extends Formula> T callUninterpretedFunction(
-      UfDeclaration<T> pFuncType, List<? extends Formula> pArgs) {
+  public <T extends Formula> T callUF(
+      FunctionDeclaration<T> pFuncType, List<? extends Formula> pArgs) {
 
     ReplaceUninterpretedFunctionDeclaration<T> rep = (ReplaceUninterpretedFunctionDeclaration<T>)pFuncType;
 
-    Formula f = manager.callUninterpretedFunction(rep.wrapped, unwrap(pArgs));
+    Formula f = manager.callUF(rep.wrapped, unwrap(pArgs));
 
-    return wrap(pFuncType.getReturnType(), f);
+    return wrap(pFuncType.getType(), f);
   }
 
   @Override
-  public <T extends Formula> T callUninterpretedFunction(
-      UfDeclaration<T> pFuncType, Formula... pArgs) {
-    return callUninterpretedFunction(pFuncType, Arrays.asList(pArgs));
+  public <T extends Formula> T callUF(
+      FunctionDeclaration<T> pFuncType, Formula... pArgs) {
+    return callUF(pFuncType, Arrays.asList(pArgs));
   }
 }

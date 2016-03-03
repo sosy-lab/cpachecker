@@ -24,24 +24,15 @@
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
-import java.io.IOException;
-import java.math.BigInteger;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -84,11 +75,21 @@ import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
 import org.sosy_lab.solver.visitors.FormulaVisitor;
 import org.sosy_lab.solver.visitors.TraversalProcess;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
+import java.io.IOException;
+import java.math.BigInteger;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
 
 /**
  * This class is the central entry point for all formula creation
@@ -161,7 +162,7 @@ public class FormulaManagerView {
     manager = checkNotNull(pFormulaManager);
     wrappingHandler = new FormulaWrappingHandler(manager, encodeBitvectorAs, encodeFloatAs);
     booleanFormulaManager = new BooleanFormulaManagerView(wrappingHandler, manager.getBooleanFormulaManager());
-    functionFormulaManager = new FunctionFormulaManagerView(wrappingHandler, manager.getFunctionFormulaManager());
+    functionFormulaManager = new FunctionFormulaManagerView(wrappingHandler, manager.getUFManager());
 
     final BitvectorFormulaManager rawBitvectorFormulaManager = getRawBitvectorFormulaManager(config);
     final FloatingPointFormulaManager rawFloatingPointFormulaManager = getRawFloatingPointFormulaManager();
@@ -208,7 +209,7 @@ public class FormulaManagerView {
       rawBitvectorFormulaManager = new ReplaceBitvectorWithNumeralAndFunctionTheory<>(wrappingHandler,
           manager.getBooleanFormulaManager(),
           getIntegerFormulaManager0(),
-          manager.getFunctionFormulaManager(),
+          manager.getUFManager(),
           new ReplaceBitvectorEncodingOptions(config));
       break;
     case RATIONAL:
@@ -225,7 +226,7 @@ public class FormulaManagerView {
       rawBitvectorFormulaManager = new ReplaceBitvectorWithNumeralAndFunctionTheory<>(wrappingHandler,
           manager.getBooleanFormulaManager(),
           rmgr,
-          manager.getFunctionFormulaManager(),
+          manager.getUFManager(),
           new ReplaceBitvectorEncodingOptions(config));
       break;
     case FLOAT:
@@ -255,7 +256,7 @@ public class FormulaManagerView {
       break;
     case INTEGER:
       rawFloatingPointFormulaManager = new ReplaceFloatingPointWithNumeralAndFunctionTheory<>(
-          wrappingHandler, getIntegerFormulaManager0(), manager.getFunctionFormulaManager(),
+          wrappingHandler, getIntegerFormulaManager0(), manager.getUFManager(),
           manager.getBooleanFormulaManager());
       break;
     case RATIONAL:
@@ -270,7 +271,7 @@ public class FormulaManagerView {
             e);
       }
       rawFloatingPointFormulaManager = new ReplaceFloatingPointWithNumeralAndFunctionTheory<>(
-          wrappingHandler, rmgr, manager.getFunctionFormulaManager(),
+          wrappingHandler, rmgr, manager.getUFManager(),
           manager.getBooleanFormulaManager());
       break;
     case BITVECTOR:
@@ -1030,8 +1031,7 @@ public class FormulaManagerView {
 
       @Override
       public Void visitFunction(Formula f, List<Formula> args,
-          FunctionDeclaration decl,
-          Function<List<Formula>, Formula> newApplicationConstructor) {
+          FunctionDeclaration<?> decl) {
 
         boolean allArgumentsTransformed = true;
 
@@ -1059,14 +1059,14 @@ public class FormulaManagerView {
           Formula out;
           if (decl.getKind() == FunctionDeclarationKind.UF) {
 
-            out = functionFormulaManager.declareAndCallUninterpretedFunction(
+            out = functionFormulaManager.declareAndCallUF(
                 pRenameFunction.apply(decl.getName()),
                 getFormulaType(f),
                 newArgs
             );
 
           } else {
-            out = newApplicationConstructor.apply(newArgs);
+            out = manager.makeApplication(decl, newArgs);
           }
           pCache.put(f, out);
         }
@@ -1133,7 +1133,7 @@ public class FormulaManagerView {
       }
 
       @Override
-      public TraversalProcess visitAtom(BooleanFormula atom, FunctionDeclaration decl) {
+      public TraversalProcess visitAtom(BooleanFormula atom, FunctionDeclaration<BooleanFormula> decl) {
         if (splitArithEqualities && myIsPurelyArithmetic(atom)) {
           result.addAll(extractAtoms(splitNumeralEqualityIfPossible(atom).get(0), false));
         }
@@ -1203,7 +1203,7 @@ public class FormulaManagerView {
       public TraversalProcess visitFunction(
           Formula f,
           List<Formula> args,
-          FunctionDeclaration decl, Function<List<Formula>, Formula> constructor) {
+          FunctionDeclaration<?> decl) {
         if (decl.getKind() == FunctionDeclarationKind.UF) {
           isPurelyAtomic.set(false);
           return TraversalProcess.ABORT;
@@ -1248,7 +1248,7 @@ public class FormulaManagerView {
             return false;
           }
           @Override public Boolean visitAtom(BooleanFormula atom,
-              FunctionDeclaration decl) {
+              FunctionDeclaration<BooleanFormula> decl) {
             return !containsIfThenElse(atom);
           }
         };
@@ -1261,7 +1261,7 @@ public class FormulaManagerView {
       @Override public Boolean visitConstant(boolean constantValue) {
         return true;
       }
-      @Override public Boolean visitAtom(BooleanFormula atom, FunctionDeclaration decl) {
+      @Override public Boolean visitAtom(BooleanFormula atom, FunctionDeclaration<BooleanFormula> decl) {
         return !containsIfThenElse(atom);
       }
       @Override public Boolean visitNot(BooleanFormula operand) {
@@ -1291,8 +1291,7 @@ public class FormulaManagerView {
       public TraversalProcess visitFunction(
           Formula f,
           List<Formula> args,
-          FunctionDeclaration decl,
-          Function<List<Formula>, Formula> constructor) {
+          FunctionDeclaration<?> decl) {
         if (decl.getKind() == FunctionDeclarationKind.ITE) {
           containsITE.set(true);
           return TraversalProcess.ABORT;
@@ -1335,8 +1334,7 @@ public class FormulaManagerView {
       public TraversalProcess visitFunction(
           Formula f,
           List<Formula> args,
-          FunctionDeclaration decl,
-          Function<List<Formula>, Formula> constructor) {
+          FunctionDeclaration<?> decl) {
         if (decl.getKind() == FunctionDeclarationKind.UF
             && decl.getName().equals(BitwiseAndUfName)) {
           andFound.set(true);
@@ -1515,8 +1513,7 @@ public class FormulaManagerView {
             public Optional<Triple<BooleanFormula, T, T>> visitFunction(
                 Formula f,
                 List<Formula> args,
-                FunctionDeclaration functionDeclaration,
-                Function<List<Formula>, Formula> newApplicationConstructor) {
+                FunctionDeclaration<?> functionDeclaration) {
               if (functionDeclaration.getKind() == FunctionDeclarationKind.ITE) {
                 assert args.size() == 3;
                 BooleanFormula cond = (BooleanFormula)args.get(0);

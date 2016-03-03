@@ -1,6 +1,5 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -239,8 +238,7 @@ public class FormulaLinearizationManager {
       @Override
       public TraversalProcess visitFunction(Formula f,
           List<Formula> args,
-          FunctionDeclaration decl,
-          Function<List<Formula>, Formula> newApplicationConstructor) {
+          FunctionDeclaration<?> decl) {
         if (decl.getKind() == FunctionDeclarationKind.UF) {
           UFs.put(decl.getName(), Pair.of(f, args));
 
