@@ -28,6 +28,9 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
@@ -51,11 +54,27 @@ public class ToCodeFormulaVisitor
             Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>>,
             ExpressionTree<String>> {
 
+  private static final CSimpleType[] TYPES = new CSimpleType[] {
+    CNumericTypes.CHAR,
+    CNumericTypes.SIGNED_CHAR,
+    CNumericTypes.UNSIGNED_CHAR,
+    CNumericTypes.SHORT_INT,
+    CNumericTypes.UNSIGNED_SHORT_INT,
+    CNumericTypes.INT,
+    CNumericTypes.SIGNED_INT,
+    CNumericTypes.UNSIGNED_INT,
+    CNumericTypes.LONG_INT,
+    CNumericTypes.UNSIGNED_LONG_INT,
+    CNumericTypes.LONG_LONG_INT,
+    CNumericTypes.UNSIGNED_LONG_LONG_INT};
+
   /**
    * The formula evaluation visitor used to evaluate compound state invariants
    * formulae to compound states.
    */
   private final FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor;
+
+  private final MachineModel machineModel;
 
   /**
    * Creates a new visitor for converting compound state invariants formulae to
@@ -63,9 +82,29 @@ public class ToCodeFormulaVisitor
    *
    * @param pEvaluationVisitor the formula evaluation visitor used to evaluate
    * compound state invariants formulae to compound states.
+   * @param pMachineModel the machine model used to find the cast types.
    */
-  public ToCodeFormulaVisitor(FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
+  public ToCodeFormulaVisitor(FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor, MachineModel pMachineModel) {
     this.evaluationVisitor = pEvaluationVisitor;
+    this.machineModel = pMachineModel;
+  }
+
+  private CSimpleType determineType(BitVectorInfo pBitVectorInfo) {
+    int sizeOfChar = machineModel.getSizeofCharInBits();
+    int size = pBitVectorInfo.getSize();
+    boolean isSigned = pBitVectorInfo.isSigned();
+    if (pBitVectorInfo.getSize() == sizeOfChar) {
+      if (machineModel.isDefaultCharSigned() == isSigned) {
+        return CNumericTypes.CHAR;
+      }
+    }
+    for (CSimpleType type : TYPES) {
+      if (machineModel.isSigned(type) == isSigned
+          && machineModel.getSizeof(type) * sizeOfChar >= size) {
+        return type;
+      }
+    }
+    return CNumericTypes.INT;
   }
 
   /**
@@ -221,8 +260,8 @@ public class ToCodeFormulaVisitor
     if (sourceSize == targetSize || sourceFormula == null) {
       return sourceFormula;
     }
-    // TODO correct casts
-    return sourceFormula;
+    CSimpleType castType = determineType(targetInfo);
+    return String.format("(%s) %s", castType, sourceFormula);
   }
 
   @Override

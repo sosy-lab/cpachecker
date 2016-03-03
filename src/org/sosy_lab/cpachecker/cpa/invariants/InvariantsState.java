@@ -1002,7 +1002,7 @@ public class InvariantsState implements AbstractState,
 
                   @Override
                   public ExpressionTree<Object> apply(BooleanFormula<CompoundInterval> pFormula) {
-                    ExpressionTree<String> asCode = pFormula.accept(new ToCodeFormulaVisitor(evaluationVisitor), getEnvironment());
+                    ExpressionTree<String> asCode = pFormula.accept(new ToCodeFormulaVisitor(evaluationVisitor, machineModel), getEnvironment());
                     return ExpressionTrees.cast(asCode);
                   }
                 }).filter(Predicates.notNull()));
