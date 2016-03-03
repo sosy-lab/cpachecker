@@ -102,6 +102,12 @@ public class FunctionFormulaManagerView extends BaseManagerView implements UFMan
     public List<FormulaType<?>> getArgumentTypes() {
       return argumentTypes;
     }
+
+    @Override
+    public String toString() {
+      return String.format("ReplacementUF(%s :: %s --> %s)",
+          wrapped, argumentTypes, returnType);
+    }
   }
 
   @Override
