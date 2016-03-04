@@ -332,7 +332,6 @@ public final class MultiPropertyAnalysisFullReset implements MultiPropertyAlgori
       Preconditions.checkArgument(initialReached.getWaitlist().size() == 1);
 
       final Partitioning noPartitioning = Partitions.none();
-      Partitioning remainingPartitions = Partitions.none();
       Partitioning checkPartitions;
       Partitioning lastPartitioning;
 
@@ -344,7 +343,7 @@ public final class MultiPropertyAnalysisFullReset implements MultiPropertyAlgori
       }
 
       // Initialize the waitlist
-      initAnalysisAndReached(checkPartitions, all);
+      Partitioning remainingPartitions = initAnalysisAndReached(checkPartitions, all);
 
       // Initialize the check for resource limits
       initAndStartLimitChecker(checkPartitions, checkPartitions.getPartitionBudgeting());

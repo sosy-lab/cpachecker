@@ -353,7 +353,6 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
       Preconditions.checkArgument(pReachedSet.getWaitlist().size() == 1);
 
       final Partitioning noPartitioning = Partitions.none();
-      Partitioning remainingPartitions = Partitions.none();
       Partitioning checkPartitions;
       Partitioning lastPartitioning;
 
@@ -368,7 +367,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
       initAndStartLimitChecker(checkPartitions, checkPartitions.getPartitionBudgeting());
 
       // Initialize the waitlist
-      initReached(pReachedSet, checkPartitions, all);
+      Partitioning remainingPartitions = initReached(pReachedSet, checkPartitions, all);
 
       do {
         final Set<Property> runProperties = Sets.difference(all, getInactiveProperties(pReachedSet));
