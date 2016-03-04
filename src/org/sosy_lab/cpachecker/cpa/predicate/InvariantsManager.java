@@ -177,35 +177,33 @@ class InvariantsManager {
   @Option(
     secure = true,
     description =
-        "Timelimit for invariant generation which may be"
-            + " used during refinement.\n"
+        "Timelimit for invariant generation which may be used during refinement.\n"
             + "(Use seconds or specify a unit; 0 for infinite)"
   )
   @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = 0)
-  private TimeSpan timeForInvariantGeneration = TimeSpan.ofNanos(0);
+  private TimeSpan timeForInvariantGeneration = TimeSpan.ofSeconds(10);
 
   @Option(
     secure = true,
     description =
-        "Invariants that are not strong enough to"
-            + " refute the counterexample can be ignored with this option."
-            + " (Weak invariants will lead to repeated counterexamples, thus taking"
-            + " time which could be used for the rest of the analysis, however, the"
-            + " found invariants may also be better for loops as interpolation.)"
+        "Invariants that are not strong enough to refute the counterexample can be ignored"
+            + " with this option. (Weak invariants will lead to repeated counterexamples,"
+            + " thus taking time which could be used for the rest of the analysis, however,"
+            + " the found invariants may also be better for loops as interpolation.)"
   )
   private boolean useStrongInvariantsOnly = true;
 
   @Option(
     secure = true,
-    description = "Should the automata used for invariant" + " generation be dumped to files?"
+    description = "Should the automata used for invariant generation be dumped to files?"
   )
   private boolean dumpInvariantGenerationAutomata = false;
 
   @Option(
     secure = true,
     description =
-        "Where to dump the automata that are used to narrow the"
-            + " analysis used for invariant generation."
+        "Where to dump the automata that are used to narrow the analysis used for"
+            + " invariant generation."
   )
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathCounterTemplate dumpInvariantGenerationAutomataFile =
@@ -214,8 +212,7 @@ class InvariantsManager {
   @Option(
     secure = true,
     description =
-        "How often should generating invariants from"
-            + " sliced prefixes with k-induction be tried?"
+        "How often should generating invariants from sliced prefixes with k-induction be tried?"
   )
   private int kInductionTries = 3;
 
@@ -228,14 +225,12 @@ class InvariantsManager {
   private final InterpolationManager imgr;
 
   private final InductiveWeakeningManager inductiveWeakeningMgr;
-  private final LoopTransitionFinder loopFinder;
   private final SemiCNFManager semiCNFConverter;
   private final CFA cfa;
   private final PrefixProvider prefixProvider;
 
   private final Configuration config;
   private final LogManager logger;
-  private final ShutdownNotifier shutdownNotifier;
 
   private final Map<CFANode, BooleanFormula> loopFormulaCache = new HashMap<>();
   private final Map<CFANode, Region> regionInvariantsCache = new HashMap<>();
@@ -250,7 +245,6 @@ class InvariantsManager {
     config.inject(this);
 
     logger = pPredicateCPA.getLogger();
-    shutdownNotifier = pPredicateCPA.getShutdownNotifier();
 
     solver = pPredicateCPA.getSolver();
     amgr = pPredicateCPA.getAbstractionManager();
@@ -268,14 +262,11 @@ class InvariantsManager {
             cfa.getLoopStructure(),
             cfa.getVarClassification(),
             config,
-            shutdownNotifier,
+            pPredicateCPA.getShutdownNotifier(),
             logger);
 
     prefixProvider = pPredicateCPA.getPrefixProvider();
     inductiveWeakeningMgr = new InductiveWeakeningManager(config, fmgr, solver, logger);
-    loopFinder =
-        new LoopTransitionFinder(
-            config, cfa.getLoopStructure().get(), pfmgr, fmgr, logger, shutdownNotifier);
   }
 
   RegionInvariantsSupplier asRegionInvariantsSupplier() {
@@ -284,7 +275,7 @@ class InvariantsManager {
 
   /**
    * This method returns the invariants computed for the given locations in
-   * {@link #findInvariants(InvariantUsageStrategy, InvariantGenerationStrategy, List, Triple)}
+   * {@link #findInvariants(InvariantUsageStrategy, InvariantGenerationStrategy, List, Triple, ShutdownNotifier)}
    * in the given order.
    */
   public List<BooleanFormula> getInvariantsForRefinement() {
@@ -295,7 +286,8 @@ class InvariantsManager {
       InvariantUsageStrategy pUsage,
       InvariantGenerationStrategy pGeneration,
       @Nullable List<Pair<PathFormula, CFANode>> pArgForPathFormulaBasedGeneration,
-      @Nullable Triple<ARGPath, List<ARGState>, Set<Loop>> pArgForErrorPathBasedGeneration) {
+      @Nullable Triple<ARGPath, List<ARGState>, Set<Loop>> pArgForErrorPathBasedGeneration,
+      ShutdownNotifier pShutdownNotifier) {
 
     // set usage strategy so other methods which are called subsequently can use it
     usageStrategy = pUsage;
@@ -305,31 +297,50 @@ class InvariantsManager {
     refinementCache.clear();
 
     try {
+      ShutdownManager invariantShutdown = ShutdownManager.createWithParent(pShutdownNotifier);
+      ResourceLimitChecker limits = null;
+      if (!timeForInvariantGeneration.isEmpty()) {
+        WalltimeLimit l = WalltimeLimit.fromNowOn(timeForInvariantGeneration);
+        limits =
+            new ResourceLimitChecker(
+                invariantShutdown, Collections.<ResourceLimit>singletonList(l));
+        limits.start();
+      }
+
       switch (pGeneration) {
         case PF_CNF_KIND:
           for (Pair<PathFormula, CFANode> pair : pArgForPathFormulaBasedGeneration) {
-            findInvariantPartOfPathFormulaWithKInduction(pair.getSecond(), pair.getFirst());
+            findInvariantPartOfPathFormulaWithKInduction(
+                pair.getSecond(), pair.getFirst(), invariantShutdown.getNotifier());
           }
           break;
         case PF_INDUCTIVE_WEAKENING:
           for (Pair<PathFormula, CFANode> pair : pArgForPathFormulaBasedGeneration) {
-            findInvariantPartOfPathFormulaWithWeakening(pair.getSecond(), pair.getFirst());
+            findInvariantPartOfPathFormulaWithWeakening(
+                pair.getSecond(), pair.getFirst(), invariantShutdown.getNotifier());
           }
           break;
         case RF_INTERPOLANT_KIND:
           findInvariantInterpolants(
               pArgForErrorPathBasedGeneration.getFirst(),
-              pArgForErrorPathBasedGeneration.getSecond());
+              pArgForErrorPathBasedGeneration.getSecond(),
+              invariantShutdown.getNotifier());
           break;
         case RF_INVARIANT_GENERATION:
           findInvariantsWithGenerator(
               pArgForErrorPathBasedGeneration.getFirst(),
               pArgForErrorPathBasedGeneration.getSecond(),
-              pArgForErrorPathBasedGeneration.getThird());
+              pArgForErrorPathBasedGeneration.getThird(),
+              invariantShutdown);
           break;
         default:
           throw new AssertionError("Unhandled case statement");
       }
+
+      if (!timeForInvariantGeneration.isEmpty()) {
+        limits.cancel();
+      }
+
     } catch (
         CPAException | SolverException | InterruptedException | InvalidConfigurationException
                 | IOException
@@ -376,8 +387,9 @@ class InvariantsManager {
    * @throws CPATransferException may be thrown during loop transition creation
    */
   private void findInvariantPartOfPathFormulaWithWeakening(
-      final CFANode pLocation, final PathFormula pBlockFormula)
-      throws SolverException, InterruptedException, CPATransferException {
+      final CFANode pLocation, final PathFormula pBlockFormula, ShutdownNotifier pInvariantShutdown)
+      throws SolverException, InterruptedException, CPATransferException,
+          InvalidConfigurationException {
 
     PointerTargetSet pts = pBlockFormula.getPointerTargetSet();
     SSAMap ssa = pBlockFormula.getSsa();
@@ -392,7 +404,10 @@ class InvariantsManager {
               pts,
               0); // TODO is 0 correct here?
     } else {
-      loopFormula = loopFinder.generateLoopTransition(ssa, pts, pLocation);
+      loopFormula =
+          new LoopTransitionFinder(
+                  config, cfa.getLoopStructure().get(), pfmgr, fmgr, logger, pInvariantShutdown)
+              .generateLoopTransition(ssa, pts, pLocation);
       loopFormulaCache.put(pLocation, fmgr.uninstantiate(loopFormula.getFormula()));
     }
 
@@ -406,7 +421,7 @@ class InvariantsManager {
   }
 
   private void findInvariantPartOfPathFormulaWithKInduction(
-      final CFANode pLocation, PathFormula pPathFormula)
+      final CFANode pLocation, PathFormula pPathFormula, ShutdownNotifier pInvariantShutdown)
       throws InterruptedException, CPAException, InvalidConfigurationException {
 
     BooleanFormula cnfFormula = semiCNFConverter.convert(pPathFormula.getFormula());
@@ -438,7 +453,7 @@ class InvariantsManager {
                       }
                     }));
 
-    new KInductionInvariantChecker(config, shutdownNotifier, logger, cfa, candidateGenerator)
+    new KInductionInvariantChecker(config, pInvariantShutdown, logger, cfa, candidateGenerator)
         .checkCandidates();
 
     Set<CandidateInvariant> invariants = candidateGenerator.getConfirmedCandidates();
@@ -458,7 +473,8 @@ class InvariantsManager {
   private void findInvariantsWithGenerator(
       final ARGPath allStatesTrace,
       final List<ARGState> abstractionStatesTrace,
-      final Set<Loop> pLoopsInPath)
+      final Set<Loop> pLoopsInPath,
+      ShutdownManager pInvariantShutdown)
       throws IOException, InvalidConfigurationException, CPAException, InterruptedException {
 
     StringBuilder spc = new StringBuilder();
@@ -484,24 +500,11 @@ class InvariantsManager {
             scope,
             cfa.getLanguage());
 
-    ShutdownManager invariantShutdown = ShutdownManager.createWithParent(shutdownNotifier);
-    ResourceLimitChecker limits = null;
-    if (!timeForInvariantGeneration.isEmpty()) {
-      WalltimeLimit l = WalltimeLimit.fromNowOn(timeForInvariantGeneration);
-      limits =
-          new ResourceLimitChecker(invariantShutdown, Collections.<ResourceLimit>singletonList(l));
-      limits.start();
-    }
-
     InvariantGenerator invGen =
         CPAInvariantGenerator.create(
-            config, logger, invariantShutdown, Optional.<ShutdownManager>absent(), cfa, automata);
+            config, logger, pInvariantShutdown, Optional.<ShutdownManager>absent(), cfa, automata);
 
     generateInvariants0(abstractionStatesTrace, invGen);
-
-    if (!timeForInvariantGeneration.isEmpty()) {
-      limits.cancel();
-    }
   }
 
   private void generateInvariants0(
@@ -548,13 +551,14 @@ class InvariantsManager {
     }
   }
 
-  private void findInvariantInterpolants(ARGPath pPath, List<ARGState> pAbstractionStatesTrace)
+  private void findInvariantInterpolants(
+      ARGPath pPath, List<ARGState> pAbstractionStatesTrace, ShutdownNotifier pInvariantShutdown)
       throws CPAException, InterruptedException, InvalidConfigurationException {
     InvCandidateGenerator candidateGenerator =
         new InvCandidateGenerator(pPath, pAbstractionStatesTrace);
 
     KInductionInvariantChecker invChecker =
-        new KInductionInvariantChecker(config, shutdownNotifier, logger, cfa, candidateGenerator);
+        new KInductionInvariantChecker(config, pInvariantShutdown, logger, cfa, candidateGenerator);
     invChecker.checkCandidates();
 
     if (candidateGenerator.hasFoundInvariants()) {

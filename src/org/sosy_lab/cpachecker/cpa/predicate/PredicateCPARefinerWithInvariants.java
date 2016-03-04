@@ -34,15 +34,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.configuration.TimeSpanOption;
-import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -90,26 +87,11 @@ import com.google.common.collect.Lists;
 @Options(prefix="cpa.predicate.refinement")
 public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
 
-  @Option(secure=true, description="Timelimit for invariant generation which may be"
-                                 + " used during refinement.\n"
-                                 + "(Use seconds or specify a unit; 0 for infinite)")
-  @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
-                  defaultUserUnit=TimeUnit.SECONDS,
-                  min=0)
-  private TimeSpan timeForInvariantGeneration = TimeSpan.ofNanos(0);
-
   @Option(secure=true, description="For differing errorpaths, the loop for which"
       + " invariants should be generated may still be the same, with this option"
       + " you can set the maximal amount of invariant generation runs per loop."
       + " 0 means no upper limit given.")
   private int maxInvariantGenerationsPerLoop = 2;
-
-  @Option(secure=true, description="Invariants that are not strong enough to"
-      + " refute the counterexample can be ignored with this option."
-      + " (Weak invariants will lead to repeated counterexamples, thus taking"
-      + " time which could be used for the rest of the analysis, however, the"
-      + " found invariants may also be better for loops as interpolation.)")
-  private boolean useStrongInvariantsOnly = true;
 
   @Option(secure=true, description="use only atoms from generated invariants"
                                  + "as predicates, and not the whole invariant")
@@ -135,7 +117,6 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
   private final InvariantsManager invariantsManager;
   private final LoopStructure loopStructure;
   private final Map<Loop, Integer> loopOccurrences = new HashMap<>();
-  private boolean wereInvariantsGenerated = false;
 
   private final Configuration config;
   private final Stats stats = new Stats();
@@ -247,7 +228,8 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
             invariantUsageStrategy,
             invGenStrategy,
             argForPathFormulaBasedGeneration,
-            argForErrorPathBasedGeneration);
+            argForErrorPathBasedGeneration,
+            shutdownNotifier);
         precisionIncrement = invariantsManager.getInvariantsForRefinement();
         if (!precisionIncrement.isEmpty()) {
           break;
@@ -266,7 +248,6 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
                 .getInterpolants();
       } else {
         stats.succInvariantRefinements.setNextValue(1);
-        wereInvariantsGenerated = true;
       }
 
       if (strategy instanceof PredicateAbstractionRefinementStrategy) {
@@ -300,19 +281,12 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
     // our super class if we have a repeated counter example
     // or we don't even need a precision increment
     if (repeatedCounterexample || !strategy.needsInterpolants()) {
-      if (repeatedCounterexample && useStrongInvariantsOnly && wereInvariantsGenerated) {
-        logger.log(
-            Level.WARNING,
-            "Repeated Countereample although generated invariants were strong"
-                + " enough to refute it. Falling back to interpolation.");
-      }
 
       // only interpolation or invariant-based refinements should be counted
       // as repeated error paths
       if (!strategy.needsInterpolants()) {
         lastErrorPath = null;
       }
-      wereInvariantsGenerated = false;
       return Collections.emptySet();
     }
 
@@ -323,7 +297,6 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
 
     // no loops found, use normal interpolation refinement
     if (maxFoundLoop > maxInvariantGenerationsPerLoop || loopsInPath.isEmpty()) {
-      wereInvariantsGenerated = false;
       return Collections.emptySet();
     }
     return loopsInPath;

@@ -1569,10 +1569,6 @@ cpa.predicate.refinement.splitItpAtoms = false
 cpa.predicate.refinement.strategy = SEQ_CPACHECKER
   enum:     [SEQ, SEQ_CPACHECKER, TREE, TREE_WELLSCOPED, TREE_NESTED, TREE_CPACHECKER]
 
-# Timelimit for invariant generation which may be used during refinement.
-# (Use seconds or specify a unit; 0 for infinite)
-cpa.predicate.refinement.timeForInvariantGeneration = 0ns
-
 # time limit for refinement (use milliseconds or specify a unit; 0 for
 # infinite)
 cpa.predicate.refinement.timelimit = 0ms
@@ -1585,13 +1581,6 @@ cpa.predicate.refinement.useBddInterpolantSimplification = false
 # good enough to refute a counterexample therefore the fallback is still
 # interpolation.
 cpa.predicate.refinement.useInvariantRefinement = false
-
-# Invariants that are not strong enough to refute the counterexample can be
-# ignored with this option. (Weak invariants will lead to repeated
-# counterexamples, thus taking time which could be used for the rest of the
-# analysis, however, the found invariants may also be better for loops as
-# interpolation.)
-cpa.predicate.refinement.useStrongInvariantsOnly = true
 
 # verify if the interpolants fulfill the interpolant properties
 cpa.predicate.refinement.verifyInterpolants = false
@@ -2405,6 +2394,10 @@ pcc.partitioning.maxNumElemsPerPartition = 0
 pcc.partitioning.multilevel.globalHeuristic = BEST_IMPROVEMENT_FIRST
   enum:     [RANDOM, DFS, BFS, BEST_IMPROVEMENT_FIRST]
 
+# Matching method applied to coarsen graph down in multilevel heuristic.
+pcc.partitioning.multilevel.matchingGenerator = HEAVY_EDGE
+  enum:     [RANDOM, HEAVY_EDGE]
+
 # Refinement method applied in multilevel heuristic's uncoarsening phase.
 pcc.partitioning.multilevel.refinementHeuristic = FM_NODECUT
   enum:     [FM_NODECUT, FM_EDGECUT]
@@ -2494,7 +2487,7 @@ predicate.invariants.kInductionTries = 3
 
 # Timelimit for invariant generation which may be used during refinement.
 # (Use seconds or specify a unit; 0 for infinite)
-predicate.invariants.timeForInvariantGeneration = 0ns
+predicate.invariants.timeForInvariantGeneration = 10s
 
 # Invariants that are not strong enough to refute the counterexample can be
 # ignored with this option. (Weak invariants will lead to repeated
