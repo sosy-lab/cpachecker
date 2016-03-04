@@ -553,7 +553,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
                   && !visited.contains(successor)) {
                 potentialAdditionalCandidates.put(
                     successor,
-                    new ExpressionTreeLocationInvariant(groupId, successor, candidate));
+                    new ExpressionTreeLocationInvariant(
+                        groupId, successor, candidate, toCodeVisitorCache));
               }
             }
           }
@@ -572,10 +573,12 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
       }
     }
     for (ExpressionTreeLocationInvariant expressionTreeLocationInvariant : expressionTreeLocationInvariants) {
-      candidates.add(new ExpressionTreeLocationInvariant(
-          expressionTreeLocationInvariant.getGroupId(),
-          expressionTreeLocationInvariant.getLocation(),
-          expressionTrees.get(expressionTreeLocationInvariant.getGroupId())));
+      candidates.add(
+          new ExpressionTreeLocationInvariant(
+              expressionTreeLocationInvariant.getGroupId(),
+              expressionTreeLocationInvariant.getLocation(),
+              expressionTrees.get(expressionTreeLocationInvariant.getGroupId()),
+              toCodeVisitorCache));
     }
   }
 
