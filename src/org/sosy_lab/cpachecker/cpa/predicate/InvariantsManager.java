@@ -47,6 +47,8 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -57,6 +59,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathCounterTemplate;
+import org.sosy_lab.common.log.ForwardingLogManager;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -286,6 +289,17 @@ class InvariantsManager {
 
     prefixProvider = pPredicateCPA.getPrefixProvider();
     inductiveWeakeningMgr = new InductiveWeakeningManager(config, fmgr, solver, logger);
+
+    if (usageStrategy != InvariantUsageStrategy.NONE) {
+      logger.log(
+          Level.INFO,
+          "Using invariant generation strategy",
+          generationStrategy,
+          "for",
+          usageStrategy);
+    } else {
+      logger.log(Level.INFO, "No invariants are used during refinement or precision adjustment");
+    }
   }
 
   RegionInvariantsSupplier asRegionInvariantsSupplier() {
@@ -379,33 +393,60 @@ class InvariantsManager {
       }
 
       for (InvariantGenerationStrategy generation : generationStrategy) {
+        logger.log(Level.INFO, "Starting invariant generation with", generation);
+
         switch (generation) {
           case PF_CNF_KIND:
-            for (Pair<PathFormula, CFANode> pair : pArgForPathFormulaBasedGeneration) {
-              if (pair.getFirst() != null) {
-                findInvariantPartOfPathFormulaWithKInduction(
-                    pair.getSecond(), pair.getFirst(), invariantShutdown.getNotifier());
+            {
+              boolean atLeastOneSuccessful = false;
+              for (Pair<PathFormula, CFANode> pair : pArgForPathFormulaBasedGeneration) {
+                if (pair.getFirst() != null) {
+                  atLeastOneSuccessful =
+                      findInvariantPartOfPathFormulaWithKInduction(
+                              pair.getSecond(), pair.getFirst(), invariantShutdown.getNotifier())
+                          || atLeastOneSuccessful;
+                } else {
+                  addResultToCache(bfmgr.makeBoolean(true), pair.getSecond());
+                }
+              }
+
+              if (atLeastOneSuccessful) {
+                logger.log(Level.INFO, "Invariant generation successful");
               } else {
-                addResultToCache(bfmgr.makeBoolean(true), pair.getSecond());
+                logger.log(Level.INFO, "All invariants were TRUE, ignoring result.");
               }
             }
             break;
+
           case PF_INDUCTIVE_WEAKENING:
-            for (Pair<PathFormula, CFANode> pair : pArgForPathFormulaBasedGeneration) {
-              if (pair.getFirst() != null) {
-                findInvariantPartOfPathFormulaWithWeakening(
-                    pair.getSecond(), pair.getFirst(), invariantShutdown.getNotifier());
+            {
+              boolean atLeastOneSuccessful = false;
+              for (Pair<PathFormula, CFANode> pair : pArgForPathFormulaBasedGeneration) {
+                if (pair.getFirst() != null) {
+                  atLeastOneSuccessful =
+                      findInvariantPartOfPathFormulaWithWeakening(
+                              pair.getSecond(), pair.getFirst(), invariantShutdown.getNotifier())
+                          || atLeastOneSuccessful;
+                } else {
+                  addResultToCache(bfmgr.makeBoolean(true), pair.getSecond());
+                }
+              }
+
+              if (atLeastOneSuccessful) {
+                logger.log(Level.INFO, "Invariant generation successful");
               } else {
-                addResultToCache(bfmgr.makeBoolean(true), pair.getSecond());
+                logger.log(Level.INFO, "All invariants were TRUE, ignoring result.");
               }
             }
             break;
+
           case RF_INTERPOLANT_KIND:
             findInvariantInterpolants(
                 pArgForErrorPathBasedGeneration.getFirst(),
                 pArgForErrorPathBasedGeneration.getSecond(),
                 invariantShutdown.getNotifier());
             break;
+
           case RF_INVARIANT_GENERATION:
             findInvariantsWithGenerator(
                 pArgForErrorPathBasedGeneration.getFirst(),
@@ -413,6 +454,7 @@ class InvariantsManager {
                 pArgForErrorPathBasedGeneration.getThird(),
                 invariantShutdown);
             break;
+
           default:
             throw new AssertionError("Unhandled case statement");
         }
@@ -450,7 +492,7 @@ class InvariantsManager {
       if (atLeastOneStrategyFinished) {
         logger.logUserException(Level.INFO, e, "Subsequent run of invariant generation failed");
       } else {
-        logger.logUserException(Level.INFO, e, "Invariants could not be computed");
+        logger.logUserException(Level.INFO, e, "No invariants could be computed");
       }
 
       // update the refinement cache at the very end of the computation
@@ -499,7 +541,7 @@ class InvariantsManager {
    *
    * @throws CPATransferException may be thrown during loop transition creation
    */
-  private void findInvariantPartOfPathFormulaWithWeakening(
+  private boolean findInvariantPartOfPathFormulaWithWeakening(
       final CFANode pLocation, final PathFormula pBlockFormula, ShutdownNotifier pInvariantShutdown)
       throws SolverException, InterruptedException, CPATransferException,
           InvalidConfigurationException {
@@ -526,10 +568,16 @@ class InvariantsManager {
             loopFormula,
             bfmgr.makeBoolean(true));
 
-    addResultToCache(invariant, pLocation);
+    if (bfmgr.isTrue(invariant)) {
+      logger.log(Level.FINER, "Invariant for location", pLocation, "is true, ignoring it");
+      return false;
+    } else {
+      addResultToCache(invariant, pLocation);
+      return true;
+    }
   }
 
-  private void findInvariantPartOfPathFormulaWithKInduction(
+  private boolean findInvariantPartOfPathFormulaWithKInduction(
       final CFANode pLocation, PathFormula pPathFormula, ShutdownNotifier pInvariantShutdown)
       throws InterruptedException, CPAException, InvalidConfigurationException {
 
@@ -572,7 +620,13 @@ class InvariantsManager {
       invariant = bfmgr.and(invariant, formulaToRegion.get(candidate.toString()));
     }
 
-    addResultToCache(invariant, pLocation);
+    if (bfmgr.isTrue(invariant)) {
+      logger.log(Level.FINER, "Invariant for location", pLocation, "is true, ignoring it");
+      return false;
+    } else {
+      addResultToCache(invariant, pLocation);
+      return true;
+    }
   }
 
   /**
@@ -611,7 +665,12 @@ class InvariantsManager {
 
     InvariantGenerator invGen =
         CPAInvariantGenerator.create(
-            config, logger, pInvariantShutdown, Optional.<ShutdownManager>absent(), cfa, automata);
+            config,
+            new OnlyWarningsLogmanager(logger),
+            pInvariantShutdown,
+            Optional.<ShutdownManager>absent(),
+            cfa,
+            automata);
 
     generateInvariants0(abstractionStatesTrace, invGen);
   }
@@ -635,7 +694,7 @@ class InvariantsManager {
           BooleanFormula invariant =
               invSup.getInvariantFor(location, fmgr, pfmgr, pas.getPathFormula());
           invariants.add(Pair.of(invariant, location));
-          logger.log(Level.ALL, "Precision increment for location", location, "is", invariant);
+          logger.log(Level.FINEST, "Invariant for location", location, "is", invariant);
         }
       }
 
@@ -651,12 +710,16 @@ class InvariantsManager {
         for (Pair<BooleanFormula, CFANode> pair : invariants) {
           addResultToCache(pair.getFirst(), pair.getSecond());
         }
+        logger.log(Level.INFO, "Invariant generation successful");
       }
 
     } else {
       logger.log(
           Level.INFO,
-          "Invariants found, but they are not strong enough to refute the counterexample");
+          "Invariants found, but they are not strong enough to refute the counterexample"
+              + " consider setting \"useStorngInvariantsOnly\" to false if you want to use"
+              + " them. At least for usage during precision adjustment this should be better"
+              + " than nothing.");
     }
   }
 
@@ -667,7 +730,12 @@ class InvariantsManager {
         new InvCandidateGenerator(pPath, pAbstractionStatesTrace);
 
     KInductionInvariantChecker invChecker =
-        new KInductionInvariantChecker(config, pInvariantShutdown, logger, cfa, candidateGenerator);
+        new KInductionInvariantChecker(
+            config,
+            pInvariantShutdown,
+            new OnlyWarningsLogmanager(logger),
+            cfa,
+            candidateGenerator);
     invChecker.checkCandidates();
 
     if (candidateGenerator.hasFoundInvariants()) {
@@ -678,10 +746,12 @@ class InvariantsManager {
           .transform(Pair.<BooleanFormula>getProjectionToFirst())
           .allMatch(equalTo(fmgr.getBooleanFormulaManager().makeBoolean(true)))) {
         logger.log(Level.INFO, "All invariants were TRUE, ignoring result.");
+
       } else {
         for (Pair<BooleanFormula, CFANode> invariant : invariants) {
           addResultToCache(invariant.getFirst(), invariant.getSecond());
         }
+        logger.log(Level.INFO, "Invariant generation successful");
       }
 
     } else {
@@ -864,6 +934,67 @@ class InvariantsManager {
 
     public boolean hasInvariantFor(CFANode location) {
       return invariants.regionInvariantsCache.containsKey(location);
+    }
+  }
+
+  /**
+   * This class is used for removing all logging output besides warnings and higher
+   * from the standard output of the analysis. This is useful when running the
+   * Invariant Generation or the KInduction invariant checker. Their output is
+   * not really interesting for the User, but instead our LogMessages are and they
+   * could have easily been overlooked before (due to the potentially high amount
+   * of logging messages in analyses used there).
+   */
+  private static class OnlyWarningsLogmanager extends ForwardingLogManager {
+
+    private final LogManager logger;
+
+    public OnlyWarningsLogmanager(LogManager pLogger) {
+      logger = pLogger;
+    }
+
+    @Override
+    public LogManager withComponentName(String pName) {
+      return new OnlyWarningsLogmanager(logger.withComponentName(pName));
+    }
+
+    @Override
+    protected LogManager delegate() {
+      return logger;
+    }
+
+    @Override
+    public boolean wouldBeLogged(Level pPriority) {
+      return pPriority == Level.WARNING || pPriority == Level.SEVERE;
+    }
+
+    @Override
+    public void log(Level pPriority, Object... pArgs) {
+      if (pPriority == Level.WARNING || pPriority == Level.SEVERE) {
+        delegate().log(pPriority, pArgs);
+      }
+    }
+
+    @Override
+    public void logf(Level pPriority, String pFormat, Object... pArgs) {
+      if (pPriority == Level.WARNING || pPriority == Level.SEVERE) {
+        delegate().logf(pPriority, pFormat, pArgs);
+      }
+    }
+
+    @Override
+    public void logUserException(
+        Level pPriority, Throwable pE, @Nullable String pAdditionalMessage) {
+      if (pPriority == Level.WARNING || pPriority == Level.SEVERE) {
+        delegate().logUserException(pPriority, pE, pAdditionalMessage);
+      }
+    }
+
+    @Override
+    public void logException(Level pPriority, Throwable pE, @Nullable String pAdditionalMessage) {
+      if (pPriority == Level.WARNING || pPriority == Level.SEVERE) {
+        delegate().logException(pPriority, pE, pAdditionalMessage);
+      }
     }
   }
 }
