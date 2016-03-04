@@ -224,14 +224,15 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
 
       List<BooleanFormula> precisionIncrement = null;
       for (InvariantGenerationStrategy invGenStrategy : invariantGenerationStrategy) {
-        invariantsManager.findInvariants(
+        boolean wasSuccessful = invariantsManager.findInvariants(
             invariantUsageStrategy,
             invGenStrategy,
             argForPathFormulaBasedGeneration,
             argForErrorPathBasedGeneration,
             shutdownNotifier);
-        precisionIncrement = invariantsManager.getInvariantsForRefinement();
-        if (!precisionIncrement.isEmpty()) {
+
+        if (wasSuccessful) {
+          precisionIncrement = invariantsManager.getInvariantsForRefinement();
           break;
         }
       }
