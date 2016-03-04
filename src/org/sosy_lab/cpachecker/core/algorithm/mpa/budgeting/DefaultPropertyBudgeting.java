@@ -61,6 +61,10 @@ public class DefaultPropertyBudgeting implements PropertyBudgeting {
       description="Disable a property after it has x times more refinements compared to another property (that has at least one element).")
   private int refinementsTimesMoreLimit = -1;
 
+  @Option(secure=true, name="limit.automataStateExplosionPercent",
+      description="Disable a property after x times more specification automata states cannot be merged/are not covered.")
+  private int automataStateExplosionPercent = -1;
+
   @Option(secure=true, name="limit.avgRefineTime",
       description="Disable a property after the avg. time for refinements was exhausted.")
   @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
@@ -100,7 +104,7 @@ public class DefaultPropertyBudgeting implements PropertyBudgeting {
   }
 
   @Override
-  public boolean isBudgedExhausted(Property pProperty) {
+  public boolean isTargetBudgedExhausted(Property pProperty) {
 
     Pair<Integer, Integer> maxInfeasibleCexs = maxInfeasibleCexFor(ImmutableSet.of(pProperty));
 
@@ -114,6 +118,13 @@ public class DefaultPropertyBudgeting implements PropertyBudgeting {
             }
           }
         }
+      }
+    }
+
+    if (automataStateExplosionPercent > 0) {
+      double percent = PropertyStats.INSTANCE.getExplosionPercent(pProperty);
+      if ((100 * percent) > automataStateExplosionPercent) {
+        return true;
       }
     }
 
@@ -167,6 +178,20 @@ public class DefaultPropertyBudgeting implements PropertyBudgeting {
   public PropertyBudgeting getBudgetTimesTwo() {
     return new DefaultPropertyBudgeting(logger, totalRefineTimeLimit, avgRefineTimeLimit,
         refinementsLimit, budgetFactor * 2);
+  }
+
+  @Override
+  public boolean isTransitionBudgedExhausted(Property pForProperty) {
+
+    if (automataStateExplosionPercent > 0) {
+      double percent = 100 * PropertyStats.INSTANCE.getExplosionPercent(pForProperty);
+      if (percent > automataStateExplosionPercent) {
+        logger.logf(Level.INFO, "Exhausted automaton explosion percent of property %s (%f)", pForProperty.toString(), percent);
+        return true;
+      }
+    }
+
+    return false;
   }
 
 }

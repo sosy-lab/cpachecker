@@ -191,6 +191,10 @@ analysis.machineModel = LINUX32
 # analysis
 analysis.memorizeReachedAfterRestart = false
 
+# Disable a property after x times more specification automata states cannot
+# be merged/are not covered.
+analysis.mpa.budget.limit.automataStateExplosionPercent = -1
+
 # Disable a property after the avg. time for refinements was exhausted.
 analysis.mpa.budget.limit.avgRefineTime = -1ns
 
@@ -200,6 +204,10 @@ analysis.mpa.budget.limit.loopRelatedPrecisionElements = -1
 
 # Disable a property after a specific number of refinements was exhausted.
 analysis.mpa.budget.limit.numRefinements = -1
+
+# Disable a property after it has x times more refinements compared to
+# another property (that has at least one element).
+analysis.mpa.budget.limit.refinementsTimesMore = -1
 
 # Disable a property after a specific time (total) for refinements was
 # exhausted.
@@ -219,6 +227,14 @@ analysis.mpa.partition.k = 5
 # checked.
 analysis.mpa.partition.operator = CheaperFirstDivideOperator.class
 
+# Limit for cpu time of one property (use seconds or specify a unit; -1 for
+# infinite)
+analysis.mpa.partition.property.time.cpu = -1ns
+
+# Limit for wall time of one property (use seconds or specify a unit; -1 for
+# infinite)
+analysis.mpa.partition.property.time.wall = -1ns
+
 # Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1
 # for infinite)
 analysis.mpa.partition.short.time.cpu = -1ns
@@ -227,13 +243,21 @@ analysis.mpa.partition.short.time.cpu = -1ns
 # for infinite)
 analysis.mpa.partition.short.time.wall = -1ns
 
-# Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1
-# for infinite)
+# Limit for cpu time of one partition (use seconds or specify a unit; -1 for
+# infinite)
 analysis.mpa.partition.time.cpu = -1ns
 
-# Limit for wall time used by CPAchecker (use seconds or specify a unit; -1
-# for infinite)
+# Limit for wall time of one partition (use seconds or specify a unit; -1 for
+# infinite)
 analysis.mpa.partition.time.wall = -1ns
+
+# Limit for cpu time of one partition in step 2 of Relevance strategy (use
+# seconds or specify a unit; -1 for infinite)
+analysis.mpa.time.cpu.relevance.step2 = -1ns
+
+# Limit for cpu time of one partition in step 3 of Relevance strategy (use
+# seconds or specify a unit; -1 for infinite)
+analysis.mpa.time.cpu.relevance.step3 = -1ns
 
 # Partition the initial states based on the type of location they were
 # created for (see 'initialStatesFor')

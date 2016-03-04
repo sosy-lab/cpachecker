@@ -141,6 +141,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
     int numberOfRestarts = 0;
     int numberOfPartitionExhaustions = 0;
     final StatCpuTime pureAnalysisTime = new StatCpuTime();
+    final Set<Property> consideredProperties = Sets.newLinkedHashSet();
     final List<Integer> reachedStates = Lists.newArrayList();
     final List<Integer> reachedStatesWithFixpoint = Lists.newArrayList();
     final List<Integer> reachedStatesForRelPropsWithFixpoint = Lists.newArrayList();
@@ -179,6 +180,8 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
       put(pOut, 0, "Statistics on the set 'reached' " + fpRelPropsOnly);
       printStatisticsOnReachedStates(pOut, 1, fpRelPropsOnly, reachedStatesForRelPropsWithFixpoint);
       pOut.println("");
+
+      PropertyStats.INSTANCE.printStatistics(pOut, pResult, pReached);
     }
 
     private void printStatisticsOnReachedStates(PrintStream pOut, int pLevel, String pStatPostfix,
@@ -332,6 +335,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
       CPAEnabledAnalysisPropertyViolationException, InterruptedException {
 
     final ImmutableSet<Property> all = getActiveProperties(pReachedSet.getFirstState(), pReachedSet);
+    stats.consideredProperties.addAll(all);
 
     logger.logf(Level.INFO, "Checking %d properties.", all.size());
     Preconditions.checkState(all.size() > 0, "At least one property must get checked!");

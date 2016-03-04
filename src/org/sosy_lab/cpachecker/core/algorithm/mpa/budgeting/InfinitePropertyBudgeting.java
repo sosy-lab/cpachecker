@@ -31,13 +31,18 @@ public enum InfinitePropertyBudgeting implements PropertyBudgeting {
   INSTANCE;
 
   @Override
-  public boolean isBudgedExhausted(Property pForProperty) {
+  public boolean isTargetBudgedExhausted(Property pForProperty) {
     return false;
   }
 
   @Override
   public PropertyBudgeting getBudgetTimesTwo() {
     return this;
+  }
+
+  @Override
+  public boolean isTransitionBudgedExhausted(Property pForProperty) {
+    return false;
   }
 
 }

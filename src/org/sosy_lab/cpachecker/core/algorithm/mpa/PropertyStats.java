@@ -121,8 +121,8 @@ public enum PropertyStats implements Statistics {
   private final Comparator<Property> propertyExplosionComparator = new Comparator<Property>() {
     @Override
     public int compare(Property p1, Property p2) {
-      final double p1ExplosionFactor = PropertyStats.INSTANCE.getExplosionFactor(p1);
-      final double p2ExplosionFactor = PropertyStats.INSTANCE.getExplosionFactor(p1);
+      final double p1ExplosionFactor = PropertyStats.INSTANCE.getExplosionPercent(p1);
+      final double p2ExplosionFactor = PropertyStats.INSTANCE.getExplosionPercent(p1);
 
       // -1 : P1 is cheaper
       // +1 : P1 is more expensive
@@ -173,7 +173,13 @@ public enum PropertyStats implements Statistics {
     return relevantProperties;
   }
 
-  public synchronized double getExplosionFactor(Property pProperty) {
+  /**
+   * Percent of cases where there was no coverage for the automaton state.
+   *
+   * @param pProperty
+   * @return
+   */
+  public synchronized double getExplosionPercent(Property pProperty) {
     final StatCounter covCount = coverageCount.get(pProperty);
     final StatCounter noCovCount = noCoverageCount.get(pProperty);
 
@@ -248,10 +254,12 @@ public enum PropertyStats implements Statistics {
       }
     });
 
+    properties.addAll(relevantProperties);
+
     for (Property p: properties) {
       StatisticsUtils.write(pOut, 1, 50, p.toString(), "");
 
-      StatisticsUtils.write(pOut, 2, 50, "Coverage Ratio", getExplosionFactor(p));
+      StatisticsUtils.write(pOut, 2, 50, "Coverage Ratio", getExplosionPercent(p));
     }
   }
 

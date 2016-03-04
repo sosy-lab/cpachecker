@@ -27,7 +27,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Property;
 
 public interface PropertyBudgeting {
 
-  public boolean isBudgedExhausted(Property pForProperty);
+  public boolean isTargetBudgedExhausted(Property pForProperty);
+
+  public boolean isTransitionBudgedExhausted(Property pForProperty);
 
   public PropertyBudgeting getBudgetTimesTwo();
 

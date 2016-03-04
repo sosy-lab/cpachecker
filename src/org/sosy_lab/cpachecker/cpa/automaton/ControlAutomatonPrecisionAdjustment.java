@@ -125,7 +125,7 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
 
     return (violationsLimit > 0
                    && timesFeasible >= violationsLimit) // the new state is the ith+1
-        || budgeting.get().isBudgedExhausted(pProperty);
+        || budgeting.get().isTargetBudgedExhausted(pProperty);
   }
 
   @Override
@@ -143,23 +143,34 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
     final Automaton automaton = ((AutomatonState) pState).getOwningAutomaton();
     final AutomatonState state = (AutomatonState) pState;
 
+    final AutomatonState stateOnHandledTarget;
+    switch (onHandledTarget) {
+      case BOTTOM: stateOnHandledTarget = bottomState; break;
+      case INACTIVE: stateOnHandledTarget = inactiveState; break;
+      default: stateOnHandledTarget = state;
+    }
+
+    Set<SafetyProperty> exhaustedProperties = Sets.newHashSet();
+
     ImmutableSet<? extends SafetyProperty> encoded = automaton.getEncodedProperties();
     ImmutableSet<SafetyProperty> disabled = pi.getBlacklist();
-    if (disabled.containsAll(encoded)) {
+
+    Set<? extends SafetyProperty> activeProperties = Sets.difference(encoded, disabled);
+
+    if (activeProperties.isEmpty()) {
       return Optional.of(PrecisionAdjustmentResult.create(
           inactiveState,
           pi, Action.CONTINUE));
     }
 
+    for (SafetyProperty p: activeProperties) {
+      if (budgeting.get().isTransitionBudgedExhausted(p)) {
+        exhaustedProperties.add(p);
+      }
+    }
+
     // Specific handling of potential target states!!!
     if (state.isTarget()) {
-
-      final AutomatonState stateOnHandledTarget;
-      switch (onHandledTarget) {
-        case BOTTOM: stateOnHandledTarget = bottomState; break;
-        case INACTIVE: stateOnHandledTarget = inactiveState; break;
-        default: stateOnHandledTarget = state;
-      }
 
       // A property might have already been disabled!
       //    Handling of blacklisted (disabled) states:
@@ -174,23 +185,22 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
       //      (they should not be considered as target states)
       if (onHandledTarget != TargetStateVisitBehaviour.SIGNAL) {
         Set<SafetyProperty> violated = AbstractStates.extractViolatedProperties(state, SafetyProperty.class);
-        Set<SafetyProperty> exhaustedProperties = Sets.newHashSet();
 
         for (SafetyProperty p: violated) {
           if (isPropertyBudgetExhausted(p)) {
             exhaustedProperties.add(p);
           }
         }
-
-        if (exhaustedProperties.size() > 0) {
-          final AutomatonPrecision piPrime = pi.cloneAndAddBlacklisted(exhaustedProperties);
-          signalDisablingProperties(exhaustedProperties);
-
-          return Optional.of(PrecisionAdjustmentResult.create(
-              stateOnHandledTarget,
-              piPrime, onExhaustedBudget));
-        }
       }
+    }
+
+    if (exhaustedProperties.size() > 0) {
+      final AutomatonPrecision piPrime = pi.cloneAndAddBlacklisted(exhaustedProperties);
+      signalDisablingProperties(exhaustedProperties);
+
+      return Optional.of(PrecisionAdjustmentResult.create(
+          state.isTarget() ? stateOnHandledTarget : inactiveState,
+          piPrime, onExhaustedBudget));
     }
 
     // Handle the BREAK state
