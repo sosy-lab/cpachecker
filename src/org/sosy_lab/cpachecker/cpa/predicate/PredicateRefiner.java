@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -43,22 +41,6 @@ import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import com.google.common.base.Optional;
 
 public abstract class PredicateRefiner implements Refiner {
-
-  @Options(prefix="cpa.predicate.refinement")
-  static class PredicateRefinerOptions {
-
-    @Option(secure=true, name="useInvariantRefinement",
-        description="Should the refinement be done with invariants instead of"
-            + " interpolation? This is currently a heuristic as we cannot be "
-            + "sure that all invariants are good enough to refute a counterexample"
-            + " therefore the fallback is still interpolation.")
-    private boolean useInvariantRefinement = false;
-
-
-    public PredicateRefinerOptions(Configuration config) throws InvalidConfigurationException {
-      config.inject(this);
-    }
-  }
 
   public static PredicateCPARefiner create(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
     PredicateCPA predicateCpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
@@ -118,13 +100,6 @@ public abstract class PredicateRefiner implements Refiner {
         pfmgr,
         solver);
 
-    PredicateRefinerOptions refinementOptions = new PredicateRefinerOptions(config);
-    if (refinementOptions.useInvariantRefinement) {
-      return new PredicateCPARefinerWithInvariants(
-          pCpa, manager, pathChecker, prefixProvider, pRefinementStrategy);
-    } else {
-      return new PredicateCPARefiner(
-          pCpa, manager, pathChecker, prefixProvider, pRefinementStrategy);
-    }
+    return new PredicateCPARefiner(pCpa, manager, pathChecker, prefixProvider, pRefinementStrategy);
   }
 }

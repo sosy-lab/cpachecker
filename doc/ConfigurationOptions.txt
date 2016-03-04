@@ -1604,12 +1604,6 @@ cpa.predicate.refinement.timelimit = 0ms
 # Use BDDs to simplify interpolants (removing irrelevant predicates)
 cpa.predicate.refinement.useBddInterpolantSimplification = false
 
-# Should the refinement be done with invariants instead of interpolation?
-# This is currently a heuristic as we cannot be sure that all invariants are
-# good enough to refute a counterexample therefore the fallback is still
-# interpolation.
-cpa.predicate.refinement.useInvariantRefinement = false
-
 # verify if the interpolants fulfill the interpolant properties
 cpa.predicate.refinement.verifyInterpolants = false
 
