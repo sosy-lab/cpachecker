@@ -97,7 +97,6 @@ import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.google.common.collect.Sets.SetView;
 
 @Options(prefix="analysis.mpa")
 public final class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, StatisticsProvider, Statistics {
@@ -241,6 +240,14 @@ public final class MultiPropertyAnalysisFullReset implements MultiPropertyAlgori
     return result.build();
   }
 
+  private Set<Property> getActiveProperties(final ReachedSet pReached) {
+
+    Set<Property> active = getActiveProperties(pReached.getFirstState(), pReached);
+    Set<Property> inactive = getInactiveProperties(pReached);
+
+    return Sets.difference(active, inactive);
+  }
+
   /**
    * Get the properties that are active in all instances of a precision!
    *    A property is not included if it is INACTIVE in one of
@@ -349,7 +356,7 @@ public final class MultiPropertyAnalysisFullReset implements MultiPropertyAlgori
       initAndStartLimitChecker(checkPartitions, checkPartitions.getPartitionBudgeting());
 
       do {
-        final Set<Property> runProperties = Sets.difference(all, getInactiveProperties(partitionAnalysis.getReached()));
+        final Set<Property> runProperties = getActiveProperties(partitionAnalysis.getReached());
 
         try (Contexts runCtx = Stats.beginRootContextCollection(runProperties)) {
           Stats.incCounter("Multi-Property Verification Iterations", 1);
@@ -397,8 +404,7 @@ public final class MultiPropertyAnalysisFullReset implements MultiPropertyAlgori
               Preconditions.checkState(!partitionAnalysis.getReached().isEmpty());
               stats.numberOfPartitionExhaustions++;
 
-              SetView<Property> active = Sets.difference(all,
-                  Sets.union(violated, getInactiveProperties(partitionAnalysis.getReached())));
+              Set<Property> active = Sets.difference(getActiveProperties(partitionAnalysis.getReached()), violated);
               if (runProperties.size() == 1) {
                 exhausted.addAll(active);
               }
