@@ -2,14 +2,11 @@ package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import static com.google.common.collect.Iterables.filter;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.UniqueIdGenerator;
@@ -51,11 +48,16 @@ import org.sosy_lab.solver.api.Model;
 import org.sosy_lab.solver.api.OptimizationProverEnvironment;
 import org.sosy_lab.solver.api.ProverEnvironment;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * Main logic in a single class.
@@ -248,8 +250,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     final boolean hasTargetState = filter(
         AbstractStates.asIterable(pArgState),
         AbstractStates.IS_TARGET_STATE).iterator().hasNext();
-    final boolean shouldPerformAbstraction = shouldPerformAbstraction(iState,
-        pArgState);
+    final boolean shouldPerformAbstraction = shouldPerformAbstraction(iState, pArgState);
 
     // Perform reachability checking, either for property states, or when the
     // formula gets too long, or before abstractions.
@@ -265,13 +266,11 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
     // Perform the abstraction, if necessary.
     if (shouldPerformAbstraction) {
-      PolicyPrecision toNodePrecision = templateManager.precisionForNode(
-          state.getNode());
+      PolicyPrecision toNodePrecision = templateManager.precisionForNode(state.getNode());
 
       // Formulas reported by other CPAs.
       BooleanFormula extraInvariant = extractReportedFormulas(pArgState);
       logger.log(Level.INFO, "Reported formulas: ", extraInvariant);
-      logger.flush();
 
       Optional<PolicyAbstractedState> sibling =
           getSiblings(iState, extraInvariant, states.getReached(pArgState));
@@ -967,7 +966,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
    * (== in the same partition) with {@code state}.
    * However, we would like to get the *latest* such element.
    * In ARG terminology, that's the first one we get by following backpointers.
-   *
    */
   private Optional<PolicyAbstractedState> getSiblings(
       PolicyIntermediateState state,
@@ -1068,11 +1066,9 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       PolicyIntermediateState state1,
       PolicyIntermediateState state2)
       throws SolverException, InterruptedException {
-    return state1.getPathFormula().getFormula().equals(
-        state2.getPathFormula().getFormula()
-    ) && isLessOrEqualAbstracted(state1.getGeneratingState(),
-        state2.getGeneratingState())
-   || state1.isMergedInto(state2);
+    return state1.isMergedInto(state2)
+        || state1.getPathFormula().getFormula().equals(state2.getPathFormula().getFormula())
+        && isLessOrEqualAbstracted(state1.getGeneratingState(), state2.getGeneratingState());
   }
 
   /**
@@ -1082,8 +1078,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       PolicyAbstractedState aState1,
       PolicyAbstractedState aState2
   ) throws SolverException, InterruptedException {
-    if (!congruenceManager.isLessOrEqual(aState1.getCongruence(),
-        aState2.getCongruence())) {
+    if (!congruenceManager.isLessOrEqual(aState1.getCongruence(), aState2.getCongruence())) {
       return false;
     }
 
@@ -1110,16 +1105,11 @@ public class PolicyIterationManager implements IPolicyIterationManager {
    * @return Formulas known to be true at {@code state}.
    */
   private BooleanFormula extractReportedFormulas(AbstractState state) {
-    BooleanFormula result = bfmgr.makeBoolean(true);
+    List<BooleanFormula> constraints = new ArrayList<>();
     for (FormulaReportingState s : AbstractStates.asIterable(state).filter(FormulaReportingState.class)) {
-      if (s instanceof PolicyAbstractedState) {
-
-        // Do not use our own invariants.
-        continue;
-      }
-      result = bfmgr.and(result, s.getFormulaApproximation(fmgr, pfmgr));
+      constraints.add(s.getFormulaApproximation(fmgr, pfmgr));
     }
-    return result;
+    return bfmgr.and(constraints);
   }
 
   private void startInvariantGeneration(CFANode pNode) {

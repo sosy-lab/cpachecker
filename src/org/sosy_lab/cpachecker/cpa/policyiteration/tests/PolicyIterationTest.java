@@ -71,7 +71,6 @@ public class PolicyIterationTest {
     check("pointers/pointer_past_abstraction_true_assert.c", ImmutableMap.of(
             "CompositeCPA.cpas", CPAS_W_SLICING,
             "cpa.stator.policy.generateOctagons", "true"
-//            "cpa.slicing.useCounterexampleBasedSlicing", "true"
         )
     );
   }
@@ -80,8 +79,7 @@ public class PolicyIterationTest {
     check("pointers/pointer_past_abstraction_false_assert.c"
         , ImmutableMap.of(
             "CompositeCPA.cpas", CPAS_W_SLICING,
-            "cpa.stator.policy.runCongruence", "false",
-            "cpa.slicing.useCounterexampleBasedSlicing", "true"
+            "cpa.stator.policy.runCongruence", "false"
         )
     );
   }
@@ -91,10 +89,6 @@ public class PolicyIterationTest {
         ImmutableMap.of(
             "CompositeCPA.cpas", CPAS_W_SLICING,
             "cpa.stator.policy.generateOctagons", "true",
-            "cpa.slicing.useSyntacticFormulaSlicing", "true",
-            "cpa.slicing.runCounterexampleBasedSlicing", "true",
-
-            // TODO: temporary fix.
             "cpa.stator.policy.linearizePolicy", "false"
         ));
   }
@@ -156,8 +150,7 @@ public class PolicyIterationTest {
 
   @Test public void unrolling_true_assert() throws Exception {
     check("unrolling_true_assert.c",
-        ImmutableMap.of("cpa.loopstack.loopIterationsBeforeAbstraction",
-            "2"));
+        ImmutableMap.of("cpa.loopstack.loopIterationsBeforeAbstraction", "2"));
   }
 
   @Test public void timeout_true_assert() throws Exception {
