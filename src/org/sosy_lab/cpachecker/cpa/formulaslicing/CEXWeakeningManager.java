@@ -14,7 +14,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
-import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.Model;
 import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.api.SolverContext.ProverOptions;
@@ -38,6 +37,9 @@ import java.util.logging.Level;
 public class CEXWeakeningManager {
   @Option(description="Strategy for abstracting children during CEX weakening", secure=true)
   private SELECTION_STRATEGY removalSelectionStrategy = SELECTION_STRATEGY.FIRST;
+
+  @Option(description="Depth limit for the 'LEAST_REMOVALS' strategy.")
+  private int leastRemovalsDepthLimit = 2;
 
   /**
    * Selection strategy for CEX-based weakening.
@@ -119,7 +121,6 @@ public class CEXWeakeningManager {
     try (ProverEnvironment env = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       env.push(query);
 
-      // TODO: refactor to use solve-with-assumptions.
       List<BooleanFormula> selectorConstraints = new ArrayList<>();
       for (BooleanFormula selector : selectionInfo.keySet()) {
         selectorConstraints.add(bfmgr.not(selector));
@@ -138,7 +139,8 @@ public class CEXWeakeningManager {
             m,
             selectionInfo,
             primed,
-            logger
+            logger,
+            0
         ));
         env.pop();
         selectorConstraints.clear();
@@ -161,7 +163,8 @@ public class CEXWeakeningManager {
       final Model m,
       final Map<BooleanFormula, BooleanFormula> selectionInfo,
       final BooleanFormula primed,
-      final LogManager usedLogger
+      final LogManager usedLogger,
+      final int depth
   ) {
     final List<BooleanFormula> newToAbstract = new ArrayList<>();
 
@@ -206,7 +209,6 @@ public class CEXWeakeningManager {
         }
       }
 
-
       private void handleAnnotatedLiteral(BooleanFormula selector) {
         // Don't-care or evaluates-to-false.
         if (!toAbstract.contains(selector)) {
@@ -237,11 +239,14 @@ public class CEXWeakeningManager {
             return TraversalProcess.CONTINUE;
           case FIRST:
             BooleanFormula selected = operands.iterator().next();
-            return TraversalProcess.custom(ImmutableSet.<Formula>of(selected));
+            return TraversalProcess.custom(selected);
           case RANDOM:
             int rand = r.nextInt(operands.size());
-            return TraversalProcess.custom(operands.subList(rand, rand + 1));
+            return TraversalProcess.custom(operands.get(rand));
           case LEAST_REMOVALS:
+            if (depth >= leastRemovalsDepthLimit) {
+              return TraversalProcess.custom(operands.iterator().next());
+            }
             BooleanFormula out = Collections.min(operands, new Comparator<BooleanFormula>() {
               @Override
               public int compare(BooleanFormula o1, BooleanFormula o2) {
@@ -249,7 +254,7 @@ public class CEXWeakeningManager {
                     recursivelyCallSelf(o1).size(), recursivelyCallSelf(o2).size());
               }
             });
-            return TraversalProcess.custom(ImmutableSet.of(out));
+            return TraversalProcess.custom(out);
           default:
             throw new UnsupportedOperationException("Unexpected strategy");
         }
@@ -259,8 +264,8 @@ public class CEXWeakeningManager {
 
         // Doing recursion while doing recursion :P
         // Use NullLogManager to avoid log pollution.
-        return getSelectorsToAbstract(toAbstract, m, selectionInfo, f,
-            NullLogManager.getInstance());
+        return getSelectorsToAbstract(
+            toAbstract, m, selectionInfo, f, NullLogManager.getInstance(), depth + 1);
       }
 
     }, primed);
