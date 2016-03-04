@@ -1,9 +1,11 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.solver.api.BooleanFormula;
 
-public final class PolicyIntermediateState extends PolicyState {
+public final class PolicyIntermediateState extends PolicyState implements Partitionable {
 
   /**
    * Formula + SSA associated with the state.
@@ -20,6 +22,8 @@ public final class PolicyIntermediateState extends PolicyState {
    */
   private transient PolicyIntermediateState mergedInto;
 
+  private transient BooleanFormula extraInvariant;
+
   private PolicyIntermediateState(
       CFANode node,
       PathFormula pPathFormula,
@@ -29,6 +33,7 @@ public final class PolicyIntermediateState extends PolicyState {
 
     pathFormula = pPathFormula;
     startingAbstraction = pStartingAbstraction;
+    extraInvariant = getGeneratingState().getExtraInvariant();
   }
 
   public static PolicyIntermediateState of(
@@ -38,6 +43,14 @@ public final class PolicyIntermediateState extends PolicyState {
   ) {
     return new PolicyIntermediateState(
         node, pPathFormula, generatingState);
+  }
+
+  public void setPartitionKey(BooleanFormula pExtraInvariant) {
+    extraInvariant = pExtraInvariant;
+  }
+
+  public void resetPartitionKey() {
+    extraInvariant = startingAbstraction.getExtraInvariant();
   }
 
   public void setMergedInto(PolicyIntermediateState other) {
@@ -72,5 +85,10 @@ public final class PolicyIntermediateState extends PolicyState {
   @Override
   public String toString() {
     return pathFormula.toString() + "\nLength: " + pathFormula.getLength();
+  }
+
+  @Override
+  public Object getPartitionKey() {
+    return extraInvariant;
   }
 }
