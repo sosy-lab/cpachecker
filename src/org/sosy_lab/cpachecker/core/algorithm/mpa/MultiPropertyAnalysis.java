@@ -262,6 +262,14 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
     return result.build();
   }
 
+  private Set<Property> getActiveProperties(final ReachedSet pReached) {
+
+    Set<Property> active = getActiveProperties(pReached.getFirstState(), pReached);
+    Set<Property> inactive = getInactiveProperties(pReached);
+
+    return Sets.difference(active, inactive);
+  }
+
   /**
    * Get the properties that are active in all instances of a precision!
    *    A property is not included if it is INACTIVE in one of
@@ -376,7 +384,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
       Partitioning remainingPartitions = initReached(pReachedSet, checkPartitions, all);
 
       do {
-        final Set<Property> runProperties = Sets.difference(all, getInactiveProperties(pReachedSet));
+        final Set<Property> runProperties = getActiveProperties(pReachedSet);
 
         try (Contexts runCtx = Stats.beginRootContextCollection(runProperties)) {
           Stats.incCounter("Multi-Property Verification Iterations", 1);
@@ -484,8 +492,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
 
             // Properties that are (1) still active
             //  and (2) for that no counterexample was found are considered to be save!
-            Set<Property> active = Sets.difference(all,
-                Sets.union(violated, getInactiveProperties(pReachedSet)));
+            Set<Property> active = Sets.difference(getActiveProperties(pReachedSet), violated);
             satisfied.addAll(active);
 
             Set<Property> remain = remaining(all, violated, satisfied, exhausted);
@@ -724,8 +731,9 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
       logger.log(Level.WARNING, String.format("%d states in waitlist.", pReachedSet.getWaitlist().size()));
 
       // Logging: inactive properties
-      ImmutableSet<Property> inactive = getInactiveProperties(pReachedSet);
-      logger.log(Level.WARNING, String.format("Waitlist with %d inactive properties.", inactive.size()));
+      Set<Property> inactive = getInactiveProperties(pReachedSet);
+      Set<Property> active = getActiveProperties(pReachedSet);
+      logger.log(Level.WARNING, String.format("Waitlist with %d active (%d inactive) properties.", active.size(), inactive.size()));
       for (Property p: inactive) {
         logger.logf(Level.WARNING, "INACTIVE: %s", p.toString());
       }
