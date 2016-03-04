@@ -216,13 +216,15 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
               extractStateByType(state, PredicateAbstractState.class);
           PathFormula pathFormula = predState.getPathFormula();
           argForPathFormulaBasedGeneration.add(Pair.of(pathFormula, node));
+        } else if (!node.equals(
+            extractLocation(abstractionStatesTrace.get(abstractionStatesTrace.size() - 1)))) {
+          argForPathFormulaBasedGeneration.add(Pair.<PathFormula, CFANode>of(null, node));
         }
       }
 
       Triple<ARGPath, List<ARGState>, Set<Loop>> argForErrorPathBasedGeneration =
           Triple.of(allStatesTrace, abstractionStatesTrace, loopsInPath);
 
-      List<BooleanFormula> precisionIncrement = null;
       for (InvariantGenerationStrategy invGenStrategy : invariantGenerationStrategy) {
         boolean wasSuccessful = invariantsManager.findInvariants(
             invariantUsageStrategy,
@@ -232,10 +234,11 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
             shutdownNotifier);
 
         if (wasSuccessful) {
-          precisionIncrement = invariantsManager.getInvariantsForRefinement();
           break;
         }
       }
+
+      List<BooleanFormula> precisionIncrement = invariantsManager.getInvariantsForRefinement();
 
       // fall-back to interpolation
       if (precisionIncrement.isEmpty()) {

@@ -237,7 +237,6 @@ class InvariantsManager {
   private final List<BooleanFormula> refinementCache = new ArrayList<>();
 
   private InvariantUsageStrategy usageStrategy;
-  private InvariantGenerationStrategy generationStrategy;
 
   @SuppressWarnings("options")
   public InvariantsManager(PredicateCPA pPredicateCPA) throws InvalidConfigurationException {
@@ -279,7 +278,21 @@ class InvariantsManager {
    * in the given order.
    */
   public List<BooleanFormula> getInvariantsForRefinement() {
-    return Collections.unmodifiableList(refinementCache);
+    // we have to check that at least one invariant is not trivially true
+    boolean containsOnlyTrivialInvariants = true;
+    for (BooleanFormula formula : refinementCache) {
+      if (!containsOnlyTrivialInvariants) {
+        break;
+      }
+
+      containsOnlyTrivialInvariants = bfmgr.isTrue(formula);
+    }
+
+    if (containsOnlyTrivialInvariants) {
+      return Collections.emptyList();
+    } else {
+      return Collections.unmodifiableList(refinementCache);
+    }
   }
 
   public boolean findInvariants(
@@ -291,7 +304,6 @@ class InvariantsManager {
 
     // set usage strategy so other methods which are called subsequently can use it
     usageStrategy = pUsage;
-    generationStrategy = pGeneration;
 
     // clear refinementCache
     refinementCache.clear();
@@ -310,14 +322,22 @@ class InvariantsManager {
       switch (pGeneration) {
         case PF_CNF_KIND:
           for (Pair<PathFormula, CFANode> pair : pArgForPathFormulaBasedGeneration) {
-            findInvariantPartOfPathFormulaWithKInduction(
-                pair.getSecond(), pair.getFirst(), invariantShutdown.getNotifier());
+            if (pair.getFirst() != null) {
+              findInvariantPartOfPathFormulaWithKInduction(
+                  pair.getSecond(), pair.getFirst(), invariantShutdown.getNotifier());
+            } else {
+              addResultToCache(bfmgr.makeBoolean(true), pair.getSecond());
+            }
           }
           break;
         case PF_INDUCTIVE_WEAKENING:
           for (Pair<PathFormula, CFANode> pair : pArgForPathFormulaBasedGeneration) {
-            findInvariantPartOfPathFormulaWithWeakening(
-                pair.getSecond(), pair.getFirst(), invariantShutdown.getNotifier());
+            if (pair.getFirst() != null) {
+              findInvariantPartOfPathFormulaWithWeakening(
+                  pair.getSecond(), pair.getFirst(), invariantShutdown.getNotifier());
+            } else {
+              addResultToCache(bfmgr.makeBoolean(true), pair.getSecond());
+            }
           }
           break;
         case RF_INTERPOLANT_KIND:
@@ -360,7 +380,24 @@ class InvariantsManager {
   private void addResultToCache(BooleanFormula pInvariant, CFANode pLocation) {
 
     // add to this cache for combination and for Abstraction Formula
-    if (usageStrategy != REFINEMENT) {
+    // we do only want to add something if the formula is not trivially TRUE
+    // (TRUE is an invariant, but it is not useful)
+    if (usageStrategy != REFINEMENT
+        && bfmgr.visit(
+            new DefaultBooleanFormulaVisitor<Boolean>() {
+
+              @Override
+              protected Boolean visitDefault() {
+                return false;
+              }
+
+              @Override
+              public Boolean visitConstant(boolean value) {
+                return value;
+              }
+            },
+            pInvariant)) {
+
       Region invariantRegion = amgr.makePredicate(checkNotNull(pInvariant)).getAbstractVariable();
       if (regionInvariantsCache.containsKey(pLocation)) {
         invariantRegion = rmgr.makeAnd(regionInvariantsCache.get(pLocation), invariantRegion);
@@ -370,9 +407,6 @@ class InvariantsManager {
 
     // add to this cache for combination and for refinement
     if (usageStrategy != ABSTRACTION_FORMULA) {
-      // currently we do not support invariant refinement with these two strategies
-      assert generationStrategy != InvariantGenerationStrategy.PF_CNF_KIND
-          && generationStrategy != InvariantGenerationStrategy.PF_INDUCTIVE_WEAKENING;
       refinementCache.add(checkNotNull(pInvariant));
     }
   }
