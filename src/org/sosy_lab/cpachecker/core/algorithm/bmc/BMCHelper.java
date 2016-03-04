@@ -23,12 +23,16 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
@@ -38,11 +42,15 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.automaton.Automata;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -50,11 +58,14 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 
-final class BMCHelper {
+public final class BMCHelper {
 
   private BMCHelper() {
 
@@ -182,6 +193,31 @@ final class BMCHelper {
           pCPA.getInitialState(initialLocation, StateSpacePartition.getDefaultPartition()),
           pCPA.getInitialPrecision(initialLocation, StateSpacePartition.getDefaultPartition()));
     }
+  }
+
+  public static Set<CFANode> getLoopHeads(CFA pCFA, TargetLocationProvider pTargetLocationProvider) {
+    if (pCFA.getLoopStructure().isPresent()
+        && pCFA.getLoopStructure().get().getAllLoops().isEmpty()) {
+      return Collections.emptySet();
+    }
+    final Set<CFANode> loopHeads =
+        pTargetLocationProvider.tryGetAutomatonTargetLocations(
+            pCFA.getMainFunction(), Optional.of(Automata.getLoopHeadTargetAutomaton()));
+    if (!pCFA.getLoopStructure().isPresent()) {
+      return loopHeads;
+    }
+    LoopStructure loopStructure = pCFA.getLoopStructure().get();
+    return from(loopStructure.getAllLoops()).transformAndConcat(new Function<Loop, Iterable<CFANode>>() {
+
+      @Override
+      public Iterable<CFANode> apply(Loop pLoop) {
+        if (Sets.intersection(pLoop.getLoopNodes(), loopHeads).isEmpty()) {
+          return Collections.emptySet();
+        }
+        return pLoop.getLoopHeads();
+      }
+
+    }).toSet();
   }
 
   public static interface FormulaInContext {

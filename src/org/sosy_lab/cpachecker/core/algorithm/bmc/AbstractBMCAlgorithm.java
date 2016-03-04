@@ -29,7 +29,6 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.logging.Level;
@@ -61,7 +60,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
-import org.sosy_lab.cpachecker.cpa.automaton.Automata;
 import org.sosy_lab.cpachecker.cpa.bounds.BoundsCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -70,7 +68,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -82,13 +79,11 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 
-import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 
 @Options(prefix="bmc")
 abstract class AbstractBMCAlgorithm implements StatisticsProvider {
@@ -231,7 +226,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     }
 
     if (pTargetLocationProvider.isPresent()) {
-      return !getLoopHeads(cfa, pTargetLocationProvider.get()).isEmpty();
+      return !BMCHelper.getLoopHeads(cfa, pTargetLocationProvider.get()).isEmpty();
     }
 
     return true;
@@ -528,31 +523,6 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
    * @return the loop heads.
    */
   protected Set<CFANode> getLoopHeads() {
-    return getLoopHeads(cfa, targetLocationProvider);
-  }
-
-  private static Set<CFANode> getLoopHeads(CFA pCFA, TargetLocationProvider pTargetLocationProvider) {
-    if (pCFA.getLoopStructure().isPresent()
-        && pCFA.getLoopStructure().get().getAllLoops().isEmpty()) {
-      return Collections.emptySet();
-    }
-    final Set<CFANode> loopHeads =
-        pTargetLocationProvider.tryGetAutomatonTargetLocations(
-            pCFA.getMainFunction(), Optional.of(Automata.getLoopHeadTargetAutomaton()));
-    if (!pCFA.getLoopStructure().isPresent()) {
-      return loopHeads;
-    }
-    LoopStructure loopStructure = pCFA.getLoopStructure().get();
-    return from(loopStructure.getAllLoops()).transformAndConcat(new Function<Loop, Iterable<CFANode>>() {
-
-      @Override
-      public Iterable<CFANode> apply(Loop pLoop) {
-        if (Sets.intersection(pLoop.getLoopNodes(), loopHeads).isEmpty()) {
-          return Collections.emptySet();
-        }
-        return pLoop.getLoopHeads();
-      }
-
-    }).toSet();
+    return BMCHelper.getLoopHeads(cfa, targetLocationProvider);
   }
 }
