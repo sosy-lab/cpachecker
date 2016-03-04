@@ -30,7 +30,6 @@ import static com.google.common.collect.Iterables.*;
 import static com.google.common.collect.Lists.newArrayList;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.AbstractLocationFormulaInvariant.makeLocationInvariant;
 import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getAllStatesOnPathsTo;
-import static org.sosy_lab.cpachecker.cpa.predicate.InvariantsManager.InvariantUsageStrategy.*;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
 import java.io.IOException;
@@ -47,8 +46,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -119,10 +116,10 @@ import com.google.common.collect.Lists;
 import com.google.common.io.CharSink;
 import com.google.common.io.FileWriteMode;
 
-@Options(prefix = "predicate.invariants")
+@Options(prefix = "cpa.predicate.invariants")
 class InvariantsManager {
 
-  static enum InvariantGenerationStrategy {
+  private static enum InvariantGenerationStrategy {
     /**
      * Applies inductive weakening on the pathformula (which is converted to a CNF like form)
      * to filter out the invariant part.
@@ -148,7 +145,7 @@ class InvariantsManager {
     RF_INVARIANT_GENERATION,
   }
 
-  static enum InvariantUsageStrategy {
+  private static enum InvariantUsageStrategy {
 
     /**
      * Generated invariants should only be used for refining the precision
@@ -173,6 +170,31 @@ class InvariantsManager {
      */
     NONE;
   }
+
+  @Option(
+    secure = true,
+    description =
+        "Which strategy should be used for generating invariants, a comma separated"
+            + " list can be specified. Usually later specified strategies serve as"
+            + " fallback for earlier ones."
+  )
+  private List<InvariantGenerationStrategy> generationStrategy =
+      Lists.newArrayList(InvariantGenerationStrategy.RF_INVARIANT_GENERATION);
+
+  @Option(
+    secure = true,
+    description = "Where should the generated invariants (if there are some) be used?"
+  )
+  private InvariantUsageStrategy usageStrategy = InvariantUsageStrategy.NONE;
+
+  @Option(
+    secure = true,
+    description =
+        "Should the strategies be used all-together or only as fallback. If all together,"
+            + " the computation is done until the timeout is hit and the results up to this"
+            + " point are taken."
+  )
+  private boolean useAllStrategies = false;
 
   @Option(
     secure = true,
@@ -236,8 +258,6 @@ class InvariantsManager {
   private final Map<CFANode, Region> regionInvariantsCache = new HashMap<>();
   private final List<BooleanFormula> refinementCache = new ArrayList<>();
 
-  private InvariantUsageStrategy usageStrategy;
-
   @SuppressWarnings("options")
   public InvariantsManager(PredicateCPA pPredicateCPA) throws InvalidConfigurationException {
     config = pPredicateCPA.getConfiguration();
@@ -274,7 +294,7 @@ class InvariantsManager {
 
   /**
    * This method returns the invariants computed for the given locations in
-   * {@link #findInvariants(InvariantUsageStrategy, InvariantGenerationStrategy, List, Triple, ShutdownNotifier)}
+   * {@link #findInvariants(List, Triple, ShutdownNotifier)}
    * in the given order.
    */
   public List<BooleanFormula> getInvariantsForRefinement() {
@@ -295,18 +315,57 @@ class InvariantsManager {
     }
   }
 
-  public boolean findInvariants(
-      InvariantUsageStrategy pUsage,
-      InvariantGenerationStrategy pGeneration,
-      @Nullable List<Pair<PathFormula, CFANode>> pArgForPathFormulaBasedGeneration,
-      @Nullable Triple<ARGPath, List<ARGState>, Set<Loop>> pArgForErrorPathBasedGeneration,
+  /**
+   * @return Indicates if invariants should be computed at all.
+   */
+  public boolean shouldInvariantsBeComputed() {
+    return usageStrategy != InvariantUsageStrategy.NONE;
+  }
+
+  /**
+   * @return Indicates if invariants should be used for refinement.
+   */
+  public boolean shouldInvariantsBeUsedForRefinement() {
+    return usageStrategy != InvariantUsageStrategy.ABSTRACTION_FORMULA
+        && usageStrategy != InvariantUsageStrategy.NONE;
+  }
+
+  /**
+   * This method finds invariants for usage during refinement or precision
+   * adjustment of the PredicateAnalysisCPA. The exact use case can be configured.
+   *
+   * For better performance this method should only be called during refinement.
+   * The computed invariants (if there are some) are cached for later usage in
+   * precision adjustment.
+   *
+   * Note: In order to make this method work properly with all configurations the
+   * pathformulas given in the first parameter have to be from states at a loop
+   * head. This also means that finding invariants without a single loop on the path
+   * won't work with this method.
+   *
+   * @param pArgForPathFormulaBasedGeneration The arguments which are necessary for
+   * computing the inductive weakening and in general for finding invariants out
+   * of the pathformulas theirselves.
+   * @param pArgForErrorPathBasedGeneration The arguments which are necessary for
+   * computing invariants out of interpolants or the given counterexample path.
+   * @param pShutdownNotifier The parent shutdown notifier which should be used.
+   * Internally a child notifier is created with the timelimit specified in the
+   * configuration.
+   */
+  public void findInvariants(
+      List<Pair<PathFormula, CFANode>> pArgForPathFormulaBasedGeneration,
+      Triple<ARGPath, List<ARGState>, Set<Loop>> pArgForErrorPathBasedGeneration,
       ShutdownNotifier pShutdownNotifier) {
 
-    // set usage strategy so other methods which are called subsequently can use it
-    usageStrategy = pUsage;
+    // shortcut if we do not need to compute anything
+    if (!shouldInvariantsBeComputed()) {
+      return;
+    }
 
     // clear refinementCache
     refinementCache.clear();
+    boolean atLeastOneStrategyFinished = false;
+    List<BooleanFormula> tmpRefinementCache = new ArrayList<>();
 
     try {
       ShutdownManager invariantShutdown = ShutdownManager.createWithParent(pShutdownNotifier);
@@ -319,42 +378,65 @@ class InvariantsManager {
         limits.start();
       }
 
-      switch (pGeneration) {
-        case PF_CNF_KIND:
-          for (Pair<PathFormula, CFANode> pair : pArgForPathFormulaBasedGeneration) {
-            if (pair.getFirst() != null) {
-              findInvariantPartOfPathFormulaWithKInduction(
-                  pair.getSecond(), pair.getFirst(), invariantShutdown.getNotifier());
-            } else {
-              addResultToCache(bfmgr.makeBoolean(true), pair.getSecond());
+      for (InvariantGenerationStrategy generation : generationStrategy) {
+        switch (generation) {
+          case PF_CNF_KIND:
+            for (Pair<PathFormula, CFANode> pair : pArgForPathFormulaBasedGeneration) {
+              if (pair.getFirst() != null) {
+                findInvariantPartOfPathFormulaWithKInduction(
+                    pair.getSecond(), pair.getFirst(), invariantShutdown.getNotifier());
+              } else {
+                addResultToCache(bfmgr.makeBoolean(true), pair.getSecond());
+              }
             }
-          }
-          break;
-        case PF_INDUCTIVE_WEAKENING:
-          for (Pair<PathFormula, CFANode> pair : pArgForPathFormulaBasedGeneration) {
-            if (pair.getFirst() != null) {
-              findInvariantPartOfPathFormulaWithWeakening(
-                  pair.getSecond(), pair.getFirst(), invariantShutdown.getNotifier());
-            } else {
-              addResultToCache(bfmgr.makeBoolean(true), pair.getSecond());
+            break;
+          case PF_INDUCTIVE_WEAKENING:
+            for (Pair<PathFormula, CFANode> pair : pArgForPathFormulaBasedGeneration) {
+              if (pair.getFirst() != null) {
+                findInvariantPartOfPathFormulaWithWeakening(
+                    pair.getSecond(), pair.getFirst(), invariantShutdown.getNotifier());
+              } else {
+                addResultToCache(bfmgr.makeBoolean(true), pair.getSecond());
+              }
             }
+            break;
+          case RF_INTERPOLANT_KIND:
+            findInvariantInterpolants(
+                pArgForErrorPathBasedGeneration.getFirst(),
+                pArgForErrorPathBasedGeneration.getSecond(),
+                invariantShutdown.getNotifier());
+            break;
+          case RF_INVARIANT_GENERATION:
+            findInvariantsWithGenerator(
+                pArgForErrorPathBasedGeneration.getFirst(),
+                pArgForErrorPathBasedGeneration.getSecond(),
+                pArgForErrorPathBasedGeneration.getThird(),
+                invariantShutdown);
+            break;
+          default:
+            throw new AssertionError("Unhandled case statement");
+        }
+
+        // we need to merge invariants for refinement if there is more than one
+        // strategy used
+        if (tmpRefinementCache.isEmpty()) {
+          tmpRefinementCache.addAll(refinementCache);
+          refinementCache.clear();
+        } else {
+          List<BooleanFormula> merged = new ArrayList<>();
+          for (int i = 0; i < tmpRefinementCache.size(); i++) {
+            merged.add(bfmgr.and(tmpRefinementCache.get(i), refinementCache.get(i)));
           }
+          refinementCache.clear();
+          tmpRefinementCache = merged;
+        }
+        atLeastOneStrategyFinished = true;
+
+        // if we did successfully compute invariants we do not need to
+        // compute them once more with a different strategy
+        if (useAllStrategies || invariantShutdown.getNotifier().shouldShutdown()) {
           break;
-        case RF_INTERPOLANT_KIND:
-          findInvariantInterpolants(
-              pArgForErrorPathBasedGeneration.getFirst(),
-              pArgForErrorPathBasedGeneration.getSecond(),
-              invariantShutdown.getNotifier());
-          break;
-        case RF_INVARIANT_GENERATION:
-          findInvariantsWithGenerator(
-              pArgForErrorPathBasedGeneration.getFirst(),
-              pArgForErrorPathBasedGeneration.getSecond(),
-              pArgForErrorPathBasedGeneration.getThird(),
-              invariantShutdown);
-          break;
-        default:
-          throw new AssertionError("Unhandled case statement");
+        }
       }
 
       if (!timeForInvariantGeneration.isEmpty()) {
@@ -365,16 +447,27 @@ class InvariantsManager {
         CPAException | SolverException | InterruptedException | InvalidConfigurationException
                 | IOException
             e) {
-      logger.logUserException(Level.INFO, e, "Invariants could not be computed");
-      return false;
+      if (atLeastOneStrategyFinished) {
+        logger.logUserException(Level.INFO, e, "Subsequent run of invariant generation failed");
+      } else {
+        logger.logUserException(Level.INFO, e, "Invariants could not be computed");
+      }
+
+      // update the refinement cache at the very end of the computation
+      // resetting it also makes sure that a partial computation (e.g. in case
+      // of the shutdown notifier hitting the time limit in the middle of a run
+      // of CPAInvariantGenerator) is not influencing the overall result due to
+      // missing invariants (the list has to have an exact number of items
+      // otherwise the refinement will fail)
+    } finally {
+      refinementCache.clear();
+      refinementCache.addAll(tmpRefinementCache);
     }
 
     // we most likely have added some invariants and therefore reorder the BDD
-    if (usageStrategy != REFINEMENT) {
+    if (usageStrategy != InvariantUsageStrategy.REFINEMENT) {
       amgr.reorderPredicates();
     }
-
-    return true;
   }
 
   private void addResultToCache(BooleanFormula pInvariant, CFANode pLocation) {
@@ -382,21 +475,7 @@ class InvariantsManager {
     // add to this cache for combination and for Abstraction Formula
     // we do only want to add something if the formula is not trivially TRUE
     // (TRUE is an invariant, but it is not useful)
-    if (usageStrategy != REFINEMENT
-        && bfmgr.visit(
-            new DefaultBooleanFormulaVisitor<Boolean>() {
-
-              @Override
-              protected Boolean visitDefault() {
-                return false;
-              }
-
-              @Override
-              public Boolean visitConstant(boolean value) {
-                return value;
-              }
-            },
-            pInvariant)) {
+    if (usageStrategy != InvariantUsageStrategy.REFINEMENT && !bfmgr.isTrue(pInvariant)) {
 
       Region invariantRegion = amgr.makePredicate(checkNotNull(pInvariant)).getAbstractVariable();
       if (regionInvariantsCache.containsKey(pLocation)) {
@@ -406,7 +485,7 @@ class InvariantsManager {
     }
 
     // add to this cache for combination and for refinement
-    if (usageStrategy != ABSTRACTION_FORMULA) {
+    if (usageStrategy != InvariantUsageStrategy.ABSTRACTION_FORMULA) {
       refinementCache.add(checkNotNull(pInvariant));
     }
   }
@@ -432,11 +511,7 @@ class InvariantsManager {
     // we already found this loop and just need to update the SSA indices
     if (loopFormulaCache.containsKey(pLocation)) {
       loopFormula =
-          new PathFormula(
-              fmgr.instantiate(loopFormulaCache.get(pLocation), ssa),
-              ssa,
-              pts,
-              0); // TODO is 0 correct here?
+          new PathFormula(fmgr.instantiate(loopFormulaCache.get(pLocation), ssa), ssa, pts, 0);
     } else {
       loopFormula =
           new LoopTransitionFinder(

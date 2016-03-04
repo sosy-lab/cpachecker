@@ -51,8 +51,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.predicate.InvariantsManager.InvariantGenerationStrategy;
-import org.sosy_lab.cpachecker.cpa.predicate.InvariantsManager.InvariantUsageStrategy;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -97,23 +95,6 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
                                  + "as predicates, and not the whole invariant")
   private boolean atomicInvariants = false;
 
-  @Option(
-    secure = true,
-    description =
-        "Which strategy should be used for generating"
-            + " invariants, a comma separated list can be specified. In case one strategy fails,"
-            + " the next one is used."
-  )
-  private List<InvariantGenerationStrategy> invariantGenerationStrategy =
-      Lists.newArrayList(InvariantGenerationStrategy.PF_INDUCTIVE_WEAKENING);
-
-  @Option(
-    secure = true,
-    description = "Where should the generated invariants (if there are some) be used?"
-  )
-  private InvariantUsageStrategy invariantUsageStrategy =
-      InvariantUsageStrategy.ABSTRACTION_FORMULA;
-
   private final InvariantsManager invariantsManager;
   private final LoopStructure loopStructure;
   private final Map<Loop, Integer> loopOccurrences = new HashMap<>();
@@ -148,15 +129,10 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
   public final CounterexampleInfo performRefinement(final ARGReachedSet pReached, final ARGPath allStatesTrace) throws CPAException, InterruptedException {
 
     // no invariants should be generated, we can do an interpolating refinement immediately
-    switch (invariantUsageStrategy) {
-      case NONE:
-        return super.performRefinement(pReached, allStatesTrace);
-      case REFINEMENT:
-      case ABSTRACTION_FORMULA:
-      case COMBINATION:
-        return performRefinement0(pReached, allStatesTrace);
-      default:
-        throw new AssertionError("Unhandled case statement");
+    if (invariantsManager.shouldInvariantsBeComputed()) {
+      return performRefinement0(pReached, allStatesTrace);
+    } else {
+      return super.performRefinement(pReached, allStatesTrace);
     }
   }
 
@@ -174,7 +150,6 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
     if ((loopsInPath = canInvariantsBeUsed(allStatesTrace, repeatedCounterexample)).isEmpty()) {
       return super.performRefinement(pReached, allStatesTrace);
     }
-
 
     Set<ARGState> elementsOnPath = extractElementsOnPath(allStatesTrace);
 
@@ -201,7 +176,7 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
             formulas,
             Lists.<AbstractState>newArrayList(abstractionStatesTrace),
             elementsOnPath,
-            false);
+            !invariantsManager.shouldInvariantsBeUsedForRefinement());
 
     // if error is spurious refine
     if (counterexample.isSpurious()) {
@@ -225,37 +200,41 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
       Triple<ARGPath, List<ARGState>, Set<Loop>> argForErrorPathBasedGeneration =
           Triple.of(allStatesTrace, abstractionStatesTrace, loopsInPath);
 
-      for (InvariantGenerationStrategy invGenStrategy : invariantGenerationStrategy) {
-        boolean wasSuccessful = invariantsManager.findInvariants(
-            invariantUsageStrategy,
-            invGenStrategy,
-            argForPathFormulaBasedGeneration,
-            argForErrorPathBasedGeneration,
-            shutdownNotifier);
 
-        if (wasSuccessful) {
-          break;
+      invariantsManager.findInvariants(
+          argForPathFormulaBasedGeneration, argForErrorPathBasedGeneration, shutdownNotifier);
+
+      List<BooleanFormula> precisionIncrement;
+      boolean atomicPredicates;
+
+      // add invariant precision increment if necessary
+      if (invariantsManager.shouldInvariantsBeUsedForRefinement()) {
+        precisionIncrement = invariantsManager.getInvariantsForRefinement();
+
+        // fall-back to interpolation
+        if (precisionIncrement.isEmpty()) {
+          precisionIncrement =
+              formulaManager
+                  .buildCounterexampleTrace(
+                      formulas,
+                      Lists.<AbstractState>newArrayList(abstractionStatesTrace),
+                      elementsOnPath,
+                      true)
+                  .getInterpolants();
+          atomicPredicates = atomicInterpolants;
+        } else {
+          stats.succInvariantRefinements.setNextValue(1);
+          atomicPredicates = atomicInvariants;
         }
-      }
 
-      List<BooleanFormula> precisionIncrement = invariantsManager.getInvariantsForRefinement();
-
-      // fall-back to interpolation
-      if (precisionIncrement.isEmpty()) {
-        precisionIncrement =
-            formulaManager
-                .buildCounterexampleTrace(
-                    formulas,
-                    Lists.<AbstractState>newArrayList(abstractionStatesTrace),
-                    elementsOnPath,
-                    true)
-                .getInterpolants();
       } else {
-        stats.succInvariantRefinements.setNextValue(1);
+        precisionIncrement = counterexample.getInterpolants();
+        atomicPredicates = atomicInterpolants;
       }
 
       if (strategy instanceof PredicateAbstractionRefinementStrategy) {
-        ((PredicateAbstractionRefinementStrategy)strategy).setUseAtomicPredicates(atomicInvariants);
+        ((PredicateAbstractionRefinementStrategy) strategy)
+            .setUseAtomicPredicates(atomicPredicates);
       }
 
       strategy.performRefinement(pReached, abstractionStatesTrace, precisionIncrement, repeatedCounterexample);
@@ -277,7 +256,16 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
   }
 
   /**
-   * An empty set signalizes that invariants cannot be used.
+   * Checks if necessary conditions for invariant generation are met. These are
+   * - the counterexample may not be a repeated one (invariants for the same location
+   *     didn't help before, so they won't help now)
+   * - the loops for which invariants should be generated was not in the counter
+   *     example path too often (depending on configuration). Most likely computing
+   *     invariants over and over for the same loop doesn't make much sense, this
+   *     is almost the same as for repeated counterexamples.
+   *
+   * @return An empty set signalizes that invariants cannot be used. Otherwise the
+   *         loops occuring in the current path are given
    */
   private Set<Loop> canInvariantsBeUsed(
       final ARGPath allStatesTrace, final boolean repeatedCounterexample) {
