@@ -186,7 +186,7 @@ public class DefaultPropertyBudgeting implements PropertyBudgeting {
     if (automataStateExplosionPercent > 0) {
       double percent = 100 * PropertyStats.INSTANCE.getExplosionPercent(pForProperty);
       if (percent > automataStateExplosionPercent) {
-        logger.logf(Level.INFO, "Exhausted automaton explosion percent of property %s (%f)", pForProperty.toString(), percent);
+        // logger.logf(Level.INFO, "Exhausted automaton explosion percent of property %s (%f)", pForProperty.toString(), percent);
         return true;
       }
     }
