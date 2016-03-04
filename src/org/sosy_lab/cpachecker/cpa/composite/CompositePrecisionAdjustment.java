@@ -23,6 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
+
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -31,19 +37,23 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
+import java.util.logging.Level;
 
 public class CompositePrecisionAdjustment implements PrecisionAdjustment {
   protected final ImmutableList<PrecisionAdjustment> precisionAdjustments;
   protected final ImmutableList<StateProjectionFunction> stateProjectionFunctions;
   protected final ImmutableList<PrecisionProjectionFunction> precisionProjectionFunctions;
 
-  public CompositePrecisionAdjustment(ImmutableList<PrecisionAdjustment> precisionAdjustments) {
-    this.precisionAdjustments = precisionAdjustments;
+  private final int precisionAdjustmentIterationLimit;
+  private final LogManager logger;
 
+  public CompositePrecisionAdjustment(
+      ImmutableList<PrecisionAdjustment> precisionAdjustments,
+      LogManager pLogger, int pPrecisionAdjustmentIterationLimit) {
+    this.precisionAdjustments = precisionAdjustments;
+    logger = pLogger;
+
+    precisionAdjustmentIterationLimit = pPrecisionAdjustmentIterationLimit;
     ImmutableList.Builder<StateProjectionFunction> stateProjectionFunctions = ImmutableList.builder();
     ImmutableList.Builder<PrecisionProjectionFunction> precisionProjectionFunctions = ImmutableList.builder();
 
@@ -93,6 +103,16 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
       UnmodifiableReachedSet pElements,
       Function<AbstractState, AbstractState> projection,
       AbstractState fullState) throws CPAException, InterruptedException {
+    return prec0(pElement, pPrecision, pElements, projection, fullState, 1);
+  }
+
+  public Optional<PrecisionAdjustmentResult> prec0(
+      AbstractState pElement,
+      Precision pPrecision,
+      UnmodifiableReachedSet pElements,
+      Function<AbstractState, AbstractState> projection,
+      AbstractState fullState,
+      int depth) throws CPAException, InterruptedException {
 
     CompositeState comp = (CompositeState) pElement;
     CompositePrecision prec = (CompositePrecision) pPrecision;
@@ -138,6 +158,21 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
     AbstractState outElement = modified ? new CompositeState(outElements.build())     : pElement;
     Precision outPrecision     = modified ? new CompositePrecision(outPrecisions.build()) : pPrecision;
 
-    return Optional.of(PrecisionAdjustmentResult.create(outElement, outPrecision, action));
+    PrecisionAdjustmentResult out = PrecisionAdjustmentResult.create(outElement, outPrecision, action);
+
+    if (depth == precisionAdjustmentIterationLimit) {
+
+      logger.log(Level.FINER, "Precision adjustment iteration limit reached, returning output.");
+      return Optional.of(out);
+    } else if (!modified) {
+
+      logger.log(Level.FINER, "Precision adjustment iteration has converged.");
+      return Optional.of(out);
+    } else {
+
+      // Recursion is acceptable here as we have very small chains.
+      logger.log(Level.FINER, "Starting new fixpoint iteration of precision adjustment");
+      return prec0(pElement, pPrecision, pElements, projection, fullState, depth+1);
+    }
   }
 }
