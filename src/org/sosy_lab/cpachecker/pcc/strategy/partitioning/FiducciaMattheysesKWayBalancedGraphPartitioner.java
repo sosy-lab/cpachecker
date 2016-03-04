@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.PartitioningRefiner;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.WeightedBalancedGraphPartitioner;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedGraph;
+import org.sosy_lab.cpachecker.pcc.strategy.partitioning.FiducciaMattheysesOptimzerFactory.OptimizationCriteria;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.GlobalGraphPartitionerHeuristicFactory.GlobalPartitioningHeuristics;
 /**
  * Implementation of a greedy FM/KL graph partitioning algorithm mainly based on
@@ -52,7 +53,7 @@ public class FiducciaMattheysesKWayBalancedGraphPartitioner
   @Option(
       secure = true,
       description = "[FM-k-way] Balance criterion for pairwise optimization of partitions")
-  private double balancePrecision = 1.2d;
+  private double balancePrecision = 1.3d;
 
 
   @Option(
@@ -64,15 +65,8 @@ public class FiducciaMattheysesKWayBalancedGraphPartitioner
 
   @Option(
       secure = true,
-      description = "Local optimization criterion. Minimize the NodeCut of partitions or an approximation of the frameworkspecific overhead")
+      description = "[FM-k-way] Local optimization criterion to be minimized druing Fiduccia/Mattheyses refinment")
   private OptimizationCriteria optimizationCriterion = OptimizationCriteria.NODECUT;
-
-  public static enum OptimizationCriteria {
-    //TODO: Framework-specific option, use strategy pattern here
-    //TODO: Use criterion within constructor
-    EDGECUT,
-    NODECUT
-  }
 
 
   public FiducciaMattheysesKWayBalancedGraphPartitioner(Configuration pConfig, LogManager pLogger)

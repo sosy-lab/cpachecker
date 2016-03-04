@@ -27,11 +27,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedEdge;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.FiducciaMattheysesOptimizer;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedGraph;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedNode;
-import org.sosy_lab.cpachecker.pcc.strategy.partitioning.FiducciaMattheysesKWayBalancedGraphPartitioner.OptimizationCriteria;
-
+import org.sosy_lab.cpachecker.pcc.strategy.partitioning.FiducciaMattheysesOptimzerFactory.OptimizationCriteria;
 public class FiducciaMattheysesWeightedKWayAlgorithm {
 
   private final double balanceCriterion;
@@ -41,12 +40,12 @@ public class FiducciaMattheysesWeightedKWayAlgorithm {
   private int[] partitionWeights;
   private int[] nodeToPartition;
 
-  private final OptimizationCriteria optimizationCriterion;
+  private final FiducciaMattheysesOptimizer optimizer;
 
   public FiducciaMattheysesWeightedKWayAlgorithm(List<Set<Integer>> pInitPartitioning,
       double pBalanceCriterion, WeightedGraph pWGraph, int pMaxLoad, OptimizationCriteria opt) {
     super();
-    optimizationCriterion = opt;
+    optimizer=FiducciaMattheysesOptimzerFactory.createFMOptimizer(opt);
     balanceCriterion = pBalanceCriterion;
     wGraph = pWGraph;
     actualPartitioning = pInitPartitioning;
@@ -98,7 +97,7 @@ public class FiducciaMattheysesWeightedKWayAlgorithm {
       int to = from;
       for (Integer toPartition : getSuccessorPartitions(nodeNum)) {
         if (isNodeMovable(nodeNum, from, toPartition)) {
-          int gain = computeGain(nodeNum, toPartition);
+          int gain = optimizer.computeGain(nodeNum, toPartition,nodeToPartition,wGraph);
           if (gain > maxGain) {
             maxGain = gain;
             to = toPartition;
@@ -168,65 +167,5 @@ public class FiducciaMattheysesWeightedKWayAlgorithm {
     actualPartitioning.get(fromPartition).remove(node);
     actualPartitioning.get(toPartition).add(node);
     return true; //Node was moved
-  }
-
-  private int computeGain(int node, int toPartition) {
-    int gain = 0;
-    gain = computeExternalDegree(node, toPartition) - computeInternalDegree(node);
-    return gain;
-  }
-
-  private int computeInternalDegree(int node) {
-    //TODO: Use strategy pattern here
-    int internalDegree = 0;
-    int partition = getPartition(node);
-    if (optimizationCriterion == OptimizationCriteria.NODECUT) {
-      for (WeightedNode neighbor : wGraph.getNeighbors(node)) {
-        if (getPartition(neighbor.getNodeNumber()) == partition) {
-          internalDegree += neighbor.getWeight();
-        }
-      }
-    } else {
-      for (WeightedEdge outEdge : wGraph.getOutgoingEdges(node)) {
-        if (getPartition(outEdge.getEndNode().getNodeNumber()) == partition) {
-          internalDegree += outEdge.getWeight();
-        }
-      }
-    }
-
-    for (WeightedEdge inEdge : wGraph.getIncomingEdges(node)) {
-      if (getPartition(inEdge.getStartNode().getNodeNumber()) == partition) {
-        internalDegree += inEdge.getWeight();
-      }
-    }
-    return internalDegree;
-  }
-
-
-
-  private int computeExternalDegree(int node, int toPartition) {
-    int externalDegree = 0;
-    //TODO: Use strategy pattern here
-    if (optimizationCriterion == OptimizationCriteria.NODECUT) {
-      for (WeightedNode neighbor : wGraph.getNeighbors(node)) {
-        if (getPartition(neighbor.getNodeNumber()) == toPartition) {
-          externalDegree += neighbor.getWeight();
-        }
-      }
-    } else {
-      for (WeightedEdge outEdge : wGraph.getOutgoingEdges(node)) {
-        if (getPartition(outEdge.getEndNode().getNodeNumber()) == toPartition) {
-          externalDegree += outEdge.getWeight();
-        }
-      }
-    }
-
-    for (WeightedEdge inEdge : wGraph.getIncomingEdges(node)) {
-      if (getPartition(inEdge.getStartNode().getNodeNumber()) == toPartition) {
-        externalDegree += inEdge.getWeight();
-      }
-    }
-    return externalDegree;
-
   }
 }

@@ -27,7 +27,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PartitioningRefiner;
-import org.sosy_lab.cpachecker.pcc.strategy.partitioning.FiducciaMattheysesKWayBalancedGraphPartitioner.OptimizationCriteria;
+import org.sosy_lab.cpachecker.pcc.strategy.partitioning.FiducciaMattheysesOptimzerFactory.OptimizationCriteria;
 
 public class PartitioningRefinerFactory {
 
