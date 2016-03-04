@@ -971,14 +971,14 @@ class InvariantsManager {
     @Override
     public void log(Level pPriority, Object... pArgs) {
       if (pPriority == Level.WARNING || pPriority == Level.SEVERE) {
-        delegate().log(pPriority, pArgs);
+        logger.log(pPriority, pArgs);
       }
     }
 
     @Override
     public void logf(Level pPriority, String pFormat, Object... pArgs) {
       if (pPriority == Level.WARNING || pPriority == Level.SEVERE) {
-        delegate().logf(pPriority, pFormat, pArgs);
+        logger.logf(pPriority, pFormat, pArgs);
       }
     }
 
@@ -986,14 +986,14 @@ class InvariantsManager {
     public void logUserException(
         Level pPriority, Throwable pE, @Nullable String pAdditionalMessage) {
       if (pPriority == Level.WARNING || pPriority == Level.SEVERE) {
-        delegate().logUserException(pPriority, pE, pAdditionalMessage);
+        logger.logUserException(pPriority, pE, pAdditionalMessage);
       }
     }
 
     @Override
     public void logException(Level pPriority, Throwable pE, @Nullable String pAdditionalMessage) {
       if (pPriority == Level.WARNING || pPriority == Level.SEVERE) {
-        delegate().logException(pPriority, pE, pAdditionalMessage);
+        logger.logException(pPriority, pE, pAdditionalMessage);
       }
     }
   }
