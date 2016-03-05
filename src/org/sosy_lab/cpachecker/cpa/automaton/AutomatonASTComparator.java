@@ -82,7 +82,7 @@ import com.google.common.collect.Lists;
 /**
  * Provides methods for generating, comparing and printing the ASTs generated from String.
  */
-class AutomatonASTComparator {
+public class AutomatonASTComparator {
 
   /**
    * Every occurrence of the joker expression $? in the pattern is substituted by JOKER_EXPR.
