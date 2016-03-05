@@ -33,7 +33,6 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -73,7 +72,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PropertySummaryExtractor;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcherProvider;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -259,7 +258,12 @@ public class CPAchecker {
           algorithm = new ExternalCBMCAlgorithm(programDenotation, config, logger);
 
         } else {
-          final List<AutomatonASTComparator> automatonASTComparators = null; //TODO implement me
+          /*
+           * Parse specification automata before creating the CFA in order to get all matcher for
+           * variable classification
+           */
+          final Set<ASTMatcherProvider> automatonASTComparators =
+              factory.createAutomatonASTMatchers(stats);
           CFA cfa = parse(programDenotation, stats, automatonASTComparators);
           GlobalInfo.getInstance().storeCFA(cfa);
           shutdownNotifier.shutdownIfNecessary();
@@ -361,12 +365,12 @@ public class CPAchecker {
   private CFA parse(
       String fileNamesCommaSeparated,
       MainCPAStatistics stats,
-      final @Nullable List<AutomatonASTComparator> pAutomatonASTComparators)
+      final @Nullable Set<ASTMatcherProvider> pAutomatonASTMatcher)
       throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
     // parse file and create CFA
     CFACreator cfaCreator;
-    if (pAutomatonASTComparators != null) {
-      cfaCreator = new CFACreator(config, logger, shutdownNotifier, pAutomatonASTComparators);
+    if (pAutomatonASTMatcher != null) {
+      cfaCreator = new CFACreator(config, logger, shutdownNotifier, pAutomatonASTMatcher);
     } else {
       cfaCreator = new CFACreator(config, logger, shutdownNotifier);
     }

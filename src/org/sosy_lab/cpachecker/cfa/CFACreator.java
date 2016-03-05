@@ -93,7 +93,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcherProvider;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
@@ -278,7 +278,7 @@ private boolean classifyNodes = false;
 
   private final CFACreatorStatistics stats = new CFACreatorStatistics();
   private final Configuration config;
-  private final List<AutomatonASTComparator> automatonASTComparators;
+  private final Set<ASTMatcherProvider> automatonASTMatcher;
 
   public CFACreator(Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
@@ -288,7 +288,7 @@ private boolean classifyNodes = false;
     this.config = config;
     this.logger = logger;
     this.shutdownNotifier = pShutdownNotifier;
-    automatonASTComparators = null;
+    automatonASTMatcher = null;
 
     stats.parserInstantiationTime.start();
 
@@ -330,7 +330,7 @@ private boolean classifyNodes = false;
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
-      final List<AutomatonASTComparator> pAutomatonASTComparators)
+      final Set<ASTMatcherProvider> pAutomatonASTMatcher)
       throws InvalidConfigurationException {
 
     pConfig.inject(this);
@@ -338,7 +338,7 @@ private boolean classifyNodes = false;
     config = pConfig;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
-    automatonASTComparators = pAutomatonASTComparators;
+    automatonASTMatcher = pAutomatonASTMatcher;
 
     stats.parserInstantiationTime.start();
 
@@ -528,10 +528,10 @@ private boolean classifyNodes = false;
     if (language == Language.C) {
       try {
         stats.variableClassificationTime.start();
-        if (automatonASTComparators != null) {
+        if (automatonASTMatcher != null) {
           varClassification =
               Optional.of(
-                  new VariableClassificationBuilder(config, logger, automatonASTComparators)
+                  new VariableClassificationBuilder(config, logger, automatonASTMatcher)
                       .build(cfa));
         } else {
           varClassification =

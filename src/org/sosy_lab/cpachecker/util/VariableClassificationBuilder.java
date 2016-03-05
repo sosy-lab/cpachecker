@@ -45,8 +45,7 @@ import java.util.logging.Level;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator;
-import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcherProvider;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -189,7 +188,7 @@ public class VariableClassificationBuilder {
   private final CollectingLHSVisitor collectingLHSVisitor = new CollectingLHSVisitor();
 
   private final LogManager logger;
-  private final List<AutomatonASTComparator> automatonASTComparators;
+  private final Set<ASTMatcherProvider> automatonASTComparators;
 
   public VariableClassificationBuilder(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     logger = checkNotNull(pLogger);
@@ -200,7 +199,7 @@ public class VariableClassificationBuilder {
   public VariableClassificationBuilder(
       final Configuration pConfig,
       final LogManager pLogger,
-      final List<AutomatonASTComparator> pAutomatonASTComparators)
+      final Set<ASTMatcherProvider> pAutomatonASTComparators)
       throws InvalidConfigurationException {
     logger = checkNotNull(pLogger);
     pConfig.inject(this);
