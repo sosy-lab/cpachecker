@@ -2406,7 +2406,7 @@ pcc.partitioning.fm.initialPartitioningStrategy = RANDOM
   enum:     [RANDOM]
 
 # [FM-k-way] Balance criterion for pairwise optimization of partitions
-pcc.partitioning.kwayfm.balancePrecision = 1.2d
+pcc.partitioning.kwayfm.balancePrecision = 1.3d
 
 # [FM-k-way] Partitioning method to compute initial partitioning.
 pcc.partitioning.kwayfm.globalHeuristic = BEST_IMPROVEMENT_FIRST
