@@ -33,6 +33,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -72,6 +73,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PropertySummaryExtractor;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -257,7 +259,8 @@ public class CPAchecker {
           algorithm = new ExternalCBMCAlgorithm(programDenotation, config, logger);
 
         } else {
-          CFA cfa = parse(programDenotation, stats);
+          final List<AutomatonASTComparator> automatonASTComparators = null; //TODO implement me
+          CFA cfa = parse(programDenotation, stats, automatonASTComparators);
           GlobalInfo.getInstance().storeCFA(cfa);
           shutdownNotifier.shutdownIfNecessary();
 
@@ -355,10 +358,18 @@ public class CPAchecker {
     return !programDenotation.contains(",");
   }
 
-  private CFA parse(String fileNamesCommaSeparated, MainCPAStatistics stats) throws InvalidConfigurationException, IOException,
-      ParserException, InterruptedException {
+  private CFA parse(
+      String fileNamesCommaSeparated,
+      MainCPAStatistics stats,
+      final @Nullable List<AutomatonASTComparator> pAutomatonASTComparators)
+      throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
     // parse file and create CFA
-    CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
+    CFACreator cfaCreator;
+    if (pAutomatonASTComparators != null) {
+      cfaCreator = new CFACreator(config, logger, shutdownNotifier, pAutomatonASTComparators);
+    } else {
+      cfaCreator = new CFACreator(config, logger, shutdownNotifier);
+    }
     stats.setCFACreator(cfaCreator);
 
     Splitter commaSplitter = Splitter.on(',').omitEmptyStrings().trimResults();
