@@ -191,7 +191,7 @@ analysis.interprocedural = true
 
 # the machine model, which determines the sizes of types like int
 analysis.machineModel = LINUX32
-  enum:     [LINUX32, LINUX64]
+  enum:     [LINUX32, LINUX64, LINUX_WITH_ALIGNMENT32, LINUX_WITH_ALIGNMENT64]
 
 # memorize previously used (incomplete) reached sets after a restart of the
 # analysis
