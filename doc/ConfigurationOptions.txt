@@ -2412,8 +2412,8 @@ pcc.partitioning.kwayfm.balancePrecision = 1.3d
 pcc.partitioning.kwayfm.globalHeuristic = BEST_IMPROVEMENT_FIRST
   enum:     [RANDOM, DFS, BFS, BEST_IMPROVEMENT_FIRST]
 
-# Local optimization criterion. Minimize the NodeCut of partitions or an
-# approximation of the frameworkspecific overhead
+# [FM-k-way] Local optimization criterion to be minimized druing
+# Fiduccia/Mattheyses refinment
 pcc.partitioning.kwayfm.optimizationCriterion = NODECUT
   enum:     [EDGECUT, NODECUT]
 
