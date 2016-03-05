@@ -63,7 +63,7 @@ import com.google.common.base.Preconditions;
  * Implements a boolean expression that evaluates and returns a <code>MaybeBoolean</code> value when <code>eval()</code> is called.
  * The Expression can be evaluated multiple times.
  */
-interface AutomatonBoolExpr extends AutomatonExpression, TrinaryEqualable {
+public interface AutomatonBoolExpr extends AutomatonExpression, TrinaryEqualable {
 
   ResultValue<Boolean> CONST_TRUE = new ResultValue<>(Boolean.TRUE);
   ResultValue<Boolean> CONST_FALSE = new ResultValue<>(Boolean.FALSE);

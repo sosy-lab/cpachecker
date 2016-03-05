@@ -166,7 +166,7 @@ public class AutomatonInternalState {
     return allTransitions;
   }
 
-  ImmutableList<AutomatonTransition> getTransitions() {
+  public ImmutableList<AutomatonTransition> getTransitions() {
     return transitions;
   }
 
