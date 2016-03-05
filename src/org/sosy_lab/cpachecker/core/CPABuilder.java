@@ -52,12 +52,18 @@ import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.GlobalScope;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcherProvider;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.MatchCFAEdgeASTComparison;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInternalState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransition;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.PowersetAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
@@ -124,6 +130,32 @@ public class CPABuilder {
       throws InvalidConfigurationException, CPAException {
     // create automata cpas for the specification files given in "backwardSpecification"
     return buildCPAs(cfa, backwardSpecificationFiles);
+  }
+
+  public Set<ASTMatcherProvider> createAutomatonASTMatchers() throws InvalidConfigurationException {
+    Set<ASTMatcherProvider> astMatcherProviders = new HashSet<>();
+
+    for (Path specFile : specificationFiles) {
+      // TODO Is it okay to put a fixed machine model and language in here? I don't care for the
+      // functionality, only want to have the AutomatonASTComparators…
+      List<Automaton> automata =
+          AutomatonParser.parseAutomatonFile(
+              specFile, config, logger, MachineModel.LINUX32, new GlobalScope(), Language.C);
+
+      for (Automaton automaton : automata) {
+        for (AutomatonInternalState state : automaton.getStates()) {
+          for (AutomatonTransition transition : state.getTransitions()) {
+            AutomatonBoolExpr automatonBoolExpr = transition.getTrigger();
+            if (automatonBoolExpr instanceof MatchCFAEdgeASTComparison) {
+              astMatcherProviders.add(
+                  ((MatchCFAEdgeASTComparison) automatonBoolExpr).getPatternAST());
+            }
+          }
+        }
+      }
+    }
+
+    return astMatcherProviders;
   }
 
   public ConfigurableProgramAnalysis buildsCPAWithWitnessAutomataAndSpecification(final CFA cfa,
