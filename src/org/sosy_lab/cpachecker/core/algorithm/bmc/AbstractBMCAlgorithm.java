@@ -111,6 +111,9 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
   @Option(secure=true, description="Generate additional invariants by induction and add them to the induction hypothesis.")
   private boolean addInvariantsByInduction = true;
 
+  @Option(secure=true, description="Propagates the interrupts of the invariant generator.")
+  private boolean propagateInvGenInterrupts = false;
+
   protected final BMCStatistics stats;
   private final Algorithm algorithm;
   private final ConfigurableProgramAnalysis cpa;
@@ -171,9 +174,13 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
       stepCaseAlgorithm = null;
     }
 
-    ShutdownManager invariantGeneratorNotifier = pShutdownManager;
+    ShutdownManager invariantGeneratorShutdownManager = pShutdownManager;
     if (addInvariantsByAI || addInvariantsByInduction) {
-      invariantGeneratorNotifier = ShutdownManager.createWithParent(pShutdownManager.getNotifier());
+      if (propagateInvGenInterrupts) {
+        invariantGeneratorShutdownManager = pShutdownManager;
+      } else {
+        invariantGeneratorShutdownManager = ShutdownManager.createWithParent(pShutdownManager.getNotifier());
+      }
       propagateSafetyInterrupt = new ShutdownRequestListener() {
 
         @Override
@@ -184,7 +191,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
           }
         }
       };
-      invariantGeneratorNotifier.getNotifier().register(propagateSafetyInterrupt);
+      invariantGeneratorShutdownManager.getNotifier().register(propagateSafetyInterrupt);
     } else {
       propagateSafetyInterrupt = null;
     }
@@ -194,9 +201,9 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
         && addInvariantsByInduction) {
       addInvariantsByInduction = false;
       invariantGenerator = KInductionInvariantGenerator.create(pConfig, pLogger,
-          invariantGeneratorNotifier, pCFA, pReachedSetFactory, targetLocationProvider);
+          invariantGeneratorShutdownManager, pCFA, pReachedSetFactory, targetLocationProvider);
     } else if (induction && addInvariantsByAI) {
-      invariantGenerator = CPAInvariantGenerator.create(pConfig, pLogger, invariantGeneratorNotifier, Optional.of(invariantGeneratorNotifier), cfa);
+      invariantGenerator = CPAInvariantGenerator.create(pConfig, pLogger, invariantGeneratorShutdownManager, Optional.of(invariantGeneratorShutdownManager), cfa);
     } else {
       invariantGenerator = new DoNothingInvariantGenerator();
     }

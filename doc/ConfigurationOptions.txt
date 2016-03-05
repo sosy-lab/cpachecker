@@ -374,6 +374,9 @@ bmc.induction = false
 # Export auxiliary invariants used for induction.
 bmc.invariantsExport = "invariants.graphml"
 
+# Propagates the interrupts of the invariant generator.
+bmc.propagateInvGenInterrupts = false
+
 # File name where to put the path program that is generated as input for
 # CBMC. A temporary file is used if this is unspecified. If specified, the
 # file name should end with '.i' because otherwise CBMC runs the
