@@ -751,12 +751,15 @@ public class VariableClassificationBuilder {
    */
   private void handleParametersIfRelevantByAutomaton(
       final @Nonnull CFunctionCallExpression pFunc, final @Nonnull String pFunctionName) {
-    for (ASTMatcherProvider astMatcher : automatonASTMatcher) {
-      if (astMatcher.getPatternString().contains(pFunctionName)) {
-        for (CExpression parameter : pFunc.getParameterExpressions()) {
-          if (parameter instanceof CIdExpression) {
-            final String varName = ((CIdExpression) parameter).getDeclaration().getQualifiedName();
-            relevantVariables.add(varName);
+
+    for (CExpression parameter : pFunc.getParameterExpressions()) {
+      if (parameter instanceof CIdExpression) {
+        final String varName = ((CIdExpression) parameter).getDeclaration().getQualifiedName();
+        if (!relevantVariables.contains(varName)) {
+          for (ASTMatcherProvider astMatcher : automatonASTMatcher) {
+            if (astMatcher.getPatternString().contains(pFunctionName)) {
+              relevantVariables.add(varName);
+            }
           }
         }
       }
