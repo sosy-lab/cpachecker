@@ -188,22 +188,22 @@ public class VariableClassificationBuilder {
   private final CollectingLHSVisitor collectingLHSVisitor = new CollectingLHSVisitor();
 
   private final LogManager logger;
-  private final Set<ASTMatcherProvider> automatonASTComparators;
+  private final Set<ASTMatcherProvider> automatonASTMatcher;
 
   public VariableClassificationBuilder(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     logger = checkNotNull(pLogger);
     config.inject(this);
-    automatonASTComparators = null;
+    automatonASTMatcher = null;
   }
 
   public VariableClassificationBuilder(
       final Configuration pConfig,
       final LogManager pLogger,
-      final Set<ASTMatcherProvider> pAutomatonASTComparators)
+      final Set<ASTMatcherProvider> pAutomatonASTMatcher)
       throws InvalidConfigurationException {
     logger = checkNotNull(pLogger);
     pConfig.inject(this);
-    automatonASTComparators = pAutomatonASTComparators;
+    automatonASTMatcher = pAutomatonASTMatcher;
   }
 
   /** This function does the whole work:
@@ -693,6 +693,8 @@ public class VariableClassificationBuilder {
 
       handleExternalFunctionCall(edge, func.getParameterExpressions());
 
+      handleParametersIfRelevantByAutomaton(func, functionName);
+
     } else {
       throw new UnrecognizedCCodeException("unhandled assignment", edge, assignment);
     }
@@ -735,6 +737,26 @@ public class VariableClassificationBuilder {
         param.accept(new BoolCollectingVisitor(pre));
         param.accept(new IntEqualCollectingVisitor(pre));
         param.accept(new IntAddCollectingVisitor(pre));
+      }
+    }
+  }
+
+  /**
+   * Handles function parameters that get their relevancy by a specification in an automaton.
+   *
+   * @param pFunc The function call expression.
+   * @param pFunctionName The name of the function that's called.
+   */
+  private void handleParametersIfRelevantByAutomaton(
+      final @Nonnull CFunctionCallExpression pFunc, final @Nonnull String pFunctionName) {
+    for (ASTMatcherProvider astMatcher : automatonASTMatcher) {
+      if (astMatcher.getPatternString().contains(pFunctionName)) {
+        for (CExpression parameter : pFunc.getParameterExpressions()) {
+          if (parameter instanceof CIdExpression) {
+            final String varName = ((CIdExpression) parameter).getDeclaration().getQualifiedName();
+            relevantVariables.add(varName);
+          }
+        }
       }
     }
   }
