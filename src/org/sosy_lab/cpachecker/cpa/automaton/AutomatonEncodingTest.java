@@ -97,7 +97,6 @@ public class AutomatonEncodingTest {
     stat.assertThatNumber("Max states per location").isAtMost(2);
   }
 
-  @Ignore
   @Test
   public void testAssumeOnNamedArgument_Safe() throws Exception {
     final String floatSpecFile = "test/config/automata/encode/SPEC_sqrt.spc";
