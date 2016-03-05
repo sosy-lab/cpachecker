@@ -1104,7 +1104,7 @@ public class InvariantsState implements AbstractState,
 
           });
           ReplaceVisitor<CompoundInterval> evaluateInvalid = new ReplaceVisitor<>(
-              pIsInvalid,
+              isInvalid,
               new Function<NumeralFormula<CompoundInterval>, NumeralFormula<CompoundInterval>>() {
 
                 @Override
