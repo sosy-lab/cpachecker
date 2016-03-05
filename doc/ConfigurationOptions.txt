@@ -914,7 +914,7 @@ cpa.chc.merge = "SEP"
   allowed values: [SEP, JOIN]
 
 # inform Composite CPA if it is run in a CPA enabled analysis because then it
-# must behave differntly during merge.
+# must behave differently during merge.
 cpa.composite.inCPAEnabledAnalysis = false
 
 # which composite merge operator to use (plain or agree)
