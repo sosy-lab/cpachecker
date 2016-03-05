@@ -93,6 +93,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
@@ -277,6 +278,7 @@ private boolean classifyNodes = false;
 
   private final CFACreatorStatistics stats = new CFACreatorStatistics();
   private final Configuration config;
+  private final List<AutomatonASTComparator> automatonASTComparators;
 
   public CFACreator(Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
@@ -286,6 +288,7 @@ private boolean classifyNodes = false;
     this.config = config;
     this.logger = logger;
     this.shutdownNotifier = pShutdownNotifier;
+    automatonASTComparators = null;
 
     stats.parserInstantiationTime.start();
 
@@ -316,6 +319,59 @@ private boolean classifyNodes = false;
 
     if (removeIrrelevantForSpecification) {
       cfaReduction = new CFAReduction(config, logger, pShutdownNotifier);
+    } else {
+      cfaReduction = null;
+    }
+
+    stats.parserInstantiationTime.stop();
+  }
+
+  public CFACreator(
+      final Configuration pConfig,
+      final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier,
+      final List<AutomatonASTComparator> pAutomatonASTComparators)
+      throws InvalidConfigurationException {
+
+    pConfig.inject(this);
+
+    config = pConfig;
+    logger = pLogger;
+    shutdownNotifier = pShutdownNotifier;
+    automatonASTComparators = pAutomatonASTComparators;
+
+    stats.parserInstantiationTime.start();
+
+    switch (language) {
+      case JAVA:
+        parser = EclipseParsers.getJavaParser(pLogger, pConfig);
+        break;
+      case C:
+        CParser outerParser =
+            CParser.Factory.getParser(
+                pConfig, pLogger, CParser.Factory.getOptions(pConfig), machineModel);
+
+        outerParser =
+            new CParserWithLocationMapper(
+                pConfig, pLogger, outerParser, readLineDirectives || usePreprocessor);
+
+        if (usePreprocessor) {
+          CPreprocessor preprocessor = new CPreprocessor(pConfig, pLogger);
+          outerParser = new CParserWithPreprocessor(outerParser, preprocessor);
+        }
+
+        parser = outerParser;
+
+        break;
+      default:
+        throw new AssertionError();
+    }
+
+    stats.parsingTime = parser.getParseTime();
+    stats.conversionTime = parser.getCFAConstructionTime();
+
+    if (removeIrrelevantForSpecification) {
+      cfaReduction = new CFAReduction(pConfig, pLogger, pShutdownNotifier);
     } else {
       cfaReduction = null;
     }
@@ -472,7 +528,15 @@ private boolean classifyNodes = false;
     if (language == Language.C) {
       try {
         stats.variableClassificationTime.start();
-        varClassification = Optional.of(new VariableClassificationBuilder(config, logger).build(cfa));
+        if (automatonASTComparators != null) {
+          varClassification =
+              Optional.of(
+                  new VariableClassificationBuilder(config, logger, automatonASTComparators)
+                      .build(cfa));
+        } else {
+          varClassification =
+              Optional.of(new VariableClassificationBuilder(config, logger).build(cfa));
+        }
       } catch (UnrecognizedCCodeException e) {
         throw new CParserException(e);
       } finally {
