@@ -1749,6 +1749,9 @@ cpa.slicing.expansionDepthLimit = 1
 # loop. UNSOUND!
 cpa.slicing.ignoreFunctionCallsInLoop = false
 
+# Depth limit for the 'LEAST_REMOVALS' strategy.
+cpa.slicing.leastRemovalsDepthLimit = 2
+
 # Pre-run syntactic weakening
 cpa.slicing.preRunSyntacticWeakening = true
 
