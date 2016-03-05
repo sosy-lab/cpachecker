@@ -135,6 +135,10 @@ public class CPABuilder {
   public Set<ASTMatcherProvider> createAutomatonASTMatchers() throws InvalidConfigurationException {
     Set<ASTMatcherProvider> astMatcherProviders = new HashSet<>();
 
+    if (specificationFiles == null) {
+      return null;
+    }
+
     for (Path specFile : specificationFiles) {
       // TODO Is it okay to put a fixed machine model and language in here? I don't care for the
       // functionality, only want to have the AutomatonASTComparators…

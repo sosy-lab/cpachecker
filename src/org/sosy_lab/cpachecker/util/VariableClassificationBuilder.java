@@ -693,7 +693,9 @@ public class VariableClassificationBuilder {
 
       handleExternalFunctionCall(edge, func.getParameterExpressions());
 
-      handleParametersIfRelevantByAutomaton(func, functionName);
+      if (automatonASTMatcher != null) {
+        handleParametersIfRelevantByAutomaton(func, functionName);
+      }
 
     } else {
       throw new UnrecognizedCCodeException("unhandled assignment", edge, assignment);
