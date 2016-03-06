@@ -346,13 +346,14 @@ public class ToCodeFormulaVisitor
     BitVectorInfo bitVectorInfo = pEqual.getOperand1().getBitVectorInfo();
 
     // Check not equals
+    ExpressionTree<String> inversion = ExpressionTrees.getTrue();
     CompoundInterval op1EvalInvert = pEqual.getOperand1().accept(evaluationVisitor, pEnvironment).invert();
     if (op1EvalInvert.isSingleton() && pEqual.getOperand2() instanceof Variable) {
-      return not(Equal.of(Constant.of(bitVectorInfo, op1EvalInvert), pEqual.getOperand2()).accept(this, pEnvironment));
+      inversion = And.of(inversion, not(Equal.of(Constant.of(bitVectorInfo, op1EvalInvert), pEqual.getOperand2()).accept(this, pEnvironment)));
     }
     CompoundInterval op2EvalInvert = pEqual.getOperand2().accept(evaluationVisitor, pEnvironment).invert();
     if (op2EvalInvert.isSingleton() && pEqual.getOperand1() instanceof Variable) {
-      return not(Equal.of(pEqual.getOperand1(), Constant.of(bitVectorInfo, op2EvalInvert)).accept(this, pEnvironment));
+      inversion = And.of(inversion,  not(Equal.of(pEqual.getOperand1(), Constant.of(bitVectorInfo, op2EvalInvert)).accept(this, pEnvironment)));
     }
 
     // General case
@@ -390,9 +391,9 @@ public class ToCodeFormulaVisitor
         }
         bf = Or.of(bf, intervalFormula);
       }
-      return bf;
+      return And.of(bf, inversion);
     }
-    return equal(operand1, operand2);
+    return And.of(equal(operand1, operand2), inversion);
   }
 
   @Override
@@ -464,7 +465,7 @@ public class ToCodeFormulaVisitor
     if (pOp instanceof LeafExpression) {
       return ((LeafExpression<String>) pOp).negate();
     }
-    return LeafExpression.<String>of(String.format("(!%s)", pOp));
+    return LeafExpression.<String>of(String.format("(!(%s))", pOp));
   }
 
   @Override
