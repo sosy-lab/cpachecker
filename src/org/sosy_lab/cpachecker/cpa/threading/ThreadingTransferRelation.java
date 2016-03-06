@@ -38,6 +38,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -69,8 +70,13 @@ import com.google.common.collect.Sets;
 public final class ThreadingTransferRelation extends SingleEdgeTransferRelation {
 
   @Option(description="do not use the original functions from the CFA, but cloned ones. "
-      + "See cfa.postprocessing.CFACloner for detail.")
+      + "See cfa.postprocessing.CFACloner for detail.",
+      secure=true)
   private boolean useClonedFunctions = true;
+
+  @Option(description="allow assignments of a new thread to the same left-hand-side as an existing thread.",
+      secure=true)
+  private boolean allowMultipleLHS = false;
 
   @Option(description="the maximal number of parallel threads, -1 for infinite. "
       + "When combined with 'useClonedFunctions=true', we need at least N cloned functions. "
@@ -97,12 +103,13 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private static final String VERIFIER_ATOMIC_END = "__VERIFIER_atomic_end";
   private static final String ATOMIC_LOCK = "__CPAchecker_atomic_lock__";
   private static final String LOCAL_ACCESS_LOCK = "__CPAchecker_local_access_lock__";
+  private static final String THREAD_ID_SEPARATOR = "__CPAchecker__";
 
   private static final Set<String> THREAD_FUNCTIONS = Sets.newHashSet(
       THREAD_START, THREAD_MUTEX_LOCK, THREAD_MUTEX_UNLOCK, THREAD_JOIN, THREAD_EXIT);
 
   private final CFA cfa;
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
   private final ConfigurableProgramAnalysis callstackCPA;
   private final ConfigurableProgramAnalysis locationCPA;
 
@@ -116,7 +123,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     cfa = pCfa;
     callstackCPA = pCallstackCPA;
     locationCPA = pLocationCPA;
-    logger = pLogger;
+    logger = new LogManagerWithoutDuplicates(pLogger);
   }
 
   @Override
@@ -346,23 +353,39 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       functionName = CFACloner.getFunctionName(functionName, newThreadNum);
     }
 
-    if (threadingState.getThreadIds().contains(id.getName())) {
-      throw new UnrecognizedCodeException("multiple thread assignments to same LHS not supported", id);
-    }
-
+    String threadId = getNewThreadId(threadingState, id.getName());
     CFANode functioncallNode = Preconditions.checkNotNull(cfa.getFunctionHead(functionName), functionName);
     AbstractState initialStack = callstackCPA.getInitialState(functioncallNode, StateSpacePartition.getDefaultPartition());
     AbstractState initialLoc = locationCPA.getInitialState(functioncallNode, StateSpacePartition.getDefaultPartition());
 
-    // update all successors
+    // update all successors with a new started thread
     final Collection<ThreadingState> newResults = new ArrayList<>();
     for (ThreadingState ts : results) {
-      if (maxNumberOfThreads == -1 || ts.getThreadIds().size() <= maxNumberOfThreads) {
-        ts = ts.addThreadAndCopy(id.getName(), newThreadNum, initialStack, initialLoc);
+      if (maxNumberOfThreads == -1 || ts.getThreadIds().size() < maxNumberOfThreads) {
+        ts = ts.addThreadAndCopy(threadId, newThreadNum, initialStack, initialLoc);
         newResults.add(ts);
+      } else {
+        logger.logfOnce(Level.WARNING, "number of threads is limited, cannot create thread %s", threadId);
       }
     }
     return newResults;
+  }
+
+  /** returns the threadId if possible, else the next indexed threadId. */
+  private String getNewThreadId(final ThreadingState threadingState, final String threadId) throws UnrecognizedCodeException {
+    if (!allowMultipleLHS && threadingState.getThreadIds().contains(threadId)) {
+      throw new UnrecognizedCodeException("multiple thread assignments to same LHS not supported: " + threadId, null, null);
+    }
+    String newThreadId = threadId;
+    int index = 0;
+    while (threadingState.getThreadIds().contains(newThreadId)
+        && (maxNumberOfThreads == -1 || index < maxNumberOfThreads)) {
+      index++;
+      newThreadId = threadId + THREAD_ID_SEPARATOR + index;
+      logger.logfOnce(Level.WARNING, "multiple thread assignments to same LHS, "
+          + "using identifier %s instead of %s", newThreadId, threadId);
+    }
+    return newThreadId;
   }
 
   private Collection<ThreadingState> addLock(final ThreadingState threadingState, final String activeThread,

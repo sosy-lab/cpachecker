@@ -2006,6 +2006,10 @@ cpa.stator.policy.varFiltering = ALL_LIVE
 # of '-1' runs value determination until convergence.
 cpa.stator.policy.wideningThreshold = -1
 
+# allow assignments of a new thread to the same left-hand-side as an existing
+# thread.
+cpa.threading.allowMultipleLHS = false
+
 # the maximal number of parallel threads, -1 for infinite. When combined with
 # 'useClonedFunctions=true', we need at least N cloned functions. The option
 # 'cfa.cfaCloner.numberOfCopies' should be set to N.
