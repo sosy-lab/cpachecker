@@ -71,6 +71,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaDepthCountVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaEvaluationVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormulaManager;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.IsLinearVisitor;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.LogicalNot;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.PartialEvaluator;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.PushAssumptionToEnvironmentVisitor;
@@ -1115,6 +1116,9 @@ public class InvariantsState implements AbstractState,
               });
           NumeralFormula<CompoundInterval> op2 = eq.getOperand2().accept(evaluateInvalid);
           return InvariantsFormulaManager.INSTANCE.equal(op1, op2);
+        }
+        if (pFormula instanceof LogicalNot) {
+          return InvariantsFormulaManager.INSTANCE.logicalNot(apply(((LogicalNot<CompoundInterval>) pFormula).getNegated()));
         }
         return pFormula.accept(pEvaluateInvalidVars);
       }
