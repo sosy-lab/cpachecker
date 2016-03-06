@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import java.math.BigInteger;
 
+import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorType;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManager;
@@ -369,11 +370,37 @@ public class PushValueToEnvironmentVisitor implements ParameterizedNumeralFormul
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
-    CompoundIntervalManager cim = getCompoundIntervalManager(pCast);
-    if (!pCast.getCasted().accept(this, cim.cast(pCast.getCasted().getBitVectorInfo(), pParameter))) {
-      return false;
+    CompoundIntervalManager targetManager = getCompoundIntervalManager(pCast);
+    BitVectorInfo targetInfo = pCast.getBitVectorInfo();
+    BitVectorInfo sourceInfo = pCast.getCasted().getBitVectorInfo();
+    if (targetInfo.getRange().contains(sourceInfo.getRange())) {
+      if (!pCast.getCasted().accept(this, targetManager.cast(sourceInfo, pParameter))) {
+        return false;
+      }
+    } else if (!targetInfo.isSigned()) {
+      BigInteger numberOfPotentialOrigins =
+          sourceInfo.getRange().size().divide(targetInfo.getRange().size());
+      CompoundIntervalManager sourceManager = getCompoundIntervalManager(pCast.getCasted());
+      CompoundInterval originFactors =
+          sourceManager.span(
+              sourceManager.singleton(BigInteger.ZERO),
+              sourceManager.singleton(numberOfPotentialOrigins.subtract(BigInteger.ONE)));
+      if (sourceInfo.isSigned()) {
+        originFactors =
+            sourceManager.add(
+                originFactors,
+                sourceManager.singleton(numberOfPotentialOrigins.divide(BigInteger.valueOf(2))));
+      }
+      CompoundInterval potentialOrigins =
+          sourceManager.add(
+              sourceManager.multiply(
+                  originFactors, sourceManager.singleton(targetInfo.getRange().size())),
+              targetManager.cast(sourceInfo, pParameter));
+      if (!pCast.getCasted().accept(this, potentialOrigins)) {
+        return false;
+      }
     }
-    return cim.doIntersect(evaluate(pCast), pParameter);
+    return targetManager.doIntersect(evaluate(pCast), pParameter);
   }
 
   /**
