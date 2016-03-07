@@ -72,7 +72,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PropertySummaryExtractor;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcherProvider;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -262,9 +262,9 @@ public class CPAchecker {
            * Parse specification automata before creating the CFA in order to get all matcher for
            * variable classification
            */
-          final Set<ASTMatcherProvider> automatonASTComparators =
+          final Set<AutomatonBoolExpr> automatonBoolExpressions =
               factory.createAutomatonASTMatchers(stats);
-          CFA cfa = parse(programDenotation, stats, automatonASTComparators);
+          CFA cfa = parse(programDenotation, stats, automatonBoolExpressions);
           GlobalInfo.getInstance().storeCFA(cfa);
           shutdownNotifier.shutdownIfNecessary();
 
@@ -365,12 +365,12 @@ public class CPAchecker {
   private CFA parse(
       String fileNamesCommaSeparated,
       MainCPAStatistics stats,
-      final @Nullable Set<ASTMatcherProvider> pAutomatonASTMatcher)
+      final @Nullable Set<AutomatonBoolExpr> pAutomatonBoolExpressions)
       throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
     // parse file and create CFA
     CFACreator cfaCreator;
-    if (pAutomatonASTMatcher != null) {
-      cfaCreator = new CFACreator(config, logger, shutdownNotifier, pAutomatonASTMatcher);
+    if (pAutomatonBoolExpressions != null) {
+      cfaCreator = new CFACreator(config, logger, shutdownNotifier, pAutomatonBoolExpressions);
     } else {
       cfaCreator = new CFACreator(config, logger, shutdownNotifier);
     }

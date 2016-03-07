@@ -57,7 +57,6 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcherProvider;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.MatchCFAEdgeASTComparison;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
@@ -132,8 +131,8 @@ public class CPABuilder {
     return buildCPAs(cfa, backwardSpecificationFiles);
   }
 
-  public Set<ASTMatcherProvider> createAutomatonASTMatchers() throws InvalidConfigurationException {
-    Set<ASTMatcherProvider> astMatcherProviders = new HashSet<>();
+  public Set<AutomatonBoolExpr> createAutomatonASTMatchers() throws InvalidConfigurationException {
+    Set<AutomatonBoolExpr> automatonBoolExpressions = new HashSet<>();
 
     if (specificationFiles == null) {
       return null;
@@ -149,17 +148,16 @@ public class CPABuilder {
       for (Automaton automaton : automata) {
         for (AutomatonInternalState state : automaton.getStates()) {
           for (AutomatonTransition transition : state.getTransitions()) {
-            AutomatonBoolExpr automatonBoolExpr = transition.getTrigger();
-            if (automatonBoolExpr instanceof MatchCFAEdgeASTComparison) {
-              astMatcherProviders.add(
-                  ((MatchCFAEdgeASTComparison) automatonBoolExpr).getPatternAST());
+            AutomatonBoolExpr expression = transition.getTrigger();
+            if (expression instanceof MatchCFAEdgeASTComparison) {
+              automatonBoolExpressions.add(expression);
             }
           }
         }
       }
     }
 
-    return astMatcherProviders;
+    return automatonBoolExpressions;
   }
 
   public ConfigurableProgramAnalysis buildsCPAWithWitnessAutomataAndSpecification(final CFA cfa,

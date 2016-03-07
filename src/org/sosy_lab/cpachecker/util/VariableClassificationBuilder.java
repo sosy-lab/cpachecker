@@ -45,7 +45,6 @@ import java.util.logging.Level;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcherProvider;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -113,6 +112,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
 
@@ -188,22 +188,22 @@ public class VariableClassificationBuilder {
   private final CollectingLHSVisitor collectingLHSVisitor = new CollectingLHSVisitor();
 
   private final LogManager logger;
-  private final Set<ASTMatcherProvider> automatonASTMatcher;
+  private final Set<AutomatonBoolExpr> automatonBoolExpressions;
 
   public VariableClassificationBuilder(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     logger = checkNotNull(pLogger);
     config.inject(this);
-    automatonASTMatcher = null;
+    automatonBoolExpressions = null;
   }
 
   public VariableClassificationBuilder(
       final Configuration pConfig,
       final LogManager pLogger,
-      final Set<ASTMatcherProvider> pAutomatonASTMatcher)
+      final Set<AutomatonBoolExpr> pAutomatonBoolExpressions)
       throws InvalidConfigurationException {
     logger = checkNotNull(pLogger);
     pConfig.inject(this);
-    automatonASTMatcher = pAutomatonASTMatcher;
+    automatonBoolExpressions = pAutomatonBoolExpressions;
   }
 
   /** This function does the whole work:
@@ -693,7 +693,7 @@ public class VariableClassificationBuilder {
 
       handleExternalFunctionCall(edge, func.getParameterExpressions());
 
-      if (automatonASTMatcher != null) {
+      if (automatonBoolExpressions != null) {
         handleParametersIfRelevantByAutomaton(func, functionName);
       }
 
@@ -756,11 +756,11 @@ public class VariableClassificationBuilder {
       if (parameter instanceof CIdExpression) {
         final String varName = ((CIdExpression) parameter).getDeclaration().getQualifiedName();
         if (!relevantVariables.contains(varName)) {
-          for (ASTMatcherProvider astMatcher : automatonASTMatcher) {
-            if (astMatcher.getPatternString().contains(pFunctionName)) {
-              relevantVariables.add(varName);
-            }
-          }
+//          for (ASTMatcherProvider astMatcher : automatonBoolExpressions) {
+//            if (astMatcher.getPatternString().contains(pFunctionName)) {
+//              relevantVariables.add(varName);
+//            }
+//          }
         }
       }
     }
