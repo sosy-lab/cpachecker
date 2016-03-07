@@ -389,7 +389,7 @@ public class PushValueToEnvironmentVisitor implements ParameterizedNumeralFormul
         originFactors =
             sourceManager.add(
                 originFactors,
-                sourceManager.singleton(numberOfPotentialOrigins.divide(BigInteger.valueOf(2))));
+                sourceManager.singleton(numberOfPotentialOrigins.divide(BigInteger.valueOf(2).negate())));
       }
       CompoundInterval potentialOrigins =
           sourceManager.add(
