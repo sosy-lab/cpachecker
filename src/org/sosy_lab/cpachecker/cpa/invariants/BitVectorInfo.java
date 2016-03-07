@@ -47,7 +47,7 @@ public class BitVectorInfo {
   private final BigInteger maxValue;
 
   private BitVectorInfo(int pSize, boolean pSigned) {
-    Preconditions.checkArgument(pSize > 0, "bit vector size must be greater than zero");
+    Preconditions.checkArgument(pSize >= 0, "bit vector size must not be negative");
     size = pSize;
     signed = pSigned;
     minValue = !signed ? BigInteger.ZERO : BigInteger.valueOf(2).pow(size - 1).negate();
@@ -109,8 +109,11 @@ public class BitVectorInfo {
     final boolean signed;
     if (type instanceof CType) {
       int sizeInChars = ((CType) type).accept(new BaseSizeofVisitor(pMachineModel));
+      if (sizeInChars == 0) {
+        sizeInChars = pMachineModel.getSizeofPtr();
+      }
       size = sizeInChars * pMachineModel.getSizeofCharInBits();
-      assert size > 0;
+      assert size >= 0;
       signed = type instanceof CSimpleType ? pMachineModel.isSigned((CSimpleType) type) : false;
     } else if (type instanceof JSimpleType) {
       switch (((JSimpleType) type).getType()) {
