@@ -113,6 +113,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpressionArguments;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
 
@@ -694,7 +696,7 @@ public class VariableClassificationBuilder {
       handleExternalFunctionCall(edge, func.getParameterExpressions());
 
       if (automatonBoolExpressions != null) {
-        handleParametersIfRelevantByAutomaton(func, functionName);
+        handleParametersIfRelevantByAutomaton(edge, func);
       }
 
     } else {
@@ -746,21 +748,31 @@ public class VariableClassificationBuilder {
   /**
    * Handles function parameters that get their relevancy by a specification in an automaton.
    *
+   * @param pCFAEdge The CFA edge of the function call.
    * @param pFunc The function call expression.
-   * @param pFunctionName The name of the function that's called.
    */
   private void handleParametersIfRelevantByAutomaton(
-      final @Nonnull CFunctionCallExpression pFunc, final @Nonnull String pFunctionName) {
+      final @Nonnull CFAEdge pCFAEdge, final @Nonnull CFunctionCallExpression pFunc) {
 
     for (CExpression parameter : pFunc.getParameterExpressions()) {
       if (parameter instanceof CIdExpression) {
         final String varName = ((CIdExpression) parameter).getDeclaration().getQualifiedName();
         if (!relevantVariables.contains(varName)) {
-//          for (ASTMatcherProvider astMatcher : automatonBoolExpressions) {
-//            if (astMatcher.getPatternString().contains(pFunctionName)) {
-//              relevantVariables.add(varName);
-//            }
-//          }
+          // Create a dummy object that wraps the CFA edge in order to use the the
+          // {@link AutomatonBoolExpr.MatchCFAEdgeASTComparison#eval(AutomatonExpressionArguments)}
+          // method for matching.
+          final AutomatonExpressionArguments dummy =
+              new AutomatonExpressionArguments(null, null, null, pCFAEdge, null);
+          for (AutomatonBoolExpr expression : automatonBoolExpressions) {
+            try {
+              if (expression.eval(dummy).getValue()) {
+                relevantVariables.add(varName);
+              }
+            } catch (CPATransferException pE) {
+              logger.log(
+                  Level.FINE, "Could not match CFA edge AST comparison", pE.getLocalizedMessage());
+            }
+          }
         }
       }
     }
