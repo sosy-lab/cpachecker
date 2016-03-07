@@ -297,7 +297,9 @@ public class AutomatonGraphmlParser {
         }
       }
 
-      Preconditions.checkNotNull(entryNodeId, "You must define an entry node.");
+      if (entryNodeId == null) {
+        throw new WitnessParseException("You must define an entry node.");
+      }
 
       // Determine distances to violation states
       Queue<String> waitlist = new ArrayDeque<>(violationStates);
