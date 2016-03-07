@@ -190,7 +190,7 @@ interface AutomatonExpression {
     /**
      * @returns null if cannotEvaluate() == true
      */
-    resultType getValue() {
+    public resultType getValue() {
       return value;
     }
   }

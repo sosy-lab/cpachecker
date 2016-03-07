@@ -50,7 +50,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 
-class AutomatonExpressionArguments {
+public class AutomatonExpressionArguments {
 
   private Map<String, AutomatonVariable> automatonVariables;
   // Variables that are only valid for one transition ($1,$2,...)
@@ -73,7 +73,7 @@ class AutomatonExpressionArguments {
   // If this pattern is changed the pattern in AutomatonASTcomparison should be changed too!
   static Pattern TRANSITION_VARS_PATTERN = Pattern.compile("\\$\\d+");
 
-  AutomatonExpressionArguments(AutomatonState pState,
+  public AutomatonExpressionArguments(AutomatonState pState,
       Map<String, AutomatonVariable> pAutomatonVariables,
       List<AbstractState> pAbstractStates, CFAEdge pCfaEdge,
       LogManager pLogger) {
