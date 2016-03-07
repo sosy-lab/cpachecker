@@ -117,6 +117,26 @@ public class AutomatonEncodingTest {
     intResults.getCheckerResult().printStatistics(intStat.getPrintStream());
   }
 
+  @Test
+  public void testAssumeOnNamedArgument_Unsafe() throws Exception {
+    final String floatSpecFile = "test/config/automata/encode/SPEC_sqrt.spc";
+    final String floatProgramFile = "test/config/automata/encode/SPEC_sqrt_false.c";
+    final String intSpecFile = "test/config/automata/encode/SPEC_sqrt_int.spc";
+    final String intProgramFile = "test/config/automata/encode/SPEC_sqrt_int_false.c";
+
+    TestResults floatResults = runWithAutomataEncoding(floatSpecFile, floatProgramFile);
+    TestResults intResults = runWithAutomataEncoding(intSpecFile, intProgramFile);
+
+    floatResults.assertIsUnsafe();
+    intResults.assertIsUnsafe();
+
+    TestRunStatisticsParser floatStat = new TestRunStatisticsParser();
+    floatResults.getCheckerResult().printStatistics(floatStat.getPrintStream());
+
+    TestRunStatisticsParser intStat = new TestRunStatisticsParser();
+    intResults.getCheckerResult().printStatistics(intStat.getPrintStream());
+  }
+
   private TestResults runWithAutomataEncoding(final String pSpecFile, final String pProgramFile)
       throws Exception {
 

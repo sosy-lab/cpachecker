@@ -1,8 +1,8 @@
-float sqrtf(float f);
+extern float sqrt(int x);
 
 int main() {
     int v;
     v = -10;
-    float r = sqrtf(v);
+    float r = sqrt(v);
     return 0;
 }
