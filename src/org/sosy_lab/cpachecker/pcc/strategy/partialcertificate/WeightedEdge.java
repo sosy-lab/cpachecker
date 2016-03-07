@@ -28,7 +28,7 @@ public class WeightedEdge {
 
   private final WeightedNode startNode;
   private final WeightedNode endNode;
-  private final int weight;
+  private int weight;
 
   public WeightedNode getStartNode() {
     return startNode;
@@ -42,6 +42,14 @@ public class WeightedEdge {
     return weight;
   }
 
+  public void setWeight(int pWeight) {
+    weight = pWeight;
+  }
+
+  public void addWeight(int pWeight) {
+    weight += pWeight;
+  }
+
   public WeightedEdge(WeightedNode pStartNode, WeightedNode pEndNode, int pWeight) {
     super();
     startNode = pStartNode;
@@ -49,6 +57,14 @@ public class WeightedEdge {
     weight = pWeight;
   }
 
-
+  /**
+   * Edge represented by "start--weight-->end"
+   */
+  @Override
+  public String toString() {
+    StringBuilder s = new StringBuilder();
+    s.append(startNode).append("--").append(weight).append("-->").append(endNode);
+    return s.toString();
+  }
 
 }

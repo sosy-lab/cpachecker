@@ -24,7 +24,9 @@
 package org.sosy_lab.cpachecker.util.automaton;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 
 
@@ -32,5 +34,8 @@ import com.google.common.collect.ImmutableSet;
 public interface TargetLocationProvider {
 
   public ImmutableSet<CFANode> tryGetAutomatonTargetLocations(CFANode pRootNode);
+
+  public ImmutableSet<CFANode> tryGetAutomatonTargetLocations(
+      CFANode pRootNode, Optional<Automaton> pAutomaton);
 
 }

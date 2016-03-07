@@ -99,6 +99,26 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
   }
 
+  static enum MatchLoopHead implements AutomatonBoolExpr {
+    INSTANCE;
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
+        throws CPATransferException {
+      CFAEdge edge = pArgs.getCfaEdge();
+      CFANode successor = edge.getSuccessor();
+      if (successor.isLoopStart()) {
+        return AutomatonBoolExpr.CONST_TRUE;
+      }
+      return AutomatonBoolExpr.CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return "PROGRAM-ENTRY";
+    }
+  }
+
   /**
    * Implements a match on the label after the current CFAEdge.
    * The eval method returns false if there is no label following the CFAEdge.

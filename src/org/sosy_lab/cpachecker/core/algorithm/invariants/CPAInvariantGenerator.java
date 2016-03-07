@@ -33,6 +33,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -74,6 +75,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
+import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -82,6 +84,7 @@ import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.Or;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -92,6 +95,7 @@ import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 /**
  * Class that encapsulates invariant generation by using the CPAAlgorithm
@@ -477,7 +481,11 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     }
 
     @Override
-    public BooleanFormula getInvariantFor(CFANode pLocation, FormulaManagerView fmgr, PathFormulaManager pfmgr) {
+    public BooleanFormula getInvariantFor(
+        CFANode pLocation,
+        FormulaManagerView fmgr,
+        PathFormulaManager pfmgr,
+        PathFormula pContext) {
       BooleanFormulaManager bfmgr = fmgr.getBooleanFormulaManager();
       BooleanFormula invariant = bfmgr.makeBoolean(false);
 
@@ -505,11 +513,31 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     public ExpressionTree<Object> getInvariantFor(CFANode pLocation) {
       ExpressionTree<Object> locationInvariant = ExpressionTrees.getFalse();
 
+      Set<InvariantsState> invStates = Sets.newHashSet();
+      boolean otherReportingStates = false;
+
       for (AbstractState locState : lazyLocationMapping.get(pLocation)) {
         ExpressionTree<Object> stateInvariant = ExpressionTrees.getTrue();
 
         for (ExpressionTreeReportingState expressionTreeReportingState :
             AbstractStates.asIterable(locState).filter(ExpressionTreeReportingState.class)) {
+          if (expressionTreeReportingState instanceof InvariantsState) {
+            InvariantsState invState = (InvariantsState) expressionTreeReportingState;
+            boolean skip = false;
+            for (InvariantsState other : invStates) {
+              if (invState.isLessOrEqual(other)) {
+                skip = true;
+                break;
+              }
+            }
+            if (skip) {
+              stateInvariant = ExpressionTrees.getFalse();
+              continue;
+            }
+            invStates.add(invState);
+          } else {
+            otherReportingStates = true;
+          }
           stateInvariant =
               And.of(
                   stateInvariant,
@@ -519,6 +547,33 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
 
         locationInvariant = Or.of(locationInvariant, stateInvariant);
       }
+
+      if (!otherReportingStates && invStates.size() > 1) {
+        Set<InvariantsState> newInvStates = Sets.newHashSet();
+        for (InvariantsState a : invStates) {
+          boolean skip = false;
+          for (InvariantsState b : invStates) {
+            if (a != b && a.isLessOrEqual(b)) {
+              skip = true;
+              break;
+            }
+          }
+          if (!skip) {
+            newInvStates.add(a);
+          }
+        }
+        if (newInvStates.size() < invStates.size()) {
+          locationInvariant = ExpressionTrees.getFalse();
+          for (InvariantsState state : newInvStates) {
+            locationInvariant =
+                Or.of(
+                    locationInvariant,
+                    state.getFormulaApproximation(
+                        cfa.getFunctionHead(pLocation.getFunctionName()), pLocation));
+          }
+        }
+      }
+
       return locationInvariant;
     }
   }

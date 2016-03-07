@@ -28,51 +28,69 @@ import java.util.BitSet;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Set;
+import java.util.logging.Level;
 
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.interfaces.pcc.BalancedGraphPartitioner;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.BestFirstEvaluationFunction;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.WeightedBalancedGraphPartitioner;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedGraph;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedNode;
+import org.sosy_lab.cpachecker.pcc.strategy.partitioning.BestFirstEvaluationFunctionFactory.BestFirstEvaluationFunctions;
 
 import com.google.common.collect.Sets;
 
 /**
  * Compute a greedy graph partitioning in best-first-manner
- * Ordering according to chosen evaluation function
+ * Exploration order according to chosen evaluation function
+ * Mainly based on the GGGP algorithm described in
+ * http://www.cc.gatech.edu/~bader/COURSES/GATECH/CSE6140-Fall2007/papers/KK95a.pdf, with a modified best_improvment
+ *  evaluation function
  */
 @Options(prefix = "pcc.partitioning.bestfirst")
-public class BestFirstWeightedBalancedGraphPartitioner implements BalancedGraphPartitioner {
+public class BestFirstWeightedBalancedGraphPartitioner implements WeightedBalancedGraphPartitioner {
 
-  private final ShutdownNotifier shutdownNotifier;
-
-  @SuppressWarnings("unused")
   private final LogManager logger;
+  private final BestFirstEvaluationFunction evaluationFunction;
+
   @Option(
       secure = true,
       description = "Evaluation function to determine exploration order of best-first-search")
-  private EvaluationFunctions evaluationFunction = EvaluationFunctions.BEST_IMPROVEMENT_FIRST;
+  private BestFirstEvaluationFunctions chosenFunction =
+      BestFirstEvaluationFunctions.BEST_IMPROVEMENT_FIRST;
 
-  public enum EvaluationFunctions {
-    BEST_IMPROVEMENT_FIRST,
-    BREADTH_FIRST,
-    DEPTH_FIRST
+  @Option(
+      secure = true,
+      description = "[Best-first] Balance criterion for pairwise optimization of partitions")
+  private double balancePrecision = 1.0d;
 
+  public BestFirstWeightedBalancedGraphPartitioner(Configuration pConfig, LogManager pLogger)
+      throws InvalidConfigurationException {
+    pConfig.inject(this);
+    logger = pLogger;
+    evaluationFunction =
+        BestFirstEvaluationFunctionFactory.createEvaluationFunction(chosenFunction);
   }
 
-  private final static double balancePrecision = 1.0d;
-
+  /**
+   * Initialize the BestFirstWeightedBalancedGraphPartitioner with a function given via parameter.
+   * @param pConfig the configuration object
+   * @param pLogger the logger object
+   * @param function the chosen function, on which the final evaluation function is created
+   * @throws InvalidConfigurationException Configuration
+   */
   public BestFirstWeightedBalancedGraphPartitioner(Configuration pConfig, LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+      BestFirstEvaluationFunctions function)
+          throws InvalidConfigurationException {
     pConfig.inject(this);
-    shutdownNotifier = pShutdownNotifier;
     logger = pLogger;
-
+    chosenFunction = function;
+    evaluationFunction =
+        BestFirstEvaluationFunctionFactory.createEvaluationFunction(function);
   }
 
   /**
@@ -130,18 +148,49 @@ public class BestFirstWeightedBalancedGraphPartitioner implements BalancedGraphP
     public int hashCode() {
       return this.getPriority() + this.getNode().getNodeNumber();
     }
+
+    @Override
+    public String toString() {
+      StringBuilder s = new StringBuilder(node.toString());
+      s.append("[Prio:").append(priority).append("]");
+      return s.toString();
+    }
   }
 
 
   @Override
   public List<Set<Integer>> computePartitioning(int pNumPartitions,
       PartialReachedSetDirectedGraph pGraph) throws InterruptedException {
-
+    if (pNumPartitions <= 0 || pGraph == null) { throw new IllegalArgumentException(
+        "Partitioniong must contain at least 1 partition. Graph may not be null."); }
     WeightedGraph wGraph = new WeightedGraph(pGraph); //Transform into weighted graph
+    return computePartitioning(pNumPartitions, wGraph);
+  }
+
+  @Override
+  public List<Set<Integer>> computePartitioning(int pNumPartitions,
+      WeightedGraph wGraph) throws InterruptedException {
+    if (pNumPartitions <= 0 || wGraph == null) { throw new IllegalArgumentException(
+        "Partitioniong must contain at least 1 partition. Graph may not be null."); }
+
+    logger.log(Level.FINE,
+        String.format(
+            "[best-first] Compute %d-partitioning with %.2f balance precision. %s evaluation function. Graph size %d",
+            pNumPartitions, balancePrecision, chosenFunction, wGraph.getNumNodes()));
+
+
+    if (pNumPartitions == 1) { //1-partitioning easy special case (Each node in the same partition)
+      return wGraph.getGraphAsOnePartition();
+    }
+    if (pNumPartitions >= wGraph.getNumNodes()) {//Each Node has its own partition
+      return wGraph.getNodesSeperatelyPartitioned(pNumPartitions);
+    }
+
+    //There is more than one partition, and at least one partition contains more than 1 node
 
     BitSet inPartition = new BitSet(wGraph.getNumNodes()); //Indicates whether node already in a partition
     PriorityQueue<NodePriority> waitlist = new PriorityQueue<>(); //Nodes which could be expanded
-    int partitionSize = wGraph.getNumNodes() / pNumPartitions + 1;
+    int partitionSize = wGraph.computePartitionLoad(pNumPartitions);
     List<Set<Integer>> result = new ArrayList<>(pNumPartitions);
     List<Integer> partitionWeights = new ArrayList<>(pNumPartitions); //take nodes' weight into account
     for (int i = 0; i < pNumPartitions; i++) {
@@ -149,71 +198,44 @@ public class BestFirstWeightedBalancedGraphPartitioner implements BalancedGraphP
       partitionWeights.add(0);
     }
 
-    waitlist.add(new NodePriority(wGraph.getNode(0), 0));
-
 
     NodePriority nextChosen;
     WeightedNode nextNode;
     int priority;
     int partition = 0;
-    while (!waitlist.isEmpty()) {
-      shutdownNotifier.shutdownIfNecessary();
-      nextChosen = waitlist.poll();
-      nextNode = nextChosen.getNode(); //node with highest priority
-      priority = nextChosen.getPriority();
-      if (!inPartition.get(nextNode.getNodeNumber())) { //duplicate nodes in waitlist possible
-        int nodeWeight = nextNode.getWeight();
-        if (partitionWeights.get(partition) + nodeWeight > balancePrecision * partitionSize) { // next partition
-          partition++;
-          if (partition >= pNumPartitions) { //Due to weighted nodes, pNumPartitions maybe to small
-            result.add(Sets.<Integer> newHashSetWithExpectedSize(partitionSize));
-            partitionWeights.add(0);
+    int nextUnpartitionedNode = 0;
+
+    while (nextUnpartitionedNode < wGraph.getNumNodes() && nextUnpartitionedNode >= 0) {
+      //Need this loop, since it's possible, that graph is not strongly connected
+      waitlist.add(new NodePriority(wGraph.getNode(nextUnpartitionedNode), nextUnpartitionedNode));
+      while (!waitlist.isEmpty()) {
+        nextChosen = waitlist.poll();
+        nextNode = nextChosen.getNode(); //node with highest priority
+        priority = nextChosen.getPriority();
+        if (!inPartition.get(nextNode.getNodeNumber())) { //duplicate nodes in waitlist possible
+          int nodeWeight = nextNode.getWeight();
+          if (partitionWeights.get(partition) + nodeWeight > balancePrecision * partitionSize) { // next partition
+            partition++;
+            if (partition >= pNumPartitions) { //Due to weighted nodes, pNumPartitions maybe to small
+              result.add(Sets.<Integer> newHashSetWithExpectedSize(partitionSize));
+              partitionWeights.add(0);
+            }
+          }
+          result.get(partition).add(nextNode.getNodeNumber());
+          partitionWeights.set(partition, partitionWeights.get(partition) + nodeWeight); //nodeWeight added to the partition weight
+          inPartition.set(nextNode.getNodeNumber());
+
+          for (WeightedNode succ : wGraph.getSuccessors(nextNode)) {
+            int succPriority =
+                evaluationFunction.computePriority(result.get(partition), priority, succ, wGraph);
+            waitlist.offer(new NodePriority(succ, succPriority));
           }
         }
-        result.get(partition).add(nextNode.getNodeNumber());
-        partitionWeights.set(partition, partitionWeights.get(partition) + nodeWeight); //nodeWeight added to the partition weight
-        inPartition.set(nextNode.getNodeNumber());
 
-        for (WeightedNode succ : wGraph.getSuccessors(nextNode)) {
-          int succPriority =
-              computePriority(result.get(partition), priority, succ, evaluationFunction, wGraph);
-          waitlist.offer(new NodePriority(succ, succPriority));
-        }
       }
-
-
+      nextUnpartitionedNode = inPartition.nextClearBit(nextUnpartitionedNode); //The next node without partition so far
     }
+
     return result;
   }
-
-  /**
-   *
-   * Compute priority for node on waitlist to be expanded next, depending on actual situation and chosen evaluation function
-   * @param partition The partition predecessor was added to
-   * @param priority Priority of predecessor
-   * @param node Node which is considered
-   * @param evaluationFunction Chosen evaluation function
-   * @param wGraph The graph algorithm is working on
-   * @return Priority to expand successor as next node
-   */
-  private int computePriority(Set<Integer> partition, int priority, WeightedNode node,
-      EvaluationFunctions evaluationFunction, WeightedGraph wGraph) {
-    if (evaluationFunction == EvaluationFunctions.BREADTH_FIRST) {
-      return priority + 1; //expand next level nodes, when this level complete
-    } else if (evaluationFunction == EvaluationFunctions.DEPTH_FIRST) {
-      return priority - 1; //expand next level nodes, as next step (assumption: PriorityQueue preserves order of inserting)
-    } else if (evaluationFunction == EvaluationFunctions.BEST_IMPROVEMENT_FIRST) {
-      /*
-      * if node not in partition it has cost of its weight for the actual partition ==> nodeweight is gain
-      * all of its successors which are not in the partition right now ==>  cost
-      */
-      Set<Integer> successors = wGraph.getIntSuccessors(node); //successors of this node
-      successors.removeAll(partition); // successors, that are not in given partition
-      int gain = node.getWeight();
-      return WeightedGraph.computeWeight(successors, wGraph) - gain; //chance +/- since least priority is chosen first
-    } else {
-      return 0;
-    }
-  }
-
 }

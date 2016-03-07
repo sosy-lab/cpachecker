@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 
+/** This stop-operator just forwards towards the wrapped stop-operator of the analysis. */
 public class BAMStopOperator implements StopOperator {
 
   private final StopOperator wrappedStop;

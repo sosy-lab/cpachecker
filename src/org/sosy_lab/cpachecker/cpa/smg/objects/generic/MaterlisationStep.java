@@ -31,12 +31,14 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
 import com.google.common.base.Function;
+import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
@@ -50,42 +52,42 @@ public class MaterlisationStep {
   private final boolean stop;
 
   /**
-   * These abstract addresses represent the concrete addresses of pointers from outside of the
+   * These addresses templates represent concrete target addresses of pointers from outside of the
    * abstraction, that point to a region in this abstraction. They are used to
-   * create the concrete addresses while materializing a concrete region from this step.
+   * create the concrete addresses while materializing a concrete region from this step
+   * using existing pointer in the smg.
    */
-  private final Set<SMGEdgePointsToTemplate> abstractAdressesToOPointer;
+  private final Set<SMGEdgePointsToTemplate> targetAdressTemplateOfPointer;
 
   /**
    * Abstract pointers representing concrete pointers that lead to
-   * another smgObject within this abstraction generated when materializing this step.
+   * an smgObject within this abstraction generated when materializing this step.
    */
-
-  final private Set<SMGEdgePointsToTemplate> abstractPointers;
+  private final Set<SMGEdgePointsToTemplate> pointerTemplate;
 
   /**
    * These abstract fields with abstract values represent pointers leading from this
    * abstraction to the outside smg.
    */
-  final private Set<SMGEdgeHasValueTemplate> abstractFieldsToOPointer;
+  private final Set<SMGEdgeHasValueTemplate> fieldTemplateContainingPointer;
 
   /**
    * These abstract fields with abstract values represent pointers leading from a region within
    * this abstraction to another region within this abstraction.
    */
-  private final Set<SMGEdgeHasValueTemplate> abstractFieldsToIPointer;
+  private final Set<SMGEdgeHasValueTemplate> fieldTemplateContainingPointerTemplate;
 
   /**
    * Abstract fields represent concrete fields that are generated
    * when materializing the fields and values of smgObjects with this step.
    */
-  final private Set<SMGEdgeHasValueTemplateWithConcreteValue> abstractFields;
+  private final Set<SMGEdgeHasValueTemplateWithConcreteValue> fieldTemplateContainingValue;
 
   /**
    * These abstract smgObjects represent concrete regions or abstractions
    *  that are generated when materializing smgObjects with this step.
    */
-  final private Set<SMGObjectTemplate> abstractObjects;
+  private final Set<SMGObjectTemplate> objectTemplates;
 
   public MaterlisationStep(Set<SMGObjectTemplate> pAbstractObjects,
       Set<SMGEdgePointsToTemplate> pAbstractPointer,
@@ -94,12 +96,12 @@ public class MaterlisationStep {
       Set<SMGEdgePointsToTemplate> pAbstractAdressesToOPointer,
       Set<SMGEdgeHasValueTemplate> pAbstractFieldsToOPointer,
       boolean pStop) {
-    abstractAdressesToOPointer = ImmutableSet.copyOf(pAbstractAdressesToOPointer);
-    abstractObjects = ImmutableSet.copyOf(pAbstractObjects);
-    abstractPointers = ImmutableSet.copyOf(pAbstractPointer);
-    abstractFields = ImmutableSet.copyOf(pAbstractFields);
-    abstractFieldsToIPointer = ImmutableSet.copyOf(pAbstractFieldsToIPointer);
-    abstractFieldsToOPointer = ImmutableSet.copyOf(pAbstractFieldsToOPointer);
+    targetAdressTemplateOfPointer = ImmutableSet.copyOf(pAbstractAdressesToOPointer);
+    objectTemplates = ImmutableSet.copyOf(pAbstractObjects);
+    pointerTemplate = ImmutableSet.copyOf(pAbstractPointer);
+    fieldTemplateContainingValue = ImmutableSet.copyOf(pAbstractFields);
+    fieldTemplateContainingPointerTemplate = ImmutableSet.copyOf(pAbstractFieldsToIPointer);
+    fieldTemplateContainingPointer = ImmutableSet.copyOf(pAbstractFieldsToOPointer);
     stop = pStop;
   }
 
@@ -108,28 +110,28 @@ public class MaterlisationStep {
   }
 
   public Set<SMGObjectTemplate> getAbstractObjects() {
-    return abstractObjects;
+    return objectTemplates;
   }
 
   public Set<SMGEdgeHasValueTemplateWithConcreteValue> getAbstractFields() {
-    return abstractFields;
+    return fieldTemplateContainingValue;
   }
 
 
   public Set<SMGEdgeHasValueTemplate> getAbstractFieldsToOPointer() {
-    return abstractFieldsToOPointer;
+    return fieldTemplateContainingPointer;
   }
 
   public Set<SMGEdgePointsToTemplate> getAbstractAdressesToOPointer() {
-    return abstractAdressesToOPointer;
+    return targetAdressTemplateOfPointer;
   }
 
   public Set<SMGEdgeHasValueTemplate> getAbstractFieldsToIPointer() {
-    return abstractFieldsToIPointer;
+    return fieldTemplateContainingPointerTemplate;
   }
 
   public Set<SMGEdgePointsToTemplate> getAbstractPointers() {
-    return abstractPointers;
+    return pointerTemplate;
   }
 
   public SMG materialize(SMG pSMG, Map<Integer, Integer> pAbstractToConcretePointerMap) {
@@ -140,26 +142,26 @@ public class MaterlisationStep {
     Map<SMGObjectTemplate, Map<Integer, Integer>> abstractObjectToPointersMap =
         new HashMap<>();
 
-    for (SMGEdgePointsToTemplate edge : abstractPointers) {
+    for (SMGEdgePointsToTemplate edge : pointerTemplate) {
       assignAbstractToConcretePointer(edge, abstractObjectToPointersMap, pAbstractToConcretePointerMap, true);
     }
 
-    for(SMGEdgePointsToTemplate edge : abstractAdressesToOPointer) {
+    for(SMGEdgePointsToTemplate edge : targetAdressTemplateOfPointer) {
       assignAbstractToConcretePointer(edge, abstractObjectToPointersMap, pAbstractToConcretePointerMap, false);
     }
 
-    for(SMGEdgeHasValueTemplate edge : abstractFieldsToIPointer) {
+    for(SMGEdgeHasValueTemplate edge : fieldTemplateContainingPointerTemplate) {
       assignAbstractToConcretePointer(edge, abstractObjectToPointersMap, pAbstractToConcretePointerMap, true);
     }
 
-    for (SMGEdgeHasValueTemplate edge : abstractFieldsToOPointer) {
+    for (SMGEdgeHasValueTemplate edge : fieldTemplateContainingPointer) {
       assignAbstractToConcretePointer(edge, abstractObjectToPointersMap, pAbstractToConcretePointerMap, false);
     }
 
     /*Second, create the new concrete Objects from abstract smgObjects.*/
-    Map<SMGObjectTemplate, SMGObject> concreteObjectMap = new HashMap<>(abstractObjects.size());
+    Map<SMGObjectTemplate, SMGObject> concreteObjectMap = new HashMap<>(objectTemplates.size());
 
-    for (SMGObjectTemplate abstractObject : abstractObjects) {
+    for (SMGObjectTemplate abstractObject : objectTemplates) {
       Map<Integer, Integer> abstractToConcretePointerForObject =
           abstractObjectToPointersMap.get(abstractObject);
       SMGObject concreteObject =
@@ -170,28 +172,28 @@ public class MaterlisationStep {
     Set<SMGEdgePointsTo> concretePointer = new HashSet<>();
 
     /*Third, create all pointers that point to this abstraction and from this abstraction.*/
-    for (SMGEdgePointsToTemplate abstractPointer : abstractPointers) {
+    for (SMGEdgePointsToTemplate abstractPointer : pointerTemplate) {
       createPointer(abstractPointer, abstractObjectToPointersMap, concreteObjectMap, concretePointer);
     }
 
-    for (SMGEdgePointsToTemplate abstractPointer : abstractAdressesToOPointer) {
+    for (SMGEdgePointsToTemplate abstractPointer : targetAdressTemplateOfPointer) {
       createPointer(abstractPointer, abstractObjectToPointersMap, concreteObjectMap,
           concretePointer);
     }
 
     Set<SMGEdgeHasValue> concreteHves = new HashSet<>();
 
-    for (SMGEdgeHasValueTemplate aHve : abstractFieldsToIPointer) {
+    for (SMGEdgeHasValueTemplate aHve : fieldTemplateContainingPointerTemplate) {
       createFieldToPointer(aHve, concreteObjectMap, abstractObjectToPointersMap, concreteHves);
     }
 
-    for (SMGEdgeHasValueTemplate aHve : abstractFieldsToOPointer) {
+    for (SMGEdgeHasValueTemplate aHve : fieldTemplateContainingPointer) {
       createFieldToPointer(aHve, concreteObjectMap, abstractObjectToPointersMap, concreteHves);
     }
 
     /*Fourth, create all values that are contained in this abstraction*/
-    for (SMGEdgeHasValueTemplateWithConcreteValue aField : abstractFields) {
-      SMGObjectTemplate templateObject = aField.getAbstractObject();
+    for (SMGEdgeHasValueTemplateWithConcreteValue aField : fieldTemplateContainingValue) {
+      SMGObjectTemplate templateObject = aField.getObjectTemplate();
       int offset = aField.getOffset();
       int value = aField.getValue();
       SMGObject concreteObject = concreteObjectMap.get(templateObject);
@@ -232,7 +234,7 @@ public class MaterlisationStep {
       Map<SMGObjectTemplate, SMGObject> pConcreteObjectMap,
       Map<SMGObjectTemplate, Map<Integer, Integer>> pAbstractObjectToPointersMap,
       Set<SMGEdgeHasValue> concreteHves) {
-    SMGObjectTemplate templateObject = pAbstractField.getAbstractObject();
+    SMGObjectTemplate templateObject = pAbstractField.getObjectTemplate();
     SMGObject object = pConcreteObjectMap.get(templateObject);
     int offset = pAbstractField.getOffset();
     int abstractValue = pAbstractField.getAbstractValue();
@@ -246,7 +248,7 @@ public class MaterlisationStep {
       Map<SMGObjectTemplate, SMGObject> pConcreteObjectMap,
       Set<SMGEdgePointsTo> concretePointer) {
 
-    SMGObjectTemplate templateTarget = pAbstractPointer.getAbstractObject();
+    SMGObjectTemplate templateTarget = pAbstractPointer.getObjectTemplate();
     int offset = pAbstractPointer.getOffset();
     int abstractPointerValue = pAbstractPointer.getAbstractValue();
 
@@ -261,7 +263,7 @@ public class MaterlisationStep {
       Map<SMGObjectTemplate, Map<Integer, Integer>> pAbstractObjectToPointersMap,
       Map<Integer, Integer> pAbstractToConcretePointerMap,
       boolean createNewConcreteValue) {
-    SMGObjectTemplate objectTemplate = edgeOfPointerTemplate.getAbstractObject();
+    SMGObjectTemplate objectTemplate = edgeOfPointerTemplate.getObjectTemplate();
 
     if (!pAbstractObjectToPointersMap.containsKey(objectTemplate)) {
       pAbstractObjectToPointersMap.put(objectTemplate, new HashMap<Integer, Integer>());
@@ -284,35 +286,143 @@ public class MaterlisationStep {
     Set<SMGObjectTemplate> entryRegions;
 
     entryRegions =
-        FluentIterable.from(abstractAdressesToOPointer).filter(
+        FluentIterable.from(targetAdressTemplateOfPointer).filter(
             new Predicate<SMGEdgePointsToTemplate>() {
 
               @Override
               public boolean apply(SMGEdgePointsToTemplate edge) {
-                return edge.getAbstractObject() instanceof SMGRegion;
+                return edge.getObjectTemplate() instanceof SMGRegion;
               }
             }).transform(new Function<SMGEdgePointsToTemplate, SMGObjectTemplate>() {
 
               @Override
               public SMGObjectTemplate apply(SMGEdgePointsToTemplate edge) {
-                return edge.getAbstractObject();
+                return edge.getObjectTemplate();
               }
             }).toSet();
 
     return entryRegions;
   }
 
-  public Set<SMGEdgePointsToTemplate> getPointerToThisTemplate(@SuppressWarnings("unused") SMGObjectTemplate pTemplate) {
-    // TODO Auto-generated method stub
-    return null;
+  public Set<SMGEdgePointsToTemplate> getPointerToThisTemplate(SMGObjectTemplate pTemplate) {
+
+    assert objectTemplates.contains(pTemplate);
+
+    Predicate<SMGEdgePointsToTemplate> objectFilter = new SMGUtils.FilterTargetTemplate(pTemplate);
+
+    Set<SMGEdgePointsToTemplate> pointerSet = new HashSet<>(pointerTemplate);
+    pointerSet.addAll(targetAdressTemplateOfPointer);
+
+    return FluentIterable.from(pointerSet).filter(objectFilter).toSet();
   }
 
-  public FieldsOfTemplate getFieldsOfThisTemplate(@SuppressWarnings("unused") SMGObjectTemplate template) {
-    // TODO Auto-generated method stub
-    return null;
+  public FieldsOfTemplate getFieldsOfThisTemplate(SMGObjectTemplate pTemplate) {
+
+    assert  objectTemplates.contains(pTemplate);
+
+    Set<SMGEdgeHasValueTemplateWithConcreteValue> lFieldTemplateContainingValue =
+        FluentIterable.from(fieldTemplateContainingValue)
+            .filter(new SMGUtils.FilterTemplateObjectFieldsWithConcreteValue(pTemplate)).toSet();
+    Set<SMGEdgeHasValueTemplate> lFieldTemplateContainingPointerTemplate =
+        FluentIterable.from(fieldTemplateContainingPointerTemplate)
+            .filter(new SMGUtils.FilterTemplateObjectFieldsWithConcreteValue(pTemplate)).toSet();
+    Set<SMGEdgeHasValueTemplate> lFieldTemplateContainingPointer =
+        FluentIterable.from(fieldTemplateContainingPointer)
+            .filter(new SMGUtils.FilterTemplateObjectFieldsWithConcreteValue(pTemplate)).toSet();
+
+    return new FieldsOfTemplate(lFieldTemplateContainingValue, lFieldTemplateContainingPointerTemplate, lFieldTemplateContainingPointer, pTemplate);
+  }
+
+  public Set<SMGEdgeHasValueTemplate> getFieldsOfValue(int value) {
+
+    Set<SMGEdgeHasValueTemplate> fields =
+        FluentIterable.from(fieldTemplateContainingValue).transform(
+            new Function<SMGEdgeHasValueTemplateWithConcreteValue, SMGEdgeHasValueTemplate>() {
+
+              @Override
+              public SMGEdgeHasValueTemplate apply(SMGEdgeHasValueTemplateWithConcreteValue pEdge) {
+                return (SMGEdgeHasValueTemplate) pEdge;
+              }
+            }).filter(new SMGUtils.FilterFieldsOfValue(value)).toSet();
+
+    fields.addAll(FluentIterable.from(fieldTemplateContainingPointerTemplate)
+        .filter(new SMGUtils.FilterFieldsOfValue(value)).toSet());
+
+    fields.addAll(FluentIterable.from(fieldTemplateContainingPointer)
+        .filter(new SMGUtils.FilterFieldsOfValue(value)).toSet());
+
+
+    return fields;
+  }
+
+  public Optional<SMGEdgePointsToTemplate> getPointer(int value) {
+
+    for (SMGEdgePointsToTemplate edge : pointerTemplate) {
+      if (edge.getAbstractValue() == value) {
+        return Optional.of(edge);
+      }
+    }
+
+    for (SMGEdgePointsToTemplate edge : targetAdressTemplateOfPointer) {
+      if (edge.getAbstractValue() == value) {
+        return Optional.of(edge);
+      }
+    }
+
+    return Optional.absent();
   }
 
   public static class FieldsOfTemplate {
 
+    private final SMGObjectTemplate template;
+
+    /**
+     * These abstract fields with abstract values represent pointers leading from this
+     * abstraction to the outside smg.
+     */
+    private final Set<SMGEdgeHasValueTemplate> fieldTemplateContainingPointer;
+
+    /**
+     * These abstract fields with abstract values represent pointers leading from a region within
+     * this abstraction to another region within this abstraction.
+     */
+    private final Set<SMGEdgeHasValueTemplate> fieldTemplateContainingPointerTemplate;
+
+    /**
+     * Abstract fields represent concrete fields that are generated
+     * when materializing the fields and values of smgObjects with this step.
+     */
+    private final Set<SMGEdgeHasValueTemplateWithConcreteValue> fieldTemplateContainingValue;
+
+    public FieldsOfTemplate(
+        Set<SMGEdgeHasValueTemplateWithConcreteValue> pFieldTemplateContainingValue,
+        Set<SMGEdgeHasValueTemplate> pFieldTemplateContainingPointerTemplate,
+        Set<SMGEdgeHasValueTemplate> pFieldTemplateContainingPointer,
+        SMGObjectTemplate pTemplate) {
+      fieldTemplateContainingPointer = pFieldTemplateContainingPointer;
+      fieldTemplateContainingPointerTemplate = pFieldTemplateContainingPointerTemplate;
+      fieldTemplateContainingValue = pFieldTemplateContainingValue;
+      template = pTemplate;
+    }
+
+    public Set<SMGEdgeHasValueTemplateWithConcreteValue> getFieldTemplateContainingValue() {
+      return fieldTemplateContainingValue;
+    }
+
+    public int size() {
+      return fieldTemplateContainingPointer.size() + fieldTemplateContainingPointerTemplate.size() + fieldTemplateContainingValue.size();
+    }
+
+    public Set<SMGEdgeHasValueTemplate> getFieldTemplateContainingPointerTemplate() {
+      return fieldTemplateContainingPointerTemplate;
+    }
+
+    public Set<SMGEdgeHasValueTemplate> getFieldTemplateContainingPointer() {
+      return fieldTemplateContainingPointer;
+    }
+
+    public SMGObjectTemplate getTemplate() {
+      return template;
+    }
   }
 }

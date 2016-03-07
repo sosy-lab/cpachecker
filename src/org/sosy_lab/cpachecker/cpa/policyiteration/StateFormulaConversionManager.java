@@ -154,6 +154,6 @@ public class StateFormulaConversionManager {
         return fmgr.getBooleanFormulaManager().makeBoolean(true);
       }
     }
-    return invariants.getInvariantFor(node, fmgr, pfmgr);
+    return invariants.getInvariantFor(node, fmgr, pfmgr, null);
   }
 }

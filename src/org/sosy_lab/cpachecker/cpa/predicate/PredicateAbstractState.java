@@ -269,14 +269,6 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     }
   }
 
-  /**
-   * Replace the path formula part of this element.
-   * THIS IS POTENTIALLY UNSOUND!
-   */
-  public void setPathFormula(PathFormula pPathFormula) {
-    pathFormula = checkNotNull(pPathFormula);
-  }
-
   public PathFormula getPathFormula() {
     return pathFormula;
   }

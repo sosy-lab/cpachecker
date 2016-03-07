@@ -23,7 +23,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -43,7 +42,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Verify;
 
 @Options(prefix="cpa.slicing")
-public class FormulaSlicingManager implements IFormulaSlicingManager, StatisticsProvider {
+public class FormulaSlicingManager implements IFormulaSlicingManager {
 
   /**
    * Statistics for formula slicing.
@@ -185,7 +184,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager, Statistics
       try {
         statistics.formulaSlicingTimer.start();
         inductiveWeakening =
-            inductiveWeakeningManager.slice(
+            inductiveWeakeningManager.findInductiveWeakening(
                 toSlice,
                 possibleLoopTransitions, strengthening);
       } catch(SolverException ex) {

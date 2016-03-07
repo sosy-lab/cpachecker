@@ -191,7 +191,7 @@ analysis.interprocedural = true
 
 # the machine model, which determines the sizes of types like int
 analysis.machineModel = LINUX32
-  enum:     [LINUX32, LINUX64]
+  enum:     [LINUX32, LINUX64, LINUX_WITH_ALIGNMENT32, LINUX_WITH_ALIGNMENT64]
 
 # memorize previously used (incomplete) reached sets after a restart of the
 # analysis
@@ -373,6 +373,9 @@ bmc.induction = false
 
 # Export auxiliary invariants used for induction.
 bmc.invariantsExport = "invariants.graphml"
+
+# Propagates the interrupts of the invariant generator.
+bmc.propagateInvGenInterrupts = false
 
 # File name where to put the path program that is generated as input for
 # CBMC. A temporary file is used if this is unspecified. If specified, the
@@ -911,7 +914,7 @@ cpa.chc.merge = "SEP"
   allowed values: [SEP, JOIN]
 
 # inform Composite CPA if it is run in a CPA enabled analysis because then it
-# must behave differntly during merge.
+# must behave differently during merge.
 cpa.composite.inCPAEnabledAnalysis = false
 
 # which composite merge operator to use (plain or agree)
@@ -919,6 +922,11 @@ cpa.composite.inCPAEnabledAnalysis = false
 # cpas agree on this. This is probably what you want.
 cpa.composite.merge = "AGREE"
   allowed values: [PLAIN, AGREE]
+
+# Number of times to run the precision adjustment. The subsequent runs of
+# precision adjustment can see the precision adjustment resultsof the
+# previous run.
+cpa.composite.precisionAdjustmentIterationLimit = 1
 
 # Split MultiEdges and pass each inner edge to the component CPAs to allow
 # strengthen calls after each single edge. Does not work with backwards
@@ -1178,9 +1186,6 @@ cpa.predicate.abstraction.computation = BOOLEAN
 # dump the abstraction formulas if they took to long
 cpa.predicate.abstraction.dumpHardQueries = false
 
-# Identify the inductive predicates in the path formula and omit them
-cpa.predicate.abstraction.identifyInductivePredicates = false
-
 # Identify those predicates where the result is trivially known before
 # abstraction computation and omit them.
 cpa.predicate.abstraction.identifyTrivialPredicates = false
@@ -1368,6 +1373,13 @@ cpa.predicate.ignoreIrrelevantVariables = true
 # do not include assumptions of states into path formula during strengthening
 cpa.predicate.ignoreStateAssumptions = false
 
+# Should the automata used for invariant generation be dumped to files?
+cpa.predicate.invariants.dumpInvariantGenerationAutomata = false
+
+# Where to dump the automata that are used to narrow the analysis used for
+# invariant generation.
+cpa.predicate.invariants.dumpInvariantGenerationAutomataFile = "invgen.%d.spc"
+
 # export final loop invariants
 cpa.predicate.invariants.export = true
 
@@ -1377,8 +1389,37 @@ cpa.predicate.invariants.exportAsPrecision = true
 # file for exporting final loop invariants
 cpa.predicate.invariants.file = "invariants.txt"
 
+# Which strategy should be used for generating invariants, a comma separated
+# list can be specified. Usually later specified strategies serve as fallback
+# for earlier ones.
+cpa.predicate.invariants.generationStrategy = Lists.newArrayList(InvariantGenerationStrategy.RF_INVARIANT_GENERATION)
+
+# How often should generating invariants from sliced prefixes with
+# k-induction be tried?
+cpa.predicate.invariants.kInductionTries = 3
+
 # file for precision that consists of invariants.
 cpa.predicate.invariants.precisionFile = "invariantPrecs.txt"
+
+# Timelimit for invariant generation which may be used during refinement.
+# (Use seconds or specify a unit; 0 for infinite)
+cpa.predicate.invariants.timeForInvariantGeneration = 10s
+
+# Where should the generated invariants (if there are some) be used?
+cpa.predicate.invariants.usageStrategy = NONE
+  enum:     [REFINEMENT, ABSTRACTION_FORMULA, COMBINATION, NONE]
+
+# Should the strategies be used all-together or only as fallback. If all
+# together, the computation is done until the timeout is hit and the results
+# up to this point are taken.
+cpa.predicate.invariants.useAllStrategies = false
+
+# Invariants that are not strong enough to refute the counterexample can be
+# ignored with this option. (Weak invariants will lead to repeated
+# counterexamples, thus taking time which could be used for the rest of the
+# analysis, however, the found invariants may also be better for loops as
+# interpolation.)
+cpa.predicate.invariants.useStrongInvariantsOnly = true
 
 # Max. number of edge of the abstraction tree to prescan for reuse
 cpa.predicate.maxAbstractionReusePrescan = 1
@@ -1465,19 +1506,12 @@ cpa.predicate.refinement.atomicInterpolants = true
 # invariant
 cpa.predicate.refinement.atomicInvariants = false
 
-# configuration file for bmc generation
-cpa.predicate.refinement.bmcConfig = "config/bmc-invgen.properties"
-
 # Direction for doing counterexample analysis: from start of trace, from end
 # of trace, or alternatingly from start and end of the trace towards the
 # middle
 cpa.predicate.refinement.cexTraceCheckDirection = FORWARDS
   enum:     [FORWARDS, BACKWARDS, ZIGZAG, LOOP_FREE_FIRST, RANDOM, LOWEST_AVG_SCORE,
              HIGHEST_AVG_SCORE, LOOP_FREE_FIRST_BACKWARDS]
-
-# Call buildCounterexampleTrace() n times to produce different interpolants
-# with the solver
-cpa.predicate.refinement.checkCounterexampleNTimes = 1
 
 # Conjunct the formulas that were computed as preconditions to get
 # (infeasible) interpolation problems!
@@ -1490,23 +1524,11 @@ cpa.predicate.refinement.doAbstractionComputation = false
 # dump all interpolation problems
 cpa.predicate.refinement.dumpInterpolationProblems = false
 
-# Should the automata used for invariant generation be dumped to files?
-cpa.predicate.refinement.dumpInvariantGenerationAutomata = false
-
-# Where to dump the automata that are used to narrow the analysis used for
-# invariant generation.
-cpa.predicate.refinement.dumpInvariantGenerationAutomataFile = "invgen.%d.spc"
-
 # After each refinement, dump the newly found predicates.
 cpa.predicate.refinement.dumpPredicates = false
 
 # File name for the predicates dumped after refinements.
 cpa.predicate.refinement.dumpPredicatesFile = "refinement%04d-predicates.prec"
-
-# If k-induction fails to generate invariants we fall back to the usual
-# invariant generation with this option toggled, otherwise interpolation is
-# used
-cpa.predicate.refinement.fallbackToInvGen = true
 
 # apply deletion-filter to the abstract counterexample, to get a minimal set
 # of blocks, before applying interpolation-based refinement
@@ -1515,10 +1537,6 @@ cpa.predicate.refinement.getUsefulBlocks = false
 # use incremental search in counterexample analysis, to find the minimal
 # infeasible prefix
 cpa.predicate.refinement.incrementalCexTraceCheck = false
-
-# How often should generating invariants from sliced prefixes with
-# k-induction be tried?
-cpa.predicate.refinement.kInductionTries = 3
 
 # For differing errorpaths, the loop for which invariants should be generated
 # may still be the same, with this option you can set the maximal amount of
@@ -1587,34 +1605,12 @@ cpa.predicate.refinement.splitItpAtoms = false
 cpa.predicate.refinement.strategy = SEQ_CPACHECKER
   enum:     [SEQ, SEQ_CPACHECKER, TREE, TREE_WELLSCOPED, TREE_NESTED, TREE_CPACHECKER]
 
-# Timelimit for invariant generation which may be used during refinement.
-# (Use seconds or specify a unit; 0 for infinite)
-cpa.predicate.refinement.timeForInvariantGeneration = 0ns
-
 # time limit for refinement (use milliseconds or specify a unit; 0 for
 # infinite)
 cpa.predicate.refinement.timelimit = 0ms
 
 # Use BDDs to simplify interpolants (removing irrelevant predicates)
 cpa.predicate.refinement.useBddInterpolantSimplification = false
-
-# Should the refinement be done with invariants instead of interpolation?
-# This is currently a heuristic as we cannot be sure that all invariants are
-# good enough to refute a counterexample therefore the fallback is still
-# interpolation.
-cpa.predicate.refinement.useInvariantRefinement = false
-
-# Try to generate inductive invariants, by using sliced prefixs and check if
-# they are invariants. If this failes invariant generation via other CPAs
-# will be done or interpolation, depending on the option 'fallbackToInvGen'.
-cpa.predicate.refinement.useKInduction = true
-
-# Invariants that are not strong enough to refute the counterexample can be
-# ignored with this option. (Weak invariants will lead to repeated
-# counterexamples, thus taking time which could be used for the rest of the
-# analysis, however, the found invariants may also be better for loops as
-# interpolation.)
-cpa.predicate.refinement.useStrongInvariantsOnly = true
 
 # verify if the interpolants fulfill the interpolant properties
 cpa.predicate.refinement.verifyInterpolants = false
@@ -1754,23 +1750,26 @@ cpa.slicing.checkTargetStates = true
 # -1 for no limit.
 cpa.slicing.destructiveIterationLimit = -1
 
+# Limit for explicit CNF expansion (potentially exponential otherwise)
+cpa.slicing.expansionDepthLimit = 1
+
 # Instead of considering the entire SCC, ignore the function nested in the
 # loop. UNSOUND!
 cpa.slicing.ignoreFunctionCallsInLoop = false
 
-# Perform light quantifier elimination on intermediate variables
-cpa.slicing.performLightQE = false
+# Depth limit for the 'LEAST_REMOVALS' strategy.
+cpa.slicing.leastRemovalsDepthLimit = 2
 
-# Use formula slicing based on counterexamples.
-cpa.slicing.runCounterexampleBasedSlicing = false
+# Pre-run syntactic weakening
+cpa.slicing.preRunSyntacticWeakening = true
 
-# Run destructive formula slicing, which starts with an unsatisfiable set and
-# tries to add elements to it, making sure it stays unsatisfiable.
-cpa.slicing.runDestructiveSlicing = true
+# Strategy for abstracting children during CEX weakening
+cpa.slicing.removalSelectionStrategy = FIRST
+  enum:     [ALL, FIRST, RANDOM, LEAST_REMOVALS]
 
-# Use syntactic formula slicing, which uses only the syntactic structure of
-# the formula and does not involve any calls to the SMT solver.
-cpa.slicing.runSyntacticSlicing = false
+# Granularity of weakening
+cpa.slicing.selectorAnnotationMode = LITERALS
+  enum:     [LITERALS, CONJUNCTIONS]
 
 # Sort selection variables based on syntactic similarity to the transition
 # relation
@@ -1778,6 +1777,10 @@ cpa.slicing.sortSelectionVariablesSyntactic = true
 
 # Cache formulas produced by path formula manager
 cpa.slicing.useCachingPathFormulaManager = true
+
+# Inductive weakening strategy
+cpa.slicing.weakeningStrategy = CEX
+  enum:     [SYNTACTIC, DESTRUCTIVE, CEX, FACTORIZATION]
 
 # Array allocation functions
 cpa.smg.arrayAllocationFunctions = {
@@ -2011,6 +2014,10 @@ cpa.stator.policy.varFiltering = ALL_LIVE
 # of '-1' runs value determination until convergence.
 cpa.stator.policy.wideningThreshold = -1
 
+# allow assignments of a new thread to the same left-hand-side as an existing
+# thread.
+cpa.threading.allowMultipleLHS = false
+
 # the maximal number of parallel threads, -1 for infinite. When combined with
 # 'useClonedFunctions=true', we need at least N cloned functions. The option
 # 'cfa.cfaCloner.numberOfCopies' should be set to N.
@@ -2229,6 +2236,14 @@ enabledanalysis.enablerCPA = PREDICATE
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
 
+# Configuration file for the K-Induction algorithm for checking candidates on
+# invariance.
+invariantChecker.kInductionConfig = "config/bmc-invgen.properties"
+
+# Timelimit for invariant generation which may be used during refinement.
+# (Use seconds or specify a unit; 0 for infinite)
+invariantChecker.timeForInvariantCheck = 0ns
+
 # adjust invariant generation conditions if supported by the analysis
 invariantGeneration.adjustConditions = false
 
@@ -2388,9 +2403,12 @@ pcc.partial.enableLoadDistribution = false
 # false.
 pcc.partial.stopAddingAtReachedSetSize = false
 
+# [Best-first] Balance criterion for pairwise optimization of partitions
+pcc.partitioning.bestfirst.balancePrecision = 1.0d
+
 # Evaluation function to determine exploration order of best-first-search
-pcc.partitioning.bestfirst.evaluationFunction = BEST_IMPROVEMENT_FIRST
-  enum:     [BEST_IMPROVEMENT_FIRST, BREADTH_FIRST, DEPTH_FIRST]
+pcc.partitioning.bestfirst.chosenFunction = BEST_IMPROVEMENT_FIRST
+  enum:     [BREADTH_FIRST, DEPTH_FIRST, BEST_IMPROVEMENT_FIRST]
 
 # Balance criterion for pairwise optimization of partitions
 pcc.partitioning.fm.balanceCriterion = 1.5d
@@ -2399,14 +2417,39 @@ pcc.partitioning.fm.balanceCriterion = 1.5d
 pcc.partitioning.fm.initialPartitioningStrategy = RANDOM
   enum:     [RANDOM]
 
+# [FM-k-way] Balance criterion for pairwise optimization of partitions
+pcc.partitioning.kwayfm.balancePrecision = 1.3d
+
+# [FM-k-way] Partitioning method to compute initial partitioning.
+pcc.partitioning.kwayfm.globalHeuristic = BEST_IMPROVEMENT_FIRST
+  enum:     [RANDOM, DFS, BFS, BEST_IMPROVEMENT_FIRST]
+
+# [FM-k-way] Local optimization criterion to be minimized druing
+# Fiduccia/Mattheyses refinment
+pcc.partitioning.kwayfm.optimizationCriterion = NODECUT
+  enum:     [EDGECUT, NODECUT]
+
 # Specifies the maximum size of the partition. This size is used to compute
 # the number of partitions if a proof (reached set) should be written.
 # Default value 0 means always a single partition.
 pcc.partitioning.maxNumElemsPerPartition = 0
 
+# Partitioning method applied in multilevel heuristic to compute initial
+# partitioning.
+pcc.partitioning.multilevel.globalHeuristic = BEST_IMPROVEMENT_FIRST
+  enum:     [RANDOM, DFS, BFS, BEST_IMPROVEMENT_FIRST]
+
+# Matching method applied to coarsen graph down in multilevel heuristic.
+pcc.partitioning.multilevel.matchingGenerator = HEAVY_EDGE
+  enum:     [RANDOM, HEAVY_EDGE]
+
+# Refinement method applied in multilevel heuristic's uncoarsening phase.
+pcc.partitioning.multilevel.refinementHeuristic = FM_NODECUT
+  enum:     [FM_NODECUT, FM_EDGECUT]
+
 # Heuristic for computing partitioning of proof (partial reached set).
 pcc.partitioning.partitioningStrategy = RANDOM
-  enum:     [RANDOM, DFS, BFS, OPTIMAL, BEST_FIRST, FM]
+  enum:     [RANDOM, DFS, BFS, OPTIMAL, BEST_FIRST, FM, FM_K_WAY, MULTILEVEL]
 
 # If enabled uses the number of nodes saved in certificate to compute
 # partition number otherwise the number of states explored during analysis
@@ -2417,6 +2460,13 @@ pcc.proofFile = "arg.obj"
 
 # Generate and dump a proof
 pcc.proofgen.doPCC = false
+
+# Configuration for proof checking if differs from analysis configuration
+pcc.resultcheck.checkerConfig = no default value
+
+# Enable to write proof and read it again for validation instead of using the
+# in memory solution
+pcc.resultcheck.writeProof = false
 
 # Make proof more abstract, remove some of the information not needed to
 # prove the property.

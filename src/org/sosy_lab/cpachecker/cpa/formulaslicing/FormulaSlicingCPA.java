@@ -1,9 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
-import java.util.Collection;
-import java.util.List;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -40,8 +38,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
+import java.util.Collection;
+import java.util.List;
+
+import javax.annotation.Nullable;
 
 
 @Options(prefix="cpa.slicing")
@@ -60,6 +60,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   private final IFormulaSlicingManager manager;
   private final MergeOperator mergeOperator;
   private final LoopTransitionFinder loopTransitionFinder;
+  private final InductiveWeakeningManager inductiveWeakeningManager;
 
   private FormulaSlicingCPA(
       Configuration pConfiguration,
@@ -83,12 +84,12 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
         pConfiguration, cfa.getLoopStructure().get(), pathFormulaManager, formulaManager, pLogger,
         shutdownNotifier);
 
-    InductiveWeakeningManager pInductiveWeakeningManager =
+    inductiveWeakeningManager =
         new InductiveWeakeningManager(pConfiguration, formulaManager, solver, pLogger);
     manager = new FormulaSlicingManager(
         pConfiguration,
         pathFormulaManager, formulaManager, cfa, loopTransitionFinder,
-        pInductiveWeakeningManager, solver);
+        inductiveWeakeningManager, solver);
     stopOperator = new StopSepOperator(this);
     mergeOperator = this;
   }
@@ -175,7 +176,8 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
     loopTransitionFinder.collectStatistics(statsCollection);
-    ((StatisticsProvider)manager).collectStatistics(statsCollection);
+    manager.collectStatistics(statsCollection);
+    inductiveWeakeningManager.collectStatistics(statsCollection);
   }
 
   @Override

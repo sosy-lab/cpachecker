@@ -71,7 +71,8 @@ public class Or<LeafType> extends AbstractExpressionTree<LeafType>
       return true;
     }
     if (pObj instanceof Or) {
-      return operands.equals(((Or<?>) pObj).operands);
+      Or<?> other = (Or<?>) pObj;
+      return hashCode == other.hashCode && operands.equals(other.operands);
     }
     return false;
   }

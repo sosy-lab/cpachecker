@@ -146,10 +146,16 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
               // create and add infeasible prefix, mind that the ARGPath has not (!)
               // failing assume operations replaced with no-ops, as this is not needed here,
               // and it would be cumbersome for ABE, so lets skip it
-              infeasiblePrefixes.add(InfeasiblePrefix.buildForPredicateDomain(ARGUtils.getOnePathTo(currentState),
+              ARGPath currentPrefixPath = ARGUtils.getOnePathTo(currentState);
+
+              infeasiblePrefixes.add(InfeasiblePrefix.buildForPredicateDomain(currentPrefixPath,
                   interpolantSequence,
                   finalPathFormula,
                   solver.getFormulaManager()));
+
+              if (currentPrefixPath.size() >= maxPrefixLength) {
+                return infeasiblePrefixes;
+              }
 
               // remove reason for UNSAT from solver stack
               prover.pop();

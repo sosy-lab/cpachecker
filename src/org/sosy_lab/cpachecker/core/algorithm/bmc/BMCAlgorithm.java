@@ -160,9 +160,9 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     if (getTargetLocations().isEmpty() || !cfa.getAllLoopHeads().isPresent()) {
       return CandidateGenerator.EMPTY_GENERATOR;
     } else {
+      Set<CFANode> loopHeads = getLoopHeads();
       return new StaticCandidateProvider(
-          Sets.<CandidateInvariant>newHashSet(
-              new TargetLocationCandidateInvariant(cfa.getAllLoopHeads().get())));
+          Sets.<CandidateInvariant>newHashSet(new TargetLocationCandidateInvariant(loopHeads)));
     }
   }
 
@@ -328,6 +328,10 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
                           CFANode node = pCFAEdge.getSuccessor();
                           ExpressionTree<Object> result =
                               invariantGenerator.getAsExpressionTree().getInvariantFor(node);
+                          if (ExpressionTrees.getFalse().equals(result)
+                              && !pStates.isPresent()) {
+                            return ExpressionTrees.getTrue();
+                          }
                           return result;
 
                         } catch (CPAException e) {

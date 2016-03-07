@@ -137,7 +137,8 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
     // get invariants and add them
     extractInvariants();
-    BooleanFormula invariant = invariants.getInvariantFor(loc, fmgr, pathFormulaManager);
+    BooleanFormula invariant =
+        invariants.getInvariantFor(loc, fmgr, pathFormulaManager, pathFormula);
     if (invariant != null) {
       pathFormula = pathFormulaManager.makeAnd(pathFormula, invariant);
     }

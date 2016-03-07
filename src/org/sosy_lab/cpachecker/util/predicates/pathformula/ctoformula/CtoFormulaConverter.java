@@ -23,15 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.*;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.areEqualWithMatchingPointerArray;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.getRealFieldOwner;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.CharMatcher;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
@@ -112,13 +111,15 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.FloatingPointFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
-import org.sosy_lab.solver.api.UfDeclaration;
+import org.sosy_lab.solver.api.FunctionDeclaration;
 
-import com.google.common.base.CharMatcher;
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * Class containing all the code that converts C code into a formula.
@@ -173,7 +174,7 @@ public class CtoFormulaConverter {
   // Index to be used for first assignment to a variable (must be higher than VARIABLE_UNINITIALIZED!)
   private static final int VARIABLE_FIRST_ASSIGNMENT = 2;
 
-  private final UfDeclaration<?> stringUfDecl;
+  private final FunctionDeclaration<?> stringUfDecl;
 
   protected final HashSet<CVariableDeclaration> globalDeclarations = new HashSet<>();
 
@@ -197,7 +198,7 @@ public class CtoFormulaConverter {
 
     this.direction = pDirection;
 
-    stringUfDecl = ffmgr.declareUninterpretedFunction(
+    stringUfDecl = ffmgr.declareUF(
             "__string__", typeHandler.getPointerType(), FormulaType.IntegerType);
   }
 
@@ -408,7 +409,7 @@ public class CtoFormulaConverter {
     if (result == null) {
       // generate a new string literal. We generate a new UIf
       int n = nextStringLitIndex++;
-      result = ffmgr.callUninterpretedFunction(
+      result = ffmgr.callUF(
           stringUfDecl, nfmgr.makeNumber(n));
       stringLitToFormula.put(literal, result);
     }
@@ -462,7 +463,7 @@ public class CtoFormulaConverter {
         return value;
       }
 
-      final Formula overflowUF = ffmgr.declareAndCallUninterpretedFunction(
+      final Formula overflowUF = ffmgr.declareAndCallUF(
           // UF-string-format copied from ReplaceBitvectorWithNumeralAndFunctionTheory.getUFDecl
           String.format("_%s%s(%d)_", "overflow", (signed ? "Signed" : "Unsigned"), machineModel.getSizeofInBits(sType)),
           numberType,

@@ -57,6 +57,17 @@
       <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-drivers--scsi--mpt3sas--mpt3sas.ko-ldv_main3_false-unreach-label.cil.out.c</exclude>
       <exclude>../programs/ldv-benchmarks/unsafes/08_1a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-08_1a-drivers--fmc--fmc-chardev.ko-ldv_main0_false-unreach-label.cil.out.c</exclude>
       <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-fs--logfs--logfs.ko-ldv_main6_false-unreach-label.cil.out.c</exclude>
+
+      <exclude>../programs/ldv-benchmarks/unsafes/08_1a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-08_1a-sound--soundcore.ko-ldv_main0_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/106_1a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-106_1a-drivers--mtd--ubi--ubi.ko-ldv_main4_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/132_1a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-132_1a-drivers--nfc--pn533.ko-ldv_main0_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/148_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-148_7a-drivers--net--wireless--ath--ath9k--ath9k_htc.ko-ldv_main1_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/148_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-148_7a-drivers--net--wireless--ath--wil6210--wil6210.ko-ldv_main1_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/148_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-148_7a-drivers--net--wireless--ath--wil6210--wil6210.ko-ldv_main4_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/148_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-148_7a-drivers--net--wireless--ath--ath9k--ath9k_htc.ko-ldv_main1_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-32_7a-net--wireless--cfg80211.ko-ldv_main0_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/43_2a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-43_2a-drivers--net--wireless--iwlwifi--iwlwifi.ko-ldv_main11_false-unreach-label.cil.out.c</exclude>
+
     </tasks>
   </rundefinition>
 </benchmark>

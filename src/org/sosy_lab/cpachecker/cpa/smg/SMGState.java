@@ -991,7 +991,28 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     for (SMGEdgeHasValue edge : targetEdges) {
       if (edge.overlapsWith(pTargetRangeOffset, targetRangeSize, heap.getMachineModel())) {
+        boolean hvEdgeIsZero = edge.getValue() == heap.getNullValue();
         heap.removeHasValueEdge(edge);
+        if (hvEdgeIsZero) {
+          SMGObject object = edge.getObject();
+
+          MachineModel maModel = heap.getMachineModel();
+
+          // Shrink overlapping zero edge
+          int zeroEdgeOffset = edge.getOffset();
+
+          int zeroEdgeOffset2 = zeroEdgeOffset + edge.getSizeInBytes(maModel);
+
+          if (zeroEdgeOffset < pTargetRangeOffset) {
+            SMGEdgeHasValue newZeroEdge = new SMGEdgeHasValue(pTargetRangeOffset - zeroEdgeOffset, zeroEdgeOffset, object, 0);
+            heap.addHasValueEdge(newZeroEdge);
+          }
+
+          if (targetRangeSize < zeroEdgeOffset2) {
+            SMGEdgeHasValue newZeroEdge = new SMGEdgeHasValue(zeroEdgeOffset2 - targetRangeSize, targetRangeSize, object, 0);
+            heap.addHasValueEdge(newZeroEdge);
+          }
+        }
       }
     }
 

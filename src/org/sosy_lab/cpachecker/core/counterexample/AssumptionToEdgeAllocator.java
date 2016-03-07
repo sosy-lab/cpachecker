@@ -1078,7 +1078,39 @@ public class AssumptionToEdgeAllocator {
       }
 
       @Override
+      public Value visit(CCastExpression cast) throws UnrecognizedCCodeException {
+
+        if (concreteState.getAnalysisConcreteExpressionEvaluation().shouldEvaluateExpressionWithThisEvaluator(cast)) {
+          Value op = cast.accept(this);
+
+          if (op.isUnknown()) {
+            return op;
+          }
+
+          return concreteState.getAnalysisConcreteExpressionEvaluation().evaluate(cast, op);
+        }
+
+        return super.visit(cast);
+      }
+
+      @Override
       public Value visit(CBinaryExpression binaryExp) throws UnrecognizedCCodeException {
+
+        if (concreteState.getAnalysisConcreteExpressionEvaluation().shouldEvaluateExpressionWithThisEvaluator(binaryExp)) {
+          Value op1 = binaryExp.getOperand1().accept(this);
+
+          if (op1.isUnknown()) {
+            return op1;
+          }
+
+          Value op2 = binaryExp.getOperand2().accept(this);
+
+          if (op2.isUnknown()) {
+            return op2;
+          }
+
+          return concreteState.getAnalysisConcreteExpressionEvaluation().evaluate(binaryExp, op1, op2);
+        }
 
         CExpression lVarInBinaryExp = binaryExp.getOperand1();
         CExpression rVarInBinaryExp = binaryExp.getOperand2();
@@ -1190,6 +1222,18 @@ public class AssumptionToEdgeAllocator {
 
       @Override
       public Value visit(CUnaryExpression pUnaryExpression) throws UnrecognizedCCodeException {
+
+        if (concreteState.getAnalysisConcreteExpressionEvaluation().shouldEvaluateExpressionWithThisEvaluator(pUnaryExpression)) {
+
+          Value operand = pUnaryExpression.getOperand().accept(this);
+
+          if (operand.isUnknown() && (pUnaryExpression.getOperator() == UnaryOperator.MINUS
+              || pUnaryExpression.getOperator() == UnaryOperator.TILDE)) {
+            return operand;
+          }
+
+          return concreteState.getAnalysisConcreteExpressionEvaluation().evaluate(pUnaryExpression, operand);
+        }
 
         if (pUnaryExpression.getOperator() == UnaryOperator.AMPER) {
 

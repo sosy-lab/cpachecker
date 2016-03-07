@@ -30,6 +30,7 @@ import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Queue;
@@ -70,6 +71,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithmForInvariantGeneration;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateInvariant;
@@ -200,10 +202,15 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
             pTargetLocationProvider));
   }
 
-  public static KInductionInvariantGenerator create(final Configuration pConfig,
-      final LogManager pLogger, final ShutdownManager pShutdownManager,
-      final CFA pCFA, final ReachedSetFactory pReachedSetFactory, CandidateGenerator candidateGenerator, boolean pAsync)
-          throws InvalidConfigurationException, CPAException {
+  static KInductionInvariantGenerator create(
+      final Configuration pConfig,
+      final LogManager pLogger,
+      final ShutdownManager pShutdownManager,
+      final CFA pCFA,
+      final ReachedSetFactory pReachedSetFactory,
+      CandidateGenerator candidateGenerator,
+      boolean pAsync)
+      throws InvalidConfigurationException, CPAException {
 
     return new KInductionInvariantGenerator(
             pConfig,
@@ -372,9 +379,13 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
           reachedSet);
     }
 
-    final TargetLocationCandidateInvariant safetyProperty = new TargetLocationCandidateInvariant(pCFA.getAllLoopHeads().get());
+    final TargetLocationCandidateInvariant safetyProperty;
     if (pCFA.getAllLoopHeads().isPresent()) {
+      safetyProperty =
+          new TargetLocationCandidateInvariant(BMCHelper.getLoopHeads(pCFA, pTargetLocationProvider));
       candidates.add(safetyProperty);
+    } else {
+      safetyProperty = null;
     }
 
     if (pOptions.terminateOnCounterexample) {
@@ -397,7 +408,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
             @Override
             public CandidateInvariant next() {
               if (safetyPropertyConfirmed) {
-                throw new NoSuchElementException("No more candidates available: The safety property has already been confirmed.");
+                throw new NoSuchElementException(
+                    "No more candidates available: The safety property has already been confirmed.");
               }
               return candidate = iterator.next();
             }
@@ -426,7 +438,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
         @Override
         public void confirmCandidates(Iterable<CandidateInvariant> pCandidates) {
           super.confirmCandidates(pCandidates);
-          if (Iterables.contains(pCandidates, safetyProperty)) {
+          if (safetyProperty != null && Iterables.contains(pCandidates, safetyProperty)) {
             safetyPropertyConfirmed = true;
           }
         }
@@ -440,9 +452,15 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
       KInductionInvariantGeneratorOptions options) throws InvalidConfigurationException,
       CPAException {
     ConfigurationBuilder configBuilder = Configuration.builder();
-    String machineModelOption = "analysis.machineModel";
-    if (pConfig.hasProperty(machineModelOption)) {
-      configBuilder.copyOptionFrom(pConfig, machineModelOption);
+    List<String> copyOptions = Arrays.asList(
+        "analysis.machineModel",
+        "cpa.callstack.skipRecursion",
+        "cpa.callstack.skipVoidRecursion",
+        "cpa.callstack.skipFunctionPointerRecursion");
+    for (String copyOption : copyOptions) {
+      if (pConfig.hasProperty(copyOption)) {
+        configBuilder.copyOptionFrom(pConfig, copyOption);
+      }
     }
     configBuilder.setOption("cpa", "cpa.arg.ARGCPA");
     configBuilder.setOption("ARGCPA.cpa", "cpa.composite.CompositeCPA");
@@ -451,6 +469,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
         "cpa.location.LocationCPA, "
             + "cpa.callstack.CallstackCPA, "
             + "cpa.functionpointer.FunctionPointerCPA");
+    configBuilder.setOption("output.disable", "true");
     Configuration config = configBuilder.build();
     ShutdownNotifier notifier = pShutdownManager.getNotifier();
     ReachedSet reachedSet = pReachedSetFactory.create();
@@ -513,7 +532,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
                   && !visited.contains(successor)) {
                 potentialAdditionalCandidates.put(
                     successor,
-                    new ExpressionTreeLocationInvariant(groupId, successor, candidate));
+                    new ExpressionTreeLocationInvariant(
+                        groupId, successor, candidate, toCodeVisitorCache));
               }
             }
           }
@@ -532,10 +552,12 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
       }
     }
     for (ExpressionTreeLocationInvariant expressionTreeLocationInvariant : expressionTreeLocationInvariants) {
-      candidates.add(new ExpressionTreeLocationInvariant(
-          expressionTreeLocationInvariant.getGroupId(),
-          expressionTreeLocationInvariant.getLocation(),
-          expressionTrees.get(expressionTreeLocationInvariant.getGroupId())));
+      candidates.add(
+          new ExpressionTreeLocationInvariant(
+              expressionTreeLocationInvariant.getGroupId(),
+              expressionTreeLocationInvariant.getLocation(),
+              expressionTrees.get(expressionTreeLocationInvariant.getGroupId()),
+              toCodeVisitorCache));
     }
   }
 

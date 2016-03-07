@@ -43,7 +43,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -74,7 +73,6 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
@@ -158,18 +156,8 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner {
                                           predicateCpa.getPredicateManager(),
                                           predicateCpa.getStaticRefiner());
 
-    this.refiner = new ExtendedPredicateRefiner(
-                                          predicateCpa.getConfiguration(),
-                                          logger,
-                                          pCpa,
-                                          manager,
-                                          pathChecker,
-                                          prefixProvider,
-                                          predicateCpa.getPathFormulaManager(),
-                                          strategy,
-                                          predicateCpa.getSolver(),
-                                          predicateCpa.getAssumesStore(),
-                                          predicateCpa.getCfa());
+    this.refiner =
+        new ExtendedPredicateRefiner(pCpa, manager, pathChecker, prefixProvider, strategy);
   }
 
   @Override
@@ -187,28 +175,15 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner {
 
     private final Timer ssaRenamingTimer = new Timer();
 
-    private ExtendedPredicateRefiner(final Configuration config, final LogManager logger,
+    private ExtendedPredicateRefiner(
         final ConfigurableProgramAnalysis pCpa,
         final InterpolationManager pInterpolationManager,
         final PathChecker pPathChecker,
         final PrefixProvider pPrefixProvider,
-        final PathFormulaManager pPathFormulaManager,
-        final RefinementStrategy pStrategy,
-        final Solver pSolver,
-        final PredicateAssumeStore pAssumesStore,
-        final CFA pCfa) throws InvalidConfigurationException {
+        final RefinementStrategy pStrategy)
+        throws InvalidConfigurationException {
 
-      super(config,
-          logger,
-          pCpa,
-          pInterpolationManager,
-          pPathChecker,
-          pPrefixProvider,
-          pPathFormulaManager,
-          pStrategy,
-          pSolver,
-          pAssumesStore,
-          pCfa);
+      super(pCpa, pInterpolationManager, pPathChecker, pPrefixProvider, pStrategy);
 
     }
 

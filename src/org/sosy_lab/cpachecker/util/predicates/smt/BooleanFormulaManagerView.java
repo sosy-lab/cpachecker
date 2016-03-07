@@ -23,10 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
@@ -35,7 +32,11 @@ import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor;
 import org.sosy_lab.solver.visitors.TraversalProcess;
 
-import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -155,6 +156,10 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
     protected BooleanFormulaTransformationVisitor(FormulaManagerView pFmgr,
         Map<BooleanFormula, BooleanFormula> pCache) {
       super(pFmgr.getRawFormulaManager(), pCache);
+    }
+
+    protected BooleanFormulaTransformationVisitor(FormulaManagerView pFmgr) {
+      super(pFmgr.getRawFormulaManager(), new HashMap<BooleanFormula, BooleanFormula>());
     }
   }
 
