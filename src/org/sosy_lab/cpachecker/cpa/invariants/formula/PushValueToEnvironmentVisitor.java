@@ -195,7 +195,7 @@ public class PushValueToEnvironmentVisitor implements ParameterizedNumeralFormul
     CompoundInterval computedLeftValue = cim.multiply(parameter, rightValue);
     for (CompoundInterval interval : computedLeftValue.splitIntoIntervals()) {
       CompoundInterval borderA = interval;
-      CompoundInterval borderB = cim.negate(cim.add(borderA, cim.add(rightValue, rightValue.signum())));
+      CompoundInterval borderB = cim.add(borderA, cim.add(rightValue, cim.negate(rightValue.signum())));
       computedLeftValue = cim.union(computedLeftValue, cim.span(borderA, borderB));
     }
 
