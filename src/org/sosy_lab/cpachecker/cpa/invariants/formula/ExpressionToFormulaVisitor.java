@@ -387,7 +387,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
                   compoundIntervalFormulaManager.multiply(
                       right,
                       getPointerTargetSizeLiteral((CPointerType) promLeft, calculationType)));
-        } else if (!(promRight instanceof CPointerType)) {
+        } else if (!(promLeft instanceof CPointerType)) {
           result =
               compoundIntervalFormulaManager.add(
                   right,
