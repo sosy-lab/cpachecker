@@ -65,7 +65,9 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
@@ -79,6 +81,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManager;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.MemoryLocationExtractor;
 import org.sosy_lab.cpachecker.cpa.invariants.OverflowEventHandler;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -103,6 +106,8 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
   private final FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor;
 
   private final CompoundIntervalFormulaManager compoundIntervalFormulaManager;
+
+  private final BaseSizeofVisitor sizeofVisitor;
 
   /**
    * Creates a new visitor for converting c expressions to compound state
@@ -141,6 +146,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
     this.environment = pEnvironment;
     this.evaluationVisitor = new FormulaCompoundStateEvaluationVisitor(compoundIntervalManagerFactory);
     this.compoundIntervalFormulaManager = new CompoundIntervalFormulaManager(compoundIntervalManagerFactory);
+    sizeofVisitor = new BaseSizeofVisitor(machineModel);
   }
 
   private CompoundIntervalManager getIntervalManager(Type pType) {
@@ -248,15 +254,48 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
     return compoundIntervalFormulaManager.cast(bitVectorInfo, pCCastExpression.getOperand().accept(this));
   }
 
+  private CType getPromotedCType(CType t) {
+    t = t.getCanonicalType();
+    if (t instanceof CSimpleType) {
+      // Integer types smaller than int are promoted when an operation is performed on them.
+      return machineModel.getPromotedCType((CSimpleType) t);
+    }
+    return t;
+  }
+
+  /**
+   * Returns the size in bytes of the given type.
+   * Always use this method instead of machineModel.getSizeOf,
+   * because this method can handle dereference-types.
+   * @param pType the type to calculate the size of.
+   * @return the size in bytes of the given type.
+   */
+  private int getSizeof(CType pType) {
+    return pType.accept(sizeofVisitor);
+  }
+
+  private NumeralFormula<CompoundInterval> getPointerTargetSizeLiteral(
+      final CPointerType pointerType, final CType implicitType) {
+    final int pointerTargetSize = getSizeof(pointerType.getType());
+    return asConstant(implicitType, pointerTargetSize);
+  }
+
   @Override
   public NumeralFormula<CompoundInterval> visit(CBinaryExpression pCBinaryExpression) throws UnrecognizedCodeException {
-    BitVectorInfo bitVectorInfo = BitVectorInfo.from(machineModel, pCBinaryExpression.getCalculationType());
+    final CType calculationType = pCBinaryExpression.getCalculationType();
+    final CType t1 = pCBinaryExpression.getOperand1().getExpressionType();
+    final CType t2 = pCBinaryExpression.getOperand2().getExpressionType();
+    final CType promLeft = getPromotedCType(t1).getCanonicalType();
+    final CType promRight = getPromotedCType(t2).getCanonicalType();
+
+    BitVectorInfo bitVectorInfo = BitVectorInfo.from(machineModel, calculationType);
     NumeralFormula<CompoundInterval> left = pCBinaryExpression.getOperand1().accept(this);
     NumeralFormula<CompoundInterval> right = pCBinaryExpression.getOperand2().accept(this);
     left = compoundIntervalFormulaManager.cast(bitVectorInfo, left);
     right = compoundIntervalFormulaManager.cast(bitVectorInfo, right);
-    left = topIfProblematicType(pCBinaryExpression.getCalculationType(), left);
-    right = topIfProblematicType(pCBinaryExpression.getCalculationType(), right);
+    left = topIfProblematicType(calculationType, left);
+    right = topIfProblematicType(calculationType, right);
+
     final NumeralFormula<CompoundInterval> result;
     switch (pCBinaryExpression.getOperator()) {
     case BINARY_AND:
@@ -296,9 +335,34 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
           bitVectorInfo,
           compoundIntervalFormulaManager.lessThan(left, right));
       break;
-    case MINUS:
-      result = compoundIntervalFormulaManager.subtract(left, right);
-      break;
+      case MINUS:
+        if (!(promLeft instanceof CPointerType)
+            && !(promRight instanceof CPointerType)) { // Just a subtraction e.g. 6 - 7
+          result = compoundIntervalFormulaManager.subtract(left, right);
+        } else if (!(promRight instanceof CPointerType)) {
+          // operand1 is a pointer => we should multiply the subtrahend by the size of the pointer target
+          result =
+              compoundIntervalFormulaManager.subtract(
+                  left,
+                  compoundIntervalFormulaManager.multiply(
+                      right,
+                      getPointerTargetSizeLiteral((CPointerType) promLeft, calculationType)));
+        } else if (promLeft instanceof CPointerType) {
+          // Pointer subtraction => (operand1 - operand2) / sizeof (*operand1)
+          if (promLeft.equals(promRight)) {
+            result =
+                compoundIntervalFormulaManager.divide(
+                    compoundIntervalFormulaManager.subtract(left, right),
+                    getPointerTargetSizeLiteral((CPointerType) promLeft, calculationType));
+          } else {
+            throw new UnrecognizedCCodeException(
+                "Can't subtract pointers of different types", pCBinaryExpression);
+          }
+        } else {
+          throw new UnrecognizedCCodeException(
+              "Can't subtract a pointer from a non-pointer", pCBinaryExpression);
+        }
+        break;
     case MODULO:
       result = compoundIntervalFormulaManager.modulo(left, right);
       break;
@@ -311,9 +375,29 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
           compoundIntervalFormulaManager.logicalNot(
               compoundIntervalFormulaManager.equal(left, right)));
       break;
-    case PLUS:
-      result = compoundIntervalFormulaManager.add(left, right);
-      break;
+      case PLUS:
+        if (!(promLeft instanceof CPointerType)
+            && !(promRight instanceof CPointerType)) { // Just an addition e.g. 6 + 7
+          result = compoundIntervalFormulaManager.add(left, right);
+        } else if (!(promRight instanceof CPointerType)) {
+          // operand1 is a pointer => we should multiply the second summand by the size of the pointer target
+          result =
+              compoundIntervalFormulaManager.add(
+                  left,
+                  compoundIntervalFormulaManager.multiply(
+                      right,
+                      getPointerTargetSizeLiteral((CPointerType) promLeft, calculationType)));
+        } else if (!(promRight instanceof CPointerType)) {
+          result =
+              compoundIntervalFormulaManager.add(
+                  right,
+                  compoundIntervalFormulaManager.multiply(
+                      left,
+                      getPointerTargetSizeLiteral((CPointerType) promRight, calculationType)));
+        } else {
+          throw new UnrecognizedCCodeException("Can't add pointers", pCBinaryExpression);
+        }
+        break;
     case SHIFT_LEFT:
       result = compoundIntervalFormulaManager.shiftLeft(left, right);
       break;
