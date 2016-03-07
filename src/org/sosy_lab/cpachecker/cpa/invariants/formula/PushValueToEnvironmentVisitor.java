@@ -394,7 +394,8 @@ public class PushValueToEnvironmentVisitor implements ParameterizedNumeralFormul
       CompoundInterval potentialOrigins =
           sourceManager.add(
               sourceManager.multiply(
-                  originFactors, sourceManager.singleton(targetInfo.getRange().size())),
+                  originFactors, sourceManager.singleton(
+                      targetInfo.getRange().size().min(sourceInfo.getRange().getUpperBound()))),
               targetManager.cast(sourceInfo, pParameter));
       if (!pCast.getCasted().accept(this, potentialOrigins)) {
         return false;
