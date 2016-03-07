@@ -27,6 +27,7 @@ import java.math.BigInteger;
 
 import org.eclipse.cdt.internal.core.dom.parser.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -107,9 +108,7 @@ public class BitVectorInfo {
     final int size;
     final boolean signed;
     if (type instanceof CType) {
-      int sizeInChars = !(type instanceof CSimpleType)
-          ? pMachineModel.getSizeofPtr()
-          : pMachineModel.getSizeof((CType) type);
+      int sizeInChars = ((CType) type).accept(new BaseSizeofVisitor(pMachineModel));
       size = sizeInChars * pMachineModel.getSizeofCharInBits();
       assert size > 0;
       signed = type instanceof CSimpleType ? pMachineModel.isSigned((CSimpleType) type) : false;
