@@ -55,7 +55,6 @@ public class ToCodeFormulaVisitor
             ExpressionTree<String>> {
 
   private static final CSimpleType[] TYPES = new CSimpleType[] {
-    CNumericTypes.CHAR,
     CNumericTypes.SIGNED_CHAR,
     CNumericTypes.UNSIGNED_CHAR,
     CNumericTypes.SHORT_INT,
@@ -93,11 +92,6 @@ public class ToCodeFormulaVisitor
     int sizeOfChar = machineModel.getSizeofCharInBits();
     int size = pBitVectorInfo.getSize();
     boolean isSigned = pBitVectorInfo.isSigned();
-    if (pBitVectorInfo.getSize() == sizeOfChar) {
-      if (machineModel.isDefaultCharSigned() == isSigned) {
-        return CNumericTypes.CHAR;
-      }
-    }
     for (CSimpleType type : TYPES) {
       if (machineModel.isSigned(type) == isSigned
           && machineModel.getSizeof(type) * sizeOfChar >= size) {
@@ -296,7 +290,8 @@ public class ToCodeFormulaVisitor
     int sourceSize = sourceInfo.getSize();
     int targetSize = targetInfo.getSize();
     String sourceFormula = pCast.getCasted().accept(this, pEnvironment);
-    if (sourceSize == targetSize || sourceFormula == null) {
+    if (sourceSize == targetSize && sourceInfo.isSigned() == targetInfo.isSigned()
+        || sourceFormula == null) {
       return sourceFormula;
     }
     CSimpleType castType = determineType(targetInfo);
