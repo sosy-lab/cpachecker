@@ -137,6 +137,29 @@ public class AutomatonEncodingTest {
     intResults.getCheckerResult().printStatistics(intStat.getPrintStream());
   }
 
+  @Test
+  public void testAssumeOnNamenArgument_Unmatch() throws Exception {
+    final String unmatchSpecFile = "test/config/automata/encode/SPEC_sqrt_unmatch.spc";
+    final String specFile = "test/config/automata/encode/SPEC_sqrt.spc";
+    final String programFile = "test/config/automata/encode/SPEC_sqrt_false.c";
+    final String unmatchProgramFile = "test/config/automata/encode/SPEC_sqrt_unmatch_false.c";
+
+    TestResults unmatchSpecResults = runWithAutomataEncoding(unmatchSpecFile, programFile);
+    TestResults unmatchProgramResults = runWithAutomataEncoding(specFile, unmatchProgramFile);
+
+    // we expect `safe' as result instead of `unsafe' because our specification and program files
+    // do not match, hence the specification cannot be applied to the program in order to check
+    // for the bug.
+    unmatchSpecResults.assertIsSafe();
+    unmatchProgramResults.assertIsSafe();
+
+    TestRunStatisticsParser unmatchSpecStats = new TestRunStatisticsParser();
+    unmatchSpecResults.getCheckerResult().printStatistics(unmatchSpecStats.getPrintStream());
+
+    TestRunStatisticsParser unmatchProgramStats = new TestRunStatisticsParser();
+    unmatchProgramResults.getCheckerResult().printStatistics(unmatchProgramStats.getPrintStream());
+  }
+
   private TestResults runWithAutomataEncoding(final String pSpecFile, final String pProgramFile)
       throws Exception {
 
