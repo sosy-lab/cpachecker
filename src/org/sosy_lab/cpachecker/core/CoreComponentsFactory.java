@@ -336,7 +336,16 @@ public class CoreComponentsFactory {
 
   public Set<AutomatonBoolExpr> createAutomatonASTMatchers(final @Nullable MainCPAStatistics stats)
       throws InvalidConfigurationException {
-    logger.log(Level.FINE, "Parsing automata for variable classification.");
-    return cpaFactory.createAutomatonASTMatchers();
+    if (stats != null) {
+      stats.createAutomatonASTMatcherTime.start();
+    }
+    try {
+      logger.log(Level.FINE, "Parsing automata for variable classification.");
+      return cpaFactory.createAutomatonASTMatchers();
+    } finally {
+      if (stats != null) {
+        stats.createAutomatonASTMatcherTime.stop();
+      }
+    }
   }
 }

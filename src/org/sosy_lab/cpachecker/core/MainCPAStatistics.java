@@ -119,6 +119,7 @@ public class MainCPAStatistics implements Statistics, AlgorithmIterationListener
   private final Timer programTime = new Timer();
   final Timer creationTime = new Timer();
   final Timer cpaCreationTime = new Timer();
+  final Timer createAutomatonASTMatcherTime = new Timer();
   private final Timer analysisTime = new Timer();
 
   private long programCpuTime;
@@ -460,6 +461,7 @@ public class MainCPAStatistics implements Statistics, AlgorithmIterationListener
   private void printTimeStatistics(PrintStream out, Result result, ReachedSet reached,
       Timer statisticsTime) {
     out.println("Time for analysis setup:      " + creationTime);
+    out.println("  Time for matcher creation:  " + createAutomatonASTMatcherTime);
     out.println("  Time for loading CPAs:      " + cpaCreationTime);
     if (cfaCreatorStatistics != null) {
       cfaCreatorStatistics.printStatistics(out, result, reached);
