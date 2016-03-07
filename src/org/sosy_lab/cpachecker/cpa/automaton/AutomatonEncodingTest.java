@@ -46,9 +46,6 @@ public class AutomatonEncodingTest {
     TestResults results = runWithAutomataEncoding(specFile, programFile);
 
     results.assertIsSafe();
-
-    TestRunStatisticsParser stat = new TestRunStatisticsParser();
-    results.getCheckerResult().printStatistics(stat.getPrintStream());
   }
 
   @Test
@@ -59,9 +56,6 @@ public class AutomatonEncodingTest {
     TestResults results = runWithAutomataEncoding(specFile, programFile);
 
     results.assertIsSafe();
-
-    TestRunStatisticsParser stat = new TestRunStatisticsParser();
-    results.getCheckerResult().printStatistics(stat.getPrintStream());
   }
 
   @Test
@@ -109,12 +103,6 @@ public class AutomatonEncodingTest {
 
     floatResults.assertIsSafe();
     intResults.assertIsSafe();
-
-    TestRunStatisticsParser floatStat = new TestRunStatisticsParser();
-    floatResults.getCheckerResult().printStatistics(floatStat.getPrintStream());
-
-    TestRunStatisticsParser intStat = new TestRunStatisticsParser();
-    intResults.getCheckerResult().printStatistics(intStat.getPrintStream());
   }
 
   @Test
@@ -129,12 +117,6 @@ public class AutomatonEncodingTest {
 
     floatResults.assertIsUnsafe();
     intResults.assertIsUnsafe();
-
-    TestRunStatisticsParser floatStat = new TestRunStatisticsParser();
-    floatResults.getCheckerResult().printStatistics(floatStat.getPrintStream());
-
-    TestRunStatisticsParser intStat = new TestRunStatisticsParser();
-    intResults.getCheckerResult().printStatistics(intStat.getPrintStream());
   }
 
   @Test
@@ -152,12 +134,6 @@ public class AutomatonEncodingTest {
     // for the bug.
     unmatchSpecResults.assertIsSafe();
     unmatchProgramResults.assertIsSafe();
-
-    TestRunStatisticsParser unmatchSpecStats = new TestRunStatisticsParser();
-    unmatchSpecResults.getCheckerResult().printStatistics(unmatchSpecStats.getPrintStream());
-
-    TestRunStatisticsParser unmatchProgramStats = new TestRunStatisticsParser();
-    unmatchProgramResults.getCheckerResult().printStatistics(unmatchProgramStats.getPrintStream());
   }
 
   private TestResults runWithAutomataEncoding(final String pSpecFile, final String pProgramFile)
