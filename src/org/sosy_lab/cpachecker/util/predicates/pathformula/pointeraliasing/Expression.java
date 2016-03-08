@@ -178,6 +178,11 @@ public abstract class Expression {
       return getValue().equals(otherValue.getValue());
     }
 
+    @Override
+    public int hashCode() {
+      return value != null ? value.hashCode() : 0;
+    }
+
     private final Formula value;
     private static final Value nondet = new Nondet();
   }
