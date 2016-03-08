@@ -281,7 +281,7 @@ class AssignmentHandler {
             errorConditions, pts);
     final Value rhsValue = pAssignments.get(0).getRightHandSide().accept(rhsVisitor).asValue();
 
-    if (rhsValue == null) {
+    if (rhsValue == null || !checkEqualityOfInitializers(pAssignments, rhsVisitor)) {
       // Fallback case, if we have no initialization of the form "<variable> = <value>"
       // Example code snippet
       // (cf. test/programs/simple/struct-initializer-for-composite-field_false-unreach-label.c)
@@ -308,6 +308,30 @@ class AssignmentHandler {
 
       return pQfmgr.forall(ImmutableList.of(counter), initializationAssignment);
     }
+  }
+
+  /**
+   * Checks, whether all assignments of an initializer have the same value.
+   *
+   * @param pAssignments The list of assignments.
+   * @param pRhsVisitor A visitor to evaluate the value of the right-hand side.
+   * @return Whether all assignments of an initializer have the same value.
+   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   */
+  private boolean checkEqualityOfInitializers(
+      final @Nonnull List<CExpressionAssignmentStatement> pAssignments,
+      final @Nonnull CExpressionVisitorWithPointerAliasing pRhsVisitor)
+      throws UnrecognizedCCodeException {
+    Value tmp = null;
+    for (CExpressionAssignmentStatement assignment : pAssignments) {
+      if (tmp == null) {
+        tmp = assignment.getRightHandSide().accept(pRhsVisitor).asValue();
+      }
+      if (!tmp.equals(assignment.getRightHandSide().accept(pRhsVisitor).asValue())) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**

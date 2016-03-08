@@ -165,6 +165,19 @@ public abstract class Expression {
                     .toString();
     }
 
+    @Override
+    public boolean equals(Object pOther) {
+      if (!(pOther instanceof Value)) {
+        return false;
+      }
+      Value otherValue = (Value) pOther;
+      if (this instanceof Nondet || otherValue instanceof Nondet) {
+        return false;
+      }
+
+      return getValue().equals(otherValue.getValue());
+    }
+
     private final Formula value;
     private static final Value nondet = new Nondet();
   }
