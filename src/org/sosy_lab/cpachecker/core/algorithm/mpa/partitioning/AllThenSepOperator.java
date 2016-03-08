@@ -25,25 +25,103 @@ package org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning;
 
 import java.util.Comparator;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.InfinitePropertyBudgeting;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.PartitionBudgeting;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning.PartitioningStatus;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 @Options
 public class AllThenSepOperator extends PartitioningBudgetOperator {
 
+  @Options(prefix="analysis.mpa.partition.first")
+  public static class ShortPartitionBudgeting implements PartitionBudgeting {
+
+    @Option(secure=true, name="time.wall",
+        description="Limit for wall time used by CPAchecker (use seconds or specify a unit; -1 for infinite)")
+    @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
+        defaultUserUnit=TimeUnit.SECONDS,
+        min=-1)
+    protected TimeSpan wallTime = TimeSpan.ofNanos(-1);
+
+    @Option(secure=true, name="time.cpu",
+        description="Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1 for infinite)")
+    @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
+        defaultUserUnit=TimeUnit.SECONDS,
+        min=-1)
+    protected TimeSpan cpuTime = TimeSpan.ofNanos(-1);
+
+    protected final int budgetFactor;
+
+    protected final LogManager logger;
+
+    public ShortPartitionBudgeting(Configuration pConfig, LogManager pLogger)
+        throws InvalidConfigurationException {
+      pConfig.inject(this);
+      logger = pLogger;
+      budgetFactor = 1;
+    }
+
+    protected ShortPartitionBudgeting(LogManager pLogger, TimeSpan pCpuTime, TimeSpan pWallTime, int pBudgetFactor) {
+      logger = pLogger;
+      cpuTime = pCpuTime;
+      wallTime = pWallTime;
+      budgetFactor = pBudgetFactor;
+    }
+
+    @Override
+    public PartitionBudgeting getBudgetTimesTwo() {
+      return new ShortPartitionBudgeting(logger, cpuTime, wallTime, budgetFactor * 2);
+    }
+
+    @Override
+    public Optional<TimeSpan> getPartitionWallTimeLimit(int pForNumberOfProperties) {
+      if (wallTime.compareTo(TimeSpan.empty()) >= 0) {
+        return Optional.of(wallTime.multiply(budgetFactor));
+      }
+      return Optional.absent();
+    }
+
+    @Override
+    public Optional<TimeSpan> getPartitionCpuTimeLimit(int pForNumberOfProperties) {
+      if (cpuTime.compareTo(TimeSpan.empty()) >= 0) {
+        return Optional.of(cpuTime.multiply(budgetFactor));
+      }
+      return Optional.absent();
+    }
+
+    public boolean isConfigured() {
+      if (cpuTime.compareTo(TimeSpan.empty()) >= 0) {
+        return true;
+      }
+      if (wallTime.compareTo(TimeSpan.empty()) >= 0) {
+        return true;
+      }
+      return false;
+    }
+
+  }
+
+  private final ShortPartitionBudgeting firstPartitionBudgeting;
+
   public AllThenSepOperator(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
     super(pConfig, pLogger);
+
+    firstPartitionBudgeting = (ShortPartitionBudgeting) createPartitionBudgetingOperator(pConfig, pLogger, ShortPartitionBudgeting.class);
   }
 
   @Override
@@ -53,10 +131,19 @@ public class AllThenSepOperator extends PartitioningBudgetOperator {
       Comparator<Property> pPropertyExpenseComparator)
           throws PartitioningException {
 
+    PartitionBudgeting firstPartitionBudgetToUse = firstPartitionBudgeting.isConfigured()
+        ? firstPartitionBudgeting : getPartitionBudgetingOperator();
+
     return pLastCheckedPartitioning.isEmpty()
-        ? create(PartitioningStatus.ALL_IN_ONE, getPropertyBudgetingOperator(), getPartitionBudgetingOperator(),
+
+        ? create(PartitioningStatus.ALL_IN_ONE,
+            getPropertyBudgetingOperator(),
+            firstPartitionBudgetToUse,
             ImmutableList.of(ImmutableSet.copyOf(pToCheck)))
-        : create(PartitioningStatus.ONE_FOR_EACH, InfinitePropertyBudgeting.INSTANCE, getPartitionBudgetingOperator(),
+
+        : create(PartitioningStatus.ONE_FOR_EACH,
+            InfinitePropertyBudgeting.INSTANCE,
+            getPartitionBudgetingOperator(),
             singletonPartitions(pToCheck, pPropertyExpenseComparator));
   }
 
