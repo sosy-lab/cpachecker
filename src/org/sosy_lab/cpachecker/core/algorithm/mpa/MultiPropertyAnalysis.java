@@ -357,7 +357,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
     final Set<Property> relevant = Sets.newHashSet();
     final Set<Property> violated = Sets.newHashSet();
     final Set<Property> satisfied = Sets.newHashSet();
-    final Set<Property> exhausted = Sets.newHashSet();
+    final Set<Property> unknown = Sets.newHashSet();
 
     try(Contexts ctx = Stats.beginRootContext("Multi-Property Verification")) {
 
@@ -386,6 +386,8 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
       do {
         final Set<Property> runProperties = getActiveProperties(pReachedSet);
 
+        boolean wasInterrutped = false;
+
         try (Contexts runCtx = Stats.beginRootContextCollection(runProperties)) {
           Stats.incCounter("Multi-Property Verification Iterations", 1);
           try {
@@ -410,13 +412,14 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
 
               Set<Property> runExhausted = Sets.intersection(getInactiveProperties(pReachedSet), runProperties);
               if (runProperties.size() == 1) {
-                exhausted.addAll(runExhausted);
+                unknown.addAll(runExhausted);
               }
             }
 
           } catch (InterruptedException ie) {
             // The shutdown notifier might trigger the interrupted exception
             // either because ...
+            wasInterrutped = true;
 
             if (interruptNotifier.hasTemporaryInterruptRequest()) {
               interruptNotifier.reset();
@@ -435,7 +438,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
               SetView<Property> active = Sets.difference(all,
                   Sets.union(violated, getInactiveProperties(pReachedSet)));
               if (runProperties.size() == 1) {
-                exhausted.addAll(active);
+                unknown.addAll(active);
               }
 
             } else {
@@ -487,7 +490,10 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
 
         } else {
 
-          if (pReachedSet.getWaitlist().isEmpty()) {
+          if (pReachedSet.getWaitlist().isEmpty()
+              && !wasInterrutped // The Interrupt might have been performed after a 'pop',
+                                 //  and before the successor was added to the waitlist.
+             ) {
             // We have reached a fixpoint for the non-blacklisted properties.
 
             // Properties that are (1) still active
@@ -495,7 +501,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
             Set<Property> active = Sets.difference(getActiveProperties(pReachedSet), violated);
             satisfied.addAll(active);
 
-            Set<Property> remain = remaining(all, violated, satisfied, exhausted);
+            Set<Property> remain = remaining(all, violated, satisfied, unknown);
 
             // On the size of the set 'reached' (assertions and statistics)
             final Integer reachedSetSize = pReachedSet.size();
@@ -521,7 +527,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
           }
 
           // A new partitioning must be computed.
-          Set<Property> remain = remaining(all, violated, satisfied, exhausted);
+          Set<Property> remain = remaining(all, violated, satisfied, unknown);
 
           if (remain.isEmpty()) {
             break;
@@ -530,7 +536,8 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
           if (remainingPartitions.isEmpty()) {
             Stats.incCounter("Adjustments of property partitions", 1);
             try {
-              ImmutableSet<Property> disabledProperties = getInactiveProperties(pReachedSet);
+              Set<Property> disabledProperties = Sets.difference(runProperties,
+                  getInactiveProperties(pReachedSet));
 
               logger.log(Level.INFO, "All properties: " + all.toString());
               logger.log(Level.INFO, "Disabled properties: " + disabledProperties.toString());
@@ -568,7 +575,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
         //  ... (1) the fixpoint has not been reached
         //  ... (2) or not all properties have been checked so far.
       } while (pReachedSet.hasWaitingState()
-          || remaining(all, violated, satisfied, exhausted).size() > 0 );
+          || remaining(all, violated, satisfied, unknown).size() > 0 );
 
       // Compute the overall result:
       //    Violated properties (might have multiple counterexamples)
@@ -577,7 +584,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
       //        (could be derived from the precision of the leaf states)
 
       logger.log(Level.WARNING, String.format("Multi-property analysis terminated: %d violated, %d satisfied, %d unknown",
-          violated.size(), satisfied.size(), remaining(all, violated, satisfied, exhausted).size()));
+          violated.size(), satisfied.size(), remaining(all, violated, satisfied, unknown).size()));
 
       return status;
 
@@ -618,13 +625,12 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
     };
   }
 
-  private Partitioning partition(
-      Partitioning lastPartitioning,
-      Set<Property> pToCheck,
-      ImmutableSet<Property> disabledProperties) throws PartitioningException {
+  private Partitioning partition(Partitioning pLastPartitioning,
+      Set<Property> pToCheck, Set<Property> pDisabledProperties)
+          throws PartitioningException {
 
-    Partitioning result = partitionOperator.partition(lastPartitioning, pToCheck,
-        disabledProperties, PropertyStats.INSTANCE.getPropertyRefinementComparator());
+    Partitioning result = partitionOperator.partition(pLastPartitioning, pToCheck,
+        pDisabledProperties, PropertyStats.INSTANCE.getPropertyRefinementComparator());
 
     logger.log(Level.WARNING, String.format("New partitioning with %d partitions.", result.partitionCount()));
     {

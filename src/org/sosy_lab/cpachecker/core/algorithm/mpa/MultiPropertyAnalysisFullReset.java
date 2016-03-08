@@ -329,7 +329,7 @@ public final class MultiPropertyAnalysisFullReset implements MultiPropertyAlgori
     final Set<Property> relevant = Sets.newHashSet();
     final Set<Property> violated = Sets.newHashSet();
     final Set<Property> satisfied = Sets.newHashSet();
-    final Set<Property> exhausted = Sets.newHashSet();
+    final Set<Property> unknown = Sets.newHashSet();
 
     try(Contexts ctx = Stats.beginRootContext("Multi-Property Verification")) {
 
@@ -358,6 +358,8 @@ public final class MultiPropertyAnalysisFullReset implements MultiPropertyAlgori
       do {
         final Set<Property> runProperties = getActiveProperties(partitionAnalysis.getReached());
 
+        boolean wasInterrutped = false;
+
         try (Contexts runCtx = Stats.beginRootContextCollection(runProperties)) {
           Stats.incCounter("Multi-Property Verification Iterations", 1);
           try {
@@ -382,13 +384,15 @@ public final class MultiPropertyAnalysisFullReset implements MultiPropertyAlgori
 
               Set<Property> runExhausted = Sets.intersection(getInactiveProperties(partitionAnalysis.getReached()), runProperties);
               if (runProperties.size() == 1) {
-                exhausted.addAll(runExhausted);
+                unknown.addAll(runExhausted);
               }
             }
 
           } catch (InterruptedException ie) {
             // The shutdown notifier might trigger the interrupted exception
             // either because ...
+
+            wasInterrutped = true;
 
             if (interruptNotifier.hasTemporaryInterruptRequest()) {
               interruptNotifier.reset();
@@ -406,7 +410,7 @@ public final class MultiPropertyAnalysisFullReset implements MultiPropertyAlgori
 
               Set<Property> active = Sets.difference(getActiveProperties(partitionAnalysis.getReached()), violated);
               if (runProperties.size() == 1) {
-                exhausted.addAll(active);
+                unknown.addAll(active);
               }
 
             } else {
@@ -458,7 +462,10 @@ public final class MultiPropertyAnalysisFullReset implements MultiPropertyAlgori
 
         } else {
 
-          if (partitionAnalysis.getReached().getWaitlist().isEmpty()) {
+          if (partitionAnalysis.getReached().getWaitlist().isEmpty()
+              && !wasInterrutped // The Interrupt might have been performed after a 'pop',
+                                 //  and before the successor was added to the waitlist.
+             ) {
             // We have reached a fixpoint for the non-blacklisted properties.
 
             // Properties that are (1) still active
