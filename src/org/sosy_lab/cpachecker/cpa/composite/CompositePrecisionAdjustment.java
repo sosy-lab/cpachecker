@@ -172,7 +172,7 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
 
       // Recursion is acceptable here as we have very small chains.
       logger.log(Level.FINER, "Starting new fixpoint iteration of precision adjustment");
-      return prec0(pElement, pPrecision, pElements, projection, fullState, depth+1);
+      return prec0(outElement, outPrecision, pElements, projection, fullState, depth+1);
     }
   }
 }
