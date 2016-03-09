@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -49,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -68,16 +70,22 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
+import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
 import org.sosy_lab.solver.api.BooleanFormula;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.Sets;
 
 
@@ -123,41 +131,54 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner {
       throw new InvalidConfigurationException(BAMPredicateRefiner.class.getSimpleName() + " needs an BAMPredicateCPA");
     }
 
+    Configuration config = predicateCpa.getConfiguration();
     LogManager logger = predicateCpa.getLogger();
+    ShutdownNotifier shutdownNotifier = predicateCpa.getShutdownNotifier();
+    Solver solver = predicateCpa.getSolver();
+    FormulaManagerView fmgr = solver.getFormulaManager();
+    PathFormulaManager pfmgr = predicateCpa.getPathFormulaManager();
 
-    InterpolationManager manager = new InterpolationManager(
-                                          predicateCpa.getPathFormulaManager(),
-                                          predicateCpa.getSolver(),
-                                          predicateCpa.getCfa().getLoopStructure(),
-                                          predicateCpa.getCfa().getVarClassification(),
-                                          predicateCpa.getConfiguration(),
-                                          predicateCpa.getShutdownNotifier(),
-                                          logger);
+    MachineModel machineModel = predicateCpa.getCfa().getMachineModel();
+    Optional<VariableClassification> variableClassification =
+        predicateCpa.getCfa().getVarClassification();
+    Optional<LoopStructure> loopStructure = predicateCpa.getCfa().getLoopStructure();
+    InvariantsManager invariantsManager = predicateCpa.getInvariantsManager();
 
-    PathChecker pathChecker = new PathChecker(
-                                          predicateCpa.getConfiguration(),
-                                          logger,
-                                          predicateCpa.getShutdownNotifier(),
-                                          predicateCpa.getMachineModel(),
-                                          predicateCpa.getPathFormulaManager(),
-                                          predicateCpa.getSolver());
+    PrefixProvider prefixProvider = predicateCpa.getPrefixProvider();
+    PrefixSelector prefixSelector = new PrefixSelector(variableClassification, loopStructure);
 
+    InterpolationManager interpolationManager =
+        new InterpolationManager(
+            pfmgr, solver, loopStructure, variableClassification, config, shutdownNotifier, logger);
 
-    PrefixProvider prefixProvider = new PredicateBasedPrefixProvider(predicateCpa.getConfiguration(),
-                                          logger,
-                                          predicateCpa.getSolver(),
-                                          predicateCpa.getPathFormulaManager());
+    PathChecker pathChecker =
+        new PathChecker(config, logger, shutdownNotifier, machineModel, pfmgr, solver);
 
-    RefinementStrategy strategy = new BAMPredicateAbstractionRefinementStrategy(
-                                          predicateCpa.getConfiguration(),
-                                          logger,
-                                          predicateCpa,
-                                          predicateCpa.getSolver(),
-                                          predicateCpa.getPredicateManager(),
-                                          predicateCpa.getStaticRefiner());
+    RefinementStrategy strategy =
+        new BAMPredicateAbstractionRefinementStrategy(
+            config,
+            logger,
+            shutdownNotifier,
+            predicateCpa,
+            solver,
+            predicateCpa.getPredicateManager(),
+            predicateCpa.getStaticRefiner());
 
     this.refiner =
-        new ExtendedPredicateRefiner(pCpa, manager, pathChecker, prefixProvider, strategy);
+        new ExtendedPredicateRefiner(
+            pCpa,
+            config,
+            logger,
+            shutdownNotifier,
+            loopStructure,
+            pfmgr,
+            fmgr,
+            interpolationManager,
+            pathChecker,
+            prefixProvider,
+            prefixSelector,
+            invariantsManager,
+            strategy);
   }
 
   @Override
@@ -175,16 +196,38 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner {
 
     private final Timer ssaRenamingTimer = new Timer();
 
+    private final PathFormulaManager pfmgr;
+
     private ExtendedPredicateRefiner(
-        final ConfigurableProgramAnalysis pCpa,
-        final InterpolationManager pInterpolationManager,
-        final PathChecker pPathChecker,
-        final PrefixProvider pPrefixProvider,
-        final RefinementStrategy pStrategy)
+        ConfigurableProgramAnalysis pCpa,
+        Configuration pConfig,
+        LogManager pLogger,
+        ShutdownNotifier pShutdownNotifier,
+        Optional<LoopStructure> pLoopStructure,
+        PathFormulaManager pPfmgr,
+        FormulaManagerView pFmgr,
+        InterpolationManager pInterpolationManager,
+        PathChecker pPathChecker,
+        PrefixProvider pPrefixProvider,
+        PrefixSelector pPrefixSelector,
+        InvariantsManager pInvariantsManager,
+        RefinementStrategy pStrategy)
         throws InvalidConfigurationException {
-
-      super(pCpa, pInterpolationManager, pPathChecker, pPrefixProvider, pStrategy);
-
+      super(
+          pCpa,
+          pConfig,
+          pLogger,
+          pShutdownNotifier,
+          pLoopStructure,
+          pPfmgr,
+          pFmgr,
+          pInterpolationManager,
+          pPathChecker,
+          pPrefixProvider,
+          pPrefixSelector,
+          pInvariantsManager,
+          pStrategy);
+      pfmgr = pPfmgr;
     }
 
     @Override
@@ -336,14 +379,17 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner {
     private final BAMPredicateCPA predicateCpa;
     private boolean secondRepeatedCEX = false;
 
-    private BAMPredicateAbstractionRefinementStrategy(final Configuration config, final LogManager logger,
+    private BAMPredicateAbstractionRefinementStrategy(
+        final Configuration config,
+        final LogManager logger,
+        final ShutdownNotifier pShutdownNotifier,
         final BAMPredicateCPA predicateCpa,
         final Solver pSolver,
         final PredicateAbstractionManager pPredAbsMgr,
         final PredicateStaticRefiner pStaticRefiner)
-            throws InvalidConfigurationException {
+        throws InvalidConfigurationException {
 
-      super(config, logger, predicateCpa.getShutdownNotifier(), pPredAbsMgr, pStaticRefiner, pSolver);
+      super(config, logger, pShutdownNotifier, pPredAbsMgr, pStaticRefiner, pSolver);
       this.predicateCpa = predicateCpa;
     }
 

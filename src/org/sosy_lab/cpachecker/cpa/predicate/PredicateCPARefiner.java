@@ -44,7 +44,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -152,49 +151,53 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   private final PathChecker pathChecker;
 
   private final InvariantsManager invariantsManager;
-  private final LoopStructure loopStructure;
+  private final Optional<LoopStructure> loopStructure;
   private final Map<Loop, Integer> loopOccurrences = new HashMap<>();
 
+  // TODO Configuration should not be used at runtime, only during constructor
   private final Configuration config;
 
   private final PrefixProvider prefixProvider;
+  private final PrefixSelector prefixSelector;
   private final LogManager logger;
-  protected final PathFormulaManager pfmgr;
+  private final PathFormulaManager pfmgr;
   private final FormulaManagerView fmgr;
   private final InterpolationManager formulaManager;
   private final RefinementStrategy strategy;
-  private final CFA cfa;
   private final ShutdownNotifier shutdownNotifier;
 
-  // we get the configuration out of the pCPA object and do not need another one
-  @SuppressWarnings("options")
   public PredicateCPARefiner(
       final ConfigurableProgramAnalysis pCpa,
+      final Configuration pConfig,
+      final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier,
+      final Optional<LoopStructure> pLoopStructure,
+      final PathFormulaManager pPfmgr,
+      final FormulaManagerView pFmgr,
       final InterpolationManager pInterpolationManager,
       final PathChecker pPathChecker,
       final PrefixProvider pPrefixProvider,
+      final PrefixSelector pPrefixSelector,
+      final InvariantsManager pInvariantsManager,
       final RefinementStrategy pStrategy)
       throws InvalidConfigurationException {
 
     super(pCpa);
-    PredicateCPA predicateCpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
+    pConfig.inject(this, PredicateCPARefiner.class);
 
-    config = predicateCpa.getConfiguration();
-    config.inject(this, PredicateCPARefiner.class);
-
-    shutdownNotifier = predicateCpa.getShutdownNotifier();
-    pfmgr = predicateCpa.getPathFormulaManager();
-    cfa = predicateCpa.getCfa();
-    logger = predicateCpa.getLogger();
+    config = pConfig;
+    logger = pLogger;
+    shutdownNotifier = pShutdownNotifier;
+    loopStructure = pLoopStructure;
+    pfmgr = pPfmgr;
+    fmgr = pFmgr;
 
     formulaManager = pInterpolationManager;
     pathChecker = pPathChecker;
-    fmgr = predicateCpa.getSolver().getFormulaManager();
     strategy = pStrategy;
     prefixProvider = pPrefixProvider;
-
-    invariantsManager = predicateCpa.getInvariantsManager();
-    loopStructure = predicateCpa.getCfa().getLoopStructure().get();
+    prefixSelector = pPrefixSelector;
+    invariantsManager = pInvariantsManager;
 
     logger.log(Level.INFO, "Using refinement for predicate analysis with " + strategy.getClass().getSimpleName() + " strategy.");
   }
@@ -212,31 +215,40 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     Configuration config = predicateCpa.getConfiguration();
     LogManager logger = predicateCpa.getLogger();
     ShutdownNotifier shutdownNotifier = predicateCpa.getShutdownNotifier();
-    PathFormulaManager pfmgr = predicateCpa.getPathFormulaManager();
     Solver solver = predicateCpa.getSolver();
-    MachineModel machineModel = predicateCpa.getMachineModel();
+    FormulaManagerView fmgr = solver.getFormulaManager();
+    PathFormulaManager pfmgr = predicateCpa.getPathFormulaManager();
+
+    MachineModel machineModel = predicateCpa.getCfa().getMachineModel();
+    Optional<VariableClassification> variableClassification =
+        predicateCpa.getCfa().getVarClassification();
     Optional<LoopStructure> loopStructure = predicateCpa.getCfa().getLoopStructure();
-    Optional<VariableClassification> variableClassification = predicateCpa.getCfa().getVarClassification();
+    InvariantsManager invariantsManager = predicateCpa.getInvariantsManager();
+
     PrefixProvider prefixProvider = predicateCpa.getPrefixProvider();
+    PrefixSelector prefixSelector = new PrefixSelector(variableClassification, loopStructure);
 
-    InterpolationManager manager = new InterpolationManager(
-        pfmgr,
-        solver,
-        loopStructure,
-        variableClassification,
-        config,
-        shutdownNotifier,
-        logger);
+    InterpolationManager interpolationManager =
+        new InterpolationManager(
+            pfmgr, solver, loopStructure, variableClassification, config, shutdownNotifier, logger);
 
-    PathChecker pathChecker = new PathChecker(
+    PathChecker pathChecker =
+        new PathChecker(config, logger, shutdownNotifier, machineModel, pfmgr, solver);
+
+    return new PredicateCPARefiner(
+        pCpa,
         config,
         logger,
         shutdownNotifier,
-        machineModel,
+        loopStructure,
         pfmgr,
-        solver);
-
-    return new PredicateCPARefiner(pCpa, manager, pathChecker, prefixProvider, pRefinementStrategy);
+        fmgr,
+        interpolationManager,
+        pathChecker,
+        prefixProvider,
+        prefixSelector,
+        invariantsManager,
+        pRefinementStrategy);
   }
   /**
    * Extracts the elements on the given path. If no branching/merging occured
@@ -392,7 +404,8 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       List<Pair<PathFormula, CFANode>> argForPathFormulaBasedGeneration = new ArrayList<>();
       for (ARGState state : abstractionStatesTrace) {
         CFANode node = extractLocation(state);
-        if (loopStructure.getAllLoopHeads().contains(node)) {
+        // TODO what if loop structure does not exist?
+        if (loopStructure.get().getAllLoopHeads().contains(node)) {
           PredicateAbstractState predState =
               extractStateByType(state, PredicateAbstractState.class);
           PathFormula pathFormula = predState.getPathFormula();
@@ -533,11 +546,13 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     LoopCollectingEdgeVisitor loopFinder = null;
 
     try {
-      loopFinder = new LoopCollectingEdgeVisitor(cfa.getLoopStructure().get(), config);
+      // TODO what if loop structure does not exist?
+      loopFinder = new LoopCollectingEdgeVisitor(loopStructure.get(), config);
     } catch (InvalidConfigurationException e1) {
       // this will never happen, but for the case it does, we just return
       // the empty set, therefore the refinement will be done without invariant
       // generation definitely and only with interpolation / static refinement
+      // TODO of course this can happen and it should not be swallowed!
       return Collections.emptySet();
     }
 
@@ -672,10 +687,9 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     }
 
     else {
-      PrefixSelector selector = new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure());
-
       prefixSelectionTime.start();
-      InfeasiblePrefix selectedPrefix = selector.selectSlicedPrefix(prefixPreference, infeasiblePrefixes);
+      InfeasiblePrefix selectedPrefix =
+          prefixSelector.selectSlicedPrefix(prefixPreference, infeasiblePrefixes);
       prefixSelectionTime.stop();
 
       List<BooleanFormula> formulas = selectedPrefix.getPathFormulae();
