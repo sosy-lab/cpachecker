@@ -243,7 +243,13 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       AbstractState pArgState)
         throws CPAException, InterruptedException {
 
-    final PolicyIntermediateState iState = state.asIntermediate();
+    final PolicyIntermediateState iState;
+    if (state.isAbstract()) {
+      // TODO: predecessor isn't quite the right name.
+      iState = state.asAbstracted().getPredecessor().get();
+    } else {
+      iState = state.asIntermediate();
+    }
     final boolean hasTargetState = filter(
         AbstractStates.asIterable(pArgState),
         AbstractStates.IS_TARGET_STATE).iterator().hasNext();
@@ -271,7 +277,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       logger.log(Level.FINE, "Reported formulas: ", extraInvariant);
 
       Optional<PolicyAbstractedState> sibling =
-          getSiblings(iState, states, pArgState, extraInvariant);
+          findSibling(iState, states, pArgState, extraInvariant);
 
       statistics.startAbstractionTimer();
       PolicyAbstractedState abstraction;
@@ -903,15 +909,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         LoopstackState.class);
 
     CFANode node = iState.getNode();
-    if (
-        (cfa.getAllLoopHeads().get().contains(node))
-
-        // If loopstackState is available,
-        // do not compute abstractions at partial unrollings.
-        && (loopState == null || loopState.isLoopCounterAbstracted())) {
-      return true;
-    }
-    return false;
+    return (cfa.getAllLoopHeads().get().contains(node)
+        && (loopState == null || loopState.isLoopCounterAbstracted()));
   }
 
   /** HELPER METHODS BELOW. **/
@@ -962,7 +961,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
    * However, we would like to get the *latest* such element.
    * In ARG terminology, that's the first one we get by following backpointers.
    */
-  private Optional<PolicyAbstractedState> getSiblings(
+  private Optional<PolicyAbstractedState> findSibling(
       PolicyIntermediateState state,
       UnmodifiableReachedSet states,
       AbstractState pArgState,
@@ -1075,7 +1074,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   private boolean isLessOrEqualAbstracted(
       PolicyAbstractedState aState1,
       PolicyAbstractedState aState2
-  ) throws SolverException, InterruptedException {
+  ) {
     if (!congruenceManager.isLessOrEqual(aState1.getCongruence(), aState2.getCongruence())) {
       return false;
     }
