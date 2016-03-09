@@ -146,8 +146,6 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
   private final BlockOperator blk;
 
-  private final PredicateAssumeStore assumeStore;
-
   private final Map<PredicateAbstractState, PathFormula> computedPathFormulae = new HashMap<>();
 
   private final FormulaManagerView fmgr;
@@ -165,7 +163,6 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     pathFormulaManager = pCpa.getPathFormulaManager();
     fmgr = pCpa.getSolver().getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
-    assumeStore = pCpa.getAssumesStore();
     blk = pBlk;
     direction = pDirection;
     cfa = pCfa;
@@ -190,17 +187,6 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       // calculate strongest post
       PathFormula pathFormula = convertEdgeToPathFormula(element.getPathFormula(), edge);
       logger.log(Level.ALL, "New path formula is", pathFormula);
-
-      // there might be runtime-assumes that we should add to the path formula
-      //  (used to make the program safe in case of missing preconditions in order to get valid loop invariants)
-      // TODO: Move this to a "better" place
-      Optional<BooleanFormula> optLocAssume = assumeStore.getAssumeOnLocation(loc);
-      if (optLocAssume.isPresent()) {
-        BooleanFormula locAssume = optLocAssume.get();
-        if (!bfmgr.isTrue(locAssume)) {
-          pathFormula = pathFormulaManager.makeAnd(pathFormula, locAssume);
-        }
-      }
 
       // check whether to do abstraction
       boolean doAbstraction = blk.isBlockEnd(loc, predloc, edge, pathFormula);

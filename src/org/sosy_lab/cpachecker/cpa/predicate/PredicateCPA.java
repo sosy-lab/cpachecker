@@ -131,7 +131,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicatePrecisionBootstrapper precisionBootstraper;
   private final PredicateStaticRefiner staticRefiner;
   private final CFA cfa;
-  private final PredicateAssumeStore assumesStore;
   private final AbstractionManager abstractionManager;
   private final InvariantGenerator invariantGenerator;
   private final PrefixProvider prefixProvider;
@@ -176,8 +175,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     logger.log(Level.INFO, "Using predicate analysis with", libraries + ".");
 
     abstractionManager = new AbstractionManager(regionManager, formulaManager, config, logger, solver);
-
-    assumesStore = new PredicateAssumeStore(formulaManager);
 
     prefixProvider = new PredicateBasedPrefixProvider(config, logger, solver, pathFormulaManager);
     invariantsManager = new InvariantsManager(this);
@@ -239,10 +236,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     } else {
       throw new InternalError("Update list of allowed stop operators");
     }
-  }
-
-  public PredicateAssumeStore getAssumesStore() {
-    return assumesStore;
   }
 
   @Override

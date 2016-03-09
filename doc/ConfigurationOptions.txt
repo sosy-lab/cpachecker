@@ -1513,10 +1513,6 @@ cpa.predicate.refinement.cexTraceCheckDirection = FORWARDS
   enum:     [FORWARDS, BACKWARDS, ZIGZAG, LOOP_FREE_FIRST, RANDOM, LOWEST_AVG_SCORE,
              HIGHEST_AVG_SCORE, LOOP_FREE_FIRST_BACKWARDS]
 
-# Conjunct the formulas that were computed as preconditions to get
-# (infeasible) interpolation problems!
-cpa.predicate.refinement.conjunctPreconditionFormulas = false
-
 # Actually compute an abstraction, otherwise just convert the interpolants to
 # BDDs as they are.
 cpa.predicate.refinement.doAbstractionComputation = false
