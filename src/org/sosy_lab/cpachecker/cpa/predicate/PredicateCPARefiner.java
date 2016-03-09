@@ -285,18 +285,22 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
   @Override
   public CounterexampleInfo performRefinement(final ARGReachedSet pReached, final ARGPath allStatesTrace) throws CPAException, InterruptedException {
-    // no invariants should be generated, we can do an interpolating refinement immediately
-    if (invariantsManager.shouldInvariantsBeComputed()) {
-      return performInvariantsRefinement(pReached, allStatesTrace);
-    } else {
-      return performInterpolatingRefinement(pReached, allStatesTrace);
+    totalRefinement.start();
+    try {
+      // no invariants should be generated, we can do an interpolating refinement immediately
+      if (invariantsManager.shouldInvariantsBeComputed()) {
+        return performInvariantsRefinement(pReached, allStatesTrace);
+      } else {
+        return performInterpolatingRefinement(pReached, allStatesTrace);
+      }
+    } finally {
+      totalRefinement.stop();
     }
   }
 
   private CounterexampleInfo performInterpolatingRefinement(
       final ARGReachedSet pReached, final ARGPath allStatesTrace)
       throws CPAException, InterruptedException {
-    totalRefinement.start();
     logger.log(Level.FINEST, "Starting interpolation-based refinement");
 
     Set<ARGState> elementsOnPath = extractElementsOnPath(allStatesTrace);
@@ -339,16 +343,12 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       }
 
       strategy.performRefinement(pReached, abstractionStatesTrace, counterexample.getInterpolants(), repeatedCounterexample);
-
-      totalRefinement.stop();
       return CounterexampleInfo.spurious();
 
     } else {
       // we have a real error
       logger.log(Level.FINEST, "Error trace is not spurious");
       CounterexampleInfo cex = handleRealError(allStatesTrace, branchingOccurred, counterexample);
-
-      totalRefinement.stop();
       return cex;
     }
   }
