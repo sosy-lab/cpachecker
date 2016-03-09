@@ -308,23 +308,42 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
       logger.log(Level.ALL, "Abstraction trace is", abstractionStatesTrace);
 
+      final List<BooleanFormula> formulas =
+          createFormulasOnPath(allStatesTrace, abstractionStatesTrace);
+
+      CounterexampleTraceInfo counterexample;
+
       // no invariants should be generated, we can do an interpolating refinement immediately
       if (invariantsManager.shouldInvariantsBeComputed()) {
-        return performInvariantsRefinement(
-            pReached,
-            allStatesTrace,
-            elementsOnPath,
-            abstractionStatesTrace,
-            branchingOccurred,
-            repeatedCounterexample);
+        counterexample =
+            performInvariantsRefinement(
+                allStatesTrace,
+                elementsOnPath,
+                abstractionStatesTrace,
+                formulas,
+                repeatedCounterexample);
+
       } else {
-        return performInterpolatingRefinement(
+        logger.log(Level.FINEST, "Starting interpolation-based refinement.");
+        counterexample =
+            performInterpolatingRefinement(abstractionStatesTrace, elementsOnPath, formulas);
+      }
+
+      // if error is spurious refine
+      if (counterexample.isSpurious()) {
+        logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
+
+        strategy.performRefinement(
             pReached,
-            allStatesTrace,
-            elementsOnPath,
             abstractionStatesTrace,
-            branchingOccurred,
+            counterexample.getInterpolants(),
             repeatedCounterexample);
+        return CounterexampleInfo.spurious();
+
+      } else {
+        // we have a real error
+        logger.log(Level.FINEST, "Error trace is not spurious");
+        return handleRealError(allStatesTrace, branchingOccurred, counterexample);
       }
 
     } finally {
@@ -332,51 +351,29 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     }
   }
 
-  private CounterexampleInfo performInterpolatingRefinement(
-      final ARGReachedSet pReached,
-      final ARGPath allStatesTrace,
-      final Set<ARGState> elementsOnPath,
+  private CounterexampleTraceInfo performInterpolatingRefinement(
       final List<ARGState> abstractionStatesTrace,
-      final boolean branchingOccurred,
-      final boolean repeatedCounterexample)
+      final Set<ARGState> elementsOnPath,
+      final List<BooleanFormula> formulas)
       throws CPAException, InterruptedException {
-    logger.log(Level.FINEST, "Starting interpolation-based refinement");
 
-    final List<BooleanFormula> formulas =
-        createFormulasOnPath(allStatesTrace, abstractionStatesTrace);
-
-    CounterexampleTraceInfo counterexample =
-        formulaManager.buildCounterexampleTrace(
-            formulas,
-            Lists.<AbstractState>newArrayList(abstractionStatesTrace),
-            elementsOnPath,
-            strategy.needsInterpolants());
-
-    // if error is spurious refine
-    if (counterexample.isSpurious()) {
-      logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
-
-      if (strategy instanceof PredicateAbstractionRefinementStrategy) {
-        ((PredicateAbstractionRefinementStrategy)strategy).setUseAtomicPredicates(atomicInterpolants);
-      }
-
-      strategy.performRefinement(pReached, abstractionStatesTrace, counterexample.getInterpolants(), repeatedCounterexample);
-      return CounterexampleInfo.spurious();
-
-    } else {
-      // we have a real error
-      logger.log(Level.FINEST, "Error trace is not spurious");
-      CounterexampleInfo cex = handleRealError(allStatesTrace, branchingOccurred, counterexample);
-      return cex;
+    if (strategy instanceof PredicateAbstractionRefinementStrategy) {
+      ((PredicateAbstractionRefinementStrategy) strategy)
+          .setUseAtomicPredicates(atomicInterpolants);
     }
+
+    return formulaManager.buildCounterexampleTrace(
+        formulas,
+        Lists.<AbstractState>newArrayList(abstractionStatesTrace),
+        elementsOnPath,
+        strategy.needsInterpolants());
   }
 
-  private CounterexampleInfo performInvariantsRefinement(
-      final ARGReachedSet pReached,
+  private CounterexampleTraceInfo performInvariantsRefinement(
       final ARGPath allStatesTrace,
       final Set<ARGState> elementsOnPath,
       final List<ARGState> abstractionStatesTrace,
-      final boolean branchingOccurred,
+      final List<BooleanFormula> formulas,
       final boolean repeatedCounterexample)
       throws CPAException, InterruptedException {
 
@@ -384,18 +381,11 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
     // check if invariants can be used at all
     if ((loopsInPath = canInvariantsBeUsed(allStatesTrace, repeatedCounterexample)).isEmpty()) {
-      return performInterpolatingRefinement(
-          pReached,
-          allStatesTrace,
-          elementsOnPath,
-          abstractionStatesTrace,
-          branchingOccurred,
-          repeatedCounterexample);
+      logger.log(
+          Level.FINEST,
+          "Starting interpolation-based refinement because invariants cannot be generated.");
+      return performInterpolatingRefinement(abstractionStatesTrace, elementsOnPath, formulas);
     }
-
-    // create list of formulas on path
-    final List<BooleanFormula> formulas =
-        createFormulasOnPath(allStatesTrace, abstractionStatesTrace);
 
     CounterexampleTraceInfo counterexample =
         formulaManager.buildCounterexampleTrace(
@@ -429,48 +419,35 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       invariantsManager.findInvariants(
           argForPathFormulaBasedGeneration, argForErrorPathBasedGeneration, shutdownNotifier);
 
-      List<BooleanFormula> precisionIncrement;
-      boolean atomicPredicates;
-
       // add invariant precision increment if necessary
       if (invariantsManager.shouldInvariantsBeUsedForRefinement()) {
-        precisionIncrement = invariantsManager.getInvariantsForRefinement();
+        List<BooleanFormula> precisionIncrement = invariantsManager.getInvariantsForRefinement();
 
-        // fall-back to interpolation
         if (precisionIncrement.isEmpty()) {
-          precisionIncrement =
-              formulaManager
-                  .buildCounterexampleTrace(
-                      formulas,
-                      Lists.<AbstractState>newArrayList(abstractionStatesTrace),
-                      elementsOnPath,
-                      true)
-                  .getInterpolants();
-          atomicPredicates = atomicInterpolants;
+          // fall-back to interpolation
+          logger.log(
+              Level.FINEST,
+              "Starting interpolation-based refinement because invariant generation was not successful.");
+          return performInterpolatingRefinement(abstractionStatesTrace, elementsOnPath, formulas);
+
         } else {
-          atomicPredicates = atomicInvariants;
+          if (strategy instanceof PredicateAbstractionRefinementStrategy) {
+            ((PredicateAbstractionRefinementStrategy) strategy)
+                .setUseAtomicPredicates(atomicInvariants);
+          }
+          return CounterexampleTraceInfo.infeasible(precisionIncrement);
         }
 
       } else {
-        precisionIncrement = counterexample.getInterpolants();
-        atomicPredicates = atomicInterpolants;
+        if (strategy instanceof PredicateAbstractionRefinementStrategy) {
+          ((PredicateAbstractionRefinementStrategy) strategy)
+              .setUseAtomicPredicates(atomicInterpolants);
+        }
+        return counterexample;
       }
-
-      if (strategy instanceof PredicateAbstractionRefinementStrategy) {
-        ((PredicateAbstractionRefinementStrategy) strategy)
-            .setUseAtomicPredicates(atomicPredicates);
-      }
-
-      strategy.performRefinement(
-          pReached, abstractionStatesTrace, precisionIncrement, repeatedCounterexample);
-
-      return CounterexampleInfo.spurious();
 
     } else {
-      // we have a real error
-      logger.log(Level.FINEST, "Error trace is not spurious");
-      CounterexampleInfo cex = handleRealError(allStatesTrace, branchingOccurred, counterexample);
-      return cex;
+      return counterexample;
     }
   }
 
