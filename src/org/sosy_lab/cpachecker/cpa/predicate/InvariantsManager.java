@@ -254,6 +254,7 @@ class InvariantsManager {
   private final CFA cfa;
   private final PrefixProvider prefixProvider;
 
+  // TODO Configuration should not be used at runtime, only during constructor
   private final Configuration config;
   private final LogManager logger;
 
@@ -261,34 +262,41 @@ class InvariantsManager {
   private final Map<CFANode, Region> regionInvariantsCache = new HashMap<>();
   private final List<BooleanFormula> refinementCache = new ArrayList<>();
 
-  @SuppressWarnings("options")
-  public InvariantsManager(PredicateCPA pPredicateCPA) throws InvalidConfigurationException {
-    config = pPredicateCPA.getConfiguration();
-    config.inject(this);
+  public InvariantsManager(
+      Configuration pConfig,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCfa,
+      Solver pSolver,
+      PathFormulaManager pPfmgr,
+      AbstractionManager pAbsManager,
+      PrefixProvider pPrefixProvider)
+      throws InvalidConfigurationException {
+    pConfig.inject(this);
 
-    logger = pPredicateCPA.getLogger();
-
-    solver = pPredicateCPA.getSolver();
-    amgr = pPredicateCPA.getAbstractionManager();
-    rmgr = amgr.getRegionCreator();
+    config = pConfig;
+    logger = pLogger;
+    cfa = pCfa;
+    solver = pSolver;
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
-    pfmgr = pPredicateCPA.getPathFormulaManager();
-    semiCNFConverter = new SemiCNFManager(fmgr, config);
-    cfa = pPredicateCPA.getCfa();
+    pfmgr = pPfmgr;
+    semiCNFConverter = new SemiCNFManager(fmgr, pConfig);
+    amgr = pAbsManager;
+    rmgr = amgr.getRegionCreator();
 
     imgr =
         new InterpolationManager(
-            pfmgr,
-            solver,
-            cfa.getLoopStructure(),
-            cfa.getVarClassification(),
-            config,
-            pPredicateCPA.getShutdownNotifier(),
-            logger);
+            pPfmgr,
+            pSolver,
+            pCfa.getLoopStructure(),
+            pCfa.getVarClassification(),
+            pConfig,
+            pShutdownNotifier,
+            pLogger);
 
-    prefixProvider = pPredicateCPA.getPrefixProvider();
-    inductiveWeakeningMgr = new InductiveWeakeningManager(config, fmgr, solver, logger);
+    prefixProvider = pPrefixProvider;
+    inductiveWeakeningMgr = new InductiveWeakeningManager(pConfig, pSolver, pLogger);
 
     if (usageStrategy != InvariantUsageStrategy.NONE) {
       logger.log(

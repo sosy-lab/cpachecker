@@ -177,7 +177,16 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     abstractionManager = new AbstractionManager(regionManager, formulaManager, config, logger, solver);
 
     prefixProvider = new PredicateBasedPrefixProvider(config, logger, solver, pathFormulaManager);
-    invariantsManager = new InvariantsManager(this);
+    invariantsManager =
+        new InvariantsManager(
+            config,
+            logger,
+            pShutdownNotifier,
+            pCfa,
+            solver,
+            pfMgr,
+            abstractionManager,
+            prefixProvider);
 
     predicateManager =
         new PredicateAbstractionManager(

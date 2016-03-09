@@ -1,8 +1,14 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
@@ -24,15 +30,9 @@ import org.sosy_lab.solver.api.FunctionDeclaration;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 import org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 /**
  * Finds inductive weakening of formulas (originally: formula slicing).
@@ -98,14 +98,13 @@ public class InductiveWeakeningManager implements StatisticsProvider {
 
   public InductiveWeakeningManager(
       Configuration config,
-      FormulaManagerView pFmgr,
       Solver pSolver,
       LogManager pLogger
   ) throws InvalidConfigurationException {
     config.inject(this);
 
     statistics = new InductiveWeakeningStatistics();
-    fmgr = pFmgr;
+    fmgr = pSolver.getFormulaManager();
     logger = pLogger;
     bfmgr = fmgr.getBooleanFormulaManager();
     syntacticWeakeningManager = new SyntacticWeakeningManager(fmgr);
