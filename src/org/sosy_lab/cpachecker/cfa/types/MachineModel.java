@@ -400,11 +400,11 @@ public enum MachineModel {
   }
 
   public int getAlignofShort() {
-    return sizeofShort;
+    return alignofShort;
   }
 
   public int getAlignofInt() {
-    return sizeofInt;
+    return alignofInt;
   }
 
   public int getAlignofLongInt() {
