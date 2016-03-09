@@ -287,45 +287,63 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   public CounterexampleInfo performRefinement(final ARGReachedSet pReached, final ARGPath allStatesTrace) throws CPAException, InterruptedException {
     totalRefinement.start();
     try {
+      final List<CFANode> errorPath =
+          Lists.transform(allStatesTrace.asStatesList(), AbstractStates.EXTRACT_LOCATION);
+      final boolean repeatedCounterexample = errorPath.equals(lastErrorPath);
+      lastErrorPath = errorPath;
+
+      Set<ARGState> elementsOnPath = extractElementsOnPath(allStatesTrace);
+      // No branches/merges in path, it is precise.
+      // We don't need to care about creating extra predicates for branching etc.
+      boolean branchingOccurred = true;
+      if (elementsOnPath.size() == allStatesTrace.size()) {
+        elementsOnPath = Collections.emptySet();
+        branchingOccurred = false;
+      }
+
+      // create path with all abstraction location elements (excluding the initial element)
+      // the last element is the element corresponding to the error location
+      final List<ARGState> abstractionStatesTrace = transformPath(allStatesTrace);
+      totalPathLength.setNextValue(abstractionStatesTrace.size());
+
+      logger.log(Level.ALL, "Abstraction trace is", abstractionStatesTrace);
+
       // no invariants should be generated, we can do an interpolating refinement immediately
       if (invariantsManager.shouldInvariantsBeComputed()) {
-        return performInvariantsRefinement(pReached, allStatesTrace);
+        return performInvariantsRefinement(
+            pReached,
+            allStatesTrace,
+            elementsOnPath,
+            abstractionStatesTrace,
+            branchingOccurred,
+            repeatedCounterexample);
       } else {
-        return performInterpolatingRefinement(pReached, allStatesTrace);
+        return performInterpolatingRefinement(
+            pReached,
+            allStatesTrace,
+            elementsOnPath,
+            abstractionStatesTrace,
+            branchingOccurred,
+            repeatedCounterexample);
       }
+
     } finally {
       totalRefinement.stop();
     }
   }
 
   private CounterexampleInfo performInterpolatingRefinement(
-      final ARGReachedSet pReached, final ARGPath allStatesTrace)
+      final ARGReachedSet pReached,
+      final ARGPath allStatesTrace,
+      final Set<ARGState> elementsOnPath,
+      final List<ARGState> abstractionStatesTrace,
+      final boolean branchingOccurred,
+      final boolean repeatedCounterexample)
       throws CPAException, InterruptedException {
     logger.log(Level.FINEST, "Starting interpolation-based refinement");
 
-    Set<ARGState> elementsOnPath = extractElementsOnPath(allStatesTrace);
-
-    // No branches/merges in path, it is precise.
-    // We don't need to care about creating extra predicates for branching etc.
-    boolean branchingOccurred = true;
-    if (elementsOnPath.size() == allStatesTrace.size()) {
-      elementsOnPath = Collections.emptySet();
-      branchingOccurred = false;
-    }
-
-    // create path with all abstraction location elements (excluding the initial element)
-    // the last element is the element corresponding to the error location
-    final List<ARGState> abstractionStatesTrace = transformPath(allStatesTrace);
-    totalPathLength.setNextValue(abstractionStatesTrace.size());
-
-    logger.log(Level.ALL, "Abstraction trace is", abstractionStatesTrace);
-
-    final List<BooleanFormula> formulas = createFormulasOnPath(allStatesTrace, abstractionStatesTrace);
-
-
-    final List<CFANode> errorPath = Lists.transform(allStatesTrace.asStatesList(), AbstractStates.EXTRACT_LOCATION);
-    final boolean repeatedCounterexample = errorPath.equals(lastErrorPath);
-    lastErrorPath = errorPath;
+    final List<BooleanFormula> formulas =
+        createFormulasOnPath(allStatesTrace, abstractionStatesTrace);
 
     CounterexampleTraceInfo counterexample =
         formulaManager.buildCounterexampleTrace(
@@ -354,37 +372,26 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   }
 
   private CounterexampleInfo performInvariantsRefinement(
-      final ARGReachedSet pReached, final ARGPath allStatesTrace)
+      final ARGReachedSet pReached,
+      final ARGPath allStatesTrace,
+      final Set<ARGState> elementsOnPath,
+      final List<ARGState> abstractionStatesTrace,
+      final boolean branchingOccurred,
+      final boolean repeatedCounterexample)
       throws CPAException, InterruptedException {
-
-    final List<CFANode> errorPath =
-        Lists.transform(allStatesTrace.asStatesList(), AbstractStates.EXTRACT_LOCATION);
-    final boolean repeatedCounterexample = errorPath.equals(lastErrorPath);
-    lastErrorPath = errorPath;
 
     Set<Loop> loopsInPath;
 
     // check if invariants can be used at all
     if ((loopsInPath = canInvariantsBeUsed(allStatesTrace, repeatedCounterexample)).isEmpty()) {
-      return performInterpolatingRefinement(pReached, allStatesTrace);
+      return performInterpolatingRefinement(
+          pReached,
+          allStatesTrace,
+          elementsOnPath,
+          abstractionStatesTrace,
+          branchingOccurred,
+          repeatedCounterexample);
     }
-
-    Set<ARGState> elementsOnPath = extractElementsOnPath(allStatesTrace);
-
-    // No branches/merges in path, it is precise.
-    // We don't need to care about creating extra predicates for branching etc.
-    boolean branchingOccurred = true;
-    if (elementsOnPath.size() == allStatesTrace.size()) {
-      elementsOnPath = Collections.emptySet();
-      branchingOccurred = false;
-    }
-
-    // create path with all abstraction location elements (excluding the initial element)
-    // the last element is the element corresponding to the error location
-    final List<ARGState> abstractionStatesTrace = transformPath(allStatesTrace);
-    totalPathLength.setNextValue(abstractionStatesTrace.size());
-
-    logger.log(Level.ALL, "Abstraction trace is", abstractionStatesTrace);
 
     // create list of formulas on path
     final List<BooleanFormula> formulas =
