@@ -74,7 +74,6 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManage
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
@@ -90,6 +89,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Lists;
+import com.google.errorprone.annotations.ForOverride;
 
 /**
  * This class provides a basic refiner implementation for predicate analysis.
@@ -129,12 +129,12 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
   @Option(secure=true, description="use only the atoms from the interpolants"
                                  + "as predicates, and not the whole interpolant")
-  protected boolean atomicInterpolants = true;
+  private boolean atomicInterpolants = true;
 
   // statistics
-  protected final StatInt totalPathLength = new StatInt(StatKind.AVG, "Avg. length of target path (in blocks)"); // measured in blocks
-  protected final StatTimer totalRefinement = new StatTimer("Time for refinement");
-  protected final StatTimer prefixExtractionTime = new StatTimer("Extracting infeasible sliced prefixes");
+  private final StatInt totalPathLength = new StatInt(StatKind.AVG, "Avg. length of target path (in blocks)"); // measured in blocks
+  private final StatTimer totalRefinement = new StatTimer("Time for refinement");
+  private final StatTimer prefixExtractionTime = new StatTimer("Extracting infeasible sliced prefixes");
 
   private final StatTimer errorPathProcessing = new StatTimer("Error path post-processing");
   private final StatTimer getFormulasForPathTime = new StatTimer("Path-formulas extraction");
@@ -153,15 +153,14 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
   private final Configuration config;
 
-  protected final Solver solver;
-  protected final PrefixProvider prefixProvider;
-  protected final LogManager logger;
+  private final PrefixProvider prefixProvider;
+  private final LogManager logger;
   protected final PathFormulaManager pfmgr;
-  protected final FormulaManagerView fmgr;
-  protected final InterpolationManager formulaManager;
-  protected final RefinementStrategy strategy;
-  protected final CFA cfa;
-  protected final ShutdownNotifier shutdownNotifier;
+  private final FormulaManagerView fmgr;
+  private final InterpolationManager formulaManager;
+  private final RefinementStrategy strategy;
+  private final CFA cfa;
+  private final ShutdownNotifier shutdownNotifier;
 
   // we get the configuration out of the pCPA object and do not need another one
   @SuppressWarnings("options")
@@ -179,7 +178,6 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     config = predicateCpa.getConfiguration();
     config.inject(this, PredicateCPARefiner.class);
 
-    solver = predicateCpa.getSolver();
     shutdownNotifier = predicateCpa.getShutdownNotifier();
     pfmgr = predicateCpa.getPathFormulaManager();
     cfa = predicateCpa.getCfa();
@@ -187,7 +185,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
     formulaManager = pInterpolationManager;
     pathChecker = pPathChecker;
-    fmgr = solver.getFormulaManager();
+    fmgr = predicateCpa.getSolver().getFormulaManager();
     strategy = pStrategy;
     prefixProvider = pPrefixProvider;
 
@@ -201,7 +199,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
    * Extracts the elements on the given path. If no branching/merging occured
    * the returned Set is empty.
    */
-  protected Set<ARGState> extractElementsOnPath(final ARGPath path) {
+  private Set<ARGState> extractElementsOnPath(final ARGPath path) {
     Set<ARGState> elementsOnPath = getAllStatesOnPathsTo(path.getLastState());
 
     assert elementsOnPath.containsAll(path.getStateSet());
@@ -213,7 +211,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   /**
    * Create list of formulas on path.
    */
-  protected List<BooleanFormula> createFormulasOnPath(final ARGPath allStatesTrace,
+  private List<BooleanFormula> createFormulasOnPath(final ARGPath allStatesTrace,
                                                       final List<ARGState> abstractionStatesTrace)
                                                       throws CPAException, InterruptedException {
     List<BooleanFormula> formulas = (isRefinementSelectionEnabled())
@@ -511,7 +509,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   /**
    * Creates a new CounterexampleInfo object out of the given parameters.
    */
-  protected CounterexampleInfo handleRealError(
+  private CounterexampleInfo handleRealError(
       final ARGPath allStatesTrace,
       boolean branchingOccurred,
       CounterexampleTraceInfo counterexample)
@@ -596,6 +594,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
    * @param initialState The initial element of the analysis (= the root element of the ARG)
    * @return A list of block formulas for this path.
    */
+  @ForOverride
   protected List<BooleanFormula> getFormulasForPath(List<ARGState> path, ARGState initialState)
       throws CPATransferException, InterruptedException {
     getFormulasForPathTime.start();
@@ -638,7 +637,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
       List<BooleanFormula> formulas = selectedPrefix.getPathFormulae();
       while (formulas.size() < pAbstractionStatesTrace.size()) {
-        formulas.add(solver.getFormulaManager().getBooleanFormulaManager().makeBoolean(true));
+        formulas.add(fmgr.getBooleanFormulaManager().makeBoolean(true));
       }
 
       return formulas;

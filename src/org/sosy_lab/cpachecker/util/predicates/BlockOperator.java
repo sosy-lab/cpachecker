@@ -299,7 +299,7 @@ public class BlockOperator {
     return succLoc.getLeavingSummaryEdge() != null;
   }
 
-  public static boolean isFirstLocationInFunctionBody(CFANode pLoc) {
+  private static boolean isFirstLocationInFunctionBody(CFANode pLoc) {
     Collection<CFAEdge> edges = Lists.newArrayList(CFAUtils.enteringEdges(pLoc));
 
     for (CFAEdge edge: edges) {
