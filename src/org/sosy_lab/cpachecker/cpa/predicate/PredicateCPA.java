@@ -39,7 +39,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.DoNothingInvariantGenerator;
@@ -363,10 +362,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   public CFA getCfa() {
     return cfa;
-  }
-
-  public MachineModel getMachineModel() {
-    return cfa.getMachineModel();
   }
 
   public AbstractionManager getAbstractionManager() {
