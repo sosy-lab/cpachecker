@@ -46,6 +46,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -67,6 +68,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.cwriter.LoopCollectingEdgeVisitor;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
@@ -74,6 +76,7 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManage
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
@@ -86,6 +89,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Function;
+import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Lists;
@@ -195,6 +199,45 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     logger.log(Level.INFO, "Using refinement for predicate analysis with " + strategy.getClass().getSimpleName() + " strategy.");
   }
 
+  public static PredicateCPARefiner create(
+      final ConfigurableProgramAnalysis pCpa,
+      final RefinementStrategy pRefinementStrategy
+      ) throws InvalidConfigurationException {
+
+    PredicateCPA predicateCpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
+    if (predicateCpa == null) {
+      throw new InvalidConfigurationException(PredicateRefiner.class.getSimpleName() + " needs a PredicateCPA");
+    }
+
+    Configuration config = predicateCpa.getConfiguration();
+    LogManager logger = predicateCpa.getLogger();
+    ShutdownNotifier shutdownNotifier = predicateCpa.getShutdownNotifier();
+    PathFormulaManager pfmgr = predicateCpa.getPathFormulaManager();
+    Solver solver = predicateCpa.getSolver();
+    MachineModel machineModel = predicateCpa.getMachineModel();
+    Optional<LoopStructure> loopStructure = predicateCpa.getCfa().getLoopStructure();
+    Optional<VariableClassification> variableClassification = predicateCpa.getCfa().getVarClassification();
+    PrefixProvider prefixProvider = predicateCpa.getPrefixProvider();
+
+    InterpolationManager manager = new InterpolationManager(
+        pfmgr,
+        solver,
+        loopStructure,
+        variableClassification,
+        config,
+        shutdownNotifier,
+        logger);
+
+    PathChecker pathChecker = new PathChecker(
+        config,
+        logger,
+        shutdownNotifier,
+        machineModel,
+        pfmgr,
+        solver);
+
+    return new PredicateCPARefiner(pCpa, manager, pathChecker, prefixProvider, pRefinementStrategy);
+  }
   /**
    * Extracts the elements on the given path. If no branching/merging occured
    * the returned Set is empty.
