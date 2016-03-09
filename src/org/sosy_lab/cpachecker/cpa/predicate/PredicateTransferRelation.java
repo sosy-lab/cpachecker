@@ -154,14 +154,22 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
   private final AnalysisDirection direction;
   private final CFA cfa;
 
-  public PredicateTransferRelation(PredicateCPA pCpa, BlockOperator pBlk,
-      Configuration config, AnalysisDirection pDirection, CFA pCfa) throws InvalidConfigurationException {
+  public PredicateTransferRelation(
+      Configuration config,
+      LogManager pLogger,
+      AnalysisDirection pDirection,
+      CFA pCfa,
+      FormulaManagerView pFmgr,
+      PathFormulaManager pPfmgr,
+      BlockOperator pBlk,
+      PredicateAbstractionManager pPredAbsManager)
+      throws InvalidConfigurationException {
     config.inject(this, PredicateTransferRelation.class);
 
-    logger = pCpa.getLogger();
-    formulaManager = pCpa.getPredicateManager();
-    pathFormulaManager = pCpa.getPathFormulaManager();
-    fmgr = pCpa.getSolver().getFormulaManager();
+    logger = pLogger;
+    formulaManager = pPredAbsManager;
+    pathFormulaManager = pPfmgr;
+    fmgr = pFmgr;
     bfmgr = fmgr.getBooleanFormulaManager();
     blk = pBlk;
     direction = pDirection;

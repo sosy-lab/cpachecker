@@ -43,6 +43,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -59,6 +60,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -124,32 +126,59 @@ class PredicateCPAStatistics extends AbstractStatistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path relationsFile = Paths.get("relations.txt");
 
-  private final PredicateCPA cpa;
+  private final LogManager logger;
+
+  private final Solver solver;
+  private final PathFormulaManager pfmgr;
   private final BlockOperator blk;
   private final RegionManager rmgr;
   private final AbstractionManager absmgr;
+  private final PredicateAbstractionManager amgr;
+
+  private final PredicateAbstractDomain domain;
+  private final MergeOperator merge;
+  private final PredicateTransferRelation trans;
+  private final PredicatePrecisionAdjustment prec;
+
   private final PredicateMapWriter precisionWriter;
   private final LoopInvariantsWriter loopInvariantsWriter;
   private final PredicateAbstractionsWriter abstractionsWriter;
 
-  public PredicateCPAStatistics(PredicateCPA pCpa, BlockOperator pBlk,
-      RegionManager pRmgr, AbstractionManager pAbsmgr, CFA pCfa,
-      Configuration pConfig)
-          throws InvalidConfigurationException {
+  public PredicateCPAStatistics(
+      Configuration pConfig,
+      LogManager pLogger,
+      CFA pCfa,
+      Solver pSolver,
+      PathFormulaManager pPfmgr,
+      BlockOperator pBlk,
+      RegionManager pRmgr,
+      AbstractionManager pAbsmgr,
+      PredicateAbstractionManager pPredAbsMgr,
+      PredicateAbstractDomain pDomain,
+      MergeOperator pMerge,
+      PredicateTransferRelation pTransfer,
+      PredicatePrecisionAdjustment pPrec)
+      throws InvalidConfigurationException {
+    pConfig.inject(this, PredicateCPAStatistics.class);
 
-    cpa = pCpa;
+    logger = pLogger;
+    solver = pSolver;
+    pfmgr = pPfmgr;
     blk = pBlk;
     rmgr = pRmgr;
     absmgr = pAbsmgr;
+    amgr = pPredAbsMgr;
+    domain = pDomain;
+    merge = pMerge;
+    trans = pTransfer;
+    prec = pPrec;
 
-    pConfig.inject(this, PredicateCPAStatistics.class);
-
-    final FormulaManagerView fmgr = cpa.getSolver().getFormulaManager();
-    loopInvariantsWriter = new LoopInvariantsWriter(pCfa, cpa.getLogger(), pAbsmgr, fmgr, pRmgr);
-    abstractionsWriter = new PredicateAbstractionsWriter(cpa.getLogger(), fmgr);
+    FormulaManagerView fmgr = pSolver.getFormulaManager();
+    loopInvariantsWriter = new LoopInvariantsWriter(pCfa, pLogger, pAbsmgr, fmgr, pRmgr);
+    abstractionsWriter = new PredicateAbstractionsWriter(pLogger, fmgr);
 
     if (exportPredmap && predmapFile != null) {
-      precisionWriter = new PredicateMapWriter(cpa.getConfiguration(), fmgr);
+      precisionWriter = new PredicateMapWriter(pConfig, fmgr);
     } else {
       precisionWriter = null;
     }
@@ -198,15 +227,13 @@ class PredicateCPAStatistics extends AbstractStatistics {
           predicates.location, predicates.function, predicates.global,
           allPredicates, w);
     } catch (IOException e) {
-      cpa.getLogger().logUserException(Level.WARNING, e, "Could not write predicate map to file");
+      logger.logUserException(Level.WARNING, e, "Could not write predicate map to file");
     }
   }
 
 
   @Override
   public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-    PredicateAbstractionManager amgr = cpa.getPredicateManager();
-
     int maxPredsPerLocation = -1;
     int allLocs = -1;
     int avgPredsPerLocation = -1;
@@ -256,14 +283,10 @@ class PredicateCPAStatistics extends AbstractStatistics {
     }
 
     PredicateAbstractionManager.Stats as = amgr.stats;
-    PredicateAbstractDomain domain = cpa.getAbstractDomain();
-    PredicateTransferRelation trans = cpa.getTransferRelation();
-    PredicatePrecisionAdjustment prec = cpa.getPrecisionAdjustment();
-    Solver solver = cpa.getSolver();
 
     CachingPathFormulaManager pfMgr = null;
-    if (cpa.getPathFormulaManager() instanceof CachingPathFormulaManager) {
-      pfMgr = (CachingPathFormulaManager)cpa.getPathFormulaManager();
+    if (pfmgr instanceof CachingPathFormulaManager) {
+      pfMgr = (CachingPathFormulaManager) pfmgr;
     }
 
     out.println("Number of abstractions:            " + prec.numAbstractions + " (" + toPercent(prec.numAbstractions, trans.postTimer.getNumberOfIntervals()) + " of all post computations)");
@@ -391,7 +414,6 @@ class PredicateCPAStatistics extends AbstractStatistics {
       out.println("    Time for BDD construction:       " + as.abstractionEnumTime.getInnerSumTime().formatAs(SECONDS)   + " (Max: " + as.abstractionEnumTime.getInnerMaxTime().formatAs(SECONDS) + ")");
     }
 
-    MergeOperator merge = cpa.getMergeOperator();
     if (merge instanceof PredicateMergeOperator) {
       out.println("Time for merge operator:             " + ((PredicateMergeOperator)merge).totalMergeTime);
     }
