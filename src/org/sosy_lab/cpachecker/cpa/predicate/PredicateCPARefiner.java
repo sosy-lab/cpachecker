@@ -462,15 +462,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     } else {
       // we have a real error
       logger.log(Level.FINEST, "Error trace is not spurious");
-      // we need interpolants for creating a precise error path
-      counterexample =
-          formulaManager.buildCounterexampleTrace(
-              formulas,
-              Lists.<AbstractState>newArrayList(abstractionStatesTrace),
-              elementsOnPath,
-              true);
       CounterexampleInfo cex = handleRealError(allStatesTrace, branchingOccurred, counterexample);
-
       return cex;
     }
   }
