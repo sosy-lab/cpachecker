@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
+import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.util.CPAs;
 
 public abstract class ImpactRefiner implements Refiner {
@@ -41,6 +42,7 @@ public abstract class ImpactRefiner implements Refiner {
         predicateCpa.getSolver(),
         predicateCpa.getPredicateManager());
 
-    return PredicateCPARefiner.create(pCpa, strategy);
+    return AbstractARGBasedRefiner.forARGBasedRefiner(
+        PredicateCPARefiner.create(pCpa, strategy), pCpa);
   }
 }

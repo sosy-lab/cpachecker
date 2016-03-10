@@ -166,7 +166,6 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner {
 
     this.refiner =
         new ExtendedPredicateRefiner(
-            pCpa,
             config,
             logger,
             shutdownNotifier,
@@ -199,7 +198,6 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner {
     private final PathFormulaManager pfmgr;
 
     private ExtendedPredicateRefiner(
-        ConfigurableProgramAnalysis pCpa,
         Configuration pConfig,
         LogManager pLogger,
         ShutdownNotifier pShutdownNotifier,
@@ -214,7 +212,6 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner {
         RefinementStrategy pStrategy)
         throws InvalidConfigurationException {
       super(
-          pCpa,
           pConfig,
           pLogger,
           pShutdownNotifier,
