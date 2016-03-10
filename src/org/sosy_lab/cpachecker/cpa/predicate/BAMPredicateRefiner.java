@@ -62,7 +62,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.bam.AbstractBAMBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.bam.BAMBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RefineableRelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -110,8 +110,8 @@ import com.google.common.collect.Sets;
  */
 public abstract class BAMPredicateRefiner implements Refiner {
 
-  public static AbstractBAMBasedRefiner create(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
-    return AbstractBAMBasedRefiner.forARGBasedRefiner(create0(pCpa), pCpa);
+  public static BAMBasedRefiner create(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
+    return BAMBasedRefiner.forARGBasedRefiner(create0(pCpa), pCpa);
   }
 
   public static ARGBasedRefiner create0(ConfigurableProgramAnalysis pCpa)

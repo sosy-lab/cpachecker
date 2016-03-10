@@ -53,7 +53,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
  * Warning: Although the ARG is flattened at this point, the elements in it have
  * not been expanded due to performance reasons.
  */
-public final class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner implements StatisticsProvider {
+public final class BAMBasedRefiner extends AbstractARGBasedRefiner implements StatisticsProvider {
 
   final Timer computePathTimer = new Timer();
   final Timer computeSubtreeTimer = new Timer();
@@ -65,7 +65,7 @@ public final class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner imple
   private final Map<ARGState, ARGState> subgraphStatesToReachedState = new HashMap<>();
   private ARGState rootOfSubgraph = null;
 
-  private AbstractBAMBasedRefiner(ConfigurableProgramAnalysis pCpa, ARGBasedRefiner pRefiner)
+  private BAMBasedRefiner(ConfigurableProgramAnalysis pCpa, ARGBasedRefiner pRefiner)
       throws InvalidConfigurationException {
     super(pCpa);
 
@@ -75,16 +75,16 @@ public final class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner imple
   }
 
   /**
-   * Create a {@link AbstractBAMBasedRefiner} instance (which is also a {@link Refiner} instance)
+   * Create a {@link BAMBasedRefiner} instance (which is also a {@link Refiner} instance)
    * wrapping a {@link ARGBasedRefiner} instance.
    */
-  public static AbstractBAMBasedRefiner forARGBasedRefiner(
+  public static BAMBasedRefiner forARGBasedRefiner(
       final ARGBasedRefiner pRefiner, final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
     checkArgument(
         !(pRefiner instanceof Refiner),
         "ARGBasedRefiners may not implement Refiner, choose between these two!");
-    return new AbstractBAMBasedRefiner(pCpa, pRefiner);
+    return new BAMBasedRefiner(pCpa, pRefiner);
   }
 
   @Override

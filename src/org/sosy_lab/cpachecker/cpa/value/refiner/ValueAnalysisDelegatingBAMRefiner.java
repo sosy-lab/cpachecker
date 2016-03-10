@@ -28,7 +28,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
-import org.sosy_lab.cpachecker.cpa.bam.AbstractBAMBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.bam.BAMBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.bam.DelegatingBAMRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.BAMPredicateRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
  */
 public abstract class ValueAnalysisDelegatingBAMRefiner implements Refiner {
 
-  public static AbstractBAMBasedRefiner create(ConfigurableProgramAnalysis cpa)
+  public static BAMBasedRefiner create(ConfigurableProgramAnalysis cpa)
       throws InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(ValueAnalysisDelegatingRefiner.class.getSimpleName() + " could not find the ValueAnalysisCPA");
@@ -59,7 +59,7 @@ public abstract class ValueAnalysisDelegatingBAMRefiner implements Refiner {
     LogManager logger = valueCpa.getLogger();
 
     // first value analysis refiner, then predicate analysis refiner
-    return AbstractBAMBasedRefiner.forARGBasedRefiner(
+    return BAMBasedRefiner.forARGBasedRefiner(
         new DelegatingBAMRefiner(
             logger, ValueAnalysisBAMRefiner.create0(cpa), BAMPredicateRefiner.create0(cpa)),
         cpa);
