@@ -21,11 +21,10 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.bam;
+package org.sosy_lab.cpachecker.cpa.arg;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
@@ -36,9 +35,6 @@ import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
@@ -46,8 +42,14 @@ import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
-public class DelegatingBAMRefiner implements ARGBasedRefiner, StatisticsProvider {
+/**
+ * This is a {@link ARGBasedRefiner} that delegates each refinement
+ * to a list of given {@link ARGBasedRefiner}s (in the given order)
+ * until one succeeds.
+ */
+public final class DelegatingARGBasedRefiner implements ARGBasedRefiner, StatisticsProvider {
 
   private final List<ARGBasedRefiner> refiners;
 
@@ -55,9 +57,9 @@ public class DelegatingBAMRefiner implements ARGBasedRefiner, StatisticsProvider
   private final List<StatCounter> totalRefinementsFinished;
   private final LogManager logger;
 
-  public DelegatingBAMRefiner(final LogManager pLogger, final ARGBasedRefiner... pRefiners) {
+  public DelegatingARGBasedRefiner(final LogManager pLogger, final ARGBasedRefiner... pRefiners) {
     logger = pLogger;
-    refiners = Arrays.asList(pRefiners);
+    refiners = ImmutableList.copyOf(pRefiners);
 
     totalRefinementsSelected = new ArrayList<>();
     totalRefinementsFinished = new ArrayList<>();
@@ -124,7 +126,7 @@ public class DelegatingBAMRefiner implements ARGBasedRefiner, StatisticsProvider
 
       @Override
       public String getName() {
-        return DelegatingBAMRefiner.class.getSimpleName();
+        return DelegatingARGBasedRefiner.class.getSimpleName();
       }
 
       @Override
