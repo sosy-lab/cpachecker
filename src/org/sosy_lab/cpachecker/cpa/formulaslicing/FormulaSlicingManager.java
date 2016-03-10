@@ -1,18 +1,19 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
-import java.io.PrintStream;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -25,75 +26,66 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Verify;
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 @Options(prefix="cpa.slicing")
 public class FormulaSlicingManager implements IFormulaSlicingManager {
-
-  /**
-   * Statistics for formula slicing.
-   */
-  private static class Stats implements Statistics {
-    final Timer formulaSlicingTimer = new Timer();
-
-    @Override
-    public void printStatistics(PrintStream out, Result result,
-        ReachedSet reached) {
-      out.printf("Time spent in formula slicing: %s (Max: %s), (Avg: %s)%n",
-          formulaSlicingTimer,
-          formulaSlicingTimer.getMaxTime().formatAs(TimeUnit.SECONDS),
-          formulaSlicingTimer.getAvgTime().formatAs(TimeUnit.SECONDS));
-    }
-
-    @Nullable
-    @Override
-    public String getName() {
-      return "Formula Slicing Manager";
-    }
-  }
-
   private final PathFormulaManager pfmgr;
   private final BooleanFormulaManager bfmgr;
   private final FormulaManagerView fmgr;
   private final CFA cfa;
-  private final LoopTransitionFinder loopTransitionFinder;
   private final InductiveWeakeningManager inductiveWeakeningManager;
   private final Solver solver;
   private final Stats statistics;
+  private final SemiCNFManager semiCNFManager;
+  private final LogManager logger;
 
   @Option(secure=true, description="Check target states reachability")
   private boolean checkTargetStates = true;
+
+  @Option(secure = true, description="Use information from outer states to strengthen")
+  private boolean useOuterStrengthening = true; // TODO: false by default? too expensive?
+
+  @Option(secure=true, description="Replace dead variables")
+  private boolean eliminateDeadVars = true;
 
   public FormulaSlicingManager(
       Configuration config,
       PathFormulaManager pPfmgr,
       FormulaManagerView pFmgr,
       CFA pCfa,
-      LoopTransitionFinder pLoopTransitionFinder,
-      InductiveWeakeningManager pInductiveWeakeningManager, Solver pSolver)
+      InductiveWeakeningManager pInductiveWeakeningManager, Solver pSolver, LogManager pLogger)
       throws InvalidConfigurationException {
+    logger = pLogger;
     config.inject(this);
     fmgr = pFmgr;
     pfmgr = pPfmgr;
     cfa = pCfa;
-    loopTransitionFinder = pLoopTransitionFinder;
     inductiveWeakeningManager = pInductiveWeakeningManager;
     solver = pSolver;
     bfmgr = pFmgr.getBooleanFormulaManager();
+    semiCNFManager = new SemiCNFManager(fmgr, config);
     statistics = new Stats();
   }
 
@@ -117,125 +109,152 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     return Collections.singleton(out);
   }
 
-  /**
-   * Slicing is performed in the {@code strengthen} call.
-   */
   @Override
-  public Collection<? extends SlicingState> strengthen(
-      SlicingState state, List<AbstractState> otherStates,
-      CFAEdge pCFAEdge)
-      throws CPATransferException, InterruptedException {
-    Preconditions.checkState(!state.isAbstracted());
+  public Optional<PrecisionAdjustmentResult> prec(
+      SlicingState pState,
+      UnmodifiableReachedSet pStates, AbstractState pFullState)
+      throws CPAException, InterruptedException
+  {
+    SlicingIntermediateState iState;
+    if (pState.isAbstracted()) {
 
-    CFANode successor = pCFAEdge.getSuccessor();
-
-    SlicingIntermediateState iState = state.asIntermediate();
-
-    if (shouldPerformAbstraction(successor)) {
-      Optional<SlicingAbstractedState> existingSlice = findSliceIfExists(
-          iState);
-
-      if (existingSlice.isPresent()) {
-        return Collections.singleton(existingSlice.get());
-      }
-
-      SlicingAbstractedState parent = iState.getAbstractParent();
-
-      Optional<SlicingAbstractedState> outerState = findOuterStateIfExists(
-          iState
+      // Caching the computation.
+      return Optional.of(
+          PrecisionAdjustmentResult.create(
+              pState, SingletonPrecision.getInstance(), Action.CONTINUE)
       );
+    } else {
+      iState = pState.asIntermediate();
+    }
 
-      // Over-approximation of the loop effect: disjunction over all possible
-      // transitions through the loop.
-      PathFormula possibleLoopTransitions = loopTransitionFinder.generateLoopTransition(
-          iState.getPathFormula().getSsa(),
-          iState.getPathFormula().getPointerTargetSet(),
-          successor);
+    boolean hasTargetState = Iterables.filter(
+        AbstractStates.asIterable(pFullState),
+        AbstractStates.IS_TARGET_STATE).iterator().hasNext();
+    boolean shouldPerformAbstraction = shouldPerformAbstraction(iState.getNode(), pFullState);
+    if (hasTargetState && checkTargetStates || shouldPerformAbstraction) {
+      if (isUnreachable(iState)) {
+        return Optional.absent();
+      }
+    }
 
-      BooleanFormula inductiveWeakening;
+    if (shouldPerformAbstraction) {
 
-      // We attempt to slice the previously obtained weakening as well.
-      BooleanFormula strengthening = fmgr.instantiate(
-          parent.getAbstraction(), parent.getSSA());
+      List<SlicingAbstractedState> trace = findTraceToPrev(pStates, pFullState, pState);
 
-      // If we are inside the outer loop, then:
-      // 1) Slice obtained from the ancestor can be safely conjoined to the
-      // slice we have obtained (with proper instantiation)
-      // 2) The strengthening can contain the predicate both before and
-      // after the transition.
-      PathFormula toSlice = iState.getPathFormula();
-      if (outerState.isPresent()) {
-        strengthening = bfmgr.and(
-            strengthening,
-            fmgr.instantiate(
-              outerState.get().getAbstraction(),
-                iState.getPathFormula().getSsa()
-            )
-        );
+      final SSAMap ssa = iState.getPathFormula().getSsa();
+      Set<BooleanFormula> finalClauses;
+      boolean isSliced;
+      if (!trace.isEmpty() && !Iterables.getLast(trace).isInitial()) {
+        isSliced = true;
+        SlicingAbstractedState first = trace.get(0);
+        List<SlicingAbstractedState> traceWithoutFirst = trace.subList(1, trace.size());
+        List<SlicingIntermediateState> predecessors = Lists.transform(traceWithoutFirst,
+            new Function<SlicingAbstractedState, SlicingIntermediateState>() {
+              @Override
+              public SlicingIntermediateState apply(SlicingAbstractedState input) {
+                return input.getGeneratingState().get();
+              }
+            });
+
+
+        List<Pair<PathFormula, SSAMap>> taus = approximateLoopTransitions(predecessors, iState);
+
+        // now slice "first" wrt \tau
+        BooleanFormula strengthening = useOuterStrengthening ?
+                                       bfmgr.and(first.getGeneratingState()
+                                           .get().getAbstractParent().getAbstraction())
+                                       : bfmgr.makeBoolean(true);
+        finalClauses = first.getAbstraction();
+        for (Pair<PathFormula, SSAMap> tau : taus) {
+          try {
+            finalClauses = Sets.intersection(
+                inductiveWeakeningManager.findInductiveWeakeningForSemiCNF(
+                    tau.getSecondNotNull(),
+                    finalClauses,
+                    tau.getFirstNotNull(),
+                    strengthening
+                ),
+                finalClauses
+            );
+          } catch (SolverException pE) {
+            throw new CPAException("Solver call failed", pE);
+          }
+        }
       } else {
 
-        // Slice the previously obtained weakening again.
-        toSlice = toSlice.updateFormula(
-            bfmgr.and(strengthening, toSlice.getFormula())
-        );
-      }
-      toSlice = toSlice.updateFormula(fmgr.simplify(toSlice.getFormula()));
-
-      try {
-        statistics.formulaSlicingTimer.start();
-        inductiveWeakening =
-            inductiveWeakeningManager.findInductiveWeakening(
-                toSlice,
-                possibleLoopTransitions, strengthening);
-      } catch(SolverException ex) {
-        throw new CPATransferException("Originating exception: ", ex);
-      } finally {
-        statistics.formulaSlicingTimer.stop();
-      }
-
-      if (outerState.isPresent()) {
-        inductiveWeakening = fmgr.simplify(bfmgr.and(
-            inductiveWeakening, outerState.get().getAbstraction()
-        ));
-      }
-      return Collections.singleton(
-          SlicingAbstractedState.of(
-              inductiveWeakening, iState.getPathFormula().getSsa(),
-              iState.getPathFormula().getPointerTargetSet(), fmgr, successor,
-              Optional.of(iState))
-      );
-
-    } else {
-
-      boolean hasTargetState = false;
-      for (AbstractState oState : otherStates) {
-        if (AbstractStates.isTargetState(oState)) {
-          hasTargetState = true;
-          break;
+        // Just convert to a set of clauses.
+        PathFormula pf = iState.getPathFormula();
+        if (eliminateDeadVars) {
+          pf = fmgr.eliminateDeadVarsFixpoint(pf);
         }
-      }
 
-      if (checkTargetStates && hasTargetState) {
-        try {
-          if (isUnreachable(state.asIntermediate())) {
-            return Collections.emptyList();
+        Set<BooleanFormula> clauses =
+            semiCNFManager.toClauses(pf.getFormula());
+
+        finalClauses = new HashSet<>();
+        for (BooleanFormula clause : clauses) {
+          if (fmgr.getDeadFunctionNames(clause, ssa).isEmpty()) {
+            finalClauses.add(fmgr.uninstantiate(clause));
           }
-        } catch (SolverException e) {
-          throw new CPATransferException("Reachability checking failed", e);
         }
+        if (useOuterStrengthening) {
+          finalClauses = Sets.union(finalClauses, iState.getAbstractParent().getAbstraction());
+        }
+        isSliced = false;
       }
-      return Collections.singleton(state);
+      SlicingAbstractedState out = SlicingAbstractedState.of(
+          finalClauses, ssa, iState.getPathFormula().getPointerTargetSet(),
+          fmgr,
+          iState.getNode(),
+          Optional.of(iState),
+          isSliced
+      );
+      return Optional.of(
+          PrecisionAdjustmentResult.create(
+              out, SingletonPrecision.getInstance(), Action.CONTINUE)
+      );
+    } else {
+      return Optional.of(PrecisionAdjustmentResult.create(
+          pState, SingletonPrecision.getInstance(), Action.CONTINUE));
     }
+
+
+  }
+
+  private List<Pair<PathFormula, SSAMap>> approximateLoopTransitions(
+      List<SlicingIntermediateState> paths,
+      SlicingIntermediateState iState
+      ) throws InterruptedException {
+    List<Pair<PathFormula, SSAMap>> out = new ArrayList<>(paths.size() + 1);
+    for (SlicingIntermediateState s : Iterables.concat(paths, ImmutableList.of(iState))) {
+      out.add(
+          Pair.of(
+              s.getPathFormula().updateFormula(fmgr.simplify(s.getPathFormula().getFormula())),
+              s.getAbstractParent().getSSA()
+          )
+
+      );
+    }
+    return out;
   }
 
   private boolean isUnreachable(SlicingIntermediateState iState)
-      throws SolverException, InterruptedException {
-    BooleanFormula prevSlice = iState.getAbstractParent().getAbstraction();
+      throws InterruptedException, CPAException {
+
+    BooleanFormula prevSlice = bfmgr.and(iState.getAbstractParent().getAbstraction());
     BooleanFormula instantiatedFormula =
         fmgr.instantiate(prevSlice, iState.getAbstractParent().getSSA());
     BooleanFormula reachabilityQuery = bfmgr.and(
         iState.getPathFormula().getFormula(), instantiatedFormula);
-    return solver.isUnsat(reachabilityQuery);
+    try {
+      boolean out = solver.isUnsat(reachabilityQuery);
+      if (out) {
+
+      }
+      return out;
+    } catch (SolverException pE) {
+      throw new CPAException("Solver exception suppressed: ", pE);
+    }
   }
 
   @Override
@@ -244,48 +263,32 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
   }
 
   @Override
-  public boolean isLessOrEqual(SlicingState pState1,
-      SlicingState pState2) throws InterruptedException, CPAException {
+  public boolean isLessOrEqual(SlicingState pState1, SlicingState pState2) {
     Preconditions.checkState(pState1.isAbstracted() == pState2.isAbstracted());
 
-    if (!pState1.isAbstracted()) {
-
-      // Use the coverage relation for intermediate states.
-      SlicingIntermediateState iState1 = pState1.asIntermediate();
-      SlicingIntermediateState iState2 = pState2.asIntermediate();
-      return (iState1.isMergedInto(iState2) ||
-          iState1.getPathFormula().getFormula().equals(iState2.getPathFormula().getFormula()))
-          && isLessOrEqual(iState1.getAbstractParent(), iState2.getAbstractParent());
-
+    if (pState1.isAbstracted()) {
+      return isLessOrEqualAbstracted(pState1.asAbstracted(), pState2.asAbstracted());
     } else {
-      SlicingAbstractedState aState1 = pState1.asAbstracted();
-      SlicingAbstractedState aState2 = pState2.asAbstracted();
-      BooleanFormula abstraction1 = aState1.getAbstraction();
-      BooleanFormula abstraction2 = aState2.getAbstraction();
-
-      if (fmgr.simplify(abstraction1).equals(fmgr.simplify(abstraction2))
-          || abstraction1.equals(bfmgr.makeBoolean(false))
-          || abstraction2.equals(bfmgr.makeBoolean(true))) {
-        return true;
-      }
-
-      try {
-        return isLessOrEqual(
-                pState1.asAbstracted().getAbstraction(),
-                pState2.asAbstracted().getAbstraction());
-      } catch (SolverException e) {
-        throw new CPAException("Solver failed on a query", e);
-      }
+      return isLessOrEqualIntermediate(pState1.asIntermediate(), pState2.asIntermediate());
     }
   }
 
-  /**
-   * Check whether one formula subsumes another one.
-   * NOTE: for this to work {@code f2} must not contain intermediate variables.
-   */
-  private boolean isLessOrEqual(BooleanFormula f1, BooleanFormula f2)
-      throws SolverException, InterruptedException {
-    return solver.isUnsat(bfmgr.and(f1, bfmgr.not(f2)));
+  private boolean isLessOrEqualIntermediate(
+      SlicingIntermediateState pState1,
+      SlicingIntermediateState pState2) {
+    SlicingIntermediateState iState1 = pState1.asIntermediate();
+    SlicingIntermediateState iState2 = pState2.asIntermediate();
+    return (iState1.isMergedInto(iState2) ||
+        iState1.getPathFormula().getFormula().equals(iState2.getPathFormula().getFormula()))
+        && isLessOrEqualAbstracted(iState1.getAbstractParent(), iState2.getAbstractParent());
+  }
+
+  private boolean isLessOrEqualAbstracted(
+      SlicingAbstractedState pState1,
+      SlicingAbstractedState pState2
+  ) {
+    // More clauses => more constraints => the state is *smaller*.
+    return pState1.getAbstraction().containsAll(pState2.getAbstraction());
   }
 
   private SlicingIntermediateState joinIntermediateStates(
@@ -329,63 +332,13 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
             0), pSlicingAbstractedState);
   }
 
-  private boolean shouldPerformAbstraction(CFANode node) {
+  private boolean shouldPerformAbstraction(CFANode node, AbstractState pFullState) {
 
+    LoopstackState loopState = AbstractStates.extractStateByType(pFullState,
+        LoopstackState.class);
     // Slicing is only performed on the loop heads.
-    return cfa.getLoopStructure().get().getAllLoopHeads().contains(node);
-  }
-
-  /**
-   * @return a *unique* {@link Loop} for a given {@code loopHead}
-   */
-  private Loop getLoopForLoopHead(CFANode loopHead) {
-    Set<Loop> loops = cfa.getLoopStructure().get().getLoopsForLoopHead(loopHead);
-    Verify.verify(loops.size() == 1);
-    return loops.iterator().next();
-  }
-
-  /**
-   * @return already existing slice which can be used in place of this one,
-   * by traversing the chain of backpointers, if it exists.
-   */
-  private Optional<SlicingAbstractedState> findSliceIfExists(
-      SlicingIntermediateState iState) {
-    Loop loop = getLoopForLoopHead(iState.getNode());
-    SlicingAbstractedState pState = iState.getAbstractParent();
-    while (pState.getGeneratingState().isPresent()) {
-      if (getLoopForLoopHead(pState.getNode()) == loop) {
-        return Optional.of(pState);
-      }
-      pState = pState.getGeneratingState().get().getAbstractParent();
-    }
-    return Optional.absent();
-  }
-
-  /**
-   * @return the state corresponding to the outer loop if one exists.
-   */
-  private Optional<SlicingAbstractedState> findOuterStateIfExists(
-      SlicingIntermediateState iState
-  ) {
-    Loop loop = getLoopForLoopHead(iState.getNode());
-
-    SlicingAbstractedState aState = iState.getAbstractParent();
-    while (aState.getGeneratingState().isPresent()) {
-      Loop backpointerLoop = getLoopForLoopHead(aState.getNode());
-      if (backpointerLoop.isOuterLoopOf(loop)) {
-        return Optional.of(aState);
-      }
-      aState = aState.getGeneratingState().get().getAbstractParent();
-    }
-    return Optional.absent();
-  }
-
-  @Override
-  public Optional<PrecisionAdjustmentResult> prec(SlicingState pState,
-      UnmodifiableReachedSet pStates, AbstractState pFullState) {
-
-    return Optional.of(PrecisionAdjustmentResult.create(
-        pState, SingletonPrecision.getInstance(), Action.CONTINUE));
+    return cfa.getLoopStructure().get().getAllLoopHeads().contains(node)
+        && (loopState == null || loopState.isLoopCounterAbstracted());
   }
 
   @Override
@@ -403,8 +356,75 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     }
   }
 
+  private List<SlicingAbstractedState> findTraceToPrev(UnmodifiableReachedSet states,
+                                                       AbstractState pArgState,
+                                                       SlicingState state) {
+    Set<SlicingAbstractedState> filteredSiblings =
+        ImmutableSet.copyOf(
+            AbstractStates.projectToType(
+                states.getReached(pArgState),
+                SlicingAbstractedState.class)
+        );
+    if (filteredSiblings.isEmpty()) {
+      return ImmutableList.of();
+    }
+
+    // All states on the way, *excluding* the very first appearance.
+    List<SlicingAbstractedState> trace = new ArrayList<>();
+
+    // We follow the chain of backpointers.
+    // The chain is necessary as we might have nested loops.
+    SlicingState a = state;
+    while (true) {
+      if (a.isAbstracted()) {
+        SlicingAbstractedState aState = a.asAbstracted();
+        trace.add(aState);
+
+        if (filteredSiblings.contains(aState)) {
+          if (aState.isSliced()) {
+            return ImmutableList.of();
+          } else {
+            return trace;
+          }
+        } else {
+
+          if (!aState.getGeneratingState().isPresent()) {
+            // Empty.
+            return ImmutableList.of();
+          }
+          a = aState.getGeneratingState().get().getAbstractParent();
+        }
+
+      } else {
+        SlicingIntermediateState iState = a.asIntermediate();
+        a = iState.getAbstractParent();
+      }
+    }
+  }
+
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(statistics);
+  }
+
+  /**
+   * Statistics for formula slicing.
+   */
+  private static class Stats implements Statistics {
+    final Timer formulaSlicingTimer = new Timer();
+
+    @Override
+    public void printStatistics(PrintStream out, Result result,
+                                ReachedSet reached) {
+      out.printf("Time spent in formula slicing: %s (Max: %s), (Avg: %s)%n",
+          formulaSlicingTimer,
+          formulaSlicingTimer.getMaxTime().formatAs(TimeUnit.SECONDS),
+          formulaSlicingTimer.getAvgTime().formatAs(TimeUnit.SECONDS));
+    }
+
+    @Override
+    public String getName() {
+      return "Formula Slicing Manager";
+    }
   }
 }

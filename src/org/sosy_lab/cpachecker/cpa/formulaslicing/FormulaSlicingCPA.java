@@ -87,8 +87,8 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
     inductiveWeakeningManager = new InductiveWeakeningManager(pConfiguration, solver, pLogger);
     manager = new FormulaSlicingManager(
         pConfiguration,
-        pathFormulaManager, formulaManager, cfa, loopTransitionFinder,
-        inductiveWeakeningManager, solver);
+        pathFormulaManager, formulaManager, cfa,
+        inductiveWeakeningManager, solver, pLogger);
     stopOperator = new StopSepOperator(this);
     mergeOperator = this;
   }
@@ -139,8 +139,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   public Collection<? extends AbstractState> strengthen(AbstractState state,
       List<AbstractState> otherStates, @Nullable CFAEdge cfaEdge,
       Precision precision) throws CPATransferException, InterruptedException {
-    return manager.strengthen((SlicingState)state,
-        otherStates, cfaEdge);
+    return null;
   }
 
   @Override

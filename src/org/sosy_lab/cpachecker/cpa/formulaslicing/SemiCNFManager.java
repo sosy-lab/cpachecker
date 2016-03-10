@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
@@ -15,7 +16,9 @@ import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 import org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -76,6 +79,43 @@ public class SemiCNFManager {
     ));
   }
 
+  public Set<BooleanFormula> toClauses(BooleanFormula input) throws InterruptedException {
+    BooleanFormula out = flatten(convert(fmgr.simplify(input)));
+    return Sets.filter(
+        getConjunctionArgs(out),
+        new Predicate<BooleanFormula>() {
+          @Override
+          public boolean apply(BooleanFormula input) {
+            // Remove redundant constraints.
+            assert getConjunctionArgs(input).size() == 1;
+            return !bfmgr.isTrue(fmgr.simplify(input));
+          }
+        }
+    );
+  }
+
+  // TODO: cache, expand.
+  Map<BooleanFormula, BooleanFormula> flattenCache = new HashMap<>();
+
+  public BooleanFormula flatten(BooleanFormula input) {
+    BooleanFormula out = flattenCache.get(input);
+    if (out != null) {
+      return out;
+    }
+    out = bfmgr.transformRecursively(new BooleanFormulaTransformationVisitor(fmgr) {
+      @Override
+      public BooleanFormula visitAnd(List<BooleanFormula> processed) {
+        List<BooleanFormula> allArgs = new ArrayList<>();
+        for (BooleanFormula op : processed) {
+          Set<BooleanFormula> args = getConjunctionArgs(op);
+          allArgs.addAll(args);
+        }
+        return bfmgr.and(allArgs);
+      }
+    }, input);
+    flattenCache.put(input, out);
+    return out;
+  }
 
   /**
    * Convert the formula to semi-CNF form.
@@ -84,30 +124,18 @@ public class SemiCNFManager {
     final AtomicInteger expansionsAllowed = new AtomicInteger(expansionDepthLimit);
 
     input = fmgr.applyTactic(input, Tactic.NNF);
-    return bfmgr.visit(new BooleanFormulaTransformationVisitor(fmgr) {
+    return bfmgr.transformRecursively(new BooleanFormulaTransformationVisitor(fmgr) {
 
       /**
        * Flatten AND-.
        */
       @Override
-      public BooleanFormula visitAnd(List<BooleanFormula> pOperands) {
-        List<BooleanFormula> processed = visitIfNotSeen(pOperands);
-
-        List<BooleanFormula> allArgs = new ArrayList<>();
-        for (BooleanFormula op : processed) {
-          Set<BooleanFormula> args = getConjunctionArgs(op);
-          if (args.isEmpty()) {
-            return bfmgr.and(processed);
-          } else {
-            allArgs.addAll(args);
-          }
-        }
-        return bfmgr.and(allArgs);
+      public BooleanFormula visitAnd(List<BooleanFormula> processed) {
+        return flatten(bfmgr.and(processed));
       }
 
       @Override
-      public BooleanFormula visitOr(List<BooleanFormula> pOperands) {
-        List<BooleanFormula> processed = visitIfNotSeen(pOperands);
+      public BooleanFormula visitOr(List<BooleanFormula> processed) {
 
         Set<BooleanFormula> intersection = null;
         ArrayList<Set<BooleanFormula>> argsAsConjunctions = new ArrayList<>();
@@ -144,18 +172,26 @@ public class SemiCNFManager {
           List<BooleanFormula> newArgs = new ArrayList<>(product.size() + 1);
           newArgs.add(common);
           for (List<BooleanFormula> l : product) {
-            newArgs.add(bfmgr.or(l));
+            newArgs.add(disjunctionToImplication(l));
           }
           return bfmgr.and(newArgs);
         } else {
-          return bfmgr.and(common, bfmgr.or(branches));
+          return bfmgr.and(common, disjunctionToImplication(branches));
         }
       }
 
     }, input);
   }
 
-  private Set<BooleanFormula> getConjunctionArgs(final BooleanFormula f) {
+  private BooleanFormula disjunctionToImplication(List<BooleanFormula> disjunctionArguments) {
+    return bfmgr.implication(
+        bfmgr.not(disjunctionArguments.get(0)),
+        fmgr.simplify(bfmgr.or(disjunctionArguments.subList(1, disjunctionArguments.size())))
+    );
+  }
+
+  // TODO: this is incredibly inefficient.
+  public Set<BooleanFormula> getConjunctionArgs(final BooleanFormula f) {
     return bfmgr.visit(new DefaultBooleanFormulaVisitor<Set<BooleanFormula>>() {
       @Override
       protected Set<BooleanFormula> visitDefault() {
