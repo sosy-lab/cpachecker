@@ -36,6 +36,8 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AnalysisWithRefinableEnablerCPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
@@ -298,9 +300,12 @@ public class CoreComponentsFactory {
     return reached;
   }
 
-  public ConfigurableProgramAnalysis createCPA(final CFA cfa,
+  public ConfigurableProgramAnalysis createCPA(
+      final CFA cfa,
       @Nullable final MainCPAStatistics stats,
-      SpecAutomatonCompositionType composeWithSpecificationCPAs) throws InvalidConfigurationException, CPAException {
+      SpecAutomatonCompositionType composeWithSpecificationCPAs,
+      final @Nullable List<Automaton> pAutomata)
+      throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
     if (stats != null) {
       stats.cpaCreationTime.start();
@@ -314,10 +319,12 @@ public class CoreComponentsFactory {
 
       final ConfigurableProgramAnalysis cpa;
       switch (composeWithSpecificationCPAs) {
-      case TARGET_SPEC:
-        cpa = cpaFactory.buildCPAWithSpecAutomatas(cfa); break;
-      case BACKWARD_TO_ENTRY_SPEC:
-        cpa = cpaFactory.buildCPAWithBackwardSpecAutomatas(cfa); break;
+        case TARGET_SPEC:
+          cpa = cpaFactory.buildCPAWithSpecAutomatas(cfa, pAutomata);
+          break;
+        case BACKWARD_TO_ENTRY_SPEC:
+          cpa = cpaFactory.buildCPAWithBackwardSpecAutomatas(cfa, pAutomata);
+          break;
       default:
         cpa = cpaFactory.buildCPAs(cfa, null);
       }
@@ -334,14 +341,17 @@ public class CoreComponentsFactory {
     }
   }
 
-  List<Automaton> createAutomata(final @Nullable MainCPAStatistics stats)
+  List<Automaton> createAutomata(
+      final @Nullable MainCPAStatistics stats,
+      final Language pLanguage,
+      final MachineModel pMachineModel)
       throws InvalidConfigurationException {
     if (stats != null) {
       stats.createAutomatonASTMatcherTime.start();
     }
     try {
       logger.log(Level.FINE, "Parsing automata for variable classification.");
-      return cpaFactory.createAutomata();
+      return cpaFactory.createAutomata(pLanguage, pMachineModel);
     } finally {
       if (stats != null) {
         stats.createAutomatonASTMatcherTime.stop();

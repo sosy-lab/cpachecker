@@ -115,20 +115,36 @@ public class CPABuilder {
     config.inject(this);
   }
 
-  public ConfigurableProgramAnalysis buildCPAWithSpecAutomatas(final CFA cfa)
+  public ConfigurableProgramAnalysis buildCPAWithSpecAutomatas(final CFA pCFA)
       throws InvalidConfigurationException, CPAException {
 
     // create automata cpas for the specification files given in "specification"
-    return buildCPAs(cfa, specificationFiles);
+    return buildCPAs(pCFA, specificationFiles);
   }
 
-  public ConfigurableProgramAnalysis buildCPAWithBackwardSpecAutomatas(final CFA cfa)
+  public ConfigurableProgramAnalysis buildCPAWithSpecAutomatas(
+      final CFA pCFA, final @Nullable List<Automaton> pAutomata)
+      throws InvalidConfigurationException, CPAException {
+
+    // create automata cpas for the specification files given in "specification"
+    return buildCPAs(pAutomata, pCFA);
+  }
+
+  public ConfigurableProgramAnalysis buildCPAWithBackwardSpecAutomatas(final CFA pCFA)
       throws InvalidConfigurationException, CPAException {
     // create automata cpas for the specification files given in "backwardSpecification"
-    return buildCPAs(cfa, backwardSpecificationFiles);
+    return buildCPAs(pCFA, backwardSpecificationFiles);
   }
 
-  public List<Automaton> createAutomata() throws InvalidConfigurationException {
+  public ConfigurableProgramAnalysis buildCPAWithBackwardSpecAutomatas(
+      final CFA pCFA, final @Nullable List<Automaton> pAutomata)
+      throws InvalidConfigurationException, CPAException {
+    // create automata cpas for the specification files given in "backwardSpecification"
+    return buildCPAs(pAutomata, pCFA);
+  }
+
+  public List<Automaton> createAutomata(final Language pLanguage, final MachineModel pMachineModel)
+      throws InvalidConfigurationException {
     List<Automaton> automata = new LinkedList<>();
 
     if (specificationFiles == null) {
@@ -140,7 +156,7 @@ public class CPABuilder {
       // functionality, only want to have the AutomatonASTComparators…
       List<Automaton> automataInFile =
           AutomatonParser.parseAutomatonFile(
-              specFile, config, logger, MachineModel.LINUX32, new GlobalScope(), Language.C);
+              specFile, config, logger, pMachineModel, new GlobalScope(), pLanguage);
 
       automata.addAll(automataInFile);
     }
@@ -201,6 +217,20 @@ public class CPABuilder {
     return buildCPAs(cpaName, CPA_OPTION_NAME, usedAliases, cpas, cfa);
   }
 
+  public ConfigurableProgramAnalysis buildCPAs(
+      final @Nullable List<Automaton> pAutomata, final CFA pCFA)
+      throws InvalidConfigurationException, CPAException {
+    Set<String> usedAliases = new HashSet<>();
+
+    List<ConfigurableProgramAnalysis> cpas = null;
+
+    if (pAutomata != null) {
+      cpas = createSpecificationCPAs(pCFA, usedAliases, pAutomata);
+    }
+
+    return buildCPAs(cpaName, CPA_OPTION_NAME, usedAliases, cpas, pCFA);
+  }
+
   /**
    * create automata cpas for the specification files given as argument
    */
@@ -241,6 +271,34 @@ public class CPABuilder {
           logger.log(Level.FINER, "Loaded Automaton\"" + automaton.getName() + "\"");
         }
       }
+
+    return cpas;
+  }
+
+  private List<ConfigurableProgramAnalysis> createSpecificationCPAs(
+      final CFA pCFA, Set<String> pUsedAliases, final List<Automaton> pAutomata)
+      throws InvalidConfigurationException, CPAException {
+
+    List<ConfigurableProgramAnalysis> cpas = new ArrayList<>();
+
+    for (Automaton automaton : pAutomata) {
+      String cpaAlias = automaton.getName();
+
+      if (!pUsedAliases.add(cpaAlias)) {
+        throw new InvalidConfigurationException(
+            "Name " + cpaAlias + " used twice for an " + "automaton.");
+      }
+
+      CPAFactory factory = ControlAutomatonCPA.factory();
+      factory.setConfiguration(Configuration.copyWithNewPrefix(config, cpaAlias));
+      factory.setLogger(logger.withComponentName(cpaAlias));
+      factory.set(pCFA, CFA.class);
+      factory.set(automaton, Automaton.class);
+
+      cpas.add(factory.createInstance());
+
+      logger.log(Level.FINER, "Loaded Automaton \"" + automaton.getName() + "\"");
+    }
 
     return cpas;
   }

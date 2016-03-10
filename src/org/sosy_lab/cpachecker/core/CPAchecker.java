@@ -273,8 +273,7 @@ public class CPAchecker {
            * Parse specification automata before creating the CFA in order to get all matcher for
            * variable classification
            */
-          final List<Automaton> automata =
-              factory.createAutomata(stats);
+          final List<Automaton> automata = factory.createAutomata(stats, language, machineModel);
           CFA cfa = parse(programDenotation, stats, automata);
           GlobalInfo.getInstance().storeCFA(cfa);
           shutdownNotifier.shutdownIfNecessary();
@@ -284,9 +283,7 @@ public class CPAchecker {
               ? SpecAutomatonCompositionType.BACKWARD_TO_ENTRY_SPEC
               : SpecAutomatonCompositionType.TARGET_SPEC;
 
-          ConfigurableProgramAnalysis cpa = factory.createCPA(
-              cfa, stats,
-              speComposition);
+          ConfigurableProgramAnalysis cpa = factory.createCPA(cfa, stats, speComposition, automata);
           GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
           algorithm = factory.createAlgorithm(cpa, programDenotation, cfa, stats);

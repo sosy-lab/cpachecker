@@ -91,7 +91,7 @@ public class AnalysisFactory {
     SpecAutomatonCompositionType speComposition = SpecAutomatonCompositionType.TARGET_SPEC;
     CoreComponentsFactory factory = new CoreComponentsFactory(config, logger, pShutdownManager.getNotifier());
 
-    ConfigurableProgramAnalysis cpa = factory.createCPA(cfa, mainStats, speComposition);
+    ConfigurableProgramAnalysis cpa = factory.createCPA(cfa, mainStats, speComposition, null);
     GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
     Algorithm algorithm = factory.createAlgorithm(cpa, programDenotation, cfa, mainStats, true);
