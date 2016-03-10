@@ -160,9 +160,13 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
         List<Pair<PathFormula, SSAMap>> taus = approximateLoopTransitions(predecessors, iState);
 
         // now slice "first" wrt \tau
+        SlicingAbstractedState abstractParent = first.getGeneratingState()
+                                               .get().getAbstractParent();
         BooleanFormula strengthening = useOuterStrengthening ?
-                                       bfmgr.and(first.getGeneratingState()
-                                           .get().getAbstractParent().getAbstraction())
+                                       fmgr.instantiate(
+                                           bfmgr.and(abstractParent.getAbstraction()),
+                                           abstractParent.getSSA()
+                                       )
                                        : bfmgr.makeBoolean(true);
         finalClauses = first.getAbstraction();
         for (Pair<PathFormula, SSAMap> tau : taus) {
@@ -198,7 +202,33 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
           }
         }
         if (useOuterStrengthening) {
-          finalClauses = Sets.union(finalClauses, iState.getAbstractParent().getAbstraction());
+        // TODO: A better strategy, refactor.
+          try {
+            SlicingAbstractedState abstractParent = iState.getAbstractParent();
+            Set<BooleanFormula> toAdd = new HashSet<>();
+            for (BooleanFormula clause : abstractParent.getAbstraction()) {
+              if (solver.isUnsat(
+                  bfmgr.and(
+                      fmgr.instantiate(
+                          clause,
+                          abstractParent.getSSA()
+                      ),
+                      bfmgr.not(
+                          fmgr.instantiate(
+                              clause,
+                              iState.getPathFormula().getSsa()
+                          )
+                      ),
+                      iState.getPathFormula().getFormula()
+                  )
+              )) {
+                toAdd.add(clause);
+              }
+            }
+            finalClauses = Sets.union(finalClauses, toAdd);
+          } catch (SolverException pE) {
+            throw new CPAException("Failed solving", pE);
+          }
         }
         isSliced = false;
       }
@@ -247,11 +277,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     BooleanFormula reachabilityQuery = bfmgr.and(
         iState.getPathFormula().getFormula(), instantiatedFormula);
     try {
-      boolean out = solver.isUnsat(reachabilityQuery);
-      if (out) {
-
-      }
-      return out;
+      return solver.isUnsat(reachabilityQuery);
     } catch (SolverException pE) {
       throw new CPAException("Solver exception suppressed: ", pE);
     }
