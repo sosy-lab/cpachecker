@@ -34,9 +34,7 @@ import org.sosy_lab.solver.visitors.TraversalProcess;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -100,6 +98,12 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   }
 
   @Override
+  public BooleanFormula transformRecursively(
+      org.sosy_lab.solver.visitors.BooleanFormulaTransformationVisitor pVisitor, BooleanFormula f) {
+    return manager.transformRecursively(pVisitor, f);
+  }
+
+  @Override
   public BooleanFormula makeBoolean(boolean pValue) {
     return manager.makeBoolean(pValue);
   }
@@ -153,13 +157,8 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   public static abstract class BooleanFormulaTransformationVisitor
       extends org.sosy_lab.solver.visitors.BooleanFormulaTransformationVisitor {
 
-    protected BooleanFormulaTransformationVisitor(FormulaManagerView pFmgr,
-        Map<BooleanFormula, BooleanFormula> pCache) {
-      super(pFmgr.getRawFormulaManager(), pCache);
-    }
-
     protected BooleanFormulaTransformationVisitor(FormulaManagerView pFmgr) {
-      super(pFmgr.getRawFormulaManager(), new HashMap<BooleanFormula, BooleanFormula>());
+      super(pFmgr.getRawFormulaManager().getBooleanFormulaManager());
     }
   }
 
