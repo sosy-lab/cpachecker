@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -30,8 +33,11 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Refiner;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -69,11 +75,43 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner im
   }
 
   /**
+   * Create a {@link AbstractBAMBasedRefiner} instance (which is also a {@link Refiner} instance)
+   * from a {@link ARGBasedRefiner} instance.
+   */
+  public static AbstractBAMBasedRefiner forARGBasedRefiner(
+      final ARGBasedRefiner pRefiner, final ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
+    checkArgument(
+        !(pRefiner instanceof Refiner),
+        "ARGBasedRefiners may not implement Refiner, choose between these two!");
+    return new AbstractBAMBasedRefiner(pCpa) {
+
+      @Override
+      protected CounterexampleInfo performRefinement0(ARGReachedSet pReached, ARGPath pPath)
+          throws CPAException, InterruptedException {
+        return pRefiner.performRefinement(pReached, pPath);
+      }
+
+      @Override
+      public void collectStatistics(Collection<Statistics> pStatsCollection) {
+        if (pRefiner instanceof StatisticsProvider) {
+          ((StatisticsProvider) pRefiner).collectStatistics(pStatsCollection);
+        }
+      }
+
+      @Override
+      public String toString() {
+        return pRefiner.toString();
+      }
+    };
+  }
+  /**
    * When inheriting from this class, implement this method instead of
    * {@link #performRefinement(ReachedSet)}.
    */
   @ForOverride
-  protected abstract CounterexampleInfo performRefinement0(ARGReachedSet pReached, ARGPath pPath) throws CPAException, InterruptedException;
+  protected abstract CounterexampleInfo performRefinement0(ARGReachedSet pReached, ARGPath pPath)
+      throws CPAException, InterruptedException;
 
   @Override
   protected final CounterexampleInfo performRefinement(ARGReachedSet pReached, ARGPath pPath) throws CPAException, InterruptedException {
