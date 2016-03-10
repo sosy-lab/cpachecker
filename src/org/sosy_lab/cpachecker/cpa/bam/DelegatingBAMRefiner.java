@@ -30,13 +30,13 @@ import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -47,20 +47,16 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 import com.google.common.base.Preconditions;
 
-public class DelegatingBAMRefiner extends AbstractBAMBasedRefiner {
+public class DelegatingBAMRefiner implements ARGBasedRefiner, StatisticsProvider {
 
-  private final List<AbstractBAMBasedRefiner> refiners;
+  private final List<ARGBasedRefiner> refiners;
 
   private final List<StatCounter> totalRefinementsSelected;
   private final List<StatCounter> totalRefinementsFinished;
   private final LogManager logger;
 
-  public DelegatingBAMRefiner(
-      final ConfigurableProgramAnalysis pCpa, final AbstractBAMBasedRefiner... pRefiners)
-      throws InvalidConfigurationException {
-    super(pCpa);
-
-    logger = ((BAMCPA) pCpa).getLogger();
+  public DelegatingBAMRefiner(final LogManager pLogger, final ARGBasedRefiner... pRefiners) {
+    logger = pLogger;
     refiners = Arrays.asList(pRefiners);
 
     totalRefinementsSelected = new ArrayList<>();
@@ -77,7 +73,7 @@ public class DelegatingBAMRefiner extends AbstractBAMBasedRefiner {
   }
 
   @Override
-  protected CounterexampleInfo performRefinement0(final ARGReachedSet reached, ARGPath pErrorPath)
+  public CounterexampleInfo performRefinement(final ARGReachedSet reached, ARGPath pErrorPath)
       throws CPAException, InterruptedException {
 
     CounterexampleInfo cex = null;
@@ -144,8 +140,10 @@ public class DelegatingBAMRefiner extends AbstractBAMBasedRefiner {
       }
     });
 
-    for (AbstractBAMBasedRefiner refiner : refiners) {
-      refiner.collectStatistics(pStatsCollection);
+    for (ARGBasedRefiner refiner : refiners) {
+      if (refiner instanceof StatisticsProvider) {
+        ((StatisticsProvider) refiner).collectStatistics(pStatsCollection);
+      }
     }
   }
 }

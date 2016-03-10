@@ -24,7 +24,9 @@
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.cpa.bam.AbstractBAMBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.bam.DelegatingBAMRefiner;
@@ -36,9 +38,10 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
  * This class allows to create a delegating BAM-refiner
  * for a combination of value analysis and predicate analysis (in this order!).
  */
-public class ValueAnalysisDelegatingBAMRefiner extends DelegatingBAMRefiner {
+public abstract class ValueAnalysisDelegatingBAMRefiner implements Refiner {
 
-  public static DelegatingBAMRefiner create(ConfigurableProgramAnalysis cpa) throws InvalidConfigurationException {
+  public static AbstractBAMBasedRefiner create(ConfigurableProgramAnalysis cpa)
+      throws InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(ValueAnalysisDelegatingRefiner.class.getSimpleName() + " could not find the ValueAnalysisCPA");
     }
@@ -53,17 +56,12 @@ public class ValueAnalysisDelegatingBAMRefiner extends DelegatingBAMRefiner {
       throw new InvalidConfigurationException(ValueAnalysisDelegatingRefiner.class.getSimpleName() + " needs a PredicateCPA");
     }
 
-    // first value analysis refiner, then predicate analysis refiner
-    return new ValueAnalysisDelegatingBAMRefiner(
-        cpa,
-        ValueAnalysisBAMRefiner.create(cpa),
-        BAMPredicateRefiner.create(cpa));
-  }
+    LogManager logger = valueCpa.getLogger();
 
-  private ValueAnalysisDelegatingBAMRefiner(ConfigurableProgramAnalysis pCpa,
-      AbstractBAMBasedRefiner valueBAMRefiner,
-      AbstractBAMBasedRefiner predicateBAMRefiner)
-          throws InvalidConfigurationException {
-    super(pCpa, valueBAMRefiner, predicateBAMRefiner);
+    // first value analysis refiner, then predicate analysis refiner
+    return AbstractBAMBasedRefiner.forARGBasedRefiner(
+        new DelegatingBAMRefiner(
+            logger, ValueAnalysisBAMRefiner.create0(cpa), BAMPredicateRefiner.create0(cpa)),
+        cpa);
   }
 }

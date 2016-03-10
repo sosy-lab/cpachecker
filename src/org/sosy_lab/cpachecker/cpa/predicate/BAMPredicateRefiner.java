@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.AbstractBAMBasedRefiner;
@@ -110,6 +111,11 @@ import com.google.common.collect.Sets;
 public abstract class BAMPredicateRefiner implements Refiner {
 
   public static AbstractBAMBasedRefiner create(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
+    return AbstractBAMBasedRefiner.forARGBasedRefiner(create0(pCpa), pCpa);
+  }
+
+  public static ARGBasedRefiner create0(ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
     if (!(pCpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(BAMPredicateRefiner.class.getSimpleName() + " could not find the PredicateCPA");
     }
@@ -152,7 +158,7 @@ public abstract class BAMPredicateRefiner implements Refiner {
             predicateCpa.getPredicateManager(),
             predicateCpa.getStaticRefiner());
 
-    ExtendedPredicateRefiner refiner =
+    return
         new ExtendedPredicateRefiner(
             config,
             logger,
@@ -166,7 +172,6 @@ public abstract class BAMPredicateRefiner implements Refiner {
             prefixSelector,
             invariantsManager,
             strategy);
-    return AbstractBAMBasedRefiner.forARGBasedRefiner(refiner, pCpa);
   }
 
   private static final class ExtendedPredicateRefiner extends PredicateCPARefiner {
