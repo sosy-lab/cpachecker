@@ -52,14 +52,13 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.AbstractBAMBasedRefiner;
@@ -90,38 +89,27 @@ import com.google.common.collect.Sets;
 
 
 /**
- * Implements predicate refinements when using BAM.
- * It is based on the {@link AbstractBAMBasedRefiner} and delegates the work to
- * a {@link ExtendedPredicateRefiner}, which is a small extension of the regular
- * {@link PredicateCPARefiner}.
+ * This is a small extension of {@link PredicateCPARefiner} that overrides
+ * {@link PredicateCPARefiner#getFormulasForPath(List, ARGState)} so that it respects BAM.
+ * It also uses an extension of {@link PredicateAbstractionRefinementStrategy}.
  *
  * So the hierarchy is as follows:
  *
- *               AbstractARGBasedRefiner
- *                         ^
- *                         |                                PredicateAbstractionRefinementStrategy
- *           +-------------+-------------+                                    ^
- *           |                           |                                    |
- * AbstractBAMBasedRefiner       PredicateCPARefiner ---> BAMPredicateAbstractionRefinementStrategy
- *           ^                           ^
- *           |                           |
- *   BAMPredicateRefiner ---> ExtendedPredicateRefiner
+ *        Refiner                  ARGBasedRefiner                     RefinementStrategy
+ *           ^                           ^                                     ^
+ *           |                           |                                     |
+ * AbstractARGBasedRefiner       PredicateCPARefiner           PredicateAbstractionRefinementStrategy
+ *           ^                           ^                                     ^
+ *           |                           |                                     |
+ * AbstractBAMBasedRefiner ---> ExtendedPredicateRefiner ---> BAMPredicateAbstractionRefinementStrategy
  *
  * Here ^ means inheritance and -> means reference.
+ *
+ * BAMPredicateRefiner is only used for encapsulating this and providing the static factory method.
  */
-public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner {
+public abstract class BAMPredicateRefiner implements Refiner {
 
-  private final ExtendedPredicateRefiner refiner;
-
-
-  public static BAMPredicateRefiner create(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
-    return new BAMPredicateRefiner(pCpa);
-  }
-
-  public BAMPredicateRefiner(final ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
-
-    super(pCpa);
-
+  public static AbstractBAMBasedRefiner create(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
     if (!(pCpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(BAMPredicateRefiner.class.getSimpleName() + " could not find the PredicateCPA");
     }
@@ -164,7 +152,7 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner {
             predicateCpa.getPredicateManager(),
             predicateCpa.getStaticRefiner());
 
-    this.refiner =
+    ExtendedPredicateRefiner refiner =
         new ExtendedPredicateRefiner(
             config,
             logger,
@@ -178,19 +166,9 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner {
             prefixSelector,
             invariantsManager,
             strategy);
+    return AbstractBAMBasedRefiner.forARGBasedRefiner(refiner, pCpa);
   }
 
-  @Override
-  protected final CounterexampleInfo performRefinement0(ARGReachedSet pReached, ARGPath pPath)
-      throws CPAException, InterruptedException {
-
-    return refiner.performRefinement(pReached, pPath);
-  }
-
-  /**
-   * This is a small extension of PredicateCPARefiner that overrides
-   * {@link #getFormulasForPath(List, ARGState)} so that it respects BAM.
-   */
   private static final class ExtendedPredicateRefiner extends PredicateCPARefiner {
 
     private final Timer ssaRenamingTimer = new Timer();
@@ -489,10 +467,5 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner {
     protected void analyzePathPrecisions(ARGReachedSet argReached, List<ARGState> path) {
       // Not implemented for BAM (different sets of reached states have to be handled)
     }
-  }
-
-  @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    refiner.collectStatistics(pStatsCollection);
   }
 }
