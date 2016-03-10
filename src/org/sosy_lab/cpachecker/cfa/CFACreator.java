@@ -136,10 +136,6 @@ public class CFACreator {
       description="entry function")
   private String mainFunctionName = "main";
 
-  @Option(secure=true, name="analysis.machineModel",
-      description = "the machine model, which determines the sizes of types like int")
-  private MachineModel machineModel = MachineModel.LINUX32;
-
   @Option(secure=true, name="analysis.interprocedural",
       description="run interprocedural analysis")
   private boolean interprocedural = true;
@@ -231,8 +227,8 @@ public class CFACreator {
       description="This option enables the computation of a classification of CFA nodes.")
 private boolean classifyNodes = false;
 
-  @Option(secure=true, description="C or Java?")
-  private Language language = Language.C;
+  private final Language language;
+  private final MachineModel machineModel;
 
   private final LogManager logger;
   private final Parser parser;
@@ -280,7 +276,8 @@ private boolean classifyNodes = false;
   private final Configuration config;
   private final List<Automaton> automata;
 
-  public CFACreator(Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier)
+  public CFACreator(Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier,
+                    Language pLanguage, MachineModel pMachineModel)
       throws InvalidConfigurationException {
 
     config.inject(this);
@@ -289,6 +286,8 @@ private boolean classifyNodes = false;
     this.logger = logger;
     this.shutdownNotifier = pShutdownNotifier;
     automata = null;
+    language = pLanguage;
+    machineModel = pMachineModel;
 
     stats.parserInstantiationTime.start();
 
@@ -329,8 +328,61 @@ private boolean classifyNodes = false;
   public CFACreator(
       final Configuration pConfig,
       final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+
+    pConfig.inject(this);
+
+    config = pConfig;
+    logger = pLogger;
+    shutdownNotifier = pShutdownNotifier;
+    automata = null;
+    language = Language.C;
+    machineModel = MachineModel.LINUX32;
+
+    stats.parserInstantiationTime.start();
+
+    switch (language) {
+      case JAVA:
+        parser = EclipseParsers.getJavaParser(pLogger, pConfig);
+        break;
+      case C:
+        CParser outerParser = CParser.Factory.getParser(pConfig, pLogger, CParser.Factory
+            .getOptions(pConfig), machineModel);
+
+        outerParser = new CParserWithLocationMapper(pConfig, pLogger, outerParser,
+            readLineDirectives || usePreprocessor);
+
+        if (usePreprocessor) {
+          CPreprocessor preprocessor = new CPreprocessor(pConfig, pLogger);
+          outerParser = new CParserWithPreprocessor(outerParser, preprocessor);
+        }
+
+        parser = outerParser;
+
+        break;
+      default:
+        throw new AssertionError();
+    }
+
+    stats.parsingTime = parser.getParseTime();
+    stats.conversionTime = parser.getCFAConstructionTime();
+
+    if (removeIrrelevantForSpecification) {
+      cfaReduction = new CFAReduction(pConfig, pLogger, pShutdownNotifier);
+    } else {
+      cfaReduction = null;
+    }
+
+    stats.parserInstantiationTime.stop();
+  }
+
+  public CFACreator(
+      final Configuration pConfig,
+      final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
-      final List<Automaton> pAutomata)
+      final List<Automaton> pAutomata,
+      final Language pLanguage,
+      final MachineModel pMachineModel)
       throws InvalidConfigurationException {
 
     pConfig.inject(this);
@@ -339,6 +391,8 @@ private boolean classifyNodes = false;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
     automata = pAutomata;
+    language = pLanguage;
+    machineModel = pMachineModel;
 
     stats.parserInstantiationTime.start();
 

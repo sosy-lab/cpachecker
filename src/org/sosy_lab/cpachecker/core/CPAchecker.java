@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory.SpecAutomatonCompositionType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -98,7 +99,7 @@ import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.Sets;
 import com.google.common.io.Resources;
 
-@Options(prefix="analysis")
+@Options
 public class CPAchecker {
 
   public static interface CPAcheckerMXBean {
@@ -131,12 +132,20 @@ public class CPAchecker {
 
   }
 
-  @Option(secure=true, description="stop after the first error has been found")
+  @Option(secure=true, name="analysis.stopAfterError", description="stop after the first error has "
+      + "been found")
   private boolean stopAfterError = true;
 
-  @Option(secure=true, name="disable",
+  @Option(secure=true, name="analysis.disable",
       description="stop CPAchecker after startup (internal option, not intended for users)")
   private boolean disableAnalysis = false;
+
+  @Option(secure = true, description = "C or Java?")
+  private Language language = Language.C;
+
+  @Option(secure=true, name="analysis.machineModel",
+      description = "the machine model, which determines the sizes of types like int")
+  private MachineModel machineModel = MachineModel.LINUX32;
 
   public static enum InitialStatesFor {
     /**
@@ -170,11 +179,11 @@ public class CPAchecker {
     PROGRAM_SINKS
   }
 
-  @Option(secure=true, name="initialStatesFor",
+  @Option(secure=true, name="analysis.initialStatesFor",
       description="What CFA nodes should be the starting point of the analysis?")
   private Set<InitialStatesFor> initialStatesFor = Sets.newHashSet(InitialStatesFor.ENTRY);
 
-  @Option(secure=true,
+  @Option(secure=true, name="analysis.partitionInitialStates",
       description="Partition the initial states based on the type of location they were created for (see 'initialStatesFor')")
   private boolean partitionInitialStates = false;
 
@@ -182,7 +191,8 @@ public class CPAchecker {
       description="use CBMC as an external tool from CPAchecker")
   private boolean runCBMCasExternalTool = false;
 
-  @Option(secure=true, description="Do not report unknown if analysis terminated, report true (UNSOUND!).")
+  @Option(secure=true, name="analysis.unknownAsTrue", description="Do not report unknown if "
+      + "analysis terminated, report true (UNSOUND!).")
   private boolean unknownAsTrue = false;
 
   private final LogManager logger;
@@ -371,9 +381,9 @@ public class CPAchecker {
     // parse file and create CFA
     CFACreator cfaCreator;
     if (pAutomata != null) {
-      cfaCreator = new CFACreator(config, logger, shutdownNotifier, pAutomata);
+      cfaCreator = new CFACreator(config, logger, shutdownNotifier, pAutomata, language, machineModel);
     } else {
-      cfaCreator = new CFACreator(config, logger, shutdownNotifier);
+      cfaCreator = new CFACreator(config, logger, shutdownNotifier, language, machineModel);
     }
     stats.setCFACreator(cfaCreator);
 
