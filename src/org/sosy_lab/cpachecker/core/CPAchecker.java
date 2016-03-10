@@ -33,6 +33,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -72,7 +73,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PropertySummaryExtractor;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr;
+import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -262,9 +263,9 @@ public class CPAchecker {
            * Parse specification automata before creating the CFA in order to get all matcher for
            * variable classification
            */
-          final Set<AutomatonBoolExpr> automatonBoolExpressions =
-              factory.createAutomatonASTMatchers(stats);
-          CFA cfa = parse(programDenotation, stats, automatonBoolExpressions);
+          final List<Automaton> automata =
+              factory.createAutomata(stats);
+          CFA cfa = parse(programDenotation, stats, automata);
           GlobalInfo.getInstance().storeCFA(cfa);
           shutdownNotifier.shutdownIfNecessary();
 
@@ -365,12 +366,12 @@ public class CPAchecker {
   private CFA parse(
       String fileNamesCommaSeparated,
       MainCPAStatistics stats,
-      final @Nullable Set<AutomatonBoolExpr> pAutomatonBoolExpressions)
+      final @Nullable List<Automaton> pAutomata)
       throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
     // parse file and create CFA
     CFACreator cfaCreator;
-    if (pAutomatonBoolExpressions != null) {
-      cfaCreator = new CFACreator(config, logger, shutdownNotifier, pAutomatonBoolExpressions);
+    if (pAutomata != null) {
+      cfaCreator = new CFACreator(config, logger, shutdownNotifier, pAutomata);
     } else {
       cfaCreator = new CFACreator(config, logger, shutdownNotifier);
     }

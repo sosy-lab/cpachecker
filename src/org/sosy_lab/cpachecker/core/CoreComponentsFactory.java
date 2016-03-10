@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core;
 
-import java.util.Set;
+import java.util.List;
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
@@ -63,7 +63,7 @@ import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr;
+import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.InterruptProvider;
@@ -334,14 +334,14 @@ public class CoreComponentsFactory {
     }
   }
 
-  public Set<AutomatonBoolExpr> createAutomatonASTMatchers(final @Nullable MainCPAStatistics stats)
+  List<Automaton> createAutomata(final @Nullable MainCPAStatistics stats)
       throws InvalidConfigurationException {
     if (stats != null) {
       stats.createAutomatonASTMatcherTime.start();
     }
     try {
       logger.log(Level.FINE, "Parsing automata for variable classification.");
-      return cpaFactory.createAutomatonASTMatchers();
+      return cpaFactory.createAutomata();
     } finally {
       if (stats != null) {
         stats.createAutomatonASTMatcherTime.stop();

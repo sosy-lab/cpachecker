@@ -112,8 +112,12 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.MatchCFAEdgeASTComparison;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpressionArguments;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInternalState;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransition;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
@@ -201,11 +205,27 @@ public class VariableClassificationBuilder {
   public VariableClassificationBuilder(
       final Configuration pConfig,
       final LogManager pLogger,
-      final Set<AutomatonBoolExpr> pAutomatonBoolExpressions)
+      final @Nonnull List<Automaton> pAutomata)
       throws InvalidConfigurationException {
     logger = checkNotNull(pLogger);
     pConfig.inject(this);
-    automatonBoolExpressions = pAutomatonBoolExpressions;
+    automatonBoolExpressions = extractAutomatonBoolExpressions(pAutomata);
+  }
+
+  private Set<AutomatonBoolExpr> extractAutomatonBoolExpressions(
+      final @Nonnull List<Automaton> pAutomata) {
+    Set<AutomatonBoolExpr> expressions = new HashSet<>();
+    for (Automaton automaton : pAutomata) {
+      for (AutomatonInternalState state : automaton.getStates()) {
+        for (AutomatonTransition transition : state.getTransitions()) {
+          AutomatonBoolExpr expression = transition.getTrigger();
+          if (expression instanceof MatchCFAEdgeASTComparison) {
+            expressions.add(expression);
+          }
+        }
+      }
+    }
+    return expressions;
   }
 
   /** This function does the whole work:

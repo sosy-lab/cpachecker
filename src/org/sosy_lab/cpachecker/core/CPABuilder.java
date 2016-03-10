@@ -29,6 +29,7 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -57,12 +58,8 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.MatchCFAEdgeASTComparison;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInternalState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransition;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.PowersetAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
@@ -131,8 +128,8 @@ public class CPABuilder {
     return buildCPAs(cfa, backwardSpecificationFiles);
   }
 
-  public Set<AutomatonBoolExpr> createAutomatonASTMatchers() throws InvalidConfigurationException {
-    Set<AutomatonBoolExpr> automatonBoolExpressions = new HashSet<>();
+  public List<Automaton> createAutomata() throws InvalidConfigurationException {
+    List<Automaton> automata = new LinkedList<>();
 
     if (specificationFiles == null) {
       return null;
@@ -141,23 +138,14 @@ public class CPABuilder {
     for (Path specFile : specificationFiles) {
       // TODO Is it okay to put a fixed machine model and language in here? I don't care for the
       // functionality, only want to have the AutomatonASTComparators…
-      List<Automaton> automata =
+      List<Automaton> automataInFile =
           AutomatonParser.parseAutomatonFile(
               specFile, config, logger, MachineModel.LINUX32, new GlobalScope(), Language.C);
 
-      for (Automaton automaton : automata) {
-        for (AutomatonInternalState state : automaton.getStates()) {
-          for (AutomatonTransition transition : state.getTransitions()) {
-            AutomatonBoolExpr expression = transition.getTrigger();
-            if (expression instanceof MatchCFAEdgeASTComparison) {
-              automatonBoolExpressions.add(expression);
-            }
-          }
-        }
-      }
+      automata.addAll(automataInFile);
     }
 
-    return automatonBoolExpressions;
+    return automata;
   }
 
   public ConfigurableProgramAnalysis buildsCPAWithWitnessAutomataAndSpecification(final CFA cfa,

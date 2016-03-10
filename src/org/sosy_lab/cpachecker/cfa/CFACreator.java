@@ -93,7 +93,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr;
+import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
@@ -278,7 +278,7 @@ private boolean classifyNodes = false;
 
   private final CFACreatorStatistics stats = new CFACreatorStatistics();
   private final Configuration config;
-  private final Set<AutomatonBoolExpr> automatonBoolExpressions;
+  private final List<Automaton> automata;
 
   public CFACreator(Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
@@ -288,7 +288,7 @@ private boolean classifyNodes = false;
     this.config = config;
     this.logger = logger;
     this.shutdownNotifier = pShutdownNotifier;
-    automatonBoolExpressions = null;
+    automata = null;
 
     stats.parserInstantiationTime.start();
 
@@ -330,7 +330,7 @@ private boolean classifyNodes = false;
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
-      final Set<AutomatonBoolExpr> pAutomatonBoolExpressions)
+      final List<Automaton> pAutomata)
       throws InvalidConfigurationException {
 
     pConfig.inject(this);
@@ -338,7 +338,7 @@ private boolean classifyNodes = false;
     config = pConfig;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
-    automatonBoolExpressions = pAutomatonBoolExpressions;
+    automata = pAutomata;
 
     stats.parserInstantiationTime.start();
 
@@ -528,10 +528,10 @@ private boolean classifyNodes = false;
     if (language == Language.C) {
       try {
         stats.variableClassificationTime.start();
-        if (automatonBoolExpressions != null) {
+        if (automata != null) {
           varClassification =
               Optional.of(
-                  new VariableClassificationBuilder(config, logger, automatonBoolExpressions)
+                  new VariableClassificationBuilder(config, logger, automata)
                       .build(cfa));
         } else {
           varClassification =
