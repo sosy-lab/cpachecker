@@ -314,7 +314,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
       return annotateLiterals(input, selectionVarsInfoToFill);
     } else {
       assert selectorAnnotationMode == ANNOTATION_MODE.CONJUNCTIONS;
-      return annotateConjunctions(semiCNFManager.getConjunctionArgs(input),
+      return annotateConjunctions(bfmgr.toConjunctionArgs(input, true),
           selectionVarsInfoToFill);
     }
   }

@@ -1,7 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
 import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -13,12 +12,10 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
-import org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -36,102 +33,50 @@ public class SemiCNFManager {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bfmgr;
 
+  private final HashMap<BooleanFormula, BooleanFormula> conversionCache;
+
   public SemiCNFManager(FormulaManagerView pFmgr, Configuration options)
       throws InvalidConfigurationException{
     options.inject(this);
     bfmgr = pFmgr.getBooleanFormulaManager();
     fmgr = pFmgr;
-  }
-
-  /**
-   * @return whether {@code a} contains {@code b}.
-   */
-  public boolean contains(BooleanFormula a, BooleanFormula b) {
-    return getConjunctionArgs(a).containsAll(getConjunctionArgs(b));
-  }
-
-  /**
-   * @return {@code a /\ b} in semi-CNF form, assuming that both {@code a} and {@code b}
-   * are already in semi-CNF.
-   */
-  public BooleanFormula intersection(BooleanFormula a, BooleanFormula b) {
-    return bfmgr.and(Sets.intersection(
-        getConjunctionArgs(a), getConjunctionArgs(b)
-    ));
-  }
-
-  /**
-   * @return {@code a /\ b} in semi-CNF form, assuming that both {@code a} and {@code b}
-   * are already in semi-CNF.
-   */
-  public BooleanFormula union(BooleanFormula a, BooleanFormula b) {
-    return bfmgr.and(Sets.union(
-        getConjunctionArgs(a), getConjunctionArgs(b)
-    ));
-  }
-
-  /**
-   * @return all semi-clauses found in {@code a}, but not in {@code b}.
-   */
-  public BooleanFormula difference(BooleanFormula a, BooleanFormula b) {
-    return bfmgr.and(Sets.difference(
-        getConjunctionArgs(a), getConjunctionArgs(b)
-    ));
+    conversionCache = new HashMap<>();
   }
 
   public Set<BooleanFormula> toClauses(BooleanFormula input) throws InterruptedException {
-    BooleanFormula out = flatten(convert(fmgr.simplify(input)));
+    Set<BooleanFormula> conjunctionArgs = bfmgr.toConjunctionArgs(convert(fmgr.simplify(input)), true);
     return Sets.filter(
-        getConjunctionArgs(out),
+        conjunctionArgs,
         new Predicate<BooleanFormula>() {
           @Override
           public boolean apply(BooleanFormula input) {
             // Remove redundant constraints.
-            assert getConjunctionArgs(input).size() == 1;
+            assert bfmgr.toConjunctionArgs(input, true).size() == 1;
             return !bfmgr.isTrue(fmgr.simplify(input));
           }
         }
     );
   }
 
-  // TODO: cache, expand.
-  Map<BooleanFormula, BooleanFormula> flattenCache = new HashMap<>();
-
-  public BooleanFormula flatten(BooleanFormula input) {
-    BooleanFormula out = flattenCache.get(input);
-    if (out != null) {
-      return out;
-    }
-    out = bfmgr.transformRecursively(new BooleanFormulaTransformationVisitor(fmgr) {
-      @Override
-      public BooleanFormula visitAnd(List<BooleanFormula> processed) {
-        List<BooleanFormula> allArgs = new ArrayList<>();
-        for (BooleanFormula op : processed) {
-          Set<BooleanFormula> args = getConjunctionArgs(op);
-          allArgs.addAll(args);
-        }
-        return bfmgr.and(allArgs);
-      }
-    }, input);
-    flattenCache.put(input, out);
-    return out;
-  }
-
   /**
    * Convert the formula to semi-CNF form.
    */
   public BooleanFormula convert(BooleanFormula input) throws InterruptedException {
+    BooleanFormula out = conversionCache.get(input);
+    if (out != null) {
+      return out;
+    }
     final AtomicInteger expansionsAllowed = new AtomicInteger(expansionDepthLimit);
 
     input = fmgr.applyTactic(input, Tactic.NNF);
-    return bfmgr.transformRecursively(new BooleanFormulaTransformationVisitor(fmgr) {
+    out = bfmgr.transformRecursively(new BooleanFormulaTransformationVisitor(fmgr) {
 
       /**
        * Flatten AND-.
        */
       @Override
       public BooleanFormula visitAnd(List<BooleanFormula> processed) {
-        return flatten(bfmgr.and(processed));
+        return bfmgr.and(bfmgr.toConjunctionArgs(bfmgr.and(processed), true));
       }
 
       @Override
@@ -140,7 +85,7 @@ public class SemiCNFManager {
         Set<BooleanFormula> intersection = null;
         ArrayList<Set<BooleanFormula>> argsAsConjunctions = new ArrayList<>();
         for (BooleanFormula op : processed) {
-          Set<BooleanFormula> args = getConjunctionArgs(op);
+          Set<BooleanFormula> args = bfmgr.toConjunctionArgs(op, true);
 
           argsAsConjunctions.add(args);
 
@@ -181,6 +126,8 @@ public class SemiCNFManager {
       }
 
     }, input);
+    conversionCache.put(input, out);
+    return out;
   }
 
   private BooleanFormula disjunctionToImplication(List<BooleanFormula> disjunctionArguments) {
@@ -188,20 +135,5 @@ public class SemiCNFManager {
         bfmgr.not(disjunctionArguments.get(0)),
         fmgr.simplify(bfmgr.or(disjunctionArguments.subList(1, disjunctionArguments.size())))
     );
-  }
-
-  // TODO: this is incredibly inefficient.
-  public Set<BooleanFormula> getConjunctionArgs(final BooleanFormula f) {
-    return bfmgr.visit(new DefaultBooleanFormulaVisitor<Set<BooleanFormula>>() {
-      @Override
-      protected Set<BooleanFormula> visitDefault() {
-        return ImmutableSet.of(f);
-      }
-
-      @Override
-      public Set<BooleanFormula> visitAnd(List<BooleanFormula> operands) {
-        return ImmutableSet.copyOf(operands);
-      }
-    }, f);
   }
 }
