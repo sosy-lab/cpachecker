@@ -6,7 +6,6 @@ import com.google.common.collect.ImmutableMap;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
-import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.cpa.policyiteration.congruence.CongruenceState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -23,8 +22,7 @@ import java.util.Set;
 
 public final class PolicyAbstractedState extends PolicyState
       implements Iterable<Entry<Template, PolicyBound>>,
-                 FormulaReportingState,
-                 Partitionable {
+                 FormulaReportingState {
 
   private final CongruenceState congruence;
 
@@ -243,10 +241,5 @@ public final class PolicyAbstractedState extends PolicyState
               + "encountered on this code path.");
     }
     return fmgr.uninstantiate(invariant);
-  }
-
-  @Override
-  public Object getPartitionKey() {
-    return extraInvariant;
   }
 }
