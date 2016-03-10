@@ -48,7 +48,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 /**
  * This is an extension of {@link AbstractARGBasedRefiner} that takes care of
  * flattening the ARG before calling
- * {@link ARGBasedRefiner#performRefinement(ARGReachedSet, ARGPath)}.
+ * {@link ARGBasedRefiner#performRefinementForPath(ARGReachedSet, ARGPath)}.
  *
  * Warning: Although the ARG is flattened at this point, the elements in it have
  * not been expanded due to performance reasons.
@@ -88,7 +88,7 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner implements St
   }
 
   @Override
-  protected final CounterexampleInfo performRefinement(ARGReachedSet pReached, ARGPath pPath) throws CPAException, InterruptedException {
+  protected final CounterexampleInfo performRefinementForPath(ARGReachedSet pReached, ARGPath pPath) throws CPAException, InterruptedException {
     checkArgument(!(pReached instanceof BAMReachedSet),
         "Wrapping of BAM-based refiners inside BAM-based refiners is not allowed.");
     assert pPath == null || pPath.size() > 0;
@@ -103,7 +103,7 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner implements St
     } else {
       // wrap the original reached-set to have a valid "view" on all reached states.
       pReached = new BAMReachedSet(bamCpa, pReached, pPath, subgraphStatesToReachedState, rootOfSubgraph, removeCachedSubtreeTimer);
-      return refiner.performRefinement(pReached, pPath);
+      return refiner.performRefinementForPath(pReached, pPath);
     }
   }
 

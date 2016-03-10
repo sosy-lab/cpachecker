@@ -166,10 +166,10 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
           targetPaths.get(0));
     }
 
-    return performRefinement(pReached, targets, targetPaths);
+    return performRefinementForPaths(pReached, targets, targetPaths);
   }
 
-  public CounterexampleInfo performRefinement(
+  public CounterexampleInfo performRefinementForPath(
       final ARGReachedSet pReached, ARGPath targetPathToUse
   ) throws CPAException, InterruptedException {
     Collection<ARGState> targets = Collections.singleton(targetPathToUse.getLastState());
@@ -198,10 +198,10 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
       throw new RefinementFailedException(Reason.RepeatedCounterexample, targetPathToUse);
     }
 
-    return performRefinement(pReached, targets, Lists.newArrayList(targetPathToUse));
+    return performRefinementForPaths(pReached, targets, Lists.newArrayList(targetPathToUse));
   }
 
-  private CounterexampleInfo performRefinement(
+  private CounterexampleInfo performRefinementForPaths(
       final ARGReachedSet pReached,
       final Collection<ARGState> pTargets,
       final List<ARGPath> pTargetPaths

@@ -42,7 +42,7 @@ public abstract class ValueAnalysisBAMRefiner implements Refiner {
 
   /**
    * Small wrapper around {@link ValueAnalysisRefiner}.
-   * TODO Check whether the code in {@link #performRefinement(ARGReachedSet, ARGPath)}
+   * TODO Check whether the code in {@link #performRefinementForPath(ARGReachedSet, ARGPath)}
    * is still necessary, and if not remove this class completely.
    */
   private static class ExtendedValueAnalysisRefiner implements ARGBasedRefiner, StatisticsProvider {
@@ -54,9 +54,9 @@ public abstract class ValueAnalysisBAMRefiner implements Refiner {
     }
 
     @Override
-    public CounterexampleInfo performRefinement(ARGReachedSet pReached, ARGPath pPath)
+    public CounterexampleInfo performRefinementForPath(ARGReachedSet pReached, ARGPath pPath)
         throws CPAException, InterruptedException {
-      CounterexampleInfo refineResult = refiner.performRefinement(pReached, pPath);
+      CounterexampleInfo refineResult = refiner.performRefinementForPath(pReached, pPath);
       if (!refineResult.isSpurious()) {
         assert (refiner.isErrorPathFeasible(pPath)) : "not spurious must imply feasible:" + pPath;
         //throw new RefinementFailedException(RefinementFailedException.Reason.RepeatedCounterexample, null);

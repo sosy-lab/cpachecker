@@ -42,6 +42,6 @@ public interface ARGBasedRefiner {
    * @param pPath the potential error path
    * @return Information about the counterexample.
    */
-  CounterexampleInfo performRefinement(ARGReachedSet pReached, ARGPath pPath)
+  CounterexampleInfo performRefinementForPath(ARGReachedSet pReached, ARGPath pPath)
       throws CPAException, InterruptedException;
 }

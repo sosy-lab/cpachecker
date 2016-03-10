@@ -75,7 +75,7 @@ public final class DelegatingARGBasedRefiner implements ARGBasedRefiner, Statist
   }
 
   @Override
-  public CounterexampleInfo performRefinement(final ARGReachedSet reached, ARGPath pErrorPath)
+  public CounterexampleInfo performRefinementForPath(final ARGReachedSet reached, ARGPath pErrorPath)
       throws CPAException, InterruptedException {
 
     CounterexampleInfo cex = null;
@@ -91,7 +91,7 @@ public final class DelegatingARGBasedRefiner implements ARGBasedRefiner, Statist
 
         logger.logf(Level.FINE, "starting refinement %d of %d with %s", i + 1, refiners.size(),
             refiners.get(i).getClass().getSimpleName());
-        cex = refiners.get(i).performRefinement(reached, pErrorPath);
+        cex = refiners.get(i).performRefinementForPath(reached, pErrorPath);
 
         if (cex.isSpurious()) {
           logger.logf(Level.FINE, "refinement %d of %d was successful", i + 1, refiners.size());

@@ -95,9 +95,9 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
       }
 
       @Override
-      protected CounterexampleInfo performRefinement(ARGReachedSet pReached, ARGPath pPath)
+      protected CounterexampleInfo performRefinementForPath(ARGReachedSet pReached, ARGPath pPath)
           throws CPAException, InterruptedException {
-        return pRefiner.performRefinement(pReached, pPath);
+        return pRefiner.performRefinementForPath(pReached, pPath);
       }
 
       @Override
@@ -149,7 +149,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
 
     final CounterexampleInfo counterexample;
     try {
-      counterexample = performRefinement(reached, path);
+      counterexample = performRefinementForPath(reached, path);
     } catch (RefinementFailedException e) {
       if (e.getErrorPath() == null) {
         e.setErrorPath(path);
@@ -193,7 +193,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
    * @param pPath the potential error path
    * @return Information about the counterexample.
    */
-  protected abstract CounterexampleInfo performRefinement(ARGReachedSet pReached, ARGPath pPath)
+  protected abstract CounterexampleInfo performRefinementForPath(ARGReachedSet pReached, ARGPath pPath)
             throws CPAException, InterruptedException;
 
   /**
