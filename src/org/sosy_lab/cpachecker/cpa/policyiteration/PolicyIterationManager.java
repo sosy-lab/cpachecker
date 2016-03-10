@@ -4,6 +4,7 @@ import static com.google.common.collect.Iterables.filter;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -258,13 +259,17 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         AbstractStates.IS_TARGET_STATE).iterator().hasNext();
     final boolean shouldPerformAbstraction = shouldPerformAbstraction(iState, pArgState);
 
+    // Formulas reported by other CPAs.
+    BooleanFormula extraInvariant = extractFormula(pArgState);
+    logger.log(Level.FINE, "Reported formulas: ", extraInvariant);
+
     // Perform reachability checking, either for property states, or when the
     // formula gets too long, or before abstractions.
     if ((hasTargetState && checkTargetStates
         || (lengthLimitForSATCheck != -1 &&
               iState.getPathFormula().getLength() > lengthLimitForSATCheck)
         || shouldPerformAbstraction
-      ) && isUnreachable(iState)) {
+      ) && isUnreachable(iState, extraInvariant)) {
 
       logger.log(Level.INFO, "Returning BOTTOM state");
       return Optional.absent();
@@ -274,9 +279,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     if (shouldPerformAbstraction) {
       PolicyPrecision toNodePrecision = templateManager.precisionForNode(state.getNode());
 
-      // Formulas reported by other CPAs.
-      BooleanFormula extraInvariant = fmgr.simplify(extractFormula(pArgState));
-      logger.log(Level.FINE, "Reported formulas: ", extraInvariant);
 
       Optional<PolicyAbstractedState> sibling = findSibling(iState, states, pArgState);
 
@@ -604,13 +606,19 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   /**
    * @return Whether the <code>state</code> is unreachable.
    */
-  private boolean isUnreachable(PolicyIntermediateState state)
+  private boolean isUnreachable(PolicyIntermediateState state, BooleanFormula extraInvariant)
       throws CPAException, InterruptedException {
     BooleanFormula startConstraints =
         stateFormulaConversionManager.getStartConstraints(state, true);
+    PathFormula pf = state.getPathFormula();
 
     BooleanFormula constraint = bfmgr.and(
-        startConstraints, state.getPathFormula().getFormula());
+        ImmutableList.of(
+            startConstraints,
+            pf.getFormula(),
+            fmgr.instantiate(extraInvariant, pf.getSsa())
+        )
+    );
 
     try {
       statistics.startCheckSATTimer();
