@@ -345,7 +345,7 @@ public class InvariantsState implements AbstractState,
     PersistentSortedMap<MemoryLocation, CType> variableTypes = this.variableTypes;
     for (Map.Entry<MemoryLocation, CType> entry : pVarTypes.entrySet()) {
       MemoryLocation memoryLocation = entry.getKey();
-      if (!variableTypes.containsKey(memoryLocation)) {
+      if (!entry.getValue().equals(variableTypes.get(memoryLocation))) {
         variableTypes = variableTypes.putAndCopy(memoryLocation, entry.getValue());
       }
     }

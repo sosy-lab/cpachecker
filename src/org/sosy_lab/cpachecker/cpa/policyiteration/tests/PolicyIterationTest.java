@@ -67,19 +67,23 @@ public class PolicyIterationTest {
     check("loop_nested_false_assert.c");
   }
 
-  @Test public void pointer_past_abstraction_true_assert() throws Exception {
+  @Test
+  public void pointer_past_abstraction_true_assert() throws Exception {
     check("pointers/pointer_past_abstraction_true_assert.c", ImmutableMap.of(
             "CompositeCPA.cpas", CPAS_W_SLICING,
-            "cpa.stator.policy.generateOctagons", "true"
+            "cpa.stator.policy.generateOctagons", "true",
+            "cpa.composite.precisionAdjustmentIterationLimit", "2"
         )
     );
   }
 
-  @Test public void pointer_past_abstraction_false_assert() throws Exception {
+  @Test
+  public void pointer_past_abstraction_false_assert() throws Exception {
     check("pointers/pointer_past_abstraction_false_assert.c"
         , ImmutableMap.of(
             "CompositeCPA.cpas", CPAS_W_SLICING,
-            "cpa.stator.policy.runCongruence", "false"
+            "cpa.stator.policy.runCongruence", "false",
+            "cpa.composite.precisionAdjustmentIterationLimit", "2"
         )
     );
   }
@@ -89,6 +93,7 @@ public class PolicyIterationTest {
         ImmutableMap.of(
             "CompositeCPA.cpas", CPAS_W_SLICING,
             "cpa.stator.policy.generateOctagons", "true",
+            "cpa.composite.precisionAdjustmentIterationLimit", "2",
             "cpa.stator.policy.linearizePolicy", "false"
         ));
   }
@@ -226,11 +231,11 @@ public class PolicyIterationTest {
     return props;
   }
 
+  // NB: slicing does not work w/ LoopstackCPA.
   private static final String CPAS_W_SLICING = Joiner.on(", ").join(ImmutableList.<String>builder()
           .add("cpa.location.LocationCPA")
           .add("cpa.callstack.CallstackCPA")
           .add("cpa.functionpointer.FunctionPointerCPA")
-          .add("cpa.loopstack.LoopstackCPA")
           .add("cpa.formulaslicing.FormulaSlicingCPA")
           .add("cpa.policyiteration.PolicyCPA")
           .build()

@@ -27,11 +27,14 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 
 public class StaticCandidateProvider implements CandidateGenerator {
+
+  private final ImmutableSet<CandidateInvariant> allCandidates;
 
   private final Set<CandidateInvariant> confirmedInvariants = Sets.newLinkedHashSet();
 
@@ -41,6 +44,7 @@ public class StaticCandidateProvider implements CandidateGenerator {
 
   public StaticCandidateProvider(Iterable<? extends CandidateInvariant> pCandidates) {
     Iterables.addAll(candidates, pCandidates);
+    allCandidates = ImmutableSet.copyOf(pCandidates);
   }
 
   @Override
@@ -76,6 +80,10 @@ public class StaticCandidateProvider implements CandidateGenerator {
   @Override
   public Set<CandidateInvariant> getConfirmedCandidates() {
     return Collections.unmodifiableSet(confirmedInvariants);
+  }
+
+  public Set<CandidateInvariant> getAllCandidates() {
+    return allCandidates;
   }
 
 }

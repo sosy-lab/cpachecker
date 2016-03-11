@@ -1,7 +1,9 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
+import java.util.Collection;
+import java.util.List;
+
+import javax.annotation.Nullable;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -38,10 +40,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
-import java.util.Collection;
-import java.util.List;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
 
 
 @Options(prefix="cpa.slicing")
@@ -84,12 +84,11 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
         pConfiguration, cfa.getLoopStructure().get(), pathFormulaManager, formulaManager, pLogger,
         shutdownNotifier);
 
-    inductiveWeakeningManager =
-        new InductiveWeakeningManager(pConfiguration, formulaManager, solver, pLogger);
+    inductiveWeakeningManager = new InductiveWeakeningManager(pConfiguration, solver, pLogger);
     manager = new FormulaSlicingManager(
         pConfiguration,
-        pathFormulaManager, formulaManager, cfa, loopTransitionFinder,
-        inductiveWeakeningManager, solver);
+        pathFormulaManager, formulaManager, cfa,
+        inductiveWeakeningManager, solver, pLogger);
     stopOperator = new StopSepOperator(this);
     mergeOperator = this;
   }
@@ -140,8 +139,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   public Collection<? extends AbstractState> strengthen(AbstractState state,
       List<AbstractState> otherStates, @Nullable CFAEdge cfaEdge,
       Precision precision) throws CPATransferException, InterruptedException {
-    return manager.strengthen((SlicingState)state,
-        otherStates, cfaEdge);
+    return null;
   }
 
   @Override

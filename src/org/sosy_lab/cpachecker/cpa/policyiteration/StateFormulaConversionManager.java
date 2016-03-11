@@ -1,11 +1,5 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map.Entry;
-
-import javax.annotation.Nullable;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -22,14 +16,21 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map.Entry;
+
+import javax.annotation.Nullable;
+
 /**
  * Class responsible for converting states to formulas.
  */
 @Options(prefix="cpa.stator.policy")
 public class StateFormulaConversionManager {
 
+  // Buggy optimization, see test/programs/policyiteration/slow_merge_true_assert.c
   @Option(secure=true, description="Use latest version of abstracted states")
-  private boolean useLatestVersion = true;
+  private boolean useLatestVersion = false;
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;

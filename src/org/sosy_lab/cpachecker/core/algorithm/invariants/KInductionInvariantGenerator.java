@@ -99,9 +99,12 @@ import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.solver.SolverException;
 
+import com.google.common.base.Predicates;
 import com.google.common.base.Throwables;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -141,9 +144,18 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
 
     final Timer invariantGeneration = new Timer();
 
+    private Integer totalNumberOfCandidates = null;
+
+    private int numberOfConfirmedCandidates = 0;
+
     @Override
     public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-      out.println("Time for invariant generation:   " + invariantGeneration);
+      StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
+      writer.put("Time for invariant generation", invariantGeneration);
+      if (totalNumberOfCandidates != null) {
+        writer.put("Total number of candidates", totalNumberOfCandidates);
+      }
+      writer.put("Number of confirmed candidates", numberOfConfirmedCandidates);
       super.printStatistics(out, result, reached);
     }
 
@@ -233,13 +245,83 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
     reachedSetFactory = pReachedSetFactory;
     async = pAsync;
 
+    if (pCandidateGenerator instanceof StaticCandidateProvider) {
+      StaticCandidateProvider staticCandidateProvider =
+          (StaticCandidateProvider) pCandidateGenerator;
+      stats.totalNumberOfCandidates =
+          FluentIterable.from(staticCandidateProvider.getAllCandidates())
+              .filter(Predicates.not(Predicates.instanceOf(TargetLocationCandidateInvariant.class)))
+              .size();
+    }
+    CandidateGenerator statisticsCandidateGenerator =
+        new CandidateGenerator() {
+
+          private final Set<CandidateInvariant> confirmedCandidates = Sets.newHashSet();
+
+          @Override
+          public boolean produceMoreCandidates() {
+            return pCandidateGenerator.produceMoreCandidates();
+          }
+
+          @Override
+          public Iterator<CandidateInvariant> iterator() {
+            final Iterator<CandidateInvariant> it = pCandidateGenerator.iterator();
+            return new Iterator<CandidateInvariant>() {
+
+              @Override
+              public boolean hasNext() {
+                return it.hasNext();
+              }
+
+              @Override
+              public CandidateInvariant next() {
+                return it.next();
+              }
+
+              @Override
+              public void remove() {
+                it.remove();
+              }
+            };
+          }
+
+          @Override
+          public boolean hasCandidatesAvailable() {
+            return pCandidateGenerator.hasCandidatesAvailable();
+          }
+
+          @Override
+          public Set<? extends CandidateInvariant> getConfirmedCandidates() {
+            return pCandidateGenerator.getConfirmedCandidates();
+          }
+
+          @Override
+          public void confirmCandidates(Iterable<CandidateInvariant> pCandidates) {
+            pCandidateGenerator.confirmCandidates(pCandidates);
+            for (CandidateInvariant invariant : pCandidates) {
+              if (!(invariant instanceof TargetLocationCandidateInvariant)
+                  && confirmedCandidates.add(invariant)) {
+                ++stats.numberOfConfirmedCandidates;
+              }
+            }
+          }
+        };
+
     CPABuilder invGenBMCBuilder =
         new CPABuilder(config, logger, shutdownManager.getNotifier(), pReachedSetFactory);
     cpa = invGenBMCBuilder.buildCPAWithSpecAutomatas(cfa);
     Algorithm cpaAlgorithm = CPAAlgorithm.create(cpa, logger, config, shutdownManager.getNotifier());
-    algorithm = new BMCAlgorithmForInvariantGeneration(
-        cpaAlgorithm, cpa, config, logger, pReachedSetFactory,
-        shutdownManager, cfa, stats, pCandidateGenerator);
+    algorithm =
+        new BMCAlgorithmForInvariantGeneration(
+            cpaAlgorithm,
+            cpa,
+            config,
+            logger,
+            pReachedSetFactory,
+            shutdownManager,
+            cfa,
+            stats,
+            statisticsCandidateGenerator);
 
     PredicateCPA predicateCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
     if (predicateCPA == null) {

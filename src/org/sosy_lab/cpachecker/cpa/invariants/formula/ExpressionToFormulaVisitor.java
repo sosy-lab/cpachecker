@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -40,8 +41,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
@@ -67,6 +70,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -222,7 +226,13 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
 
   @Override
   public NumeralFormula<CompoundInterval> visit(CUnaryExpression pCUnaryExpression) throws UnrecognizedCodeException {
-    NumeralFormula<CompoundInterval> operand = pCUnaryExpression.getOperand().accept(this);
+    CExpression operandExpression = pCUnaryExpression.getOperand();
+    if (pCUnaryExpression.getOperator() != UnaryOperator.AMPER) {
+      operandExpression =
+          makeCastFromArrayToPointerIfNecessary(
+              operandExpression, pCUnaryExpression.getExpressionType());
+    }
+    NumeralFormula<CompoundInterval> operand = operandExpression.accept(this);
     BitVectorInfo bitVectorInfo = BitVectorInfo.from(machineModel, pCUnaryExpression.getExpressionType());
     operand = compoundIntervalFormulaManager.cast(bitVectorInfo, operand);
     final NumeralFormula<CompoundInterval> result;
@@ -250,8 +260,11 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
 
   @Override
   public NumeralFormula<CompoundInterval> visit(CCastExpression pCCastExpression) throws UnrecognizedCodeException {
+    CExpression expression =
+        makeCastFromArrayToPointerIfNecessary(
+            pCCastExpression.getOperand(), pCCastExpression.getCastType());
     BitVectorInfo bitVectorInfo = BitVectorInfo.from(machineModel, pCCastExpression.getCastType());
-    return compoundIntervalFormulaManager.cast(bitVectorInfo, pCCastExpression.getOperand().accept(this));
+    return compoundIntervalFormulaManager.cast(bitVectorInfo, expression.accept(this));
   }
 
   private CType getPromotedCType(CType t) {
@@ -289,8 +302,12 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
     final CType promRight = getPromotedCType(t2).getCanonicalType();
 
     BitVectorInfo bitVectorInfo = BitVectorInfo.from(machineModel, calculationType);
-    NumeralFormula<CompoundInterval> left = pCBinaryExpression.getOperand1().accept(this);
-    NumeralFormula<CompoundInterval> right = pCBinaryExpression.getOperand2().accept(this);
+    NumeralFormula<CompoundInterval> left =
+        makeCastFromArrayToPointerIfNecessary(pCBinaryExpression.getOperand1(), calculationType)
+            .accept(this);
+    NumeralFormula<CompoundInterval> right =
+        makeCastFromArrayToPointerIfNecessary(pCBinaryExpression.getOperand2(), calculationType)
+            .accept(this);
     left = compoundIntervalFormulaManager.cast(bitVectorInfo, left);
     right = compoundIntervalFormulaManager.cast(bitVectorInfo, right);
     left = topIfProblematicType(calculationType, left);
@@ -745,6 +762,51 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
     CompoundInterval nonNegativePartResult = cim.modulo(nonNegativePart, cim.singleton(upperExclusiveBound));
 
     return InvariantsFormulaManager.INSTANCE.asConstant(bitVectorInfo, cim.union(negativePartResult, nonNegativePartResult));
+  }
+
+  public static CRightHandSide makeCastFromArrayToPointerIfNecessary(
+      CRightHandSide pExpression, CType pTargetType) {
+    if (pExpression instanceof CExpression) {
+      return makeCastFromArrayToPointerIfNecessary((CExpression) pExpression, pTargetType);
+    }
+    return pExpression;
+  }
+
+  public static AExpression makeCastFromArrayToPointerIfNecessary(
+      AExpression pExpression, Type pTargetType) {
+    if (pExpression instanceof CExpression && pTargetType instanceof CType) {
+      return makeCastFromArrayToPointerIfNecessary((CExpression) pExpression, (CType) pTargetType);
+    }
+    return pExpression;
+  }
+
+  public static ARightHandSide makeCastFromArrayToPointerIfNecessary(
+      ARightHandSide pExpression, Type pTargetType) {
+    if (pExpression instanceof CExpression && pTargetType instanceof CType) {
+      return makeCastFromArrayToPointerIfNecessary((CExpression) pExpression, (CType) pTargetType);
+    }
+    return pExpression;
+  }
+
+  public static CExpression makeCastFromArrayToPointerIfNecessary(
+      CExpression pExpression, CType pTargetType) {
+    if (pExpression.getExpressionType().getCanonicalType() instanceof CArrayType) {
+      CType targetType = pTargetType.getCanonicalType();
+      if (targetType instanceof CPointerType || targetType instanceof CSimpleType) {
+        return makeCastFromArrayToPointer(pExpression);
+      }
+    }
+    return pExpression;
+  }
+
+  private static CExpression makeCastFromArrayToPointer(CExpression pArrayExpression) {
+    // array-to-pointer conversion
+    CArrayType arrayType = (CArrayType) pArrayExpression.getExpressionType().getCanonicalType();
+    CPointerType pointerType =
+        new CPointerType(arrayType.isConst(), arrayType.isVolatile(), arrayType.getType());
+
+    return new CUnaryExpression(
+        pArrayExpression.getFileLocation(), pointerType, pArrayExpression, UnaryOperator.AMPER);
   }
 
 }

@@ -41,9 +41,10 @@ public class PredicatePCCStopOperator implements StopOperator {
 
   private final AbstractionFormula trueAbs;
 
-  public PredicatePCCStopOperator(final PredicateCPA pCPA) {
-    paMgr = pCPA.getPredicateManager();
-    pMgr = pCPA.getPathFormulaManager();
+  public PredicatePCCStopOperator(
+      PathFormulaManager pPfmgr, PredicateAbstractionManager pPredAbsManager) {
+    paMgr = pPredAbsManager;
+    pMgr = pPfmgr;
 
     trueAbs = paMgr.makeTrueAbstractionFormula(null);
   }

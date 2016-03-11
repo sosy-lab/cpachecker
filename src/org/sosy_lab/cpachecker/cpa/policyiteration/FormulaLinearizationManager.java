@@ -58,7 +58,7 @@ public class FormulaLinearizationManager {
    *  x NOT(EQ(A, B)) => (A > B) \/ (A < B)
    */
   public BooleanFormula linearize(BooleanFormula input) {
-    return bfmgr.visit(new BooleanFormulaTransformationVisitor(fmgr) {
+    return bfmgr.transformRecursively(new BooleanFormulaTransformationVisitor(fmgr) {
       @Override
       public BooleanFormula visitNot(BooleanFormula pOperand) {
         List<BooleanFormula> split = fmgr.splitNumeralEqualityIfPossible(pOperand);
@@ -78,15 +78,15 @@ public class FormulaLinearizationManager {
    * Annotate disjunctions with choice variables.
    */
   public BooleanFormula annotateDisjunctions(BooleanFormula input) {
-    return bfmgr.visit(new BooleanFormulaTransformationVisitor(fmgr) {
+    return bfmgr.transformRecursively(new BooleanFormulaTransformationVisitor(fmgr) {
       @Override
-      public BooleanFormula visitOr(List<BooleanFormula> pOperands) {
+      public BooleanFormula visitOr(List<BooleanFormula> processed) {
         IntegerFormula choiceVar = getFreshVar();
         List<BooleanFormula> newArgs = new ArrayList<>();
-        for (int i = 0; i < pOperands.size(); i++) {
+        for (int i = 0; i < processed.size(); i++) {
           newArgs.add(
               bfmgr.and(
-                  visitIfNotSeen(pOperands.get(i)), fmgr.makeEqual(choiceVar, ifmgr.makeNumber(i))));
+                  processed.get(i), fmgr.makeEqual(choiceVar, ifmgr.makeNumber(i))));
         }
         return bfmgr.or(newArgs);
       }
@@ -159,9 +159,9 @@ public class FormulaLinearizationManager {
 
       Boolean cond = model.evaluate(pCondition);
       if (cond != null && cond) {
-        return visitIfNotSeen(pThenFormula);
+        return pThenFormula;
       } else {
-        return visitIfNotSeen(pElseFormula);
+        return pElseFormula;
       }
     }
   }

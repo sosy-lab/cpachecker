@@ -12,18 +12,11 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import java.util.Collection;
-import java.util.List;
 
 public interface IFormulaSlicingManager extends StatisticsProvider {
   Collection<? extends SlicingState> getAbstractSuccessors(
       SlicingState state,
       CFAEdge edge
-  ) throws CPATransferException, InterruptedException;
-
-  Collection<? extends SlicingState> strengthen(
-      SlicingState state,
-      List<AbstractState> otherState,
-      CFAEdge pCFAEdge
   ) throws CPATransferException, InterruptedException;
 
   SlicingState getInitialState(CFANode node);
@@ -32,7 +25,7 @@ public interface IFormulaSlicingManager extends StatisticsProvider {
       SlicingState pState2) throws InterruptedException, CPAException;
 
   Optional<PrecisionAdjustmentResult> prec(SlicingState pState, UnmodifiableReachedSet pStates,
-      AbstractState pFullState);
+      AbstractState pFullState) throws CPAException, InterruptedException;
 
   SlicingState merge(SlicingState pState1, SlicingState pState2) throws InterruptedException;
 }

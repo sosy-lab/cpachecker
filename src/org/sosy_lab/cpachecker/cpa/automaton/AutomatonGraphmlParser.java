@@ -297,7 +297,9 @@ public class AutomatonGraphmlParser {
         }
       }
 
-      Preconditions.checkNotNull(entryNodeId, "You must define an entry node.");
+      if (entryNodeId == null) {
+        throw new WitnessParseException("You must define an entry node.");
+      }
 
       // Determine distances to violation states
       Queue<String> waitlist = new ArrayDeque<>(violationStates);
@@ -763,7 +765,7 @@ public class AutomatonGraphmlParser {
         ExpressionTree<AExpression> expressionTree = parseStatement(assumeCode, pScope, pCParser);
         result = And.of(result, expressionTree);
       } catch (CParserException e) {
-        logger.log(Level.WARNING, e, "Cannot parse code: " + assumeCode);
+        logger.log(Level.WARNING, "Cannot parse code: " + assumeCode);
       }
     }
     return result;
