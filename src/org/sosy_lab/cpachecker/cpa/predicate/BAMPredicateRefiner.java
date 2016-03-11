@@ -174,10 +174,6 @@ public abstract class BAMPredicateRefiner implements Refiner {
             strategy);
   }
 
-  /**
-   * This is a small extension of PredicateCPARefiner that overrides
-   * {@link #getFormulasForPath(List, ARGState)} so that it respects BAM.
-   */
   private static final class ExtendedPredicateRefiner extends PredicateCPARefiner {
 
     private final Timer ssaRenamingTimer = new Timer();

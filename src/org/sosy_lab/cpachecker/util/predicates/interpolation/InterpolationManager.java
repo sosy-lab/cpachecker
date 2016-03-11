@@ -289,14 +289,17 @@ public final class InterpolationManager {
 
       // Final adjustments to the list of formulas
       List<BooleanFormula> f = new ArrayList<>(pFormulas); // copy because we will change the list
+
       if (fmgr.useBitwiseAxioms()) {
         addBitwiseAxioms(f);
       }
 
       f = Collections.unmodifiableList(f);
       logger.log(Level.ALL, "Counterexample trace formulas:", f);
+
       // now f is the DAG formula which is satisfiable iff there is a
       // concrete counterexample
+
 
       // Check if refinement problem is not too big
       if (maxRefinementSize > 0) {
@@ -732,6 +735,7 @@ public final class InterpolationManager {
       } finally {
         satCheckTimer.stop();
       }
+
       logger.log(Level.FINEST, "Counterexample trace is", (spurious ? "infeasible" : "feasible"));
 
 
