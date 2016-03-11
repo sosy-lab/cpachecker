@@ -366,6 +366,7 @@ public class BAMTransferRelation implements TransferRelation {
             data.bamCache.get(reducedInitialState, reducedInitialPrecision, currentBlock);
     ReachedSet reached = pair.getFirst();
     final Collection<AbstractState> cachedReturnStates = pair.getSecond();
+
     assert cachedReturnStates == null || reached != null : "there cannot be result-states without reached-states";
 
     if (cachedReturnStates != null && !reached.hasWaitingState()) {

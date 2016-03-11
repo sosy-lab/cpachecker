@@ -36,7 +36,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
@@ -51,6 +50,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 
 import com.google.common.base.Predicate;
@@ -82,23 +82,23 @@ public class ARGSubtreeRemover {
   void removeSubtree(ARGReachedSet mainReachedSet, ARGPath pPath,
                      ARGState element, List<Precision> pNewPrecisions,
                      List<Predicate<? super Precision>> pNewPrecisionTypes,
-                     Map<ARGState, ARGState> subgraphStatesToReachedState) {
+                     Map<ARGState, ARGState> pPathElementToReachedState) {
 
     final ARGState firstState = (ARGState)mainReachedSet.asReachedSet().getFirstState();
     final ARGState lastState = (ARGState)mainReachedSet.asReachedSet().getLastState();
 
-    assert subgraphStatesToReachedState.containsKey(element);
-    assert subgraphStatesToReachedState.get(pPath.asStatesList().get(0)) == firstState : "path should start with root state";
-    assert subgraphStatesToReachedState.get(Iterables.getLast(pPath.asStatesList())) == lastState : "path should end with target state";
+    assert pPathElementToReachedState.containsKey(element);
+    assert pPathElementToReachedState.get(pPath.asStatesList().get(0)) == firstState : "path should start with root state";
+    assert pPathElementToReachedState.get(Iterables.getLast(pPath.asStatesList())) == lastState : "path should end with target state";
     assert lastState.isTarget();
 
     // we compute a separate path here, because it might be different from pPath, if other branches are used.
     final ARGPath path = ARGUtils.getOnePathTo(element);
-    assert subgraphStatesToReachedState.get(path.asStatesList().get(0)) == firstState : "path should start with root state";
+    assert pPathElementToReachedState.get(path.asStatesList().get(0)) == firstState : "path should start with root state";
     assert Iterables.getLast(path.asStatesList()) == element : "path should end with cut state";
 
-    final List<ARGState> relevantCallNodes = getRelevantDefinitionNodes(path.asStatesList(), element, subgraphStatesToReachedState);
-    assert subgraphStatesToReachedState.get(relevantCallNodes.get(0)) == firstState : "root should be relevant";
+    final List<ARGState> relevantCallNodes = getRelevantDefinitionNodes(path.asStatesList(), element, pPathElementToReachedState);
+    assert pPathElementToReachedState.get(relevantCallNodes.get(0)) == firstState : "root should be relevant";
     assert relevantCallNodes.size() >= 1 : "at least the main-function should be open at the target-state";
 
     Multimap<ARGState, ARGState> neededRemoveCachedSubtreeCalls = LinkedHashMultimap.create();
@@ -108,17 +108,17 @@ public class ARGSubtreeRemover {
       final ARGState pathElement = relevantCallNodes.get(i);
       final ARGState nextElement = relevantCallNodes.get(i+1);
       neededRemoveCachedSubtreeCalls.put(
-              getReachedState(subgraphStatesToReachedState, pathElement),
-              getReachedState(subgraphStatesToReachedState, nextElement));
+              getReachedState(pPathElementToReachedState, pathElement),
+              getReachedState(pPathElementToReachedState, nextElement));
     }
 
     if (bamCache.doesAggressiveCaching()) {
-      ensureExactCacheHitsOnPath(mainReachedSet, pPath, element, pNewPrecisions, subgraphStatesToReachedState,
+      ensureExactCacheHitsOnPath(mainReachedSet, pPath, element, pNewPrecisions, pPathElementToReachedState,
               neededRemoveCachedSubtreeCalls);
     }
 
-    final ARGState lastRelevantNode = getReachedState(subgraphStatesToReachedState, Iterables.getLast(relevantCallNodes));
-    final ARGState target = getReachedState(subgraphStatesToReachedState, element);
+    final ARGState lastRelevantNode = getReachedState(pPathElementToReachedState, Iterables.getLast(relevantCallNodes));
+    final ARGState target = getReachedState(pPathElementToReachedState, element);
     for (final Entry<ARGState, ARGState> removeCachedSubtreeArguments : neededRemoveCachedSubtreeCalls.entries()) {
       ReachedSet nextReachedSet = data.initialStateToReachedSet.get(removeCachedSubtreeArguments.getValue());
       final List<Precision> newPrecisions;
@@ -138,16 +138,16 @@ public class ARGSubtreeRemover {
       removeCachedSubtree(removeCachedSubtreeArguments.getKey(), removeCachedSubtreeArguments.getValue(), newPrecisions, newPrecisionTypes);
     }
 
-    removeCachedSubtree(getReachedState(subgraphStatesToReachedState, Iterables.getLast(relevantCallNodes)),
-            getReachedState(subgraphStatesToReachedState, element), pNewPrecisions, pNewPrecisionTypes);
+    removeCachedSubtree(getReachedState(pPathElementToReachedState, Iterables.getLast(relevantCallNodes)),
+            getReachedState(pPathElementToReachedState, element), pNewPrecisions, pNewPrecisionTypes);
 
     // the main-reachedset contains only the root, exit-states and targets.
     // we assume, that the current refinement was caused by a target-state.
     mainReachedSet.removeSubtree(lastState);
   }
 
-  private ARGState getReachedState(Map<ARGState, ARGState> subgraphStatesToReachedState, ARGState state) {
-    return getMostInnerState(subgraphStatesToReachedState.get(state));
+  private ARGState getReachedState(Map<ARGState, ARGState> pPathElementToReachedState, ARGState state) {
+    return getMostInnerState(pPathElementToReachedState.get(state));
   }
 
   private ARGState getMostInnerState(ARGState state) {
@@ -260,11 +260,11 @@ public class ARGSubtreeRemover {
   }
 
   /** returns only those states, where a block starts that is 'open' at the cutState. */
-  private List<ARGState> getRelevantDefinitionNodes(List<ARGState> path, ARGState bamCutState, Map<ARGState, ARGState> subgraphStatesToReachedState) {
+  private List<ARGState> getRelevantDefinitionNodes(List<ARGState> path, ARGState bamCutState, Map<ARGState, ARGState> pPathElementToReachedState) {
     final Deque<ARGState> openCallStates = new ArrayDeque<>();
     for (final ARGState bamState : path) {
 
-      final ARGState state = subgraphStatesToReachedState.get(bamState);
+      final ARGState state = pPathElementToReachedState.get(bamState);
 
       // ASSUMPTION: there can be several block-exits at once per location, but only one block-entry per location.
 
@@ -300,10 +300,10 @@ public class ARGSubtreeRemover {
   }
 
   private void ensureExactCacheHitsOnPath(ARGReachedSet mainReachedSet, ARGPath pPath, final ARGState pElement,
-                                          List<Precision> pNewPrecisions, Map<ARGState, ARGState> subgraphStatesToReachedState,
+                                          List<Precision> pNewPrecisions, Map<ARGState, ARGState> pPathElementToReachedState,
                                           Multimap<ARGState, ARGState> neededRemoveCachedSubtreeCalls) {
     Map<ARGState, UnmodifiableReachedSet> pathElementToOuterReachedSet = getReachedSetMapping(
-        pPath, mainReachedSet.asReachedSet(), subgraphStatesToReachedState);
+        pPath, mainReachedSet.asReachedSet(), pPathElementToReachedState);
 
     Deque<ARGState> remainingPathElements = new LinkedList<>(pPath.asStatesList());
 
@@ -316,14 +316,14 @@ public class ARGSubtreeRemover {
 
     while (!remainingPathElements.isEmpty()) {
       ARGState currentElement = remainingPathElements.pop();
-        if (data.initialStateToReachedSet.containsKey(subgraphStatesToReachedState.get(currentElement))) {
-          ARGState currentReachedState = getReachedState(subgraphStatesToReachedState, currentElement);
+        if (data.initialStateToReachedSet.containsKey(pPathElementToReachedState.get(currentElement))) {
+          ARGState currentReachedState = getReachedState(pPathElementToReachedState, currentElement);
           CFANode node = extractLocation(currentReachedState);
           Block currentBlock = partitioning.getBlockForCallNode(node);
           AbstractState reducedState = wrappedReducer.getVariableReducedState(currentReachedState, currentBlock, node);
 
           removeUnpreciseCacheEntriesOnPath(currentElement, reducedState, pNewPrecisions, currentBlock,
-                  remainingPathElements, subgraphStatesToReachedState, pathElementToOuterReachedSet,
+                  remainingPathElements, pPathElementToReachedState, pathElementToOuterReachedSet,
                   neededRemoveCachedSubtreeCalls);
         }
     }
@@ -363,13 +363,13 @@ public class ARGSubtreeRemover {
 
   private boolean removeUnpreciseCacheEntriesOnPath(ARGState rootState, AbstractState reducedRootState,
                                                     List<Precision> pNewPrecisions, Block rootBlock, Deque<ARGState> remainingPathElements,
-                                                    Map<ARGState, ARGState> subgraphStatesToReachedState,
+                                                    Map<ARGState, ARGState> pPathElementToReachedState,
                                                     Map<ARGState, UnmodifiableReachedSet> pathElementToOuterReachedSet,
                                                     Multimap<ARGState, ARGState> neededRemoveCachedSubtreeCalls) {
     UnmodifiableReachedSet outerReachedSet = pathElementToOuterReachedSet.get(rootState);
 
     boolean isNewPrecisionEntry = createNewPreciseEntry(
-        getReachedState(subgraphStatesToReachedState, rootState),
+        getReachedState(pPathElementToReachedState, rootState),
         reducedRootState, pNewPrecisions, rootBlock, outerReachedSet);
 
     //fine, this block will not lead to any problems anymore, but maybe inner blocks will?
@@ -378,27 +378,27 @@ public class ARGSubtreeRemover {
     while (!remainingPathElements.isEmpty()) {
       ARGState currentElement = remainingPathElements.pop();
 
-      if (data.initialStateToReachedSet.containsKey(subgraphStatesToReachedState.get(currentElement))) {
-        ARGState currentReachedState = getReachedState(subgraphStatesToReachedState, currentElement);
+      if (data.initialStateToReachedSet.containsKey(pPathElementToReachedState.get(currentElement))) {
+        ARGState currentReachedState = getReachedState(pPathElementToReachedState, currentElement);
         CFANode node = extractLocation(currentReachedState);
         Block currentBlock = partitioning.getBlockForCallNode(node);
         AbstractState reducedState = wrappedReducer.getVariableReducedState(currentReachedState, currentBlock, node);
 
         boolean removedUnpreciseInnerBlock =
                 removeUnpreciseCacheEntriesOnPath(currentElement, reducedState, pNewPrecisions, currentBlock,
-                        remainingPathElements, subgraphStatesToReachedState,
+                        remainingPathElements, pPathElementToReachedState,
                         pathElementToOuterReachedSet, neededRemoveCachedSubtreeCalls);
         if (removedUnpreciseInnerBlock) {
           //ok we indeed found an inner block that was unprecise
           if (isNewPrecisionEntry && !foundInnerUnpreciseEntries) {
             //if we are in a reached set that already uses the new precision and this is the first such entry we have to remove the subtree starting from currentElement in the rootReachedSet
-            neededRemoveCachedSubtreeCalls.put(getReachedState(subgraphStatesToReachedState, rootState), currentReachedState);
+            neededRemoveCachedSubtreeCalls.put(getReachedState(pPathElementToReachedState, rootState), currentReachedState);
             foundInnerUnpreciseEntries = true;
           }
         }
       }
 
-      if (data.expandedStateToReducedState.containsKey(subgraphStatesToReachedState.get(currentElement))) {
+      if (data.expandedStateToReducedState.containsKey(pPathElementToReachedState.get(currentElement))) {
         //our block ended. Leave..
         return foundInnerUnpreciseEntries || !isNewPrecisionEntry;
       }

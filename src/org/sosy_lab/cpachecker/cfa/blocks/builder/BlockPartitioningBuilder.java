@@ -63,7 +63,7 @@ public class BlockPartitioningBuilder {
   public BlockPartitioning build(CFANode mainFunction) {
     //fixpoint iteration to take inner function calls into account for referencedVariables and callNodesMap
     boolean changed = true;
-outer: while (changed) {
+    outer: while (changed) {
       changed = false;
       for (Entry<CFANode, Set<ReferencedVariable>> entry : referencedVariablesMap.entrySet()) {
         CFANode node = entry.getKey();
@@ -91,6 +91,7 @@ outer: while (changed) {
         }
       }
     }
+
     //now we can create the Blocks   for the BlockPartitioning
     Collection<Block> blocks = new ArrayList<>(returnNodesMap.keySet().size());
     for (Entry<CFANode, Set<CFANode>> entry : returnNodesMap.entrySet()) {
@@ -99,7 +100,6 @@ outer: while (changed) {
     }
     return new BlockPartitioning(blocks, mainFunction);
   }
-
 
   /**
    * @param nodes Nodes from which Block should be created; if the set of nodes contains inner function calls, the called function body should NOT be included

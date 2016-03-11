@@ -589,12 +589,6 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     return !prefixPreference.equals(PrefixSelector.NO_SELECTION);
   }
 
-  /*@Override
-  public void informAboutOtherRefinement() {
-    //Last path can be wrong if the refinement was performed by the other refiner
-    lastErrorPath = null;
-  }*/
-
   static List<ARGState> transformPath(ARGPath pPath) {
     List<ARGState> result = from(pPath.asStatesList())
       .skip(1)

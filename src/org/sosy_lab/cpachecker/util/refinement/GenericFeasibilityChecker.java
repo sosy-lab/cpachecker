@@ -114,7 +114,7 @@ public class GenericFeasibilityChecker<S extends ForgetfulState<?>>
 
         // no successors => path is infeasible
         if (!successors.isPresent()) {
-          logger.log(Level.INFO, "found path to be infeasible: ", iterator.getOutgoingEdge(),
+          logger.log(Level.FINE, "found path to be infeasible: ", iterator.getOutgoingEdge(),
               " did not yield a successor");
 
           return false;

@@ -300,6 +300,7 @@ public class ValueAnalysisTransferRelation
       List<? extends AExpression> arguments, List<? extends AParameterDeclaration> parameters,
       String calledFunctionName) throws UnrecognizedCCodeException {
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
+
     assert (parameters.size() == arguments.size())
         || callEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs();
 
@@ -852,6 +853,7 @@ public class ValueAnalysisTransferRelation
       throws UnrecognizedCodeException {
     AExpression op1    = assignExpression.getLeftHandSide();
     ARightHandSide op2 = assignExpression.getRightHandSide();
+
     if (!isTrackedType(op1.getExpressionType())) {
       return state;
     }

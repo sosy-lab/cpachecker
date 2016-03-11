@@ -214,7 +214,7 @@ public abstract class BAMPredicateRefiner implements Refiner {
       pfmgr = pPfmgr;
     }
 
-   /* @Override
+    @Override
     protected final List<BooleanFormula> getFormulasForPath(List<ARGState> pPath, ARGState initialState) throws CPATransferException, InterruptedException {
       // the elements in the path are not expanded, so they contain the path formulas
       // with the wrong indices
@@ -227,7 +227,7 @@ public abstract class BAMPredicateRefiner implements Refiner {
       } finally {
         ssaRenamingTimer.stop();
       }
-    }*/
+    }
 
     private List<BooleanFormula> computeBlockFormulas(final ARGState pRoot) throws CPATransferException, InterruptedException {
 

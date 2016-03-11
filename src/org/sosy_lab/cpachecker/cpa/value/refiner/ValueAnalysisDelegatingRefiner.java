@@ -166,8 +166,6 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     predicateCpaPrefixProvider  = pPredicateCpaPrefixProvider;
   }
 
-  int va = 0;
-  int pa = 0;
   @Override
   protected CounterexampleInfo performRefinementForPath(final ARGReachedSet reached, ARGPath pErrorPath)
       throws CPAException, InterruptedException {
@@ -209,7 +207,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     if (vaScore < paScore) {
       totalPrimaryRefinementsSelected.inc();
 
-      cex = valueCpaRefiner.performRefinementForPath(reached, pErrorPath);
+      cex = valueCpaRefiner.performRefinement(reached);
       if (cex.isSpurious()) {
         totalPrimaryRefinementsFinished.inc();
       }

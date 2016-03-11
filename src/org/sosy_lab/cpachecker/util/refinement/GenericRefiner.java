@@ -105,7 +105,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
 
   private final PathExtractor pathExtractor;
 
-  private Set<Integer> previousErrorPathId = Sets.newHashSet();
+  private Set<Integer> previousErrorPathIds = Sets.newHashSet();
 
   // statistics
   private final StatCounter refinementCounter = new StatCounter("Number of refinements");
@@ -144,9 +144,9 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   }
 
   private boolean madeProgress(ARGPath path) {
-    boolean progress = (previousErrorPathId.isEmpty() || !previousErrorPathId.contains(obtainErrorPathId(path)));
+    boolean progress = (previousErrorPathIds.isEmpty() || !previousErrorPathIds.contains(obtainErrorPathId(path)));
 
-    previousErrorPathId.add(obtainErrorPathId(path));
+    previousErrorPathIds.add(obtainErrorPathId(path));
 
     return progress;
   }
@@ -296,7 +296,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
 
       if (isErrorPathFeasible(currentPath)) {
         if(feasiblePath == null) {
-          previousErrorPathId.add(obtainErrorPathId(currentPath));
+          previousErrorPathIds.add(obtainErrorPathId(currentPath));
           feasiblePath = currentPath;
         }
 
@@ -377,11 +377,6 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   private int obtainErrorPathId(ARGPath path) {
     return path.toString().hashCode();
   }
-
-  /*@Override
-  public void informAboutOtherRefinement() {
-    previousErrorPathId.clear();
-  }*/
 
   /** export the interpolation-tree as dot-file, if necessary. */
   private void exportTree(InterpolationTree<S, I> interpolationTree, String level) {

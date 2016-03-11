@@ -70,11 +70,6 @@ public abstract class ValueAnalysisBAMRefiner implements Refiner {
     return BAMBasedRefiner.forARGBasedRefiner(create0(pCpa), pCpa);
   }
 
-  /*@Override
-  public void informAboutOtherRefinement() {
-    refiner.informAboutOtherRefinement();
-  }*/
-
   public static ARGBasedRefiner create0(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
     return new ExtendedValueAnalysisRefiner(ValueAnalysisRefiner.create(pCpa));
