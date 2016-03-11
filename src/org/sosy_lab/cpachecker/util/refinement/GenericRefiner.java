@@ -90,9 +90,12 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate interpolationTreeExportFile = PathTemplate.ofFormatString("interpolationTree.%d-%d.dot");
 
+  /* This option is broken with BAM, because BAM expects the refinementRoot belongs to origin path
+   * (see ARGSubtreeRemover.removeSubtree)
+   * If we here find a further path, refine it, try to remove a different subtree and fail*/
   @Option(secure = true, description="instead of reporting a repeated counter-example, "
       + "search and refine another error-path for the same target-state.")
-  private boolean searchForFurtherErrorPaths = true;
+  private boolean searchForFurtherErrorPaths = false;
 
   protected final LogManager logger;
 
