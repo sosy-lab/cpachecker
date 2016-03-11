@@ -36,6 +36,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -305,7 +307,7 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
     // String :: identifier for the thread TODO change to object or memory-location
     // CallstackState +  LocationState :: thread-position
     private final AbstractState location;
-    private final AbstractState callstack;
+    private final CallstackStateEqualsWrapper callstack;
 
     // Each thread is assigned to an Integer
     // TODO do we really need this? -> needed for identification of cloned functions.
@@ -313,7 +315,7 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
 
     ThreadState(AbstractState pLocation, AbstractState pCallstack, int  pNum) {
       location = pLocation;
-      callstack =pCallstack;
+      callstack = new CallstackStateEqualsWrapper((CallstackState)pCallstack);
       num= pNum;
     }
 
@@ -322,7 +324,7 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
     }
 
     public AbstractState getCallstack() {
-      return callstack;
+      return callstack.getState();
     }
 
     public int getNum() {
