@@ -760,8 +760,8 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
       Constraints pConstraints,
       ErrorConditions pErrorConditions) {
 
-    CExpressionVisitorWithPointerAliasing rhsVisitor =
-        new CExpressionVisitorWithPointerAliasing(this, pCFAEdge, pFunction, pSSAMapBuilder,
+    CExpressionVisitorWithHeapArray rhsVisitor =
+        new CExpressionVisitorWithHeapArray(this, pCFAEdge, pFunction, pSSAMapBuilder,
             pConstraints, pErrorConditions, pPointerTargetSetBuilder);
     return rhsVisitor.asFormulaVisitor();
   }
@@ -1042,8 +1042,8 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
       final ErrorConditions pErrorConditions)
       throws UnrecognizedCCodeException, InterruptedException {
     final CType expressionType = CTypeUtils.simplifyType(pExpression.getExpressionType());
-    CExpressionVisitorWithPointerAliasing ev =
-        new CExpressionVisitorWithPointerAliasing(this, pCFAEdge, pFunction, pSSAMapBuilder,
+    CExpressionVisitorWithHeapArray ev =
+        new CExpressionVisitorWithHeapArray(this, pCFAEdge, pFunction, pSSAMapBuilder,
             pConstraints, pErrorConditions, pPointerTargetSetBuilder);
     BooleanFormula result = toBooleanFormula(ev.asValueFormula(
         pExpression.accept(ev), expressionType));

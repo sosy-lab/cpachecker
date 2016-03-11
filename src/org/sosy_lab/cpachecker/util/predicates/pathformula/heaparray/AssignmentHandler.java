@@ -159,8 +159,8 @@ class AssignmentHandler {
                      : CNumericTypes.SIGNED_CHAR;
 
     // RHS handling
-    final CExpressionVisitorWithPointerAliasing rhsVisitor =
-        new CExpressionVisitorWithPointerAliasing(converter, edge, function, ssa, constraints,
+    final CExpressionVisitorWithHeapArray rhsVisitor =
+        new CExpressionVisitorWithHeapArray(converter, edge, function, ssa, constraints,
             errorConditions, pts);
 
     final Expression rhsExpression;
@@ -181,8 +181,8 @@ class AssignmentHandler {
         rhsVisitor.getUsedDeferredAllocationPointers();
 
     // LHS handling
-    final CExpressionVisitorWithPointerAliasing lhsVisitor =
-        new CExpressionVisitorWithPointerAliasing(converter, edge, function, ssa, constraints,
+    final CExpressionVisitorWithHeapArray lhsVisitor =
+        new CExpressionVisitorWithHeapArray(converter, edge, function, ssa, constraints,
             errorConditions, pts);
     final Location lhsLocation = pLhs.accept(lhsVisitor).asLocation();
     final Map<String, CType> lhsUsedDeferredAllocationPointers =
@@ -222,8 +222,8 @@ class AssignmentHandler {
       final List<CExpressionAssignmentStatement> pAssignments)
       throws UnrecognizedCCodeException, InterruptedException {
 
-    CExpressionVisitorWithPointerAliasing lhsVisitor =
-        new CExpressionVisitorWithPointerAliasing(converter, edge, function,
+    CExpressionVisitorWithHeapArray lhsVisitor =
+        new CExpressionVisitorWithHeapArray(converter, edge, function,
             ssa, constraints, errorConditions, pts);
     final Location lhsLocation = pVariable.accept(lhsVisitor).asLocation();
     final Set<CType> updatedTypes = new HashSet<>();
@@ -276,8 +276,8 @@ class AssignmentHandler {
     final CType lhsType = CTypeUtils.simplifyType(
         pAssignments.get(0).getLeftHandSide().getExpressionType());
 
-    final CExpressionVisitorWithPointerAliasing rhsVisitor =
-        new CExpressionVisitorWithPointerAliasing(converter, edge, function, ssa, constraints,
+    final CExpressionVisitorWithHeapArray rhsVisitor =
+        new CExpressionVisitorWithHeapArray(converter, edge, function, ssa, constraints,
             errorConditions, pts);
     final Value rhsValue = pAssignments.get(0).getRightHandSide().accept(rhsVisitor).asValue();
 
@@ -323,7 +323,7 @@ class AssignmentHandler {
    */
   private boolean checkEqualityOfInitializers(
       final @Nonnull List<CExpressionAssignmentStatement> pAssignments,
-      final @Nonnull CExpressionVisitorWithPointerAliasing pRhsVisitor)
+      final @Nonnull CExpressionVisitorWithHeapArray pRhsVisitor)
       throws UnrecognizedCCodeException {
     Value tmp = null;
     for (CExpressionAssignmentStatement assignment : pAssignments) {
