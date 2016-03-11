@@ -70,4 +70,9 @@ public class CallstackStateEqualsWrapper {
   public int hashCode() {
     return Objects.hash(state.getCallNode(), state.getCurrentFunction(), state.getDepth());
   }
+
+  @Override
+  public String toString() {
+    return state.toString();
+  }
 }
