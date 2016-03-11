@@ -399,6 +399,7 @@ class InvariantsManager implements StatisticsProvider {
     // clear refinementCache
     refinementCache.clear();
     boolean atLeastOneStrategyFinished = false;
+    boolean atLeastOneSuccessful = false;
     int numUsedStrategies = 0;
     List<BooleanFormula> tmpRefinementCache = new ArrayList<>();
 
@@ -420,69 +421,62 @@ class InvariantsManager implements StatisticsProvider {
       for (InvariantGenerationStrategy generation : generationStrategy) {
         logger.log(Level.INFO, "Starting invariant generation with", generation);
         numUsedStrategies++;
+        // reset flag for per try check on success
+        boolean wasSuccessful = false;
 
         switch (generation) {
           case PF_CNF_KIND:
-            {
-              boolean atLeastOneSuccessful = false;
               for (Pair<PathFormula, CFANode> pair : pArgForPathFormulaBasedGeneration) {
                 if (pair.getFirst() != null) {
-                  atLeastOneSuccessful =
-                      findInvariantPartOfPathFormulaWithKInduction(
-                              pair.getSecond(), pair.getFirst(), invariantShutdown.getNotifier())
-                          || atLeastOneSuccessful;
+                wasSuccessful =
+                    findInvariantPartOfPathFormulaWithKInduction(
+                            pair.getSecond(), pair.getFirst(), invariantShutdown.getNotifier())
+                        || wasSuccessful;
                 } else {
                   addResultToCache(bfmgr.makeBoolean(true), pair.getSecond());
                 }
               }
-
-              if (atLeastOneSuccessful) {
-                logger.log(Level.INFO, "Invariant generation successful");
-              } else {
-                logger.log(Level.INFO, "All invariants were TRUE, ignoring result.");
-              }
-            }
             break;
 
           case PF_INDUCTIVE_WEAKENING:
-            {
-              boolean atLeastOneSuccessful = false;
               for (Pair<PathFormula, CFANode> pair : pArgForPathFormulaBasedGeneration) {
                 if (pair.getFirst() != null) {
-                  atLeastOneSuccessful =
-                      findInvariantPartOfPathFormulaWithWeakening(
-                              pair.getSecond(), pair.getFirst(), invariantShutdown.getNotifier())
-                          || atLeastOneSuccessful;
+                wasSuccessful =
+                    findInvariantPartOfPathFormulaWithWeakening(
+                            pair.getSecond(), pair.getFirst(), invariantShutdown.getNotifier())
+                        || wasSuccessful;
                 } else {
                   addResultToCache(bfmgr.makeBoolean(true), pair.getSecond());
                 }
               }
-
-              if (atLeastOneSuccessful) {
-                logger.log(Level.INFO, "Invariant generation successful");
-              } else {
-                logger.log(Level.INFO, "All invariants were TRUE, ignoring result.");
-              }
-            }
             break;
 
           case RF_INTERPOLANT_KIND:
-            findInvariantInterpolants(
-                pArgForErrorPathBasedGeneration.getFirst(),
-                pArgForErrorPathBasedGeneration.getSecond(),
-                invariantShutdown.getNotifier());
+            wasSuccessful =
+                findInvariantInterpolants(
+                    pArgForErrorPathBasedGeneration.getFirst(),
+                    pArgForErrorPathBasedGeneration.getSecond(),
+                    invariantShutdown.getNotifier());
             break;
 
           case RF_INVARIANT_GENERATION:
-            findInvariantsWithGenerator(
-                pArgForErrorPathBasedGeneration.getFirst(),
-                pArgForErrorPathBasedGeneration.getSecond(),
-                pArgForErrorPathBasedGeneration.getThird(),
-                invariantShutdown);
+            wasSuccessful =
+                findInvariantsWithGenerator(
+                    pArgForErrorPathBasedGeneration.getFirst(),
+                    pArgForErrorPathBasedGeneration.getSecond(),
+                    pArgForErrorPathBasedGeneration.getThird(),
+                    invariantShutdown);
             break;
 
           default:
             throw new AssertionError("Unhandled case statement");
+        }
+
+        if (wasSuccessful) {
+          logger.log(Level.INFO, "Invariant generation successful");
+          atLeastOneSuccessful = true;
+        } else {
+          logger.log(Level.INFO, "All invariants were TRUE, ignoring result.");
         }
 
         // we need to merge invariants for refinement if there is more than one
@@ -502,7 +496,9 @@ class InvariantsManager implements StatisticsProvider {
 
         // if we did successfully compute invariants we do not need to
         // compute them once more with a different strategy
-        if (useAllStrategies || invariantShutdown.getNotifier().shouldShutdown()) {
+        if (useAllStrategies
+            || (!useAllStrategies && atLeastOneSuccessful)
+            || invariantShutdown.getNotifier().shouldShutdown()) {
           break;
         }
       }
@@ -519,6 +515,7 @@ class InvariantsManager implements StatisticsProvider {
         logger.logUserException(Level.INFO, e, "Subsequent run of invariant generation failed");
       } else {
         logger.logUserException(Level.INFO, e, "No invariants could be computed");
+        atLeastOneSuccessful = false;
       }
 
       // update the refinement cache at the very end of the computation
@@ -532,6 +529,9 @@ class InvariantsManager implements StatisticsProvider {
       refinementCache.addAll(tmpRefinementCache);
 
       if (atLeastOneStrategyFinished) {
+        stats.terminatingInvGenTries.setNextValue(1);
+      }
+      if (atLeastOneSuccessful) {
         stats.successfulInvGenTries.setNextValue(1);
       }
       stats.usedStrategiesPerTrie.setNextValue(numUsedStrategies);
@@ -579,13 +579,13 @@ class InvariantsManager implements StatisticsProvider {
       throws SolverException, InterruptedException, CPATransferException,
           InvalidConfigurationException {
 
-    stats.pfWeakeningTime.start();
-
-    PointerTargetSet pts = pBlockFormula.getPointerTargetSet();
-    SSAMap ssa = pBlockFormula.getSsa();
-    PathFormula loopFormula;
-
     try {
+      stats.pfWeakeningTime.start();
+
+      PointerTargetSet pts = pBlockFormula.getPointerTargetSet();
+      SSAMap ssa = pBlockFormula.getSsa();
+      PathFormula loopFormula;
+
       // we already found this loop and just need to update the SSA indices
       if (loopFormulaCache.containsKey(pLocation)) {
         loopFormula =
@@ -620,9 +620,9 @@ class InvariantsManager implements StatisticsProvider {
       final CFANode pLocation, PathFormula pPathFormula, ShutdownNotifier pInvariantShutdown)
       throws InterruptedException, CPAException, InvalidConfigurationException {
 
-    stats.pfKindTime.start();
-
     try {
+      stats.pfKindTime.start();
+
       BooleanFormula cnfFormula = semiCNFConverter.convert(pPathFormula.getFormula());
       Collection<BooleanFormula> conjuncts =
           bfmgr.visit(
@@ -679,55 +679,61 @@ class InvariantsManager implements StatisticsProvider {
    * This method generates invariants by using another CPA and extracting invariants
    * out of it.
    */
-  private void findInvariantsWithGenerator(
+  private boolean findInvariantsWithGenerator(
       final ARGPath allStatesTrace,
       final List<ARGState> abstractionStatesTrace,
       final Set<Loop> pLoopsInPath,
       ShutdownManager pInvariantShutdown)
       throws IOException, InvalidConfigurationException, CPAException, InterruptedException {
 
-    stats.invgenTime.start();
-
-    StringBuilder spc = new StringBuilder();
-    ARGUtils.producePathAutomatonWithLoops(
-        spc, allStatesTrace.getFirstState(), allStatesTrace.getStateSet(), "invGen", pLoopsInPath);
-
-    if (dumpInvariantGenerationAutomata) {
-      Path logPath = dumpInvariantGenerationAutomataFile.getFreshPath();
-      CharSink file = logPath.asCharSink(Charset.defaultCharset(), FileWriteMode.APPEND);
-      file.openStream().append(spc).close();
-    }
-
-    Scope scope =
-        cfa.getLanguage() == Language.C ? new CProgramScope(cfa, logger) : DummyScope.getInstance();
-
-    List<Automaton> automata =
-        AutomatonParser.parseAutomaton(
-            new StringReader(spc.toString()),
-            Optional.<Path>absent(),
-            config,
-            logger,
-            cfa.getMachineModel(),
-            scope,
-            cfa.getLanguage());
-
-    InvariantGenerator invGen =
-        CPAInvariantGenerator.create(
-            config,
-            new OnlyWarningsLogmanager(logger),
-            pInvariantShutdown,
-            Optional.<ShutdownManager>absent(),
-            cfa,
-            automata);
-
     try {
-      generateInvariants0(abstractionStatesTrace, invGen);
+      stats.rfInvGenTime.start();
+
+      StringBuilder spc = new StringBuilder();
+      ARGUtils.producePathAutomatonWithLoops(
+          spc,
+          allStatesTrace.getFirstState(),
+          allStatesTrace.getStateSet(),
+          "invGen",
+          pLoopsInPath);
+
+      if (dumpInvariantGenerationAutomata) {
+        Path logPath = dumpInvariantGenerationAutomataFile.getFreshPath();
+        CharSink file = logPath.asCharSink(Charset.defaultCharset(), FileWriteMode.APPEND);
+        file.openStream().append(spc).close();
+      }
+
+      Scope scope =
+          cfa.getLanguage() == Language.C
+              ? new CProgramScope(cfa, logger)
+              : DummyScope.getInstance();
+
+      List<Automaton> automata =
+          AutomatonParser.parseAutomaton(
+              new StringReader(spc.toString()),
+              Optional.<Path>absent(),
+              config,
+              logger,
+              cfa.getMachineModel(),
+              scope,
+              cfa.getLanguage());
+
+      InvariantGenerator invGen =
+          CPAInvariantGenerator.create(
+              config,
+              new OnlyWarningsLogmanager(logger),
+              pInvariantShutdown,
+              Optional.<ShutdownManager>absent(),
+              cfa,
+              automata);
+
+      return generateInvariants0(abstractionStatesTrace, invGen);
     } finally {
-      stats.invgenTime.stop();
+      stats.rfInvGenTime.stop();
     }
   }
 
-  private void generateInvariants0(
+  private boolean generateInvariants0(
       final List<ARGState> abstractionStatesTrace, InvariantGenerator invGen)
       throws CPAException, InterruptedException {
 
@@ -750,32 +756,35 @@ class InvariantsManager implements StatisticsProvider {
         }
       }
 
-      if (from(invariants)
-          .transform(Pair.<BooleanFormula>getProjectionToFirst())
-          .allMatch(equalTo(fmgr.getBooleanFormulaManager().makeBoolean(true)))) {
-        logger.log(Level.INFO, "All invariants were TRUE, ignoring result.");
+      boolean wasSuccessful =
+          !from(invariants)
+              .transform(Pair.<BooleanFormula>getProjectionToFirst())
+              .allMatch(equalTo(fmgr.getBooleanFormulaManager().makeBoolean(true)));
 
-      } else {
+      if (wasSuccessful) {
         // iterate over the trace another time and add the result to the
         // appropriate caches (we do not do this above, as it could be that every
         // found invariant is true, this is not helpful and therefore omitted)
         for (Pair<BooleanFormula, CFANode> pair : invariants) {
           addResultToCache(pair.getFirst(), pair.getSecond());
         }
-        logger.log(Level.INFO, "Invariant generation successful");
       }
+
+      return wasSuccessful;
 
     } else {
       logger.log(
           Level.INFO,
           "Invariants found, but they are not strong enough to refute the counterexample"
-              + " consider setting \"useStorngInvariantsOnly\" to false if you want to use"
+              + " consider setting \"useStrongInvariantsOnly\" to false if you want to use"
               + " them. At least for usage during precision adjustment this should be better"
               + " than nothing.");
     }
+
+    return false;
   }
 
-  private void findInvariantInterpolants(
+  private boolean findInvariantInterpolants(
       ARGPath pPath, List<ARGState> pAbstractionStatesTrace, ShutdownNotifier pInvariantShutdown)
       throws CPAException, InterruptedException, InvalidConfigurationException {
 
@@ -798,17 +807,17 @@ class InvariantsManager implements StatisticsProvider {
         List<Pair<BooleanFormula, CFANode>> invariants =
             candidateGenerator.retrieveConfirmedInvariants();
         // if we found invariants at least one of them may not be "TRUE"
-        if (from(invariants)
-            .transform(Pair.<BooleanFormula>getProjectionToFirst())
-            .allMatch(equalTo(fmgr.getBooleanFormulaManager().makeBoolean(true)))) {
-          logger.log(Level.INFO, "All invariants were TRUE, ignoring result.");
-
-        } else {
+        boolean wasSuccessful =
+            !from(invariants)
+                .transform(Pair.<BooleanFormula>getProjectionToFirst())
+                .allMatch(equalTo(fmgr.getBooleanFormulaManager().makeBoolean(true)));
+        if (wasSuccessful) {
           for (Pair<BooleanFormula, CFANode> invariant : invariants) {
             addResultToCache(invariant.getFirst(), invariant.getSecond());
           }
-          logger.log(Level.INFO, "Invariant generation successful");
         }
+
+        return wasSuccessful;
 
       } else {
         logger.log(Level.INFO, "No invariants were found.");
@@ -816,6 +825,8 @@ class InvariantsManager implements StatisticsProvider {
     } finally {
       stats.rfKindTime.stop();
     }
+
+    return false;
   }
 
   private class InvCandidateGenerator implements CandidateGenerator {
@@ -1067,11 +1078,13 @@ class InvariantsManager implements StatisticsProvider {
         new StatTimer("Time for checking pathformula with k-induction");
     private final StatTimer pfWeakeningTime = new StatTimer("Time for inductive weakening");
     private final StatInt totalInvGenTries =
-        new StatInt(StatKind.COUNT, "Total amount of invariant generation tries");
+        new StatInt(StatKind.COUNT, "Total invariant generation tries");
     private final StatInt usedStrategiesPerTrie =
-        new StatInt(StatKind.AVG, "Average amount of used strategies per generation try");
+        new StatInt(StatKind.AVG, "Used strategies per generation try");
     private final StatInt successfulInvGenTries =
-        new StatInt(StatKind.COUNT, "Amount of successful invariant generation tries");
+        new StatInt(StatKind.COUNT, "Successful invariant generation tries");
+    private final StatInt terminatingInvGenTries =
+        new StatInt(StatKind.COUNT, "Invariant generation tries finishing in time");
 
     @Override
     public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
@@ -1081,6 +1094,7 @@ class InvariantsManager implements StatisticsProvider {
       if (numberOfInvGenTries > 0) {
         w0.put(totalInvGenTries)
             .beginLevel()
+            .put(terminatingInvGenTries)
             .put(successfulInvGenTries)
             .put(usedStrategiesPerTrie)
             .endLevel()
