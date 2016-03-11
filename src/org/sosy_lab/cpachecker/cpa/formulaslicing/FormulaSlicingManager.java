@@ -44,8 +44,11 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -139,106 +142,15 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
     if (shouldPerformAbstraction) {
 
-      List<SlicingAbstractedState> trace = findTraceToPrev(pStates, pFullState, pState);
+      ImmutableList<SlicingAbstractedState> trace = findTraceToPrev(pStates, pFullState, pState);
 
-      final SSAMap ssa = iState.getPathFormula().getSsa();
-      Set<BooleanFormula> finalClauses;
-      boolean isSliced;
-      if (!trace.isEmpty() && !Iterables.getLast(trace).isInitial()) {
-        isSliced = true;
-        SlicingAbstractedState first = trace.get(0);
-        List<SlicingAbstractedState> traceWithoutFirst = trace.subList(1, trace.size());
-        List<SlicingIntermediateState> predecessors = Lists.transform(traceWithoutFirst,
-            new Function<SlicingAbstractedState, SlicingIntermediateState>() {
-              @Override
-              public SlicingIntermediateState apply(SlicingAbstractedState input) {
-                return input.getGeneratingState().get();
-              }
-            });
-
-
-        List<Pair<PathFormula, SSAMap>> taus = approximateLoopTransitions(predecessors, iState);
-
-        // now slice "first" wrt \tau
-        SlicingAbstractedState abstractParent = first.getGeneratingState()
-                                               .get().getAbstractParent();
-        BooleanFormula strengthening = useOuterStrengthening ?
-                                       fmgr.instantiate(
-                                           bfmgr.and(abstractParent.getAbstraction()),
-                                           abstractParent.getSSA()
-                                       )
-                                       : bfmgr.makeBoolean(true);
-        finalClauses = first.getAbstraction();
-        for (Pair<PathFormula, SSAMap> tau : taus) {
-          try {
-            finalClauses = Sets.intersection(
-                inductiveWeakeningManager.findInductiveWeakeningForSemiCNF(
-                    tau.getSecondNotNull(),
-                    finalClauses,
-                    tau.getFirstNotNull(),
-                    strengthening
-                ),
-                finalClauses
-            );
-          } catch (SolverException pE) {
-            throw new CPAException("Solver call failed", pE);
-          }
-        }
+      SlicingAbstractedState out;
+      if (!trace.isEmpty()) { // Perform slicing, there is a relevant "parent" element.
+        out = performSlicing(iState, trace);
       } else {
-
-        // Just convert to a set of clauses.
-        PathFormula pf = iState.getPathFormula();
-        if (eliminateDeadVars) {
-          pf = fmgr.eliminateDeadVarsFixpoint(pf);
-        }
-
-        Set<BooleanFormula> clauses =
-            semiCNFManager.toClauses(pf.getFormula());
-
-        finalClauses = new HashSet<>();
-        for (BooleanFormula clause : clauses) {
-          if (fmgr.getDeadFunctionNames(clause, ssa).isEmpty()) {
-            finalClauses.add(fmgr.uninstantiate(clause));
-          }
-        }
-        if (useOuterStrengthening) {
-        // TODO: A better strategy, refactor.
-          try {
-            SlicingAbstractedState abstractParent = iState.getAbstractParent();
-            Set<BooleanFormula> toAdd = new HashSet<>();
-            for (BooleanFormula clause : abstractParent.getAbstraction()) {
-              if (solver.isUnsat(
-                  bfmgr.and(
-                      fmgr.instantiate(
-                          clause,
-                          abstractParent.getSSA()
-                      ),
-                      bfmgr.not(
-                          fmgr.instantiate(
-                              clause,
-                              iState.getPathFormula().getSsa()
-                          )
-                      ),
-                      iState.getPathFormula().getFormula()
-                  )
-              )) {
-                toAdd.add(clause);
-              }
-            }
-            finalClauses = Sets.union(finalClauses, toAdd);
-          } catch (SolverException pE) {
-            throw new CPAException("Failed solving", pE);
-          }
-        }
-        isSliced = false;
+        out = toSemiClauses(iState);
       }
-      SlicingAbstractedState out = SlicingAbstractedState.of(
-          finalClauses, ssa, iState.getPathFormula().getPointerTargetSet(),
-          fmgr,
-          iState.getNode(),
-          Optional.of(iState),
-          isSliced
-      );
+
       return Optional.of(
           PrecisionAdjustmentResult.create(
               out, SingletonPrecision.getInstance(), Action.CONTINUE)
@@ -247,8 +159,109 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
       return Optional.of(PrecisionAdjustmentResult.create(
           pState, SingletonPrecision.getInstance(), Action.CONTINUE));
     }
+  }
 
+  /**
+   * Convert the input state to the set of instantiated semi-clauses.
+   */
+  private SlicingAbstractedState toSemiClauses(
+      SlicingIntermediateState iState) throws InterruptedException {
+    PathFormula pf = iState.getPathFormula();
+    SSAMap ssa = pf.getSsa();
 
+    if (eliminateDeadVars) {
+
+      // TODO: dead variable elimination should also be attempted on the
+      // clauses which come from the previous abstraction.
+      pf = fmgr.eliminateDeadVarsFixpoint(pf);
+    }
+
+    Set<BooleanFormula> clauses = semiCNFManager.toClauses(pf.getFormula());
+    SlicingAbstractedState abstractParent = iState.getAbstractParent();
+    if (useOuterStrengthening) {
+      clauses = Sets.union(
+          clauses, abstractParent.getInstantiatedAbstraction()
+      );
+    }
+
+    Set<BooleanFormula> finalClauses = new HashSet<>();
+    for (BooleanFormula clause : clauses) {
+      if (fmgr.getDeadFunctionNames(clause, ssa).isEmpty()) {
+        finalClauses.add(fmgr.uninstantiate(clause));
+      }
+    }
+
+    return SlicingAbstractedState.ofClauses(
+        finalClauses, ssa, iState.getPathFormula().getPointerTargetSet(),
+        fmgr,
+        iState.getNode(),
+        Optional.of(iState)
+    );
+  }
+
+  private  final Map<Pair<SlicingIntermediateState, ImmutableList<SlicingAbstractedState>>,
+      SlicingAbstractedState> slicingCache = new HashMap<>();
+
+  private SlicingAbstractedState performSlicing(
+      SlicingIntermediateState iState,
+      ImmutableList<SlicingAbstractedState> trace
+  ) throws CPAException, InterruptedException {
+    SlicingAbstractedState out = slicingCache.get(Pair.of(iState, trace));
+    if (out != null) {
+      return out;
+    }
+
+    SlicingAbstractedState first = trace.get(0);
+
+    if (first.isSliced()) {
+      // Just copy the state, no new information => no need to re-perform the slicing.
+      return SlicingAbstractedState.copyOf(first);
+    }
+
+    List<SlicingAbstractedState> traceWithoutFirst = trace.subList(1, trace.size());
+
+    List<SlicingIntermediateState> predecessors = Lists.transform(traceWithoutFirst,
+        new Function<SlicingAbstractedState, SlicingIntermediateState>() {
+          @Override
+          public SlicingIntermediateState apply(SlicingAbstractedState input) {
+            return input.getGeneratingState().get();
+          }
+        });
+    List<Pair<PathFormula, SSAMap>> taus = approximateLoopTransitions(predecessors, iState);
+
+    // now slice "first" wrt \tau
+    SlicingAbstractedState abstractParent = first.getGeneratingState()
+        .get().getAbstractParent();
+    BooleanFormula strengthening = useOuterStrengthening ?
+                                       bfmgr.and(abstractParent.getInstantiatedAbstraction())
+                                                         : bfmgr.makeBoolean(true);
+    Set<BooleanFormula> finalClauses = first.getAbstraction();
+    for (Pair<PathFormula, SSAMap> tau : taus) { // Intersection of all slices attained.
+      try {
+        finalClauses = Sets.intersection(
+            inductiveWeakeningManager.findInductiveWeakeningForSemiCNF(
+                tau.getSecondNotNull(),
+                finalClauses,
+                tau.getFirstNotNull(),
+                strengthening
+            ),
+            finalClauses
+        );
+      } catch (SolverException pE) {
+        throw new CPAException("Solver call failed", pE);
+      }
+    }
+
+    out = SlicingAbstractedState.makeSliced(
+        finalClauses,
+        iState.getPathFormula().getSsa(),
+        iState.getPathFormula().getPointerTargetSet(),
+        fmgr,
+        iState.getNode(),
+        Optional.of(iState)
+    );
+    slicingCache.put(Pair.of(iState, trace), out);
+    return out;
   }
 
   private List<Pair<PathFormula, SSAMap>> approximateLoopTransitions(
@@ -382,7 +395,13 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     }
   }
 
-  private List<SlicingAbstractedState> findTraceToPrev(UnmodifiableReachedSet states,
+  /**
+   * Return a sequence of abstracted states which get to the
+   * given SlicingState.
+   *
+   * The trace is returned in the chronological order.
+   */
+  private ImmutableList<SlicingAbstractedState> findTraceToPrev(UnmodifiableReachedSet states,
                                                        AbstractState pArgState,
                                                        SlicingState state) {
     Set<SlicingAbstractedState> filteredSiblings =
@@ -395,23 +414,19 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
       return ImmutableList.of();
     }
 
-    // All states on the way, *excluding* the very first appearance.
-    List<SlicingAbstractedState> trace = new ArrayList<>();
+    LinkedList<SlicingAbstractedState> trace = new LinkedList<>();
 
-    // We follow the chain of backpointers.
+    // We follow the chain of backpointers until we intersect something in the
+    // same partition.
     // The chain is necessary as we might have nested loops.
     SlicingState a = state;
     while (true) {
       if (a.isAbstracted()) {
         SlicingAbstractedState aState = a.asAbstracted();
-        trace.add(aState);
+        trace.addFirst(aState);
 
         if (filteredSiblings.contains(aState)) {
-          if (aState.isSliced()) {
-            return ImmutableList.of();
-          } else {
-            return trace;
-          }
+          return ImmutableList.copyOf(trace);
         } else {
 
           if (!aState.getGeneratingState().isPresent()) {

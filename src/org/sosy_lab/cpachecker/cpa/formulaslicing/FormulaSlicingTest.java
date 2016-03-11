@@ -5,7 +5,6 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
@@ -39,7 +38,6 @@ public class FormulaSlicingTest {
   }
 
   @Test
-  @Ignore //TODO: should be working.
   public void slicing_nested_true_assert() throws Exception {
     check("slicing_nested_true_assert.c");
   }
@@ -82,6 +80,7 @@ public class FormulaSlicingTest {
                     .add("cpa.location.LocationCPA")
                     .add("cpa.callstack.CallstackCPA")
                     .add("cpa.functionpointer.FunctionPointerCPA")
+                    .add("cpa.loopstack.LoopstackCPA")
                     .add("cpa.formulaslicing.FormulaSlicingCPA")
                     .build()
             ))
@@ -90,10 +89,12 @@ public class FormulaSlicingTest {
         .put("solver.solver", "z3")
         .put("specification", "config/specification/default.spc")
         .put("parser.usePreprocessor", "true")
-        .put("analysis.traversal.order", "bfs")
+        .put("analysis.traversal.order", "dfs")
         .put("analysis.traversal.useCallstack", "true")
+        .put("analysis.traversal.useLoopstack", "true")
         .put("analysis.traversal.useReversePostorder", "true")
         .put("cpa.predicate.ignoreIrrelevantVariables", "false")
+        .put("cpa.loopstack.loopIterationsBeforeAbstraction", "1")
 
         .put("log.consoleLevel", "INFO")
         .build());

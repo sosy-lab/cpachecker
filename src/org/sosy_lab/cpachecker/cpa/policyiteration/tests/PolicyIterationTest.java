@@ -231,11 +231,11 @@ public class PolicyIterationTest {
     return props;
   }
 
-  // NB: slicing does not work w/ LoopstackCPA.
   private static final String CPAS_W_SLICING = Joiner.on(", ").join(ImmutableList.<String>builder()
           .add("cpa.location.LocationCPA")
           .add("cpa.callstack.CallstackCPA")
           .add("cpa.functionpointer.FunctionPointerCPA")
+          .add("cpa.loopstack.LoopstackCPA")
           .add("cpa.formulaslicing.FormulaSlicingCPA")
           .add("cpa.policyiteration.PolicyCPA")
           .build()
