@@ -63,7 +63,6 @@ public class CEXWeakeningManager {
     /**
      * Follow the branch which eventually results in least abstractions [on the given model].
      */
-    // TODO: change it to go only until the certain depth, otherwise the complexity is exponential.
     LEAST_REMOVALS
   }
 
@@ -90,6 +89,9 @@ public class CEXWeakeningManager {
     removalSelectionStrategy = strategy;
   }
 
+  /**
+  * @return A subset of selectors after abstracting which the query becomes inductive.
+  */
   public Set<BooleanFormula> performWeakening(
       Map<BooleanFormula, BooleanFormula> selectionInfo,
       BooleanFormula query,
@@ -122,6 +124,7 @@ public class CEXWeakeningManager {
       env.push(query);
 
       List<BooleanFormula> selectorConstraints = new ArrayList<>();
+      // TODO: use solving-with-assumptions instead.
       for (BooleanFormula selector : selectionInfo.keySet()) {
         selectorConstraints.add(bfmgr.not(selector));
       }

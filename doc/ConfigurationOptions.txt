@@ -1738,6 +1738,9 @@ cpa.slicing.checkTargetStates = true
 # -1 for no limit.
 cpa.slicing.destructiveIterationLimit = -1
 
+# Replace dead variables
+cpa.slicing.eliminateDeadVars = true
+
 # Limit for explicit CNF expansion (potentially exponential otherwise)
 cpa.slicing.expansionDepthLimit = 1
 
@@ -1765,6 +1768,9 @@ cpa.slicing.sortSelectionVariablesSyntactic = true
 
 # Cache formulas produced by path formula manager
 cpa.slicing.useCachingPathFormulaManager = true
+
+# Use information from outer states to strengthen
+cpa.slicing.useOuterStrengthening = true
 
 # Inductive weakening strategy
 cpa.slicing.weakeningStrategy = CEX
@@ -1987,7 +1993,7 @@ cpa.stator.policy.useExtraPredicateDuringAbstraction = true
 cpa.stator.policy.useInvariantsForAbstraction = false
 
 # Use latest version of abstracted states
-cpa.stator.policy.useLatestVersion = true
+cpa.stator.policy.useLatestVersion = false
 
 # Use the optimized abstraction, which takes into the account the previously
 # obtained bound at the location. Interferes with:obtaining templates using

@@ -27,10 +27,10 @@ int main() {
       counter++;
     }
     for (int z = 0; z < 100; z++) {}
-    if (p == 1 || p == 2) {
+    if (p == 1 || p == 2) { // need an invariant that "p" can be only 1 or 2.
       set = 1;
     }
-    for (int z = 0; z < 100; z++) {}
+    for (int z2 = 0; z2 < 100; z2++) {}
     assert(set == 1);
   }
 
