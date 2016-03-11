@@ -28,7 +28,6 @@ import java.io.Writer;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -287,7 +286,7 @@ public class PredicateStaticRefiner extends StaticRefiner {
    * @return a precision for the predicate CPA
    */
   public PredicatePrecision extractPrecisionFromCfa(UnmodifiableReachedSet pReached,
-      List<ARGState> abstractionStatesTrace, boolean atomicPredicates)
+      ARGState targetState, boolean atomicPredicates)
           throws SolverException, CPATransferException, InterruptedException {
     logger.log(Level.FINER, "Extracting precision from CFA...");
 
@@ -298,7 +297,6 @@ public class PredicateStaticRefiner extends StaticRefiner {
     Collection<AbstractionPredicate> globalPredicates = Lists.newArrayList();
 
     // Determine the ERROR location of the path (last node)
-    ARGState targetState = abstractionStatesTrace.get(abstractionStatesTrace.size()-1);
     CFANode targetLocation = AbstractStates.extractLocation(targetState);
 
     // Determine the assume edges that should be considered for predicate extraction
@@ -393,6 +391,4 @@ public class PredicateStaticRefiner extends StaticRefiner {
       logger.logUserException(Level.WARNING, e, "Transfer exception! Could not write assume predicates to file!");
     }
   }
-
-
 }

@@ -273,10 +273,11 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     if (useStaticRefinement()) {
       UnmodifiableReachedSet reached = pReached.asReachedSet();
       ARGState root = (ARGState)reached.getFirstState();
+      ARGState targetState = abstractionStatesTrace.get(abstractionStatesTrace.size()-1);
 
       PredicatePrecision heuristicPrecision;
       try {
-        heuristicPrecision = staticRefiner.extractPrecisionFromCfa(pReached.asReachedSet(), abstractionStatesTrace, atomicPredicates);
+        heuristicPrecision = staticRefiner.extractPrecisionFromCfa(pReached.asReachedSet(), targetState, atomicPredicates);
       } catch (CPATransferException | SolverException e) {
         throw new CPAException("Static refinement failed", e);
       }
