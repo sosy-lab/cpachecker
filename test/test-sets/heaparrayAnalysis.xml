@@ -27,10 +27,35 @@
     <option name="-setprop">cpa.predicate.maxArrayLength=50</option>
     <option name="-setprop">cpa.predicate.defaultArrayLength=50</option>
   </tasks>
+  <tasks name="ArraysReach75">
+    <includesfile>../programs/array-simplified-benchmarks/ArraysReach75.set</includesfile>
+    <option name="-setprop">cpa.predicate.maxArrayLength=75</option>
+    <option name="-setprop">cpa.predicate.defaultArrayLength=75</option>
+  </tasks>
   <tasks name="ArraysReach100">
     <includesfile>../programs/array-simplified-benchmarks/ArraysReach100.set</includesfile>
     <option name="-setprop">cpa.predicate.maxArrayLength=100</option>
     <option name="-setprop">cpa.predicate.defaultArrayLength=100</option>
+  </tasks>
+  <tasks name="ArraysReach125">
+    <includesfile>../programs/array-simplified-benchmarks/ArraysReach125.set</includesfile>
+    <option name="-setprop">cpa.predicate.maxArrayLength=125</option>
+    <option name="-setprop">cpa.predicate.defaultArrayLength=125</option>
+  </tasks>
+  <tasks name="ArraysReach150">
+    <includesfile>../programs/array-simplified-benchmarks/ArraysReach150.set</includesfile>
+    <option name="-setprop">cpa.predicate.maxArrayLength=150</option>
+    <option name="-setprop">cpa.predicate.defaultArrayLength=150</option>
+  </tasks>
+  <tasks name="ArraysReach175">
+    <includesfile>../programs/array-simplified-benchmarks/ArraysReach175.set</includesfile>
+    <option name="-setprop">cpa.predicate.maxArrayLength=175</option>
+    <option name="-setprop">cpa.predicate.defaultArrayLength=175</option>
+  </tasks>
+  <tasks name="ArraysReach200">
+    <includesfile>../programs/array-simplified-benchmarks/ArraysReach200.set</includesfile>
+    <option name="-setprop">cpa.predicate.maxArrayLength=200</option>
+    <option name="-setprop">cpa.predicate.defaultArrayLength=200</option>
   </tasks>
   <tasks name="ArraysReach250">
     <includesfile>../programs/array-simplified-benchmarks/ArraysReach250.set</includesfile>
