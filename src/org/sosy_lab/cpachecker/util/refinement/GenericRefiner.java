@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 import com.google.common.collect.Lists;
+import com.google.errorprone.annotations.ForOverride;
 
 /**
  * A generic refiner using a {@link VariableTrackingPrecision}.
@@ -166,10 +167,10 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
           targetPaths.get(0));
     }
 
-    return performRefinement(pReached, targets, targetPaths);
+    return performRefinementForPaths(pReached, targets, targetPaths);
   }
 
-  public CounterexampleInfo performRefinement(
+  public CounterexampleInfo performRefinementForPath(
       final ARGReachedSet pReached, ARGPath targetPathToUse
   ) throws CPAException, InterruptedException {
     Collection<ARGState> targets = Collections.singleton(targetPathToUse.getLastState());
@@ -198,10 +199,10 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
       throw new RefinementFailedException(Reason.RepeatedCounterexample, targetPathToUse);
     }
 
-    return performRefinement(pReached, targets, Lists.newArrayList(targetPathToUse));
+    return performRefinementForPaths(pReached, targets, Lists.newArrayList(targetPathToUse));
   }
 
-  private CounterexampleInfo performRefinement(
+  private CounterexampleInfo performRefinementForPaths(
       final ARGReachedSet pReached,
       final Collection<ARGState> pTargets,
       final List<ARGPath> pTargetPaths
@@ -227,7 +228,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
       final InterpolationTree<S, I> pInterpolationTree
       ) throws InterruptedException;
 
-  protected InterpolationTree<S, I> obtainInterpolants(List<ARGPath> pTargetPaths)
+  private InterpolationTree<S, I> obtainInterpolants(List<ARGPath> pTargetPaths)
       throws CPAException, InterruptedException {
 
     InterpolationTree<S, I> interpolationTree = createInterpolationTree(pTargetPaths);
@@ -244,6 +245,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
    * This method creates the interpolation tree. As there is only a single target, it is irrelevant
    * whether to use top-down or bottom-up interpolation, as the tree is degenerated to a list.
    */
+  @ForOverride
   protected InterpolationTree<S, I> createInterpolationTree(List<ARGPath> targets) {
     return new InterpolationTree<>(interpolantManager, logger, targets, true);
   }
@@ -325,7 +327,8 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     return CounterexampleInfo.spurious();
   }
 
-  public boolean isErrorPathFeasible(final ARGPath errorPath)
+  @ForOverride
+  protected boolean isErrorPathFeasible(final ARGPath errorPath)
       throws CPAException, InterruptedException {
     return checker.isFeasible(errorPath);
   }

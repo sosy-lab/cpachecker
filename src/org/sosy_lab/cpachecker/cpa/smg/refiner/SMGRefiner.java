@@ -174,7 +174,7 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
   }
 
   @Override
-  public boolean isErrorPathFeasible(ARGPath pErrorPath) throws CPAException, InterruptedException {
+  protected boolean isErrorPathFeasible(ARGPath pErrorPath) throws CPAException, InterruptedException {
     return checker.isFeasible(pErrorPath, automatonCpas);
   }
 

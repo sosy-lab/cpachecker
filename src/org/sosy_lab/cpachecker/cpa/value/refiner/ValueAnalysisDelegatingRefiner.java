@@ -140,8 +140,9 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
         cpa,
         ValueAnalysisRefiner.create(cpa),
         new ValueAnalysisPrefixProvider(logger, controlFlowAutomaton, config),
-        PredicateRefiner.create(cpa),
-        new PredicateBasedPrefixProvider(config, logger, predicateCpa.getSolver(), predicateCpa.getPathFormulaManager()));
+        PredicateRefiner.create0(cpa),
+        new PredicateBasedPrefixProvider(
+            config, logger, predicateCpa.getSolver(), predicateCpa.getPathFormulaManager()));
   }
 
   protected ValueAnalysisDelegatingRefiner(
@@ -166,7 +167,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
   }
 
   @Override
-  protected CounterexampleInfo performRefinement(final ARGReachedSet reached, ARGPath pErrorPath)
+  protected CounterexampleInfo performRefinementForPath(final ARGReachedSet reached, ARGPath pErrorPath)
       throws CPAException, InterruptedException {
 
     int vaScore = 0;
@@ -214,7 +215,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       else {
         totalSecondaryExtraRefinementsSelected.inc();
 
-        cex = predicateCpaRefiner.performRefinement(reached, pErrorPath);
+        cex = predicateCpaRefiner.performRefinementForPath(reached, pErrorPath);
         if (cex.isSpurious()) {
           totalSecondaryExtraRefinementsFinished.inc();
         }
@@ -224,7 +225,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     else {
       totalSecondaryRefinementsSelected.inc();
 
-      cex = predicateCpaRefiner.performRefinement(reached, pErrorPath);
+      cex = predicateCpaRefiner.performRefinementForPath(reached, pErrorPath);
       if (cex.isSpurious()) {
         totalSecondaryRefinementsFinished.inc();
       }
@@ -232,7 +233,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       else {
         totalPrimaryExtraRefinementsSelected.inc();
 
-        cex = valueCpaRefiner.performRefinement(reached, cex.getTargetPath());
+        cex = valueCpaRefiner.performRefinementForPath(reached, cex.getTargetPath());
         if (cex.isSpurious()) {
           totalPrimaryExtraRefinementsFinished.inc();
         }

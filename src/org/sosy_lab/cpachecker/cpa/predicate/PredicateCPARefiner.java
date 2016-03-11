@@ -53,12 +53,12 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -104,8 +104,8 @@ import com.google.errorprone.annotations.ForOverride;
  *
  * It does, however, produce a nice error path in case of a feasible counterexample.
  */
-@Options(prefix="cpa.predicate.refinement")
-public class PredicateCPARefiner extends AbstractARGBasedRefiner implements StatisticsProvider {
+@Options(prefix = "cpa.predicate.refinement")
+public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
 
   @Option(secure=true, description="slice block formulas, experimental feature!")
   private boolean sliceBlockFormulas = false;
@@ -167,7 +167,6 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   private final ShutdownNotifier shutdownNotifier;
 
   public PredicateCPARefiner(
-      final ConfigurableProgramAnalysis pCpa,
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
@@ -181,8 +180,6 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       final InvariantsManager pInvariantsManager,
       final RefinementStrategy pStrategy)
       throws InvalidConfigurationException {
-
-    super(pCpa);
     pConfig.inject(this, PredicateCPARefiner.class);
 
     config = pConfig;
@@ -236,7 +233,6 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
         new PathChecker(config, logger, shutdownNotifier, machineModel, pfmgr, solver);
 
     return new PredicateCPARefiner(
-        pCpa,
         config,
         logger,
         shutdownNotifier,
@@ -284,7 +280,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   }
 
   @Override
-  public CounterexampleInfo performRefinement(final ARGReachedSet pReached, final ARGPath allStatesTrace) throws CPAException, InterruptedException {
+  public CounterexampleInfo performRefinementForPath(final ARGReachedSet pReached, final ARGPath allStatesTrace) throws CPAException, InterruptedException {
     totalRefinement.start();
     try {
       final List<CFANode> errorPath =

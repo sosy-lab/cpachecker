@@ -26,11 +26,18 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
+import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.util.CPAs;
 
 public abstract class PredicateRefiner implements Refiner {
 
-  public static PredicateCPARefiner create(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
+  public static Refiner create(ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
+    return AbstractARGBasedRefiner.forARGBasedRefiner(create0(pCpa), pCpa);
+  }
+
+  public static PredicateCPARefiner create0(ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
     PredicateCPA predicateCpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
     if (predicateCpa == null) {
       throw new InvalidConfigurationException(PredicateRefiner.class.getSimpleName() + " needs a PredicateCPA");

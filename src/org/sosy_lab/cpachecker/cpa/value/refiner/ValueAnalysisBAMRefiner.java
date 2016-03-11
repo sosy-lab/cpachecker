@@ -28,40 +28,51 @@ import java.util.Collection;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
-import org.sosy_lab.cpachecker.cpa.bam.AbstractBAMBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.bam.BAMBasedRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 
-public class ValueAnalysisBAMRefiner extends AbstractBAMBasedRefiner {
+public abstract class ValueAnalysisBAMRefiner implements Refiner {
 
-  private ValueAnalysisRefiner refiner;
+  /**
+   * Small wrapper around {@link ValueAnalysisRefiner} for implementing {@link ARGBasedRefiner}.
+   * Can go away completely as soon as ValueAnalysisRefiner implements ARGBasedRefiner directly,
+   * which is not possible currently because to avoid confusion, classes should not implement
+   * both {@link Refiner} and {@link ARGBasedRefiner}.
+   */
+  private static class ExtendedValueAnalysisRefiner implements ARGBasedRefiner, StatisticsProvider {
 
-  protected ValueAnalysisBAMRefiner(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
-    super(pCpa);
-    refiner = ValueAnalysisRefiner.create(pCpa);
-  }
+    private ValueAnalysisRefiner refiner;
 
-  public static AbstractBAMBasedRefiner create(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
-    return new ValueAnalysisBAMRefiner(pCpa);
-  }
-
-  @Override
-  protected CounterexampleInfo performRefinement0(ARGReachedSet pReached, ARGPath pPath) throws CPAException,
-      InterruptedException {
-    CounterexampleInfo refineResult = refiner.performRefinement(pReached, pPath);
-    if (!refineResult.isSpurious()) {
-      assert (refiner.isErrorPathFeasible(pPath)) : "not spurious must imply feasible:" + pPath;
-      //throw new RefinementFailedException(RefinementFailedException.Reason.RepeatedCounterexample, null);
+    private ExtendedValueAnalysisRefiner(ValueAnalysisRefiner pRefiner) {
+      refiner = pRefiner;
     }
 
-    return refineResult;
+    @Override
+    public CounterexampleInfo performRefinementForPath(ARGReachedSet pReached, ARGPath pPath)
+        throws CPAException, InterruptedException {
+      return refiner.performRefinementForPath(pReached, pPath);
+    }
+
+    @Override
+    public void collectStatistics(Collection<Statistics> pStatsCollection) {
+      refiner.collectStatistics(pStatsCollection);
+    }
   }
 
-  @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    refiner.collectStatistics(pStatsCollection);
+  public static BAMBasedRefiner create(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
+    return BAMBasedRefiner.forARGBasedRefiner(create0(pCpa), pCpa);
   }
+
+  public static ARGBasedRefiner create0(ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
+    return new ExtendedValueAnalysisRefiner(ValueAnalysisRefiner.create(pCpa));
+  }
+
 }

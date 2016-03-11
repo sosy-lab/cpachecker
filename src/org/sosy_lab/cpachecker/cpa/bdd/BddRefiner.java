@@ -142,7 +142,7 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
   }
 
   @Override
-  protected CounterexampleInfo performRefinement(final ARGReachedSet reached, final ARGPath pErrorPath)
+  protected CounterexampleInfo performRefinementForPath(final ARGReachedSet reached, final ARGPath pErrorPath)
       throws CPAException, InterruptedException {
 
     // if path is infeasible, try to refine the precision
