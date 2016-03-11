@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 
@@ -87,17 +86,11 @@ public class ARGSubtreeRemover {
     final ARGState firstState = (ARGState)mainReachedSet.asReachedSet().getFirstState();
     final ARGState lastState = (ARGState)mainReachedSet.asReachedSet().getLastState();
 
-    assert pPathElementToReachedState.containsKey(element);
     assert pPathElementToReachedState.get(pPath.asStatesList().get(0)) == firstState : "path should start with root state";
     assert pPathElementToReachedState.get(Iterables.getLast(pPath.asStatesList())) == lastState : "path should end with target state";
     assert lastState.isTarget();
 
-    // we compute a separate path here, because it might be different from pPath, if other branches are used.
-    final ARGPath path = ARGUtils.getOnePathTo(element);
-    assert pPathElementToReachedState.get(path.asStatesList().get(0)) == firstState : "path should start with root state";
-    assert Iterables.getLast(path.asStatesList()) == element : "path should end with cut state";
-
-    final List<ARGState> relevantCallNodes = getRelevantDefinitionNodes(path.asStatesList(), element, pPathElementToReachedState);
+    final List<ARGState> relevantCallNodes = getRelevantDefinitionNodes(pPath.asStatesList(), element, pPathElementToReachedState);
     assert pPathElementToReachedState.get(relevantCallNodes.get(0)) == firstState : "root should be relevant";
     assert relevantCallNodes.size() >= 1 : "at least the main-function should be open at the target-state";
 
@@ -146,8 +139,8 @@ public class ARGSubtreeRemover {
     mainReachedSet.removeSubtree(lastState);
   }
 
-  private ARGState getReachedState(Map<ARGState, ARGState> pPathElementToReachedState, ARGState state) {
-    return getMostInnerState(pPathElementToReachedState.get(state));
+  private ARGState getReachedState(Map<ARGState, ARGState> pathElementToReachedState, ARGState state) {
+    return getMostInnerState(pathElementToReachedState.get(state));
   }
 
   private ARGState getMostInnerState(ARGState state) {
@@ -260,11 +253,11 @@ public class ARGSubtreeRemover {
   }
 
   /** returns only those states, where a block starts that is 'open' at the cutState. */
-  private List<ARGState> getRelevantDefinitionNodes(List<ARGState> path, ARGState bamCutState, Map<ARGState, ARGState> pPathElementToReachedState) {
+  private List<ARGState> getRelevantDefinitionNodes(List<ARGState> path, ARGState bamCutState, Map<ARGState, ARGState> pathElementToReachedState) {
     final Deque<ARGState> openCallStates = new ArrayDeque<>();
     for (final ARGState bamState : path) {
 
-      final ARGState state = pPathElementToReachedState.get(bamState);
+      final ARGState state = pathElementToReachedState.get(bamState);
 
       // ASSUMPTION: there can be several block-exits at once per location, but only one block-entry per location.
 

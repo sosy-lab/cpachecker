@@ -82,6 +82,7 @@ public class BlockPartitioningBuilder {
             changed = true;
             continue outer;
           }
+
           if (entry.getValue().addAll(functionVars)) {
             changed = true;
           }

@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -76,7 +77,7 @@ import com.google.errorprone.annotations.ForOverride;
  */
 @Options(prefix = "cpa.value.refinement")
 public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Interpolant<S>>
-    implements StatisticsProvider {
+    implements Refiner, StatisticsProvider {
 
   @Option(secure = true, description = "when to export the interpolation tree"
       + "\nNEVER:   never export the interpolation tree"
@@ -151,6 +152,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     return progress;
   }
 
+  @Override
   public boolean performRefinement(final ReachedSet pReached)
       throws CPAException, InterruptedException {
     return performRefinement(new ARGReachedSet(pReached, argCpa)).isSpurious();
