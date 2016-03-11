@@ -506,7 +506,13 @@ class PointerTargetSetManager {
                           PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
                           final PersistentSortedMap<CompositeField, Boolean> fields) {
     final CType cType = CTypeUtils.simplifyType(currentType);
-    assert !(cType instanceof CElaboratedType) : "Unresolved elaborated type " + cType  + " for base " + base;
+    /* Remove assertion: it fails on a correct code (gcc compiles it)
+     * struct A;
+     * ...
+     * struct A *var;
+     * var = kmalloc(16);
+     */
+    //assert !(cType instanceof CElaboratedType) : "Unresolved elaborated type " + cType  + " for base " + base;
     if (cType instanceof CArrayType) {
       final CArrayType arrayType = (CArrayType) cType;
       Integer length = CTypeUtils.getArrayLength(arrayType);

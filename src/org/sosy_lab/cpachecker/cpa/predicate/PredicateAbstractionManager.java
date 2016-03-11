@@ -293,6 +293,12 @@ public class PredicateAbstractionManager {
     if (pPredicates.isEmpty() && (abstractionType != AbstractionType.ELIMINATION)) {
       logger.log(Level.FINEST, "Abstraction", stats.numCallsAbstraction, "with empty precision is true");
       stats.numSymbolicAbstractions++;
+      boolean unsat = unsat(abstractionFormula, pathFormula);
+      if (unsat) {
+        return new AbstractionFormula(fmgr, rmgr.makeFalse(),
+            bfmgr.makeBoolean(false), bfmgr.makeBoolean(false),
+            pathFormula, noAbstractionReuse);
+      }
       return makeTrueAbstractionFormula(pathFormula);
     }
 
