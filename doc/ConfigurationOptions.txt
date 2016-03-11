@@ -687,6 +687,9 @@ cpa.arg.errorPath.exportAsSource = true
 # export error paths to files immediately after they were found
 cpa.arg.errorPath.exportImmediately = false
 
+# export error path as witness/graphml file
+cpa.arg.errorPath.exportWitness = true
+
 # export error path as text file
 cpa.arg.errorPath.file = "ErrorPath.%d.txt"
 
