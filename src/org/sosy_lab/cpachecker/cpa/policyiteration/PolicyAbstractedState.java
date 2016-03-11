@@ -201,11 +201,9 @@ public final class PolicyAbstractedState extends PolicyState
   @Override
   public String toDOTLabel() {
     return String.format(
-        "(node=%s, locID=%s)%s%n%s%nExtra Invariant: %s %n",
+        "(node=%s, locID=%s)%s%n",
         getNode(), locationID,
-        (new PolicyDotWriter()).toDOTLabel(abstraction),
-        congruence.toDOTLabel(),
-        extraInvariant
+        (new PolicyDotWriter()).toDOTLabel(abstraction)
     );
   }
 
@@ -224,7 +222,7 @@ public final class PolicyAbstractedState extends PolicyState
     return abstraction.entrySet().iterator();
   }
 
-  public Optional<PolicyIntermediateState> getPredecessor() {
+  public Optional<PolicyIntermediateState> getGenerationState() {
     return predecessor;
   }
 

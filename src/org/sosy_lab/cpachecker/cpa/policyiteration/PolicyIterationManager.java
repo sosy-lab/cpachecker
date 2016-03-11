@@ -249,8 +249,9 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
     final PolicyIntermediateState iState;
     if (state.isAbstract()) {
-      // TODO: predecessor isn't quite the right name.
-      iState = state.asAbstracted().getPredecessor().get();
+
+      // We are re-doing the abstraction due to newly available information.
+      iState = state.asAbstracted().getGenerationState().get();
     } else {
       iState = state.asIntermediate();
     }
@@ -474,7 +475,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         oldState.getSSA(),
         newState.getPointerTargetSet(),
         extraInvariant,
-        newState.getPredecessor().get()
+        newState.getGenerationState().get()
     );
 
     if (generateTemplatesUsingConvexHull) {
@@ -992,10 +993,10 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         if (filteredSiblings.contains(aState)) {
           return Optional.of(aState);
         } else {
-          if (!aState.getPredecessor().isPresent()) {
+          if (!aState.getGenerationState().isPresent()) {
             return Optional.absent();
           }
-          a = aState.getPredecessor().get().getGeneratingState();
+          a = aState.getGenerationState().get().getGeneratingState();
         }
 
       } else {
