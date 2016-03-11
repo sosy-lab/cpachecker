@@ -63,6 +63,12 @@
     <option name="-setprop">cpa.predicate.defaultArrayLength=250</option>
   </tasks>
   <!-- End customized array set -->
+  <!-- Begin custom additional files—needs the files being available in a
+       special location -->
+  <tasks name="Custom">
+    <includesfile>../programs/array-simplified-benchmarks/Custom.set</includesfile>
+  </tasks>
+  <!-- End custom additional files -->
   <tasks name="ControlFlow">
     <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
   </tasks>
