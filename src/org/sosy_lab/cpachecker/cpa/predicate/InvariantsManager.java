@@ -1057,7 +1057,7 @@ class InvariantsManager implements StatisticsProvider {
     }
   }
 
-  private class Stats extends AbstractStatistics {
+  private static class Stats extends AbstractStatistics {
     private final StatTimer invgenTime = new StatTimer("Total time for invariant generation");
     private final StatTimer rfKindTime =
         new StatTimer("Time for checking interpolants with k-induction");
