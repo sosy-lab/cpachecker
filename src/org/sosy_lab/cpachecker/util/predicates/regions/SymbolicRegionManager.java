@@ -94,9 +94,9 @@ public class SymbolicRegionManager implements RegionManager {
 
   private int predicateCount = 0;
 
-  public SymbolicRegionManager(FormulaManagerView pFmgr, Solver pSolver) {
+  public SymbolicRegionManager(Solver pSolver) {
     solver = pSolver;
-    fmgr = pFmgr;
+    fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     trueRegion = new SymbolicRegion(bfmgr,  bfmgr.makeBoolean(true));
     falseRegion = new SymbolicRegion(bfmgr,  bfmgr.makeBoolean(false));

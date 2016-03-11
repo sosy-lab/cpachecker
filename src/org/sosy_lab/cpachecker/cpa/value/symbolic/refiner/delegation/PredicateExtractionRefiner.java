@@ -79,14 +79,13 @@ public abstract class PredicateExtractionRefiner implements Refiner {
     final ShutdownNotifier shutdownNotifier = valueAnalysisCpa.getShutdownNotifier();
 
     RefinementStrategy strategy =
-        new SymbolicPrecisionRefinementStrategy(config,
+        new SymbolicPrecisionRefinementStrategy(
+            config,
             logger,
             shutdownNotifier,
             predicateCPA.getPredicateManager(),
             predicateCPA.getStaticRefiner(),
-            predicateCPA.getSolver(),
-            predicateCPA.getSolver().getFormulaManager()
-            );
+            predicateCPA.getSolver());
 
     return AbstractARGBasedRefiner.forARGBasedRefiner(
         PredicateCPARefiner.create(pCpa, strategy), pCpa);

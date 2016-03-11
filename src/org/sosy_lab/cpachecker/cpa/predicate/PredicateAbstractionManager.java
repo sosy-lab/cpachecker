@@ -200,7 +200,6 @@ public class PredicateAbstractionManager {
 
   public PredicateAbstractionManager(
       AbstractionManager pAmgr,
-      FormulaManagerView pFmgr,
       PathFormulaManager pPfmgr,
       Solver pSolver,
       Configuration pConfig,
@@ -214,7 +213,7 @@ public class PredicateAbstractionManager {
     config.inject(this, PredicateAbstractionManager.class);
 
     logger = pLogger;
-    fmgr = pFmgr;
+    fmgr = pSolver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     amgr = pAmgr;
     rmgr = amgr.getRegionCreator();

@@ -167,7 +167,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     RegionManager regionManager;
     if (abstractionType.equals("FORMULA") || blk.alwaysReturnsFalse()) {
       // No need to load BDD library if we never abstract (might use lots of memory)
-      regionManager = new SymbolicRegionManager(formulaManager, solver);
+      regionManager = new SymbolicRegionManager(solver);
     } else {
       assert abstractionType.equals("BDD");
       regionManager = new BDDManagerFactory(config, logger).createRegionManager();
@@ -175,7 +175,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
     logger.log(Level.INFO, "Using predicate analysis with", libraries + ".");
 
-    abstractionManager = new AbstractionManager(regionManager, formulaManager, config, logger, solver);
+    abstractionManager = new AbstractionManager(regionManager, config, logger, solver);
 
     prefixProvider = new PredicateBasedPrefixProvider(config, logger, solver, pathFormulaManager);
     invariantsManager =
@@ -192,7 +192,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     predicateManager =
         new PredicateAbstractionManager(
             abstractionManager,
-            formulaManager,
             pathFormulaManager,
             solver,
             config,
@@ -226,8 +225,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
 
     if (performInitialStaticRefinement) {
-      staticRefiner = new PredicateStaticRefiner(config, logger, solver,
-          pathFormulaManager, formulaManager, predicateManager, cfa);
+      staticRefiner =
+          new PredicateStaticRefiner(config, logger, solver, pfMgr, predicateManager, pCfa);
     } else {
       staticRefiner = null;
     }
