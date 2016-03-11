@@ -1345,6 +1345,10 @@ cpa.predicate.handleArrays = false
 # Handle field access via extract and concat instead of new variables.
 cpa.predicate.handleFieldAccess = false
 
+# Use the theory of arrays for heap memory abstraction. This supports pointer
+# aliasing and replaces the option "handlePointerAliasing".
+cpa.predicate.handleHeapArray = false
+
 # If disabled, all implicitly initialized fields and elements are treated as
 # non-dets
 cpa.predicate.handleImplicitInitialization = true
@@ -1674,9 +1678,6 @@ cpa.predicate.targetStateSatCheck = true
 # Whether to track values stored in variables of function-pointer type.
 cpa.predicate.trackFunctionPointers = true
 
-# Use the theory of arrays for heap memory abstraction.
-cpa.predicate.useArrayHeap = false
-
 # try to add some useful static-learning-like axioms for bitwise operations
 # (which are encoded as UFs): essentially, we simply collect all the numbers
 # used in bitwise operations, and add axioms like (0 & n = 0)
@@ -1697,9 +1698,10 @@ cpa.predicate.useParameterVariables = false
 # variables are also encoded with return-variables at function-exit.
 cpa.predicate.useParameterVariablesForGlobals = false
 
-# Use quantifiers together with the heap-array analysis. This requires the
-# option "useArrayHeap=true" and a SMT solver that is capable of the theory
-# of arrays and quantifiers (e.g. Z3 or PRINCESS).
+# Use quantifiers together with the heap-array converter. This requires the
+# option "handleHeapArray=true" and a SMT solver that is capable of the
+# theory of arrays and quantifiers (e.g. Z3 or PRINCESS). Universal
+# quantifiers will only be introduced for array initializer statements.
 cpa.predicate.useQuantifiersOnArrays = false
 
 # Enable fallback to UFs if a solver does not support non-linear arithmetics.

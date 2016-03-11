@@ -106,13 +106,14 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Option(secure=true, description="Call 'simplify' on generated formulas.")
   private boolean simplifyGeneratedPathFormulas = false;
 
-  @Option(secure = true, description = "Use the theory of arrays for heap "
-      + "memory abstraction.")
-  private boolean useArrayHeap = false;
+  @Option(secure = true, description = "Use the theory of arrays for heap memory abstraction. "
+      + "This supports pointer aliasing and replaces the option \"handlePointerAliasing\".")
+  private boolean handleHeapArray = false;
 
-  @Option(secure = true, description = "Use quantifiers together with the heap-array analysis. "
-      + "This requires the option \"useArrayHeap=true\" and a SMT solver that is capable of the "
-      + "theory of arrays and quantifiers (e.g. Z3 or PRINCESS).")
+  @Option(secure = true, description = "Use quantifiers together with the heap-array converter. "
+      + "This requires the option \"handleHeapArray=true\" and a SMT solver that is capable of the "
+      + "theory of arrays and quantifiers (e.g. Z3 or PRINCESS). Universal quantifiers will only "
+      + "be introduced for array initializer statements.")
   private boolean useQuantifiersOnArrays = false;
 
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";
@@ -184,7 +185,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       logger.log(Level.WARNING,
           "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
 
-    } else if (useArrayHeap) {
+    } else if (handleHeapArray) {
       afmgr = fmgr.getArrayFormulaManager();
       final FormulaEncodingWithPointerAliasingOptions options =
           new FormulaEncodingWithPointerAliasingOptions(config);
@@ -466,7 +467,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
     if (useNondetFlags && symbolName.equals(NONDET_FLAG_VARIABLE)) {
       return makeSsaNondetFlagMerger(oldIndex, newIndex);
-    } else if (useArrayHeap && CToFormulaConverterWithHeapArray.isSMTArray(symbolName)) {
+    } else if (handleHeapArray && CToFormulaConverterWithHeapArray.isSMTArray(symbolName)) {
       assert symbolName.equals(CToFormulaConverterWithHeapArray.getArrayName(symbolType));
       return makeSsaArrayMerger(symbolName, symbolType, oldIndex, newIndex);
     } else if (CToFormulaConverterWithPointerAliasing.isUF(symbolName)) {
