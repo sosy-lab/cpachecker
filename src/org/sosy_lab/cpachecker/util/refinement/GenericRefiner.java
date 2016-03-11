@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
-import org.sosy_lab.cpachecker.core.interfaces.DelegatableRefiner;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
@@ -61,6 +62,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.google.errorprone.annotations.ForOverride;
 
 /**
  * A generic refiner using a {@link VariableTrackingPrecision}.
@@ -74,7 +76,7 @@ import com.google.common.collect.Sets;
  */
 @Options(prefix = "cpa.value.refinement")
 public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Interpolant<S>>
-    implements StatisticsProvider, DelegatableRefiner {
+    implements StatisticsProvider {
 
   @Option(secure = true, description = "when to export the interpolation tree"
       + "\nNEVER:   never export the interpolation tree"
@@ -130,6 +132,17 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     pathExtractor = pPathExtractor;
   }
 
+  /** retrieve the wrapped CPA or throw an exception. */
+  protected static final <T extends ConfigurableProgramAnalysis> T retrieveCPA(
+      ConfigurableProgramAnalysis pCpa, Class<T> retrieveCls)
+          throws InvalidConfigurationException {
+    final T extractedCPA = CPAs.retrieveCPA(pCpa, retrieveCls);
+    if (extractedCPA == null) {
+      throw new InvalidConfigurationException(retrieveCls.getSimpleName() + " cannot be retrieved.");
+    }
+    return extractedCPA;
+  }
+
   private boolean madeProgress(ARGPath path) {
     boolean progress = (previousErrorPathId.isEmpty() || !previousErrorPathId.contains(obtainErrorPathId(path)));
 
@@ -138,7 +151,6 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     return progress;
   }
 
-  @Override
   public boolean performRefinement(final ReachedSet pReached)
       throws CPAException, InterruptedException {
     return performRefinement(new ARGReachedSet(pReached, argCpa)).isSpurious();
@@ -155,10 +167,10 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
           targetPaths.get(0));
     }
 
-    return performRefinement(pReached, targets, targetPaths);
+    return performRefinementForPaths(pReached, targets, targetPaths);
   }
 
-  public CounterexampleInfo performRefinement(
+  public CounterexampleInfo performRefinementForPath(
       final ARGReachedSet pReached, ARGPath targetPathToUse
   ) throws CPAException, InterruptedException {
     Collection<ARGState> targets = Collections.singleton(targetPathToUse.getLastState());
@@ -187,10 +199,10 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
       throw new RefinementFailedException(Reason.RepeatedCounterexample, targetPathToUse);
     }
 
-    return performRefinement(pReached, targets, Lists.newArrayList(targetPathToUse));
+    return performRefinementForPaths(pReached, targets, Lists.newArrayList(targetPathToUse));
   }
 
-  private CounterexampleInfo performRefinement(
+  private CounterexampleInfo performRefinementForPaths(
       final ARGReachedSet pReached,
       final Collection<ARGState> pTargets,
       final List<ARGPath> pTargetPaths
@@ -207,7 +219,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     }
 
     refinementTime.stop();
-
+    logger.log(Level.FINEST, "refinement finished");
     return cex;
   }
 
@@ -216,7 +228,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
       final InterpolationTree<S, I> pInterpolationTree
       ) throws InterruptedException;
 
-  protected InterpolationTree<S, I> obtainInterpolants(List<ARGPath> pTargetPaths)
+  private InterpolationTree<S, I> obtainInterpolants(List<ARGPath> pTargetPaths)
       throws CPAException, InterruptedException {
 
     InterpolationTree<S, I> interpolationTree = createInterpolationTree(pTargetPaths);
@@ -225,10 +237,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
       performPathInterpolation(interpolationTree);
     }
 
-    if (interpolationTreeExportFile != null && exportInterpolationTree.equals("FINAL")
-        && !exportInterpolationTree.equals("ALWAYS")) {
-      interpolationTree.exportToDot(interpolationTreeExportFile, refinementCounter.getValue());
-    }
+    exportTree(interpolationTree, "FINAL");
     return interpolationTree;
   }
 
@@ -236,6 +245,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
    * This method creates the interpolation tree. As there is only a single target, it is irrelevant
    * whether to use top-down or bottom-up interpolation, as the tree is degenerated to a list.
    */
+  @ForOverride
   protected InterpolationTree<S, I> createInterpolationTree(List<ARGPath> targets) {
     return new InterpolationTree<>(interpolantManager, logger, targets, true);
   }
@@ -261,10 +271,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
         ", using interpolant ", initialItp);
 
     interpolationTree.addInterpolants(interpolator.performInterpolation(errorPath, initialItp));
-
-    if (interpolationTreeExportFile != null && exportInterpolationTree.equals("ALWAYS")) {
-      interpolationTree.exportToDot(interpolationTreeExportFile, refinementCounter.getValue());
-    }
+    exportTree(interpolationTree, "ALWAYS");
   }
 
   private boolean isInitialInterpolantTooWeak(ARGState root, Interpolant<S> initialItp, ARGPath errorPath)
@@ -320,7 +327,8 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     return CounterexampleInfo.spurious();
   }
 
-  public boolean isErrorPathFeasible(final ARGPath errorPath)
+  @ForOverride
+  protected boolean isErrorPathFeasible(final ARGPath errorPath)
       throws CPAException, InterruptedException {
     return checker.isFeasible(errorPath);
   }
@@ -370,9 +378,16 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     return path.toString().hashCode();
   }
 
-  @Override
+  /*@Override
   public void informAboutOtherRefinement() {
     previousErrorPathId.clear();
+  }*/
+
+  /** export the interpolation-tree as dot-file, if necessary. */
+  private void exportTree(InterpolationTree<S, I> interpolationTree, String level) {
+    if (interpolationTreeExportFile != null && exportInterpolationTree.equals(level)) {
+      interpolationTree.exportToDot(interpolationTreeExportFile, refinementCounter.getValue());
+    }
   }
 
   /**

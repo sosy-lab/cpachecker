@@ -1,16 +1,16 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration.tests;
 
-import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Map;
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import org.junit.Test;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Integration testing for policy iteration.
@@ -67,21 +67,23 @@ public class PolicyIterationTest {
     check("loop_nested_false_assert.c");
   }
 
-  @Test public void pointer_past_abstraction_true_assert() throws Exception {
+  @Test
+  public void pointer_past_abstraction_true_assert() throws Exception {
     check("pointers/pointer_past_abstraction_true_assert.c", ImmutableMap.of(
             "CompositeCPA.cpas", CPAS_W_SLICING,
-            "cpa.stator.policy.generateOctagons", "true"
-//            "cpa.slicing.useCounterexampleBasedSlicing", "true"
+            "cpa.stator.policy.generateOctagons", "true",
+            "cpa.composite.precisionAdjustmentIterationLimit", "2"
         )
     );
   }
 
-  @Test public void pointer_past_abstraction_false_assert() throws Exception {
+  @Test
+  public void pointer_past_abstraction_false_assert() throws Exception {
     check("pointers/pointer_past_abstraction_false_assert.c"
         , ImmutableMap.of(
             "CompositeCPA.cpas", CPAS_W_SLICING,
             "cpa.stator.policy.runCongruence", "false",
-            "cpa.slicing.useCounterexampleBasedSlicing", "true"
+            "cpa.composite.precisionAdjustmentIterationLimit", "2"
         )
     );
   }
@@ -91,10 +93,7 @@ public class PolicyIterationTest {
         ImmutableMap.of(
             "CompositeCPA.cpas", CPAS_W_SLICING,
             "cpa.stator.policy.generateOctagons", "true",
-            "cpa.slicing.useSyntacticFormulaSlicing", "true",
-            "cpa.slicing.runCounterexampleBasedSlicing", "true",
-
-            // TODO: temporary fix.
+            "cpa.composite.precisionAdjustmentIterationLimit", "2",
             "cpa.stator.policy.linearizePolicy", "false"
         ));
   }
@@ -156,8 +155,7 @@ public class PolicyIterationTest {
 
   @Test public void unrolling_true_assert() throws Exception {
     check("unrolling_true_assert.c",
-        ImmutableMap.of("cpa.loopstack.loopIterationsBeforeAbstraction",
-            "2"));
+        ImmutableMap.of("cpa.loopstack.loopIterationsBeforeAbstraction", "2"));
   }
 
   @Test public void timeout_true_assert() throws Exception {
@@ -233,11 +231,11 @@ public class PolicyIterationTest {
     return props;
   }
 
+  // NB: slicing does not work w/ LoopstackCPA.
   private static final String CPAS_W_SLICING = Joiner.on(", ").join(ImmutableList.<String>builder()
           .add("cpa.location.LocationCPA")
           .add("cpa.callstack.CallstackCPA")
           .add("cpa.functionpointer.FunctionPointerCPA")
-          .add("cpa.loopstack.LoopstackCPA")
           .add("cpa.formulaslicing.FormulaSlicingCPA")
           .add("cpa.policyiteration.PolicyCPA")
           .build()

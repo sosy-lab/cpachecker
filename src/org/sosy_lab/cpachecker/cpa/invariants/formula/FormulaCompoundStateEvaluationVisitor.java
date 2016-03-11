@@ -113,9 +113,6 @@ public class FormulaCompoundStateEvaluationVisitor implements FormulaEvaluationV
             return BooleanConstant.getFalse();
           }
         }
-        if (value instanceof Constant && operand1.isSingleton()) {
-          return BooleanConstant.fromBool(getCompoundIntervalManager(pEqual.getOperand1()).contains(operand2, operand1));
-        }
         if (value instanceof Variable) {
           if (value.equals(var)) {
             return BooleanConstant.getTrue();
@@ -139,9 +136,6 @@ public class FormulaCompoundStateEvaluationVisitor implements FormulaEvaluationV
           if (exclusion.getExcluded().equals(pEqual.getOperand1())) {
             return BooleanConstant.getFalse();
           }
-        }
-        if (value instanceof Constant && operand2.isSingleton()) {
-          return BooleanConstant.fromBool(getCompoundIntervalManager(pEqual.getOperand1()).contains(operand1, operand2));
         }
         if (value instanceof Variable) {
           var = (Variable<CompoundInterval>) value;

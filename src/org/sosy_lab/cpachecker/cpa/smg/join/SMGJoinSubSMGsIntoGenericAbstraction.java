@@ -31,6 +31,7 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
@@ -39,11 +40,13 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.generic.GenericAbstractionCandida
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.GenericAbstractionCandidateTemplate;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.MaterlisationStep;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.MaterlisationStep.FieldsOfTemplate;
+import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGEdgeHasValueTemplate;
+import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGEdgeHasValueTemplateWithConcreteValue;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGEdgePointsToTemplate;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGObjectTemplate;
 
+import com.google.common.base.Function;
 import com.google.common.base.Optional;
-import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -227,49 +230,116 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
 
     if (pNode.isValue() && pNodeTemplate.isValueTemplate()) {
       return matchValueTemplateWithValue(pNode.getValue(), pNodeTemplate.getValueTemplate(),
-          pMatStep, pTemplateToInputSmgMapping, pInputSMG, pToBeMatchedLater);
+          pMatStep, pTemplateToInputSmgMapping, pInputSMG, pToBeMatchedLater, pMatchResultBuilder, pAlreadyVisited, pMapping);
     } else if (pNode.isObject() && pNodeTemplate.isObjectTemplate()) {
 
       SMGObject object = pNode.getObject();
       SMGObjectTemplate template = pNodeTemplate.getObjectTemplate();
 
       if (template instanceof GenericAbstractionCandidateTemplate) {
-        GenericAbstractionCandidateTemplate genAbsTmp =
-            (GenericAbstractionCandidateTemplate) template;
-        return matchGenericAbstractionTemplateWithObject(genAbsTmp, object, pInputSMG,
-            pAlreadyVisited, pMapping, pToBeMatchedLater, pTemplateToInputSmgMapping, pMatStep,
-            pMatchResultBuilder);
+        throw new AssertionError();
       } else if (template instanceof SMGRegion) {
         SMGRegion regionTemplate = (SMGRegion) template;
-        return matchRegionTemplateWithObject(regionTemplate, object, pInputSMG, pAlreadyVisited,
-            pMapping, pToBeMatchedLater, pTemplateToInputSmgMapping, pMatStep, pMatchResultBuilder);
+        return matchRegionTemplateWithObject(regionTemplate, object, pInputSMG,
+            pToBeMatchedLater, pTemplateToInputSmgMapping, pMatStep);
       }
     }
 
     return false;
   }
 
-  private boolean matchGenericAbstractionTemplateWithObject(GenericAbstractionCandidateTemplate pPTemplate,
-      SMGObject pGenAbs, SMG pInputSMG, Set<SMGObject> pAlreadyVisited,
-      SMGNodeMapping pMapping, Set<SMGNodeTemplateAndNode> pToBeMatchedLater,
-      MaterilisationStepToSubSMGMap pTemplateToInputSmgMapping, MaterlisationStep pMatStep,
-      MatchResultBuilder pMatchResultBuilder) {
-    // TODO Auto-generated method stub
-    return false;
-  }
-
   private boolean matchValueTemplateWithValue(int pValue, int pValueTemplate,
       MaterlisationStep pMatStep, MaterilisationStepToSubSMGMap pTemplateToInputSmgMapping,
-      SMG pInputSMG, Set<SMGNodeTemplateAndNode> pToBeMatchedLater) {
-    // TODO Auto-generated method stub
-    return false;
+      SMG pInputSMG, Set<SMGNodeTemplateAndNode> pToBeMatchedLater, MatchResultBuilder resultBuilder,
+      Set<SMGObject> pAlreadyVisited, SMGNodeMapping pMapping) {
+
+    if(!pTemplateToInputSmgMapping.contains(pValueTemplate) || pTemplateToInputSmgMapping.get(pValueTemplate) != pValue) {
+      return false;
+    }
+
+    if (pInputSMG.isPointer(pValue)) {
+
+      SMGEdgePointsTo pointerEdge = pInputSMG.getPointer(pValue);
+      Optional<SMGEdgePointsToTemplate> pointerEdgeTemplateOpt =
+          pMatStep.getPointer(pValueTemplate);
+
+      if (!pointerEdgeTemplateOpt.isPresent()) {
+        return false;
+      }
+
+      SMGEdgePointsToTemplate pointerEdgeTemplate = pointerEdgeTemplateOpt.get();
+
+      if(pointerEdgeTemplate.getOffset() != pointerEdge.getOffset()) {
+        return false;
+      }
+
+      SMGObjectTemplate targetTemplate = pointerEdgeTemplate.getObjectTemplate();
+      SMGObject target = pointerEdge.getObject();
+
+      if (pTemplateToInputSmgMapping.contains(targetTemplate)) {
+        SMGObject mappedTarget = pTemplateToInputSmgMapping.get(targetTemplate);
+
+        if(mappedTarget != target) {
+          return false;
+        }
+      } else {
+        if(targetTemplate instanceof GenericAbstractionCandidateTemplate) {
+          GenericAbstractionCandidateTemplate genAbs = (GenericAbstractionCandidateTemplate) targetTemplate;
+
+          MatchResult result;
+          if(pTemplateToInputSmgMapping.containsAbstraction(genAbs)) {
+            result = pTemplateToInputSmgMapping.getAbstraction(genAbs);
+          } else {
+            result = subSMGmatchSpecificShape(pInputSMG, target, pMapping, genAbs, pAlreadyVisited);
+            pTemplateToInputSmgMapping.putAbstraction(genAbs, result);
+            pToBeMatchedLater.add(new SMGNodeTemplateAndNode(targetTemplate, target));
+          }
+
+          if(!result.isMatch()) {
+            return false;
+          }
+
+          // matched when matching generic abstraction
+
+        } else {
+          pAlreadyVisited.add(target);
+          pToBeMatchedLater.add(new SMGNodeTemplateAndNode(targetTemplate, target));
+          pTemplateToInputSmgMapping.put(targetTemplate, target);
+        }
+      }
+
+    } else {
+      if (pMatStep.getPointer(pValueTemplate).isPresent()) {
+        return false;
+      }
+    }
+
+    Set<SMGEdgeHasValue> fields = SMGUtils.getFieldsofThisValue(pValue, pInputSMG);
+
+    Set<SMGEdgeHasValueTemplate> fieldsTemplate = pMatStep.getFieldsOfValue(pValueTemplate);
+
+    if(fields.size() != fieldsTemplate.size()) {
+      return false;
+    }
+
+    Map<Integer, SMGEdgeHasValue> fieldOffsetMap =
+        FluentIterable.from(fields).uniqueIndex(new MapHasValueEdgeToOffset());
+
+    Map<Integer, SMGEdgeHasValueTemplate> fieldOffsetTemplateMap =
+        FluentIterable.from(fieldsTemplate).uniqueIndex(new MapHasValueEdgeToOffsetTemplate());
+
+    for(int offset : fieldOffsetTemplateMap.keySet()) {
+      if(!fieldOffsetMap.containsKey(offset)) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
-  private boolean matchRegionTemplateWithObject(SMGRegion pTemplate, SMGObject pObject,
-      SMG pInputSMG, Set<SMGObject> pAlreadyVisited, SMGNodeMapping pMapping,
-      Set<SMGNodeTemplateAndNode> pToBeMatchedLater,
-      MaterilisationStepToSubSMGMap pMatStepToSubSMGMapping,
-      MaterlisationStep matStep, MatchResultBuilder pMatchResultBuilder) {
+  private boolean matchRegionTemplateWithObject(SMGRegion pTemplate,
+      SMGObject pObject, SMG pInputSMG, Set<SMGNodeTemplateAndNode> pToBeMatchedLater,
+      MaterilisationStepToSubSMGMap pMatStepToSubSMGMapping, MaterlisationStep matStep) {
 
     if(!(pObject instanceof SMGRegion)) {
       return false;
@@ -281,26 +351,141 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
       return false;
     }
 
-    Set<SMGEdgePointsTo> pointerToRegion = getPointerToThisObject(region, pInputSMG);
+    Set<SMGEdgePointsTo> pointerToRegion = SMGUtils.getPointerToThisObject(region, pInputSMG);
     Set<SMGEdgePointsToTemplate> pointerToRegionTemplate = matStep.getPointerToThisTemplate(pTemplate);
 
-    Set<SMGEdgeHasValue> fieldsOffRegion = getFieldsOfRegion(region, pInputSMG);
-    FieldsOfTemplate fieldsOffTemplate = matStep.getFieldsOfThisTemplate(pTemplate);
+    if(pointerToRegion.size() != pointerToRegionTemplate.size()) {
+      return false;
+    }
 
+    Map<Integer, SMGEdgePointsTo> pointerToRegionMap =
+        FluentIterable.from(pointerToRegion).uniqueIndex(new MapPointerEdgeToOffset());
 
+    Map<Integer, SMGEdgePointsToTemplate> pointerToRegionTemplateMap =
+        FluentIterable.from(pointerToRegionTemplate)
+            .uniqueIndex(new MapPointerEdgeToOffsetTemplate());
 
-    return false;
+    for(int offset : pointerToRegionTemplateMap.keySet()) {
+      if(!pointerToRegion.contains(offset)) {
+        return false;
+      }
+
+      int pointerTemplate = pointerToRegionTemplateMap.get(offset).getAbstractValue();
+      int pointer = pointerToRegionMap.get(offset).getValue();
+
+      if (pMatStepToSubSMGMapping.contains(pointerTemplate)) {
+        if (pMatStepToSubSMGMapping.get(pointerTemplate) != pointer) {
+          return false;
+        }
+      } else {
+        pMatStepToSubSMGMapping.put(pointerTemplate, pointer);
+        if(matStep.getAbstractPointers().contains(pointerToRegionTemplateMap.get(offset))) {
+          pToBeMatchedLater.add(new SMGNodeTemplateAndNode(pointerTemplate, pointer));
+        }
+      }
+    }
+
+    Set<SMGEdgeHasValue> fieldsOfRegion = SMGUtils.getFieldsOfObject(region, pInputSMG);
+    FieldsOfTemplate fieldsOfTemplate = matStep.getFieldsOfThisTemplate(pTemplate);
+
+    if (fieldsOfRegion.size() != fieldsOfTemplate.size()) {
+      return false;
+    }
+
+    Map<Integer, SMGEdgeHasValue> fieldsOfRegionMap = FluentIterable.from(fieldsOfRegion).uniqueIndex(new MapHasValueEdgeToOffset());
+    Map<Integer, SMGEdgeHasValueTemplate> fieldsOfRegionTemplateMap =
+        FluentIterable.from(fieldsOfTemplate.getFieldTemplateContainingPointer())
+            .uniqueIndex(new MapHasValueEdgeToOffsetTemplate());
+
+    fieldsOfRegionTemplateMap
+        .putAll(FluentIterable.from(fieldsOfTemplate.getFieldTemplateContainingPointerTemplate())
+            .uniqueIndex(new MapHasValueEdgeToOffsetTemplate()));
+
+    Map<Integer, SMGEdgeHasValueTemplateWithConcreteValue> fieldsOfRegionTemplateCVMap =
+        FluentIterable.from(fieldsOfTemplate.getFieldTemplateContainingValue())
+            .uniqueIndex(new MapHasValueEdgeToOffsetTemplateCV());
+
+    for (int offset : fieldsOfRegionMap.keySet()) {
+      if (fieldsOfRegionTemplateMap.containsKey(offset)) {
+
+        int pointerTemplate = fieldsOfRegionTemplateMap.get(offset).getAbstractValue();
+        int pointer = fieldsOfRegionMap.get(offset).getValue();
+
+        if (pMatStepToSubSMGMapping.contains(pointerTemplate)) {
+          if (pMatStepToSubSMGMapping.get(pointerTemplate) != pointer) {
+            return false;
+          }
+        } else {
+          pMatStepToSubSMGMapping.put(pointerTemplate, pointer);
+          if(matStep.getAbstractFieldsToOPointer().contains(fieldsOfRegionTemplateMap.get(pointerToRegionTemplate))) {
+            pToBeMatchedLater.add(new SMGNodeTemplateAndNode(pointerTemplate, pointer));
+          }
+        }
+
+      } else if (fieldsOfRegionTemplateCVMap.containsKey(offset)) {
+
+        int value = fieldsOfRegionMap.get(offset).getValue();
+        int valueInTemplate = fieldsOfRegionMap.get(offset).getValue();
+
+        if (value != valueInTemplate) {
+          return false;
+        }
+
+      } else {
+        return false;
+      }
+    }
+
+    return true;
   }
 
-  private Set<SMGEdgeHasValue> getFieldsOfRegion(SMGRegion pRegion, SMG pInputSMG) {
-    // TODO Auto-generated method stub
-    return null;
+  private static class MapPointerEdgeToOffset implements Function<SMGEdgePointsTo, Integer> {
+    @Override
+    public Integer apply(SMGEdgePointsTo pEdge) {
+      return pEdge.getOffset();
+    }
+  }
+
+  private static class MapPointerEdgeToOffsetTemplate
+      implements Function<SMGEdgePointsToTemplate, Integer> {
+
+    @Override
+    public Integer apply(SMGEdgePointsToTemplate pEdge) {
+      return pEdge.getOffset();
+    }
+  }
+
+  private static class MapHasValueEdgeToOffsetTemplate
+      implements Function<SMGEdgeHasValueTemplate, Integer> {
+
+    @Override
+    public Integer apply(SMGEdgeHasValueTemplate pEdge) {
+      return pEdge.getOffset();
+    }
+  }
+
+  private static class MapHasValueEdgeToOffsetTemplateCV
+      implements Function<SMGEdgeHasValueTemplateWithConcreteValue, Integer> {
+
+    @Override
+    public Integer apply(SMGEdgeHasValueTemplateWithConcreteValue pEdge) {
+      return pEdge.getOffset();
+    }
+  }
+
+  private static class MapHasValueEdgeToOffset
+      implements Function<SMGEdgeHasValue, Integer> {
+
+    @Override
+    public Integer apply(SMGEdgeHasValue pEdge) {
+      return pEdge.getOffset();
+    }
   }
 
   private MatchResult wasMatchedPreviously(SMG pInputSMG, SMGObject pRootObject,
       GenericAbstractionCandidateTemplate pTemplate, SMGNodeMapping pMapping) {
 
-    Set<SMGEdgePointsTo> pointsToThisObject = getPointerToThisObject(pRootObject, pInputSMG);
+    Set<SMGEdgePointsTo> pointsToThisObject = SMGUtils.getPointerToThisObject(pRootObject, pInputSMG);
 
     for (SMGEdgePointsTo pointer : pointsToThisObject) {
       if (pMapping.containsKey(pointer.getValue())) {
@@ -320,26 +505,6 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
     }
 
     return MatchResult.getUnknownInstance();
-  }
-
-  private Set<SMGEdgePointsTo> getPointerToThisObject(SMGObject pSmgObject, SMG pInputSMG) {
-    Set<SMGEdgePointsTo> result = FluentIterable.from(pInputSMG.getPTEdges().values())
-        .filter(new FilterTargetObject(pSmgObject)).toSet();
-    return result;
-  }
-
-  private static class FilterTargetObject implements Predicate<SMGEdgePointsTo> {
-
-    private final SMGObject object;
-
-    public FilterTargetObject(SMGObject pObject) {
-      object = pObject;
-    }
-
-    @Override
-    public boolean apply(SMGEdgePointsTo ptEdge) {
-      return ptEdge.getObject() == object;
-    }
   }
 
   private static class MatchResultBuilder {
@@ -498,6 +663,16 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
       nodeTemplate = pNodeTemplate;
     }
 
+    public SMGNodeTemplateAndNode(int pointerTemplate, int pointer) {
+      node = new SMGNode(pointer);
+      nodeTemplate = new SMGNodeTemplate(pointerTemplate);
+    }
+
+    public SMGNodeTemplateAndNode(SMGObjectTemplate objectTemplate, SMGObject object) {
+      node = new SMGNode(object);
+      nodeTemplate = new SMGNodeTemplate(objectTemplate);
+    }
+
     public SMGNode getNode() {
       return node;
     }
@@ -579,9 +754,15 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
 
     private final Map<SMGObjectTemplate, SMGObject> objectTemplateToObject = new HashMap<>();
     private final Map<Integer, Integer> valueTemplateToValue = new HashMap<>();
+    private final Map<GenericAbstractionCandidateTemplate, MatchResult> abstractionToMatchMap =
+        new HashMap<>();
 
     public MaterilisationStepToSubSMGMap() {
       // default
+    }
+
+    public void putAbstraction(GenericAbstractionCandidateTemplate pGenAbs, MatchResult pResult) {
+      abstractionToMatchMap.put(pGenAbs, pResult);
     }
 
     public void put(SMGObjectTemplate objectTemplate, SMGObject object) {
@@ -598,6 +779,14 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
 
     public boolean contains(int abstractValue) {
       return valueTemplateToValue.containsKey(abstractValue);
+    }
+
+    public boolean containsAbstraction(GenericAbstractionCandidateTemplate abstractionTemplate) {
+      return valueTemplateToValue.containsKey(abstractionTemplate);
+    }
+
+    public MatchResult getAbstraction(GenericAbstractionCandidateTemplate template) {
+      return abstractionToMatchMap.get(template);
     }
 
     public SMGObject get(SMGObjectTemplate object) {

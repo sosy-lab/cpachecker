@@ -28,7 +28,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -45,11 +44,12 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateStaticRefiner;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.ARGTreePrecisionUpdater;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -70,11 +70,10 @@ class SymbolicPrecisionRefinementStrategy extends PredicateAbstractionRefinement
       final ShutdownNotifier pShutdownNotifier,
       final PredicateAbstractionManager pPredAbsMgr,
       final PredicateStaticRefiner pStaticRefiner,
-      final Solver pSolver,
-      final FormulaManagerView pFormulaManager
-  ) throws InvalidConfigurationException {
+      final Solver pSolver)
+      throws InvalidConfigurationException {
     super(config, pLogger, pShutdownNotifier, pPredAbsMgr, pStaticRefiner, pSolver);
-    formulaManager = pFormulaManager;
+    formulaManager = pSolver.getFormulaManager();
   }
 
   @Override

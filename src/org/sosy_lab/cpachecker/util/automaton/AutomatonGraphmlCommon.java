@@ -465,7 +465,7 @@ public class AutomatonGraphmlCommon {
     if (edge instanceof BlankEdge) {
       return !(edge.getSuccessor() instanceof FunctionExitNode);
     } else if (edge instanceof CFunctionReturnEdge) {
-      return true;
+      return false;
     } else if (edge instanceof CDeclarationEdge) {
       CDeclarationEdge declEdge = (CDeclarationEdge) edge;
       CDeclaration decl = declEdge.getDeclaration();

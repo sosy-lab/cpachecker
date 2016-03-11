@@ -31,11 +31,14 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -46,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
@@ -66,8 +70,13 @@ import com.google.common.collect.Sets;
 public final class ThreadingTransferRelation extends SingleEdgeTransferRelation {
 
   @Option(description="do not use the original functions from the CFA, but cloned ones. "
-      + "See cfa.postprocessing.CFACloner for detail.")
+      + "See cfa.postprocessing.CFACloner for detail.",
+      secure=true)
   private boolean useClonedFunctions = true;
+
+  @Option(description="allow assignments of a new thread to the same left-hand-side as an existing thread.",
+      secure=true)
+  private boolean allowMultipleLHS = false;
 
   @Option(description="the maximal number of parallel threads, -1 for infinite. "
       + "When combined with 'useClonedFunctions=true', we need at least N cloned functions. "
@@ -94,12 +103,13 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private static final String VERIFIER_ATOMIC_END = "__VERIFIER_atomic_end";
   private static final String ATOMIC_LOCK = "__CPAchecker_atomic_lock__";
   private static final String LOCAL_ACCESS_LOCK = "__CPAchecker_local_access_lock__";
+  private static final String THREAD_ID_SEPARATOR = "__CPAchecker__";
 
   private static final Set<String> THREAD_FUNCTIONS = Sets.newHashSet(
       THREAD_START, THREAD_MUTEX_LOCK, THREAD_MUTEX_UNLOCK, THREAD_JOIN, THREAD_EXIT);
 
   private final CFA cfa;
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
   private final ConfigurableProgramAnalysis callstackCPA;
   private final ConfigurableProgramAnalysis locationCPA;
 
@@ -113,19 +123,21 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     cfa = pCfa;
     callstackCPA = pCallstackCPA;
     locationCPA = pLocationCPA;
-    logger = pLogger;
+    logger = new LogManagerWithoutDuplicates(pLogger);
   }
 
   @Override
   public Collection<ThreadingState> getAbstractSuccessorsForEdge(
-      AbstractState state, Precision precision, CFAEdge cfaEdge)
+      AbstractState pState, Precision precision, CFAEdge cfaEdge)
         throws CPATransferException, InterruptedException {
     Preconditions.checkNotNull(cfaEdge);
     Preconditions.checkArgument(!(cfaEdge instanceof MultiEdge),
         "MultiEdges cannot be supported by ThreadingCPA, "
         + "because we need interleaving steps for chains of edges.");
 
-    final ThreadingState threadingState = exitThreads((ThreadingState) state);
+    ThreadingState state = (ThreadingState) pState;
+
+    ThreadingState threadingState = exitThreads(state);
 
     final String activeThread = getActiveThread(cfaEdge, threadingState);
 
@@ -135,7 +147,13 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       return Collections.emptySet();
     }
 
-    // TODO we should exit after analyzing the edge, not before.
+    // check if a local-access-lock allows to avoid exploration of some threads
+    if (useLocalAccessLocks) {
+      threadingState = handleLocalAccessLock(cfaEdge, threadingState, activeThread);
+      if (threadingState == null) {
+        return Collections.emptySet();
+      }
+    }
 
     // check, if we can abort the complete analysis of all other threads after this edge.
     if (isEndOfMainFunction(cfaEdge) || isTerminatingEdge(cfaEdge)) {
@@ -146,10 +164,6 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     // get all possible successors
     Collection<ThreadingState> results = getAbstractSuccessorsFromWrappedCPAs(
         activeThread, threadingState, precision, cfaEdge);
-
-    if (useLocalAccessLocks) {
-      results = handleLocalAccessLock(cfaEdge, threadingState, activeThread, results);
-    }
 
     return getAbstractSuccessorsForEdge0(cfaEdge, threadingState, activeThread, results);
   }
@@ -193,9 +207,9 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
           case THREAD_START:
             return startNewThread(threadingState, statement, results);
           case THREAD_MUTEX_LOCK:
-            return addLock(threadingState, activeThread, statement, results);
+            return addLock(threadingState, activeThread, extractLockId(statement), results);
           case THREAD_MUTEX_UNLOCK:
-            return removeLock(activeThread, statement, results);
+            return removeLock(activeThread, extractLockId(statement), results);
           case THREAD_JOIN:
             return joinThread(threadingState, statement, results);
           case THREAD_EXIT:
@@ -266,7 +280,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     // combine them pairwise, all combinations needed
     for (AbstractState loc : newLocs) {
       for (AbstractState stack : newStacks) {
-        results.add(threadingState.updateThreadAndCopy(activeThread, stack, loc));
+        results.add(threadingState.updateLocationAndCopy(activeThread, stack, loc));
       }
     }
 
@@ -341,44 +355,39 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       functionName = CFACloner.getFunctionName(functionName, newThreadNum);
     }
 
-    if (threadingState.getThreadIds().contains(id.getName())) {
-      throw new UnrecognizedCodeException("multiple thread assignments to same LHS not supported", id);
-    }
-
+    String threadId = getNewThreadId(threadingState, id.getName());
     CFANode functioncallNode = Preconditions.checkNotNull(cfa.getFunctionHead(functionName), functionName);
     AbstractState initialStack = callstackCPA.getInitialState(functioncallNode, StateSpacePartition.getDefaultPartition());
     AbstractState initialLoc = locationCPA.getInitialState(functioncallNode, StateSpacePartition.getDefaultPartition());
 
-    // update all successors
+    // update all successors with a new started thread
     final Collection<ThreadingState> newResults = new ArrayList<>();
     for (ThreadingState ts : results) {
-      if (maxNumberOfThreads == -1 || ts.getThreadIds().size() <= maxNumberOfThreads) {
-        ts = ts.addThreadAndCopy(id.getName(), newThreadNum, initialStack, initialLoc);
+      if (maxNumberOfThreads == -1 || ts.getThreadIds().size() < maxNumberOfThreads) {
+        ts = ts.addThreadAndCopy(threadId, newThreadNum, initialStack, initialLoc);
         newResults.add(ts);
+      } else {
+        logger.logfOnce(Level.WARNING, "number of threads is limited, cannot create thread %s", threadId);
       }
     }
     return newResults;
   }
 
-  private Collection<ThreadingState> addLock(
-      final ThreadingState threadingState, final String activeThread,
-      final AStatement statement, final Collection<ThreadingState> results)
-          throws UnrecognizedCodeException {
-
-    // first check for some possible errors and unsupported parts
-    List<? extends AExpression> params = ((AFunctionCall)statement).getFunctionCallExpression().getParameterExpressions();
-    if (!(params.get(0) instanceof CUnaryExpression)) {
-      throw new UnrecognizedCodeException("unsupported thread locking", params.get(0));
+  /** returns the threadId if possible, else the next indexed threadId. */
+  private String getNewThreadId(final ThreadingState threadingState, final String threadId) throws UnrecognizedCodeException {
+    if (!allowMultipleLHS && threadingState.getThreadIds().contains(threadId)) {
+      throw new UnrecognizedCodeException("multiple thread assignments to same LHS not supported: " + threadId, null, null);
     }
-//    CExpression expr0 = ((CUnaryExpression)params.get(0)).getOperand();
-//    if (!(expr0 instanceof CIdExpression)) {
-//      throw new UnrecognizedCodeException("unsupported thread lock assignment", expr0);
-//    }
-//  String lockId = ((CIdExpression) expr0).getName();
-
-    String lockId = ((CUnaryExpression)params.get(0)).getOperand().toString();
-
-    return addLock(threadingState, activeThread, lockId, results);
+    String newThreadId = threadId;
+    int index = 0;
+    while (threadingState.getThreadIds().contains(newThreadId)
+        && (maxNumberOfThreads == -1 || index < maxNumberOfThreads)) {
+      index++;
+      newThreadId = threadId + THREAD_ID_SEPARATOR + index;
+      logger.logfOnce(Level.WARNING, "multiple thread assignments to same LHS, "
+          + "using identifier %s instead of %s", newThreadId, threadId);
+    }
+    return newThreadId;
   }
 
   private Collection<ThreadingState> addLock(final ThreadingState threadingState, final String activeThread,
@@ -397,12 +406,25 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     return newResults;
   }
 
-  private Collection<ThreadingState> removeLock(
-      final String activeThread,
-      final AStatement statement,
-      final Collection<ThreadingState> results)
-          throws UnrecognizedCodeException {
+  /** get the name (lockId) of the new lock at the given edge, or NULL if no lock is required. */
+  static @Nullable String getLockId(final CFAEdge cfaEdge) throws UnrecognizedCodeException {
+    if (cfaEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
+      final AStatement statement = ((AStatementEdge)cfaEdge).getStatement();
+      if (statement instanceof AFunctionCall) {
+        final AExpression functionNameExp = ((AFunctionCall)statement).getFunctionCallExpression().getFunctionNameExpression();
+        if (functionNameExp instanceof AIdExpression) {
+          final String functionName = ((AIdExpression)functionNameExp).getName();
+          if (THREAD_MUTEX_LOCK.equals(functionName)) {
+            return extractLockId(statement);
+          }
+        }
+      }
+    }
+    // otherwise no lock is required
+    return null;
+  }
 
+  private static String extractLockId(final AStatement statement) throws UnrecognizedCodeException {
     // first check for some possible errors and unsupported parts
     List<? extends AExpression> params = ((AFunctionCall)statement).getFunctionCallExpression().getParameterExpressions();
     if (!(params.get(0) instanceof CUnaryExpression)) {
@@ -415,8 +437,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 //  String lockId = ((CIdExpression) expr0).getName();
 
     String lockId = ((CUnaryExpression)params.get(0)).getOperand().toString();
-
-    return removeLock(activeThread, lockId, results);
+    return lockId;
   }
 
   private Collection<ThreadingState> removeLock(
@@ -454,26 +475,23 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
   /** optimization for interleaved threads.
    * When a thread only accesses local variables, we ignore other threads
-   * and add an internal 'atomic' lock. */
-  private Collection<ThreadingState> handleLocalAccessLock(CFAEdge cfaEdge, final ThreadingState threadingState,
-      String activeThread, Collection<ThreadingState> results) {
+   * and add an internal 'atomic' lock.
+   * @return updated state if possible, else NULL. */
+  private @Nullable ThreadingState handleLocalAccessLock(CFAEdge cfaEdge, final ThreadingState threadingState,
+      String activeThread) {
 
     // check if local access lock exists and is set for current thread
     if (threadingState.hasLock(LOCAL_ACCESS_LOCK) && !threadingState.hasLock(activeThread, LOCAL_ACCESS_LOCK)) {
-      return Collections.emptySet();
+      return null;
     }
 
     // add local access lock, if necessary and possible
-    final Collection<ThreadingState> newResults = new ArrayList<>();
     final boolean isImporantForThreading = globalAccessChecker.hasGlobalAccess(cfaEdge) || isImporantForThreading(cfaEdge);
-    for (ThreadingState ts : results) {
-      if (isImporantForThreading) {
-        newResults.add(ts.removeLockAndCopy(activeThread, LOCAL_ACCESS_LOCK));
-      } else {
-        newResults.add(ts.addLockAndCopy(activeThread, LOCAL_ACCESS_LOCK));
-      }
+    if (isImporantForThreading) {
+      return threadingState.removeLockAndCopy(activeThread, LOCAL_ACCESS_LOCK);
+    } else {
+      return threadingState.addLockAndCopy(activeThread, LOCAL_ACCESS_LOCK);
     }
-    return newResults;
   }
 
   private boolean isImporantForThreading(CFAEdge cfaEdge) {

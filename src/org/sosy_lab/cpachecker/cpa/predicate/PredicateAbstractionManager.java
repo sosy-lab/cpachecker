@@ -56,13 +56,10 @@ import org.sosy_lab.common.time.NestedTimer;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cpa.formulaslicing.InductiveWeakeningManager;
-import org.sosy_lab.cpachecker.cpa.formulaslicing.LoopTransitionFinder;
+import org.sosy_lab.cpachecker.cpa.predicate.InvariantsManager.RegionInvariantsSupplier;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage.AbstractionNode;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
@@ -100,6 +97,7 @@ public class PredicateAbstractionManager {
     public int numSymbolicAbstractions = 0; // precision completely empty, no computation
     public int numSatCheckAbstractions = 0; // precision was {false}, only sat check
     public int numCallsAbstractionCached = 0; // result was cached, no computation
+    public int numInductivePathFormulaCacheUsed = 0; // loop was cached, no new computation
 
     public int numTotalPredicates = 0;
     public int maxPredicates = 0;
@@ -174,13 +172,6 @@ public class PredicateAbstractionManager {
       description="Identify those predicates where the result is trivially known before abstraction computation and omit them.")
   private boolean identifyTrivialPredicates = false;
 
-  @Option(
-    secure = true,
-    name = "abstraction.identifyInductivePredicates",
-    description = "Identify the inductive predicates in the path formula and omit them"
-  )
-  private boolean identifyInductivePredicates = false;
-
   @Option(secure=true, name = "abstraction.simplify",
       description="Simplify the abstraction formula that is stored to represent the state space. Helpful when debugging (formulas get smaller).")
   private boolean simplifyAbstractionFormula = false;
@@ -199,24 +190,22 @@ public class PredicateAbstractionManager {
   // 1: predicate is true
   private final Map<Pair<BooleanFormula, AbstractionPredicate>, Byte> cartesianAbstractionCache;
 
+  private final RegionInvariantsSupplier locationBasedInvariantSupplier;
+
   private final BooleanFormulaManagerView bfmgr;
 
   private final PredicateAbstractionsStorage abstractionStorage;
 
   private final Configuration config;
 
-  private final InductiveWeakeningManager inductiveWeakeningMgr;
-  private final LoopTransitionFinder loopFinder;
-
   public PredicateAbstractionManager(
       AbstractionManager pAmgr,
-      FormulaManagerView pFmgr,
       PathFormulaManager pPfmgr,
       Solver pSolver,
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      Optional<LoopStructure> pLoopStructure)
+      RegionInvariantsSupplier pRegionInvariantsSupplier)
       throws InvalidConfigurationException, PredicateParsingFailedException {
     shutdownNotifier = pShutdownNotifier;
     config = pConfig;
@@ -224,22 +213,13 @@ public class PredicateAbstractionManager {
     config.inject(this, PredicateAbstractionManager.class);
 
     logger = pLogger;
-    fmgr = pFmgr;
+    fmgr = pSolver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     amgr = pAmgr;
     rmgr = amgr.getRegionCreator();
     pfmgr = pPfmgr;
     solver = pSolver;
-
-    if (identifyInductivePredicates && pLoopStructure.isPresent()) {
-      inductiveWeakeningMgr = new InductiveWeakeningManager(config, fmgr, solver, logger);
-      loopFinder =
-          new LoopTransitionFinder(
-              config, pLoopStructure.get(), pfmgr, fmgr, logger, shutdownNotifier);
-    } else {
-      inductiveWeakeningMgr = null;
-      loopFinder = null;
-    }
+    locationBasedInvariantSupplier = pRegionInvariantsSupplier;
 
     if (cartesianAbstraction) {
       abstractionType = AbstractionType.CARTESIAN;
@@ -377,28 +357,11 @@ public class PredicateAbstractionManager {
       stats.trivialPredicatesTime.stop();
     }
 
-    // compute inductive part of pathformula
-    if (identifyInductivePredicates && inductiveWeakeningMgr != null && location.isLoopStart()) {
-      stats.inductivePredicatesTime.start();
-      try {
-        PathFormula loopFormula =
-            loopFinder.generateLoopTransition(ssa, pathFormula.getPointerTargetSet(), location);
-        abs =
-            rmgr.makeAnd(
-                abs,
-                identifyInductivePathformulaPart(abstractionFormula, pathFormula, loopFormula));
-
-        // Calculate the set of predicates we still need to use for abstraction.
-        predicates = from(predicates).filter(not(in(amgr.extractPredicates(abs)))).toSet();
-
-      } catch (CPATransferException e) {
-        // log the exception and skip finding the inductive part of the pathformula
-        logger.logUserException(
-            Level.INFO, e, "Skipping finding inductive part of pathformula due to an error.");
-
-      } finally {
-        stats.inductivePredicatesTime.stop();
-      }
+    // add invariants to abstraction formula if available
+    if (locationBasedInvariantSupplier.hasInvariantFor(location)) {
+      abs = rmgr.makeAnd(abs, locationBasedInvariantSupplier.getInvariantFor(location));
+      // Calculate the set of predicates we still need to use for abstraction.
+      predicates = from(predicates).filter(not(in(amgr.extractPredicates(abs)))).toSet();
     }
 
     try (ProverEnvironment thmProver = solver.newProverEnvironment()) {
@@ -731,33 +694,6 @@ public class PredicateAbstractionManager {
     assert amgr.entails(oldAbs, region);
 
     return region;
-  }
-
-  /**
-   * This method finds the inductive part of a pathformula and adds it directly
-   * to the abstraction formula.
-   *
-   * @param pOldAbs An abstraction formula that determines which variables and predicates are relevant.
-   * @param pBlockFormula A path formula that determines which variables and predicates are relevant.
-   * @param pLoopFormula the path formula inside the loop
-   * @return A region of predicates from pPredicates that is entailed by (pOldAbs & pBlockFormula)
-   */
-  private Region identifyInductivePathformulaPart(
-      final AbstractionFormula pOldAbs,
-      final PathFormula pBlockFormula,
-      final PathFormula pLoopFormula)
-      throws SolverException, InterruptedException {
-
-    BooleanFormula inductiveSlice =
-        inductiveWeakeningMgr.slice(
-            pBlockFormula, pLoopFormula, fmgr.getBooleanFormulaManager().makeBoolean(true));
-
-    AbstractionPredicate pred = amgr.makePredicate(fmgr.uninstantiate(inductiveSlice));
-
-    // TODO fix assert
-    // assert amgr.entails(pOldAbs.asRegion(), region);
-
-    return pred.getAbstractVariable();
   }
 
   /**

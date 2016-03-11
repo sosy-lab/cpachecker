@@ -23,10 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import java.util.List;
-import java.util.Map;
-
-import javax.annotation.Nullable;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Verify;
+import com.google.common.collect.Maps;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -52,9 +51,10 @@ import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.api.SolverContext;
 import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Verify;
-import com.google.common.collect.Maps;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Nullable;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -276,25 +276,15 @@ public final class Solver implements AutoCloseable {
    * nodes into multiple constraints (thus an UNSAT core can contain only a
    * subset of some AND node).
    */
-  public List<BooleanFormula> unsatCore(Iterable<BooleanFormula> constraints)
+  public List<BooleanFormula> unsatCore(BooleanFormula constraints)
       throws SolverException, InterruptedException {
 
     try (ProverEnvironment prover = newProverEnvironment(ProverOptions.GENERATE_UNSAT_CORE)) {
-      for (BooleanFormula constraint : constraints) {
-        addConstraint(constraint);
+      for (BooleanFormula constraint : bfmgr.toConjunctionArgs(constraints, true)) {
+        prover.addConstraint(constraint);
       }
       Verify.verify(prover.isUnsat());
       return prover.getUnsatCore();
-    }
-  }
-
-  /**
-   * Helper function: add the constraint, OR, if the constraint is an AND-node,
-   * add children one by one. Keep going recursively.
-   */
-  private void addConstraint(BooleanFormula constraint) {
-    for (BooleanFormula f : bfmgr.splitConjunctions(constraint)) {
-      addConstraint(f);
     }
   }
 

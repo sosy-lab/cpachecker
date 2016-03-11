@@ -30,8 +30,8 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.util.Triple;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
-import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -109,13 +108,13 @@ public class SMGJoinAbstractionManager {
 
     SMGRegion root = (SMGRegion) destObject;
 
-    Set<SMGEdgeHasValue> fieldsOfObject1 = getFieldsOfObject(smgObject1, inputSMG1);
-    Set<SMGEdgeHasValue> fieldsOfObject2 = getFieldsOfObject(smgObject2, inputSMG2);
+    Set<SMGEdgeHasValue> fieldsOfObject1 = SMGUtils.getFieldsOfObject(smgObject1, inputSMG1);
+    Set<SMGEdgeHasValue> fieldsOfObject2 = SMGUtils.getFieldsOfObject(smgObject2, inputSMG2);
 
     Triple<Set<Pair<SMGEdgeHasValue,SMGEdgeHasValue>>, Set<SMGEdgeHasValue>, Set<SMGEdgeHasValue>> sharedPnonSharedPsharedNP = assignToSharedPPointerAndNonSharedOPointerAndSharedNonPointer(fieldsOfObject1, fieldsOfObject2);
 
-    Set<SMGEdgePointsTo> inboundPointers1 = getPointerToThisAbstraction(smgObject1, inputSMG1);
-    Set<SMGEdgePointsTo> inboundPointers2 = getPointerToThisAbstraction(smgObject2, inputSMG2);
+    Set<SMGEdgePointsTo> inboundPointers1 = SMGUtils.getPointerToThisObject(smgObject1, inputSMG1);
+    Set<SMGEdgePointsTo> inboundPointers2 = SMGUtils.getPointerToThisObject(smgObject2, inputSMG2);
 
     Pair<Set<Pair<SMGEdgePointsTo, SMGEdgePointsTo>>, Set<SMGEdgePointsTo>> sharedIPointerNonSharedIP =
         assignToSharedIPointerAndNonSharedIPointer(inboundPointers1, inboundPointers2);
@@ -255,26 +254,6 @@ public class SMGJoinAbstractionManager {
     return Triple.of(sharedOPointer, nonSharedOPointer, sharedNonPointer);
   }
 
-  private Set<SMGEdgePointsTo> getPointerToThisAbstraction(SMGObject pSmgObject, SMG pInputSMG) {
-    Set<SMGEdgePointsTo> result = FluentIterable.from(pInputSMG.getPTEdges().values())
-        .filter(new FilterTargetObject(pSmgObject)).toSet();
-    return result;
-  }
-
-  private static class FilterTargetObject implements Predicate<SMGEdgePointsTo> {
-
-    private final SMGObject object;
-
-    public FilterTargetObject(SMGObject pObject) {
-      object = pObject;
-    }
-
-    @Override
-    public boolean apply(SMGEdgePointsTo ptEdge) {
-      return ptEdge.getObject() == object;
-    }
-  }
-
   private Optional<GenericAbstractionCandidateTemplate> calculateTemplateAbstractionFromAlreadyFoundAbstractions(
       Map<Integer, List<SMGAbstractionCandidate>> pAlreadyFoundCandidates) {
 
@@ -286,11 +265,5 @@ public class SMGJoinAbstractionManager {
     } else {
       return Optional.absent();
     }
-  }
-
-  private Set<SMGEdgeHasValue> getFieldsOfObject(SMGObject pSmgObject, SMG pInputSMG) {
-
-    SMGEdgeHasValueFilter edgeFilter = SMGEdgeHasValueFilter.objectFilter(pSmgObject);
-    return pInputSMG.getHVEdges(edgeFilter);
   }
 }

@@ -74,6 +74,12 @@ public class IIIOperatorTest {
     assertEquals(zeroToFour.negate(), IIIOperator.MODULO.apply(zeroToInf.negate(), SimpleInterval.of(scalarFour.negate(), scalarFive)));
     assertEquals(zeroToFour.negate(), IIIOperator.MODULO.apply(zeroToInf.negate(), SimpleInterval.of(scalarFive.negate(), scalarFour)));
     assertEquals(SimpleInterval.of(scalarFour.negate(), scalarFour), IIIOperator.MODULO.apply(SimpleInterval.infinite(), SimpleInterval.of(scalarFive.negate(), scalarFour)));
+
+    SimpleInterval fiftyNine = SimpleInterval.of(BigInteger.valueOf(59), BigInteger.valueOf(59));
+    SimpleInterval zeroTo255 = SimpleInterval.of(BigInteger.ZERO, BigInteger.valueOf(255));
+    assertEquals(
+        SimpleInterval.of(BigInteger.valueOf(0), BigInteger.valueOf(59)),
+        IIIOperator.MODULO.apply(fiftyNine, zeroTo255));
   }
 
   @Test

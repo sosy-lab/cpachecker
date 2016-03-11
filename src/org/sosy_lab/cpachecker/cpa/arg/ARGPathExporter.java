@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Queue;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.logging.Level;
@@ -107,11 +108,11 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeType;
-import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
-import org.sosy_lab.cpachecker.util.expressions.Or;
+import org.sosy_lab.cpachecker.util.expressions.Simplifier;
 import org.w3c.dom.Element;
 
 import com.google.common.base.Charsets;
@@ -133,6 +134,7 @@ import com.google.common.collect.MapDifference.ValueDifference;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Queues;
+import com.google.common.collect.Sets;
 import com.google.common.collect.SortedMapDifference;
 import com.google.common.collect.TreeMultimap;
 
@@ -182,6 +184,9 @@ public class ARGPathExporter {
   private final Language language;
 
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
+
+  private final ExpressionTreeFactory<Object> factory = ExpressionTrees.newCachingFactory();
+  private final Simplifier<Object> simplifier = ExpressionTrees.newSimplifier(factory);
 
   /**
    * This is a temporary hack to easily obtain specification and verification tasks.
@@ -269,7 +274,7 @@ public class ARGPathExporter {
                         .allocateAssumptionsToEdge(pEdge, concreteState)
                         .getExpStmts()) {
                   stateInvariant =
-                      And.of(
+                      factory.and(
                           stateInvariant,
                           LeafExpression.of((Object) expressionStatement.getExpression()));
                 }
@@ -279,14 +284,14 @@ public class ARGPathExporter {
               for (ExpressionTreeReportingState etrs :
                   AbstractStates.asIterable(state).filter(ExpressionTreeReportingState.class)) {
                 stateInvariant =
-                    And.of(
+                    factory.and(
                         stateInvariant,
                         etrs.getFormulaApproximation(
                             cfa.getFunctionHead(functionName), pEdge.getSuccessor()));
               }
               stateInvariants.add(stateInvariant);
             }
-            ExpressionTree<Object> invariant = Or.of(stateInvariants);
+            ExpressionTree<Object> invariant = factory.or(stateInvariants);
             return invariant;
           }
         });
@@ -419,6 +424,17 @@ public class ARGPathExporter {
         final Map<ARGState, CFAEdgeWithAssumptions> pValueMap) {
 
       final TransitionCondition result = new TransitionCondition();
+
+      if (graphType != GraphType.ERROR_WITNESS) {
+        ExpressionTree<Object> invariant = ExpressionTrees.getTrue();
+        if (exportInvariant(pEdge.getSuccessor())) {
+          invariant = simplifier.simplify(invariantProvider.provideInvariantFor(pEdge, pFromState));
+        }
+        putStateInvariant(pTo, invariant);
+        String functionName = pEdge.getSuccessor().getFunctionName();
+        stateScopes.put(pTo, isFunctionScope ? functionName : "");
+      }
+
       if (AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge)) {
         return result;
       }
@@ -540,7 +556,7 @@ public class ARGPathExporter {
             }
 
             if (!assignments.isEmpty()) {
-              code.add(And.of(
+              code.add(factory.and(
                   FluentIterable.from(assignments)
                   .transform(
                       new Function<AExpressionStatement, ExpressionTree<Object>>() {
@@ -558,7 +574,7 @@ public class ARGPathExporter {
         }
 
         if (graphType != GraphType.PROOF_WITNESS && exportAssumptions && !code.isEmpty()) {
-          ExpressionTree<Object> invariant = Or.of(code);
+          ExpressionTree<Object> invariant = factory.or(code);
           final Function<Object, String> converter =
               new Function<Object, String>() {
 
@@ -601,13 +617,6 @@ public class ARGPathExporter {
             result.put(KeyDef.ASSUMPTIONSCOPE, functionName);
           }
         }
-      }
-
-      if (graphType != GraphType.ERROR_WITNESS) {
-        ExpressionTree<Object> invariant = invariantProvider.provideInvariantFor(pEdge, pFromState);
-        functionName = pEdge.getSuccessor().getFunctionName();
-        putStateInvariant(pTo, invariant);
-        stateScopes.put(pTo, isFunctionScope ? functionName : "");
       }
 
       if (exportAssumeCaseInfo) {
@@ -848,8 +857,8 @@ public class ARGPathExporter {
 
       }).toList();
       for (Edge edge : toRemove) {
-        enteringEdges.remove(edge.target, edge);
-        leavingEdges.remove(edge.source, edge);
+        boolean removed = removeEdge(edge);
+        assert removed;
       }
 
       // Merge nodes with empty or repeated edges
@@ -926,9 +935,6 @@ public class ARGPathExporter {
             if (enteringEdges.get(pNode).isEmpty()) {
               return false;
             }
-            if (leavingEdges.get(pNode).size() == 1) {
-              return false;
-            }
             for (Edge edge : enteringEdges.get(pNode)) {
               if (!edge.label.keyValues.isEmpty()) {
                 return false;
@@ -947,6 +953,10 @@ public class ARGPathExporter {
               return true;
             }
 
+            if (pEdge.label.keyValues.isEmpty()) {
+              return true;
+            }
+
             // An edge is never redundant if there are conflicting scopes
             ExpressionTree<Object> sourceTree = getStateInvariant(pEdge.source);
             if (sourceTree != null) {
@@ -956,24 +966,22 @@ public class ARGPathExporter {
                 return false;
               }
             }
-            // An edge is never redundant if there are different invariants
-            if (!getStateInvariant(pEdge.target).equals(sourceTree)) {
-              return false;
-            }
 
             // An edge is redundant if it is the only leaving edge of a
             // node and it is empty or all its non-assumption contents
             // are summarized by a preceding edge
-            if ((!pEdge.label.hasTransitionRestrictions()
-                        || FluentIterable.from(enteringEdges.get(pEdge.source))
-                            .anyMatch(
-                                new Predicate<Edge>() {
+            boolean hasTransistionRestrictions = pEdge.label.hasTransitionRestrictions();
+            boolean summarizedByPrecedingEdge = FluentIterable.from(enteringEdges.get(pEdge.source))
+                .anyMatch(
+                    new Predicate<Edge>() {
 
-                                  @Override
-                                  public boolean apply(Edge pPrecedingEdge) {
-                                    return pPrecedingEdge.label.summarizes(pEdge.label);
-                                  }
-                                })
+                      @Override
+                      public boolean apply(Edge pPrecedingEdge) {
+                        return pPrecedingEdge.label.summarizes(pEdge.label);
+                      }
+                    });
+            if ((!hasTransistionRestrictions
+                        || summarizedByPrecedingEdge
                         || pEdge.label.keyValues.size() == 1
                             && pEdge.label.keyValues.containsKey(KeyDef.FUNCTIONEXIT))
                     && (leavingEdges.get(pEdge.source).size() == 1)
@@ -1012,8 +1020,33 @@ public class ARGPathExporter {
       ExpressionTree<Object> targetTree = getStateInvariant(target);
       String sourceScope = stateScopes.get(source);
       String targetScope = stateScopes.get(target);
+
+      if (ExpressionTrees.getTrue().equals(targetTree)
+          && !ExpressionTrees.getTrue().equals(sourceTree)
+          && (targetScope == null || targetScope.equals(sourceScope))) {
+        ExpressionTree<Object> newTargetTree = ExpressionTrees.getFalse();
+        for (Edge e : enteringEdges.get(target)) {
+          newTargetTree = factory.or(newTargetTree, getStateInvariant(e.source));
+        }
+        newTargetTree = simplifier.simplify(factory.and(targetTree, newTargetTree));
+        stateInvariants.put(target, newTargetTree);
+        targetTree = newTargetTree;
+      } else if (!ExpressionTrees.getTrue().equals(targetTree)
+          && ExpressionTrees.getTrue().equals(sourceTree)
+          && (sourceScope == null || sourceScope.equals(targetScope))
+          && enteringEdges.get(source).size() <= 1) {
+        ExpressionTree<Object> newSourceTree = ExpressionTrees.getFalse();
+        for (Edge e : enteringEdges.get(source)) {
+          newSourceTree = factory.or(newSourceTree, getStateInvariant(e.source));
+        }
+        newSourceTree = simplifier.simplify(factory.and(targetTree, newSourceTree));
+        stateInvariants.put(source, newSourceTree);
+        sourceTree = newSourceTree;
+      }
+
       final String newScope;
-      if (ExpressionTrees.isConstant(sourceTree) || sourceScope.equals(targetScope)) {
+      if (ExpressionTrees.isConstant(sourceTree)
+          || Objects.equals(sourceScope, targetScope)) {
         newScope = targetScope;
       } else if (ExpressionTrees.isConstant(targetTree)) {
         newScope = sourceScope;
@@ -1159,10 +1192,10 @@ public class ARGPathExporter {
     private void putStateInvariant(String pStateId, ExpressionTree<Object> pValue) {
       ExpressionTree<Object> prev = stateInvariants.get(pStateId);
       if (prev == null) {
-        stateInvariants.put(pStateId, pValue);
+        stateInvariants.put(pStateId, simplifier.simplify(pValue));
         return;
       }
-      ExpressionTree<Object> result = Or.of(prev, pValue);
+      ExpressionTree<Object> result = simplifier.simplify(factory.or(prev, pValue));
       stateInvariants.put(pStateId, result);
     }
 
@@ -1185,7 +1218,7 @@ public class ARGPathExporter {
       if (other == null) {
         return prev;
       }
-      ExpressionTree<Object> result = Or.of(prev, other);
+      ExpressionTree<Object> result = simplifier.simplify(factory.or(prev, other));
       stateInvariants.put(pStateId, result);
       return result;
     }
@@ -1197,6 +1230,54 @@ public class ARGPathExporter {
       }
       return result;
     }
+  }
+
+  private boolean exportInvariant(CFANode pReferenceNode) {
+    Queue<CFANode> waitlist = Queues.newArrayDeque();
+    Set<CFANode> visited = Sets.newHashSet();
+    waitlist.offer(pReferenceNode);
+    visited.add(pReferenceNode);
+    for (CFAEdge assumeEdge : CFAUtils.enteringEdges(pReferenceNode).filter(AssumeEdge.class)) {
+      if (visited.add(assumeEdge.getPredecessor())) {
+        waitlist.offer(assumeEdge.getPredecessor());
+      }
+    }
+    Predicate<CFAEdge> epsilonEdge =
+        new Predicate<CFAEdge>() {
+
+          @Override
+          public boolean apply(CFAEdge pEdge) {
+            return !(pEdge instanceof AssumeEdge);
+          }
+        };
+    Predicate<CFANode> loopProximity =
+        cfa.getAllLoopHeads().isPresent()
+            ? new Predicate<CFANode>() {
+
+              @Override
+              public boolean apply(CFANode pNode) {
+                return cfa.getAllLoopHeads().get().contains(pNode) || pNode.isLoopStart();
+              }
+            }
+            : new Predicate<CFANode>() {
+
+              @Override
+              public boolean apply(CFANode pNode) {
+                return pNode.isLoopStart();
+              }
+            };
+    while (!waitlist.isEmpty()) {
+      CFANode current = waitlist.poll();
+      if (loopProximity.apply(current)) {
+        return true;
+      }
+      for (CFAEdge enteringEdge : CFAUtils.enteringEdges(current).filter(epsilonEdge)) {
+        if (visited.add(enteringEdge.getPredecessor())) {
+          waitlist.offer(enteringEdge.getPredecessor());
+        }
+      }
+    }
+    return false;
   }
 
   private static class DelayedAssignmentsKey {

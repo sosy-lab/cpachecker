@@ -23,14 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import java.util.List;
-
-import javax.annotation.Nullable;
-
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Model;
 import org.sosy_lab.solver.api.ProverEnvironment;
+
+import java.util.List;
+
+import javax.annotation.Nullable;
 
 /**
  * Wrapping handler for ProverEnvironment.
@@ -55,6 +55,12 @@ public class ProverEnvironmentView implements ProverEnvironment{
       List<BooleanFormula> important)
       throws InterruptedException, SolverException {
     return delegate.allSat(callback, important);
+  }
+
+  @Override
+  public boolean isUnsatWithAssumptions(List<BooleanFormula> assumptions)
+      throws SolverException, InterruptedException {
+    return delegate.isUnsatWithAssumptions(assumptions);
   }
 
   @Nullable

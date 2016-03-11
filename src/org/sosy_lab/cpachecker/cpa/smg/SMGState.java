@@ -662,31 +662,26 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     SMGObject object = pNew_edge.getObject();
     int offset = pNew_edge.getOffset();
 
-    boolean newEdgePointsToZero = pNew_edge.getValue() == 0;
     MachineModel maModel = heap.getMachineModel();
     int sizeOfType = pNew_edge.getSizeInBytes(maModel);
 
     // Shrink overlapping zero edges
     for (SMGEdgeHasValue zeroEdge : pOverlappingZeroEdges) {
-      // If the new_edge points to zero, we can just remove them
       heap.removeHasValueEdge(zeroEdge);
 
-      if (!newEdgePointsToZero) {
+      int zeroEdgeOffset = zeroEdge.getOffset();
 
-        int zeroEdgeOffset = zeroEdge.getOffset();
+      int offset2 = offset + sizeOfType;
+      int zeroEdgeOffset2 = zeroEdgeOffset + zeroEdge.getSizeInBytes(maModel);
 
-        int offset2 = offset + sizeOfType;
-        int zeroEdgeOffset2 = zeroEdgeOffset + zeroEdge.getSizeInBytes(maModel);
+      if (zeroEdgeOffset < offset) {
+        SMGEdgeHasValue newZeroEdge = new SMGEdgeHasValue(offset - zeroEdgeOffset, zeroEdgeOffset, object, 0);
+        heap.addHasValueEdge(newZeroEdge);
+      }
 
-        if (zeroEdgeOffset < offset) {
-          SMGEdgeHasValue newZeroEdge = new SMGEdgeHasValue(offset - zeroEdgeOffset, zeroEdgeOffset, object, 0);
-          heap.addHasValueEdge(newZeroEdge);
-        }
-
-        if (offset2 < zeroEdgeOffset2) {
-          SMGEdgeHasValue newZeroEdge = new SMGEdgeHasValue(zeroEdgeOffset2 - offset2, offset2, object, 0);
-          heap.addHasValueEdge(newZeroEdge);
-        }
+      if (offset2 < zeroEdgeOffset2) {
+        SMGEdgeHasValue newZeroEdge = new SMGEdgeHasValue(zeroEdgeOffset2 - offset2, offset2, object, 0);
+        heap.addHasValueEdge(newZeroEdge);
       }
     }
   }
@@ -991,7 +986,28 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     for (SMGEdgeHasValue edge : targetEdges) {
       if (edge.overlapsWith(pTargetRangeOffset, targetRangeSize, heap.getMachineModel())) {
+        boolean hvEdgeIsZero = edge.getValue() == heap.getNullValue();
         heap.removeHasValueEdge(edge);
+        if (hvEdgeIsZero) {
+          SMGObject object = edge.getObject();
+
+          MachineModel maModel = heap.getMachineModel();
+
+          // Shrink overlapping zero edge
+          int zeroEdgeOffset = edge.getOffset();
+
+          int zeroEdgeOffset2 = zeroEdgeOffset + edge.getSizeInBytes(maModel);
+
+          if (zeroEdgeOffset < pTargetRangeOffset) {
+            SMGEdgeHasValue newZeroEdge = new SMGEdgeHasValue(pTargetRangeOffset - zeroEdgeOffset, zeroEdgeOffset, object, 0);
+            heap.addHasValueEdge(newZeroEdge);
+          }
+
+          if (targetRangeSize < zeroEdgeOffset2) {
+            SMGEdgeHasValue newZeroEdge = new SMGEdgeHasValue(zeroEdgeOffset2 - targetRangeSize, targetRangeSize, object, 0);
+            heap.addHasValueEdge(newZeroEdge);
+          }
+        }
       }
     }
 

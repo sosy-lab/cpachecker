@@ -38,14 +38,11 @@ public class InductiveWeakeningManagerTest {
   @Before public void setUp() throws Exception {
     config = TestDataTools.configurationForTest().setOptions(
         ImmutableMap.of(
-            "cpa.predicate.solver", "Z3",
-            "log.consoleLevel", "FINE",
+            "solver.solver", "Z3",
 
             // For easier debugging.
             "cpa.predicate.handlePointerAliasing", "false",
-            "cpa.predicate.ignoreIrrelevantVariables", "false",
-
-            "analysis.interprocedural", "false"
+            "cpa.predicate.ignoreIrrelevantVariables", "false"
         )
     ).build();
     notifier = ShutdownNotifier.createDummy();
@@ -55,7 +52,7 @@ public class InductiveWeakeningManagerTest {
     Solver solver = Solver.create(config, logger, notifier);
     fmgr = solver.getFormulaManager();
 
-    inductiveWeakeningManager = new InductiveWeakeningManager(config, fmgr, solver, logger);
+    inductiveWeakeningManager = new InductiveWeakeningManager(config, solver, logger);
   }
 
   @After public void tearDown() throws Exception {
@@ -75,7 +72,7 @@ public class InductiveWeakeningManagerTest {
     PathFormula loop = toPathFormula(pfmgr, cfa, f.getSsa());
     logger.log(Level.INFO, "Loop transition: ", loop);
 
-    BooleanFormula slice = inductiveWeakeningManager.slice(f, loop,
+    BooleanFormula slice = inductiveWeakeningManager.findInductiveWeakening(f, loop,
         fmgr.getBooleanFormulaManager().makeBoolean(true));
 
     logger.log(Level.INFO, "Obtained slice", slice);
@@ -102,7 +99,7 @@ public class InductiveWeakeningManagerTest {
     PathFormula loop = toPathFormula(pfmgr, cfa, f.getSsa());
     logger.log(Level.INFO, "Loop transition: ", loop);
 
-    BooleanFormula slice = inductiveWeakeningManager.slice(f, loop,
+    BooleanFormula slice = inductiveWeakeningManager.findInductiveWeakening(f, loop,
         fmgr.getBooleanFormulaManager().makeBoolean(true));
     logger.log(Level.INFO, "Obtained slice", slice);
 
@@ -139,7 +136,7 @@ public class InductiveWeakeningManagerTest {
         cfa, AnalysisDirection.FORWARD);
     PathFormula loopTransition = toPathFormula(pfmgr, cfa);
 
-    BooleanFormula slice = inductiveWeakeningManager.slice(
+    BooleanFormula slice = inductiveWeakeningManager.findInductiveWeakening(
         input, loopTransition,
         fmgr.getBooleanFormulaManager().makeBoolean(true));
 

@@ -160,7 +160,6 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   private int heuristicsCount = 0;
 
   private boolean lastRefinementUsedHeuristics = false;
-  private boolean lastRefinementWasStatic = false;
   private boolean atomicPredicates = false;
 
 
@@ -261,10 +260,6 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     return (staticRefiner != null) && (heuristicsCount == 0);
   }
 
-  public boolean wasLastRefinementStatic() {
-    return lastRefinementWasStatic;
-  }
-
   public void setUseAtomicPredicates(boolean atomicPredicates) {
     this.atomicPredicates = atomicPredicates;
   }
@@ -278,10 +273,11 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     if (useStaticRefinement()) {
       UnmodifiableReachedSet reached = pReached.asReachedSet();
       ARGState root = (ARGState)reached.getFirstState();
+      ARGState targetState = abstractionStatesTrace.get(abstractionStatesTrace.size()-1);
 
       PredicatePrecision heuristicPrecision;
       try {
-        heuristicPrecision = staticRefiner.extractPrecisionFromCfa(pReached.asReachedSet(), abstractionStatesTrace, atomicPredicates);
+        heuristicPrecision = staticRefiner.extractPrecisionFromCfa(pReached.asReachedSet(), targetState, atomicPredicates);
       } catch (CPATransferException | SolverException e) {
         throw new CPAException("Static refinement failed", e);
       }
@@ -293,10 +289,8 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
       heuristicsCount++;
       lastRefinementUsedHeuristics = true;
-      lastRefinementWasStatic = true;
     } else {
       lastRefinementUsedHeuristics = false;
-      lastRefinementWasStatic = false;
       super.performRefinement(pReached, abstractionStatesTrace, pInterpolants, pRepeatedCounterexample);
       newPredicates = null;
     }

@@ -45,7 +45,8 @@ import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Preconditions;
 
-public class ToFormulaVisitor implements ExpressionTreeVisitor<AExpression, BooleanFormula, ToFormulaException> {
+public class ToFormulaVisitor
+    extends CachingVisitor<AExpression, BooleanFormula, ToFormulaException> {
 
   private static final CFANode DUMMY_NODE = new CFANode("dummy");
 
@@ -53,13 +54,19 @@ public class ToFormulaVisitor implements ExpressionTreeVisitor<AExpression, Bool
 
   private final PathFormulaManager pathFormulaManager;
 
-  public ToFormulaVisitor(FormulaManagerView pFormulaManagerView, PathFormulaManager pPathFormulaManager) {
-    formulaManagerView = pFormulaManagerView;
-    pathFormulaManager = pPathFormulaManager;
+  private final PathFormula context;
+
+  public ToFormulaVisitor(
+      FormulaManagerView pFormulaManagerView,
+      PathFormulaManager pPathFormulaManager,
+      PathFormula pClearContext) {
+    formulaManagerView = Objects.requireNonNull(pFormulaManagerView);
+    pathFormulaManager = Objects.requireNonNull(pPathFormulaManager);
+    context = pClearContext;
   }
 
   @Override
-  public BooleanFormula visit(And<AExpression> pAnd) throws ToFormulaException {
+  protected BooleanFormula cacheMissAnd(And<AExpression> pAnd) throws ToFormulaException {
     List<BooleanFormula> elements = new ArrayList<>();
     for (ExpressionTree<AExpression> element : pAnd) {
       elements.add(element.accept(this));
@@ -68,7 +75,7 @@ public class ToFormulaVisitor implements ExpressionTreeVisitor<AExpression, Bool
   }
 
   @Override
-  public BooleanFormula visit(Or<AExpression> pOr) throws ToFormulaException {
+  protected BooleanFormula cacheMissOr(Or<AExpression> pOr) throws ToFormulaException {
     List<BooleanFormula> elements = new ArrayList<>();
     for (ExpressionTree<AExpression> element : pOr) {
       elements.add(element.accept(this));
@@ -77,7 +84,8 @@ public class ToFormulaVisitor implements ExpressionTreeVisitor<AExpression, Bool
   }
 
   @Override
-  public BooleanFormula visit(LeafExpression<AExpression> pLeafExpression) throws ToFormulaException {
+  protected BooleanFormula cacheMissLeaf(LeafExpression<AExpression> pLeafExpression)
+      throws ToFormulaException {
     AExpression expression = pLeafExpression.getExpression();
     final CFAEdge edge;
     if (expression instanceof CExpression) {
@@ -89,7 +97,13 @@ public class ToFormulaVisitor implements ExpressionTreeVisitor<AExpression, Bool
     }
     PathFormula invariantPathFormula;
     try {
-      invariantPathFormula = pathFormulaManager.makeFormulaForPath(Collections.<CFAEdge>singletonList(edge));
+      if (context == null) {
+        invariantPathFormula =
+            pathFormulaManager.makeFormulaForPath(Collections.<CFAEdge>singletonList(edge));
+      } else {
+        PathFormula clearContext = pathFormulaManager.makeEmptyPathFormula(context);
+        invariantPathFormula = pathFormulaManager.makeAnd(clearContext, edge);
+      }
     } catch (CPATransferException e) {
       throw new ToFormulaException(e);
     } catch (InterruptedException e) {
@@ -99,12 +113,12 @@ public class ToFormulaVisitor implements ExpressionTreeVisitor<AExpression, Bool
   }
 
   @Override
-  public BooleanFormula visitTrue() {
+  protected BooleanFormula cacheMissTrue() {
     return formulaManagerView.getBooleanFormulaManager().makeBoolean(true);
   }
 
   @Override
-  public BooleanFormula visitFalse() {
+  protected BooleanFormula cacheMissFalse() {
     return formulaManagerView.getBooleanFormulaManager().makeBoolean(false);
   }
 

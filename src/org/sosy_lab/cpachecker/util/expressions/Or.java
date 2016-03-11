@@ -30,20 +30,23 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
 public class Or<LeafType> extends AbstractExpressionTree<LeafType>
     implements Iterable<ExpressionTree<LeafType>> {
 
-  private ImmutableSortedSet<ExpressionTree<LeafType>> operands;
+  private final ImmutableSet<ExpressionTree<LeafType>> operands;
 
-  private Or(ImmutableSortedSet<ExpressionTree<LeafType>> pOperands) {
+  private final int hashCode;
+
+  private Or(ImmutableSet<ExpressionTree<LeafType>> pOperands) {
     assert Iterables.size(pOperands) >= 2;
     assert !Iterables.contains(pOperands, ExpressionTrees.getFalse());
     assert !Iterables.contains(pOperands, ExpressionTrees.getTrue());
     assert !FluentIterable.from(pOperands).anyMatch(Predicates.instanceOf(Or.class));
     operands = pOperands;
+    hashCode = operands.hashCode();
   }
 
   @Override
@@ -59,7 +62,7 @@ public class Or<LeafType> extends AbstractExpressionTree<LeafType>
 
   @Override
   public int hashCode() {
-    return operands.hashCode();
+    return hashCode;
   }
 
   @Override
@@ -68,7 +71,8 @@ public class Or<LeafType> extends AbstractExpressionTree<LeafType>
       return true;
     }
     if (pObj instanceof Or) {
-      return operands.equals(((Or<?>) pObj).operands);
+      Or<?> other = (Or<?>) pObj;
+      return hashCode == other.hashCode && operands.equals(other.operands);
     }
     return false;
   }
@@ -85,7 +89,7 @@ public class Or<LeafType> extends AbstractExpressionTree<LeafType>
       return ExpressionTrees.getTrue();
     }
     // Filter out trivial operands and flatten the hierarchy
-    ImmutableSortedSet<ExpressionTree<LeafType>> operands =
+    ImmutableSet<ExpressionTree<LeafType>> operands =
         FluentIterable.from(pOperands)
             .filter(Predicates.not(Predicates.equalTo(ExpressionTrees.<LeafType>getFalse())))
             .transformAndConcat(
@@ -99,7 +103,8 @@ public class Or<LeafType> extends AbstractExpressionTree<LeafType>
                     }
                     return Collections.singleton(pOperand);
                   }
-                }).toSortedSet(ExpressionTrees.<LeafType>getComparator());
+                })
+            .toSet();
     // If there are no operands, return the neutral element
     if (operands.isEmpty()) {
       return ExpressionTrees.getFalse();

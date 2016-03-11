@@ -32,8 +32,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 
 
-public class ToCodeVisitor<LeafType>
-    implements ExpressionTreeVisitor<LeafType, String, RuntimeException> {
+public class ToCodeVisitor<LeafType> extends CachingVisitor<LeafType, String, RuntimeException> {
 
   private static final Function<String, String> WRAP_IN_PARENTHESES =
       new Function<String, String>() {
@@ -101,21 +100,21 @@ public class ToCodeVisitor<LeafType>
   }
 
   @Override
-  public String visit(And<LeafType> pAnd) {
+  protected String cacheMissAnd(And<LeafType> pAnd) {
     assert pAnd.iterator().hasNext();
     return Joiner.on(" && ")
         .join(FluentIterable.from(pAnd).transform(toParenthesizedCodeFunction()));
   }
 
   @Override
-  public String visit(Or<LeafType> pOr) {
+  protected String cacheMissOr(Or<LeafType> pOr) {
     assert pOr.iterator().hasNext();
     return Joiner.on(" || ")
         .join(FluentIterable.from(pOr).transform(toParenthesizedCodeFunction()));
   }
 
   @Override
-  public String visit(LeafExpression<LeafType> pLeafExpression) {
+  protected String cacheMissLeaf(LeafExpression<LeafType> pLeafExpression) {
     LeafType expression = pLeafExpression.getExpression();
     String expressionCode = leafExpressionToCodeFunction.apply(expression);
     if (pLeafExpression.assumeTruth()) {
@@ -128,12 +127,12 @@ public class ToCodeVisitor<LeafType>
   }
 
   @Override
-  public String visitTrue() {
+  protected String cacheMissTrue() {
     return "1";
   }
 
   @Override
-  public String visitFalse() {
+  protected String cacheMissFalse() {
     return "0";
   }
 

@@ -28,7 +28,6 @@ import java.io.Writer;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -72,7 +71,6 @@ import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -104,7 +102,6 @@ public class PredicateStaticRefiner extends StaticRefiner {
   private final FormulaManagerView formulaManagerView;
   private final BooleanFormulaManager booleanManager;
   private final PredicateAbstractionManager predAbsManager;
-  private final Optional<LoopStructure> loopStructure;
   private final Solver solver;
   private final CFA cfa;
 
@@ -115,7 +112,6 @@ public class PredicateStaticRefiner extends StaticRefiner {
       LogManager pLogger,
       Solver pSolver,
       PathFormulaManager pPathFormulaManager,
-      FormulaManagerView pFormulaManagerView,
       PredicateAbstractionManager pPredAbsManager,
       CFA pCfa) throws InvalidConfigurationException {
     super(pConfig, pLogger);
@@ -123,12 +119,10 @@ public class PredicateStaticRefiner extends StaticRefiner {
     pConfig.inject(this);
 
     this.cfa = pCfa;
-    this.loopStructure = cfa.getLoopStructure();
-
     this.pathFormulaManager = pPathFormulaManager;
     this.predAbsManager = pPredAbsManager;
     this.solver = pSolver;
-    this.formulaManagerView = pFormulaManagerView;
+    this.formulaManagerView = pSolver.getFormulaManager();
     this.booleanManager = formulaManagerView.getBooleanFormulaManager();
 
     if (assumePredicatesFile != null) {
@@ -137,13 +131,14 @@ public class PredicateStaticRefiner extends StaticRefiner {
   }
 
   private boolean isAssumeOnLoopVariable(AssumeEdge e) {
-    if (!loopStructure.isPresent()) {
+    if (!cfa.getLoopStructure().isPresent()) {
       return false;
     }
     Collection<String> referenced = CIdExpressionCollectorVisitor.getVariablesOfExpression((CExpression) e.getExpression());
+    LoopStructure loopStructure = cfa.getLoopStructure().get();
 
     for (String var: referenced) {
-      if (loopStructure.get().getLoopExitConditionVariables().contains(var)) {
+      if (loopStructure.getLoopExitConditionVariables().contains(var)) {
         return true;
       }
     }
@@ -287,7 +282,7 @@ public class PredicateStaticRefiner extends StaticRefiner {
    * @return a precision for the predicate CPA
    */
   public PredicatePrecision extractPrecisionFromCfa(UnmodifiableReachedSet pReached,
-      List<ARGState> abstractionStatesTrace, boolean atomicPredicates)
+      ARGState targetState, boolean atomicPredicates)
           throws SolverException, CPATransferException, InterruptedException {
     logger.log(Level.FINER, "Extracting precision from CFA...");
 
@@ -298,7 +293,6 @@ public class PredicateStaticRefiner extends StaticRefiner {
     Collection<AbstractionPredicate> globalPredicates = Lists.newArrayList();
 
     // Determine the ERROR location of the path (last node)
-    ARGState targetState = abstractionStatesTrace.get(abstractionStatesTrace.size()-1);
     CFANode targetLocation = AbstractStates.extractLocation(targetState);
 
     // Determine the assume edges that should be considered for predicate extraction
@@ -393,6 +387,4 @@ public class PredicateStaticRefiner extends StaticRefiner {
       logger.logUserException(Level.WARNING, e, "Transfer exception! Could not write assume predicates to file!");
     }
   }
-
-
 }

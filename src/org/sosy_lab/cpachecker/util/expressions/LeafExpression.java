@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 
@@ -71,9 +72,12 @@ public class LeafExpression<LeafType> extends AbstractExpressionTree<LeafType> {
 
   private final boolean assumeTruth;
 
-  private LeafExpression(LeafType pExpression, boolean pAssumeTruth) {
+  private final int hashCode;
+
+  private LeafExpression(LeafType pExpression, boolean pAssumeTruth, int pHashCode) {
     this.expression = Objects.requireNonNull(pExpression);
     this.assumeTruth = pAssumeTruth;
+    this.hashCode = pHashCode;
   }
 
   public LeafType getExpression() {
@@ -92,7 +96,7 @@ public class LeafExpression<LeafType> extends AbstractExpressionTree<LeafType> {
 
   @Override
   public int hashCode() {
-    return Objects.hash(assumeTruth, expression);
+    return hashCode;
   }
 
   @Override
@@ -107,24 +111,46 @@ public class LeafExpression<LeafType> extends AbstractExpressionTree<LeafType> {
     return false;
   }
 
+  public LeafExpression<LeafType> negate() {
+    return new LeafExpression<>(expression, !assumeTruth, -hashCode);
+  }
+
   public static <LeafType> ExpressionTree<LeafType> of(LeafType pLeafExpression) {
     return of(pLeafExpression, true);
   }
 
+  @SuppressWarnings("unchecked")
   public static <LeafType> ExpressionTree<LeafType> of(
       LeafType pLeafExpression, boolean pAssumeTruth) {
-    if (pLeafExpression instanceof AIntegerLiteralExpression) {
+    LeafType leafExpression = pLeafExpression;
+    boolean assumeTruth = pAssumeTruth;
+    if (leafExpression instanceof CBinaryExpression) {
+      CBinaryExpression binaryExpression = (CBinaryExpression) pLeafExpression;
+      if (binaryExpression.getOperator() == BinaryOperator.NOT_EQUALS) {
+        assumeTruth = !assumeTruth;
+        leafExpression =
+            (LeafType)
+                new CBinaryExpression(
+                    binaryExpression.getFileLocation(),
+                    binaryExpression.getExpressionType(),
+                    binaryExpression.getCalculationType(),
+                    binaryExpression.getOperand1(),
+                    binaryExpression.getOperand2(),
+                    BinaryOperator.EQUALS);
+      }
+    }
+    if (leafExpression instanceof AIntegerLiteralExpression) {
       AIntegerLiteralExpression expression = (AIntegerLiteralExpression) pLeafExpression;
       if (expression.getValue().equals(BigInteger.ZERO)) {
-        return pAssumeTruth
+        return assumeTruth
             ? ExpressionTrees.<LeafType>getFalse()
             : ExpressionTrees.<LeafType>getTrue();
       }
-      return pAssumeTruth
+      return assumeTruth
           ? ExpressionTrees.<LeafType>getTrue()
           : ExpressionTrees.<LeafType>getFalse();
     }
-    return new LeafExpression<>(pLeafExpression, pAssumeTruth);
+    return new LeafExpression<>(leafExpression, assumeTruth, assumeTruth ? leafExpression.hashCode() : -leafExpression.hashCode());
   }
 
 }

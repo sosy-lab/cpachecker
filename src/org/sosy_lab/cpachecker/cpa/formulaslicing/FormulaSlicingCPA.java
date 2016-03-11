@@ -60,6 +60,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   private final IFormulaSlicingManager manager;
   private final MergeOperator mergeOperator;
   private final LoopTransitionFinder loopTransitionFinder;
+  private final InductiveWeakeningManager inductiveWeakeningManager;
 
   private FormulaSlicingCPA(
       Configuration pConfiguration,
@@ -83,12 +84,11 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
         pConfiguration, cfa.getLoopStructure().get(), pathFormulaManager, formulaManager, pLogger,
         shutdownNotifier);
 
-    InductiveWeakeningManager pInductiveWeakeningManager =
-        new InductiveWeakeningManager(pConfiguration, formulaManager, solver, pLogger);
+    inductiveWeakeningManager = new InductiveWeakeningManager(pConfiguration, solver, pLogger);
     manager = new FormulaSlicingManager(
         pConfiguration,
-        pathFormulaManager, formulaManager, cfa, loopTransitionFinder,
-        pInductiveWeakeningManager, solver);
+        pathFormulaManager, formulaManager, cfa,
+        inductiveWeakeningManager, solver, pLogger);
     stopOperator = new StopSepOperator(this);
     mergeOperator = this;
   }
@@ -139,8 +139,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   public Collection<? extends AbstractState> strengthen(AbstractState state,
       List<AbstractState> otherStates, @Nullable CFAEdge cfaEdge,
       Precision precision) throws CPATransferException, InterruptedException {
-    return manager.strengthen((SlicingState)state,
-        otherStates, cfaEdge);
+    return null;
   }
 
   @Override
@@ -175,7 +174,8 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
     loopTransitionFinder.collectStatistics(statsCollection);
-    ((StatisticsProvider)manager).collectStatistics(statsCollection);
+    manager.collectStatistics(statsCollection);
+    inductiveWeakeningManager.collectStatistics(statsCollection);
   }
 
   @Override

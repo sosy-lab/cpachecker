@@ -2,7 +2,8 @@
 <project basedir="." default="server" name="CPAchecker on Google App Engine" xmlns:ivy="antlib:org.apache.ivy.ant">
 
   <!-- use this to specifically set the SDK version, otherwise we will check online for the current API version -->
-  <!-- <property name="gae-sdk.version" value="1.9.17" /> -->
+  <!-- next line is used, because 1.9.33 for Java is not online, TODO disable again -->
+  <property name="gae-sdk.version" value="1.9.32" />
 
   <property name="specification.dir" value="${basedir}/config/specification" />
   <property name="configuration.dir" value="${basedir}/config" />

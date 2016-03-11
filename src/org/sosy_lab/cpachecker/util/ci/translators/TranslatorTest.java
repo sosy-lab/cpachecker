@@ -300,7 +300,7 @@ public class TranslatorTest {
     FormulaManagerView fmv = predicateCpa.getSolver().getFormulaManager();
 
     // Region used in abstractionFormula
-    RegionManager regionManager = new SymbolicRegionManager(fmv, null);
+    RegionManager regionManager = new SymbolicRegionManager(predicateCpa.getSolver());
     Region region = regionManager.createPredicate();
 
     // Initialize formula manager

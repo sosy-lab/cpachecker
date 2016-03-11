@@ -75,13 +75,17 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   private @Nullable InvariantGenerator invariantGenerator;
   private InvariantSupplier invariants;
 
-  public PredicatePrecisionAdjustment(PredicateCPA pCpa,
+  public PredicatePrecisionAdjustment(
+      LogManager pLogger,
+      FormulaManagerView pFmgr,
+      PathFormulaManager pPfmgr,
+      PredicateAbstractionManager pPredAbsManager,
       InvariantGenerator pInvariantGenerator) {
 
-    logger = pCpa.getLogger();
-    formulaManager = pCpa.getPredicateManager();
-    pathFormulaManager = pCpa.getPathFormulaManager();
-    fmgr = pCpa.getSolver().getFormulaManager();
+    logger = pLogger;
+    fmgr = pFmgr;
+    pathFormulaManager = pPfmgr;
+    formulaManager = pPredAbsManager;
 
     invariantGenerator = checkNotNull(pInvariantGenerator);
     invariants = InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
@@ -137,7 +141,8 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
     // get invariants and add them
     extractInvariants();
-    BooleanFormula invariant = invariants.getInvariantFor(loc, fmgr, pathFormulaManager);
+    BooleanFormula invariant =
+        invariants.getInvariantFor(loc, fmgr, pathFormulaManager, pathFormula);
     if (invariant != null) {
       pathFormula = pathFormulaManager.makeAnd(pathFormula, invariant);
     }
