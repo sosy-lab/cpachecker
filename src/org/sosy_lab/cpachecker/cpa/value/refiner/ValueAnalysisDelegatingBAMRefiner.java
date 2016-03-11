@@ -28,11 +28,11 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
-import org.sosy_lab.cpachecker.cpa.arg.DelegatingARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.bam.BAMBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.BAMPredicateRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
+import org.sosy_lab.cpachecker.util.refinement.DelegatingARGBasedRefiner;
 
 /**
  * This class allows to create a delegating BAM-refiner
