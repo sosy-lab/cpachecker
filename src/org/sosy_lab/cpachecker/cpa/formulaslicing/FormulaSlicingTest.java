@@ -95,6 +95,7 @@ public class FormulaSlicingTest {
         .put("analysis.traversal.useReversePostorder", "true")
         .put("cpa.predicate.ignoreIrrelevantVariables", "false")
         .put("cpa.loopstack.loopIterationsBeforeAbstraction", "1")
+        .put("cfa.findLiveVariables", "true")
 
         .put("log.consoleLevel", "INFO")
         .build());

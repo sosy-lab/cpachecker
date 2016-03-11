@@ -3,6 +3,7 @@ package org.sosy_lab.cpachecker.cpa.formulaslicing;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -41,7 +42,6 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -72,6 +72,9 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
   @Option(secure=true, description="Replace dead variables")
   private boolean eliminateDeadVars = true;
+
+  @Option(secure=true, description="Filter clauses by liveness")
+  private boolean filterByLiveness = true;
 
   public FormulaSlicingManager(
       Configuration config,
@@ -186,9 +189,19 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
     Set<BooleanFormula> finalClauses = new HashSet<>();
     for (BooleanFormula clause : clauses) {
-      if (fmgr.getDeadFunctionNames(clause, ssa).isEmpty()) {
-        finalClauses.add(fmgr.uninstantiate(clause));
+      if (!fmgr.getDeadFunctionNames(clause, ssa).isEmpty()) {
+        continue;
       }
+      if (filterByLiveness &&
+          Sets.intersection(
+              ImmutableSet.copyOf(cfa.getLiveVariables().get().getLiveVariableNamesForNode(iState
+                  .getNode())),
+              fmgr.extractFunctionNames(fmgr.uninstantiate(clause))).isEmpty()
+          ) {
+        continue;
+
+      }
+      finalClauses.add(fmgr.uninstantiate(clause));
     }
 
     return SlicingAbstractedState.ofClauses(
@@ -212,12 +225,6 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     }
 
     SlicingAbstractedState first = trace.get(0);
-
-    if (first.isSliced()) {
-      // Just copy the state, no new information => no need to re-perform the slicing.
-      return SlicingAbstractedState.copyOf(first);
-    }
-
     List<SlicingAbstractedState> traceWithoutFirst = trace.subList(1, trace.size());
 
     List<SlicingIntermediateState> predecessors = Lists.transform(traceWithoutFirst,
@@ -227,7 +234,29 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
             return input.getGeneratingState().get();
           }
         });
-    List<Pair<PathFormula, SSAMap>> taus = approximateLoopTransitions(predecessors, iState);
+    Set<Pair<PathFormula, SSAMap>> taus = approximateLoopTransitions(predecessors, iState);
+    Set<BooleanFormula> canonicalTransitions = ImmutableSet.copyOf(tausToCanonical(taus));
+
+    if (first.isSliced()) {
+      final Set<BooleanFormula> diff = Sets.difference(
+          canonicalTransitions, first.getSlicedTrace());
+      if (diff.isEmpty()) {
+
+        // Just copy the state, no new information => no need to re-perform the slicing.
+        return SlicingAbstractedState.copyOf(first);
+      } else {
+
+        // Slice with respect to the remaining transitions.
+        taus = Sets.filter(taus, new Predicate<Pair<PathFormula, SSAMap>>() {
+          @Override
+          public boolean apply(Pair<PathFormula, SSAMap> input) {
+            // TODO: no need to re-perform this computation many times.
+            return diff.contains(fmgr.ssaIdxsToCanonicalForm(
+                input.getFirstNotNull().getFormula()));
+          }
+        });
+      }
+    }
 
     // now slice "first" wrt \tau
     SlicingAbstractedState abstractParent = first.getGeneratingState()
@@ -258,17 +287,27 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
         iState.getPathFormula().getPointerTargetSet(),
         fmgr,
         iState.getNode(),
-        Optional.of(iState)
+        Optional.of(iState),
+        tausToCanonical(taus)
     );
     slicingCache.put(Pair.of(iState, trace), out);
     return out;
   }
 
-  private List<Pair<PathFormula, SSAMap>> approximateLoopTransitions(
+  private Iterable<BooleanFormula> tausToCanonical(Set<Pair<PathFormula, SSAMap>> taus) {
+    return Iterables.transform(taus, new Function<Pair<PathFormula, SSAMap>, BooleanFormula>() {
+          @Override
+          public BooleanFormula apply(Pair<PathFormula, SSAMap> input) {
+            return fmgr.ssaIdxsToCanonicalForm(input.getFirstNotNull().getFormula());
+          }
+        });
+  }
+
+  private Set<Pair<PathFormula, SSAMap>> approximateLoopTransitions(
       List<SlicingIntermediateState> paths,
       SlicingIntermediateState iState
       ) throws InterruptedException {
-    List<Pair<PathFormula, SSAMap>> out = new ArrayList<>(paths.size() + 1);
+    Set<Pair<PathFormula, SSAMap>> out = new HashSet<>(paths.size() + 1);
     for (SlicingIntermediateState s : Iterables.concat(paths, ImmutableList.of(iState))) {
       out.add(
           Pair.of(

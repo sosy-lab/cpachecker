@@ -54,6 +54,11 @@ public class SlicingAbstractedState
 
   private final boolean isSliced;
 
+  /**
+   * Under which paths this state is inductive.
+   */
+  private final ImmutableSet<BooleanFormula> slicedTrace;
+
   private SlicingAbstractedState(
       Set<BooleanFormula> pSlice,
       SSAMap pSsaMap,
@@ -61,7 +66,9 @@ public class SlicingAbstractedState
       FormulaManagerView pFmgr,
       Optional<SlicingIntermediateState> pGeneratingState,
       CFANode pNode,
-      boolean pIsSliced) {
+      boolean pIsSliced,
+      Iterable<BooleanFormula> pSlicedTrace) {
+    slicedTrace = ImmutableSet.copyOf(pSlicedTrace);
     semiClauses = ImmutableSet.copyOf(pSlice);
     ssaMap = pSsaMap;
     pointerTargetSet = pPointerTargetSet;
@@ -71,22 +78,29 @@ public class SlicingAbstractedState
     isSliced = pIsSliced;
   }
 
+  public Set<BooleanFormula> getSlicedTrace() {
+    return slicedTrace;
+  }
+
   public static SlicingAbstractedState ofClauses(Set<BooleanFormula> pSlice,
                                           SSAMap pSsaMap, PointerTargetSet pPointerTargetSet,
                                           FormulaManagerView pFmgr,
                                           CFANode pNode,
                                           Optional<SlicingIntermediateState> pGeneratingState) {
-    return new SlicingAbstractedState(pSlice, pSsaMap, pPointerTargetSet, pFmgr,
-        pGeneratingState, pNode, false);
+    return new SlicingAbstractedState(
+        pSlice, pSsaMap, pPointerTargetSet, pFmgr,
+        pGeneratingState, pNode, false,
+        ImmutableSet.<BooleanFormula>of());
   }
 
   public static SlicingAbstractedState makeSliced(Set<BooleanFormula> pSlice,
                                           SSAMap pSsaMap, PointerTargetSet pPointerTargetSet,
                                           FormulaManagerView pFmgr,
                                           CFANode pNode,
-                                          Optional<SlicingIntermediateState> pGeneratingState ) {
+                                          Optional<SlicingIntermediateState> pGeneratingState,
+                                          Iterable<BooleanFormula> trace) {
     return new SlicingAbstractedState(pSlice, pSsaMap, pPointerTargetSet, pFmgr,
-        pGeneratingState, pNode, true);
+        pGeneratingState, pNode, true, trace);
   }
 
   public static SlicingAbstractedState copyOf(SlicingAbstractedState sliced) {
@@ -97,8 +111,8 @@ public class SlicingAbstractedState
         sliced.fmgr,
         sliced.generatingState,
         sliced.node,
-        true
-    );
+        true,
+        ImmutableSet.<BooleanFormula>of());
   }
 
   public Optional<SlicingIntermediateState> getGeneratingState(){
@@ -144,7 +158,7 @@ public class SlicingAbstractedState
         pFmgr,
         Optional.<SlicingIntermediateState>absent(),
         startingNode,
-        false);
+        false, ImmutableSet.<BooleanFormula>of());
   }
 
   @Override
@@ -155,6 +169,9 @@ public class SlicingAbstractedState
   @Override
   public BooleanFormula getFormulaApproximation(FormulaManagerView manager,
       PathFormulaManager pfmgr) {
+    if (!isSliced) {
+      return manager.getBooleanFormulaManager().makeBoolean(true);
+    }
     return manager.parse(
         fmgr.dumpFormula(
             fmgr.getBooleanFormulaManager().and(semiClauses)
@@ -163,7 +180,11 @@ public class SlicingAbstractedState
 
   @Override
   public String toDOTLabel() {
-    return Joiner.on("\n---\n").join(semiClauses);
+    String out = Joiner.on("\n---\n").join(semiClauses);
+    if (isSliced) {
+      out = "(SLICED)" + out;
+    }
+    return out;
   }
 
   public boolean isSliced() {
@@ -172,7 +193,7 @@ public class SlicingAbstractedState
 
   @Override
   public boolean shouldBeHighlighted() {
-    return isSliced;
+    return false;
   }
 
   @Override
