@@ -22,6 +22,7 @@
  *    http://cpachecker.sosy-lab.org
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
