@@ -48,7 +48,6 @@ import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BitvectorFormulaManager;
 import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.FormulaType.NumeralType;
 import org.sosy_lab.solver.api.NumeralFormula;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
@@ -323,66 +322,6 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
     ssaBuilder.setIndex("x", CNumericTypes.INT, 1);
 
     testUnInstantiate(_inst3, _uinst3, ssaBuilder);
-  }
-
-  @Test
-  public void testCanonicalForm() {
-    BooleanFormula input = bmgr.and(
-        imgrv.equal(
-            imgr.makeVariable("x@5"),
-            imgrv.makeNumber(1)
-        ),
-        imgrv.equal(
-            imgr.makeVariable("x@6"),
-            imgr.makeVariable("x@7")
-        ),
-        imgrv.equal(
-            imgr.makeVariable("y@1"),
-            imgr.makeVariable("y@2")
-        ),
-        imgrv.equal(
-            imgr.makeVariable("y@3"),
-            imgr.makeVariable("y@4")
-        ),
-        imgrv.equal(
-            imgrv.makeNumber(2),
-            fmgrv.declareAndCallUF(
-                "uf@10",
-                FormulaType.IntegerType,
-                imgr.makeVariable("x@4")
-            )
-        ),
-        bmgrv.makeVariable("NOIDX")
-    );
-    BooleanFormula expectedCanonical = bmgr.and(
-        imgrv.equal(
-            imgr.makeVariable("x@1"),
-            imgrv.makeNumber(1)
-        ),
-        imgrv.equal(
-            imgr.makeVariable("x@2"),
-            imgr.makeVariable("x@3")
-        ),
-        imgrv.equal(
-            imgr.makeVariable("y@0"),
-            imgr.makeVariable("y@1")
-        ),
-        imgrv.equal(
-            imgr.makeVariable("y@2"),
-            imgr.makeVariable("y@3")
-        ),
-        imgrv.equal(
-            imgrv.makeNumber(2),
-            fmgrv.declareAndCallUF(
-                "uf@0",
-                FormulaType.IntegerType,
-                imgr.makeVariable("x@0")
-            )
-        ),
-        bmgrv.makeVariable("NOIDX")
-    );
-    BooleanFormula canonical = mgrv.ssaIdxsToCanonicalForm(input);
-    assertThat(canonical).isEqualTo(expectedCanonical);
   }
 
   private void testUnInstantiate(

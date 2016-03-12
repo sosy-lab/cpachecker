@@ -32,9 +32,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 
 import org.sosy_lab.common.Appender;
@@ -84,7 +82,6 @@ import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -1591,45 +1588,5 @@ public class FormulaManagerView {
     DeadVariablesEliminationManager eliminationManager =
         new DeadVariablesEliminationManager(this, logger);
     return eliminationManager.eliminateDeadVarsBestEffort(input);
-  }
-
-  /**
-   * Put all SSA indexes in the canonical form:
-   * that is, force them all to start at zero for all variables.
-   *
-   * <p>E.g. {@code x@3 = f@8(x@4)} and {@code x@1 = f@6(x@2)}
-   * will be both mapped to {@code x@0 = f@0(x@1)}.
-   */
-  public BooleanFormula ssaIdxsToCanonicalForm(BooleanFormula input) {
-    Set<String> funcNames = extractFunctionNames(input);
-    Multimap<String, Integer> occurringIndexes = HashMultimap.create();
-    for (String s : funcNames) {
-      Pair<String, Integer> p = parseName(s);
-      if (p.getSecond() != null) {
-        occurringIndexes.put(p.getFirstNotNull(), p.getSecond());
-      }
-    }
-    final Map<String, String> renamings = new HashMap<>();
-    for (String var : occurringIndexes.keySet()) {
-      List<Integer> idxs = new ArrayList<>(occurringIndexes.get(var));
-
-      Collections.sort(idxs);
-      int newIdx = -1;
-      for (int idx : idxs) {
-        renamings.put(
-            makeName(var, idx),
-            makeName(var, ++newIdx)
-        );
-      }
-    }
-    return myFreeVariableNodeTransformer(input,
-        new HashMap<Formula, Formula>(),
-        new Function<String, String>() {
-          @Override
-          public String apply(String input) {
-            String out = renamings.get(input);
-            return out != null ? out : input;
-          }
-        });
   }
 }
