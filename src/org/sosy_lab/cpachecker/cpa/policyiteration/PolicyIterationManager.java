@@ -472,7 +472,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
             newState.getCongruence(), oldState.getCongruence()),
         newState.getLocationID(),
         stateFormulaConversionManager,
-        oldState.getSSA(),
+        oldState.getSSA(), // Very important to use the old SSA so that PathFormulaManager
+                           // can use the cached values.
         newState.getPointerTargetSet(),
         extraInvariant,
         newState.getGenerationState().get()
