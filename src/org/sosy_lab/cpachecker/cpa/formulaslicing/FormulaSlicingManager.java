@@ -3,7 +3,6 @@ package org.sosy_lab.cpachecker.cpa.formulaslicing;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -15,17 +14,14 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -41,7 +37,6 @@ import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 
-import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -50,7 +45,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 @Options(prefix="cpa.slicing")
 public class FormulaSlicingManager implements IFormulaSlicingManager {
@@ -60,7 +54,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
   private final CFA cfa;
   private final InductiveWeakeningManager inductiveWeakeningManager;
   private final Solver solver;
-  private final Stats statistics;
+  private final FormulaSlicingStatistics statistics;
   private final SemiCNFManager semiCNFManager;
   private final LogManager logger;
 
@@ -92,7 +86,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     solver = pSolver;
     bfmgr = pFmgr.getBooleanFormulaManager();
     semiCNFManager = new SemiCNFManager(fmgr, config);
-    statistics = new Stats();
+    statistics = new FormulaSlicingStatistics();
   }
 
   @Override
@@ -124,7 +118,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     SlicingIntermediateState iState;
     if (pState.isAbstracted()) {
 
-      // Caching the computation.
+      // We do not use the other invariant => do not repeat the computation.
       return Optional.of(
           PrecisionAdjustmentResult.create(
               pState, SingletonPrecision.getInstance(), Action.CONTINUE)
@@ -205,7 +199,9 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     }
 
     return SlicingAbstractedState.ofClauses(
-        finalClauses, ssa, iState.getPathFormula().getPointerTargetSet(),
+        finalClauses,
+        ssa,
+        iState.getPathFormula().getPointerTargetSet(),
         fmgr,
         iState.getNode(),
         Optional.of(iState)
@@ -234,28 +230,15 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
             return input.getGeneratingState().get();
           }
         });
-    Set<Pair<PathFormula, SSAMap>> taus = approximateLoopTransitions(predecessors, iState);
-    Set<BooleanFormula> canonicalTransitions = ImmutableSet.copyOf(tausToCanonical(taus));
 
-    if (first.isSliced()) {
-      final Set<BooleanFormula> diff = Sets.difference(
-          canonicalTransitions, first.getSlicedTrace());
-      if (diff.isEmpty()) {
-
-        // Just copy the state, no new information => no need to re-perform the slicing.
-        return SlicingAbstractedState.copyOf(first);
-      } else {
-
-        // Slice with respect to the remaining transitions.
-        taus = Sets.filter(taus, new Predicate<Pair<PathFormula, SSAMap>>() {
-          @Override
-          public boolean apply(Pair<PathFormula, SSAMap> input) {
-            // TODO: no need to re-perform this computation many times.
-            return diff.contains(fmgr.ssaIdxsToCanonicalForm(
-                input.getFirstNotNull().getFormula()));
-          }
-        });
-      }
+    Set<PathFormulaWithStartSSA> taus = approximateLoopTransitions(predecessors, iState);
+    Set<PathFormulaWithStartSSA> difference = Sets.difference(taus, first.getInductiveUnder());
+    if (difference.isEmpty()) {
+      // Just copy the state, no new information => no need to re-perform the slicing.
+      return SlicingAbstractedState.copyOf(first);
+    } else {
+      // Slice with respect to the remaining transitions.
+      taus = difference;
     }
 
     // now slice "first" wrt \tau
@@ -265,13 +248,13 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
                                        bfmgr.and(abstractParent.getInstantiatedAbstraction())
                                                          : bfmgr.makeBoolean(true);
     Set<BooleanFormula> finalClauses = first.getAbstraction();
-    for (Pair<PathFormula, SSAMap> tau : taus) { // Intersection of all slices attained.
+    for (PathFormulaWithStartSSA tau : taus) { // Intersection of all slices attained.
       try {
         finalClauses = Sets.intersection(
             inductiveWeakeningManager.findInductiveWeakeningForSemiCNF(
-                tau.getSecondNotNull(),
+                tau.getStartMap(),
                 finalClauses,
-                tau.getFirstNotNull(),
+                tau.getPathFormula(),
                 strengthening
             ),
             finalClauses
@@ -283,38 +266,28 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
     out = SlicingAbstractedState.makeSliced(
         finalClauses,
-        iState.getPathFormula().getSsa(),
+        first.getSSA(),
         iState.getPathFormula().getPointerTargetSet(),
         fmgr,
         iState.getNode(),
         Optional.of(iState),
-        tausToCanonical(taus)
+        taus
     );
     slicingCache.put(Pair.of(iState, trace), out);
     return out;
   }
 
-  private Iterable<BooleanFormula> tausToCanonical(Set<Pair<PathFormula, SSAMap>> taus) {
-    return Iterables.transform(taus, new Function<Pair<PathFormula, SSAMap>, BooleanFormula>() {
-          @Override
-          public BooleanFormula apply(Pair<PathFormula, SSAMap> input) {
-            return fmgr.ssaIdxsToCanonicalForm(input.getFirstNotNull().getFormula());
-          }
-        });
-  }
-
-  private Set<Pair<PathFormula, SSAMap>> approximateLoopTransitions(
+  private Set<PathFormulaWithStartSSA> approximateLoopTransitions(
       List<SlicingIntermediateState> paths,
       SlicingIntermediateState iState
       ) throws InterruptedException {
-    Set<Pair<PathFormula, SSAMap>> out = new HashSet<>(paths.size() + 1);
+    Set<PathFormulaWithStartSSA> out = new HashSet<>(paths.size() + 1);
     for (SlicingIntermediateState s : Iterables.concat(paths, ImmutableList.of(iState))) {
       out.add(
-          Pair.of(
+          new PathFormulaWithStartSSA(
               s.getPathFormula().updateFormula(fmgr.simplify(s.getPathFormula().getFormula())),
               s.getAbstractParent().getSSA()
           )
-
       );
     }
     return out;
@@ -487,24 +460,4 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     pStatsCollection.add(statistics);
   }
 
-  /**
-   * Statistics for formula slicing.
-   */
-  private static class Stats implements Statistics {
-    final Timer formulaSlicingTimer = new Timer();
-
-    @Override
-    public void printStatistics(PrintStream out, Result result,
-                                ReachedSet reached) {
-      out.printf("Time spent in formula slicing: %s (Max: %s), (Avg: %s)%n",
-          formulaSlicingTimer,
-          formulaSlicingTimer.getMaxTime().formatAs(TimeUnit.SECONDS),
-          formulaSlicingTimer.getAvgTime().formatAs(TimeUnit.SECONDS));
-    }
-
-    @Override
-    public String getName() {
-      return "Formula Slicing Manager";
-    }
-  }
 }
