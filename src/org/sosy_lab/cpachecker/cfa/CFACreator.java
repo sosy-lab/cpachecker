@@ -267,7 +267,7 @@ private boolean classifyNodes = false;
         out.println("      Time for CFA pruning:   " + pruningTime);
       }
       if (variableClassificationTime.getNumberOfIntervals() > 0) {
-        out.println("      Time for var class.:    " + pruningTime);
+        out.println("      Time for var class.:    " + variableClassificationTime);
       }
       if (exportTime.getNumberOfIntervals() > 0) {
         out.println("    Time for CFA export:      " + exportTime);
