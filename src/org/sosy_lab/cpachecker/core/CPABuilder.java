@@ -152,8 +152,6 @@ public class CPABuilder {
     }
 
     for (Path specFile : specificationFiles) {
-      // TODO Is it okay to put a fixed machine model and language in here? I don't care for the
-      // functionality, only want to have the AutomatonASTComparators…
       List<Automaton> automataInFile =
           AutomatonParser.parseAutomatonFile(
               specFile, config, logger, pMachineModel, new GlobalScope(), pLanguage);
