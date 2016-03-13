@@ -110,6 +110,8 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 
+import com.sun.istack.internal.Nullable;
+
 /**
  * Class that encapsulates the whole CFA creation process.
  *
@@ -276,111 +278,69 @@ private boolean classifyNodes = false;
   private final Configuration config;
   private final List<Automaton> automata;
 
-  public CFACreator(Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier,
-                    Language pLanguage, MachineModel pMachineModel)
-      throws InvalidConfigurationException {
+  /**
+   * Instantiates a creator that creates a CFA from a source file.
+   *
+   * <p>This constructor assumes that no specification automata are present.</p>
+   *
+   * @param pConfig CPAchecker's configuration options.
+   * @param pLogger CPAchecker's log manager.
+   * @param pShutdownNotifier A notifier for shutdown requests to terminate long-running algorithms.
+   * @param pLanguage The programming language the source program is written in.
+   * @param pMachineModel The machine model that should be used for parsing.
+   * @throws InvalidConfigurationException If the configuration is invalid.
+   * @see #CFACreator(Configuration, LogManager, ShutdownNotifier, List, Language, MachineModel)
+   */
+  public CFACreator(
+      final Configuration pConfig,
+      final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier,
+      final Language pLanguage,
+      final MachineModel pMachineModel) throws InvalidConfigurationException {
 
-    config.inject(this);
-
-    this.config = config;
-    this.logger = logger;
-    this.shutdownNotifier = pShutdownNotifier;
-    automata = null;
-    language = pLanguage;
-    machineModel = pMachineModel;
-
-    stats.parserInstantiationTime.start();
-
-    switch (language) {
-    case JAVA:
-      parser = EclipseParsers.getJavaParser(logger, config);
-      break;
-    case C:
-      CParser outerParser = CParser.Factory.getParser(config, logger, CParser.Factory.getOptions(config), machineModel);
-
-      outerParser = new CParserWithLocationMapper(config, logger, outerParser,
-          readLineDirectives || usePreprocessor);
-
-      if (usePreprocessor) {
-        CPreprocessor preprocessor = new CPreprocessor(config, logger);
-        outerParser = new CParserWithPreprocessor(outerParser, preprocessor);
-      }
-
-      parser = outerParser;
-
-      break;
-    default:
-      throw new AssertionError();
-    }
-
-    stats.parsingTime = parser.getParseTime();
-    stats.conversionTime = parser.getCFAConstructionTime();
-
-    if (removeIrrelevantForSpecification) {
-      cfaReduction = new CFAReduction(config, logger, pShutdownNotifier);
-    } else {
-      cfaReduction = null;
-    }
-
-    stats.parserInstantiationTime.stop();
+    this(pConfig, pLogger, pShutdownNotifier, null, pLanguage, pMachineModel);
   }
 
+  /**
+   * Instantiates a creator that creates a CFA from a source file.
+   *
+   * <p>This constructor assumes that no specification automata are present, the programming
+   * language of the source file is C, and the machine model is 32-bit Linux.</p>
+   *
+   * @param pConfig CPAchecker's configuration options.
+   * @param pLogger CPAchecker's log manager.
+   * @param pShutdownNotifier A notifier for shutdown requests to terminate long-running algorithms.
+   * @throws InvalidConfigurationException If the configuration is invalid.
+   * @see #CFACreator(Configuration, LogManager, ShutdownNotifier, List, Language, MachineModel)
+   */
   public CFACreator(
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
 
-    pConfig.inject(this);
-
-    config = pConfig;
-    logger = pLogger;
-    shutdownNotifier = pShutdownNotifier;
-    automata = null;
-    language = Language.C;
-    machineModel = MachineModel.LINUX32;
-
-    stats.parserInstantiationTime.start();
-
-    switch (language) {
-      case JAVA:
-        parser = EclipseParsers.getJavaParser(pLogger, pConfig);
-        break;
-      case C:
-        CParser outerParser = CParser.Factory.getParser(pConfig, pLogger, CParser.Factory
-            .getOptions(pConfig), machineModel);
-
-        outerParser = new CParserWithLocationMapper(pConfig, pLogger, outerParser,
-            readLineDirectives || usePreprocessor);
-
-        if (usePreprocessor) {
-          CPreprocessor preprocessor = new CPreprocessor(pConfig, pLogger);
-          outerParser = new CParserWithPreprocessor(outerParser, preprocessor);
-        }
-
-        parser = outerParser;
-
-        break;
-      default:
-        throw new AssertionError();
-    }
-
-    stats.parsingTime = parser.getParseTime();
-    stats.conversionTime = parser.getCFAConstructionTime();
-
-    if (removeIrrelevantForSpecification) {
-      cfaReduction = new CFAReduction(pConfig, pLogger, pShutdownNotifier);
-    } else {
-      cfaReduction = null;
-    }
-
-    stats.parserInstantiationTime.stop();
+    this(pConfig, pLogger, pShutdownNotifier, null, Language.C, MachineModel.LINUX32);
   }
 
+  /**
+   * Instantiates a creator that creates a CFA from a source file.
+   *
+   * <p>If the list of automata {@code pAutomata} is not {@code null}, it will be used to
+   * determine relevant variables for the analysis that only get their relevancy by a property
+   * of an automaton.</p>
+   *
+   * @param pConfig CPAchecker's configuration options.
+   * @param pLogger CPAchecker's log manager.
+   * @param pShutdownNotifier A notifier for shutdown requests to terminate long-running algorithms.
+   * @param pAutomata A list of specification automata that should be considered during parsing.
+   * @param pLanguage The programming language the source program is written in.
+   * @param pMachineModel The machine model that should be used for parsing.
+   * @throws InvalidConfigurationException If the configuration is invalid.
+   */
   public CFACreator(
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
-      final List<Automaton> pAutomata,
+      final @Nullable List<Automaton> pAutomata,
       final Language pLanguage,
       final MachineModel pMachineModel)
       throws InvalidConfigurationException {
