@@ -86,7 +86,10 @@ public class CPABuilder {
 
   @Option(secure=true, name="specification",
       description="comma-separated list of files with specifications that should be checked"
-        + "\n(see config/specification/ for examples)")
+        + "\n(see config/specification/ for examples).\n"
+        + "If you use the \"-spec\" option of the \"cpa.sh\" script to list the specifications "
+        + "that should be checked, you have to add a \"-spec <file>\" for each specification file "
+        + "that should be used.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> specificationFiles = null;
 
