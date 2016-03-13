@@ -828,6 +828,9 @@ cpa.bam.maximalDepthForExplicitRecursion = -1
 # export used parts of blocked ARG as .dot file
 cpa.bam.simplifiedArgFile = "BlockedARGSimplified.dot"
 
+# Use more fast partitioning builder, which can not handle loops
+cpa.bam.useExtendedPartitioningBuilder = false
+
 # max bitsize for values and vars, initial value
 cpa.bdd.bitsize = 64
 
@@ -1747,6 +1750,9 @@ cpa.slicing.eliminateDeadVars = true
 # Limit for explicit CNF expansion (potentially exponential otherwise)
 cpa.slicing.expansionDepthLimit = 1
 
+# Filter clauses by liveness
+cpa.slicing.filterByLiveness = true
+
 # Instead of considering the entire SCC, ignore the function nested in the
 # loop. UNSOUND!
 cpa.slicing.ignoreFunctionCallsInLoop = false
@@ -1777,7 +1783,7 @@ cpa.slicing.useOuterStrengthening = true
 
 # Inductive weakening strategy
 cpa.slicing.weakeningStrategy = CEX
-  enum:     [SYNTACTIC, DESTRUCTIVE, CEX, FACTORIZATION]
+  enum:     [SYNTACTIC, DESTRUCTIVE, CEX]
 
 # Array allocation functions
 cpa.smg.arrayAllocationFunctions = {
@@ -2145,7 +2151,7 @@ cpa.value.refinement.restart = PIVOT
 
 # instead of reporting a repeated counter-example, search and refine another
 # error-path for the same target-state.
-cpa.value.refinement.searchForFurtherErrorPaths = true
+cpa.value.refinement.searchForFurtherErrorPaths = false
 
 # whether to use the top-down interpolation strategy or the bottom-up
 # interpolation strategy
