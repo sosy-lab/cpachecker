@@ -1,12 +1,14 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -81,12 +83,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     /**
      * Select literals to abstract based on the counterexamples-to-induction.
      */
-    CEX,
-
-    /**
-     * Convert the input to semi-CNF and use the CEX-based strategy afterwards.
-     */
-    FACTORIZATION
+    CEX
   }
 
   private final FormulaManagerView fmgr;
@@ -97,14 +94,16 @@ public class InductiveWeakeningManager implements StatisticsProvider {
   private final DestructiveWeakeningManager destructiveWeakeningManager;
   private final CEXWeakeningManager cexWeakeningManager;
   private final SemiCNFManager semiCNFManager;
+  private final ShutdownNotifier shutdownNotifier;
 
   private static final String SELECTOR_VAR_TEMPLATE = "_FS_SEL_VAR_";
 
   public InductiveWeakeningManager(
       Configuration config,
       Solver pSolver,
-      LogManager pLogger
-  ) throws InvalidConfigurationException {
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+    shutdownNotifier = pShutdownNotifier;
     config.inject(this);
 
     statistics = new InductiveWeakeningStatistics();
@@ -114,13 +113,14 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     syntacticWeakeningManager = new SyntacticWeakeningManager(fmgr);
     destructiveWeakeningManager = new DestructiveWeakeningManager(statistics, pSolver, fmgr,
         logger, config);
-    cexWeakeningManager = new CEXWeakeningManager(fmgr, pSolver, logger, statistics, config);
+    cexWeakeningManager = new CEXWeakeningManager(
+        fmgr, pSolver, logger, statistics, config, shutdownNotifier);
     semiCNFManager = new SemiCNFManager(fmgr, config);
   }
 
 
   /**
-   * @return Set of semi-clauses which remains inductive under the transition.
+   * @return Set of semi-clauses which remain inductive under the transition.
    */
   public Set<BooleanFormula> findInductiveWeakeningForSemiCNF(
       final SSAMap startingSSA,
@@ -129,6 +129,8 @@ public class InductiveWeakeningManager implements StatisticsProvider {
       BooleanFormula strengthening
       )
       throws SolverException, InterruptedException {
+    Preconditions.checkState(weakeningStrategy != WEAKENING_STRATEGY.DESTRUCTIVE,
+        "Destructive weakening is not supported for semiCNF mode, use CEX-based one instead");
 
     // Mapping from selectors to the items they annotate.
     final BiMap<BooleanFormula, BooleanFormula> selectionInfo = HashBiMap.create();
@@ -143,8 +145,8 @@ public class InductiveWeakeningManager implements StatisticsProvider {
         ImmutableList.of(input, transition.getFormula(), bfmgr.not(primed), strengthening));
 
     cexWeakeningManager.setRemovalSelectionStrategy(SELECTION_STRATEGY.ALL);
-    final Set<BooleanFormula> toAbstract = cexWeakeningManager.performWeakening(
-        selectionInfo, query, primed, ImmutableSet.<BooleanFormula>of());
+    Set<BooleanFormula> toAbstract = findSelectorsToAbstract(
+        selectionInfo, transition, primed, query, ImmutableSet.<BooleanFormula>of());
 
     HashSet<BooleanFormula> out = new HashSet<>();
     for (BooleanFormula o : uninstantiatedClauses) {
@@ -175,24 +177,10 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     logger.log(Level.FINE, "Input = " + input.getFormula());
 
 
-    if (weakeningStrategy == WEAKENING_STRATEGY.FACTORIZATION) {
-      logger.log(Level.INFO, "Semi-CNF conversion is on, "
-          + "enabling disjunction-level annotation, CEX-refinement and "
-          + "cheap removal strategy");
-      selectorAnnotationMode = ANNOTATION_MODE.CONJUNCTIONS;
-      weakeningStrategy = WEAKENING_STRATEGY.CEX;
-      cexWeakeningManager.setRemovalSelectionStrategy(SELECTION_STRATEGY.FIRST);
-
-      input = input.updateFormula(
-          semiCNFManager.convert(input.getFormula())
-      );
-    } else {
-
-      // Convert to NNF
-      input = input.updateFormula(
-          fmgr.applyTactic(input.getFormula(), Tactic.NNF)
-      );
-    }
+    // Convert to NNF
+    input = input.updateFormula(
+        fmgr.applyTactic(input.getFormula(), Tactic.NNF)
+    );
 
 
     if (input.getFormula().equals(bfmgr.makeBoolean(true))) {
@@ -265,7 +253,6 @@ public class InductiveWeakeningManager implements StatisticsProvider {
             query,
             selectorsWithIntermediate);
       case CEX:
-      case FACTORIZATION:
         return cexWeakeningManager.performWeakening(
             selectionVarsInfo,
             query,

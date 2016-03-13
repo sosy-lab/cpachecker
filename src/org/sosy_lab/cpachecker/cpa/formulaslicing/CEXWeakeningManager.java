@@ -3,6 +3,7 @@ package org.sosy_lab.cpachecker.cpa.formulaslicing;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -71,18 +72,20 @@ public class CEXWeakeningManager {
   private final LogManager logger;
   private final InductiveWeakeningStatistics statistics;
   private final Random r = new Random();
+  private final ShutdownNotifier shutdownNotifier;
 
   public CEXWeakeningManager(
       FormulaManagerView pFmgr,
       Solver pSolver,
       LogManager pLogger,
       InductiveWeakeningStatistics pStatistics,
-      Configuration config) throws InvalidConfigurationException {
+      Configuration config, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     config.inject(this);
     solver = pSolver;
     logger = pLogger;
     statistics = pStatistics;
     bfmgr = pFmgr.getBooleanFormulaManager();
+    shutdownNotifier = pShutdownNotifier;
   }
 
   public void setRemovalSelectionStrategy(SELECTION_STRATEGY strategy) {
@@ -133,6 +136,7 @@ public class CEXWeakeningManager {
       logger.log(Level.FINE, "Query = " + query);
 
       while (!env.isUnsat()) {
+        shutdownNotifier.shutdownIfNecessary();
         final Model m = env.getModel();
 
         statistics.noCexIterations.incrementAndGet();

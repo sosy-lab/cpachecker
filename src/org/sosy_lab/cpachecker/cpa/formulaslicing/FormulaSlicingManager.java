@@ -9,6 +9,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -27,6 +28,8 @@ import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.LiveVariables;
+import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -51,12 +54,14 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
   private final PathFormulaManager pfmgr;
   private final BooleanFormulaManager bfmgr;
   private final FormulaManagerView fmgr;
-  private final CFA cfa;
   private final InductiveWeakeningManager inductiveWeakeningManager;
   private final Solver solver;
   private final FormulaSlicingStatistics statistics;
   private final SemiCNFManager semiCNFManager;
   private final LogManager logger;
+  private final LiveVariables liveVariables;
+  private final ShutdownNotifier shutdownNotifier;
+  private final LoopStructure loopStructure;
 
   @Option(secure=true, description="Check target states reachability")
   private boolean checkTargetStates = true;
@@ -75,18 +80,25 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
       PathFormulaManager pPfmgr,
       FormulaManagerView pFmgr,
       CFA pCfa,
-      InductiveWeakeningManager pInductiveWeakeningManager, Solver pSolver, LogManager pLogger)
+      InductiveWeakeningManager pInductiveWeakeningManager,
+      Solver pSolver,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     logger = pLogger;
+    shutdownNotifier = pShutdownNotifier;
     config.inject(this);
     fmgr = pFmgr;
     pfmgr = pPfmgr;
-    cfa = pCfa;
     inductiveWeakeningManager = pInductiveWeakeningManager;
     solver = pSolver;
     bfmgr = pFmgr.getBooleanFormulaManager();
     semiCNFManager = new SemiCNFManager(fmgr, config);
     statistics = new FormulaSlicingStatistics();
+    Preconditions.checkState(pCfa.getLiveVariables().isPresent() &&
+      pCfa.getLoopStructure().isPresent());
+    liveVariables = pCfa.getLiveVariables().get();
+    loopStructure = pCfa.getLoopStructure().get();
   }
 
   @Override
@@ -94,6 +106,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
       SlicingState oldState, CFAEdge edge)
       throws CPATransferException, InterruptedException {
 
+    statistics.propagation.start();
     SlicingIntermediateState iOldState;
 
     if (oldState.isAbstracted()) {
@@ -105,6 +118,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     PathFormula outPath = pfmgr.makeAnd(iOldState.getPathFormula(), edge);
     SlicingIntermediateState out = SlicingIntermediateState.of(
         edge.getSuccessor(), outPath, iOldState.getAbstractParent());
+    statistics.propagation.stop();
 
     return Collections.singleton(out);
   }
@@ -157,23 +171,36 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
           pState, SingletonPrecision.getInstance(), Action.CONTINUE));
     }
   }
+  private SlicingAbstractedState toSemiClauses(SlicingIntermediateState iState)
+      throws InterruptedException {
+    try {
+      statistics.semiCnfConversion.start();
+      return toSemiClauses0(iState);
+    } finally {
+      statistics.semiCnfConversion.stop();
+    }
+  }
 
   /**
    * Convert the input state to the set of instantiated semi-clauses.
    */
-  private SlicingAbstractedState toSemiClauses(
-      SlicingIntermediateState iState) throws InterruptedException {
+  private SlicingAbstractedState toSemiClauses0(SlicingIntermediateState iState)
+      throws InterruptedException {
     PathFormula pf = iState.getPathFormula();
     SSAMap ssa = pf.getSsa();
+    CFANode node = iState.getNode();
 
     if (eliminateDeadVars) {
 
       // TODO: dead variable elimination should also be attempted on the
       // clauses which come from the previous abstraction.
+      statistics.deadVarElimination.start();
       pf = fmgr.eliminateDeadVarsFixpoint(pf);
+      statistics.deadVarElimination.stop();
     }
 
     Set<BooleanFormula> clauses = semiCNFManager.toClauses(pf.getFormula());
+
     SlicingAbstractedState abstractParent = iState.getAbstractParent();
     if (useOuterStrengthening) {
       clauses = Sets.union(
@@ -187,13 +214,13 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
         continue;
       }
       if (filterByLiveness &&
+          // TODO: avoid re-calculating #extractFunctionNames twice.
           Sets.intersection(
-              ImmutableSet.copyOf(cfa.getLiveVariables().get().getLiveVariableNamesForNode(iState
-                  .getNode())),
+              ImmutableSet.copyOf(liveVariables.getLiveVariableNamesForNode(node)),
               fmgr.extractFunctionNames(fmgr.uninstantiate(clause))).isEmpty()
           ) {
-        continue;
 
+        continue;
       }
       finalClauses.add(fmgr.uninstantiate(clause));
     }
@@ -249,7 +276,9 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
                                                          : bfmgr.makeBoolean(true);
     Set<BooleanFormula> finalClauses = first.getAbstraction();
     for (PathFormulaWithStartSSA tau : taus) { // Intersection of all slices attained.
+      shutdownNotifier.shutdownIfNecessary();
       try {
+        statistics.inductiveWeakening.start();
         finalClauses = Sets.intersection(
             inductiveWeakeningManager.findInductiveWeakeningForSemiCNF(
                 tau.getStartMap(),
@@ -261,12 +290,15 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
         );
       } catch (SolverException pE) {
         throw new CPAException("Solver call failed", pE);
+      } finally {
+        statistics.inductiveWeakening.stop();
       }
     }
 
     out = SlicingAbstractedState.makeSliced(
         finalClauses,
-        first.getSSA(),
+        first.getSSA(), // It is crucial to use the previous SSA so that PathFormulas stay
+                        // the same.
         iState.getPathFormula().getPointerTargetSet(),
         fmgr,
         iState.getNode(),
@@ -277,6 +309,10 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     return out;
   }
 
+  /**
+   * Over-approximate all possible transitions through the nested loop as a disjunction of
+   * all possible inner transitions.
+   */
   private Set<PathFormulaWithStartSSA> approximateLoopTransitions(
       List<SlicingIntermediateState> paths,
       SlicingIntermediateState iState
@@ -302,9 +338,12 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     BooleanFormula reachabilityQuery = bfmgr.and(
         iState.getPathFormula().getFormula(), instantiatedFormula);
     try {
+      statistics.reachability.start();
       return solver.isUnsat(reachabilityQuery);
     } catch (SolverException pE) {
       throw new CPAException("Solver exception suppressed: ", pE);
+    } finally {
+      statistics.reachability.stop();
     }
   }
 
@@ -387,9 +426,12 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
     LoopstackState loopState = AbstractStates.extractStateByType(pFullState,
         LoopstackState.class);
+    Preconditions.checkState(loopState != null, "LoopstackCPA must be enabled for formula slicing"
+        + " to work.");
+
     // Slicing is only performed on the loop heads.
-    return cfa.getLoopStructure().get().getAllLoopHeads().contains(node)
-        && (loopState == null || loopState.isLoopCounterAbstracted());
+    return loopStructure.getAllLoopHeads().contains(node)
+        && loopState.isLoopCounterAbstracted();
   }
 
   @Override
@@ -459,5 +501,4 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(statistics);
   }
-
 }

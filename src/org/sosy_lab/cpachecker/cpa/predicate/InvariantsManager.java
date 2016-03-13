@@ -308,7 +308,8 @@ class InvariantsManager implements StatisticsProvider {
             pLogger);
 
     prefixProvider = pPrefixProvider;
-    inductiveWeakeningMgr = new InductiveWeakeningManager(pConfig, pSolver, pLogger);
+    inductiveWeakeningMgr = new InductiveWeakeningManager(pConfig, pSolver, pLogger,
+        pShutdownNotifier);
 
     if (usageStrategy != InvariantUsageStrategy.NONE) {
       logger.log(
