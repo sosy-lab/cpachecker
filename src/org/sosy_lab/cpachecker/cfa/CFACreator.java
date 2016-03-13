@@ -110,7 +110,7 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 
-import com.sun.istack.internal.Nullable;
+import javax.annotation.Nullable;
 
 /**
  * Class that encapsulates the whole CFA creation process.
