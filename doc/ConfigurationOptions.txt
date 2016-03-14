@@ -804,6 +804,9 @@ cpa.arg.errorPath.source = "ErrorPath.%d.c"
 cpa.arg.export = true
 cpa.arg.file = "ARG.dot"
 
+# export final ARG as .graphml file
+cpa.arg.graphml.file = "ARG.graphml"
+
 # inform ARG CPA if it is run in a CPA enabled analysis because then it
 # mustbehave differntly during merge.
 # inform ARG CPA if it is run in an analysis with enabler CPA because then it
