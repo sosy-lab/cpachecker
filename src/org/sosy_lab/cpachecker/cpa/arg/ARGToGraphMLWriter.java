@@ -163,13 +163,23 @@ public class ARGToGraphMLWriter {
   private void appendDocHeader() throws IOException {
     sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
     sb.append(
-        "<graphml xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
-            + "xmlns=\"http://graphml.graphdrawing.org/xmlns\">\n");
-    sb.append("  <graph id=\"CPAchecker-ARG\" edgedefault=\"unidirected\">\n");
+        "<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\""
+            + "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\""
+            + "xmlns:y=\"http://www.yworks.com/xml/graphml\""
+            + "xsi:schemaLocation=\"http://graphml.graphdrawing.org/xmlns "
+            + "http://www.yworks.com/xml/schema/graphml/1.0/ygraphml.xsd\">\n");
+    sb.append("  <key for=\"node\" id=\"d0\" yfiles.type=\"nodegraphics\"/>\n");
+    sb.append("  <key attr.name=\"description\" attr.type=\"string\" for=\"node\" id=\"d1\"/>\n");
+    sb.append("  <key for=\"edge\" id=\"d2\" yfiles.type=\"edgegraphics\"/>\n");
+    sb.append("  <key attr.name=\"description\" attr.type=\"string\" for=\"edge\" id=\"d3\"/>\n");
+    sb.append("  <key for=\"graphml\" id=\"d4\" yfiles.type=\"resources\"/>\n\n");
   }
 
   private void finish() throws IOException {
     sb.append("  </graph>\n");
+    sb.append("  <data key=\"d4\">\n");
+    sb.append("    <y:Resources/>\n");
+    sb.append("  </data>\n");
     sb.append("</graphml>\n");
   }
 
