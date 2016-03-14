@@ -1775,6 +1775,10 @@ cpa.slicing.selectorAnnotationMode = LITERALS
 # relation
 cpa.slicing.sortSelectionVariablesSyntactic = true
 
+# Time for loop generation before aborting.
+# (Use seconds or specify a unit; 0 for infinite)
+cpa.slicing.timeForLoopGeneration = 0s
+
 # Cache formulas produced by path formula manager
 cpa.slicing.useCachingPathFormulaManager = true
 
