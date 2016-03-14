@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
@@ -92,7 +93,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
   /**
    * predicate-analysis refiner used for predicate refinement
    */
-  private final PredicateCPARefiner predicateCpaRefiner;
+  private final ARGBasedRefiner predicateCpaRefiner;
 
   /**
    * prefix provider used for predicate-analysis refinement
@@ -151,8 +152,9 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       final ConfigurableProgramAnalysis pCpa,
       final ValueAnalysisRefiner pValueRefiner,
       final PrefixProvider pValueCpaPrefixProvider,
-      final PredicateCPARefiner pPredicateRefiner,
-      final PrefixProvider pPredicateCpaPrefixProvider) throws InvalidConfigurationException {
+      final ARGBasedRefiner pPredicateRefiner,
+      final PrefixProvider pPredicateCpaPrefixProvider)
+      throws InvalidConfigurationException {
 
     super(pCpa);
     pConfig.inject(this);
@@ -303,7 +305,9 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     });
 
     valueCpaRefiner.collectStatistics(pStatsCollection);
-    predicateCpaRefiner.collectStatistics(pStatsCollection);
+    if (predicateCpaRefiner instanceof StatisticsProvider) {
+      ((StatisticsProvider) predicateCpaRefiner).collectStatistics(pStatsCollection);
+    }
   }
 }
 
