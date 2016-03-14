@@ -150,7 +150,29 @@ public class ARGToGraphMLWriter {
       sb.append(createNodeForElement(currentElement));
 
       for (ARGState covered : currentElement.getCoveredByThis()) {
-        // dashed line for covering
+        edgeCounter++;
+        edges
+            .append("    <edge id=\"e")
+            .append(edgeCounter)
+            .append("\" source=\"n")
+            .append(covered.getStateId())
+            .append("\" target=\"n")
+            .append(currentElement.getStateId())
+            .append("\">\n");
+        edges.append("      <data key=\"d2\">\n");
+        edges.append("        <y:PolyLineEdge>\n");
+        edges.append("          <y:LineStyle color=\"#000000\" type=\"dashed\" width=\"1.0\"/>\n");
+        edges.append("          <y:Arrows source=\"none\" target=\"delta\"/>\n");
+        edges
+            .append("          <y:EdgeLabel alignment=\"center\" distance=\"2.0\" ")
+            .append("fontFamily=\"Dialog\" fontSize=\"12\" fontStyle=\"plain\" ")
+            .append("hasBackgroundColor=\"false\" hasLineColor=\"false\" modelName=\"six_pos\" ")
+            .append("modelPosition=\"tail\" preferredPlacement=\"anywhere\" ration=\"0.5\" ")
+            .append("textColor=\"#000000\" visible=\"true\">covered by</y:EdgeLabel>\n");
+        edges.append("        </y:PolyLineEdge>\n");
+        edges.append("      </data>\n");
+        edges.append("      <data key=\"d3\"/>\n");
+        edges.append("    </edge>\n\n");
       }
 
       for (ARGState child : pSuccessorFunction.apply(currentElement)) {
@@ -311,6 +333,7 @@ public class ARGToGraphMLWriter {
 
     builder.append("        </y:PolyLineEdge>\n");
     builder.append("      </data>\n");
+    builder.append("      <data key=\"d3\"/>\n");
     builder.append("    </edge>\n\n");
 
     return builder.toString();
