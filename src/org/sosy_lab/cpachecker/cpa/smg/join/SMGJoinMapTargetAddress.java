@@ -60,7 +60,7 @@ final class SMGJoinMapTargetAddress {
       }
     }
 
-    if(pAddress1 == pAddress2) {
+    if(pAddress1.equals(pAddress2)) {
       value = pAddress1;
     } else {
       value = SMGValueFactory.getNewValue();
