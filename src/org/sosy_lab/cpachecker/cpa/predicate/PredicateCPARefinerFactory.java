@@ -23,11 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.*;
+
+import javax.annotation.Nullable;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -47,15 +51,23 @@ import com.google.common.base.Optional;
 /**
  * Factory for {@link PredicateCPARefiner}, the base class for most refiners for the PredicateCPA.
  */
+@Options(prefix = "cpa.predicate.refinement")
 public class PredicateCPARefinerFactory {
 
+  @Option(secure = true, description = "slice block formulas, experimental feature!")
+  private boolean sliceBlockFormulas = false;
+
   private final PredicateCPA predicateCpa;
+
+  private @Nullable BlockFormulaStrategy blockFormulaStrategy = null;
 
   /**
    * Create a factory instance.
    * @param pCpa The CPA used for this whole analysis.
-   * @throws InvalidConfigurationException If there is no PredicateCPA configured.
+   * @throws InvalidConfigurationException
+   *    If there is no PredicateCPA configured or if configuration is invalid.
    */
+  @SuppressWarnings("options")
   public PredicateCPARefinerFactory(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
     predicateCpa = CPAs.retrieveCPA(checkNotNull(pCpa), PredicateCPA.class);
@@ -63,6 +75,21 @@ public class PredicateCPARefinerFactory {
       throw new InvalidConfigurationException(
           PredicateCPARefiner.class.getSimpleName() + " needs a PredicateCPA");
     }
+
+    predicateCpa.getConfiguration().inject(this);
+  }
+
+  /**
+   * Let the refiners created by this factory instance use the given {@link BlockFormulaStrategy}.
+   * May be called only once, but does not need to be called
+   * (in this case the configuration will determine the used BlockFormulaStrategy).
+   * @return this
+   */
+  public PredicateCPARefinerFactory setBlockFormulaStrategy(
+      BlockFormulaStrategy pBlockFormulaStrategy) {
+    checkState(blockFormulaStrategy == null);
+    blockFormulaStrategy = checkNotNull(pBlockFormulaStrategy);
+    return this;
   }
 
   /**
@@ -98,12 +125,24 @@ public class PredicateCPARefinerFactory {
     PathChecker pathChecker =
         new PathChecker(config, logger, shutdownNotifier, machineModel, pfmgr, solver);
 
+    BlockFormulaStrategy bfs;
+    if (blockFormulaStrategy != null) {
+      if (sliceBlockFormulas) {
+        throw new InvalidConfigurationException(
+            "Block-formula slicing is not supported with this refiner, "
+                + "please turn cpa.predicate.refinement.sliceBlockFormula off.");
+      }
+      bfs = blockFormulaStrategy;
+    } else {
+      bfs = sliceBlockFormulas ? new BlockFormulaSlicer(pfmgr) : new BlockFormulaStrategy();
+    }
+
     return new PredicateCPARefiner(
         config,
         logger,
         shutdownNotifier,
         loopStructure,
-        pfmgr,
+        bfs,
         fmgr,
         interpolationManager,
         pathChecker,

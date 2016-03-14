@@ -81,8 +81,11 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
-
-class BlockFormulaSlicer {
+/**
+ * Implementation of {@link BlockFormulaStrategy} that slices the formulas
+ * (i.e., it removes irrelevant parts based on variable usage).
+ */
+class BlockFormulaSlicer extends BlockFormulaStrategy {
 
   /** if important or not, this does not matter, because it will be ignored later,
    * so it can be used for optimization. */
@@ -103,7 +106,8 @@ class BlockFormulaSlicer {
     this.pfmgr = pPfmgr;
   }
 
-  public List<BooleanFormula> sliceFormulasForPath(List<ARGState> path, ARGState initialState)
+  @Override
+  List<BooleanFormula> getFormulasForPath(ARGState initialState, List<ARGState> path)
       throws CPATransferException, InterruptedException {
     // This map contains all edges that are important.
     // We store the parent- and the child-ARGState, because they are unique,

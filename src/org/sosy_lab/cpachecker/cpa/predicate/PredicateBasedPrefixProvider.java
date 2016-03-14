@@ -24,7 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner.*;
+import static org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.GET_BLOCK_FORMULA;
+import static org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner.transformPath;
 import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 
 import java.util.ArrayList;

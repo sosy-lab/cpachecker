@@ -69,7 +69,6 @@ import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
@@ -82,12 +81,10 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Lists;
-import com.google.errorprone.annotations.ForOverride;
 
 /**
  * This class provides a basic refiner implementation for predicate analysis.
@@ -101,9 +98,6 @@ import com.google.errorprone.annotations.ForOverride;
  */
 @Options(prefix = "cpa.predicate.refinement")
 public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
-
-  @Option(secure=true, description="slice block formulas, experimental feature!")
-  private boolean sliceBlockFormulas = false;
 
   @Option(secure=true, description="which sliced prefix should be used for interpolation")
   private List<PrefixPreference> prefixPreference = PrefixSelector.NO_SELECTION;
@@ -155,7 +149,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   private final PrefixProvider prefixProvider;
   private final PrefixSelector prefixSelector;
   private final LogManager logger;
-  private final PathFormulaManager pfmgr;
+  private final BlockFormulaStrategy blockFormulaStrategy;
   private final FormulaManagerView fmgr;
   private final InterpolationManager formulaManager;
   private final RefinementStrategy strategy;
@@ -166,7 +160,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
       final Optional<LoopStructure> pLoopStructure,
-      final PathFormulaManager pPfmgr,
+      final BlockFormulaStrategy pBlockFormulaStrategy,
       final FormulaManagerView pFmgr,
       final InterpolationManager pInterpolationManager,
       final PathChecker pPathChecker,
@@ -181,7 +175,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
     loopStructure = pLoopStructure;
-    pfmgr = pPfmgr;
+    blockFormulaStrategy = pBlockFormulaStrategy;
     fmgr = pFmgr;
 
     formulaManager = pInterpolationManager;
@@ -557,36 +551,17 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     return result;
   }
 
-  static final Function<PredicateAbstractState, BooleanFormula> GET_BLOCK_FORMULA
-                = new Function<PredicateAbstractState, BooleanFormula>() {
-                    @Override
-                    public BooleanFormula apply(PredicateAbstractState e) {
-                      assert e.isAbstractionState();
-                      return e.getAbstractionFormula().getBlockFormula().getFormula();
-                    }
-                  };
-
   /**
    * Get the block formulas from a path.
    * @param path A list of all abstraction elements
    * @param initialState The initial element of the analysis (= the root element of the ARG)
    * @return A list of block formulas for this path.
    */
-  @ForOverride
-  protected List<BooleanFormula> getFormulasForPath(List<ARGState> path, ARGState initialState)
+  private List<BooleanFormula> getFormulasForPath(List<ARGState> path, ARGState initialState)
       throws CPATransferException, InterruptedException {
     getFormulasForPathTime.start();
     try {
-      if (sliceBlockFormulas) {
-        BlockFormulaSlicer bfs = new BlockFormulaSlicer(pfmgr);
-        return bfs.sliceFormulasForPath(path, initialState);
-
-      } else {
-        return from(path)
-            .transform(toState(PredicateAbstractState.class))
-            .transform(GET_BLOCK_FORMULA)
-            .toList();
-      }
+      return blockFormulaStrategy.getFormulasForPath(initialState, path);
     } finally {
       getFormulasForPathTime.stop();
     }
