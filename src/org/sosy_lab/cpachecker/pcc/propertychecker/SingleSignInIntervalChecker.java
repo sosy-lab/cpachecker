@@ -34,15 +34,8 @@ public class SingleSignInIntervalChecker extends PerElementPropertyChecker {
   public SingleSignInIntervalChecker(final String pLabel, final String pVarName,
       final String pSignVal, final String pIntervalMode, final String pIntervalBound) {
     signChecker = new SingleSignChecker(pVarName, pSignVal, pLabel);
-    intervalChecker = new InIntervalChecker(pVarName, pLabel, pIntervalMode, pIntervalBound);
+    intervalChecker = InIntervalChecker.newInIntervalCheckerWithMode(pVarName, pLabel, pIntervalMode, pIntervalBound);
   }
-
-  public SingleSignInIntervalChecker(final String pLabel, final String pVarName,
-      final String pSignVal, final String pIntervalMode, final String pMinBound, final String pMaxBound) {
-    signChecker = new SingleSignChecker(pVarName, pSignVal, pLabel);
-    intervalChecker = new InIntervalChecker(pVarName, pLabel, pIntervalMode, pMinBound, pMaxBound);
-  }
-
 
   @Override
   public boolean satisfiesProperty(AbstractState pElemToCheck) throws UnsupportedOperationException {

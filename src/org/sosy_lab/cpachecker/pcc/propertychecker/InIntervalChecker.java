@@ -37,17 +37,11 @@ public class InIntervalChecker extends PerElementPropertyChecker {
   private final String varName;
   private final Interval allowedValues;
 
-  public InIntervalChecker(final String pVariableName, final String pLabel, final String pMode, final String pMin,
+  private InIntervalChecker(final String pVariableName, final String pLabel, final String pMin,
       final String pMax) {
     label = pLabel;
     varName = pVariableName;
     allowedValues = new Interval(Long.parseLong(pMin), Long.parseLong(pMax));
-
-  }
-
-  public InIntervalChecker(final String pVariableName, final String pLabel, final String pMode, final String pValue) {
-    this(pVariableName, pLabel, pMode, Integer.parseInt(pMode) == 0 ? pValue : Long.toString(Long.MIN_VALUE),
-        Integer.parseInt(pMode) == 0 ? Long.toString(Long.MAX_VALUE) : pValue);
   }
 
   @Override
@@ -65,6 +59,16 @@ public class InIntervalChecker extends PerElementPropertyChecker {
       return false;
     }
     return true;
+  }
+
+  public static InIntervalChecker newInIntervalChecker(final String pVariableName, final String pLabel, final String pMin,
+      final String pMax) {
+    return new InIntervalChecker(pVariableName, pLabel, pMin, pMax);
+  }
+
+  public static InIntervalChecker newInIntervalCheckerWithMode(final String pVariableName, final String pLabel, final String pMode, final String pValue) {
+    return newInIntervalChecker(pVariableName, pLabel, Integer.parseInt(pMode) == 0 ? pValue : Long.toString(Long.MIN_VALUE),
+        Integer.parseInt(pMode) == 0 ? Long.toString(Long.MAX_VALUE) : pValue);
   }
 
 }
