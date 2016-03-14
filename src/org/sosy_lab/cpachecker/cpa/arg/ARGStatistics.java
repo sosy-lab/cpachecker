@@ -56,7 +56,6 @@ import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CounterexamplesSummary;
 import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA.PartitionState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
@@ -81,6 +80,10 @@ public class ARGStatistics implements IterationStatistics {
       description="export final ARG as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path argFile = Paths.get("ARG.dot");
+
+  @Option(secure = true, name = "graphml.file", description = "export final ARG as .graphml file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path graphMLFile = Paths.get("ARG.graphml");
 
   @Option(secure=true, name="simplifiedARG.file",
       description="export final ARG as .dot file, showing only loop heads and function entries/exits")
@@ -119,7 +122,10 @@ public class ARGStatistics implements IterationStatistics {
     cexExporter = pCexExporter;
     argPathExporter = pARGPathExporter;
 
-    if (argFile == null && simplifiedArgFile == null && refinementGraphFile == null) {
+    if (argFile == null
+        && simplifiedArgFile == null
+        && refinementGraphFile == null
+        && graphMLFile == null) {
       exportARG = false;
     }
   }
@@ -237,6 +243,15 @@ public class ARGStatistics implements IterationStatistics {
             ARGUtils.CHILDREN_OF_STATE,
             Predicates.alwaysTrue(),
             isTargetPathEdge);
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
+      }
+    }
+
+    if (graphMLFile != null) {
+      try (Writer w = Files.openOutputFile(adjustPathNameForPartitioning(rootState, graphMLFile))) {
+        ARGToGraphMLWriter.write(
+            w, rootState, ARGUtils.CHILDREN_OF_STATE, Predicates.alwaysTrue(), isTargetPathEdge);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
       }
