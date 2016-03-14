@@ -68,10 +68,6 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
   @Option(secure=true, description="whether or not to use refinement selection to decide which domain to refine")
   private boolean useRefinementSelection = false;
 
-  @Option(secure=true, description="whether or not to let auxiliary refiner score and refine a path that is feasible for the primary refiner,"
-      + " this allows to only extract prefixes that are exclusive to the auxiliary refiner")
-  private boolean useFeasiblePathForAuxRefiner = false;
-
   @Option(secure=true, description="if this score is exceeded by the first analysis, the auxilliary analysis will be refined")
   private int domainScoreThreshold = 1024;
 
@@ -178,29 +174,9 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     if (useRefinementSelection) {
       vaScore = obtainScoreForValueDomain(pErrorPath);
 
-      // if score of primary analysis exceeds threshold, always refine secondary analysis
+      // if score of primary analysis exceeds threshold, compute score for analysis
       if(vaScore > domainScoreThreshold) {
-        paScore = -1;
-
-        if(useFeasiblePathForAuxRefiner) {
-          pErrorPath = ((ValueAnalysisPrefixProvider)valueCpaPrefixProvider).extractFeasilbePath(pErrorPath);
-        }
-
         paScore = obtainScoreForPredicateDomain(pErrorPath);
-
-        /** EXPERIMENTAL
-         * instead of fixed scores, compute scores for both domains
-         * and select based on these scores
-         * Problem: hard to compare which scores favor the one or the other analysis,
-         * also "impossible" to use two different scoring schema for the two analysis
-        // hand the auxiliary analysis a path that is feasible
-        // for the primary analysis, so that only new prefixes are found
-        if(useFeasiblePathForAuxRefiner) {
-          pErrorPath = ((ValueAnalysisPrefixProvider)valueCpaPrefixProvider).extractFeasilbePath(pErrorPath);
-        }
-
-        paScore = obtainScoreForPredicateDomain(pErrorPath);
-        **/
       }
     }
 
@@ -209,7 +185,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     if (vaScore < paScore) {
       totalPrimaryRefinementsSelected.inc();
 
-      cex = valueCpaRefiner.performRefinement(reached);
+      cex = valueCpaRefiner.performRefinementForPath(reached, pErrorPath);
       if (cex.isSpurious()) {
         totalPrimaryRefinementsFinished.inc();
       }

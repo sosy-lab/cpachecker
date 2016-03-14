@@ -415,11 +415,6 @@ cegar.globalRefinement = false
 # omitted.
 cegar.refiner = no default value
 
-# whether or not to let auxiliary refiner score and refine a path that is
-# feasible for the primary refiner, this allows to only extract prefixes that
-# are exclusive to the auxiliary refiner
-cegar.useFeasiblePathForAuxRefiner = false
-
 # whether or not to use refinement selection to decide which domain to refine
 cegar.useRefinementSelection = false
 

@@ -247,8 +247,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   }
 
   /**
-   * This method creates the interpolation tree. As there is only a single target, it is irrelevant
-   * whether to use top-down or bottom-up interpolation, as the tree is degenerated to a list.
+   * This method creates the interpolation tree.
    */
   @ForOverride
   protected InterpolationTree<S, I> createInterpolationTree(List<ARGPath> targets) {
