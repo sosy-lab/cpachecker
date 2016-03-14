@@ -74,7 +74,6 @@ import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector.PrefixPreference;
-import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -601,7 +600,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     pStatsCollection.add(new Stats());
   }
 
-  class Stats extends AbstractStatistics {
+  private class Stats implements Statistics {
 
     private final Statistics statistics = strategy.getStatistics();
 
@@ -610,21 +609,25 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       StatisticsWriter w0 = writingStatisticsTo(out);
 
       int numberOfRefinements = totalRefinement.getUpdateCount();
+      w0.put("Number of predicate refinements", totalRefinement.getUpdateCount());
       if (numberOfRefinements > 0) {
         w0.put(totalPathLength)
           .put(totalPrefixes)
           .spacer()
           .put(totalRefinement);
 
-        formulaManager.printStatistics(out);
+        StatisticsWriter w1 = w0.beginLevel();
+        formulaManager.printStatistics(w1);
 
-        w0.beginLevel().put(errorPathProcessing);
-        w0.beginLevel().put(getFormulasForPathTime);
-        w0.beginLevel().put(prefixExtractionTime);
-        w0.beginLevel().put(prefixSelectionTime);
+        w1.put(getFormulasForPathTime);
+        if (isRefinementSelectionEnabled()) {
+          w1.put(prefixExtractionTime);
+          w1.put(prefixSelectionTime);
+        }
+        w1.put(errorPathProcessing);
+
+        statistics.printStatistics(out, result, reached);
       }
-
-      statistics.printStatistics(out, result, reached);
     }
 
     @Override
