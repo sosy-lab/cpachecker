@@ -2,12 +2,16 @@ package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import static com.google.common.collect.Iterables.filter;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.UniqueIdGenerator;
@@ -49,16 +53,12 @@ import org.sosy_lab.solver.api.Model;
 import org.sosy_lab.solver.api.OptimizationProverEnvironment;
 import org.sosy_lab.solver.api.ProverEnvironment;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 /**
  * Main logic in a single class.
@@ -324,13 +324,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     logger.log(Level.INFO, "Emulating large step at node ", node);
 
     Map<Template, PolicyBound> updated = new HashMap<>();
-    PolicyAbstractedState merged;
-    try {
-      merged = unionAbstractedStates(
+    PolicyAbstractedState merged = unionAbstractedStates(
           abstraction, latestSibling, precision, updated, extraInvariant);
-    } catch (SolverException e) {
-      throw new CPATransferException("Solver failed", e);
-    }
 
     PolicyAbstractedState out;
     if (!shouldPerformValueDetermination(node, updated)) {
@@ -414,8 +409,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       final PolicyAbstractedState oldState,
       final PolicyPrecision precision,
       Map<Template, PolicyBound> updated,
-      BooleanFormula extraInvariant
-  ) throws InterruptedException, SolverException {
+      BooleanFormula extraInvariant) {
     Preconditions.checkState(newState.getNode() == oldState.getNode());
     Preconditions.checkState(
         newState.getLocationID() == oldState.getLocationID());
@@ -1032,8 +1026,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
             state2.asIntermediate());
       }
       return out;
-    } catch (SolverException | InterruptedException e) {
-      throw new CPAException("Solver failed", e);
     } finally {
       statistics.comparisonTimer.stop();
     }
@@ -1060,8 +1052,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
    */
   private boolean isLessOrEqualIntermediate(
       PolicyIntermediateState state1,
-      PolicyIntermediateState state2)
-      throws SolverException, InterruptedException {
+      PolicyIntermediateState state2) {
     return state1.isMergedInto(state2)
         || state1.getPathFormula().getFormula().equals(state2.getPathFormula().getFormula())
         && isLessOrEqualAbstracted(state1.getGeneratingState(), state2.getGeneratingState());
