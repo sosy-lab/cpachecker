@@ -45,11 +45,11 @@ class FormulaSlicingStatistics implements Statistics {
   public void printStatistics(PrintStream out,
                               Result result,
                               ReachedSet reached) {
-    printTimer(out, propagation, "Propagating formulas");
-    printTimer(out, reachability, "Checking reachability");
-    printTimer(out, inductiveWeakening, "Inductive weakening");
-    printTimer(out, deadVarElimination, "Eliminating dead variables");
-    printTimer(out, semiCnfConversion, "Converting to semiCNF");
+    printTimer(out, propagation, "propagating formulas");
+    printTimer(out, reachability, "checking reachability");
+    printTimer(out, inductiveWeakening, "inductive weakening");
+    printTimer(out, deadVarElimination, "eliminating dead variables");
+    printTimer(out, semiCnfConversion, "converting to SemiCNF");
   }
 
   @Override
