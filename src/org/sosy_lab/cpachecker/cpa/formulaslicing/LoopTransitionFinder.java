@@ -1,20 +1,26 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
-import com.google.common.collect.Table;
-import com.google.common.collect.Table.Cell;
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -32,17 +38,18 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
+import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
+import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
+import com.google.common.collect.Table;
+import com.google.common.collect.Table.Cell;
 
 /**
  * Return a path-formula describing all possible transitions inside the loop.
@@ -79,6 +86,15 @@ public class LoopTransitionFinder implements StatisticsProvider {
       + "ignore the function nested in the loop. UNSOUND!")
   private boolean ignoreFunctionCallsInLoop = false;
 
+  @Option(
+      secure = true,
+      description =
+          "Time for loop generation before aborting.\n"
+              + "(Use seconds or specify a unit; 0 for infinite)"
+  )
+  @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = 0)
+   private TimeSpan timeForLoopGeneration = TimeSpan.ofSeconds(0);
+
   private final PathFormulaManager pfmgr;
   private final FormulaManagerView fmgr;
   private final LogManager logger;
@@ -114,6 +130,15 @@ public class LoopTransitionFinder implements StatisticsProvider {
     Preconditions.checkState(loopStructure.getAllLoopHeads()
         .contains(loopHead));
 
+    ShutdownManager loopGenerationShutdown = ShutdownManager.createWithParent(shutdownNotifier);
+    ResourceLimitChecker limits = null;
+    if (!timeForLoopGeneration.isEmpty()) {
+      WalltimeLimit l = WalltimeLimit.fromNowOn(timeForLoopGeneration);
+      limits =
+          new ResourceLimitChecker(
+              loopGenerationShutdown, Collections.<ResourceLimit>singletonList(l));
+      limits.start();
+    }
 
     PathFormula out;
     statistics.LBEencodingTimer.start();
@@ -121,6 +146,10 @@ public class LoopTransitionFinder implements StatisticsProvider {
       out = LBE(loopHead, start, pts);
     } finally {
       statistics.LBEencodingTimer.stop();
+    }
+
+    if (!timeForLoopGeneration.isEmpty()) {
+      limits.cancel();
     }
 
     return out.updateFormula(fmgr.simplify(out.getFormula()));
