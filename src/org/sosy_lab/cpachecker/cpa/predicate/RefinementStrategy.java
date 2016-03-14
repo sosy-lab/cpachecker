@@ -37,8 +37,6 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -160,7 +158,7 @@ public abstract class RefinementStrategy {
   private Pair<ARGState, List<ARGState>> evaluateInterpolantsOnPath(
       ARGState pTargetState,
       List<ARGState> abstractionStatesTrace,
-      List<BooleanFormula> pInterpolants) throws RefinementFailedException, SolverException, InterruptedException {
+      List<BooleanFormula> pInterpolants) throws SolverException, InterruptedException {
 
     // Skip the last element of the path, itp is always false there
     abstractionStatesTrace = abstractionStatesTrace.subList(0, abstractionStatesTrace.size()-1);
@@ -233,13 +231,6 @@ public abstract class RefinementStrategy {
     numberOfAffectedStates.setNextValue(changedElements.size());
     if (infeasiblePartOfARG == pTargetState) {
       pathLengthToInfeasibility++;
-
-      if (changedElements.isEmpty()) {
-        // The only reason why this might appear is that the very last block is
-        // infeasible in itself, however, we check for such cases during strengthen,
-        // so they shouldn't appear here.
-        throw new RefinementFailedException(Reason.InterpolationFailed, null);
-      }
     }
 
     // Update global statistics
