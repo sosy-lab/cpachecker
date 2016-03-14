@@ -27,6 +27,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Multimap;
 
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -47,6 +48,7 @@ import java.util.Set;
 public class ARGToGraphMLWriter {
 
   private final Appendable sb;
+  private static int edgeCounter;
 
   ARGToGraphMLWriter(final Appendable pStringBuffer) throws IOException {
     sb = pStringBuffer;
@@ -76,6 +78,7 @@ public class ARGToGraphMLWriter {
       throws IOException {
 
     ARGToGraphMLWriter toGraphMLWriter = new ARGToGraphMLWriter(pStringBuffer);
+    edgeCounter = 0;
     toGraphMLWriter.writeSubgraph(
         pRootState, pSuccessorFunction, pDisplayedElements, pHighlightEdge);
     toGraphMLWriter.finish();
@@ -105,6 +108,7 @@ public class ARGToGraphMLWriter {
       throws IOException {
 
     ARGToGraphMLWriter toGraphMLWriter = new ARGToGraphMLWriter(pStringBuffer);
+    edgeCounter = 0;
     for (ARGState rootState : pRootStates) {
       toGraphMLWriter.enterSubgraph(
           "cluster_" + rootState.getStateId(), "reachedset_" + rootState.getStateId());
@@ -249,7 +253,65 @@ public class ARGToGraphMLWriter {
       final Predicate<? super Pair<ARGState, ARGState>> pHightlightEdge,
       final ARGState pState,
       final ARGState pSuccessorState) {
+    edgeCounter++;
     final StringBuilder builder = new StringBuilder();
+
+    builder
+        .append("    <edge id=\"e")
+        .append(edgeCounter)
+        .append("\" source=\"n")
+        .append(pState.getStateId())
+        .append("\" target=\"n")
+        .append(pSuccessorState.getStateId())
+        .append("\">\n");
+    builder.append("      <data key=\"d2\">\n");
+    builder.append("        <y:PolyLineEdge>\n");
+
+    if (pState.getChildren().contains(pSuccessorState)) {
+      final CFAEdge edge = pState.getEdgeToChild(pSuccessorState);
+
+      if (edge == null) {
+        // there is no direct edge between the nodes, use a dummy-edge
+        builder.append("          <y:LineStyle color=\"#0000FF\" type=\"line\" width=\"2.0\"/>\n");
+        builder.append("          <y:Arrows source=\"none\" target=\"delta\"/>\n");
+        builder
+            .append("          <y:EdgeLabel alignment=\"center\" distance=\"2.0\" ")
+            .append("fontFamily=\"Dialog\" fontSize=\"12\" fontStyle=\"plain\" ")
+            .append("hasBackgroundColor=\"false\" hasLineColor=\"false\" modelName=\"six_pos\" ")
+            .append("modelPosition=\"tail\" preferredPlacement=\"anywhere\" ratio=\"0.5\" ")
+            .append("textColor=\"#000000\" visible=\"true\">dummy edge</y:EdgeLabel>\n");
+        builder.append("          <y:BendStyle smoothed=\"false\"/>\n");
+      } else {
+        // edge exists, use info from edge
+        boolean colored = pHightlightEdge.apply(Pair.of(pState, pSuccessorState));
+        if (edge.getPredecessor() instanceof ShadowCFANode) {
+          builder
+              .append("          <y:LineStyle color=\"#008000\" type=\"line\" ")
+              .append("width=\"2.0\"/>\n");
+        } else if (colored) {
+          builder
+              .append("          <y:LineStyle color=\"#FF0000\" type=\"line\" ")
+              .append("width=\"2.0\"/>\n");
+        }
+        builder.append("          <y:Arrows source=\"none\" target=\"delta\"/>\n");
+        builder
+            .append("          <y:EdgeLabel alignment=\"center\" distance=\"2.0\" ")
+            .append("fontFamily=\"Dialog\" fontSize=\"12\" fontStyle=\"plain\" ")
+            .append("hasBackgroundColor=\"false\" hasLineColor=\"false\" modelName=\"six_pos\" ")
+            .append("modelPosition=\"tail\" preferredPlacement=\"anywhere\" ratio=\"0.5\" ")
+            .append("textColor=\"#000000\" visible=\"true\">")
+            .append("Line ")
+            .append(edge.getLineNumber())
+            .append(": ")
+            .append(edge.getDescription().replaceAll("\n", " ").replace('"', '\''))
+            .append("</y:EdgeLabel>\n");
+        builder.append("          <y:BendStyle smoothed=\"true\"/>\n");
+      }
+    }
+
+    builder.append("        </y:PolyLineEdge>\n");
+    builder.append("      </data>\n");
+    builder.append("    </edge>\n\n");
 
     return builder.toString();
   }
