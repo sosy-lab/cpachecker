@@ -140,7 +140,6 @@ public class PredicateCPARefinerFactory {
     return new PredicateCPARefiner(
         config,
         logger,
-        shutdownNotifier,
         loopStructure,
         bfs,
         fmgr,

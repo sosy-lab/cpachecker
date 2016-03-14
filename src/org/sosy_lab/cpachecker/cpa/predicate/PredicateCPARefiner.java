@@ -25,11 +25,10 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getAllStatesOnPathsTo;
-import static org.sosy_lab.cpachecker.util.AbstractStates.*;
+import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -38,7 +37,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -62,13 +60,10 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.cwriter.LoopCollectingEdgeVisitor;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
@@ -152,12 +147,10 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   private final FormulaManagerView fmgr;
   private final InterpolationManager formulaManager;
   private final RefinementStrategy strategy;
-  private final ShutdownNotifier shutdownNotifier;
 
   public PredicateCPARefiner(
       final Configuration pConfig,
       final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier,
       final Optional<LoopStructure> pLoopStructure,
       final BlockFormulaStrategy pBlockFormulaStrategy,
       final FormulaManagerView pFmgr,
@@ -172,7 +165,6 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
 
     config = pConfig;
     logger = pLogger;
-    shutdownNotifier = pShutdownNotifier;
     loopStructure = pLoopStructure;
     blockFormulaStrategy = pBlockFormulaStrategy;
     fmgr = pFmgr;
@@ -335,26 +327,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     if (counterexample.isSpurious()) {
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
 
-      List<Pair<PathFormula, CFANode>> argForPathFormulaBasedGeneration = new ArrayList<>();
-      for (ARGState state : abstractionStatesTrace) {
-        CFANode node = extractLocation(state);
-        // TODO what if loop structure does not exist?
-        if (loopStructure.get().getAllLoopHeads().contains(node)) {
-          PredicateAbstractState predState =
-              extractStateByType(state, PredicateAbstractState.class);
-          PathFormula pathFormula = predState.getPathFormula();
-          argForPathFormulaBasedGeneration.add(Pair.of(pathFormula, node));
-        } else if (!node.equals(
-            extractLocation(abstractionStatesTrace.get(abstractionStatesTrace.size() - 1)))) {
-          argForPathFormulaBasedGeneration.add(Pair.<PathFormula, CFANode>of(null, node));
-        }
-      }
-
-      Triple<ARGPath, List<ARGState>, Set<Loop>> argForErrorPathBasedGeneration =
-          Triple.of(allStatesTrace, abstractionStatesTrace, loopsInPath);
-
-      invariantsManager.findInvariants(
-          argForPathFormulaBasedGeneration, argForErrorPathBasedGeneration, shutdownNotifier);
+      invariantsManager.findInvariants(allStatesTrace, abstractionStatesTrace, loopsInPath);
 
       // add invariant precision increment if necessary
       if (invariantsManager.shouldInvariantsBeUsedForRefinement()) {

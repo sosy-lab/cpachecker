@@ -96,7 +96,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -271,6 +270,7 @@ class InvariantsManager implements StatisticsProvider {
   // TODO Configuration should not be used at runtime, only during constructor
   private final Configuration config;
   private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
   private final Stats stats = new Stats();
 
   private final Map<CFANode, BooleanFormula> loopFormulaCache = new HashMap<>();
@@ -292,6 +292,7 @@ class InvariantsManager implements StatisticsProvider {
 
     config = pConfig;
     logger = pLogger;
+    shutdownNotifier = pShutdownNotifier;
 
     regionInvariantsCache = CacheBuilder.newBuilder().recordStats().build();
     cfa = pCfa;
@@ -338,7 +339,7 @@ class InvariantsManager implements StatisticsProvider {
 
   /**
    * This method returns the invariants computed for the given locations in
-   * {@link #findInvariants(List, Triple, ShutdownNotifier)}
+   * {@link #findInvariants(ARGPath, List, Set)}
    * in the given order.
    */
   public List<BooleanFormula> getInvariantsForRefinement() {
@@ -381,29 +382,27 @@ class InvariantsManager implements StatisticsProvider {
    * For better performance this method should only be called during refinement.
    * The computed invariants (if there are some) are cached for later usage in
    * precision adjustment.
-   *
-   * Note: In order to make this method work properly with all configurations the
-   * pathformulas given in the first parameter have to be from states at a loop
-   * head. This also means that finding invariants without a single loop on the path
-   * won't work with this method.
-   *
-   * @param pArgForPathFormulaBasedGeneration The arguments which are necessary for
-   * computing the inductive weakening and in general for finding invariants out
-   * of the pathformulas theirselves.
-   * @param pArgForErrorPathBasedGeneration The arguments which are necessary for
-   * computing invariants out of interpolants or the given counterexample path.
-   * @param pShutdownNotifier The parent shutdown notifier which should be used.
-   * Internally a child notifier is created with the timelimit specified in the
-   * configuration.
    */
-  public void findInvariants(
-      List<Pair<PathFormula, CFANode>> pArgForPathFormulaBasedGeneration,
-      Triple<ARGPath, List<ARGState>, Set<Loop>> pArgForErrorPathBasedGeneration,
-      ShutdownNotifier pShutdownNotifier) {
-
+  public void findInvariants(final ARGPath allStatesTrace,
+      final List<ARGState> abstractionStatesTrace, final Set<Loop> loopsInPath) {
     // shortcut if we do not need to compute anything
     if (!shouldInvariantsBeComputed()) {
       return;
+    }
+
+    List<Pair<PathFormula, CFANode>> argForPathFormulaBasedGeneration = new ArrayList<>();
+    for (ARGState state : abstractionStatesTrace) {
+      CFANode node = extractLocation(state);
+      // TODO what if loop structure does not exist?
+      if (cfa.getLoopStructure().get().getAllLoopHeads().contains(node)) {
+        PredicateAbstractState predState =
+            extractStateByType(state, PredicateAbstractState.class);
+        PathFormula pathFormula = predState.getPathFormula();
+        argForPathFormulaBasedGeneration.add(Pair.of(pathFormula, node));
+      } else if (!node.equals(
+          extractLocation(abstractionStatesTrace.get(abstractionStatesTrace.size() - 1)))) {
+        argForPathFormulaBasedGeneration.add(Pair.<PathFormula, CFANode>of(null, node));
+      }
     }
 
     // clear refinementCache
@@ -418,7 +417,7 @@ class InvariantsManager implements StatisticsProvider {
     stats.totalInvGenTries.inc();
 
     try {
-      ShutdownManager invariantShutdown = ShutdownManager.createWithParent(pShutdownNotifier);
+      ShutdownManager invariantShutdown = ShutdownManager.createWithParent(shutdownNotifier);
       ResourceLimitChecker limits = null;
       if (!timeForInvariantGeneration.isEmpty()) {
         WalltimeLimit l = WalltimeLimit.fromNowOn(timeForInvariantGeneration);
@@ -436,7 +435,7 @@ class InvariantsManager implements StatisticsProvider {
 
         switch (generation) {
           case PF_CNF_KIND:
-              for (Pair<PathFormula, CFANode> pair : pArgForPathFormulaBasedGeneration) {
+              for (Pair<PathFormula, CFANode> pair : argForPathFormulaBasedGeneration) {
                 if (pair.getFirst() != null) {
                 wasSuccessful =
                     findInvariantPartOfPathFormulaWithKInduction(
@@ -449,7 +448,7 @@ class InvariantsManager implements StatisticsProvider {
             break;
 
           case PF_INDUCTIVE_WEAKENING:
-              for (Pair<PathFormula, CFANode> pair : pArgForPathFormulaBasedGeneration) {
+              for (Pair<PathFormula, CFANode> pair : argForPathFormulaBasedGeneration) {
                 if (pair.getFirst() != null) {
                 wasSuccessful =
                     findInvariantPartOfPathFormulaWithWeakening(
@@ -464,17 +463,17 @@ class InvariantsManager implements StatisticsProvider {
           case RF_INTERPOLANT_KIND:
             wasSuccessful =
                 findInvariantInterpolants(
-                    pArgForErrorPathBasedGeneration.getFirst(),
-                    pArgForErrorPathBasedGeneration.getSecond(),
+                    allStatesTrace,
+                    abstractionStatesTrace,
                     invariantShutdown.getNotifier());
             break;
 
           case RF_INVARIANT_GENERATION:
             wasSuccessful =
                 findInvariantsWithGenerator(
-                    pArgForErrorPathBasedGeneration.getFirst(),
-                    pArgForErrorPathBasedGeneration.getSecond(),
-                    pArgForErrorPathBasedGeneration.getThird(),
+                    allStatesTrace,
+                    abstractionStatesTrace,
+                    loopsInPath,
                     invariantShutdown);
             break;
 
