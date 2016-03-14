@@ -89,12 +89,15 @@ public class MaterlisationStep {
    */
   private final Set<SMGObjectTemplate> objectTemplates;
 
+  private final Map<Integer, Integer> uniquePointerTemplateToInterfacePointerTemplate;
+
   public MaterlisationStep(Set<SMGObjectTemplate> pAbstractObjects,
       Set<SMGEdgePointsToTemplate> pAbstractPointer,
       Set<SMGEdgeHasValueTemplateWithConcreteValue> pAbstractFields,
       Set<SMGEdgeHasValueTemplate> pAbstractFieldsToIPointer,
       Set<SMGEdgePointsToTemplate> pAbstractAdressesToOPointer,
       Set<SMGEdgeHasValueTemplate> pAbstractFieldsToOPointer,
+      Map<Integer, Integer> pUniquePointerTemplateToInterfacePointerTemplate,
       boolean pStop) {
     targetAdressTemplateOfPointer = ImmutableSet.copyOf(pAbstractAdressesToOPointer);
     objectTemplates = ImmutableSet.copyOf(pAbstractObjects);
@@ -102,6 +105,7 @@ public class MaterlisationStep {
     fieldTemplateContainingValue = ImmutableSet.copyOf(pAbstractFields);
     fieldTemplateContainingPointerTemplate = ImmutableSet.copyOf(pAbstractFieldsToIPointer);
     fieldTemplateContainingPointer = ImmutableSet.copyOf(pAbstractFieldsToOPointer);
+    uniquePointerTemplateToInterfacePointerTemplate = pUniquePointerTemplateToInterfacePointerTemplate;
     stop = pStop;
   }
 
@@ -162,8 +166,10 @@ public class MaterlisationStep {
     Map<SMGObjectTemplate, SMGObject> concreteObjectMap = new HashMap<>(objectTemplates.size());
 
     for (SMGObjectTemplate abstractObject : objectTemplates) {
-      Map<Integer, Integer> abstractToConcretePointerForObject =
-          abstractObjectToPointersMap.get(abstractObject);
+      Map<Integer, Integer> abstractToConcretePointerForObject = new HashMap<>(abstractObjectToPointersMap.get(abstractObject));
+
+      prepareForGenericAbstraction(abstractToConcretePointerForObject);
+
       SMGObject concreteObject =
           abstractObject.createConcreteObject(abstractToConcretePointerForObject);
       concreteObjectMap.put(abstractObject, concreteObject);
@@ -228,6 +234,19 @@ public class MaterlisationStep {
     }
 
     return pSMG;
+  }
+
+  private void prepareForGenericAbstraction(
+      Map<Integer, Integer> pAbstractToConcretePointerForObject) {
+
+    for (int abstractPointer : ImmutableSet.copyOf(pAbstractToConcretePointerForObject.keySet())) {
+      if (uniquePointerTemplateToInterfacePointerTemplate.containsKey(abstractPointer)) {
+        int value = pAbstractToConcretePointerForObject.get(abstractPointer);
+        int pointerTmp = uniquePointerTemplateToInterfacePointerTemplate.get(abstractPointer);
+        pAbstractToConcretePointerForObject.remove(abstractPointer);
+        pAbstractToConcretePointerForObject.put(pointerTmp, value);
+      }
+    }
   }
 
   private void createFieldToPointer(SMGEdgeHasValueTemplate pAbstractField,
@@ -335,7 +354,8 @@ public class MaterlisationStep {
 
   public Set<SMGEdgeHasValueTemplate> getFieldsOfValue(int value) {
 
-    Set<SMGEdgeHasValueTemplate> fields =
+    Set<SMGEdgeHasValueTemplate> fields = new HashSet<>();
+    fields.addAll(
         FluentIterable.from(fieldTemplateContainingValue).transform(
             new Function<SMGEdgeHasValueTemplateWithConcreteValue, SMGEdgeHasValueTemplate>() {
 
@@ -343,7 +363,8 @@ public class MaterlisationStep {
               public SMGEdgeHasValueTemplate apply(SMGEdgeHasValueTemplateWithConcreteValue pEdge) {
                 return (SMGEdgeHasValueTemplate) pEdge;
               }
-            }).filter(new SMGUtils.FilterFieldsOfValue(value)).toSet();
+            }).filter(new SMGUtils.FilterFieldsOfValue(value)).toSet()
+        );
 
     fields.addAll(FluentIterable.from(fieldTemplateContainingPointerTemplate)
         .filter(new SMGUtils.FilterFieldsOfValue(value)).toSet());
@@ -424,5 +445,27 @@ public class MaterlisationStep {
     public SMGObjectTemplate getTemplate() {
       return template;
     }
+  }
+
+  @Override
+  public String toString() {
+    return targetAdressTemplateOfPointer.toString() + pointerTemplate.toString() + fieldTemplateContainingPointer.toString() + fieldTemplateContainingPointerTemplate.toString() + fieldTemplateContainingValue.toString();
+  }
+
+  public boolean abstractInterfaceContains(int abstractValue) {
+
+    for (SMGEdgeHasValueTemplate edge : fieldTemplateContainingPointer) {
+      if (edge.getAbstractValue() == abstractValue) {
+        return true;
+      }
+    }
+
+    for (SMGEdgePointsToTemplate edge : targetAdressTemplateOfPointer) {
+      if (edge.getAbstractValue() == abstractValue) {
+        return true;
+      }
+    }
+
+    return false;
   }
 }
