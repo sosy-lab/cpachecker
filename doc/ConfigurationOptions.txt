@@ -1925,6 +1925,10 @@ cpa.statistics.statisticsCPAFile = no default value
 # evenness)
 cpa.stator.congruence.trackCongruenceSum = false
 
+# Where to perform abstraction
+cpa.stator.policy.abstractionLocations = LOOPHEAD
+  enum:     [ALL, LOOPHEAD, MERGE]
+
 # Check whether the policy depends on the initial value
 cpa.stator.policy.checkPolicyInitialCondition = true
 
@@ -1972,9 +1976,6 @@ cpa.stator.policy.lengthLimitForSATCheck = 300
 # Remove UFs and ITEs from policies.
 cpa.stator.policy.linearizePolicy = true
 
-# Perform abstraction only at the nodes from the cut-set.
-cpa.stator.policy.pathFocusing = true
-
 # Run simple congruence analysis
 cpa.stator.policy.runCongruence = true
 
@@ -2005,12 +2006,9 @@ cpa.stator.policy.useExtraPredicateDuringAbstraction = true
 # them.
 cpa.stator.policy.useInvariantsForAbstraction = false
 
-# Use latest version of abstracted states
-cpa.stator.policy.useLatestVersion = false
-
 # Use the optimized abstraction, which takes into the account the previously
-# obtained bound at the location. Interferes with:obtaining templates using
-# convex hull and split-sep merge configuration.
+# obtained bound at the location. Interferes withobtaining templates using
+# convex hull.
 cpa.stator.policy.usePreviousBounds = true
 
 # Strategy for filtering variables out of templates
