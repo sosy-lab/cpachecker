@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import com.google.common.collect.ImmutableSortedSet;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -31,9 +33,7 @@ import org.sosy_lab.solver.api.FunctionDeclaration;
 import org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor;
 import org.sosy_lab.solver.visitors.TraversalProcess;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import com.google.common.collect.ImmutableSortedSet;
 
 
 public class FormulaMeasuring {
@@ -83,7 +83,7 @@ public class FormulaMeasuring {
     }
 
     @Override
-    public TraversalProcess visitAtom(BooleanFormula pAtom, FunctionDeclaration decl) {
+    public TraversalProcess visitAtom(BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> decl) {
       measures.atoms++;
 
       BooleanFormula atom = fmgr.uninstantiate(pAtom);
