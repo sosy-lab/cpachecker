@@ -25,11 +25,8 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.truth.Truth;
+import java.util.Collection;
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -54,8 +51,11 @@ import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.NumeralFormulaManager;
 import org.sosy_lab.solver.test.SolverBasedTest0;
 
-import java.util.Collection;
-import java.util.Set;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.truth.Truth;
 
 @RunWith(Parameterized.class)
 public class FormulaManagerViewTest extends SolverBasedTest0 {
@@ -76,7 +76,6 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
   private FormulaManagerView mgrv;
   private BooleanFormulaManagerView bmgrv;
   private IntegerFormulaManagerView imgrv;
-  private FunctionFormulaManagerView fmgrv;
 
   @Before
   public void setUp() throws InvalidConfigurationException {
@@ -90,7 +89,6 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
         viewConfig, TestLogManager.getInstance());
     bmgrv = mgrv.getBooleanFormulaManager();
     imgrv = mgrv.getIntegerFormulaManager();
-    fmgrv = mgrv.getFunctionFormulaManager();
   }
 
   /** strip the most outer NOT, if there is one, else return the formula unchanged. */
