@@ -51,6 +51,6 @@ public abstract class PredicateRefiner implements Refiner {
         predicateCpa.getStaticRefiner(),
         predicateCpa.getSolver());
 
-    return PredicateCPARefiner.create(pCpa, strategy);
+    return new PredicateCPARefinerFactory(pCpa).create(strategy);
   }
 }

@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.RefinableConstraintsPrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefinerFactory;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.RefinementStrategy;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
@@ -88,6 +88,6 @@ public abstract class PredicateExtractionRefiner implements Refiner {
             predicateCPA.getSolver());
 
     return AbstractARGBasedRefiner.forARGBasedRefiner(
-        PredicateCPARefiner.create(pCpa, strategy), pCpa);
+        new PredicateCPARefinerFactory(pCpa).create(strategy), pCpa);
   }
 }

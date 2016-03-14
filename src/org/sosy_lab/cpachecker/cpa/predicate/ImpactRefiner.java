@@ -43,6 +43,6 @@ public abstract class ImpactRefiner implements Refiner {
         predicateCpa.getPredicateManager());
 
     return AbstractARGBasedRefiner.forARGBasedRefiner(
-        PredicateCPARefiner.create(pCpa, strategy), pCpa);
+        new PredicateCPARefinerFactory(pCpa).create(strategy), pCpa);
   }
 }
