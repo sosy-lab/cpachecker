@@ -345,10 +345,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
   }
 
   private BooleanFormula makeSelector(
-      Map<BooleanFormula, BooleanFormula> selectionInfo,
-      BooleanFormula toAnnotate,
-      int counter
-  ) {
+      Map<BooleanFormula, BooleanFormula> selectionInfo, BooleanFormula toAnnotate, int counter) {
     BooleanFormula selector = bfmgr.makeVariable(SELECTOR_VAR_TEMPLATE + counter);
     selectionInfo.put(selector, toAnnotate);
     return selector;
@@ -358,9 +355,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
    * Return a subset of selectors which map to formulas containing intermediate variables.
    */
   private Set<BooleanFormula> markIntermediate(
-      Map<BooleanFormula, BooleanFormula> selectionVarsInfo,
-      final PathFormula phi
-  ) throws InterruptedException {
+      Map<BooleanFormula, BooleanFormula> selectionVarsInfo, final PathFormula phi) {
 
     Set<BooleanFormula> hasIntermediate = new HashSet<>();
     for (Entry<BooleanFormula, BooleanFormula> e : selectionVarsInfo.entrySet()) {
