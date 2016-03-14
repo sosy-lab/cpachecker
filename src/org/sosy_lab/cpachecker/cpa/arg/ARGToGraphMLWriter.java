@@ -208,6 +208,6 @@ public class ARGToGraphMLWriter {
       return "#6495ED";
     }
 
-    return null;
+    return "#FFFFFF";
   }
 }
