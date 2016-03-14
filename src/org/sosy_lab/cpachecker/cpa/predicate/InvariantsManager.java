@@ -113,6 +113,7 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -125,6 +126,8 @@ import org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Lists;
 import com.google.common.io.CharSink;
@@ -271,8 +274,9 @@ class InvariantsManager implements StatisticsProvider {
   private final Stats stats = new Stats();
 
   private final Map<CFANode, BooleanFormula> loopFormulaCache = new HashMap<>();
-  private final Map<CFANode, Region> regionInvariantsCache = new HashMap<>();
+  private final Cache<CFANode, Region> regionInvariantsCache;
   private final List<BooleanFormula> refinementCache = new ArrayList<>();
+  private RegionInvariantsSupplier invariantSupplierSingleton = null;
 
   public InvariantsManager(
       Configuration pConfig,
@@ -288,6 +292,8 @@ class InvariantsManager implements StatisticsProvider {
 
     config = pConfig;
     logger = pLogger;
+
+    regionInvariantsCache = CacheBuilder.newBuilder().recordStats().build();
     cfa = pCfa;
     solver = pSolver;
     fmgr = solver.getFormulaManager();
@@ -324,7 +330,10 @@ class InvariantsManager implements StatisticsProvider {
   }
 
   RegionInvariantsSupplier asRegionInvariantsSupplier() {
-    return new RegionInvariantsSupplier(this);
+    if (invariantSupplierSingleton == null) {
+      invariantSupplierSingleton = new RegionInvariantsSupplier();
+    }
+    return invariantSupplierSingleton;
   }
 
   /**
@@ -406,7 +415,7 @@ class InvariantsManager implements StatisticsProvider {
 
     // start with invariant generation
     stats.invgenTime.start();
-    stats.totalInvGenTries.setNextValue(1);
+    stats.totalInvGenTries.inc();
 
     try {
       ShutdownManager invariantShutdown = ShutdownManager.createWithParent(pShutdownNotifier);
@@ -530,10 +539,10 @@ class InvariantsManager implements StatisticsProvider {
       refinementCache.addAll(tmpRefinementCache);
 
       if (atLeastOneStrategyFinished) {
-        stats.terminatingInvGenTries.setNextValue(1);
+        stats.terminatingInvGenTries.inc();
       }
       if (atLeastOneSuccessful) {
-        stats.successfulInvGenTries.setNextValue(1);
+        stats.successfulInvGenTries.inc();
       }
       stats.usedStrategiesPerTrie.setNextValue(numUsedStrategies);
     }
@@ -554,8 +563,9 @@ class InvariantsManager implements StatisticsProvider {
     if (usageStrategy != InvariantUsageStrategy.REFINEMENT && !bfmgr.isTrue(pInvariant)) {
 
       Region invariantRegion = amgr.makePredicate(checkNotNull(pInvariant)).getAbstractVariable();
-      if (regionInvariantsCache.containsKey(pLocation)) {
-        invariantRegion = rmgr.makeAnd(regionInvariantsCache.get(pLocation), invariantRegion);
+      Region oldRegion = regionInvariantsCache.getIfPresent(pLocation);
+      if (oldRegion != null) {
+        invariantRegion = rmgr.makeAnd(oldRegion, invariantRegion);
       }
       regionInvariantsCache.put(pLocation, invariantRegion);
     }
@@ -991,20 +1001,22 @@ class InvariantsManager implements StatisticsProvider {
     }
   }
 
-  static class RegionInvariantsSupplier {
+  public class RegionInvariantsSupplier {
 
-    private final InvariantsManager invariants;
+    /**
+     * private constructor so that this object can only be created from within
+     * InvariantsGenerator
+     */
+    private RegionInvariantsSupplier() {}
 
-    public RegionInvariantsSupplier(InvariantsManager pInvariants) {
-      invariants = pInvariants;
-    }
-
-    public Region getInvariantFor(CFANode location) {
-      return invariants.regionInvariantsCache.get(location);
-    }
-
-    public boolean hasInvariantFor(CFANode location) {
-      return invariants.regionInvariantsCache.containsKey(location);
+    /**
+     * Returns the invariants for a given location.
+     *
+     * @param pLocation the location for which invariants are needed
+     * @return the invariants for the given location, or null if not available
+     */
+    public Region getInvariantFor(CFANode pLocation) {
+      return regionInvariantsCache.getIfPresent(pLocation);
     }
   }
 
@@ -1069,7 +1081,7 @@ class InvariantsManager implements StatisticsProvider {
     }
   }
 
-  private static class Stats extends AbstractStatistics {
+  private class Stats extends AbstractStatistics {
     private final StatTimer invgenTime = new StatTimer("Total time for invariant generation");
     private final StatTimer rfKindTime =
         new StatTimer("Time for checking interpolants with k-induction");
@@ -1078,14 +1090,14 @@ class InvariantsManager implements StatisticsProvider {
     private final StatTimer pfKindTime =
         new StatTimer("Time for checking pathformula with k-induction");
     private final StatTimer pfWeakeningTime = new StatTimer("Time for inductive weakening");
-    private final StatInt totalInvGenTries =
-        new StatInt(StatKind.COUNT, "Total invariant generation tries");
+    private final StatCounter totalInvGenTries =
+        new StatCounter("Total invariant generation tries");
     private final StatInt usedStrategiesPerTrie =
         new StatInt(StatKind.AVG, "Used strategies per generation try");
-    private final StatInt successfulInvGenTries =
-        new StatInt(StatKind.COUNT, "Successful invariant generation tries");
-    private final StatInt terminatingInvGenTries =
-        new StatInt(StatKind.COUNT, "Invariant generation tries finishing in time");
+    private final StatCounter successfulInvGenTries =
+        new StatCounter("Successful invariant generation tries");
+    private final StatCounter terminatingInvGenTries =
+        new StatCounter("Invariant generation tries finishing in time");
 
     @Override
     public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
@@ -1097,7 +1109,13 @@ class InvariantsManager implements StatisticsProvider {
             .beginLevel()
             .put(terminatingInvGenTries)
             .put(successfulInvGenTries)
-            .put(usedStrategiesPerTrie)
+            .put(
+                "Used strategies per generation try",
+                String.format(
+                    "%11.2f (max: %d, min: %d)",
+                    usedStrategiesPerTrie.getAverage(),
+                    usedStrategiesPerTrie.getMax(),
+                    usedStrategiesPerTrie.getMin()))
             .endLevel()
             .spacer()
             .put(invgenTime)
@@ -1105,7 +1123,24 @@ class InvariantsManager implements StatisticsProvider {
             .put(rfKindTime)
             .put(rfInvGenTime)
             .put(pfKindTime)
-            .put(pfWeakeningTime);
+            .put(pfWeakeningTime)
+            .endLevel()
+            .spacer()
+            .put(
+                "Size of invariants cache",
+                String.format(
+                    "%8d (updated invariants: %d)",
+                    regionInvariantsCache.size(),
+                    regionInvariantsCache.stats().evictionCount()))
+            .put(
+                "Invariants cache hit rate",
+                String.format(
+                    "%11.2f (requests: %d, hits: %d, misses: %d)",
+                    regionInvariantsCache.stats().hitRate(),
+                    regionInvariantsCache.stats().requestCount(),
+                    regionInvariantsCache.stats().hitCount(),
+                    regionInvariantsCache.stats().missCount()));
+
       }
     }
 

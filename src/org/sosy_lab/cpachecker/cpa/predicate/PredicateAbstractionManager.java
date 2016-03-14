@@ -352,8 +352,9 @@ public class PredicateAbstractionManager {
     }
 
     // add invariants to abstraction formula if available
-    if (locationBasedInvariantSupplier.hasInvariantFor(location)) {
-      abs = rmgr.makeAnd(abs, locationBasedInvariantSupplier.getInvariantFor(location));
+    Region invariant = locationBasedInvariantSupplier.getInvariantFor(location);
+    if (invariant != null) {
+      abs = rmgr.makeAnd(abs, invariant);
       // Calculate the set of predicates we still need to use for abstraction.
       predicates = from(predicates).filter(not(in(amgr.extractPredicates(abs)))).toSet();
     }
