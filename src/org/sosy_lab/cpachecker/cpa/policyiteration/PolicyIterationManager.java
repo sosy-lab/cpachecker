@@ -86,7 +86,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     LOOPHEAD,
 
     /**
-     * Whenever mutliple paths are merged.
+     * Whenever multiple paths are merged.
      */
     MERGE
   }
@@ -379,8 +379,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         out = element.get();
       }
     }
-
-    latestSibling.setLatestVersion(out);
 
     return out;
   }
@@ -725,8 +723,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         BooleanFormula prevStateConstraint = bfmgr.makeBoolean(true);
         PolicyBound prevBound = null;
         if (usePreviousBounds && otherState.isPresent()) {
-          PolicyAbstractedState prevState = otherState.get()
-              .getLatestVersion();
+          PolicyAbstractedState prevState = otherState.get();
           Optional<PolicyBound> bound = prevState.getBound(template);
           if (!bound.isPresent()) {
 
@@ -889,8 +886,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         dependsOnInitial = true;
     }
 
-    PolicyAbstractedState backpointer = inputState.getGeneratingState()
-        .getLatestVersion();
+    PolicyAbstractedState backpointer = inputState.getGeneratingState();
 
     Set<String> policyVars = fmgr.extractFunctionNames(policyFormula);
     Set<Template> dependencies;
@@ -957,7 +953,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       Set<String> formulaVars,
       Template pTemplate
   ) {
-    PolicyAbstractedState generatingState = state.getGeneratingState().getLatestVersion();
+    PolicyAbstractedState generatingState = state.getGeneratingState();
     Set<String> templateVars = fmgr.extractFunctionNames(
         templateManager.toFormula(pfmgr, fmgr, pTemplate, state.getPathFormula()));
 

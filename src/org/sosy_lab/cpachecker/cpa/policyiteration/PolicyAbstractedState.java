@@ -1,7 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -14,11 +13,9 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
 public final class PolicyAbstractedState extends PolicyState
       implements Iterable<Entry<Template, PolicyBound>>,
@@ -51,12 +48,6 @@ public final class PolicyAbstractedState extends PolicyState
   private final Optional<PolicyIntermediateState> predecessor;
 
   /**
-   * Pointer to the latest version of the state associated with the given
-   * location (potentially itself).
-   */
-  private transient PolicyAbstractedState latestVersion = this;
-
-  /**
    * If state A and state B can potentially get merged, they share the same
    * location.
    */
@@ -86,38 +77,6 @@ public final class PolicyAbstractedState extends PolicyState
 
   public CongruenceState getCongruence() {
     return congruence;
-  }
-
-  public void setLatestVersion(PolicyAbstractedState pLatestVersion) {
-    latestVersion = pLatestVersion.getLatestVersion();
-  }
-
-  /**
-   * @return latest version of this state found in the reached set.
-   * Only used in {@code joinOnMerge} configuration.
-   */
-  public PolicyAbstractedState getLatestVersion() {
-    if (!manager.shouldUseLatestVersion()) {
-
-      // An option to make this operation a NO-OP.
-      return this;
-    }
-
-    PolicyAbstractedState latest = this;
-    Set<PolicyAbstractedState> toUpdate = new HashSet<>();
-
-    // Traverse the pointers up.
-    while (latest.latestVersion != latest) {
-      boolean changed = toUpdate.add(latest);
-      latest = latest.latestVersion;
-      Preconditions.checkState(changed, "getLatestVersion should not be cyclic");
-    }
-
-    // Update the pointers on the visited states.
-    for (PolicyAbstractedState updated : toUpdate) {
-      updated.latestVersion = latest;
-    }
-    return latest;
   }
 
   public static PolicyAbstractedState of(
