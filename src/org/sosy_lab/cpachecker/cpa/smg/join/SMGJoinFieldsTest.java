@@ -126,6 +126,7 @@ public class SMGJoinFieldsTest {
     fieldMap2.put(9, Pair.of(-1, 7));
 
     checkFields(smg1, fieldMap1, obj1);
+    checkFields(smg2, fieldMap2, obj2);
 
 
   }
