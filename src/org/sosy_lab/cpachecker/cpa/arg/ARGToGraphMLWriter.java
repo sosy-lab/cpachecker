@@ -27,6 +27,11 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Multimap;
 
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.ShadowCFAEdgeFactory.ShadowCFANode;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 
 import java.io.IOException;
@@ -138,7 +143,7 @@ public class ARGToGraphMLWriter {
         continue;
       }
 
-      createNodeForElement(currentElement);
+      sb.append(createNodeForElement(currentElement));
 
       for (ARGState covered : currentElement.getCoveredByThis()) {
         // dashed line for covering
@@ -183,7 +188,60 @@ public class ARGToGraphMLWriter {
     sb.append("</graphml>\n");
   }
 
-  private void createNodeForElement(final ARGState pElement) {}
+  private String createNodeForElement(final ARGState pElement) {
+    final StringBuilder builder = new StringBuilder();
+
+    builder.append("    <node id=\"n").append(pElement.getStateId()).append("\">\n");
+    builder.append("      <data key=\"d0\">\n");
+    builder.append("        <y:ShapeNode>\n");
+    builder.append("          <y:Geometry height=\"50.0\" width=\"250.0\" x=\"0.0\" y=\"0.0\"/>\n");
+    builder
+        .append("          <y:Fill color=\"")
+        .append(determineColor(pElement))
+        .append("\" transparent=\"false\"/>\n");
+    builder.append("          <y:BorderStyle color=\"#000000\" type=\"line\" width=\"0.0\"/>\n");
+    builder
+        .append("          <y:NodeLabel alignment=\"center\" autoSizePolicy=\"content\" ")
+        .append("fontFamily=\"Dialog\" fontSize=\"12\" fontStyle=\"plain\" ")
+        .append("hasBackgroundColor=\"false\" hasLineColor=\"false\" modelName=\"internal\" ")
+        .append("modelPosition=\"c\" textColor=\"#000000\" visible=\"true\">\n");
+    builder.append(determineLabel(pElement));
+    builder.append("          </y:NodeLabel>\n");
+    builder.append("          <y:Shape type=\"rectangle\"");
+    builder.append("        </y:ShapeNode>\n");
+    builder.append("      </data>\n");
+    builder.append("      <data key=\"d1\"/>\n");
+    builder.append("    </node>\n\n");
+
+    return builder.toString();
+  }
+
+  private static String determineLabel(final ARGState pElement) {
+    StringBuilder builder = new StringBuilder();
+
+    builder.append(pElement.getStateId());
+
+    Iterable<CFANode> locations = AbstractStates.extractLocations(pElement);
+    if (locations != null) {
+      for (CFANode location : locations) {
+        builder.append(" @ ");
+        builder.append(location.toString());
+        if (location instanceof ShadowCFANode) {
+          builder.append(" ~ weaved ");
+        }
+        builder.append("\\n");
+        builder.append(location.getFunctionName());
+        if (location instanceof FunctionEntryNode) {
+          builder.append(" entry");
+        } else if (location instanceof FunctionExitNode) {
+          builder.append(" exit");
+        }
+        builder.append("\\n");
+      }
+    }
+
+    return builder.toString().trim();
+  }
 
   private static String determineEdge(
       final Predicate<? super Pair<ARGState, ARGState>> pHightlightEdge,
