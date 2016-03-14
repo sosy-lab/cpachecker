@@ -150,7 +150,7 @@ public class PolicyIterationTest {
     check("formula_fail_true_assert.c",
         ImmutableMap.of("cpa.stator.policy.generateLowerBound", "false",
                         "cpa.stator.policy.generateFromAsserts", "false",
-                        "cpa.stator.policy.pathFocusing", "false"));
+                        "cpa.stator.policy.abstractionLocations", "all"));
   }
 
   @Test public void unrolling_true_assert() throws Exception {

@@ -67,8 +67,29 @@ import com.google.common.collect.Sets;
 public class PolicyIterationManager implements IPolicyIterationManager {
 
   @Option(secure = true,
-      description = "Perform abstraction only at the nodes from the cut-set.")
-  private boolean pathFocusing = true;
+      description = "Where to perform abstraction")
+  private ABSTRACTION_LOCATIONS abstractionLocations = ABSTRACTION_LOCATIONS.LOOPHEAD;
+
+  /**
+   * Where an abstraction should be performed.
+   */
+  private enum ABSTRACTION_LOCATIONS  {
+
+    /**
+     * At every node.
+     */
+    ALL,
+
+    /**
+     * Only at loop heads (the most sensible choice).
+     */
+    LOOPHEAD,
+
+    /**
+     * Whenever mutliple paths are merged.
+     */
+    MERGE
+  }
 
   @Option(secure = true, name = "epsilon",
       description = "Value to substitute for the epsilon")
@@ -83,8 +104,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
   @Option(secure=true,
   description="Use the optimized abstraction, which takes into the account the "
-      + "previously obtained bound at the location. Interferes with:"
-      + "obtaining templates using convex hull and split-sep merge configuration.")
+      + "previously obtained bound at the location. Interferes with"
+      + "obtaining templates using convex hull.")
   private boolean usePreviousBounds = true;
 
   @Option(secure=true, description="Any intermediate state with formula length "
@@ -900,18 +921,25 @@ public class PolicyIterationManager implements IPolicyIterationManager {
    * @return Whether to compute the abstraction when creating a new
    * state associated with <code>node</code>.
    */
-  private boolean shouldPerformAbstraction(PolicyIntermediateState iState,
+  private boolean shouldPerformAbstraction(
+      PolicyIntermediateState iState,
       AbstractState totalState) {
 
-    if (!pathFocusing) {
-      return true;
-    }
-    LoopstackState loopState = AbstractStates.extractStateByType(totalState,
-        LoopstackState.class);
-
     CFANode node = iState.getNode();
-    return (cfa.getAllLoopHeads().get().contains(node)
-        && (loopState == null || loopState.isLoopCounterAbstracted()));
+    switch (abstractionLocations) {
+      case ALL:
+        return true;
+      case LOOPHEAD:
+        LoopstackState loopState = AbstractStates.extractStateByType(totalState,
+            LoopstackState.class);
+
+        return (cfa.getAllLoopHeads().get().contains(node)
+            && (loopState == null || loopState.isLoopCounterAbstracted()));
+      case MERGE:
+        return node.getNumEnteringEdges() > 1;
+      default:
+        throw new UnsupportedOperationException("Unexpected state");
+    }
   }
 
   /** HELPER METHODS BELOW. **/
