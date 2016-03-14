@@ -312,9 +312,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
    * all possible inner transitions.
    */
   private Set<PathFormulaWithStartSSA> approximateLoopTransitions(
-      List<SlicingIntermediateState> paths,
-      SlicingIntermediateState iState
-      ) throws InterruptedException {
+      List<SlicingIntermediateState> paths, SlicingIntermediateState iState) {
     Set<PathFormulaWithStartSSA> out = new HashSet<>(paths.size() + 1);
     for (SlicingIntermediateState s : Iterables.concat(paths, ImmutableList.of(iState))) {
       out.add(
