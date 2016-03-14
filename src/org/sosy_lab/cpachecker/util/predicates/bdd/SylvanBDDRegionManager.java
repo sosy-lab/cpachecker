@@ -25,15 +25,23 @@ package org.sosy_lab.cpachecker.util.predicates.bdd;
 
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
-import static jsylvan.JSylvan.deref;
-import static jsylvan.JSylvan.makeUnionPar;
-import static jsylvan.JSylvan.ref;
+import static jsylvan.JSylvan.*;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicates;
-import com.google.common.collect.Maps;
-import com.google.common.primitives.Longs;
+import java.io.PrintStream;
+import java.lang.ref.PhantomReference;
+import java.lang.ref.Reference;
+import java.lang.ref.ReferenceQueue;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
+
+import javax.annotation.concurrent.GuardedBy;
+
+import jsylvan.JSylvan;
 
 import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -58,20 +66,10 @@ import org.sosy_lab.solver.api.FunctionDeclaration;
 import org.sosy_lab.solver.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.solver.visitors.BooleanFormulaVisitor;
 
-import java.io.PrintStream;
-import java.lang.ref.PhantomReference;
-import java.lang.ref.Reference;
-import java.lang.ref.ReferenceQueue;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.concurrent.GuardedBy;
-
-import jsylvan.JSylvan;
+import com.google.common.base.Function;
+import com.google.common.base.Predicates;
+import com.google.common.collect.Maps;
+import com.google.common.primitives.Longs;
 
 /**
  * A wrapper for the Sylvan (http://fmt.ewi.utwente.nl/tools/sylvan/) parallel BDD package,
@@ -479,7 +477,7 @@ class SylvanBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public Long visitAtom(BooleanFormula pAtom, FunctionDeclaration decl) {
+    public Long visitAtom(BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> decl) {
       return unwrap(atomToRegion.apply(pAtom));
     }
 
