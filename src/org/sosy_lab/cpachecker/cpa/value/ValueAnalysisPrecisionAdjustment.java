@@ -173,6 +173,8 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
     // all memory locations contained in the state here are both tracked and have a known valuation
     trackedMemoryLocation.addAll(resultState.getTrackedMemoryLocations());
 
+    resultState = resultState.equals(pState) ? pState : resultState;
+
     return Optional.of(PrecisionAdjustmentResult.create(resultState, pPrecision, Action.CONTINUE));
   }
 
