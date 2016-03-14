@@ -30,6 +30,9 @@ import com.google.common.collect.Multimap;
 import org.sosy_lab.cpachecker.util.Pair;
 
 import java.io.IOException;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -118,7 +121,37 @@ public class ARGToGraphMLWriter {
       final Function<? super ARGState, ? extends Iterable<ARGState>> pSuccessorFunction,
       final Predicate<? super ARGState> pDisplayedElements,
       final Predicate<? super Pair<ARGState, ARGState>> pHightlightEdge)
-      throws IOException {}
+      throws IOException {
+
+    Deque<ARGState> workList = new ArrayDeque<>();
+    Set<ARGState> processed = new HashSet<>();
+    StringBuilder edges = new StringBuilder();
+
+    workList.add(pRootState);
+
+    while (!workList.isEmpty()) {
+      ARGState currentElement = workList.removeLast();
+      if (!pDisplayedElements.apply(currentElement)) {
+        continue;
+      }
+      if (!processed.add(currentElement)) {
+        continue;
+      }
+
+      createNodeForElement(currentElement);
+
+      for (ARGState covered : currentElement.getCoveredByThis()) {
+        // dashed line for covering
+      }
+
+      for (ARGState child : pSuccessorFunction.apply(currentElement)) {
+        edges.append(determineEdge(pHightlightEdge, currentElement, child));
+        workList.add(child);
+      }
+    }
+
+    sb.append(edges);
+  }
 
   void enterSubgraph(final String pClusterStateID, final String pReachedSetStateId)
       throws IOException {}
@@ -132,9 +165,39 @@ public class ARGToGraphMLWriter {
     sb.append(
         "<graphml xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
             + "xmlns=\"http://graphml.graphdrawing.org/xmlns\">\n");
+    sb.append("  <graph id=\"CPAchecker-ARG\" edgedefault=\"unidirected\">\n");
   }
 
   private void finish() throws IOException {
+    sb.append("  </graph>\n");
     sb.append("</graphml>\n");
+  }
+
+  private void createNodeForElement(final ARGState pElement) {}
+
+  private static String determineEdge(
+      final Predicate<? super Pair<ARGState, ARGState>> pHightlightEdge,
+      final ARGState pState,
+      final ARGState pSuccessorState) {
+    final StringBuilder builder = new StringBuilder();
+
+    return builder.toString();
+  }
+
+  private static String determineColor(final ARGState pCurrentElement) {
+    if (pCurrentElement.isCovered()) {
+      return "#008000";
+    }
+    if (pCurrentElement.isTarget()) {
+      return "#FF0000";
+    }
+    if (!pCurrentElement.wasExpanded()) {
+      return "#FFA500";
+    }
+    if (pCurrentElement.shouldBeHighlighted()) {
+      return "#6495ED";
+    }
+
+    return null;
   }
 }
