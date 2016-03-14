@@ -1,12 +1,14 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.UniqueIdGenerator;
@@ -29,14 +31,12 @@ import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.FunctionDeclaration;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Finds inductive weakening of formulas (originally: formula slicing).
@@ -93,7 +93,6 @@ public class InductiveWeakeningManager implements StatisticsProvider {
   private final SyntacticWeakeningManager syntacticWeakeningManager;
   private final DestructiveWeakeningManager destructiveWeakeningManager;
   private final CEXWeakeningManager cexWeakeningManager;
-  private final SemiCNFManager semiCNFManager;
   private final ShutdownNotifier shutdownNotifier;
 
   private static final String SELECTOR_VAR_TEMPLATE = "_FS_SEL_VAR_";
@@ -115,7 +114,6 @@ public class InductiveWeakeningManager implements StatisticsProvider {
         logger, config);
     cexWeakeningManager = new CEXWeakeningManager(
         fmgr, pSolver, logger, statistics, config, shutdownNotifier);
-    semiCNFManager = new SemiCNFManager(fmgr, config);
   }
 
 
