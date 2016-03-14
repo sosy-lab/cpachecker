@@ -653,7 +653,7 @@ class InvariantsManager implements StatisticsProvider {
                         }
                       }));
 
-      new KInductionInvariantChecker(config, pInvariantShutdown, logger, cfa, candidateGenerator)
+      new KInductionInvariantChecker(config, pInvariantShutdown, new OnlyWarningsLogmanager(logger), cfa, candidateGenerator)
           .checkCandidates();
 
       Set<CandidateInvariant> invariants = candidateGenerator.getConfirmedCandidates();
