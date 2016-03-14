@@ -325,7 +325,13 @@ public class ARGToGraphMLWriter {
             .append("Line ")
             .append(edge.getLineNumber())
             .append(": ")
-            .append(edge.getDescription().replaceAll("\n", " ").replace('"', '\''))
+            .append(
+                edge.getDescription()
+                    .replaceAll("\n", " ")
+                    .replace('"', '\'')
+                    .replaceAll("&", "&amp;")
+                    .replaceAll("<", "&lt;")
+                    .replaceAll(">", "&gt;"))
             .append("</y:EdgeLabel>\n");
         builder.append("          <y:BendStyle smoothed=\"true\"/>\n");
       }
