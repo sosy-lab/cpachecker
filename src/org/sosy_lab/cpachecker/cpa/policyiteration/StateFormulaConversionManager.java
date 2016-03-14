@@ -1,6 +1,11 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map.Entry;
+
+import javax.annotation.Nullable;
+
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
@@ -12,12 +17,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map.Entry;
-
-import javax.annotation.Nullable;
 
 /**
  * Class responsible for converting states to formulas.
@@ -34,9 +33,10 @@ public class StateFormulaConversionManager {
 
   public StateFormulaConversionManager(
       FormulaManagerView pFmgr,
-      PathFormulaManager pPfmgr, CongruenceManager pCongruenceManager,
-      TemplateManager pTemplateManager, InvariantGenerator pInvariantGenerator)
-      throws InvalidConfigurationException {
+      PathFormulaManager pPfmgr,
+      CongruenceManager pCongruenceManager,
+      TemplateManager pTemplateManager,
+      InvariantGenerator pInvariantGenerator) {
     fmgr = pFmgr;
     pfmgr = pPfmgr;
     congruenceManager = pCongruenceManager;
