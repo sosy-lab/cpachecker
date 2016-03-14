@@ -168,9 +168,9 @@ public class ARGToGraphMLWriter {
   private void appendDocHeader() throws IOException {
     sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
     sb.append(
-        "<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\""
-            + "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\""
-            + "xmlns:y=\"http://www.yworks.com/xml/graphml\""
+        "<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\" "
+            + "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
+            + "xmlns:y=\"http://www.yworks.com/xml/graphml\" "
             + "xsi:schemaLocation=\"http://graphml.graphdrawing.org/xmlns "
             + "http://www.yworks.com/xml/schema/graphml/1.0/ygraphml.xsd\">\n");
     sb.append("  <key for=\"node\" id=\"d0\" yfiles.type=\"nodegraphics\"/>\n");
@@ -178,6 +178,8 @@ public class ARGToGraphMLWriter {
     sb.append("  <key for=\"edge\" id=\"d2\" yfiles.type=\"edgegraphics\"/>\n");
     sb.append("  <key attr.name=\"description\" attr.type=\"string\" for=\"edge\" id=\"d3\"/>\n");
     sb.append("  <key for=\"graphml\" id=\"d4\" yfiles.type=\"resources\"/>\n\n");
+
+    sb.append("  <graph edgedefault=\"directed\" id=\"G\">\n");
   }
 
   private void finish() throws IOException {
@@ -204,10 +206,10 @@ public class ARGToGraphMLWriter {
         .append("          <y:NodeLabel alignment=\"center\" autoSizePolicy=\"content\" ")
         .append("fontFamily=\"Dialog\" fontSize=\"12\" fontStyle=\"plain\" ")
         .append("hasBackgroundColor=\"false\" hasLineColor=\"false\" modelName=\"internal\" ")
-        .append("modelPosition=\"c\" textColor=\"#000000\" visible=\"true\">\n");
-    builder.append(determineLabel(pElement));
-    builder.append("          </y:NodeLabel>\n");
-    builder.append("          <y:Shape type=\"rectangle\"");
+        .append("modelPosition=\"c\" textColor=\"#000000\" visible=\"true\">")
+        .append(determineLabel(pElement))
+        .append("</y:NodeLabel>\n");
+    builder.append("          <y:Shape type=\"rectangle\"/>\n");
     builder.append("        </y:ShapeNode>\n");
     builder.append("      </data>\n");
     builder.append("      <data key=\"d1\"/>\n");
@@ -229,14 +231,14 @@ public class ARGToGraphMLWriter {
         if (location instanceof ShadowCFANode) {
           builder.append(" ~ weaved ");
         }
-        builder.append("\\n");
+        builder.append("\n");
         builder.append(location.getFunctionName());
         if (location instanceof FunctionEntryNode) {
           builder.append(" entry");
         } else if (location instanceof FunctionExitNode) {
           builder.append(" exit");
         }
-        builder.append("\\n");
+        builder.append("\n");
       }
     }
 
