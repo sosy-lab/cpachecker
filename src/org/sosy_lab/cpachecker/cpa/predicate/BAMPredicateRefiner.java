@@ -367,10 +367,5 @@ public abstract class BAMPredicateRefiner implements Refiner {
       }
       return relevantPredicatesComputer;
     }
-
-    @Override
-    protected void analyzePathPrecisions(ARGReachedSet argReached, List<ARGState> path) {
-      // Not implemented for BAM (different sets of reached states have to be handled)
-    }
   }
 }
