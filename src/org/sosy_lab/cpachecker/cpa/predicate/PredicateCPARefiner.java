@@ -241,15 +241,15 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
 
       CounterexampleTraceInfo counterexample;
 
-      // no invariants should be generated, we can do an interpolating refinement immediately
-      if (invariantsManager.shouldInvariantsBeComputed()) {
+      // Compute invariants if desired, and if the counterexample is not a repeated one
+      // (otherwise invariants for the same location didn't help before, so they won't help now).
+      if (!repeatedCounterexample && invariantsManager.shouldInvariantsBeComputed()) {
         counterexample =
             performInvariantsRefinement(
                 allStatesTrace,
                 elementsOnPath,
                 abstractionStatesTrace,
-                formulas,
-                repeatedCounterexample);
+                formulas);
 
       } else {
         logger.log(Level.FINEST, "Starting interpolation-based refinement.");
@@ -299,21 +299,20 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
         formulas,
         Lists.<AbstractState>newArrayList(abstractionStatesTrace),
         elementsOnPath,
-        strategy.needsInterpolants());
+        true);
   }
 
   private CounterexampleTraceInfo performInvariantsRefinement(
       final ARGPath allStatesTrace,
       final Set<ARGState> elementsOnPath,
       final List<ARGState> abstractionStatesTrace,
-      final List<BooleanFormula> formulas,
-      final boolean repeatedCounterexample)
+      final List<BooleanFormula> formulas)
       throws CPAException, InterruptedException {
 
     Set<Loop> loopsInPath;
 
     // check if invariants can be used at all
-    if ((loopsInPath = canInvariantsBeUsed(allStatesTrace, repeatedCounterexample)).isEmpty()) {
+    if ((loopsInPath = canInvariantsBeUsed(allStatesTrace)).isEmpty()) {
       logger.log(
           Level.FINEST,
           "Starting interpolation-based refinement because invariants cannot be generated.");
@@ -367,8 +366,6 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
 
   /**
    * Checks if necessary conditions for invariant generation are met. These are
-   * - the counterexample may not be a repeated one (invariants for the same location
-   *     didn't help before, so they won't help now)
    * - the loops for which invariants should be generated was not in the counter
    *     example path too often (depending on configuration). Most likely computing
    *     invariants over and over for the same loop doesn't make much sense, this
@@ -377,21 +374,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
    * @return An empty set signalizes that invariants cannot be used. Otherwise the
    *         loops occuring in the current path are given
    */
-  private Set<Loop> canInvariantsBeUsed(
-      final ARGPath allStatesTrace, final boolean repeatedCounterexample) {
-    // nothing was computed up to now, so just call refinement of
-    // our super class if we have a repeated counter example
-    // or we don't even need a precision increment
-    if (repeatedCounterexample || !strategy.needsInterpolants()) {
-
-      // only interpolation or invariant-based refinements should be counted
-      // as repeated error paths
-      if (!strategy.needsInterpolants()) {
-        lastErrorPath = null;
-      }
-      return Collections.emptySet();
-    }
-
+  private Set<Loop> canInvariantsBeUsed(final ARGPath allStatesTrace) {
     // get the relevant loops in the ARGPath and the number of occurrences of
     // the most often found one
     Set<Loop> loopsInPath = getRelevantLoops(allStatesTrace);

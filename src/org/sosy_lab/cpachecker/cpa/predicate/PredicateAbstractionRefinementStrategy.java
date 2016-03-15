@@ -240,21 +240,12 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   private ListMultimap<Pair<CFANode, Integer>, AbstractionPredicate> newPredicates;
 
 
-  public void setUseAtomicPredicates(boolean atomicPredicates) {
+  final void setUseAtomicPredicates(boolean atomicPredicates) {
     this.atomicPredicates = atomicPredicates;
   }
 
   @Override
-  public void performRefinement(ARGReachedSet pReached, List<ARGState> abstractionStatesTrace,
-      List<BooleanFormula> pInterpolants, boolean pRepeatedCounterexample) throws CPAException, InterruptedException {
-    super.performRefinement(
-        pReached, abstractionStatesTrace, pInterpolants, pRepeatedCounterexample);
-    newPredicates = null;
-  }
-
-
-  @Override
-  protected void startRefinementOfPath() {
+  protected final void startRefinementOfPath() {
     checkState(newPredicates == null);
     // needs to be a fully deterministic data structure,
     // thus a Multimap based on a LinkedHashMap
@@ -263,7 +254,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   }
 
   @Override
-  protected boolean performRefinementForState(BooleanFormula pInterpolant, ARGState interpolationPoint) {
+  protected final boolean performRefinementForState(BooleanFormula pInterpolant, ARGState interpolationPoint) {
     checkState(newPredicates != null);
     checkArgument(!bfmgr.isTrue(pInterpolant));
 
@@ -286,7 +277,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
    * @param pInterpolant The interpolant formula.
    * @return A set of predicates.
    */
-  protected final Collection<AbstractionPredicate> convertInterpolant(
+  private final Collection<AbstractionPredicate> convertInterpolant(
       final BooleanFormula pInterpolant, PathFormula blockFormula) {
 
     BooleanFormula interpolant = pInterpolant;
@@ -335,7 +326,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   }
 
   @Override
-  protected void finishRefinementOfPath(ARGState pUnreachableState,
+  protected final void finishRefinementOfPath(ARGState pUnreachableState,
       List<ARGState> pAffectedStates, ARGReachedSet pReached,
       boolean pRepeatedCounterexample)
       throws CPAException {
@@ -346,10 +337,12 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     PredicatePrecision newPrecision = newPrecAndRefinementRoot.getFirst();
     ARGState refinementRoot = newPrecAndRefinementRoot.getSecond();
 
-    updateARGTree(newPrecision, refinementRoot, pReached);
+    updateARG(newPrecision, refinementRoot, pReached);
+
+    newPredicates = null;
   }
 
-  private void updateARGTree(PredicatePrecision pNewPrecision, ARGState pRefinementRoot,
+  protected void updateARG(PredicatePrecision pNewPrecision, ARGState pRefinementRoot,
       ARGReachedSet pReached) {
 
     argUpdate.start();
@@ -378,7 +371,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     argUpdate.stop();
   }
 
-  protected Pair<PredicatePrecision, ARGState> computeNewPrecision(ARGState pUnreachableState,
+  private final Pair<PredicatePrecision, ARGState> computeNewPrecision(ARGState pUnreachableState,
       List<ARGState> pAffectedStates, ARGReachedSet pReached, boolean pRepeatedCounterexample)
       throws RefinementFailedException {
 
@@ -490,7 +483,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     return Pair.of(newPrecision, refinementRoot);
   }
 
-  protected final PredicatePrecision extractPredicatePrecision(Precision oldPrecision) throws IllegalStateException {
+  private PredicatePrecision extractPredicatePrecision(Precision oldPrecision) throws IllegalStateException {
     PredicatePrecision oldPredicatePrecision = Precisions.extractPrecisionByType(oldPrecision, PredicatePrecision.class);
     if (oldPredicatePrecision == null) {
       throw new IllegalStateException("Could not find the PredicatePrecision for the error element");

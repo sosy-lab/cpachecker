@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionRefinementStrat
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.ARGTreePrecisionUpdater;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -89,17 +88,8 @@ class SymbolicPrecisionRefinementStrategy extends PredicateAbstractionRefinement
   }
 
   @Override
-  protected void finishRefinementOfPath(ARGState pUnreachableState,
-      List<ARGState> pAffectedStates, ARGReachedSet pReached,
-      boolean pRepeatedCounterexample
-  ) throws CPAException {
-
-    final Pair<PredicatePrecision, ARGState> newPrecAndRefinementRoot =
-        computeNewPrecision(pUnreachableState, pAffectedStates, pReached, pRepeatedCounterexample);
-
-    final PredicatePrecision newPrecision = newPrecAndRefinementRoot.getFirst();
-    final ARGState refinementRoot = newPrecAndRefinementRoot.getSecond();
-
+  protected void updateARG(PredicatePrecision newPrecision, ARGState pRefinementRoot,
+      ARGReachedSet pReached) {
     assert newPrecision.getFunctionPredicates().isEmpty()
         : "Only local predicates allowed, but function predicate exists";
     assert newPrecision.getGlobalPredicates().isEmpty()
@@ -128,17 +118,7 @@ class SymbolicPrecisionRefinementStrategy extends PredicateAbstractionRefinement
       constrPrecInc.locallyTracked(currNode, (Constraint) null); // we only need the node
     }
 
-    updateARGTree(pReached, refinementRoot, valuePrecInc, constrPrecInc.build());
-  }
-
-  private void updateARGTree(
-      final ARGReachedSet pReached,
-      final ARGState pRefinementRoot,
-      final Multimap<CFANode, MemoryLocation> pValuePrecInc,
-      final Increment pConstrPrecInc
-  ) {
-
     final ARGTreePrecisionUpdater precUpdater = ARGTreePrecisionUpdater.getInstance();
-    precUpdater.updateARGTree(pReached, pRefinementRoot, pValuePrecInc, pConstrPrecInc);
+    precUpdater.updateARGTree(pReached, pRefinementRoot, valuePrecInc, constrPrecInc.build());
   }
 }

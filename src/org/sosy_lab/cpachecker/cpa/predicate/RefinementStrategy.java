@@ -98,10 +98,6 @@ public abstract class RefinementStrategy {
     bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
   }
 
-  public boolean needsInterpolants() {
-    return true;
-  }
-
   @ForOverride
   protected void analyzePathPrecisions(ARGReachedSet argReached, List<ARGState> path) {
     int equalPrecisions = 0;
