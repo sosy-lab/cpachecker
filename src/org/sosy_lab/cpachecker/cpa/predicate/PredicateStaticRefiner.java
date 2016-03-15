@@ -146,8 +146,6 @@ public class PredicateStaticRefiner extends StaticRefiner
 
   private boolean usedStaticRefinement = false;
 
-  private Multimap<String, AStatementEdge> directlyAffectingStatements;
-
   public PredicateStaticRefiner(
       Configuration pConfig,
       LogManager pLogger,
@@ -245,8 +243,7 @@ public class PredicateStaticRefiner extends StaticRefiner
       PredicatePrecision heuristicPrecision;
       predicateExtractionTime.start();
       try {
-        heuristicPrecision =
-            extractPrecisionFromCfa(pReached.asReachedSet(), targetState, atomicPredicates);
+        heuristicPrecision = extractPrecisionFromCfa(pReached.asReachedSet(), targetState);
       } catch (CPATransferException | SolverException e) {
         throw new CPAException("Static refinement failed", e);
       } finally {
@@ -287,12 +284,8 @@ public class PredicateStaticRefiner extends StaticRefiner
     return false;
   }
 
-  private void buildDirectlyAffectingStatements() {
-    if (directlyAffectingStatements != null) {
-      return;
-    }
-
-    directlyAffectingStatements = LinkedHashMultimap.create();
+  private Multimap<String, AStatementEdge> buildDirectlyAffectingStatements() {
+    Multimap<String, AStatementEdge> directlyAffectingStatements = LinkedHashMultimap.create();
 
     for (CFANode u : cfa.getAllNodes()) {
       Deque<CFAEdge> edgesToHandle = Queues.newArrayDeque(CFAUtils.leavingEdges(u));
@@ -313,6 +306,7 @@ public class PredicateStaticRefiner extends StaticRefiner
         }
       }
     }
+    return directlyAffectingStatements;
   }
 
   private boolean isContradicting(AssumeEdge assume, AStatementEdge stmt)
@@ -346,10 +340,9 @@ public class PredicateStaticRefiner extends StaticRefiner
      */
   }
 
-  private boolean hasContradictingOperationInFlow(AssumeEdge e)
+  private boolean hasContradictingOperationInFlow(
+      AssumeEdge e, Multimap<String, AStatementEdge> directlyAffectingStatements)
       throws SolverException, CPATransferException, InterruptedException {
-    buildDirectlyAffectingStatements();
-
     Collection<String> referenced = CIdExpressionCollectorVisitor.getVariablesOfExpression((CExpression) e.getExpression());
     for (String varName: referenced) {
       Collection<AStatementEdge> affectedByStmts = directlyAffectingStatements.get(varName);
@@ -362,7 +355,8 @@ public class PredicateStaticRefiner extends StaticRefiner
     return false;
   }
 
-  private Set<AssumeEdge> getAllNonLoopControlFlowAssumes()
+  private Set<AssumeEdge> getAllNonLoopControlFlowAssumes(
+      Multimap<String, AStatementEdge> directlyAffectingStatements)
       throws SolverException, CPATransferException, InterruptedException {
     Set<AssumeEdge> result = new HashSet<>();
 
@@ -371,7 +365,7 @@ public class PredicateStaticRefiner extends StaticRefiner
         if (e instanceof AssumeEdge) {
           AssumeEdge assume = (AssumeEdge) e;
           if (!isAssumeOnLoopVariable(assume)) {
-            if (hasContradictingOperationInFlow(assume)) {
+            if (hasContradictingOperationInFlow(assume, directlyAffectingStatements)) {
               result.add(assume);
             }
           }
@@ -382,7 +376,10 @@ public class PredicateStaticRefiner extends StaticRefiner
     return result;
   }
 
-  private Set<AssumeEdge> getAssumeEdgesAlongPath(UnmodifiableReachedSet reached, ARGState targetState)
+  private Set<AssumeEdge> getAssumeEdgesAlongPath(
+      UnmodifiableReachedSet reached,
+      ARGState targetState,
+      Multimap<String, AStatementEdge> directlyAffectingStatements)
       throws SolverException, CPATransferException, InterruptedException {
     Set<AssumeEdge> result = new HashSet<>();
 
@@ -405,7 +402,7 @@ public class PredicateStaticRefiner extends StaticRefiner
           if (e instanceof AssumeEdge) {
             AssumeEdge assume = (AssumeEdge) e;
             if (!isAssumeOnLoopVariable(assume)) {
-              if (hasContradictingOperationInFlow(assume)) {
+              if (hasContradictingOperationInFlow(assume, directlyAffectingStatements)) {
                 result.add(assume);
               }
             }
@@ -422,9 +419,9 @@ public class PredicateStaticRefiner extends StaticRefiner
    *
    * @return a precision for the predicate CPA
    */
-  private PredicatePrecision extractPrecisionFromCfa(UnmodifiableReachedSet pReached,
-      ARGState targetState, boolean atomicPredicates)
-          throws SolverException, CPATransferException, InterruptedException {
+  private PredicatePrecision extractPrecisionFromCfa(
+      UnmodifiableReachedSet pReached, ARGState targetState)
+      throws SolverException, CPATransferException, InterruptedException {
     logger.log(Level.FINER, "Extracting precision from CFA...");
 
     // Predicates that should be tracked on function scope
@@ -439,11 +436,15 @@ public class PredicateStaticRefiner extends StaticRefiner
     // Determine the assume edges that should be considered for predicate extraction
     Set<AssumeEdge> assumeEdges = new HashSet<>();
 
+    Multimap<String, AStatementEdge> directlyAffectingStatements =
+        buildDirectlyAffectingStatements();
+
     if (addAllControlFlowAssumes) {
-      assumeEdges.addAll(getAllNonLoopControlFlowAssumes());
+      assumeEdges.addAll(getAllNonLoopControlFlowAssumes(directlyAffectingStatements));
     } else {
       if (addAllErrorTraceAssumes) {
-        assumeEdges.addAll(getAssumeEdgesAlongPath(pReached, targetState));
+        assumeEdges.addAll(
+            getAssumeEdgesAlongPath(pReached, targetState, directlyAffectingStatements));
       }
       if (addAssumesByBoundedBackscan) {
         assumeEdges.addAll(getTargetLocationAssumes(Lists.newArrayList(targetLocation)).values());
