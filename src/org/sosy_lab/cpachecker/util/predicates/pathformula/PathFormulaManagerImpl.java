@@ -611,7 +611,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           }
         }
 
-        if (child.isTarget()) {
+        if (child.isTarget() || child.getChildren().isEmpty()) {
           // We might have performed a "split" before entering the target state
           isValidBranching = true;
         }
