@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getAllStatesOnPathsTo;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.io.Writer;
 import java.util.Collection;
 import java.util.Collections;
@@ -58,10 +59,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -82,6 +85,10 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManage
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
@@ -117,6 +124,12 @@ public class PredicateStaticRefiner extends StaticRefiner
 
   @Option(secure = true, description = "split generated heuristic predicates into atoms")
   private boolean atomicPredicates = false;
+
+  private final StatTimer totalTime = new StatTimer("Total time for static refinement");
+  private final StatTimer satCheckTime = new StatTimer("Time for path feasibility check");
+  private final StatTimer predicateExtractionTime = new StatTimer("Time for predicate extraction from CFA");
+  private final StatTimer argUpdateTime = new StatTimer("Time for ARG update");
+  private final StatInt foundPredicates = new StatInt(StatKind.SUM, "Number of predicates found statically");
 
   private final ShutdownNotifier shutdownNotifier;
 
@@ -178,6 +191,17 @@ public class PredicateStaticRefiner extends StaticRefiner
       return delegate.performRefinementForPath(pReached, allStatesTrace);
     }
 
+    totalTime.start();
+    try {
+      return performStaticRefinementForPath(pReached, allStatesTrace);
+    } finally {
+      totalTime.stop();
+    }
+  }
+
+  private CounterexampleInfo performStaticRefinementForPath(
+      final ARGReachedSet pReached, final ARGPath allStatesTrace)
+      throws CPAException, InterruptedException {
     logger.log(Level.FINEST, "Starting heuristics-based refinement.");
 
     Set<ARGState> elementsOnPath = getAllStatesOnPathsTo(allStatesTrace.getLastState());
@@ -196,12 +220,18 @@ public class PredicateStaticRefiner extends StaticRefiner
         blockFormulaStrategy.getFormulasForPath(
             allStatesTrace.getFirstState(), abstractionStatesTrace);
 
-    CounterexampleTraceInfo counterexample =
-        itpManager.buildCounterexampleTrace(
-            formulas,
-            Lists.<AbstractState>newArrayList(abstractionStatesTrace),
-            elementsOnPath,
-            false);
+    CounterexampleTraceInfo counterexample;
+    satCheckTime.start();
+    try {
+      counterexample =
+          itpManager.buildCounterexampleTrace(
+              formulas,
+              Lists.<AbstractState>newArrayList(abstractionStatesTrace),
+              elementsOnPath,
+              false);
+    } finally {
+      satCheckTime.stop();
+    }
 
     // if error is spurious refine
     if (counterexample.isSpurious()) {
@@ -213,18 +243,23 @@ public class PredicateStaticRefiner extends StaticRefiner
       ARGState targetState = abstractionStatesTrace.get(abstractionStatesTrace.size() - 1);
 
       PredicatePrecision heuristicPrecision;
+      predicateExtractionTime.start();
       try {
         heuristicPrecision =
             extractPrecisionFromCfa(pReached.asReachedSet(), targetState, atomicPredicates);
       } catch (CPATransferException | SolverException e) {
         throw new CPAException("Static refinement failed", e);
+      } finally {
+        predicateExtractionTime.stop();
       }
 
       shutdownNotifier.shutdownIfNecessary();
+      argUpdateTime.start();
       for (ARGState refinementRoot : ImmutableList.copyOf(root.getChildren())) {
         pReached.removeSubtree(
             refinementRoot, heuristicPrecision, Predicates.instanceOf(PredicatePrecision.class));
       }
+      argUpdateTime.stop();
 
       return CounterexampleInfo.spurious();
 
@@ -446,7 +481,12 @@ public class PredicateStaticRefiner extends StaticRefiner
       }
     }
 
-    logger.log(Level.FINER, "Extracting finished.");
+    Set<AbstractionPredicate> allPredicates = new HashSet<>();
+    allPredicates.addAll(globalPredicates);
+    allPredicates.addAll(functionPredicates.values());
+    foundPredicates.setNextValue(allPredicates.size());
+
+    logger.log(Level.FINER, "Extracting finished, found", allPredicates.size(), "predicates");
 
     return new PredicatePrecision(
         ImmutableSetMultimap.<Pair<CFANode,Integer>,
@@ -496,8 +536,29 @@ public class PredicateStaticRefiner extends StaticRefiner
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(new Stats());
     if (delegate instanceof StatisticsProvider) {
       ((StatisticsProvider) delegate).collectStatistics(pStatsCollection);
+    }
+  }
+
+  private class Stats implements Statistics {
+    @Override
+    public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+      StatisticsWriter.writingStatisticsTo(pOut)
+          .ifUpdatedAtLeastOnce(totalTime)
+          .put(foundPredicates)
+          .spacer()
+          .put(totalTime)
+          .beginLevel()
+          .put(satCheckTime)
+          .putIfUpdatedAtLeastOnce(predicateExtractionTime)
+          .putIfUpdatedAtLeastOnce(argUpdateTime);
+    }
+
+    @Override
+    public String getName() {
+      return "Static Predicate Refiner";
     }
   }
 }
