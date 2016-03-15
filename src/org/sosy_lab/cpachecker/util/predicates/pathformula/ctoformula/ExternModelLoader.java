@@ -56,8 +56,20 @@ public class ExternModelLoader {
 
   public BooleanFormula handleExternModelFunction(CFunctionCallExpression fexp, List<CExpression> parameters, SSAMapBuilder ssa) {
     assert (parameters.size()>0): "No external model given!";
+
+    String filename = null;
+    Path path = Paths.get(fexp.getFileLocation().getFileName());
+    if (path.isFile()) {
+      int lastIndexOfBackslash = path.getPath().lastIndexOf("\\");
+      if (lastIndexOfBackslash == -1) {
+        filename = parameters.get(0).toASTString().replaceAll("\"", "");
+      } else {
+        filename = Paths.get(path.getPath().substring(0, lastIndexOfBackslash)) + "\\"
+            + parameters.get(0).toASTString().replaceAll("\"", "");
+      }
+    }
+
     // the parameter comes in C syntax (with ")
-    String filename = parameters.get(0).toASTString().replaceAll("\"", "");
     Path modelFile = Paths.get(filename);
     return loadExternalFormula(modelFile, ssa);
   }

@@ -13,7 +13,7 @@ int main() {
 	x=select_one();
 	y=select_one();
 
-    if (__VERIFIER_externModelSatisfied("test/programs/simple/externalModel_model_SAFE.dimacs")) {
+    if (__VERIFIER_externModelSatisfied("externalModel_model_SAFE.dimacs")) {
 	if (x && !y) {
 __automaton_fail();
 	}
