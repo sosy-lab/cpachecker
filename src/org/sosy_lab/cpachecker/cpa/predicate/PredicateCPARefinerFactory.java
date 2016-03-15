@@ -33,8 +33,10 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
@@ -56,6 +58,12 @@ public class PredicateCPARefinerFactory {
 
   @Option(secure = true, description = "slice block formulas, experimental feature!")
   private boolean sliceBlockFormulas = false;
+
+  @Option(
+    secure = true,
+    description = "use heuristic to extract predicates from the CFA statically on first refinement"
+  )
+  private boolean performInitialStaticRefinement = false;
 
   private final PredicateCPA predicateCpa;
 
@@ -80,6 +88,23 @@ public class PredicateCPARefinerFactory {
   }
 
   /**
+   * Ensure that {@link PredicateStaticRefiner} is not used.
+   * This is mostly useful for configurations where static refinements do not make sense,
+   * or a the predicate refiner is used as a helper for other refinements and should always
+   * generate interpolants.
+   * @return this
+   * @throws InvalidConfigurationException If static refinements are enabled by the configuration.
+   */
+  public PredicateCPARefinerFactory forbidStaticRefinements() throws InvalidConfigurationException {
+    if (performInitialStaticRefinement) {
+      throw new InvalidConfigurationException(
+          "Static refinement is not supported with the configured refiner, "
+              + "please turn cpa.predicate.refinement.useStaticRefinement off.");
+    }
+    return this;
+  }
+
+  /**
    * Let the refiners created by this factory instance use the given {@link BlockFormulaStrategy}.
    * May be called only once, but does not need to be called
    * (in this case the configuration will determine the used BlockFormulaStrategy).
@@ -98,7 +123,7 @@ public class PredicateCPARefinerFactory {
    * @param pRefinementStrategy The refinement strategy to use.
    * @return A fresh instance.
    */
-  public PredicateCPARefiner create(RefinementStrategy pRefinementStrategy)
+  public ARGBasedRefiner create(RefinementStrategy pRefinementStrategy)
       throws InvalidConfigurationException {
     checkNotNull(pRefinementStrategy);
 
@@ -109,10 +134,12 @@ public class PredicateCPARefinerFactory {
     FormulaManagerView fmgr = solver.getFormulaManager();
     PathFormulaManager pfmgr = predicateCpa.getPathFormulaManager();
 
-    MachineModel machineModel = predicateCpa.getCfa().getMachineModel();
-    Optional<VariableClassification> variableClassification =
-        predicateCpa.getCfa().getVarClassification();
-    Optional<LoopStructure> loopStructure = predicateCpa.getCfa().getLoopStructure();
+    CFA cfa = predicateCpa.getCfa();
+    MachineModel machineModel = cfa.getMachineModel();
+    Optional<VariableClassification> variableClassification = cfa.getVarClassification();
+    Optional<LoopStructure> loopStructure = cfa.getLoopStructure();
+
+    PredicateAbstractionManager predAbsManager = predicateCpa.getPredicateManager();
     InvariantsManager invariantsManager = predicateCpa.getInvariantsManager();
 
     PrefixProvider prefixProvider = predicateCpa.getPrefixProvider();
@@ -137,17 +164,36 @@ public class PredicateCPARefinerFactory {
       bfs = sliceBlockFormulas ? new BlockFormulaSlicer(pfmgr) : new BlockFormulaStrategy();
     }
 
-    return new PredicateCPARefiner(
-        config,
-        logger,
-        loopStructure,
-        bfs,
-        fmgr,
-        interpolationManager,
-        pathChecker,
-        prefixProvider,
-        prefixSelector,
-        invariantsManager,
-        pRefinementStrategy);
+    ARGBasedRefiner refiner =
+        new PredicateCPARefiner(
+            config,
+            logger,
+            loopStructure,
+            bfs,
+            fmgr,
+            interpolationManager,
+            pathChecker,
+            prefixProvider,
+            prefixSelector,
+            invariantsManager,
+            pRefinementStrategy);
+
+    if (performInitialStaticRefinement) {
+      refiner =
+          new PredicateStaticRefiner(
+              config,
+              logger,
+              shutdownNotifier,
+              solver,
+              pfmgr,
+              predAbsManager,
+              bfs,
+              interpolationManager,
+              pathChecker,
+              cfa,
+              refiner);
+    }
+
+    return refiner;
   }
 }

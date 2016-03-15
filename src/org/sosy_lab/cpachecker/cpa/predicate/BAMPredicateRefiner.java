@@ -37,7 +37,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -112,7 +111,6 @@ public abstract class BAMPredicateRefiner implements Refiner {
 
     Configuration config = predicateCpa.getConfiguration();
     LogManager logger = predicateCpa.getLogger();
-    ShutdownNotifier shutdownNotifier = predicateCpa.getShutdownNotifier();
     Solver solver = predicateCpa.getSolver();
     PathFormulaManager pfmgr = predicateCpa.getPathFormulaManager();
 
@@ -120,13 +118,7 @@ public abstract class BAMPredicateRefiner implements Refiner {
 
     RefinementStrategy strategy =
         new BAMPredicateAbstractionRefinementStrategy(
-            config,
-            logger,
-            shutdownNotifier,
-            predicateCpa,
-            solver,
-            predicateCpa.getPredicateManager(),
-            predicateCpa.getStaticRefiner());
+            config, logger, predicateCpa, solver, predicateCpa.getPredicateManager());
 
     return new PredicateCPARefinerFactory(pCpa)
         .setBlockFormulaStrategy(blockFormulaStrategy)
@@ -272,14 +264,12 @@ public abstract class BAMPredicateRefiner implements Refiner {
     private BAMPredicateAbstractionRefinementStrategy(
         final Configuration config,
         final LogManager logger,
-        final ShutdownNotifier pShutdownNotifier,
         final BAMPredicateCPA predicateCpa,
         final Solver pSolver,
-        final PredicateAbstractionManager pPredAbsMgr,
-        final PredicateStaticRefiner pStaticRefiner)
+        final PredicateAbstractionManager pPredAbsMgr)
         throws InvalidConfigurationException {
 
-      super(config, logger, pShutdownNotifier, pPredAbsMgr, pStaticRefiner, pSolver);
+      super(config, logger, pPredAbsMgr, pSolver);
       this.predicateCpa = predicateCpa;
     }
 

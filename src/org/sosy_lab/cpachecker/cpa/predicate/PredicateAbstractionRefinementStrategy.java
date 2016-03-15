@@ -40,7 +40,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -64,7 +63,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -81,7 +79,6 @@ import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Predicate;
@@ -92,7 +89,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Sets;
 
@@ -157,18 +153,12 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
   private int refinementCount = 0; // this is modulo restartAfterRefinements
 
-  private int heuristicsCount = 0;
-
-  private boolean lastRefinementUsedHeuristics = false;
   private boolean atomicPredicates = false;
 
-
   protected final LogManager logger;
-  private final ShutdownNotifier shutdownNotifier;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final PredicateAbstractionManager predAbsMgr;
-  private final PredicateStaticRefiner staticRefiner;
   private final FormulaMeasuring formulaMeasuring;
   private final PredicateMapWriter precisionWriter;
 
@@ -224,21 +214,20 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     }
   }
 
-  public PredicateAbstractionRefinementStrategy(final Configuration config,
-      final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
+  public PredicateAbstractionRefinementStrategy(
+      final Configuration config,
+      final LogManager pLogger,
       final PredicateAbstractionManager pPredAbsMgr,
-      final PredicateStaticRefiner pStaticRefiner, final Solver pSolver)
-          throws InvalidConfigurationException {
+      final Solver pSolver)
+      throws InvalidConfigurationException {
     super(pSolver);
 
     config.inject(this, PredicateAbstractionRefinementStrategy.class);
 
     logger = pLogger;
-    shutdownNotifier = pShutdownNotifier;
     fmgr = pSolver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     predAbsMgr = pPredAbsMgr;
-    staticRefiner = pStaticRefiner;
     formulaMeasuring = new FormulaMeasuring(fmgr);
 
     if (dumpPredicates && dumpPredicatesFile != null) {
@@ -251,15 +240,6 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   private ListMultimap<Pair<CFANode, Integer>, AbstractionPredicate> newPredicates;
 
 
-  @Override
-  public boolean needsInterpolants() {
-    return !useStaticRefinement();
-  }
-
-  private boolean useStaticRefinement() {
-    return (staticRefiner != null) && (heuristicsCount == 0);
-  }
-
   public void setUseAtomicPredicates(boolean atomicPredicates) {
     this.atomicPredicates = atomicPredicates;
   }
@@ -267,33 +247,9 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   @Override
   public void performRefinement(ARGReachedSet pReached, List<ARGState> abstractionStatesTrace,
       List<BooleanFormula> pInterpolants, boolean pRepeatedCounterexample) throws CPAException, InterruptedException {
-
-    pRepeatedCounterexample = !lastRefinementUsedHeuristics && pRepeatedCounterexample;
-
-    if (useStaticRefinement()) {
-      UnmodifiableReachedSet reached = pReached.asReachedSet();
-      ARGState root = (ARGState)reached.getFirstState();
-      ARGState targetState = abstractionStatesTrace.get(abstractionStatesTrace.size()-1);
-
-      PredicatePrecision heuristicPrecision;
-      try {
-        heuristicPrecision = staticRefiner.extractPrecisionFromCfa(pReached.asReachedSet(), targetState, atomicPredicates);
-      } catch (CPATransferException | SolverException e) {
-        throw new CPAException("Static refinement failed", e);
-      }
-
-      shutdownNotifier.shutdownIfNecessary();
-      for (ARGState refinementRoot : Lists.newArrayList(root.getChildren())) {
-        pReached.removeSubtree(refinementRoot, heuristicPrecision, Predicates.instanceOf(PredicatePrecision.class));
-      }
-
-      heuristicsCount++;
-      lastRefinementUsedHeuristics = true;
-    } else {
-      lastRefinementUsedHeuristics = false;
-      super.performRefinement(pReached, abstractionStatesTrace, pInterpolants, pRepeatedCounterexample);
-      newPredicates = null;
-    }
+    super.performRefinement(
+        pReached, abstractionStatesTrace, pInterpolants, pRepeatedCounterexample);
+    newPredicates = null;
   }
 
 

@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.delegation;
 
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -76,18 +75,15 @@ public abstract class PredicateExtractionRefiner implements Refiner {
     constraintsCpa.injectRefinablePrecision(new RefinableConstraintsPrecision(config));
 
     final LogManager logger = valueAnalysisCpa.getLogger();
-    final ShutdownNotifier shutdownNotifier = valueAnalysisCpa.getShutdownNotifier();
 
     RefinementStrategy strategy =
         new SymbolicPrecisionRefinementStrategy(
             config,
             logger,
-            shutdownNotifier,
             predicateCPA.getPredicateManager(),
-            predicateCPA.getStaticRefiner(),
             predicateCPA.getSolver());
 
     return AbstractARGBasedRefiner.forARGBasedRefiner(
-        new PredicateCPARefinerFactory(pCpa).create(strategy), pCpa);
+        new PredicateCPARefinerFactory(pCpa).forbidStaticRefinements().create(strategy), pCpa);
   }
 }
