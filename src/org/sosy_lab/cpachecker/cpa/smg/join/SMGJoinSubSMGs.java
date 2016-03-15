@@ -64,7 +64,7 @@ final class SMGJoinSubSMGs {
                         SMGObject pObj1, SMGObject pObj2, SMGObject pNewObject) throws SMGInconsistentException{
 
     SMGJoinFields joinFields = new SMGJoinFields(pSMG1, pSMG2, pObj1, pObj2);
-
+    subSmgAbstractionCandidates = ImmutableList.of();
     inputSMG1 = joinFields.getSMG1();
     inputSMG2 = joinFields.getSMG2();
 
@@ -103,7 +103,7 @@ final class SMGJoinSubSMGs {
       /* If the join of the values is not defined and can't be
        * recovered through abstraction, the join fails.*/
       if (!joinValues.isDefined() && !joinValues.isRecoverable()) {
-        subSmgAbstractionCandidates = ImmutableList.of();
+        //subSmgAbstractionCandidates = ImmutableList.of();
         return;
       }
 
@@ -131,19 +131,19 @@ final class SMGJoinSubSMGs {
        sub smgs, we don't need to perform abstraction.*/
     if (allValuesDefined && valueAbstractionCandidates.isEmpty()) {
       defined = true;
-      subSmgAbstractionCandidates = ImmutableList.of();
+      //subSmgAbstractionCandidates = ImmutableList.of();
       return;
     }
 
-    SMGJoinAbstractionManager abstractionManager = new SMGJoinAbstractionManager(pObj1, pObj2, inputSMG1, inputSMG2, pNewObject, destSMG);
-    subSmgAbstractionCandidates = abstractionManager.calculateCandidates(valueAbstractionCandidates);
+    //SMGJoinAbstractionManager abstractionManager = new SMGJoinAbstractionManager(pObj1, pObj2, inputSMG1, inputSMG2, pNewObject, destSMG);
+    //subSmgAbstractionCandidates = abstractionManager.calculateCandidates(valueAbstractionCandidates);
 
     /*If abstraction candidates can be found for this sub Smg, then the join for this sub smg
      *  is defined under the assumption, that the abstraction of one abstraction candidate is executed.*/
-    if (!subSmgAbstractionCandidates.isEmpty()) {
-      defined = true;
-      return;
-    }
+    //if (!subSmgAbstractionCandidates.isEmpty()) {
+      //defined = true;
+      //return;
+    //}
 
     /* If no abstraction can be found for this sub Smg, then the join is only defined,
      * if all values are defined. For values that are defined under the assumption,
