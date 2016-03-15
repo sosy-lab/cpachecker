@@ -79,7 +79,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
   /**
    * refiner used for value-analysis refinement
    */
-  private final ValueAnalysisRefiner valueCpaRefiner;
+  private final ARGBasedRefiner valueCpaRefiner;
 
   /**
    * prefix provider used for value-analysis refinement
@@ -135,7 +135,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
         config,
         controlFlowAutomaton,
         cpa,
-        ValueAnalysisRefiner.create(cpa),
+        ValueAnalysisRefiner.create(cpa).asARGBasedRefiner(),
         new ValueAnalysisPrefixProvider(logger, controlFlowAutomaton, config),
         PredicateRefiner.create0(cpa),
         new PredicateBasedPrefixProvider(
@@ -146,7 +146,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       final Configuration pConfig,
       final CFA pCfa,
       final ConfigurableProgramAnalysis pCpa,
-      final ValueAnalysisRefiner pValueRefiner,
+      final ARGBasedRefiner pValueRefiner,
       final PrefixProvider pValueCpaPrefixProvider,
       final ARGBasedRefiner pPredicateRefiner,
       final PrefixProvider pPredicateCpaPrefixProvider)
@@ -280,7 +280,9 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       }
     });
 
-    valueCpaRefiner.collectStatistics(pStatsCollection);
+    if (valueCpaRefiner instanceof StatisticsProvider) {
+      ((StatisticsProvider) valueCpaRefiner).collectStatistics(pStatsCollection);
+    }
     if (predicateCpaRefiner instanceof StatisticsProvider) {
       ((StatisticsProvider) predicateCpaRefiner).collectStatistics(pStatsCollection);
     }

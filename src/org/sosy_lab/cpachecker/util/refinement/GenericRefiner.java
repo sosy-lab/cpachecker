@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
@@ -161,7 +162,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     return performRefinement(new ARGReachedSet(pReached, argCpa)).isSpurious();
   }
 
-  public CounterexampleInfo performRefinement(final ARGReachedSet pReached)
+  private CounterexampleInfo performRefinement(final ARGReachedSet pReached)
       throws CPAException, InterruptedException {
 
     Collection<ARGState> targets = pathExtractor.getTargetStates(pReached);
@@ -175,9 +176,35 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     return performRefinementForPaths(pReached, targets, targetPaths);
   }
 
-  public CounterexampleInfo performRefinementForPath(
-      final ARGReachedSet pReached, ARGPath targetPathToUse
-  ) throws CPAException, InterruptedException {
+  /**
+   * Provide an adaptor from {@link GenericRefiner} (which implements {@link Refiner})
+   * and provides global refinements) to {@link ARGBasedRefiner},
+   * which provides path-specific refinements.
+   */
+  public ARGBasedRefiner asARGBasedRefiner() {
+    class GenericRefinerToARGBasedRefinerAdaptor implements ARGBasedRefiner, StatisticsProvider {
+      @Override
+      public CounterexampleInfo performRefinementForPath(ARGReachedSet pReached, ARGPath pPath)
+          throws CPAException, InterruptedException {
+        return GenericRefiner.this.performRefinementForPath(pReached, pPath);
+      }
+
+      @Override
+      public void collectStatistics(Collection<Statistics> pStatsCollection) {
+        GenericRefiner.this.collectStatistics(pStatsCollection);
+      }
+
+      @Override
+      public String toString() {
+        return GenericRefiner.this.toString();
+      }
+    }
+    return new GenericRefinerToARGBasedRefinerAdaptor();
+  }
+
+  private final CounterexampleInfo performRefinementForPath(
+      final ARGReachedSet pReached, ARGPath targetPathToUse)
+      throws CPAException, InterruptedException {
     Collection<ARGState> targets = Collections.singleton(targetPathToUse.getLastState());
 
     boolean repeatingCEX = !madeProgress(targetPathToUse);

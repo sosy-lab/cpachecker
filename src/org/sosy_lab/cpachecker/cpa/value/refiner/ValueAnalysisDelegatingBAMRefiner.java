@@ -61,7 +61,9 @@ public abstract class ValueAnalysisDelegatingBAMRefiner implements Refiner {
     // first value analysis refiner, then predicate analysis refiner
     return BAMBasedRefiner.forARGBasedRefiner(
         new DelegatingARGBasedRefiner(
-            logger, ValueAnalysisBAMRefiner.create0(cpa), BAMPredicateRefiner.create0(cpa)),
+            logger,
+            ValueAnalysisRefiner.create(cpa).asARGBasedRefiner(),
+            BAMPredicateRefiner.create0(cpa)),
         cpa);
   }
 }
