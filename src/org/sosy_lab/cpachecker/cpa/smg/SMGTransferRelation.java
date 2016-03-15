@@ -59,7 +59,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -94,7 +96,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
@@ -1609,8 +1613,8 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       return handleInitializerList(pNewState, pVarDecl, pEdge,
           pNewObject, pOffset, pLValueType, ((CInitializerList) pInitializer));
     } else if (pInitializer instanceof CDesignatedInitializer) {
-      // TODO handle CDesignatedInitializer
-      return ImmutableList.of(pNewState);
+      throw new AssertionError("Error in handling initializer, designated Initializer " + pInitializer.toASTString()
+          + " should not appear at this point.");
 
     } else {
       throw new UnrecognizedCCodeException("Did not recognize Initializer", pInitializer);
@@ -1643,6 +1647,36 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     return ImmutableList.of(pNewState);
   }
 
+  private Pair<Integer, Integer> calculateOffsetAndPostionOfFieldFromDesignator(
+      int offsetAtStartOfStruct,
+      List<CCompositeTypeMemberDeclaration> pMemberTypes,
+      CDesignatedInitializer pInitializer,
+      CFAEdge pEdge,
+      SMGState pNewState,
+      CCompositeType pLValueType) throws UnrecognizedCCodeException {
+
+    // TODO More Designators?
+    assert pInitializer.getDesignators().size() == 1;
+
+    String fieldDesignator = ((CFieldDesignator) pInitializer.getDesignators().get(0)).getFieldName();
+
+    int offset = offsetAtStartOfStruct;
+
+    for (int listCounter = 0; listCounter < pMemberTypes.size(); listCounter++) {
+
+      CCompositeTypeMemberDeclaration memberDcl = pMemberTypes.get(listCounter);
+
+      if (memberDcl.getName().equals(fieldDesignator)) {
+        return Pair.of(offset, listCounter);
+      } else {
+        if (pLValueType.getKind() == ComplexTypeKind.STRUCT) {
+          offset = offset + expressionEvaluator.getSizeof(pEdge, memberDcl.getType(), pNewState);
+        }
+      }
+    }
+    throw new UnrecognizedCCodeException("CDesignator field name not in struct.", pInitializer);
+  }
+
   private List<SMGState> handleInitializerList(
       SMGState pNewState, CVariableDeclaration pVarDecl, CFAEdge pEdge,
       SMGObject pNewObject, int pOffset, CCompositeType pLValueType,
@@ -1658,7 +1692,47 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     List<Pair<SMGState, Integer>> offsetAndStates = new ArrayList<>();
     offsetAndStates.add(startOffsetAndState);
 
+    // Move preinitialization of global variable because of unpredictable fields' order within CDesignatedInitializer
+    if (pVarDecl.isGlobal()) {
+
+      List<Pair<SMGState, Integer>> result = new ArrayList<>(offsetAndStates.size());
+
+      for (Pair<SMGState, Integer> offsetAndState : offsetAndStates) {
+
+        int offset = offsetAndState.getSecond();
+        SMGState newState = offsetAndState.getFirst();
+
+        int sizeOfType = expressionEvaluator.getSizeof(pEdge, pLValueType, pNewState);
+
+        if (offset - pOffset < sizeOfType) {
+          newState = writeValue(newState, pNewObject, offset,
+              AnonymousTypes.createTypeWithLength(sizeOfType - (offset - pOffset)), SMGKnownSymValue.ZERO, pEdge);
+        }
+
+        result.add(Pair.of(newState, offset));
+      }
+
+      offsetAndStates = result;
+    }
+
+
     for (CInitializer initializer : pNewInitializer.getInitializers()) {
+
+      if (initializer instanceof CDesignatedInitializer) {
+        Pair<Integer, Integer> offsetAndPosition =
+            calculateOffsetAndPostionOfFieldFromDesignator(pOffset, memberTypes,
+                (CDesignatedInitializer) initializer, pEdge, pNewState, pLValueType);
+
+        int offset = offsetAndPosition.getFirst();
+        listCounter = offsetAndPosition.getSecond();
+        initializer = ((CDesignatedInitializer) initializer).getRightHandSide();
+
+        List<Pair<SMGState, Integer>> resultOffsetAndStatesDesignated = new ArrayList<>();
+        resultOffsetAndStatesDesignated.add(Pair.of(pNewState, offset));
+
+        offsetAndStates = resultOffsetAndStatesDesignated;
+
+      }
 
       if (listCounter >= memberTypes.size()) {
         throw new UnrecognizedCCodeException(
@@ -1691,28 +1765,6 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
       offsetAndStates = resultOffsetAndStates;
       listCounter++;
-    }
-
-    if (pVarDecl.isGlobal()) {
-
-      List<Pair<SMGState, Integer>> result = new ArrayList<>(offsetAndStates.size());
-
-      for (Pair<SMGState, Integer> offsetAndState : offsetAndStates) {
-
-        int offset = offsetAndState.getSecond();
-        SMGState newState = offsetAndState.getFirst();
-
-        int sizeOfType = expressionEvaluator.getSizeof(pEdge, pLValueType, pNewState);
-
-        if (offset - pOffset < sizeOfType) {
-          newState = writeValue(newState, pNewObject, offset,
-              AnonymousTypes.createTypeWithLength(sizeOfType - (offset - pOffset)), SMGKnownSymValue.ZERO, pEdge);
-        }
-
-        result.add(Pair.of(newState, offset));
-      }
-
-      offsetAndStates = result;
     }
 
     return FluentIterable.from(offsetAndStates).transform(new Function<Pair<SMGState, Integer>, SMGState>() {
