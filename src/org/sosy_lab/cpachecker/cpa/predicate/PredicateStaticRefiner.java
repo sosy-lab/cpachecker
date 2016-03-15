@@ -123,7 +123,7 @@ public class PredicateStaticRefiner extends StaticRefiner
   private Path assumePredicatesFile = null;
 
   @Option(secure = true, description = "split generated heuristic predicates into atoms")
-  private boolean atomicPredicates = false;
+  private boolean atomicPredicates = true;
 
   private final StatTimer totalTime = new StatTimer("Total time for static refinement");
   private final StatTimer satCheckTime = new StatTimer("Time for path feasibility check");

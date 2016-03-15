@@ -2609,7 +2609,7 @@ staticRefiner.applyScoped = true
 staticRefiner.assumePredicatesFile = no default value
 
 # split generated heuristic predicates into atoms
-staticRefiner.atomicPredicates = false
+staticRefiner.atomicPredicates = true
 
 # collect at most this number of assumes along a path, backwards from each
 # target (= error) location
