@@ -81,7 +81,8 @@ public class ARGStatistics implements IterationStatistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path argFile = Paths.get("ARG.dot");
 
-  @Option(secure = true, name = "graphml.file", description = "export final ARG as .graphml file")
+  @Option(secure = true, name = "graphml.file", description = "Export final ARG as .graphml file."
+      + " The .graphml file will be in die GraphML dialect of the tool \"yEd\".")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path graphMLFile = Paths.get("ARG.graphml");
 
