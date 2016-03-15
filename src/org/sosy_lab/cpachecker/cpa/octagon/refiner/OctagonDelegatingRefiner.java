@@ -47,18 +47,20 @@ import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonCPA;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonState;
-import org.sosy_lab.cpachecker.cpa.octagon.OctagonTransferRelation;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisPathInterpolator;
@@ -68,6 +70,7 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvid
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
 import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
@@ -82,12 +85,12 @@ import com.google.common.collect.Multimap;
  * and if this fails, optionally delegates also to {@link PredicateCPARefiner}.
  */
 @Options(prefix="cpa.octagon.refiner")
-public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements Statistics, StatisticsProvider {
+public class OctagonDelegatingRefiner implements ARGBasedRefiner, Statistics, StatisticsProvider {
 
   /**
    * refiner used for value-analysis interpolation refinement
    */
-  private ValueAnalysisPathInterpolator interpolatingRefiner;
+  private final ValueAnalysisPathInterpolator interpolatingRefiner;
 
   /**
    * the hash code of the previous error path
@@ -123,15 +126,16 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
   private boolean existsExplicitOctagonRefinement = false;
 
   private final CFA cfa;
-  private final OctagonCPA octagonCPA;
 
+  private final OctagonManager octagonManager;
+  private final TransferRelation octagonTransfer;
   private final FeasibilityChecker<ValueAnalysisState> valueChecker;
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final Configuration config;
 
-  public static OctagonDelegatingRefiner create(ConfigurableProgramAnalysis cpa) throws InvalidConfigurationException {
+  public static Refiner create(ConfigurableProgramAnalysis cpa) throws InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(OctagonDelegatingRefiner.class.getSimpleName() + " could not find the OctagonCPA");
     }
@@ -144,6 +148,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
     final LogManager logger = octagonCPA.getLogger();
     final Configuration config = octagonCPA.getConfiguration();
     final CFA cfa = octagonCPA.getCFA();
+    final ShutdownNotifier shutdownNotifier = octagonCPA.getShutdownNotifier();
 
     final StrongestPostOperator<ValueAnalysisState> valuePostOp =
         new ValueAnalysisStrongestPostOperator(logger, Configuration.builder().build(), cfa);
@@ -151,39 +156,56 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
     final FeasibilityChecker<ValueAnalysisState> valueChecker =
         new ValueAnalysisFeasibilityChecker(valuePostOp, logger, cfa, config);
 
-    OctagonDelegatingRefiner refiner =
-        new OctagonDelegatingRefiner(valueChecker, valuePostOp, cpa, octagonCPA);
+    final ValueAnalysisPathInterpolator interpolatingRefiner =
+        new ValueAnalysisPathInterpolator(
+            valueChecker,
+            valuePostOp,
+            new ValueAnalysisPrefixProvider(logger, cfa, config),
+            config,
+            logger,
+            shutdownNotifier,
+            cfa);
 
-    return refiner;
+    final OctagonDelegatingRefiner refiner =
+        new OctagonDelegatingRefiner(
+            config,
+            logger,
+            shutdownNotifier,
+            cfa,
+            octagonCPA.getManager(),
+            octagonCPA.getTransferRelation(),
+            valueChecker,
+            interpolatingRefiner);
+
+    return AbstractARGBasedRefiner.forARGBasedRefiner(refiner, cpa);
   }
 
   private OctagonDelegatingRefiner(
+      final Configuration pConfig,
+      final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier,
+      final CFA pCfa,
+      final OctagonManager pOctagonManager,
+      final TransferRelation pOctagonTransfer,
       final FeasibilityChecker<ValueAnalysisState> pValueAnalysisFeasibilityChecker,
-      final StrongestPostOperator<ValueAnalysisState> pValueAnalysisPostOperator,
-      final ConfigurableProgramAnalysis pCpa, final OctagonCPA pOctagonCPA)
+      final ValueAnalysisPathInterpolator pValueAnalysisPathInterpolator)
       throws InvalidConfigurationException {
-    super(pCpa);
 
-    final Configuration config = pOctagonCPA.getConfiguration();
-    config.inject(this);
-    this.config = config;
+    pConfig.inject(this);
+    config = pConfig;
+    logger = pLogger;
+    shutdownNotifier = pShutdownNotifier;
+    cfa = pCfa;
 
-    cfa                   = pOctagonCPA.getCFA();
-    logger                = pOctagonCPA.getLogger();
-    shutdownNotifier      = pOctagonCPA.getShutdownNotifier();
-    octagonCPA            = pOctagonCPA;
-    interpolatingRefiner  = new ValueAnalysisPathInterpolator(
-        pValueAnalysisFeasibilityChecker,
-        pValueAnalysisPostOperator,
-        new ValueAnalysisPrefixProvider(logger, cfa, config),
-        config,
-        logger, shutdownNotifier, cfa);
-
+    octagonManager = pOctagonManager;
+    octagonTransfer = pOctagonTransfer;
     valueChecker = pValueAnalysisFeasibilityChecker;
+    interpolatingRefiner = pValueAnalysisPathInterpolator;
   }
 
   @Override
-  protected CounterexampleInfo performRefinementForPath(final ARGReachedSet reached, final ARGPath pErrorPath)
+  public CounterexampleInfo performRefinementForPath(
+      final ARGReachedSet reached, final ARGPath pErrorPath)
       throws CPAException, InterruptedException {
 
     // if path is infeasible, try to refine the precision
@@ -348,9 +370,15 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
 
       // no specific timelimit set for octagon feasibility check
       if (timeForOctagonFeasibilityCheck.isEmpty()) {
-        checker = new OctagonAnalysisFeasabilityChecker(config, shutdownNotifier, path, octagonCPA.getClass(),
-            cfa.getVarClassification(), new OctagonTransferRelation(logger, cfa.getLoopStructure().get()),
-            new OctagonState(logger, octagonCPA.getManager()));
+        checker =
+            new OctagonAnalysisFeasabilityChecker(
+                config,
+                shutdownNotifier,
+                path,
+                OctagonCPA.class,
+                cfa.getVarClassification(),
+                octagonTransfer,
+                new OctagonState(logger, octagonManager));
 
       } else {
         ShutdownManager shutdown = ShutdownManager.createWithParent(shutdownNotifier);
@@ -358,9 +386,15 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
         ResourceLimitChecker limits = new ResourceLimitChecker(shutdown, Collections.<ResourceLimit>singletonList(l));
 
         limits.start();
-        checker = new OctagonAnalysisFeasabilityChecker(config, shutdown.getNotifier(), path, octagonCPA.getClass(),
-            cfa.getVarClassification(), new OctagonTransferRelation(logger, cfa.getLoopStructure().get()),
-            new OctagonState(logger, octagonCPA.getManager()));
+        checker =
+            new OctagonAnalysisFeasabilityChecker(
+                config,
+                shutdown.getNotifier(),
+                path,
+                OctagonCPA.class,
+                cfa.getVarClassification(),
+                octagonTransfer,
+                new OctagonState(logger, octagonManager));
         limits.cancel();
       }
 
