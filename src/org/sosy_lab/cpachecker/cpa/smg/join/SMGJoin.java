@@ -73,7 +73,7 @@ final public class SMGJoin {
         // the join. For now, we will treat this situation as unjoinable.
         return;
       }
-      SMGRegion finalObject = new SMGRegion(globalInSMG1);
+      SMGRegion finalObject = globalInSMG1;
       smg.addGlobalObject(finalObject);
       mapping1.map(globalInSMG1, finalObject);
       mapping2.map(globalInSMG2, finalObject);
@@ -100,7 +100,7 @@ final public class SMGJoin {
         }
         SMGRegion localInSMG1 = frameInSMG1.getVariable(localVar);
         SMGRegion localInSMG2 = frameInSMG2.getVariable(localVar);
-        SMGRegion finalObject = new SMGRegion(localInSMG1);
+        SMGRegion finalObject = localInSMG1;
         smg.addStackObject(finalObject);
         mapping1.map(localInSMG1, finalObject);
         mapping2.map(localInSMG2, finalObject);

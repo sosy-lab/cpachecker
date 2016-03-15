@@ -115,8 +115,17 @@ final class SMGJoinSubSMGs {
       mapping2 = joinValues.getMapping2();
 
       if (joinValues.isDefined()) {
-        SMGEdgeHasValue newHV = new SMGEdgeHasValue(hvIn1.getType(), hvIn1.getOffset(), pNewObject,
-            joinValues.getValue());
+
+        SMGEdgeHasValue newHV;
+
+        if (hvIn1.getObject().equals(pNewObject)
+            && joinValues.getValue().equals(hvIn1.getValue())) {
+          newHV = hvIn1;
+        } else {
+          newHV = new SMGEdgeHasValue(hvIn1.getType(), hvIn1.getOffset(), pNewObject,
+              joinValues.getValue());
+        }
+
         destSMG.addHasValueEdge(newHV);
 
         if(joinValues.subSmgHasAbstractionsCandidates()) {

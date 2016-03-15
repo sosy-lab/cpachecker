@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -54,6 +55,8 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMGConsistencyVerifier;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGIsLessOrEqual;
+import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoin;
+import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant;
@@ -140,6 +143,24 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     invalidFree = false;
     invalidRead = false;
     invalidWrite = false;
+  }
+
+  public SMGState(LogManager pLogger, boolean pTargetMemoryErrors,
+      boolean pUnknownOnUndefined, SMGRuntimeCheck pSMGRuntimeCheck, CLangSMG pHeap,
+      AtomicInteger pId, int pPredId, Map<SMGKnownSymValue, SMGKnownExpValue> pMergedExplicitValues) {
+    // merge
+    heap = pHeap;
+    logger = pLogger;
+    id_counter = pId;
+    predecessorId = pPredId;
+    id = id_counter.getAndIncrement();
+    memoryErrors = pTargetMemoryErrors;
+    unknownOnUndefined = pUnknownOnUndefined;
+    this.runtimeCheckLevel = pSMGRuntimeCheck;
+    invalidFree = false;
+    invalidRead = false;
+    invalidWrite = false;
+    explicitValues.putAll(pMergedExplicitValues);
   }
 
   SMGState(SMGState pOriginalState, SMGRuntimeCheck pSMGRuntimeCheck) {
@@ -705,8 +726,46 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    */
   @Override
   public SMGState join(SMGState reachedState) {
-    // Not necessary if merge_SEP and stop_SEP is used.
+    // Not necessary if merge_SEP or SMGMerge and stop_SEP is used.
     return null;
+  }
+
+  /**
+   * Computes the join of this abstract State and the reached abstract State,
+   * or returns the reached state, if no join is defined.
+   *
+   * @param reachedState the abstract state this state will be joined to.
+   * @return the join of the two states or reached state.
+   * @throws SMGInconsistentException inconsistent smgs while
+   */
+  public SMGState joinSMG(SMGState reachedState) throws SMGInconsistentException {
+    // Not necessary if merge_SEP and stop_SEP is used.
+
+    SMGJoin join = new SMGJoin(this.heap, reachedState.heap);
+
+    join.getStatus();
+    if (join.isDefined() && join.getStatus() != SMGJoinStatus.INCOMPARABLE
+        && join.getStatus() != SMGJoinStatus.INCOMPLETE) {
+
+      CLangSMG destHeap = join.getJointSMG();
+
+      Map<SMGKnownSymValue, SMGKnownExpValue> mergedExplicitValues = new HashMap<>();
+
+      for (Entry<SMGKnownSymValue, SMGKnownExpValue> entry : explicitValues.entrySet()) {
+        if(destHeap.getValues().contains(entry.getKey())) {
+          mergedExplicitValues.put(entry.getKey(), entry.getValue());
+        }
+      }
+
+      for (Entry<SMGKnownSymValue, SMGKnownExpValue> entry : reachedState.explicitValues.entrySet()) {
+        mergedExplicitValues.put(entry.getKey(), entry.getValue());
+      }
+
+      return new SMGState(logger, memoryErrors, unknownOnUndefined, runtimeCheckLevel, destHeap,
+          id_counter, predecessorId, mergedExplicitValues);
+    } else {
+      return reachedState;
+    }
   }
 
   /**

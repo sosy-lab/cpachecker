@@ -67,7 +67,15 @@ final class SMGJoinMapTargetAddress {
     }
 
     smg.addValue(value);
-    smg.addPointsToEdge(new SMGEdgePointsTo(value, target, pt.getOffset()));
+
+    SMGEdgePointsTo nPtEdge;
+    if(pt.getValue() == value && pt.getObject().equals(target)) {
+      nPtEdge = pt;
+    } else {
+      nPtEdge = new SMGEdgePointsTo(value, target, pt.getOffset());
+    }
+
+    smg.addPointsToEdge(nPtEdge);
     mapping1.map(pAddress1, value);
     mapping2.map(pAddress2, value);
   }
