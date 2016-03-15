@@ -65,6 +65,7 @@ import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.solver.api.IntegerFormulaManager;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 
 import java.util.Collections;
@@ -281,7 +282,14 @@ class AssignmentHandler {
             errorConditions, pts);
     final Value rhsValue = pAssignments.get(0).getRightHandSide().accept(rhsVisitor).asValue();
 
-    if (rhsValue == null || !checkEqualityOfInitializers(pAssignments, rhsVisitor)) {
+    final CExpressionVisitorWithHeapArray lhsVisitor =
+        new CExpressionVisitorWithHeapArray(
+            converter, edge, function, ssa, constraints, errorConditions, pts);
+    final Location lhsLocation = pLeftHandSide.accept(lhsVisitor).asLocation();
+
+    if (rhsValue == null
+        || !checkEqualityOfInitializers(pAssignments, rhsVisitor)
+        || !lhsLocation.isAliased()) {
       // Fallback case, if we have no initialization of the form "<variable> = <value>"
       // Example code snippet
       // (cf. test/programs/simple/struct-initializer-for-composite-field_false-unreach-label.c)
@@ -300,17 +308,52 @@ class AssignmentHandler {
               ? converter.getIndex(targetName, lhsType, ssa)
               : converter.getFreshIndex(targetName, lhsType, ssa);
 
+      final IntegerFormula lowerBound =
+          (IntegerFormula) ifmgr.unwrap(lhsLocation.asAliased().getAddress());
+      final IntegerFormula upperBound =
+          ifmgr.add(lowerBound, ifmgr.makeNumber(pAssignments.size()));
+
       final IntegerFormula counter = ifmgr.makeVariable(targetName + "@" + oldIndex + "@counter");
       final ArrayFormula<?, ?> newArray =
           afmgr.makeArray(targetName + "@" + newIndex, FormulaType.IntegerType, targetType);
       final ArrayFormula<?, ?> oldArray =
           afmgr.makeArray(targetName + "@" + oldIndex, FormulaType.IntegerType, targetType);
 
-      final BooleanFormula initializationAssignment =
-          formulaManager.makeEqual(newArray, afmgr.store(oldArray, counter, rhsValue.getValue()));
+      final List<BooleanFormula> rangeConstraint =
+          makeRangeConstraint(ifmgr, counter, lowerBound, upperBound);
 
-      return pQfmgr.forall(ImmutableList.of(counter), initializationAssignment);
+      final BooleanFormula selectFormula =
+          formulaManager.makeEqual(afmgr.select(newArray, counter), rhsValue.getValue());
+      final BooleanFormula copyFormula =
+          formulaManager.makeEqual(
+              newArray, afmgr.store(oldArray, counter, afmgr.select(oldArray, counter)));
+
+      return pQfmgr.forall(
+          Collections.singletonList(counter),
+          bfmgr.and(
+              bfmgr.implication(bfmgr.and(rangeConstraint), selectFormula),
+              bfmgr.implication(bfmgr.not(bfmgr.and(rangeConstraint)), copyFormula)));
     }
+  }
+
+  /**
+   * Creates a list of {@code BooleanFormula}s that are range constraints for universal quantifiers.
+   *
+   * @param pIntegerFormulaManager A formula manager for integers.
+   * @param pVariable The index variable of the quantifier.
+   * @param pLowerBound The lower bound of the constraints.
+   * @param pUpperBound The upper bound of the constraints.
+   * @param <R> The type of the index variable.
+   * @return A list of constraint formulae.
+   */
+  private <R extends IntegerFormula> List<BooleanFormula> makeRangeConstraint(
+      final IntegerFormulaManager pIntegerFormulaManager,
+      final R pVariable,
+      final R pLowerBound,
+      final R pUpperBound) {
+    return ImmutableList.of(
+        pIntegerFormulaManager.greaterOrEquals(pVariable, pLowerBound),
+        pIntegerFormulaManager.lessOrEquals(pVariable, pUpperBound));
   }
 
   /**
