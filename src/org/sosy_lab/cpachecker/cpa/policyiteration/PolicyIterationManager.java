@@ -2,16 +2,12 @@ package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import static com.google.common.collect.Iterables.filter;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.UniqueIdGenerator;
@@ -53,12 +49,16 @@ import org.sosy_lab.solver.api.Model;
 import org.sosy_lab.solver.api.OptimizationProverEnvironment;
 import org.sosy_lab.solver.api.ProverEnvironment;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * Main logic in a single class.
@@ -263,8 +263,10 @@ public class PolicyIterationManager implements IPolicyIterationManager {
    * operator.
    */
   @Override
-  public Optional<PrecisionAdjustmentResult> precisionAdjustment(PolicyState state,
-      PolicyPrecision precision, UnmodifiableReachedSet states,
+  public Optional<PrecisionAdjustmentResult> precisionAdjustment(
+      final PolicyState state,
+      PolicyPrecision precision,
+      UnmodifiableReachedSet states,
       AbstractState pArgState)
         throws CPAException, InterruptedException {
 
@@ -300,14 +302,24 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     // Perform the abstraction, if necessary.
     if (shouldPerformAbstraction) {
       PolicyPrecision toNodePrecision = templateManager.precisionForNode(state.getNode());
-
-
       Optional<PolicyAbstractedState> sibling = findSibling(iState, states, pArgState);
+
+      int locationID;
+      if (sibling.isPresent()) {
+        locationID = sibling.get().getLocationID();
+      } else if (state.isAbstract()) {
+        locationID = state.asAbstracted().getLocationID();
+      }else {
+        locationID = locationIDGenerator.getFreshId();
+        logger.log(Level.INFO, "Generating new location ID", locationID,
+            " for node ", state.getNode());
+      }
 
       statistics.startAbstractionTimer();
       PolicyAbstractedState abstraction;
       try {
-        abstraction = performAbstraction(iState, sibling, toNodePrecision, extraInvariant);
+        abstraction = performAbstraction(iState, locationID, sibling, toNodePrecision,
+            extraInvariant);
         logger.log(Level.FINE, ">>> Abstraction produced a state: ", abstraction);
       } finally {
         statistics.stopAbstractionTimer();
@@ -322,6 +334,20 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       } else {
         outState = abstraction;
       }
+
+      // Return identity if precision adjustment ran multiple times and nothing was changed.
+      if (state.isAbstract()) {
+        PolicyAbstractedState aState = state.asAbstracted();
+        if (aState.getAbstraction().equals(outState.getAbstraction())
+            && aState.getCongruence().equals(outState.getCongruence())
+            && aState.getExtraInvariant().equals(outState.getExtraInvariant())
+            && toNodePrecision.equals(precision)
+            ) {
+          outState = aState;
+          toNodePrecision = precision;
+        }
+      }
+
       return Optional.of(PrecisionAdjustmentResult.create(
           outState,
           toNodePrecision,
@@ -654,22 +680,13 @@ public class PolicyIterationManager implements IPolicyIterationManager {
    */
   private PolicyAbstractedState performAbstraction(
       final PolicyIntermediateState state,
+      int locationID,
       final Optional<PolicyAbstractedState> otherState,
       PolicyPrecision precision,
       BooleanFormula extraInvariant)
       throws CPAException, InterruptedException {
 
     logger.log(Level.FINE, "Performing abstraction at node: ", state.getNode());
-
-    int locationID;
-    if (otherState.isPresent()) {
-      locationID = otherState.get().getLocationID();
-    } else {
-      locationID = locationIDGenerator.getFreshId();
-      statistics.latestLocationID = locationID;
-      logger.log(Level.INFO, "Generating new location ID", locationID,
-          " for node ", state.getNode());
-    }
 
     final PathFormula p = state.getPathFormula();
 
