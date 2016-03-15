@@ -98,6 +98,11 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
       + "search and refine another error-path for the same target-state.")
   private boolean searchForFurtherErrorPaths = false;
 
+  /* This option is useful for BAM configuration with Predicate analysis
+   */
+  @Option(secure = true, description="store all refined paths")
+  private boolean storeAllRefinedPaths = false;
+
   protected final LogManager logger;
 
   private final ARGCPA argCpa;
@@ -151,6 +156,9 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   private boolean madeProgress(ARGPath path) {
     boolean progress = (previousErrorPathIds.isEmpty() || !previousErrorPathIds.contains(obtainErrorPathId(path)));
 
+    if (!storeAllRefinedPaths) {
+      previousErrorPathIds.clear();
+    }
     previousErrorPathIds.add(obtainErrorPathId(path));
 
     return progress;
@@ -327,7 +335,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
 
       if (isErrorPathFeasible(currentPath)) {
         if(feasiblePath == null) {
-          previousErrorPathIds.add(obtainErrorPathId(currentPath));
+          madeProgress(currentPath);
           feasiblePath = currentPath;
         }
 
