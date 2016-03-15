@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateBasedPrefixProvider;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
@@ -59,8 +58,10 @@ import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 /**
- * Refiner implementation that delegates to {@link ValueAnalysisPathInterpolator},
- * and if this fails, optionally delegates also to {@link PredicateCPARefiner}.
+ * Refiner implementation that delegates to a primary refiner
+ * and if this fails, optionally delegates also to a secondary refiner.
+ * Also supports Refinement Selection and can delegate to the refiner
+ * which has prefixes with the better score.
  */
 @Options(prefix="cegar")
 public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner implements StatisticsProvider {
@@ -77,24 +78,24 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
   private final PrefixSelector classfier;
 
   /**
-   * refiner used for value-analysis refinement
+   * refiner used for primary refinement
    */
-  private final ARGBasedRefiner valueCpaRefiner;
+  private final ARGBasedRefiner primaryRefiner;
 
   /**
-   * prefix provider used for value-analysis refinement
+   * prefix provider used for primary refinement
    */
-  private final PrefixProvider valueCpaPrefixProvider;
+  private final PrefixProvider primaryPrefixProvider;
 
   /**
-   * predicate-analysis refiner used for predicate refinement
+   * predicate-analysis refiner used for secondary refinement
    */
-  private final ARGBasedRefiner predicateCpaRefiner;
+  private final ARGBasedRefiner secondaryRefiner;
 
   /**
-   * prefix provider used for predicate-analysis refinement
+   * prefix provider used for secondary refinement
    */
-  private final PrefixProvider predicateCpaPrefixProvider;
+  private final PrefixProvider secondaryPrefixProvider;
 
   StatCounter totalPrimaryRefinementsSelected = new StatCounter("Times selected refinement");
   StatCounter totalPrimaryRefinementsFinished = new StatCounter("Times finished refinement");
@@ -129,14 +130,14 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
 
     Configuration config      = valueCpa.getConfiguration();
     LogManager logger         = valueCpa.getLogger();
-    CFA controlFlowAutomaton  = valueCpa.getCFA();
+    CFA cfa                   = valueCpa.getCFA();
 
     return new ValueAnalysisDelegatingRefiner(
         config,
-        controlFlowAutomaton,
         cpa,
+        new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure()),
         ValueAnalysisRefiner.create(cpa).asARGBasedRefiner(),
-        new ValueAnalysisPrefixProvider(logger, controlFlowAutomaton, config),
+        new ValueAnalysisPrefixProvider(logger, cfa, config),
         PredicateRefiner.create0(cpa),
         new PredicateBasedPrefixProvider(
             config, logger, predicateCpa.getSolver(), predicateCpa.getPathFormulaManager()));
@@ -144,48 +145,47 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
 
   protected ValueAnalysisDelegatingRefiner(
       final Configuration pConfig,
-      final CFA pCfa,
       final ConfigurableProgramAnalysis pCpa,
-      final ARGBasedRefiner pValueRefiner,
-      final PrefixProvider pValueCpaPrefixProvider,
-      final ARGBasedRefiner pPredicateRefiner,
-      final PrefixProvider pPredicateCpaPrefixProvider)
-      throws InvalidConfigurationException {
+      final PrefixSelector pClassifier,
+      final ARGBasedRefiner pPrimaryRefiner,
+      final PrefixProvider pPrimaryPrefixProvider,
+      final ARGBasedRefiner pSecondaryRefiner,
+      final PrefixProvider pSecondaryPrefixProvider) throws InvalidConfigurationException {
 
     super(pCpa);
     pConfig.inject(this);
 
-    classfier = new PrefixSelector(pCfa.getVarClassification(), pCfa.getLoopStructure());
+    classfier = pClassifier;
 
-    valueCpaRefiner         = pValueRefiner;
-    valueCpaPrefixProvider  = pValueCpaPrefixProvider;
+    primaryRefiner         = pPrimaryRefiner;
+    primaryPrefixProvider  = pPrimaryPrefixProvider;
 
-    predicateCpaRefiner         = pPredicateRefiner;
-    predicateCpaPrefixProvider  = pPredicateCpaPrefixProvider;
+    secondaryRefiner         = pSecondaryRefiner;
+    secondaryPrefixProvider  = pSecondaryPrefixProvider;
   }
 
   @Override
   protected CounterexampleInfo performRefinementForPath(final ARGReachedSet reached, ARGPath pErrorPath)
       throws CPAException, InterruptedException {
 
-    int vaScore = 0;
-    int paScore = Integer.MAX_VALUE;
+    int primaryScore = 0;
+    int secondaryScore = Integer.MAX_VALUE;
 
     if (useRefinementSelection) {
-      vaScore = obtainScoreForValueDomain(pErrorPath);
+      primaryScore = obtainScoreForPrimaryDomain(pErrorPath);
 
       // if score of primary analysis exceeds threshold, compute score for analysis
-      if(vaScore > domainScoreThreshold) {
-        paScore = obtainScoreForPredicateDomain(pErrorPath);
+      if (primaryScore > domainScoreThreshold) {
+        secondaryScore = obtainScoreForSecondaryDomain(pErrorPath);
       }
     }
 
     CounterexampleInfo cex;
 
-    if (vaScore < paScore) {
+    if (primaryScore < secondaryScore) {
       totalPrimaryRefinementsSelected.inc();
 
-      cex = valueCpaRefiner.performRefinementForPath(reached, pErrorPath);
+      cex = primaryRefiner.performRefinementForPath(reached, pErrorPath);
       if (cex.isSpurious()) {
         totalPrimaryRefinementsFinished.inc();
       }
@@ -193,7 +193,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       else {
         totalSecondaryExtraRefinementsSelected.inc();
 
-        cex = predicateCpaRefiner.performRefinementForPath(reached, pErrorPath);
+        cex = secondaryRefiner.performRefinementForPath(reached, pErrorPath);
         if (cex.isSpurious()) {
           totalSecondaryExtraRefinementsFinished.inc();
         }
@@ -203,7 +203,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     else {
       totalSecondaryRefinementsSelected.inc();
 
-      cex = predicateCpaRefiner.performRefinementForPath(reached, pErrorPath);
+      cex = secondaryRefiner.performRefinementForPath(reached, pErrorPath);
       if (cex.isSpurious()) {
         totalSecondaryRefinementsFinished.inc();
       }
@@ -211,7 +211,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       else {
         totalPrimaryExtraRefinementsSelected.inc();
 
-        cex = valueCpaRefiner.performRefinementForPath(reached, cex.getTargetPath());
+        cex = primaryRefiner.performRefinementForPath(reached, cex.getTargetPath());
         if (cex.isSpurious()) {
           totalPrimaryExtraRefinementsFinished.inc();
         }
@@ -221,35 +221,33 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     return cex;
   }
 
-  private int obtainScoreForValueDomain(final ARGPath pErrorPath) throws CPAException, InterruptedException {
-    List<InfeasiblePrefix> vaPrefixes = getPrefixesOfValueDomain(pErrorPath);
+  private int obtainScoreForPrimaryDomain(final ARGPath pErrorPath) throws CPAException, InterruptedException {
+    List<InfeasiblePrefix> primaryPrefixes = getPrefixesOfPrimaryDomain(pErrorPath);
 
     // if path is feasible hand out a real bad score
-    if(vaPrefixes.isEmpty()) {
+    if (primaryPrefixes.isEmpty()) {
       return Integer.MAX_VALUE;
     }
 
-    return classfier.obtainScoreForPrefixes(vaPrefixes, PrefixPreference.DOMAIN_MIN);
+    return classfier.obtainScoreForPrefixes(primaryPrefixes, PrefixPreference.DOMAIN_MIN);
   }
 
-  /** Experimental **/
-  @SuppressWarnings("unused")
-  private int obtainScoreForPredicateDomain(final ARGPath pErrorPath) throws CPAException, InterruptedException {
-    List<InfeasiblePrefix> paPrefixes = getPrefixesOfPredicateDomain(pErrorPath);
+  private int obtainScoreForSecondaryDomain(final ARGPath pErrorPath) throws CPAException, InterruptedException {
+    List<InfeasiblePrefix> secondaryPrefixes = getPrefixesOfSecondaryDomain(pErrorPath);
 
-    return classfier.obtainScoreForPrefixes(paPrefixes, PrefixPreference.DOMAIN_MIN);
+    return classfier.obtainScoreForPrefixes(secondaryPrefixes, PrefixPreference.DOMAIN_MIN);
   }
 
-  private List<InfeasiblePrefix> getPrefixesOfValueDomain(final ARGPath pErrorPath)
+  private List<InfeasiblePrefix> getPrefixesOfPrimaryDomain(final ARGPath pErrorPath)
       throws CPAException, InterruptedException {
 
-    return valueCpaPrefixProvider.extractInfeasiblePrefixes(pErrorPath);
+    return primaryPrefixProvider.extractInfeasiblePrefixes(pErrorPath);
   }
 
-  private List<InfeasiblePrefix> getPrefixesOfPredicateDomain(final ARGPath pErrorPath)
+  private List<InfeasiblePrefix> getPrefixesOfSecondaryDomain(final ARGPath pErrorPath)
       throws CPAException, InterruptedException {
 
-    return predicateCpaPrefixProvider.extractInfeasiblePrefixes(pErrorPath);
+    return secondaryPrefixProvider.extractInfeasiblePrefixes(pErrorPath);
   }
 
   @Override
@@ -280,11 +278,11 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       }
     });
 
-    if (valueCpaRefiner instanceof StatisticsProvider) {
-      ((StatisticsProvider) valueCpaRefiner).collectStatistics(pStatsCollection);
+    if (primaryRefiner instanceof StatisticsProvider) {
+      ((StatisticsProvider)primaryRefiner).collectStatistics(pStatsCollection);
     }
-    if (predicateCpaRefiner instanceof StatisticsProvider) {
-      ((StatisticsProvider) predicateCpaRefiner).collectStatistics(pStatsCollection);
+    if (secondaryRefiner instanceof StatisticsProvider) {
+      ((StatisticsProvider)secondaryRefiner).collectStatistics(pStatsCollection);
     }
   }
 }
