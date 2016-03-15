@@ -265,10 +265,9 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   @Override
   public Optional<PrecisionAdjustmentResult> precisionAdjustment(
       final PolicyState state,
-      PolicyPrecision precision,
-      UnmodifiableReachedSet states,
-      AbstractState pArgState)
-        throws CPAException, InterruptedException {
+      final PolicyPrecision precision,
+      final UnmodifiableReachedSet states,
+      final AbstractState pArgState) throws CPAException, InterruptedException {
 
     final PolicyIntermediateState iState;
     if (state.isAbstract()) {
@@ -341,8 +340,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         if (aState.getAbstraction().equals(outState.getAbstraction())
             && aState.getCongruence().equals(outState.getCongruence())
             && aState.getExtraInvariant().equals(outState.getExtraInvariant())
-            && toNodePrecision.equals(precision)
-            ) {
+            && toNodePrecision.equals(precision)) {
           outState = aState;
           toNodePrecision = precision;
         }
