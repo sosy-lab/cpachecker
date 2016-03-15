@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
-import com.google.common.collect.Multimap;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -39,18 +38,17 @@ import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 /**
  * Provides the possibility to export the ARG into a GraphML file
  */
-public class ARGToGraphMLWriter {
+class ARGToGraphMLWriter {
 
   private final Appendable sb;
   private static int edgeCounter;
 
-  ARGToGraphMLWriter(final Appendable pStringBuffer) throws IOException {
+  private ARGToGraphMLWriter(final Appendable pStringBuffer) throws IOException {
     sb = pStringBuffer;
 
     appendDocHeader();
@@ -79,53 +77,12 @@ public class ARGToGraphMLWriter {
 
     ARGToGraphMLWriter toGraphMLWriter = new ARGToGraphMLWriter(pStringBuffer);
     edgeCounter = 0;
-    toGraphMLWriter.writeSubgraph(
+    toGraphMLWriter.writeSubGraph(
         pRootState, pSuccessorFunction, pDisplayedElements, pHighlightEdge);
     toGraphMLWriter.finish();
   }
 
-  /**
-   * Create String with ARG in the GraphML format of yEd.
-   *
-   * @param pStringBuffer      Where to write the ARG into.
-   * @param pRootStates        The root elements of the ARGs.
-   * @param pConnections       Start- and end-points of edges between separate graphs.
-   * @param pSuccessorFunction A function giving all successors of an {@code ARGState}. Only states
-   *                           reachable from root by iteratively applying this function will be
-   *                           dumped.
-   * @param pDisplayedElements A predicate for selecting states that should be displayed. States
-   *                           which are only reachable via non-displayed states are ignored, too.
-   * @param pHighlightEdge     Which edges to highlight in the graph?
-   * @throws IOException In case of an IO problem
-   */
-  public static void write(
-      final Appendable pStringBuffer,
-      final Set<ARGState> pRootStates,
-      final Multimap<ARGState, ARGState> pConnections,
-      final Function<? super ARGState, ? extends Iterable<ARGState>> pSuccessorFunction,
-      final Predicate<? super ARGState> pDisplayedElements,
-      final Predicate<? super Pair<ARGState, ARGState>> pHighlightEdge)
-      throws IOException {
-
-    ARGToGraphMLWriter toGraphMLWriter = new ARGToGraphMLWriter(pStringBuffer);
-    edgeCounter = 0;
-    for (ARGState rootState : pRootStates) {
-      toGraphMLWriter.enterSubgraph(
-          "cluster_" + rootState.getStateId(), "reachedset_" + rootState.getStateId());
-      toGraphMLWriter.writeSubgraph(
-          rootState, pSuccessorFunction, pDisplayedElements, pHighlightEdge);
-      toGraphMLWriter.leaveSubgraph();
-    }
-
-    for (Map.Entry<ARGState, ARGState> connection : pConnections.entries()) {
-      toGraphMLWriter.addConnection(
-          connection.getKey().getStateId(), connection.getValue().getStateId());
-    }
-
-    toGraphMLWriter.finish();
-  }
-
-  void writeSubgraph(
+  private void writeSubGraph(
       final ARGState pRootState,
       final Function<? super ARGState, ? extends Iterable<ARGState>> pSuccessorFunction,
       final Predicate<? super ARGState> pDisplayedElements,
@@ -183,13 +140,6 @@ public class ARGToGraphMLWriter {
 
     sb.append(edges);
   }
-
-  void enterSubgraph(final String pClusterStateID, final String pReachedSetStateId)
-      throws IOException {}
-
-  void leaveSubgraph() throws IOException {}
-
-  void addConnection(final int pStartStateID, final int pEndStateID) throws IOException {}
 
   private void appendDocHeader() throws IOException {
     sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
@@ -275,6 +225,7 @@ public class ARGToGraphMLWriter {
       final Predicate<? super Pair<ARGState, ARGState>> pHightlightEdge,
       final ARGState pState,
       final ARGState pSuccessorState) {
+
     edgeCounter++;
     final StringBuilder builder = new StringBuilder();
 
