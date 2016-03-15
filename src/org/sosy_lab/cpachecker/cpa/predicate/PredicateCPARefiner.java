@@ -54,7 +54,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -272,7 +271,12 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       } else {
         // we have a real error
         logger.log(Level.FINEST, "Error trace is not spurious");
-        return handleRealError(allStatesTrace, branchingOccurred, counterexample);
+        errorPathProcessing.start();
+        try {
+          return pathChecker.handleFeasibleCounterexample(allStatesTrace, counterexample, branchingOccurred);
+        } finally {
+          errorPathProcessing.stop();
+        }
       }
 
     } finally {
@@ -448,50 +452,6 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     }
 
     return loopFinder.getRelevantLoops().keySet();
-  }
-
-  /**
-   * Creates a new CounterexampleInfo object out of the given parameters.
-   */
-  private CounterexampleInfo handleRealError(
-      final ARGPath allStatesTrace,
-      boolean branchingOccurred,
-      CounterexampleTraceInfo counterexample)
-      throws InterruptedException {
-
-    errorPathProcessing.start();
-    try {
-      ARGPath targetPath;
-      if (branchingOccurred) {
-        Map<Integer, Boolean> preds = counterexample.getBranchingPredicates();
-        if (preds.isEmpty()) {
-          logger.log(Level.WARNING, "No information about ARG branches available!");
-          return pathChecker.createImpreciseCounterexample(allStatesTrace, counterexample);
-        }
-
-        // find correct path
-        try {
-          ARGState root = allStatesTrace.getFirstState();
-          ARGState target = allStatesTrace.getLastState();
-          Set<ARGState> pathElements = ARGUtils.getAllStatesOnPathsTo(target);
-
-          targetPath = ARGUtils.getPathFromBranchingInformation(root, target, pathElements, preds);
-
-        } catch (IllegalArgumentException e) {
-          logger.logUserException(Level.WARNING, e, null);
-          logger.log(Level.WARNING, "The error path and the satisfying assignment may be imprecise!");
-
-          return pathChecker.createImpreciseCounterexample(allStatesTrace, counterexample);
-        }
-
-      } else {
-        targetPath = allStatesTrace;
-      }
-
-      return pathChecker.createCounterexample(targetPath, counterexample, branchingOccurred);
-    } finally {
-      errorPathProcessing.stop();
-    }
   }
 
   /**

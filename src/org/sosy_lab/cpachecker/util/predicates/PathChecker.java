@@ -23,12 +23,15 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Appenders.AbstractAppender;
@@ -47,6 +50,8 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
@@ -108,6 +113,41 @@ public class PathChecker {
     this.solver = pSolver;
     this.assignmentToPathAllocator = pAssignmentToPathAllocator;
     pConfig.inject(this);
+  }
+
+  public CounterexampleInfo handleFeasibleCounterexample(final ARGPath allStatesTrace,
+      CounterexampleTraceInfo counterexample, boolean branchingOccurred)
+          throws InterruptedException {
+    checkArgument(!counterexample.isSpurious());
+
+    ARGPath targetPath;
+    if (branchingOccurred) {
+      Map<Integer, Boolean> preds = counterexample.getBranchingPredicates();
+      if (preds.isEmpty()) {
+        logger.log(Level.WARNING, "No information about ARG branches available!");
+        return createImpreciseCounterexample(allStatesTrace, counterexample);
+      }
+
+      // find correct path
+      try {
+        ARGState root = allStatesTrace.getFirstState();
+        ARGState target = allStatesTrace.getLastState();
+        Set<ARGState> pathElements = ARGUtils.getAllStatesOnPathsTo(target);
+
+        targetPath = ARGUtils.getPathFromBranchingInformation(root, target, pathElements, preds);
+
+      } catch (IllegalArgumentException e) {
+        logger.logUserException(Level.WARNING, e, null);
+        logger.log(Level.WARNING, "The error path and the satisfying assignment may be imprecise!");
+
+        return createImpreciseCounterexample(allStatesTrace, counterexample);
+      }
+
+    } else {
+      targetPath = allStatesTrace;
+    }
+
+    return createCounterexample(targetPath, counterexample, branchingOccurred);
   }
 
   /**
@@ -173,7 +213,7 @@ public class PathChecker {
    * @param pInfo More information about the counterexample
    * @return a {@link CounterexampleInfo} instance
    */
-  public CounterexampleInfo createImpreciseCounterexample(
+  private CounterexampleInfo createImpreciseCounterexample(
       final ARGPath imprecisePath, final CounterexampleTraceInfo pInfo) {
     CounterexampleInfo cex =
         CounterexampleInfo.feasibleImprecise(imprecisePath);
@@ -208,7 +248,7 @@ public class PathChecker {
     }
   }
 
-  public Pair<CounterexampleTraceInfo, CFAPathWithAssumptions> checkPath(ARGPath pPath)
+  private Pair<CounterexampleTraceInfo, CFAPathWithAssumptions> checkPath(ARGPath pPath)
       throws SolverException, CPATransferException, InterruptedException {
 
     Pair<PathFormula, List<SSAMap>> result = createPrecisePathFormula(pPath);
