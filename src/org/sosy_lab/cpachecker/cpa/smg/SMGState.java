@@ -62,6 +62,9 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.refinement.ForgetfulState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+
 public class SMGState implements AbstractQueryableState, LatticeAbstractState<SMGState>, ForgetfulState<SMGStateInformation> {
 
   // Properties:
@@ -75,7 +78,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   private final AtomicInteger id_counter;
 
-  private final Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues = new HashMap<>();
+  private final BiMap<SMGKnownSymValue, SMGKnownExpValue> explicitValues = HashBiMap.create();
   private final CLangSMG heap;
   private final LogManager logger;
   private final int predecessorId;
@@ -1057,6 +1060,19 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   public void putExplicit(SMGKnownSymValue pKey, SMGKnownExpValue pValue) {
+
+    if (explicitValues.inverse().containsKey(pValue)) {
+      SMGKnownSymValue symValue = explicitValues.inverse().get(pValue);
+
+      if (pKey.getAsInt() != symValue.getAsInt()) {
+        explicitValues.remove(symValue);
+        heap.mergeValues(pKey.getAsInt(), symValue.getAsInt());
+        explicitValues.put(pKey, pValue);
+      }
+
+      return;
+    }
+
     explicitValues.put(pKey, pValue);
   }
 
