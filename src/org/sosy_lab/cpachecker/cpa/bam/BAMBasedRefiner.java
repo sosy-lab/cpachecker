@@ -25,18 +25,17 @@ package org.sosy_lab.cpachecker.cpa.bam;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -53,38 +52,45 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
  * Warning: Although the ARG is flattened at this point, the elements in it have
  * not been expanded due to performance reasons.
  */
-public final class BAMBasedRefiner extends AbstractARGBasedRefiner implements StatisticsProvider {
+public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
 
   final Timer computePathTimer = new Timer();
   final Timer computeSubtreeTimer = new Timer();
   final Timer computeCounterexampleTimer = new Timer();
   final Timer removeCachedSubtreeTimer = new Timer();
 
-  private final ARGBasedRefiner refiner;
   private final BAMCPA bamCpa;
   private final Map<ARGState, ARGState> subgraphStatesToReachedState = new HashMap<>();
   private ARGState rootOfSubgraph = null;
 
-  private BAMBasedRefiner(ConfigurableProgramAnalysis pCpa, ARGBasedRefiner pRefiner)
-      throws InvalidConfigurationException {
-    super(pCpa);
 
-    bamCpa = (BAMCPA)pCpa;
+  private BAMBasedRefiner(
+      ARGBasedRefiner pRefiner, ARGCPA pArgCpa, BAMCPA pBamCpa, LogManager pLogger) {
+    super(pRefiner, pArgCpa, pLogger);
+
+    bamCpa = pBamCpa;
     bamCpa.getStatistics().addRefiner(this);
-    refiner = pRefiner;
   }
 
   /**
-   * Create a {@link BAMBasedRefiner} instance (which is also a {@link Refiner} instance)
-   * wrapping a {@link ARGBasedRefiner} instance.
+   * Create a {@link Refiner} instance that supports BAM from a {@link ARGBasedRefiner} instance.
    */
-  public static BAMBasedRefiner forARGBasedRefiner(
+  public static Refiner forARGBasedRefiner(
       final ARGBasedRefiner pRefiner, final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
     checkArgument(
         !(pRefiner instanceof Refiner),
         "ARGBasedRefiners may not implement Refiner, choose between these two!");
-    return new BAMBasedRefiner(pCpa, pRefiner);
+
+    if (!(pCpa instanceof BAMCPA)) {
+      throw new InvalidConfigurationException("BAM CPA needed for BAM-based refinement");
+    }
+    BAMCPA bamCpa = (BAMCPA) pCpa;
+    ARGCPA argCpa = bamCpa.retrieveWrappedCpa(ARGCPA.class);
+    if (argCpa == null) {
+      throw new InvalidConfigurationException("ARG CPA needed for refinement");
+    }
+    return new BAMBasedRefiner(pRefiner, argCpa, bamCpa, bamCpa.getLogger());
   }
 
   @Override
@@ -103,7 +109,7 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner implements St
     } else {
       // wrap the original reached-set to have a valid "view" on all reached states.
       pReached = new BAMReachedSet(bamCpa, pReached, pPath, subgraphStatesToReachedState, rootOfSubgraph, removeCachedSubtreeTimer);
-      return refiner.performRefinementForPath(pReached, pPath);
+      return super.performRefinementForPath(pReached, pPath);
     }
   }
 
@@ -147,17 +153,5 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner implements St
 
     final BAMCEXSubgraphComputer cexSubgraphComputer = new BAMCEXSubgraphComputer(bamCpa, subgraphStatesToReachedState);
     return cexSubgraphComputer.computeCounterexampleSubgraph(target, reachedSet);
-  }
-
-  @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (refiner instanceof StatisticsProvider) {
-      ((StatisticsProvider) refiner).collectStatistics(pStatsCollection);
-    }
-  }
-
-  @Override
-  public String toString() {
-    return refiner.toString();
   }
 }

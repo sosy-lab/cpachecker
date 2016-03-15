@@ -94,7 +94,8 @@ import com.google.common.collect.Sets;
  */
 public abstract class BAMPredicateRefiner implements Refiner {
 
-  public static BAMBasedRefiner create(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
+  public static Refiner create(ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
     return BAMBasedRefiner.forARGBasedRefiner(create0(pCpa), pCpa);
   }
 

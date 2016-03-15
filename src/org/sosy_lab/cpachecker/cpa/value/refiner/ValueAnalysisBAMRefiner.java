@@ -30,7 +30,8 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMBasedRefiner;
 
 public abstract class ValueAnalysisBAMRefiner implements Refiner {
 
-  public static BAMBasedRefiner create(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
+  public static Refiner create(ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
     return BAMBasedRefiner.forARGBasedRefiner(
         ValueAnalysisRefiner.create(pCpa).asARGBasedRefiner(), pCpa);
   }

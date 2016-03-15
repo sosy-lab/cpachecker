@@ -54,65 +54,43 @@ import com.google.errorprone.annotations.ForOverride;
  * Base implementation for {@link Refiner}s that provides access to ARG utilities
  * (e.g., it provide an error path to the actual refinement code).
  *
- * Semi-deprecated, consider implementing {@link ARGBasedRefiner} instead of extending this class.
+ * To use this, implement {@link ARGBasedRefiner} and call
+ * {@link AbstractARGBasedRefiner#forARGBasedRefiner(ARGBasedRefiner, ConfigurableProgramAnalysis)}.
  */
-public abstract class AbstractARGBasedRefiner implements Refiner {
+public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
 
   private int refinementNumber;
 
+  private final ARGBasedRefiner refiner;
   private final ARGCPA argCpa;
   private final LogManager logger;
 
   private int counterexamplesCounter = 0;
 
-  protected AbstractARGBasedRefiner(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
-    if (pCpa instanceof WrapperCPA) {
-      argCpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(ARGCPA.class);
-    } else {
-      throw new InvalidConfigurationException("ARG CPA needed for refinement");
-    }
-    if (argCpa == null) {
-      throw new InvalidConfigurationException("ARG CPA needed for refinement");
-    }
-    this.logger = argCpa.getLogger();
+  protected AbstractARGBasedRefiner(ARGBasedRefiner pRefiner, ARGCPA pCpa, LogManager pLogger) {
+    refiner = pRefiner;
+    argCpa = pCpa;
+    logger = pLogger;
   }
 
   /**
-   * Create a {@link AbstractARGBasedRefiner} instance (which is also a {@link Refiner} instance)
-   * from a {@link ARGBasedRefiner} instance.
+   * Create a {@link Refiner} instance from a {@link ARGBasedRefiner} instance.
    */
-  public static AbstractARGBasedRefiner forARGBasedRefiner(
+  public static Refiner forARGBasedRefiner(
       final ARGBasedRefiner pRefiner, final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
     checkArgument(
         !(pRefiner instanceof Refiner),
         "ARGBasedRefiners may not implement Refiner, choose between these two!");
-    class ForwardingARGBasedRefiner extends AbstractARGBasedRefiner implements StatisticsProvider {
 
-      protected ForwardingARGBasedRefiner(ConfigurableProgramAnalysis pCpa)
-          throws InvalidConfigurationException {
-        super(pCpa);
-      }
-
-      @Override
-      protected CounterexampleInfo performRefinementForPath(ARGReachedSet pReached, ARGPath pPath)
-          throws CPAException, InterruptedException {
-        return pRefiner.performRefinementForPath(pReached, pPath);
-      }
-
-      @Override
-      public void collectStatistics(Collection<Statistics> pStatsCollection) {
-        if (pRefiner instanceof StatisticsProvider) {
-          ((StatisticsProvider) pRefiner).collectStatistics(pStatsCollection);
-        }
-      }
-
-      @Override
-      public String toString() {
-        return pRefiner.toString();
-      }
+    if (!(pCpa instanceof WrapperCPA)) {
+      throw new InvalidConfigurationException("ARG CPA needed for refinement");
     }
-    return new ForwardingARGBasedRefiner(pCpa);
+    ARGCPA argCpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(ARGCPA.class);
+    if (argCpa == null) {
+      throw new InvalidConfigurationException("ARG CPA needed for refinement");
+    }
+    return new AbstractARGBasedRefiner(pRefiner, argCpa, argCpa.getLogger());
   }
 
   private static final Function<CFAEdge, String> pathToFunctionCalls
@@ -193,8 +171,10 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
    * @param pPath the potential error path
    * @return Information about the counterexample.
    */
-  protected abstract CounterexampleInfo performRefinementForPath(ARGReachedSet pReached, ARGPath pPath)
-            throws CPAException, InterruptedException;
+  protected CounterexampleInfo performRefinementForPath(ARGReachedSet pReached, ARGPath pPath)
+      throws CPAException, InterruptedException {
+    return refiner.performRefinementForPath(pReached, pPath);
+  }
 
   /**
    * This method may be overwritten if the standard behavior of <code>ARGUtils.getOnePathTo()</code> is not
@@ -212,5 +192,17 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
   @Nullable
   protected ARGPath computePath(ARGState pLastElement, ARGReachedSet pReached) throws InterruptedException, CPATransferException {
     return ARGUtils.getOnePathTo(pLastElement);
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    if (refiner instanceof StatisticsProvider) {
+      ((StatisticsProvider) refiner).collectStatistics(pStatsCollection);
+    }
+  }
+
+  @Override
+  public String toString() {
+    return refiner.toString();
   }
 }

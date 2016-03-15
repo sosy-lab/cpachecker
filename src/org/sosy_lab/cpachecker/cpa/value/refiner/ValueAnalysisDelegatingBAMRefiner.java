@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.util.refinement.DelegatingARGBasedRefiner;
  */
 public abstract class ValueAnalysisDelegatingBAMRefiner implements Refiner {
 
-  public static BAMBasedRefiner create(ConfigurableProgramAnalysis cpa)
+  public static Refiner create(ConfigurableProgramAnalysis cpa)
       throws InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(ValueAnalysisDelegatingRefiner.class.getSimpleName() + " could not find the ValueAnalysisCPA");
