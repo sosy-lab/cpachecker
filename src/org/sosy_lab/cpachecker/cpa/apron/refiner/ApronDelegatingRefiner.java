@@ -47,14 +47,17 @@ import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.apron.ApronCPA;
+import org.sosy_lab.cpachecker.cpa.apron.ApronManager;
 import org.sosy_lab.cpachecker.cpa.apron.ApronState;
-import org.sosy_lab.cpachecker.cpa.apron.ApronTransferRelation;
+import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -85,12 +88,12 @@ import apron.ApronException;
  * and if this fails, optionally delegates also to {@link PredicateCPARefiner}.
  */
 @Options(prefix="cpa.apron.refiner")
-public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements Statistics, StatisticsProvider {
+public class ApronDelegatingRefiner implements ARGBasedRefiner, Statistics, StatisticsProvider {
 
   /**
    * refiner used for value-analysis interpolation refinement
    */
-  private ValueAnalysisPathInterpolator interpolatingRefiner;
+  private final ValueAnalysisPathInterpolator interpolatingRefiner;
 
   private final FeasibilityChecker<ValueAnalysisState> valueAnalysisChecker;
 
@@ -128,13 +131,15 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
   private boolean existsExplicitApronRefinement = false;
 
   private final CFA cfa;
-  private final ApronCPA apronCPA;
-
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final Configuration config;
 
-  public static ApronDelegatingRefiner create(ConfigurableProgramAnalysis cpa) throws InvalidConfigurationException {
+  private final ApronManager apronManager;
+  private final TransferRelation apronTransfer;
+
+  public static Refiner create(ConfigurableProgramAnalysis cpa)
+      throws InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(ApronDelegatingRefiner.class.getSimpleName() + " could not find the ApronCPA");
     }
@@ -144,50 +149,66 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
       throw new InvalidConfigurationException(ApronDelegatingRefiner.class.getSimpleName() + " needs an ApronCPA");
     }
 
+    final Configuration config = apronCPA.getConfiguration();
     final LogManager logger = apronCPA.getLogger();
+    final ShutdownNotifier shutdownNotifier = apronCPA.getShutdownNotifier();
     final CFA cfa = apronCPA.getCFA();
 
     final StrongestPostOperator<ValueAnalysisState> strongestPostOp =
         new ValueAnalysisStrongestPostOperator(logger, Configuration.builder().build(), cfa);
 
     final FeasibilityChecker<ValueAnalysisState> feasibilityChecker =
-        new ValueAnalysisFeasibilityChecker(strongestPostOp, logger, cfa, apronCPA.getConfiguration());
+        new ValueAnalysisFeasibilityChecker(strongestPostOp, logger, cfa, config);
 
-    ApronDelegatingRefiner refiner = new ApronDelegatingRefiner(feasibilityChecker,
-                                                                strongestPostOp,
-                                                                cpa,
-                                                                apronCPA);
+    final ValueAnalysisPathInterpolator interpolatingRefiner =
+        new ValueAnalysisPathInterpolator(
+            feasibilityChecker,
+            strongestPostOp,
+            new ValueAnalysisPrefixProvider(logger, cfa, config),
+            config,
+            logger,
+            shutdownNotifier,
+            cfa);
 
-    return refiner;
+    ApronDelegatingRefiner refiner =
+        new ApronDelegatingRefiner(
+            config,
+            logger,
+            shutdownNotifier,
+            cfa,
+            apronCPA.getManager(),
+            apronCPA.getTransferRelation(),
+            feasibilityChecker,
+            interpolatingRefiner);
+    return AbstractARGBasedRefiner.forARGBasedRefiner(refiner, cpa);
   }
 
   private ApronDelegatingRefiner(
+      final Configuration pConfig,
+      final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier,
+      final CFA pCfa,
+      final ApronManager pApronManager,
+      final TransferRelation pApronTransfer,
       final FeasibilityChecker<ValueAnalysisState> pValueAnalysisFeasibilityChecker,
-      final StrongestPostOperator<ValueAnalysisState> pValueAnalysisStrongestPostOperator,
-      final ConfigurableProgramAnalysis pCpa,
-      final ApronCPA pApronCPA
-  ) throws InvalidConfigurationException {
+      final ValueAnalysisPathInterpolator pValueAnalysisPathInterpolator)
+      throws InvalidConfigurationException {
 
-    super(pCpa);
-    final Configuration config = pApronCPA.getConfiguration();
-    config.inject(this);
-    this.config = config;
+    pConfig.inject(this);
+    config = pConfig;
+    logger = pLogger;
+    shutdownNotifier = pShutdownNotifier;
+    cfa = pCfa;
 
-    cfa                  = pApronCPA.getCFA();
-    logger               = pApronCPA.getLogger();
-    shutdownNotifier     = pApronCPA.getShutdownNotifier();
-    apronCPA             = pApronCPA;
-    interpolatingRefiner =
-        new ValueAnalysisPathInterpolator(pValueAnalysisFeasibilityChecker,
-                                          pValueAnalysisStrongestPostOperator,
-                                          new ValueAnalysisPrefixProvider(logger, cfa, config),
-                                          pApronCPA.getConfiguration(),
-                                          logger, shutdownNotifier, cfa);
+    apronManager = pApronManager;
+    apronTransfer = pApronTransfer;
     valueAnalysisChecker = pValueAnalysisFeasibilityChecker;
+    interpolatingRefiner = pValueAnalysisPathInterpolator;
   }
 
   @Override
-  protected CounterexampleInfo performRefinementForPath(final ARGReachedSet reached, final ARGPath pErrorPath)
+  public CounterexampleInfo performRefinementForPath(
+      final ARGReachedSet reached, final ARGPath pErrorPath)
       throws CPAException, InterruptedException {
 
     // if path is infeasible, try to refine the precision
@@ -358,9 +379,15 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
 
       // no specific timelimit set for octagon feasibility check
       if (timeForApronFeasibilityCheck.isEmpty()) {
-        checker = new OctagonAnalysisFeasabilityChecker(config, shutdownNotifier, path, apronCPA.getClass(),
-            cfa.getVarClassification(), new ApronTransferRelation(logger, cfa.getLoopStructure().get(), apronCPA.isSplitDisequalites()),
-            new ApronState(logger, apronCPA.getManager()));
+        checker =
+            new OctagonAnalysisFeasabilityChecker(
+                config,
+                shutdownNotifier,
+                path,
+                ApronCPA.class,
+                cfa.getVarClassification(),
+                apronTransfer,
+                new ApronState(logger, apronManager));
 
       } else {
         ShutdownManager shutdown = ShutdownManager.createWithParent(shutdownNotifier);
@@ -368,9 +395,15 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
         ResourceLimitChecker limits = new ResourceLimitChecker(shutdown, Collections.<ResourceLimit>singletonList(l));
 
         limits.start();
-        checker = new OctagonAnalysisFeasabilityChecker(config, shutdown.getNotifier(), path, apronCPA.getClass(),
-            cfa.getVarClassification(), new ApronTransferRelation(logger, cfa.getLoopStructure().get(), apronCPA.isSplitDisequalites()),
-            new ApronState(logger, apronCPA.getManager()));
+        checker =
+            new OctagonAnalysisFeasabilityChecker(
+                config,
+                shutdown.getNotifier(),
+                path,
+                ApronCPA.class,
+                cfa.getVarClassification(),
+                apronTransfer,
+                new ApronState(logger, apronManager));
         limits.cancel();
       }
 
