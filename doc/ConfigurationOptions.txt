@@ -804,7 +804,8 @@ cpa.arg.errorPath.source = "ErrorPath.%d.c"
 cpa.arg.export = true
 cpa.arg.file = "ARG.dot"
 
-# export final ARG as .graphml file
+# Export final ARG as .graphml file. The .graphml file will be in die GraphML
+# dialect of the tool "yEd".
 cpa.arg.graphml.file = "ARG.graphml"
 
 # inform ARG CPA if it is run in a CPA enabled analysis because then it
