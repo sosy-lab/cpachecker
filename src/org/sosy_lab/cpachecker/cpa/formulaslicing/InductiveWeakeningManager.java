@@ -1,14 +1,12 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.UniqueIdGenerator;
@@ -31,12 +29,14 @@ import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.FunctionDeclaration;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * Finds inductive weakening of formulas (originally: formula slicing).
@@ -191,34 +191,28 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     final ImmutableMap<BooleanFormula, BooleanFormula> selectionVarsInfo;
     Set<BooleanFormula> selectorsWithIntermediate;
     final BooleanFormula query, annotated, primed;
-    try {
-      statistics.annotationTime.start();
 
+    // Annotate conjunctions.
+    Map<BooleanFormula, BooleanFormula> varsInfoBuilder = new HashMap<>();
+    annotated = annotateWithSelectors(input.getFormula(), varsInfoBuilder);
+    logger.log(Level.FINE, "Annotated formula = " + annotated);
+    selectionVarsInfo = ImmutableMap.copyOf(varsInfoBuilder);
+    assert !selectionVarsInfo.isEmpty();
 
-      // Annotate conjunctions.
-      Map<BooleanFormula, BooleanFormula> varsInfoBuilder = new HashMap<>();
-      annotated = annotateWithSelectors(input.getFormula(), varsInfoBuilder);
-      logger.log(Level.FINE, "Annotated formula = " + annotated);
-      selectionVarsInfo = ImmutableMap.copyOf(varsInfoBuilder);
-      assert !selectionVarsInfo.isEmpty();
+    selectorsWithIntermediate = markIntermediate(selectionVarsInfo, input);
 
-      selectorsWithIntermediate = markIntermediate(selectionVarsInfo, input);
+    // This is possible since the formula does not have any intermediate
+    // variables.
+    primed = fmgr.instantiate(annotated, transition.getSsa());
+    BooleanFormula negated = bfmgr.not(primed);
 
-      // This is possible since the formula does not have any intermediate
-      // variables.
-      primed = fmgr.instantiate(annotated, transition.getSsa());
-      BooleanFormula negated = bfmgr.not(primed);
-
-      // Inductiveness checking formula, injecting the known invariant "strengthening".
-      query = bfmgr.and(ImmutableList.of(
-          annotated,
-          transition.getFormula(),
-          negated,
-          strengthening
-      ));
-    } finally {
-      statistics.annotationTime.stop();
-    }
+    // Inductiveness checking formula, injecting the known invariant "strengthening".
+    query = bfmgr.and(ImmutableList.of(
+        annotated,
+        transition.getFormula(),
+        negated,
+        strengthening
+    ));
 
     Set<BooleanFormula> selectorsToAbstract = findSelectorsToAbstract(
         selectionVarsInfo, transition, primed, query, selectorsWithIntermediate

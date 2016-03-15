@@ -123,23 +123,19 @@ public class CEXWeakeningManager {
       Set<BooleanFormula> pSelectorsWithIntermediate) throws SolverException, InterruptedException {
 
     final Set<BooleanFormula> toAbstract = new HashSet<>(pSelectorsWithIntermediate);
+    List<BooleanFormula> selectorConstraints = new ArrayList<>();
+    for (BooleanFormula selector : selectionInfo.keySet()) {
+      selectorConstraints.add(bfmgr.not(selector));
+    }
+
+    int noIterations = 0;
     try (ProverEnvironment env = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       env.push(query);
 
-      List<BooleanFormula> selectorConstraints = new ArrayList<>();
-      // TODO: use solving-with-assumptions instead.
-      for (BooleanFormula selector : selectionInfo.keySet()) {
-        selectorConstraints.add(bfmgr.not(selector));
-      }
-      env.push(bfmgr.and(selectorConstraints));
-
-      logger.log(Level.FINE, "Query = " + query);
-
-      while (!env.isUnsat()) {
+      while (!env.isUnsatWithAssumptions(selectorConstraints)) {
+        noIterations++;
         shutdownNotifier.shutdownIfNecessary();
-        final Model m = env.getModel();
-
-        statistics.noCexIterations.incrementAndGet();
+        Model m = env.getModel();
 
         toAbstract.addAll(getSelectorsToAbstract(
             ImmutableSet.copyOf(toAbstract),
@@ -149,7 +145,7 @@ public class CEXWeakeningManager {
             logger,
             0
         ));
-        env.pop();
+
         selectorConstraints.clear();
         for (BooleanFormula selector : selectionInfo.keySet()) {
           if (toAbstract.contains(selector)) {
@@ -158,10 +154,9 @@ public class CEXWeakeningManager {
             selectorConstraints.add(bfmgr.not(selector));
           }
         }
-        env.push(bfmgr.and(selectorConstraints));
       }
     }
-
+    statistics.noCexIterations.setNextValue(noIterations);
     return toAbstract;
   }
 
