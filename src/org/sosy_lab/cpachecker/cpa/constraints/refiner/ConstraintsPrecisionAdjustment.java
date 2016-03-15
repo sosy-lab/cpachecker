@@ -114,6 +114,8 @@ public class ConstraintsPrecisionAdjustment implements PrecisionAdjustment, Stat
       maxRealConstraintNumber = realConstraintNumber;
     }
 
+    result = result.equals(pStateToAdjust) ? pStateToAdjust : result;
+
     return Optional.of(PrecisionAdjustmentResult.create(result, pPrecision, Action.CONTINUE));
   }
 
