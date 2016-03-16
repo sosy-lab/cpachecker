@@ -1,9 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Objects;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableMap;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
@@ -15,8 +13,9 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
 
 public final class PolicyAbstractedState extends PolicyState
       implements Iterable<Entry<Template, PolicyBound>>,
@@ -54,8 +53,6 @@ public final class PolicyAbstractedState extends PolicyState
    */
   private final int locationID;
 
-  private final int hashCode;
-
   private PolicyAbstractedState(CFANode node,
       Map<Template, PolicyBound> pAbstraction,
       CongruenceState pCongruence,
@@ -72,17 +69,6 @@ public final class PolicyAbstractedState extends PolicyState
     congruence = pCongruence;
     locationID = pLocationID;
     manager = pManager;
-    hashCode =
-        Objects.hash(
-            node,
-            ssaMap,
-            pointerTargetSet,
-            extraInvariant,
-            predecessor,
-            abstraction,
-            congruence,
-            locationID,
-            manager);
   }
 
   public int getLocationID() {
@@ -212,29 +198,5 @@ public final class PolicyAbstractedState extends PolicyState
               + "encountered on this code path.");
     }
     return fmgr.uninstantiate(invariant);
-  }
-
-  @Override
-  public int hashCode() {
-    return hashCode;
-  }
-
-  @Override
-  public boolean equals(Object pObj) {
-    if (this == pObj) {
-      return true;
-    }
-    if (pObj instanceof PolicyAbstractedState) {
-      PolicyAbstractedState other = (PolicyAbstractedState) pObj;
-      return Objects.equals(getNode(), other.getNode())
-          && Objects.equals(pointerTargetSet, other.pointerTargetSet)
-          && Objects.equals(extraInvariant, other.extraInvariant)
-          && predecessor.equals(other.predecessor)
-          && Objects.equals(abstraction, other.abstraction)
-          && Objects.equals(congruence, other.congruence)
-          && Objects.equals(locationID, other.locationID)
-          && Objects.equals(manager, other.manager);
-    }
-    return false;
   }
 }
