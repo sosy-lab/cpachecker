@@ -399,8 +399,7 @@ public final class AbstractionManager {
   }
 
   /**
-   * Return the set of predicates that occur in a a region. In some cases, this method also returns the predicate
-   * 'false' in the set.
+   * Return the set of predicates that occur in a a region.
    */
   public Set<AbstractionPredicate> extractPredicates(Region af) {
     Set<AbstractionPredicate> vars = new HashSet<>();
@@ -411,7 +410,6 @@ public final class AbstractionManager {
       Region n = toProcess.pop();
 
       if (n.isTrue() || n.isFalse()) {
-        vars.add(this.makeFalsePredicate());
         continue;
       }
 
