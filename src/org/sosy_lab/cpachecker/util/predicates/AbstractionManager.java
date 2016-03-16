@@ -159,7 +159,10 @@ public final class AbstractionManager {
 
     if (result == null) {
       BooleanFormula symbVar = fmgr.createPredicateVariable("PRED" + numberOfPredicates);
-      Region absVar = rmgr.createPredicate();
+      Region absVar =
+          (rmgr instanceof SymbolicRegionManager)
+              ? ((SymbolicRegionManager) rmgr).createPredicate(atom)
+              : rmgr.createPredicate();
 
       logger.log(Level.FINEST, "Created predicate", absVar, "from variable", symbVar, "and atom", atom);
 
