@@ -334,14 +334,13 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         outState = abstraction;
       }
 
-      // Return identity if precision adjustment ran multiple times and nothing was changed.
       if (state.isAbstract()) {
-        PolicyAbstractedState aState = state.asAbstracted();
-        if (aState.getAbstraction().equals(outState.getAbstraction())
-            && aState.getCongruence().equals(outState.getCongruence())
-            && aState.getExtraInvariant().equals(outState.getExtraInvariant())
-            && toNodePrecision.equals(precision)) {
-          outState = aState;
+        PolicyAbstractedState prevValue = state.asAbstracted();
+
+        // Return identity if the value did not get strictly smaller.
+        // !(outState < prevValue) <=> prevValue <= outState.
+        if (isLessOrEqualAbstracted(prevValue, outState)) {
+          outState = prevValue;
           toNodePrecision = precision;
         }
       }
