@@ -1269,8 +1269,8 @@ cpa.predicate.abs.predicateOrdering.method = CHRONOLOGICAL
 # Use multiple partitions for predicates
 cpa.predicate.abs.predicateOrdering.partitions = false
 
-# use caching of region to formula conversions
 # use caching of abstractions
+# use caching of region to formula conversions
 cpa.predicate.abs.useCache = true
 
 # DEPRECATED: whether to use Boolean (false) or Cartesian (true) abstraction
@@ -1941,6 +1941,14 @@ cpa.smg.unknownOnUndefined = true
 cpa.smg.zeroingMemoryAllocation = {
       "calloc"}
 
+# The string a function call has to contain in order to be considered as a
+# function where to start tracking a handle.
+cpa.speci.searchStart = "open"
+
+# The string a function call has to contain in order to be considered as a
+# function where to stop tracking a handle.
+cpa.speci.searchStop = "close"
+
 # set this to true when you only want to do a code analysis. If StatisticsCPA
 # is combined with other CPAs to do queries use false.
 cpa.statistics.analysis = true
@@ -2492,10 +2500,10 @@ pcc.proofFile = "arg.obj"
 # Generate and dump a proof
 pcc.proofgen.doPCC = false
 
-# Qualified name for class which implements proof checking strategy to be
-# used.
 # Qualified name for class which implements certification strategy, hence
 # proof writing, to be used.
+# Qualified name for class which implements proof checking strategy to be
+# used.
 pcc.strategy = "org.sosy_lab.cpachecker.pcc.strategy.arg.ARGProofCheckerStrategy"
 
 # number of cpus/cores which should be used in parallel for proof checking
@@ -2590,6 +2598,9 @@ spec.transitionToStopForNegatedTokensetMatch = false
 # Use a powerset domain for representing the current states of the
 # specification automata.
 spec.usepowerset = false
+
+# Export the inferred specification as an automaton.
+speci.output.file = "specification.spc"
 
 # comma-separated list of files with specifications that should be checked
 # (see config/specification/ for examples).
