@@ -46,12 +46,12 @@ final class SMGJoinValues {
   private final boolean recoverable;
 
   private static boolean joinValuesIdentical(SMGJoinValues pJV, Integer pV1, Integer pV2) {
-    if (pV1 == pV2 && !pJV.getInputSMG1().isPointer(pV1) && pJV.getInputSMG2().isPointer(pV2)) {
+    if (pV1 == pV2) {
       pJV.value = pV1;
       pJV.defined = true;
     }
 
-    return pV1.equals(pV2);
+    return pV1.equals(pV2) && !pJV.getInputSMG1().isPointer(pV1) && !pJV.getInputSMG2().isPointer(pV2);
   }
 
   private static boolean joinValuesAlreadyJoined(SMGJoinValues pJV, Integer pV1, Integer pV2) {
