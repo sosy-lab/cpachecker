@@ -39,7 +39,6 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -287,7 +286,7 @@ public class TranslatorTest {
   public void testPredicateRequirementsTranslator() throws InvalidConfigurationException, CPAException,
       UnsupportedOperationException, IOException, ParserException, InterruptedException {
     Configuration config = TestDataTools.configurationForTest().build();
-    LogManager logger = new BasicLogManager(config);
+    LogManager logger = TestLogManager.getInstance();
     PredicateCPA predicateCpa =
         (PredicateCPA)
             PredicateCPA.factory()

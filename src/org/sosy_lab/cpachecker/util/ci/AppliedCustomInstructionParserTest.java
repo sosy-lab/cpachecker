@@ -36,11 +36,10 @@ import java.util.Map.Entry;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
-import org.sosy_lab.common.log.BasicLogManager;
+import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -64,7 +63,7 @@ public class AppliedCustomInstructionParserTest {
   private List<CLabelNode> labelNodes;
 
   @Before
-  public void init() throws IOException, ParserException, InterruptedException, InvalidConfigurationException {
+  public void init() throws IOException, ParserException, InterruptedException {
     String testProgram = ""
           + "extern int test3(int);"
           + "int test(int p) {"
@@ -107,7 +106,7 @@ public class AppliedCustomInstructionParserTest {
     aciParser =
         new AppliedCustomInstructionParser(
             ShutdownNotifier.createDummy(),
-            new BasicLogManager(TestDataTools.configurationForTest().build()),
+            TestLogManager.getInstance(),
             cfa);
     GlobalInfo.getInstance().storeCFA(cfa);
     cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
@@ -218,7 +217,7 @@ public class AppliedCustomInstructionParserTest {
   }
 
   @Test
-  public void testParse() throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException, SecurityException, ParserException, InvalidConfigurationException {
+  public void testParse() throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException, SecurityException, ParserException {
     String testProgram = ""
         + "void main() {"
           + "int x;"
@@ -235,7 +234,7 @@ public class AppliedCustomInstructionParserTest {
     aciParser =
         new AppliedCustomInstructionParser(
             ShutdownNotifier.createDummy(),
-            new BasicLogManager(TestDataTools.configurationForTest().build()),
+            TestLogManager.getInstance(),
             cfa);
     Path p = Paths.createTempPath("test_acis", null);
     try (Writer file = Files.openOutputFile(p)) {
