@@ -42,24 +42,24 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import com.google.common.annotations.VisibleForTesting;
 
 public class SMG {
-  final private Set<SMGObject> objects = new HashSet<>();
-  final private Set<Integer> values = new HashSet<>();
-  final private Set<SMGEdgeHasValue> hv_edges = new HashSet<>();
-  final private Map<Integer, SMGEdgePointsTo> pt_edges = new HashMap<>();
-  final private Map<SMGObject, Boolean> object_validity = new HashMap<>();
-  final private NeqRelation neq = new NeqRelation();
+  private Set<SMGObject> objects = new HashSet<>();
+  private Set<Integer> values = new HashSet<>();
+  private Set<SMGEdgeHasValue> hv_edges = new HashSet<>();
+  private Map<Integer, SMGEdgePointsTo> pt_edges = new HashMap<>();
+  private Map<SMGObject, Boolean> object_validity = new HashMap<>();
+  private NeqRelation neq = new NeqRelation();
 
-  final private MachineModel machine_model;
+  private final MachineModel machine_model;
 
   /**
    * A special object representing NULL
    */
-  final private static SMGObject nullObject = SMGObject.getNullObject();
+  private final static SMGObject nullObject = SMGObject.getNullObject();
 
   /**
    * An address of the special object representing null
    */
-  final private static int nullAddress = 0;
+  private final static int nullAddress = 0;
 
   /**
    * Constructor.

@@ -25,11 +25,11 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGGenericAbstractionCandidate;
 
 import com.google.common.collect.ImmutableList;
 
@@ -44,7 +44,7 @@ final class SMGJoinTargetObjects {
   private SMGNodeMapping mapping1;
   private SMGNodeMapping mapping2;
 
-  private List<SMGAbstractionCandidate> abstractionCandidates;
+  private List<SMGGenericAbstractionCandidate> abstractionCandidates;
 
   private static boolean matchOffsets(SMGJoinTargetObjects pJto, SMGEdgePointsTo pt1, SMGEdgePointsTo pt2) {
     if (pt1.getOffset() != pt2.getOffset()) {
@@ -137,7 +137,7 @@ final class SMGJoinTargetObjects {
 
     SMGJoinSubSMGs jss = new SMGJoinSubSMGs(status, inputSMG1, inputSMG2, destSMG,
                                             mapping1, mapping2,
-                                            target1, target2, newObject);
+                                            target1, target2, newObject, 0, false);
     if (jss.isDefined()) {
       defined = true;
       status = jss.getStatus();
@@ -183,7 +183,7 @@ final class SMGJoinTargetObjects {
     return mapping2;
   }
 
-  public List<SMGAbstractionCandidate> getAbstractionCandidates() {
+  public List<SMGGenericAbstractionCandidate> getAbstractionCandidates() {
     return abstractionCandidates;
   }
 }

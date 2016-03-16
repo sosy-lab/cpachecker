@@ -26,8 +26,10 @@ package org.sosy_lab.cpachecker.cpa.smg.objects;
 
 
 public abstract class SMGObject {
-  final private int size;
-  final private String label;
+  private final int size;
+  private final String label;
+  private final int level;
+
 
   static private final SMGObject nullObject = new SMGObject(0, "NULL") {
     @Override
@@ -43,11 +45,19 @@ public abstract class SMGObject {
   protected SMGObject(int pSize, String pLabel) {
     size = pSize;
     label = pLabel;
+    level = 0;
+  }
+
+  protected SMGObject(int pSize, String pLabel, int pLevel) {
+    size = pSize;
+    label = pLabel;
+    level = pLevel;
   }
 
   protected SMGObject(SMGObject pOther) {
     size = pOther.size;
     label = pOther.label;
+    level = pOther.getLevel();
   }
 
   public String getLabel() {
@@ -89,5 +99,9 @@ public abstract class SMGObject {
    */
   public SMGObject join(SMGObject pOther) {
     throw new UnsupportedOperationException("join() called on SMGObject instance, not on a subclass");
+  }
+
+  public int getLevel() {
+    return level;
   }
 }

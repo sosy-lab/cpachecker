@@ -111,7 +111,7 @@ final public class SMGJoin {
       SMGObject globalInSMG1 = entry.getValue();
       SMGObject globalInSMG2 = globals_in_smg2.get(entry.getKey());
       SMGObject destinationGlobal = mapping1.get(globalInSMG1);
-      SMGJoinSubSMGs jss = new SMGJoinSubSMGs(status, opSMG1, opSMG2, smg, mapping1, mapping2, globalInSMG1, globalInSMG2, destinationGlobal);
+      SMGJoinSubSMGs jss = new SMGJoinSubSMGs(status, opSMG1, opSMG2, smg, mapping1, mapping2, globalInSMG1, globalInSMG2, destinationGlobal, 0, false);
       if (! jss.isDefined()) {
         return;
       }
@@ -129,7 +129,7 @@ final public class SMGJoin {
         SMGObject localInSMG1 = frameInSMG1.getVariable(localVar);
         SMGObject localInSMG2 = frameInSMG2.getVariable(localVar);
         SMGObject destinationLocal = mapping1.get(localInSMG1);
-        SMGJoinSubSMGs jss = new SMGJoinSubSMGs(status, opSMG1, opSMG2, smg, mapping1, mapping2, localInSMG1, localInSMG2, destinationLocal);
+        SMGJoinSubSMGs jss = new SMGJoinSubSMGs(status, opSMG1, opSMG2, smg, mapping1, mapping2, localInSMG1, localInSMG2, destinationLocal, 0, false);
         if (! jss.isDefined()) {
           return;
         }

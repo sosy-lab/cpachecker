@@ -52,7 +52,7 @@ public class SMGJoinSubSMGsTest {
     SMGNodeMapping mapping1 = new SMGNodeMapping();
     SMGNodeMapping mapping2 = new SMGNodeMapping();
 
-    jssDefined = new SMGJoinSubSMGs(SMGJoinStatus.EQUAL, smg1, smg2, destSmg, mapping1, mapping2, obj1, obj2, null);
+    jssDefined = new SMGJoinSubSMGs(SMGJoinStatus.EQUAL, smg1, smg2, destSmg, mapping1, mapping2, obj1, obj2, null, 0, false);
   }
 
   @Test
