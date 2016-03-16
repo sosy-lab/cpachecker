@@ -80,49 +80,49 @@ public class MultiAspectVerification {
    */
   public enum PrecisionCleanSet {NONE, WAITLIST, ALL}
 
-  @Option(name="stopAfterError",
+  @Option(secure=true, name="stopAfterError",
       description="Stop checking for current specification after the first error was found" +
           "(for Multi-Aspect Verification only)")
   private boolean stopAfterError = true;
 
-  @Option(name="hardTimeLimitAtStart",
+  @Option(secure=true, name="hardTimeLimitAtStart",
       description="Check for hard time limit at start of the analysis)")
   private boolean hardTimeLimitAtStart = false;
 
-  @Option(name="abstractionTimeLimit",
+  @Option(secure=true, name="abstractionTimeLimit",
       description="abstraction time limit")
   private int abstractionTimeLimit = 0;
 
-  @Option(name="specificationTimeLimit",
+  @Option(secure=true, name="specificationTimeLimit",
       description="specification time limit")
   private int specificationTimeLimit = 0;
 
-  @Option(name="hardTimeLimit",
+  @Option(secure=true, name="hardTimeLimit",
       description="hard time limit")
   private int hardTimeLimit = 0;
 
-  @Option(name="precisionClearingTimeLimit",
+  @Option(secure=true, name="precisionClearingTimeLimit",
       description="precision clearing time limit")
   private int precisionClearingTimeLimit = 0;
 
-  @Option(name="resultsFile",
+  @Option(secure=true, name="resultsFile",
       description="file for information reuse")
   private String resultsFile = null;
 
-  @Option(name="specificationComparator",
+  @Option(secure=true, name="specificationComparator",
       description="comparator for Specification Id. " +
           "Possible values - AUTOMATON (automaton name), VIOLATED_PROPERTY " +
           "(violated property description)")
   private SpecificationComparators specificationComparator = SpecificationComparators.AUTOMATON;
 
-  @Option(name="precisionCleanStrategy",
+  @Option(secure=true, name="precisionCleanStrategy",
       description="Clean starategy for precisions for specification disable " +
           "(NONE - do not clean precisions, FULL - clean all precisions," +
           "BY_SPECIFICATION - clean all precisions for current specification)")
   private PrecisionCleanStrategy precisionCleanStrategy =
       PrecisionCleanStrategy.BY_SPECIFICATION;
 
-  @Option(name="precisionCleanSet",
+  @Option(secure=true, name="precisionCleanSet",
       description="Specify states set in which precision will be cleaned on specification disable " +
           "(NONE - do not clean at all, WAITLIST - clean precisions in waitlist," +
           "ALL - clean precisions in all abstract states)")

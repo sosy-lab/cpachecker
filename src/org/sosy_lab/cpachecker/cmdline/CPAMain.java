@@ -223,7 +223,7 @@ public class CPAMain {
     @Option(secure=true, name = "pcc.proofgen.doPCC", description = "Generate and dump a proof")
     private boolean doPCC = false;
 
-    @Option(name="analysis.multiAspectVerification",
+    @Option(secure=true, name="analysis.multiAspectVerification",
         description="use Multi-Aspect Verification")
     private boolean multiAspectVerification = false;
 
