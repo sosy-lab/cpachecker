@@ -29,7 +29,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
@@ -45,6 +44,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -73,7 +73,7 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, S
   private final PrecisionAdjustment precisionAdjustment;
   private final UninitializedVariablesStatistics statistics;
 
-  private UninitializedVariablesCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
+  private UninitializedVariablesCPA(Configuration config) throws InvalidConfigurationException {
 
     config.inject(this);
 
@@ -97,7 +97,7 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, S
     this.abstractDomain = domain;
     this.mergeOperator = mergeOp;
     this.stopOperator = stopOp;
-    this.transferRelation = new UninitializedVariablesTransferRelation(printWarnings, logger);
+    this.transferRelation = new UninitializedVariablesTransferRelation(printWarnings);
     this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
 
     statistics = new UninitializedVariablesStatistics(printWarnings);
@@ -109,12 +109,12 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, S
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return new UninitializedVariablesState(pNode.getFunctionName());
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode) {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
     return SingletonPrecision.getInstance();
   }
 

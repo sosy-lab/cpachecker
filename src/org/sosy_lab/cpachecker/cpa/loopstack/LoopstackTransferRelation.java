@@ -31,7 +31,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -40,7 +39,6 @@ import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.InvalidCFAException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
@@ -48,6 +46,12 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 
+/**
+ * Transfer relation for {@link LoopstackState}s:
+ *  add to stack if we are entering the loop,
+ *  pop from the stack if we are leaving the loop,
+ *  identity otherwise.
+ */
 public class LoopstackTransferRelation extends SingleEdgeTransferRelation {
 
   private Map<CFAEdge, Loop> loopEntryEdges = null;
@@ -56,13 +60,14 @@ public class LoopstackTransferRelation extends SingleEdgeTransferRelation {
   private Multimap<CFANode, Loop> loopHeads = null;
 
   private final int maxLoopIterations;
+  private final int loopIterationsBeforeAbstraction;
 
-  public LoopstackTransferRelation(int maxLoopIterations, CFA pCfa) throws InvalidCFAException {
+  public LoopstackTransferRelation(
+      int pLoopIterationsBeforeAbstraction,
+      int maxLoopIterations, LoopStructure loops) {
+
+    loopIterationsBeforeAbstraction = pLoopIterationsBeforeAbstraction;
     this.maxLoopIterations = maxLoopIterations;
-    if (!pCfa.getLoopStructure().isPresent()) {
-      throw new InvalidCFAException("LoopstackCPA does not work without loop information!");
-    }
-    LoopStructure loops = pCfa.getLoopStructure().get();
 
     ImmutableMap.Builder<CFAEdge, Loop> entryEdges = ImmutableMap.builder();
     ImmutableMap.Builder<CFAEdge, Loop> exitEdges  = ImmutableMap.builder();
@@ -121,14 +126,34 @@ public class LoopstackTransferRelation extends SingleEdgeTransferRelation {
 
     Loop newLoop = loopEntryEdges.get(pCfaEdge);
     if (newLoop != null) {
-      e = new LoopstackState(e, newLoop, 0, false);
+      e = new LoopstackState(e, newLoop, 0, false,
+          loopIterationsBeforeAbstraction == 0);
     }
 
     Collection<Loop> loops = loopHeads.get(loc);
     assert loops.size() <= 1;
+
+    // The loop we are in corresponds to the currently traversed loop-head.
     if (loops.contains(e.getLoop())) {
-      boolean stop = (maxLoopIterations > 0) && (e.getIteration() >= maxLoopIterations);
-      e = new LoopstackState(e.getPreviousState(), e.getLoop(), e.getIteration()+1, stop);
+      int newIteration;
+      if (loopIterationsBeforeAbstraction != 0 &&
+          e.getIteration() == loopIterationsBeforeAbstraction) {
+        newIteration = loopIterationsBeforeAbstraction;
+      } else {
+        newIteration = e.getIteration() + 1;
+      }
+
+      // The "stop" flag is only ever read by the AssumptionStorageCPA.
+      boolean stop = (maxLoopIterations > 0) &&
+          (e.getIteration() >= maxLoopIterations);
+
+      // Update values for "newIteration" and "stop".
+      e = new LoopstackState(
+          e.getPreviousState(),
+          e.getLoop(),
+          newIteration,
+          stop,
+          newIteration == loopIterationsBeforeAbstraction);
     }
 
     return Collections.singleton(e);

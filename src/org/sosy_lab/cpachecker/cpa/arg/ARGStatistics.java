@@ -30,13 +30,15 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -45,17 +47,22 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssignments;
+import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithConcreteCex;
 import org.sosy_lab.cpachecker.core.interfaces.IterationStatistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
+import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA.PartitionState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
@@ -79,6 +86,11 @@ public class ARGStatistics implements IterationStatistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path argFile = Paths.get("ARG.dot");
 
+  @Option(secure=true, name="proofWitness",
+      description="export a proof as .graphml file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path proofWitness = null;
+
   @Option(secure=true, name="simplifiedARG.file",
       description="export final ARG as .dot file, showing only loop heads and function entries/exits")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -89,24 +101,28 @@ public class ARGStatistics implements IterationStatistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path refinementGraphFile = Paths.get("ARGRefinements.dot");
 
-  @Option(secure=true, name="errorPath.export",
-      description="export error path to file, if one is found")
-  private boolean exportErrorPath = true;
-
   private final ARGCPA cpa;
 
   private Writer refinementGraphUnderlyingWriter = null;
   private ARGToDotWriter refinementGraphWriter = null;
-  private final CEXExporter cexExporter;
+  private final @Nullable CEXExporter cexExporter;
+  private final ARGPathExporter argPathExporter;
+  private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 
-  public ARGStatistics(Configuration config, ARGCPA cpa) throws InvalidConfigurationException {
-    this.cpa = cpa;
+  private final LogManager logger;
 
+  public ARGStatistics(Configuration config, LogManager pLogger, ARGCPA pCpa,
+      MachineModel pMachineModel, @Nullable CEXExporter pCexExporter,
+      ARGPathExporter pARGPathExporter) throws InvalidConfigurationException {
     config.inject(this);
 
-    cexExporter = new CEXExporter(config, cpa.getLogger());
+    logger = pLogger;
+    cpa = pCpa;
+    assumptionToEdgeAllocator = new AssumptionToEdgeAllocator(config, logger, pMachineModel);
+    cexExporter = pCexExporter;
+    argPathExporter = pARGPathExporter;
 
-    if (argFile == null && simplifiedArgFile == null && refinementGraphFile == null) {
+    if (argFile == null && simplifiedArgFile == null && refinementGraphFile == null && proofWitness == null) {
       exportARG = false;
     }
   }
@@ -132,7 +148,7 @@ public class ARGStatistics implements IterationStatistics {
           }
         }
 
-        cpa.getLogger().logUserException(Level.WARNING, e,
+        logger.logUserException(Level.WARNING, e,
             "Could not write refinement graph to file");
 
         refinementGraphFile = null; // ensure we won't try again
@@ -154,56 +170,98 @@ public class ARGStatistics implements IterationStatistics {
   @Override
   public void printStatistics(PrintStream pOut, Result pResult,
       ReachedSet pReached) {
-
-    if (!exportARG && !exportErrorPath) {
-      // shortcut, avoid unnecessary creation of path etc.
-      assert refinementGraphWriter == null;
+    if (cexExporter == null && !exportARG) {
       return;
     }
 
-    final Set<Pair<ARGState, ARGState>> allTargetPathEdges = new HashSet<>();
-    int cexIndex = 0;
+    final Map<ARGState, CounterexampleInfo> counterexamples = getAllCounterexamples(pReached);
 
-    for (Map.Entry<ARGState, CounterexampleInfo> cex : getAllCounterexamples(pReached).entrySet()) {
-      cexExporter.exportCounterexample(cex.getKey(), cex.getValue(), cexIndex++, allTargetPathEdges,
-          !cexExporter.shouldDumpErrorPathImmediately());
+    if (cexExporter != null) {
+      int cexIndex = 0;
+      for (Map.Entry<ARGState, CounterexampleInfo> cex : counterexamples.entrySet()) {
+        cexExporter.exportCounterexample(cex.getKey(), cex.getValue(), cexIndex++);
+      }
     }
 
     if (exportARG) {
-      final ARGState rootState = (ARGState)pReached.getFirstState();
-      exportARG(rootState, Predicates.in(allTargetPathEdges));
+      final Set<Pair<ARGState, ARGState>> allTargetPathEdges = new HashSet<>();
+      for (CounterexampleInfo cex : counterexamples.values()) {
+        allTargetPathEdges.addAll(cex.getTargetPath().getStatePairs());
+      }
+
+      // The state space might be partitioned ...
+      // ... so we would export a separate ARG for each partition ...
+      boolean partitionedArg = AbstractStates.extractStateByType(
+          pReached.getFirstState(), PartitionState.class) != null;
+
+      final Set<ARGState> rootStates = partitionedArg
+          ? ARGUtils.getRootStates(pReached)
+          : Collections.singleton(AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class));
+
+      for (ARGState rootState: rootStates) {
+        exportARG(rootState, Predicates.in(allTargetPathEdges));
+      }
     }
+  }
+
+  private Path adjustPathNameForPartitioning(ARGState rootState, Path pPath) {
+    if (pPath == null) {
+      return null;
+    }
+
+    PartitionState partyState = AbstractStates.extractStateByType(rootState, PartitionState.class);
+    if (partyState == null) {
+      return pPath;
+    }
+
+    final String partitionKey = partyState.getStateSpacePartition().getPartitionKey().toString();
+
+    int sepIx = pPath.getPath().lastIndexOf(".");
+    String prefix = pPath.getPath().substring(0, sepIx);
+    String extension = pPath.getPath().substring(sepIx, pPath.getPath().length());
+    return Paths.get(prefix + "-" + partitionKey + extension);
   }
 
   private void exportARG(final ARGState rootState, final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge) {
     SetMultimap<ARGState, ARGState> relevantSuccessorRelation = ARGUtils.projectARG(rootState, ARGUtils.CHILDREN_OF_STATE, ARGUtils.RELEVANT_STATE);
     Function<ARGState, Collection<ARGState>> relevantSuccessorFunction = Functions.forMap(relevantSuccessorRelation.asMap(), ImmutableSet.<ARGState>of());
 
+    if (proofWitness != null) {
+      try (Writer w = Files.openOutputFile(adjustPathNameForPartitioning(rootState, proofWitness))) {
+        argPathExporter.writeProofWitness(w, rootState,
+            Predicates.alwaysTrue(),
+            Predicates.alwaysTrue());
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
+      }
+    }
+
     if (argFile != null) {
-      try (Writer w = Files.openOutputFile(argFile)) {
+      try (Writer w = Files.openOutputFile(adjustPathNameForPartitioning(rootState, argFile))) {
         ARGToDotWriter.write(w, rootState,
             ARGUtils.CHILDREN_OF_STATE,
             Predicates.alwaysTrue(),
             isTargetPathEdge);
       } catch (IOException e) {
-        cpa.getLogger().logUserException(Level.WARNING, e, "Could not write ARG to file");
+        logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
       }
     }
 
     if (simplifiedArgFile != null) {
-      try (Writer w = Files.openOutputFile(simplifiedArgFile)) {
+      try (Writer w = Files.openOutputFile(adjustPathNameForPartitioning(rootState, simplifiedArgFile))) {
         ARGToDotWriter.write(w, rootState,
             relevantSuccessorFunction,
             Predicates.alwaysTrue(),
             Predicates.alwaysFalse());
       } catch (IOException e) {
-        cpa.getLogger().logUserException(Level.WARNING, e, "Could not write ARG to file");
+        logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
       }
     }
 
     assert (refinementGraphUnderlyingWriter == null) == (refinementGraphWriter == null);
     if (refinementGraphUnderlyingWriter != null) {
       try (Writer w = refinementGraphUnderlyingWriter) { // for auto-closing
+        // TODO: Support for partitioned state spaces
         refinementGraphWriter.writeSubgraph(rootState,
             relevantSuccessorFunction,
             Predicates.alwaysTrue(),
@@ -211,7 +269,7 @@ public class ARGStatistics implements IterationStatistics {
         refinementGraphWriter.finish();
 
       } catch (IOException e) {
-        cpa.getLogger().logUserException(Level.WARNING, e, "Could not write refinement graph to file");
+        logger.logUserException(Level.WARNING, e, "Could not write refinement graph to file");
       }
     }
   }
@@ -239,8 +297,15 @@ public class ARGStatistics implements IterationStatistics {
           // TODO this check does not avoid dummy-paths in BAM, that might exist in main-reachedSet.
         } else {
 
-          Model model = createModelForPath(path);
-          cex = CounterexampleInfo.feasible(path, model);
+          CFAPathWithAssumptions assignments = createAssignmentsForPath(path);
+          // we use the imprecise version of the CounterexampleInfo, due to the possible
+          // merges which are done in the used CPAs, but if we can compute a path with assignments,
+          // it is probably precise
+          if (!assignments.isEmpty()) {
+            cex = CounterexampleInfo.feasiblePrecise(path, assignments);
+          } else {
+            cex = CounterexampleInfo.feasibleImprecise(path);
+          }
         }
       }
       if (cex != null) {
@@ -251,17 +316,17 @@ public class ARGStatistics implements IterationStatistics {
     return counterexamples;
   }
 
-  private Model createModelForPath(ARGPath pPath) {
+  private CFAPathWithAssumptions createAssignmentsForPath(ARGPath pPath) {
 
     FluentIterable<ConfigurableProgramAnalysisWithConcreteCex> cpas =
         CPAs.asIterable(cpa).filter(ConfigurableProgramAnalysisWithConcreteCex.class);
 
-    CFAPathWithAssignments result = null;
+    CFAPathWithAssumptions result = null;
 
     // TODO Merge different paths
     for (ConfigurableProgramAnalysisWithConcreteCex wrappedCpa : cpas) {
       ConcreteStatePath path = wrappedCpa.createConcreteStatePath(pPath);
-      CFAPathWithAssignments cexPath = CFAPathWithAssignments.of(path, cpa.getLogger(), cpa.getMachineModel());
+      CFAPathWithAssumptions cexPath = CFAPathWithAssumptions.of(path, assumptionToEdgeAllocator);
 
       if (result != null) {
         result = result.mergePaths(cexPath);
@@ -270,10 +335,10 @@ public class ARGStatistics implements IterationStatistics {
       }
     }
 
-    if(result == null) {
-      return Model.empty();
+    if (result == null) {
+      return CFAPathWithAssumptions.empty();
     } else {
-      return Model.empty().withAssignmentInformation(result);
+      return result;
     }
   }
 

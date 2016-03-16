@@ -26,9 +26,6 @@ package org.sosy_lab.cpachecker.cpa.ldd;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -54,6 +51,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -75,7 +73,7 @@ public class LDDAbstractionCPA implements ConfigurableProgramAnalysis {
 
   private final LDDAbstractState initialState;
 
-  public LDDAbstractionCPA(CFA cfa, Configuration config, LogManager logger) throws InvalidConfigurationException {
+  public LDDAbstractionCPA(CFA cfa) {
     Map<String, Integer> variables = new HashMap<>();
 
     for (CFANode node : cfa.getAllNodes()) {
@@ -150,12 +148,12 @@ public class LDDAbstractionCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return this.initialState;
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode) {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
     return SingletonPrecision.getInstance();
   }
 

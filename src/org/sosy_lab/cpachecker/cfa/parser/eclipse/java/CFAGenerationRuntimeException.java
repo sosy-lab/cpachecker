@@ -128,10 +128,8 @@ class CFAGenerationRuntimeException extends RuntimeException {
     if (fullLine != null && fullLine != node) {
       String lineRawSignature = fullLine.toString();
 
-      String codeWithoutWhitespace =
-          CharMatcher.WHITESPACE.removeFrom(rawSignature);
-      String lineWithoutWhitespace =
-          CharMatcher.WHITESPACE.removeFrom(lineRawSignature);
+      String codeWithoutWhitespace = CharMatcher.whitespace().removeFrom(rawSignature);
+      String lineWithoutWhitespace = CharMatcher.whitespace().removeFrom(lineRawSignature);
 
       // remove all whitespaces and trailing semicolons for comparison
       codeWithoutWhitespace = SEMICOLON.trimFrom(codeWithoutWhitespace);

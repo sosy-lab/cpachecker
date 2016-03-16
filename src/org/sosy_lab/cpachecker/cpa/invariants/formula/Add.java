@@ -28,17 +28,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  *
  * @param <ConstantType> the type of the constants used in the formula.
  */
-public class Add<ConstantType> extends AbstractFormula<ConstantType> implements InvariantsFormula<ConstantType> {
-
-  /**
-   * The first summand of the addition.
-   */
-  private final InvariantsFormula<ConstantType> summand1;
-
-  /**
-   * The second summand of the addition.
-   */
-  private final InvariantsFormula<ConstantType> summand2;
+public class Add<ConstantType> extends AbstractBinaryFormula<ConstantType> implements NumeralFormula<ConstantType> {
 
   /**
    * Creates a new addition formula for the given summands.
@@ -46,9 +36,8 @@ public class Add<ConstantType> extends AbstractFormula<ConstantType> implements 
    * @param pSummand1 the first summand.
    * @param pSummand2 the second summand.
    */
-  private Add(InvariantsFormula<ConstantType> pSummand1, InvariantsFormula<ConstantType> pSummand2) {
-    this.summand1 = pSummand1;
-    this.summand2 = pSummand2;
+  private Add(NumeralFormula<ConstantType> pSummand1, NumeralFormula<ConstantType> pSummand2) {
+    super("+", true, pSummand1, pSummand2);
   }
 
   /**
@@ -56,8 +45,8 @@ public class Add<ConstantType> extends AbstractFormula<ConstantType> implements 
    *
    * @return the first summand.
    */
-  public InvariantsFormula<ConstantType> getSummand1() {
-    return this.summand1;
+  public NumeralFormula<ConstantType> getSummand1() {
+    return super.getOperand1();
   }
 
   /**
@@ -65,42 +54,19 @@ public class Add<ConstantType> extends AbstractFormula<ConstantType> implements 
    *
    * @return the second summand.
    */
-  public InvariantsFormula<ConstantType> getSummand2() {
-    return this.summand2;
+  public NumeralFormula<ConstantType> getSummand2() {
+    return super.getOperand2();
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o instanceof Add) {
-      Add<?> other = (Add<?>) o;
-      return getSummand1().equals(other.getSummand1()) && getSummand2().equals(other.getSummand2())
-          || getSummand1().equals(other.getSummand2()) && getSummand2().equals(other.getSummand1());
-    }
-    return false;
-  }
-
-  @Override
-  public String toString() {
-    return String.format("(%s + %s)", getSummand1(), getSummand2());
-  }
-
-  @Override
-  public <ReturnType> ReturnType accept(InvariantsFormulaVisitor<ConstantType, ReturnType> pVisitor) {
+  public <ReturnType> ReturnType accept(NumeralFormulaVisitor<ConstantType, ReturnType> pVisitor) {
     return pVisitor.visit(this);
   }
 
   @Override
   public <ReturnType, ParamType> ReturnType accept(
-      ParameterizedInvariantsFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
     return pVisitor.visit(this, pParameter);
-  }
-
-  @Override
-  public int hashCode() {
-    return getSummand1().hashCode() + getSummand2().hashCode();
   }
 
   /**
@@ -111,7 +77,7 @@ public class Add<ConstantType> extends AbstractFormula<ConstantType> implements 
    *
    * @return the sum of the given formulae.
    */
-  static <ConstantType> Add<ConstantType> of(InvariantsFormula<ConstantType> pSummand1, InvariantsFormula<ConstantType> pSummand2) {
+  static <ConstantType> Add<ConstantType> of(NumeralFormula<ConstantType> pSummand1, NumeralFormula<ConstantType> pSummand2) {
     return new Add<>(pSummand1, pSummand2);
   }
 

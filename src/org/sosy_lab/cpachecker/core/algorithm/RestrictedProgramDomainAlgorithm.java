@@ -23,14 +23,10 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
+import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 
 
 public class RestrictedProgramDomainAlgorithm implements Algorithm {
@@ -38,18 +34,17 @@ public class RestrictedProgramDomainAlgorithm implements Algorithm {
   private final Algorithm innerAlgorithm;
   private final CFA cfa;
 
-  public RestrictedProgramDomainAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa, CFA pCfa,
-      LogManager pLogger, Configuration pConfig, ShutdownNotifier pShutdownNotifier) {
+  public RestrictedProgramDomainAlgorithm(Algorithm pAlgorithm, CFA pCfa) {
     this.innerAlgorithm = pAlgorithm;
     this.cfa = pCfa;
   }
 
   @Override
-  public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
-      PredicatedAnalysisPropertyViolationException {
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
+      CPAEnabledAnalysisPropertyViolationException {
     if (cfa.getVarClassification().isPresent()) {
       if (cfa.getVarClassification().get().hasRelevantNonIntAddVars()) {
-        return false;
+        return AlgorithmStatus.UNSOUND_AND_PRECISE;
       }
     }
 

@@ -36,7 +36,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
@@ -47,10 +47,10 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.regions.Region;
+import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 import com.google.common.collect.Maps;
 
@@ -73,6 +73,11 @@ public class LoopInvariantsWriter {
   }
 
   private Map<CFANode, Region> getLoopHeadInvariants(ReachedSet reached) {
+    if (!cfa.getAllLoopHeads().isPresent()) {
+      logger.log(Level.WARNING, "Cannot dump loop invariants because loop-structure information is not available.");
+      return null;
+    }
+
     Map<CFANode, Region> regions = Maps.newHashMap();
 
     for (AbstractState state : reached) {

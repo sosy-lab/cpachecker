@@ -94,7 +94,7 @@ final public class CLangStackFrame {
    * Adds a SMG object pObj to a stack frame, representing variable pVariableName
    *
    * Throws {@link IllegalArgumentException} when some object is already
-   * present with the name {@link pVariableName}
+   * present with the name pVariableName
    *
    * @param pVariableName A name of the variable
    * @param pObject An object to put into the stack frame
@@ -120,8 +120,8 @@ final public class CLangStackFrame {
   @Override
   public String toString() {
     StringBuilder to_return = new StringBuilder("<");
-    for (String key : stack_variables.keySet()) {
-      to_return.append(" ").append(stack_variables.get(key));
+    for (SMGRegion region : stack_variables.values()) {
+      to_return.append(" ").append(region);
     }
     to_return.append(" >");
     return to_return.toString();
@@ -187,5 +187,12 @@ final public class CLangStackFrame {
    */
   public SMGRegion getReturnObject() {
     return returnValueObject;
+  }
+
+  /**
+   * returns true if stack contains the given variable, else false.
+   */
+  public boolean hasVariable(String var) {
+    return stack_variables.containsKey(var);
   }
 }

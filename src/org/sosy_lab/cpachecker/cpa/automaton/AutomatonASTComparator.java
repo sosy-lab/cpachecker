@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import static org.sosy_lab.common.Pair.zipList;
+import static org.sosy_lab.cpachecker.util.Pair.zipList;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -33,9 +33,9 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CParser;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
@@ -133,7 +134,7 @@ class AutomatonASTComparator {
   /**
    * Surrounds the argument with a function declaration.
    * This is necessary so the string can be parsed by the CDT parser.
-   * @param pBody
+   * @param pBody the body of the function
    * @return "void test() { " + body + ";}";
    */
   private static String addFunctionDeclaration(String pBody) {
@@ -149,9 +150,9 @@ class AutomatonASTComparator {
    * If an error occurs, the program is halted.
    *
    * @param code The C code to parse.
+   * @param parser The parser to use
+   * @param scope the scope to use
    * @return The AST.
-   * @throws InvalidAutomatonException
-   * @throws InvalidConfigurationException
    */
   private static CStatement parse(String code, CParser parser, Scope scope) throws InvalidAutomatonException, InvalidConfigurationException {
     try {
@@ -175,9 +176,6 @@ class AutomatonASTComparator {
    *
    * @param code The C code to parse.
    * @return The AST.
-   * @throws InvalidAutomatonException
-   * @throws InvalidConfigurationException
-   * @throws CParserException
    */
   private static List<CStatement> parseBlockOfStatements(String code, CParser parser, Scope scope) throws InvalidAutomatonException, InvalidConfigurationException, CParserException {
     List<CAstNode> statements;
@@ -331,6 +329,11 @@ class AutomatonASTComparator {
     }
 
     @Override
+    public ASTMatcher visit(CAddressOfLabelExpression exp) throws InvalidAutomatonException {
+      return new AddressOfLabelExpressionMatcher(exp);
+    }
+
+    @Override
     public ASTMatcher visit(CFunctionCallExpression exp) throws InvalidAutomatonException {
       List<ASTMatcher> parameterPatterns = new ArrayList<>(exp.getParameterExpressions().size());
       for (CExpression parameter : exp.getParameterExpressions()) {
@@ -476,6 +479,10 @@ class AutomatonASTComparator {
       return Objects.equals(field, getFieldValueFrom(pSource));
     }
 
+    /**
+     * Returns the value of the field of a given source
+     * @param pSource the source
+     */
     protected F getFieldValueFrom(T pSource) {
       return null;
     }
@@ -497,10 +504,18 @@ class AutomatonASTComparator {
       return Objects.equals(field1, getFieldValue1From(pSource)) && Objects.equals(field2, getFieldValue2From(pSource));
     }
 
+    /**
+     * Returns the value of the field of a given source
+     * @param pSource the source
+     */
     protected F getFieldValue1From(T pSource) {
       return null;
     }
 
+    /**
+     * Returns the value of the field of a given source
+     * @param pSource the source
+     */
     protected G getFieldValue2From(T pSource) {
       return null;
     }
@@ -758,6 +773,18 @@ class AutomatonASTComparator {
     @Override
     protected CType getFieldValueFrom(CTypeIdExpression pSource) {
       return pSource.getType();
+    }
+  }
+
+  private static class AddressOfLabelExpressionMatcher extends ExpressionWithFieldMatcher<CAddressOfLabelExpression, String> {
+
+    public AddressOfLabelExpressionMatcher(CAddressOfLabelExpression pPattern) {
+      super(CAddressOfLabelExpression.class, pPattern);
+    }
+
+    @Override
+    protected String getFieldValueFrom(CAddressOfLabelExpression pSource) {
+      return pSource.getLabelName();
     }
   }
 

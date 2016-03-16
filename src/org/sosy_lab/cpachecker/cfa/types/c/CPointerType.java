@@ -23,11 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.io.Serializable;
 import java.util.Objects;
 
+import javax.annotation.Nullable;
 
-public final class CPointerType implements CType {
 
+public final class CPointerType implements CType, Serializable {
+
+  private static final long serialVersionUID = -6423006826454509009L;
   public static final CPointerType POINTER_TO_VOID = new CPointerType(false, false, CVoidType.VOID);
   public static final CPointerType POINTER_TO_CONST_CHAR = new CPointerType(false, false, CNumericTypes.CHAR.getCanonicalType(true, false));
 
@@ -39,7 +45,7 @@ public final class CPointerType implements CType {
       final CType pType) {
     isConst = pConst;
     isVolatile = pVolatile;
-    type = pType;
+    type = checkNotNull(pType);
   }
 
   @Override
@@ -70,6 +76,7 @@ public final class CPointerType implements CType {
 
   @Override
   public String toASTString(String pDeclarator) {
+    checkNotNull(pDeclarator);
     // ugly hack but it works:
     // We need to insert the "*" between the type and the name (e.g. "int *var").
     String decl;
@@ -106,7 +113,7 @@ public final class CPointerType implements CType {
    * typedefs in it use #getCanonicalType().equals()
    */
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(@Nullable Object obj) {
     if (obj == this) {
       return true;
     }

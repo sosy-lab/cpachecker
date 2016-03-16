@@ -24,22 +24,31 @@
 package org.sosy_lab.cpachecker.cpa.interval;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.CheckTypesOfStringsUtil;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.IntegerFormulaManager;
+import org.sosy_lab.solver.api.NumeralFormula;
 
 import com.google.common.base.Splitter;
 
 public class IntervalAnalysisState implements Serializable, LatticeAbstractState<IntervalAnalysisState>,
-    AbstractQueryableState, Graphable {
+    AbstractQueryableState, Graphable, FormulaReportingState {
 
   private static final long serialVersionUID = -2030700797958100666L;
 
@@ -68,7 +77,6 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
    *
    * @param intervals the intervals
    * @param referencesMap the reference counts
-   * @param previousState from the previous context
    */
   public IntervalAnalysisState(PersistentMap<String, Interval> intervals, PersistentMap<String, Integer> referencesMap) {
     this.intervals        = intervals;
@@ -126,7 +134,7 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
    *
    * @param variableName name of the variable
    * @param interval the interval to be assigned
-   * @param pThreshold threshold from property explicitAnalysis.threshold
+   * @param pThreshold threshold from property valueAnalysis.threshold
    * @return this
    */
   // see ExplicitState::assignConstant
@@ -251,8 +259,53 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
   }
 
   public static IntervalAnalysisState copyOf(IntervalAnalysisState old) {
-    IntervalAnalysisState newElement = new IntervalAnalysisState(old.intervals,old.referenceCounts);
-    return newElement;
+    return new IntervalAnalysisState(old.intervals, old.referenceCounts);
+  }
+
+  /**
+   * @return the set of tracked variables by this state
+   */
+  public Map<String,Interval> getIntervalMap() {
+    return intervals; //  TODO make immutable?
+  }
+
+  /** If there was a recursive function, we have wrong intervals for scoped variables in the returnState.
+   * This function rebuilds a new state with the correct intervals from the previous callState.
+   * We delete the wrong intervals and insert new intervals, if necessary. */
+  public IntervalAnalysisState rebuildStateAfterFunctionCall(final IntervalAnalysisState callState, final FunctionExitNode functionExit) {
+
+    // we build a new state from:
+    // - local variables from callState,
+    // - global variables from THIS,
+    // - the local return variable from THIS.
+    // we copy callState and override all global values and the return variable.
+
+    final IntervalAnalysisState rebuildState = IntervalAnalysisState.copyOf(callState);
+
+    // first forget all global information
+    for (final String trackedVar : callState.intervals.keySet()) {
+      if (!trackedVar.contains("::")) { // global -> delete
+        rebuildState.removeInterval(trackedVar);
+      }
+    }
+
+    // second: learn new information
+    for (final String trackedVar : this.intervals.keySet()) {
+
+      if (!trackedVar.contains("::")) { // global -> override deleted value
+        rebuildState.addInterval(trackedVar, this.getInterval(trackedVar), -1);
+
+      } else if (functionExit.getEntryNode().getReturnVariable().isPresent() &&
+          functionExit.getEntryNode().getReturnVariable().get().getQualifiedName().equals(trackedVar)) {
+        assert (!rebuildState.contains(trackedVar)) :
+                "calling function should not contain return-variable of called function: " + trackedVar;
+        if (this.contains(trackedVar)) {
+          rebuildState.addInterval(trackedVar, this.getInterval(trackedVar), -1);
+        }
+      }
+    }
+
+    return rebuildState;
   }
 
   /* (non-Javadoc)
@@ -274,8 +327,9 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
       return false;
     }
 
-    for (String variableName : intervals.keySet()) {
-      if (!otherElement.intervals.containsKey(variableName) || !otherElement.intervals.get(variableName).equals(intervals.get(variableName))) {
+    for (Entry<String, Interval> variableName : intervals.entrySet()) {
+      if (!otherElement.intervals.containsKey(variableName.getKey())
+          || !otherElement.intervals.get(variableName.getKey()).equals(variableName.getValue())) {
         return false;
       }
     }
@@ -390,5 +444,35 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
   @Override
   public boolean shouldBeHighlighted() {
     return false;
+  }
+
+  public Map<String, Interval> getIntervalMapView() {
+    return Collections.unmodifiableMap(intervals);
+  }
+
+  @Override
+  public BooleanFormula getFormulaApproximation(FormulaManagerView pMgr, PathFormulaManager pPfmgr) {
+    IntegerFormulaManager nfmgr = pMgr.getIntegerFormulaManager();
+    List<BooleanFormula> result = new ArrayList<>();
+    for (Entry<String, Interval> entry : intervals.entrySet()) {
+      Interval interval = entry.getValue();
+      if (interval.isEmpty()) {
+        // one invalid interval disqualifies the whole state
+        return pMgr.getBooleanFormulaManager().makeBoolean(false);
+      }
+
+      // we assume that everything is an SIGNED INTEGER
+      // and build "LOW <= X" and "X <= HIGH"
+      NumeralFormula var = nfmgr.makeVariable(entry.getKey());
+      Long low = interval.getLow();
+      Long high = interval.getHigh();
+      if (low != null && low != Long.MIN_VALUE) { // check for unbound interval
+        result.add(pMgr.makeLessOrEqual(nfmgr.makeNumber(low), var, true));
+      }
+      if (high != null && high != Long.MIN_VALUE) { // check for unbound interval
+        result.add(pMgr.makeGreaterOrEqual(nfmgr.makeNumber(high), var, true));
+      }
+    }
+    return pMgr.getBooleanFormulaManager().and(result);
   }
 }

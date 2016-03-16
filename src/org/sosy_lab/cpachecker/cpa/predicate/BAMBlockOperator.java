@@ -43,13 +43,19 @@ public class BAMBlockOperator extends BlockOperator {
   }
 
   /**
-   * @see {@link BlockOperator#isBlockEnd}
+   * @see{@link BlockOperator#isBlockEnd}
    */
   @Override
   public boolean isBlockEnd(CFANode succLoc, CFANode predLoc, CFAEdge edge, PathFormula pPf) {
     return super.isBlockEnd(succLoc, predLoc, edge, pPf)
         || partitioning.isCallNode(succLoc)
         || partitioning.isReturnNode(succLoc);
+  }
+
+  @Override
+  public boolean alwaysReturnsFalse() {
+    return super.alwaysReturnsFalse()
+        && partitioning.getBlocks().isEmpty();
   }
 
   public BlockPartitioning getPartitioning() {

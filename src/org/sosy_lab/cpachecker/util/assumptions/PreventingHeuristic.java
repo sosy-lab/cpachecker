@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.assumptions;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.NumeralFormula;
+import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
+import org.sosy_lab.solver.api.NumeralFormulaManager;
 
 /**
  * Enum listing several possible reasons for giving up analysis at a certain point.
@@ -43,6 +43,7 @@ public enum PreventingHeuristic {
   MEMORYOUT("MO"),
   TIMEOUT("TO"),
   LOOPITERATIONS("LI"),
+  RECURSIONDEPTH("RD"),
   EDGECOUNT("EC");
 
   private final String predicateString;

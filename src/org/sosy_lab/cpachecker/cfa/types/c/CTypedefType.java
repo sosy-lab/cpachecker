@@ -25,13 +25,17 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.Serializable;
 import java.util.Objects;
+
+import javax.annotation.Nullable;
 
 /**
  * This represents a type which was created by using typedef.
  */
-public final class CTypedefType implements CType {
+public final class CTypedefType implements CType, Serializable {
 
+  private static final long serialVersionUID = -3461236537115147688L;
   private final String name; // the typedef name
   private final CType realType; // the real type this typedef points to
   private boolean   isConst;
@@ -61,6 +65,7 @@ public final class CTypedefType implements CType {
 
   @Override
   public String toASTString(String pDeclarator) {
+    checkNotNull(pDeclarator);
     return (isConst() ? "const " : "")
         + (isVolatile() ? "volatile " : "")
         + name
@@ -98,7 +103,7 @@ public final class CTypedefType implements CType {
    * typedefs in it use #getCanonicalType().equals()
    */
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(@Nullable Object obj) {
     if (obj == this) {
       return true;
     }

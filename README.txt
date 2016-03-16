@@ -29,8 +29,8 @@ Verifying a Program with CPAchecker
    If you use your own program, remember to pre-process it as mentioned above.
    Example: doc/examples/example.c
    A good source for more example programs is the benchmark set of the
-   TACAS 2013 Competition on Software Verification (http://sv-comp.sosy-lab.org/),
-   which can be checked out from https://svn.sosy-lab.org/software/sv-benchmarks/trunk.
+   International Competition on Software Verification (http://sv-comp.sosy-lab.org/),
+   which can be checked out from https://github.com/sosy-lab/sv-benchmarks.
 
 2. If you want to enable certain analyses like predicate analysis,
    choose a configuration file. This file defines for example which CPAs are used.
@@ -57,9 +57,11 @@ Verifying a Program with CPAchecker
    Example: export JAVA=/usr/lib/jvm/java-7-openjdk-amd64/jre/bin/java
    for 64bit OpenJDK 7 on Ubuntu.
 
-   On Windows, you need to use cpa.bat instead of cpa.sh.
-   Also, predicateAnalysis is currently not supported on Windows,
-   so you need to use other analyses like explicitAnalysis.
+   On Windows (witout Cygwin), you need to use cpa.bat instead of cpa.sh (would work 
+   within a Cygwin environment). Please take note that not all analysis 
+   configurations are available for Windows; one reason for this is that not 
+   all solvers (and other native libraries that are used for specific 
+   abstract domains) are available for Windows.
 
 5. Additionally to the console output, there will be several files in the directory output/:
      ARG.dot: Visualization of abstract reachability tree (Graphviz format)

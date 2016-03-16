@@ -23,254 +23,59 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
-import java.util.Collection;
-
-import javax.annotation.Nullable;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionRefinementStrategy;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateBasedPrefixProvider;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateStaticRefiner;
-import org.sosy_lab.cpachecker.cpa.predicate.RefinementStrategy;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.predicates.PathChecker;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
+import org.sosy_lab.cpachecker.util.refinement.DelegatingARGBasedRefinerWithRefinementSelection;
+import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
 
 /**
- * Refiner implementation that delegates to {@link ValueAnalysisPathInterpolator},
- * and if this fails, optionally delegates also to {@link PredicateCPARefiner}.
+ * Refiner implementation that delegates to a value refiner
+ * and if this fails, optionally delegates also to a predicate refiner.
+ * Also supports Refinement Selection and can delegate to the refiner
+ * which has prefixes with the better score.
  */
-@Options(prefix="cpa.value.refiner")
-public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner implements StatisticsProvider {
+public abstract class ValueAnalysisDelegatingRefiner implements Refiner {
 
-  private ShutdownNotifier shutDownNotifier;
-
-  /**
-   * refiner used for (optional) initial static refinement, based on information extracted solely from the CFA
-   */
-  private ValueAnalysisStaticRefiner staticRefiner;
-
-  /**
-   * refiner used for value-analysis interpolation refinement
-   */
-  private ValueAnalysisRefiner valueRefiner;
-
-  /**
-   * backup-refiner used for predicate refinement, when value-analysis refinement fails (due to lack of expressiveness)
-   */
-  private PredicateCPARefiner predicatingRefiner;
-
-  /**
-   * the flag to determine whether or not to check for repeated refinements
-   */
-  @Option(secure=true, description="whether or not to check for repeated refinements, to then reset the refinement root")
-  private boolean checkForRepeatedRefinements = true;
-
-  private final CFA cfa;
-
-  private final LogManager logger;
-  private final Configuration config;
-
-  public static ValueAnalysisDelegatingRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
+  public static Refiner create(ConfigurableProgramAnalysis cpa) throws InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(ValueAnalysisDelegatingRefiner.class.getSimpleName() + " could not find the ValueAnalysisCPA");
     }
 
-    WrapperCPA wrapperCpa = ((WrapperCPA)cpa);
-
-    ValueAnalysisCPA valueAnalysisCpa = wrapperCpa.retrieveWrappedCpa(ValueAnalysisCPA.class);
-    if (valueAnalysisCpa == null) {
+    ValueAnalysisCPA valueCpa = ((WrapperCPA)cpa).retrieveWrappedCpa(ValueAnalysisCPA.class);
+    if (valueCpa == null) {
       throw new InvalidConfigurationException(ValueAnalysisDelegatingRefiner.class.getSimpleName() + " needs a ValueAnalysisCPA");
     }
 
-    ValueAnalysisDelegatingRefiner refiner = initialiseValueAnalysisRefiner(cpa, valueAnalysisCpa);
-    valueAnalysisCpa.getStats().addRefiner(refiner);
-
-    return refiner;
-  }
-
-  private static PredicateCPARefiner createBackupRefiner(final Configuration config,
-        final LogManager logger, final ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
-
     PredicateCPA predicateCpa = ((WrapperCPA)cpa).retrieveWrappedCpa(PredicateCPA.class);
-
     if (predicateCpa == null) {
-      return null;
+      throw new InvalidConfigurationException(ValueAnalysisDelegatingRefiner.class.getSimpleName() + " needs a PredicateCPA");
+    }
 
-    } else {
-        Solver solver                               = predicateCpa.getSolver();
-        PathFormulaManager pathFormulaManager       = predicateCpa.getPathFormulaManager();
-        PredicateStaticRefiner extractor            = predicateCpa.getStaticRefiner();
-        MachineModel machineModel                   = predicateCpa.getMachineModel();
+    Configuration config      = valueCpa.getConfiguration();
+    LogManager logger         = valueCpa.getLogger();
+    CFA cfa                   = valueCpa.getCFA();
 
-        InterpolationManager manager = new InterpolationManager(
-            pathFormulaManager,
-            solver,
+    return AbstractARGBasedRefiner.forARGBasedRefiner(
+        new DelegatingARGBasedRefinerWithRefinementSelection(
             config,
-            predicateCpa.getShutdownNotifier(),
-            logger);
-
-        PathChecker pathChecker = new PathChecker(logger, predicateCpa.getShutdownNotifier(), pathFormulaManager, solver, machineModel);
-
-        RefinementStrategy backupRefinementStrategy = new PredicateAbstractionRefinementStrategy(
-            config,
-            logger,
-            predicateCpa.getShutdownNotifier(),
-            predicateCpa.getPredicateManager(),
-            extractor,
-            solver);
-
-        return new PredicateCPARefiner(
-            config,
-            logger,
-            cpa,
-            manager,
-            pathChecker,
-            pathFormulaManager,
-            backupRefinementStrategy,
-            solver,
-            predicateCpa.getAssumesStore());
-      }
-  }
-
-  private static ValueAnalysisDelegatingRefiner initialiseValueAnalysisRefiner(
-      ConfigurableProgramAnalysis cpa, ValueAnalysisCPA pValueAnalysisCpa)
-          throws CPAException, InvalidConfigurationException {
-    Configuration config              = pValueAnalysisCpa.getConfiguration();
-    LogManager logger                 = pValueAnalysisCpa.getLogger();
-    PredicateCPARefiner backupRefiner = createBackupRefiner(config, logger, cpa);
-
-    pValueAnalysisCpa.injectRefinablePrecision();
-
-    return new ValueAnalysisDelegatingRefiner(
-        config,
-        logger,
-        pValueAnalysisCpa.getShutdownNotifier(),
-        cpa,
-        backupRefiner,
-        pValueAnalysisCpa.getCFA());
-  }
-
-  protected ValueAnalysisDelegatingRefiner(
-      final Configuration pConfig,
-      final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier,
-      final ConfigurableProgramAnalysis pCpa,
-      @Nullable final PredicateCPARefiner pBackupRefiner,
-      final CFA pCfa) throws CPAException, InvalidConfigurationException {
-    super(pCpa);
-    pConfig.inject(this);
-
-    config = pConfig;
-    logger = pLogger;
-
-    shutDownNotifier = pShutdownNotifier;
-
-    cfa = pCfa;
-
-    valueRefiner = new ValueAnalysisRefiner(pConfig, pLogger, pShutdownNotifier, pCfa);
-    staticRefiner = new ValueAnalysisStaticRefiner(pConfig, pLogger);
-
-    predicatingRefiner = pBackupRefiner;
-  }
-
-  @Override
-  protected CounterexampleInfo performRefinement(final ARGReachedSet reached, final ARGPath pErrorPath)
-      throws CPAException, InterruptedException {
-
-    // if infeasible, refine with the optional static refiner or the value refiner
-    if (!isPathFeasable(pErrorPath)) {
-
-      if(!staticRefiner.performRefinement(reached, pErrorPath)) {
-        valueRefiner.performRefinement(reached);
-      }
-
-      return CounterexampleInfo.spurious();
-    }
-
-    // if feasible, refine with the optional predicate refiner or return CEX
-    else {
-
-      if (predicatingRefiner != null) {
-        // just notify the value refiner about this error path
-        valueRefiner.setPreviousErrorPathId(pErrorPath);
-
-        // let the predicate refiner do the actual refining
-        return predicatingRefiner.performRefinement(reached, pErrorPath);
-      }
-
-      try {
-        return CounterexampleInfo.feasible(pErrorPath, createModel(pErrorPath));
-      } catch (InvalidConfigurationException e) {
-        throw new CPAException("Failed to configure feasbility checker", e);
-      }
-    }
-  }
-
-  /**
-   * This method creates a model for the given error path.
-   *
-   * @param errorPath the error path for which to create the model
-   * @return the model for the given error path
-   * @throws InvalidConfigurationException
-   * @throws InterruptedException
-   * @throws CPAException
-   */
-  private Model createModel(ARGPath errorPath) throws InvalidConfigurationException, InterruptedException,
-      CPAException {
-    ValueAnalysisFeasibilityChecker evaluator = new ValueAnalysisFeasibilityChecker(logger, cfa, config);
-    ValueAnalysisConcreteErrorPathAllocator va = new ValueAnalysisConcreteErrorPathAllocator(logger, shutDownNotifier);
-
-    return va.allocateAssignmentsToPath(evaluator.evaluate(errorPath), cfa.getMachineModel());
-  }
-
-  /**
-   * This method checks if the given path is feasible, when doing a full-precision check.
-   *
-   * @param path the path to check
-   * @return true, if the path is feasible, else false
-   * @throws CPAException if the path check gets interrupted
-   */
-  boolean isPathFeasable(ARGPath path) throws CPAException {
-    try {
-      // create a new ValueAnalysisPathChecker, which does check the given path at full precision
-      ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa, config);
-
-      return checker.isFeasible(path);
-    }
-    catch (InterruptedException | InvalidConfigurationException e) {
-      throw new CPAException("counterexample-check failed: ", e);
-    }
-  }
-
-  @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-
-    valueRefiner.collectStatistics(pStatsCollection);
-
-    if (predicatingRefiner != null) {
-      predicatingRefiner.collectStatistics(pStatsCollection);
-    }
+            new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure()),
+            ValueAnalysisRefiner.create(cpa).asARGBasedRefiner(),
+            new ValueAnalysisPrefixProvider(logger, cfa, config),
+            PredicateRefiner.create0(cpa),
+            new PredicateBasedPrefixProvider(
+                config, logger, predicateCpa.getSolver(), predicateCpa.getPathFormulaManager())),
+        cpa);
   }
 }
+

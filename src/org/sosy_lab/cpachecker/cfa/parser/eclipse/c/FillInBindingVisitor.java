@@ -52,7 +52,7 @@ class FillInBindingVisitor extends DefaultCTypeVisitor<Void, RuntimeException> {
   }
 
   @Override
-  public Void visitDefault(CType pT) throws RuntimeException {
+  public Void visitDefault(CType pT) {
     return null;
   }
 

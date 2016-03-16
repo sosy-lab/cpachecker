@@ -97,6 +97,8 @@ public class BlockOperator {
   @Option(secure=true, description="abstraction always and only on explicitly computed abstraction nodes.")
   private boolean alwaysAndOnlyAtExplicitNodes = false;
 
+  @Option(secure=true, description="abstraction always at explicitly computed abstraction nodes.")
+  private boolean alwaysAtExplicitNodes = false;
 
   private ImmutableSet<CFANode> explicitAbstractionNodes = null;
   private ImmutableSet<CFANode> loopHeads = null;
@@ -126,10 +128,21 @@ public class BlockOperator {
    * the start node of a function or if it is the call site from a function call.
    */
   public boolean isBlockEnd(CFANode succLoc, CFANode predLoc, CFAEdge edge, PathFormula pf) {
+    // If you change this function, make sure to adapt alwaysReturnsFalse(), too!
 
     if (alwaysAndOnlyAtExplicitNodes) {
       assert (explicitAbstractionNodes != null);
       return explicitAbstractionNodes.contains(predLoc);
+    }
+
+    if (alwaysAtExplicitNodes && explicitAbstractionNodes != null
+        && explicitAbstractionNodes.contains(predLoc)) {
+      return true;
+    }
+
+    if (threshold == 1) {
+      // check SBE case here to avoid need for loop-structure information
+      return true;
     }
 
     if (alwaysAtFunctions && isFunctionCall(succLoc)) {
@@ -171,10 +184,6 @@ public class BlockOperator {
     }
 
     if (threshold > 0) {
-      if (threshold == 1) {
-        return true;
-      }
-
       if (isThresholdFulfilled(pf)) {
 
         if (alwaysAfterThreshold) {
@@ -215,6 +224,30 @@ public class BlockOperator {
     }
 
     return false;
+  }
+
+  /**
+   * If this method returns true, {@link #isBlockEnd(CFANode, CFANode, CFAEdge, PathFormula)}
+   * is guaranteed to always return false.
+   * This can be used to add optimizations.
+   */
+  public boolean alwaysReturnsFalse() {
+    if (alwaysAndOnlyAtExplicitNodes) {
+      return explicitAbstractionNodes.isEmpty();
+    }
+    return !alwaysAtFunctions
+        && !alwaysAtEntryFunctionHead
+        && !alwaysAtFunctionHeads
+        && !alwaysAtFunctionCallNodes
+        && !alwaysAtLoops
+        && !alwaysAtJoin
+        && !alwaysAtBranch
+        && (!alwaysAtExplicitNodes || explicitAbstractionNodes == null || explicitAbstractionNodes.isEmpty())
+        && (threshold == 0)
+        && !absOnFunction
+        && !absOnLoop
+        && !absOnJoin
+        ;
   }
 
   protected boolean isJoinNode(CFANode pSuccLoc) {
@@ -266,7 +299,7 @@ public class BlockOperator {
     return succLoc.getLeavingSummaryEdge() != null;
   }
 
-  public static boolean isFirstLocationInFunctionBody(CFANode pLoc) {
+  private static boolean isFirstLocationInFunctionBody(CFANode pLoc) {
     Collection<CFAEdge> edges = Lists.newArrayList(CFAUtils.enteringEdges(pLoc));
 
     for (CFAEdge edge: edges) {

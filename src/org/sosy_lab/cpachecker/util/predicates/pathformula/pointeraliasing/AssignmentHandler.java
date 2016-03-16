@@ -35,12 +35,9 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.eclipse.cdt.internal.core.dom.parser.c.CFunctionType;
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -48,26 +45,25 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 
 
 class AssignmentHandler {
@@ -118,40 +114,30 @@ class AssignmentHandler {
                                         CNumericTypes.SIGNED_CHAR;
 
     // RHS handling
-    final List<Pair<CCompositeType, String>> rhsUsedFields;
-    final List<Pair<CCompositeType, String>> rhsAddressedFields;
-    final Map<String, CType> rhsUsedDeferredAllocationPointers;
-    final Expression rhsExpression;
-    // RHS is neither null nor a nondet() function call
-    if (rhs != null &&
-        (!(rhs instanceof CFunctionCallExpression) ||
-         !(((CFunctionCallExpression) rhs).getFunctionNameExpression() instanceof CIdExpression) ||
-         !conv.options.isNondetFunction(((CIdExpression)((CFunctionCallExpression) rhs).getFunctionNameExpression()).getName()))) {
-      final CExpressionVisitorWithPointerAliasing rhsVisitor = new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints, errorConditions, pts);
+    final CExpressionVisitorWithPointerAliasing rhsVisitor = new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints, errorConditions, pts);
 
+    final Expression rhsExpression;
+    if (rhs == null) {
+      rhsExpression = Value.nondetValue();
+    } else {
       CRightHandSide r = rhs;
       if (r instanceof CExpression) {
         r = conv.convertLiteralToFloatIfNecessary((CExpression)r, lhsType);
       }
-
       rhsExpression = r.accept(rhsVisitor);
-      pts.addEssentialFields(rhsVisitor.getInitializedFields());
-      rhsUsedFields = rhsVisitor.getUsedFields();
-      rhsAddressedFields = rhsVisitor.getAddressedFields();
-      rhsUsedDeferredAllocationPointers = rhsVisitor.getUsedDeferredAllocationPointers();
-    } else { // RHS is nondet
-      rhsExpression = Value.nondetValue();
-      rhsUsedFields = ImmutableList.<Pair<CCompositeType,String>>of();
-      rhsAddressedFields = ImmutableList.<Pair<CCompositeType,String>>of();
-      rhsUsedDeferredAllocationPointers = ImmutableMap.<String, CType>of();
     }
+
+    pts.addEssentialFields(rhsVisitor.getInitializedFields());
+    pts.addEssentialFields(rhsVisitor.getUsedFields());
+    final List<Pair<CCompositeType, String>> rhsAddressedFields = rhsVisitor.getAddressedFields();
+    final Map<String, CType> rhsUsedDeferredAllocationPointers = rhsVisitor.getUsedDeferredAllocationPointers();
 
     // LHS handling
     final CExpressionVisitorWithPointerAliasing lhsVisitor = new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints, errorConditions, pts);
     final Location lhsLocation = lhs.accept(lhsVisitor).asLocation();
     final Map<String, CType> lhsUsedDeferredAllocationPointers = lhsVisitor.getUsedDeferredAllocationPointers();
     pts.addEssentialFields(lhsVisitor.getInitializedFields());
-    final List<Pair<CCompositeType, String>> lhsUsedFields = lhsVisitor.getUsedFields();
+    pts.addEssentialFields(lhsVisitor.getUsedFields());
     // the pattern matching possibly aliased locations
     final PointerTargetPattern pattern = lhsLocation.isUnaliasedLocation()
         ? null
@@ -173,8 +159,6 @@ class AssignmentHandler {
                           batchMode,
                           destroyedTypes);
 
-    pts.addEssentialFields(lhsUsedFields);
-    pts.addEssentialFields(rhsUsedFields);
     for (final Pair<CCompositeType, String> field : rhsAddressedFields) {
       pts.addField(field.getFirst(), field.getSecond());
     }

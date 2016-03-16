@@ -32,7 +32,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.AbstractSetBasedCounterexampleFilter;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CounterexampleFilter;
@@ -40,12 +40,13 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
+import com.google.errorprone.annotations.ForOverride;
 
 /**
  * An abstract {@link CounterexampleFilter} implementation
@@ -120,10 +121,11 @@ abstract class AbstractNegatedPathCounterexampleFilter<T> extends AbstractSetBas
    * This method is given as input a list of {@link BooleanFormula}s
    * that represent the "negated path" of this counterexample.
    *
-   * @param counterexample A list of formulas, guaranteed to be not null.
+   * @param negatedPath A list of formulas, guaranteed to be not null.
    * @return An immutable representation of the counterexample, needs to
    * have proper implementations of {@link Object#equals(Object)}
    * and {@link Object#hashCode()}, or {@link Optional#absent()}.
    */
+  @ForOverride
   protected abstract Optional<T> getCounterexampleRepresentation(List<BooleanFormula> negatedPath) throws InterruptedException;
 }

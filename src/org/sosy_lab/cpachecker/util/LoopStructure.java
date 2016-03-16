@@ -64,6 +64,7 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
@@ -117,7 +118,7 @@ public final class LoopStructure {
     // and never called after the LoopStructure information has been collected.
 
     // loopHeads is a sub-set of nodes such that all infinite paths through
-    // the set nodes will pass through at least one node in loopHeads infinitively often
+    // the set nodes will pass through at least one node in loopHeads infinitely often
     // i.e. you will have to pass through at least one loop head in every iteration
     private ImmutableSet<CFANode> loopHeads;
 
@@ -323,6 +324,20 @@ public final class LoopStructure {
     return loopHeads;
   }
 
+  public ImmutableSet<Loop> getLoopsForLoopHead(final CFANode loopHead) {
+    return from(loops.values())
+        .transform(new Function<Loop, Loop>() {
+          @Override
+          public Loop apply(Loop loop) {
+            if (loop.getLoopHeads().contains(loopHead)) {
+              return loop;
+            } else {
+              return null;
+            }
+          }})
+        .filter(Predicates.notNull())
+        .toSet();
+  }
 
   /**
    * Return all variables appearing in loop exit conditions.
@@ -444,7 +459,7 @@ public final class LoopStructure {
    * @param pSingleLoopHead the loop head of the single loop.
    * @return the loop structure of the control flow automaton.
    */
-  public static LoopStructure getLoopStructureForSingleLoop(CFANode pSingleLoopHead) throws InterruptedException {
+  public static LoopStructure getLoopStructureForSingleLoop(CFANode pSingleLoopHead) {
     Predicate<CFAEdge> noFunctionReturnEdge = not(edgeHasType(FunctionReturnEdge));
 
     // First, find all nodes reachable via the loop head
@@ -545,7 +560,6 @@ public final class LoopStructure {
    * @param nodes The set of nodes to look for loops in.
    * @param language The source language.
    * @return A collection of found loops.
-   * @throws ParserException
    */
   private static Collection<Loop> findLoops(SortedSet<CFANode> nodes, Language language) throws ParserException {
 

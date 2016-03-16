@@ -26,9 +26,10 @@ package org.sosy_lab.cpachecker.cpa.composite;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
@@ -156,7 +157,7 @@ public class CompositeReducer implements Reducer {
 
   @Override
   public AbstractState rebuildStateAfterFunctionCall(AbstractState pRootState, AbstractState pEntryState,
-                                                     AbstractState pExpandedState, CFANode exitLocation) {
+      AbstractState pExpandedState, FunctionExitNode exitLocation) {
     List<AbstractState> rootStates = ((CompositeState)pRootState).getWrappedStates();
     List<AbstractState> entryStates = ((CompositeState)pEntryState).getWrappedStates();
     List<AbstractState> expandedStates = ((CompositeState)pExpandedState).getWrappedStates();

@@ -30,6 +30,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import javax.management.JMException;
 
@@ -376,7 +377,7 @@ public class MultiAspectVerification {
     }
     switch (specificationComparator) {
     case AUTOMATON:
-      assert controlAutomatonCPA.getAutomaton().getName() == specificationKey.getId();
+      assert Objects.equals(controlAutomatonCPA.getAutomaton().getName(), specificationKey.getId());
       controlAutomatonCPA.disable();
       break;
     case VIOLATED_PROPERTY:

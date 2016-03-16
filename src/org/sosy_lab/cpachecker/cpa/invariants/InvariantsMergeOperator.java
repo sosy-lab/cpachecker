@@ -32,15 +32,20 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 
 public class InvariantsMergeOperator implements MergeOperator {
+
+  private static final CollectVarsVisitor<CompoundInterval> COLLECT_VARS_VISITOR = new CollectVarsVisitor<>();
 
   @Override
   public AbstractState merge(AbstractState pState1, AbstractState pState2, Precision pPrecision) throws CPAException,
@@ -51,12 +56,16 @@ public class InvariantsMergeOperator implements MergeOperator {
     boolean isMergeAllowed = isMergeAllowed(state1, state2, precision);
     AbstractionState abstractionState1 = state1.determineAbstractionState(precision);
     AbstractionState abstractionState2 = state2.determineAbstractionState(precision);
-    Set<String> wideningTargets = abstractionState1.determineWideningTargets(abstractionState2);
-    Set<InvariantsFormula<CompoundInterval>> wideningHints = Sets.union(abstractionState1.getWideningHints(), abstractionState2.getWideningHints());
+    Set<MemoryLocation> wideningTargets = abstractionState1.determineWideningTargets(abstractionState2);
+    wideningTargets = wideningTargets == null ? state1.getEnvironment().keySet() : wideningTargets;
+    Set<BooleanFormula<CompoundInterval>> wideningHints = Sets.union(abstractionState1.getWideningHints(), abstractionState2.getWideningHints());
     state1 = state1.widen(state2, precision, wideningTargets, wideningHints);
-    if (state1 != pState1 && definitelyImplies(state2, reduceToGivenVariables(reduceToInterestingVariables(state1, precision), Sets.difference(state1.getEnvironment().keySet(), wideningTargets)))) {
-      isMergeAllowed = true;
-    }
+    isMergeAllowed = isMergeAllowed
+        || (state1 != pState1 && definitelyImplies(
+            state2,
+            reduceToGivenVariables(
+                reduceToInterestingVariables(state1, precision),
+                Sets.difference(state1.getEnvironment().keySet(), wideningTargets))));
     InvariantsState result = state2;
     if (isMergeAllowed) {
       result = state1.join(state2, precision);
@@ -70,7 +79,7 @@ public class InvariantsMergeOperator implements MergeOperator {
   }
 
   private static boolean definitelyImplies(InvariantsState pState1, InvariantsState pState2) {
-    for (InvariantsFormula<CompoundInterval> assumption : pState2.getEnvironmentAsAssumptions()) {
+    for (BooleanFormula<CompoundInterval> assumption : pState2.getEnvironmentAsAssumptions()) {
       if (!pState1.definitelyImplies(assumption)) {
         return false;
       }
@@ -82,32 +91,31 @@ public class InvariantsMergeOperator implements MergeOperator {
     return reduceToGivenVariables(pState, pPrecision.getInterestingVariables());
   }
 
-  private static InvariantsState reduceToGivenVariables(InvariantsState pState, Iterable<? extends String> pVariables) {
-    InvariantsState result = pState;
-    for (String variableName : pState.getEnvironment().keySet()) {
-      if (!Iterables.contains(pVariables, variableName)) {
-        result = result.clear(variableName);
+  private static InvariantsState reduceToGivenVariables(final InvariantsState pState, final Iterable<? extends MemoryLocation> pVariables) {
+    return pState.clearAll(new Predicate<MemoryLocation>() {
+
+      @Override
+      public boolean apply(MemoryLocation pMemoryLocation) {
+        return !Iterables.contains(pVariables, pMemoryLocation);
       }
-    }
-    return result;
+    });
   }
 
   private static boolean environmentsEqualWithRespectToInterestingVariables(InvariantsState pState1, InvariantsState pState2, InvariantsPrecision pPrecision) {
-    Set<String> checkedVariables = new HashSet<>();
-    Queue<String> waitlist = new ArrayDeque<>(pPrecision.getInterestingVariables());
-    Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> environment1 = pState1.getEnvironment();
-    Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> environment2 = pState2.getEnvironment();
-    CollectVarsVisitor<CompoundInterval> collectVarsVisitor = new CollectVarsVisitor<>();
+    Set<MemoryLocation> checkedVariables = new HashSet<>();
+    Queue<MemoryLocation> waitlist = new ArrayDeque<>(pPrecision.getInterestingVariables());
+    Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> environment1 = pState1.getEnvironment();
+    Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> environment2 = pState2.getEnvironment();
     while (!waitlist.isEmpty()) {
-      String variableName = waitlist.poll();
-      if (checkedVariables.add(variableName)) {
-        InvariantsFormula<CompoundInterval> left = environment1.get(variableName);
-        InvariantsFormula<CompoundInterval> right = environment2.get(variableName);
+      MemoryLocation memoryLocation = waitlist.poll();
+      if (checkedVariables.add(memoryLocation)) {
+        NumeralFormula<CompoundInterval> left = environment1.get(memoryLocation);
+        NumeralFormula<CompoundInterval> right = environment2.get(memoryLocation);
         if (left != right && (left == null || !left.equals(right))) {
           return false;
         }
         if (left != null) {
-          waitlist.addAll(left.accept(collectVarsVisitor));
+          waitlist.addAll(left.accept(COLLECT_VARS_VISITOR));
         }
       }
     }

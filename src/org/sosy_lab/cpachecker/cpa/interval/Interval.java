@@ -40,23 +40,8 @@ public class Interval implements Serializable{
    */
   private final Long high;
 
-  /**
-   * an interval representing a false value
-   */
-  public static final Interval FALSE = new Interval(0L, 0L);
-
-  /**
-   * an interval representing an impossible interval
-   */
-  public static final Interval EMPTY = createEmptyInterval();
-
-  /**
-   * This method acts as constructor for an empty interval.
-   */
-  private Interval() {
-    this.low = null;
-    this.high = null;
-  }
+  public static final Interval ZERO = new Interval(0L, 0L);
+  public static final Interval ONE = new Interval(1L, 1L);
 
   /**
    * This method acts as constructor for a single-value interval.
@@ -86,7 +71,10 @@ public class Interval implements Serializable{
   }
 
   private boolean isSane() {
-    if (low > high) {
+    if ((low == null) != (high == null)) {
+      throw new IllegalStateException("invalid empty interval");
+    }
+    if (low != null && low > high) {
       throw new IllegalStateException("low cannot be larger than high");
     }
 
@@ -129,10 +117,6 @@ public class Interval implements Serializable{
     } else {
       return false;
     }
-  }
-
-  public boolean isSingular() {
-    return low.equals(high);
   }
 
   /* (non-Javadoc)
@@ -179,25 +163,11 @@ public class Interval implements Serializable{
    * @return the new interval with the respective bounds
    */
   public Interval intersect(Interval other) {
-    Interval interval = null;
-
     if (this.intersects(other)) {
-      interval = new Interval(Math.max(low, other.low), Math.min(high, other.high));
+      return new Interval(Math.max(low, other.low), Math.min(high, other.high));
     } else {
-      interval = createEmptyInterval();
+      return createEmptyInterval();
     }
-
-    return interval;
-  }
-
-  /**
-   * This method determines if this interval is definitely less than the other interval.
-   *
-   * @param other interval to compare with
-   * @return true if the upper bound of this interval is always strictly lower than the lower bound of the other interval, else false
-   */
-  public boolean isLessThan(Interval other) {
-    return !isEmpty() && !other.isEmpty() && high < other.low;
   }
 
   /**
@@ -211,23 +181,14 @@ public class Interval implements Serializable{
   }
 
   /**
-   * This method determines if this interval maybe less than the other interval.
+   * This method determines if this interval is definitely greater or equal than the other interval.
+   * The equality is only satisfied for one single value!
    *
    * @param other interval to compare with
-   * @return true if the lower bound of this interval is strictly lower than the upper bound of the other interval, else false
+   * @return true if the lower bound of this interval is always strictly greater or equal than the upper bound of the other interval, else false
    */
-  public boolean mayBeLessThan(Interval other) {
-    return isEmpty() || (!isEmpty() && !other.isEmpty() && low < other.high);
-  }
-
-  /**
-   * This method determines if this interval maybe less or equal than the other interval.
-   *
-   * @param other interval to compare with
-   * @return true if the lower bound of this interval is strictly lower than the upper bound of the other interval, else false
-   */
-  public boolean mayBeLessOrEqualThan(Interval other) {
-    return isEmpty() || (!isEmpty() && !other.isEmpty() && low <= other.high);
+  public boolean isGreaterOrEqualThan(Interval other) {
+    return !isEmpty() && !other.isEmpty() && low >= other.high;
   }
 
   /**
@@ -251,55 +212,13 @@ public class Interval implements Serializable{
   }
 
   /**
-   * This method determines if this interval represents a false value.
-   *
-   * @return true if this interval represents only values in the interval [0, 0].
-   */
-  public boolean isFalse() {
-    return equals(FALSE);
-  }
-
-  /**
-   * This method determines if this interval represents a true value.
-   *
-   * @return true if this interval represents values that are strictly less than 0 or greater than 0.
-   */
-  public boolean isTrue() {
-    return !isEmpty() && (high < 0 || low > 0);
-  }
-
-  /**
-   * This method creates a new interval instance with the lower and upper bounds being the minimum of both the lower and upper bounds, respectively.
-   *
-   * @param other the other interval
-   * @return the new interval with the respective bounds
-   */
-  public Interval minimum(Interval other) {
-    Interval interval = new Interval(Math.min(low, other.low), Math.min(high, other.high));
-
-    return interval;
-  }
-
-  /**
-   * This method creates a new interval instance with the lower and upper bounds being the maximum of both the lower and upper bounds, respectively.
-   *
-   * @param other the other interval
-   * @return the new interval with the respective bounds
-   */
-  public Interval maximum(Interval other) {
-    Interval interval = new Interval(Math.max(low, other.low), Math.max(high, other.high));
-
-    return interval;
-  }
-
-  /**
    * New interval instance after the modulo computation.
    *
    * @param other the other interval
    * @return the new interval with the respective bounds.
    */
   public Interval modulo(Interval other) {
-    if (other.contains(FALSE)) {
+    if (other.contains(ZERO)) {
       return Interval.createUnboundInterval();
     }
 
@@ -478,7 +397,7 @@ public class Interval implements Serializable{
    */
   public Interval divide(Interval other) {
     // other interval contains "0", return unbound interval
-    if (other.contains(FALSE)) {
+    if (other.contains(ZERO)) {
       return createUnboundInterval();
     } else {
       Long[] values = {
@@ -495,12 +414,13 @@ public class Interval implements Serializable{
   /**
   * This method performs an arithmetical left shift of the interval bounds.
   *
-  * @param Interval offset to perform an arithmetical left shift on the interval bounds. If the offset maybe less than zero an unbound interval is returned.
+  * @param offset Interval offset to perform an arithmetical left shift on the interval
+  *               bounds. If the offset maybe less than zero an unbound interval is returned.
   * @return new interval that represents the result of the arithmetical left shift
   */
   public Interval shiftLeft(Interval offset) {
     // create an unbound interval upon trying to shift by a possibly negative offset
-    if (offset.mayBeLessThan(FALSE)) {
+    if (ZERO.mayBeGreaterThan(offset)) {
       return createUnboundInterval();
     } else {
       // if lower bound is negative, shift it by upper bound of offset, else by lower bound of offset
@@ -520,12 +440,12 @@ public class Interval implements Serializable{
   /**
   * This method performs an arithmetical right shift of the interval bounds. If the offset maybe less than zero an unbound interval is returned.
   *
-  * @param Interval offset to perform an arithmetical right shift on the interval bounds
+  * @param offset Interval offset to perform an arithmetical right shift on the interval bounds
   * @return new interval that represents the result of the arithmetical right shift
   */
   public Interval shiftRight(Interval offset) {
     // create an unbound interval upon trying to shift by a possibly negative offset
-    if (offset.mayBeLessThan(FALSE)) {
+    if (ZERO.mayBeGreaterThan(offset)) {
       return createUnboundInterval();
     } else {
       // if lower bound is negative, shift it by lower bound of offset, else by upper bound of offset
@@ -557,7 +477,7 @@ public class Interval implements Serializable{
   }
 
   public boolean isUnbound() {
-    return low == Long.MIN_VALUE && high == Long.MAX_VALUE;
+    return !isEmpty() && low == Long.MIN_VALUE && high == Long.MAX_VALUE;
   }
 
   /* (non-Javadoc)
@@ -574,7 +494,16 @@ public class Interval implements Serializable{
    * @return an empty interval
    */
   private static Interval createEmptyInterval() {
-    return new Interval();
+    return new Interval(null,null);
+  }
+
+  /**
+   * This method is a factory method for an interval for the values 0 and 1.
+   *
+   * @return an interval [0;1]
+   */
+  public static Interval createBooleanInterval() {
+    return new Interval(0L,1L);
   }
 
   /**

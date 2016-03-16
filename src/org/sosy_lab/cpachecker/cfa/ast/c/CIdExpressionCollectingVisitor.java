@@ -29,59 +29,64 @@ import java.util.Set;
 import com.google.common.collect.Sets;
 
 
-public class CIdExpressionCollectingVisitor implements
-  CStatementVisitor<Set<CIdExpression>, RuntimeException>,
-  CRightHandSideVisitor<Set<CIdExpression>, RuntimeException>,
-  CInitializerVisitor<Set<CIdExpression>, RuntimeException>,
-  CDesignatorVisitor<Set<CIdExpression>, RuntimeException>,
-  CExpressionVisitor<Set<CIdExpression>, RuntimeException> {
+public class CIdExpressionCollectingVisitor
+    extends DefaultCExpressionVisitor<Set<CIdExpression>, RuntimeException>
+    implements CStatementVisitor<Set<CIdExpression>, RuntimeException>,
+               CRightHandSideVisitor<Set<CIdExpression>, RuntimeException>,
+               CInitializerVisitor<Set<CIdExpression>, RuntimeException>,
+               CDesignatorVisitor<Set<CIdExpression>, RuntimeException> {
 
   @Override
-  public Set<CIdExpression> visit(CArraySubscriptExpression pE) throws RuntimeException {
+  protected Set<CIdExpression> visitDefault(CExpression pExp) {
+    return Collections.emptySet();
+  }
+
+  @Override
+  public Set<CIdExpression> visit(CArraySubscriptExpression pE) {
     return Sets.union(
         pE.getArrayExpression().accept(this),
         pE.getSubscriptExpression().accept(this));
   }
 
   @Override
-  public Set<CIdExpression> visit(CBinaryExpression pE) throws RuntimeException {
+  public Set<CIdExpression> visit(CBinaryExpression pE) {
     return Sets.union(
         pE.getOperand1().accept(this),
         pE.getOperand2().accept(this));
   }
 
   @Override
-  public Set<CIdExpression> visit(CCastExpression pE) throws RuntimeException {
+  public Set<CIdExpression> visit(CCastExpression pE) {
     return pE.getOperand().accept(this);
   }
 
   @Override
-  public Set<CIdExpression> visit(CComplexCastExpression pE) throws RuntimeException {
+  public Set<CIdExpression> visit(CComplexCastExpression pE) {
     return pE.getOperand().accept(this);
   }
 
   @Override
-  public Set<CIdExpression> visit(CFieldReference pE) throws RuntimeException {
+  public Set<CIdExpression> visit(CFieldReference pE) {
     return pE.getFieldOwner().accept(this);
   }
 
   @Override
-  public Set<CIdExpression> visit(CPointerExpression pE) throws RuntimeException {
+  public Set<CIdExpression> visit(CPointerExpression pE) {
     return pE.getOperand().accept(this);
   }
 
   @Override
-  public Set<CIdExpression> visit(CUnaryExpression pE) throws RuntimeException {
+  public Set<CIdExpression> visit(CUnaryExpression pE) {
     return pE.getOperand().accept(this);
   }
 
   @Override
-  public Set<CIdExpression> visit(CInitializerExpression pE) throws RuntimeException {
+  public Set<CIdExpression> visit(CInitializerExpression pE) {
     return pE.getExpression().accept(this);
   }
 
   @Override
-  public Set<CIdExpression> visit(CInitializerList pI) throws RuntimeException {
+  public Set<CIdExpression> visit(CInitializerList pI) {
     Set<CIdExpression> result = Collections.emptySet();
     for (CInitializer i: pI.getInitializers()) {
       result = Sets.union(result,  i.accept(this));
@@ -90,7 +95,7 @@ public class CIdExpressionCollectingVisitor implements
   }
 
   @Override
-  public Set<CIdExpression> visit(CDesignatedInitializer pI) throws RuntimeException {
+  public Set<CIdExpression> visit(CDesignatedInitializer pI) {
     Set<CIdExpression> result = Collections.emptySet();
     for (CDesignator d: pI.getDesignators()) {
       result = Sets.union(result, d.accept(this));
@@ -102,19 +107,19 @@ public class CIdExpressionCollectingVisitor implements
   }
 
   @Override
-  public Set<CIdExpression> visit(CExpressionAssignmentStatement pS) throws RuntimeException {
+  public Set<CIdExpression> visit(CExpressionAssignmentStatement pS) {
     return Sets.union(
         pS.getLeftHandSide().accept(this),
         pS.getRightHandSide().accept(this));
   }
 
   @Override
-  public Set<CIdExpression> visit(CExpressionStatement pS) throws RuntimeException {
+  public Set<CIdExpression> visit(CExpressionStatement pS) {
     return pS.getExpression().accept(this);
   }
 
   @Override
-  public Set<CIdExpression> visit(CFunctionCallAssignmentStatement pS) throws RuntimeException {
+  public Set<CIdExpression> visit(CFunctionCallAssignmentStatement pS) {
     Set<CIdExpression> result = Sets.union(
         pS.getLeftHandSide().accept(this),
         pS.getRightHandSide().getFunctionNameExpression().accept(this));
@@ -127,70 +132,38 @@ public class CIdExpressionCollectingVisitor implements
   }
 
   @Override
-  public Set<CIdExpression> visit(CFunctionCallStatement pS) throws RuntimeException {
+  public Set<CIdExpression> visit(CFunctionCallStatement pS) {
     return pS.getFunctionCallExpression().accept(this);
   }
 
   @Override
-  public Set<CIdExpression> visit(CIdExpression pE) throws RuntimeException {
+  public Set<CIdExpression> visit(CIdExpression pE) {
     return Collections.singleton(pE);
   }
 
   @Override
-  public Set<CIdExpression> visit(CCharLiteralExpression pE) throws RuntimeException {
-    return Collections.emptySet();
-  }
-
-  @Override
-  public Set<CIdExpression> visit(CFloatLiteralExpression pE) throws RuntimeException {
-    return Collections.emptySet();
-  }
-
-  @Override
-  public Set<CIdExpression> visit(CIntegerLiteralExpression pE) throws RuntimeException {
-    return Collections.emptySet();
-  }
-
-  @Override
-  public Set<CIdExpression> visit(CStringLiteralExpression pE) throws RuntimeException {
-    return Collections.emptySet();
-  }
-
-  @Override
-  public Set<CIdExpression> visit(CTypeIdExpression pE) throws RuntimeException {
-    return Collections.emptySet();
-  }
-
-  @Override
-  public Set<CIdExpression> visit(CImaginaryLiteralExpression pE) throws RuntimeException {
-    return Collections.emptySet();
-  }
-
-  @Override
-  public Set<CIdExpression> visit(CArrayDesignator pArrayDesignator) throws RuntimeException {
+  public Set<CIdExpression> visit(CArrayDesignator pArrayDesignator) {
     return pArrayDesignator.getSubscriptExpression().accept(this);
   }
 
   @Override
-  public Set<CIdExpression> visit(CArrayRangeDesignator pArrayRangeDesignator) throws RuntimeException {
+  public Set<CIdExpression> visit(CArrayRangeDesignator pArrayRangeDesignator) {
     return Sets.union(
         pArrayRangeDesignator.getFloorExpression().accept(this),
         pArrayRangeDesignator.getCeilExpression().accept(this));
   }
 
   @Override
-  public Set<CIdExpression> visit(CFieldDesignator pFieldDesignator) throws RuntimeException {
+  public Set<CIdExpression> visit(CFieldDesignator pFieldDesignator) {
     return Collections.emptySet();
   }
 
   @Override
-  public Set<CIdExpression> visit(CFunctionCallExpression pIastFunctionCallExpression) throws RuntimeException {
+  public Set<CIdExpression> visit(CFunctionCallExpression pIastFunctionCallExpression) {
     Set<CIdExpression> result = Collections.emptySet();
     for (CExpression e: pIastFunctionCallExpression.getParameterExpressions()) {
-      Sets.union(result, e.accept(this));
+      result = Sets.union(result, e.accept(this));
     }
     return result;
   }
-
-
 }

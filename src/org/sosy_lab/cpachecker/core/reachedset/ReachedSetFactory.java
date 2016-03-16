@@ -27,15 +27,17 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.waitlist.AutomatonFailedMatchesWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.AutomatonMatchesWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.CallstackSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ExplicitSortedWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.LoopstackSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.PostorderSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ReversePostorderSortedWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.ThreadingSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariableWaitlist;
 
 @Options(prefix="analysis")
 public class ReachedSetFactory {
@@ -49,9 +51,17 @@ public class ReachedSetFactory {
   Waitlist.TraversalMethod traversalMethod = Waitlist.TraversalMethod.DFS;
 
   @Option(secure=true, name = "traversal.useCallstack",
-      description = "handle states with a deeper callstack first?"
-      + "\nThis needs the CallstackCPA to have any effect.")
+      description = "handle states with a deeper callstack first"
+      + "\nThis needs the CallstackCPA instance to have any effect.")
   boolean useCallstack = false;
+
+  @Option(secure=true, name="traversal.useLoopstack",
+    description= "handle states with a deeper loopstack first.")
+  boolean useLoopstack = false;
+
+  @Option(secure=true, name="traversal.useReverseLoopstack",
+      description= "handle states with a more shallow loopstack first.")
+  boolean useReverseLoopstack = false;
 
   @Option(secure=true, name = "traversal.useReversePostorder",
       description = "Use an implementation of reverse postorder strategy that allows to select "
@@ -73,6 +83,14 @@ public class ReachedSetFactory {
       description = "handle abstract states with more automaton matches first? (only if AutomatonCPA enabled)")
   boolean useAutomatonInformation = false;
 
+  @Option(secure=true, name = "traversal.byAutomatonVariable",
+      description = "traverse in the order defined by the values of an automaton variable")
+  String byAutomatonVariable = null;
+
+  @Option(secure=true, name = "traversal.useNumberOfThreads",
+      description = "handle abstract states with fewer running threads first? (needs ThreadingCPA)")
+  boolean useNumberOfThreads = false;
+
   @Option(secure=true, name = "reachedSet",
       description = "which reached set implementation to use?"
       + "\nNORMAL: just a simple set"
@@ -81,7 +99,7 @@ public class ReachedSetFactory {
       + "\nPARTITIONED: partitioning depending on CPAs (e.g Location, Callstack etc.)")
   ReachedSetType reachedSet = ReachedSetType.PARTITIONED;
 
-  public ReachedSetFactory(Configuration config, LogManager logger) throws InvalidConfigurationException {
+  public ReachedSetFactory(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
   }
 
@@ -98,11 +116,23 @@ public class ReachedSetFactory {
     if (usePostorder) {
       waitlistFactory = PostorderSortedWaitlist.factory(waitlistFactory);
     }
+    if (useLoopstack) {
+      waitlistFactory = LoopstackSortedWaitlist.factory(waitlistFactory);
+    }
+    if (useReverseLoopstack) {
+      waitlistFactory = LoopstackSortedWaitlist.reversedFactory(waitlistFactory);
+    }
     if (useCallstack) {
       waitlistFactory = CallstackSortedWaitlist.factory(waitlistFactory);
     }
     if (useExplicitInformation) {
       waitlistFactory = ExplicitSortedWaitlist.factory(waitlistFactory);
+    }
+    if (byAutomatonVariable != null) {
+      waitlistFactory = AutomatonVariableWaitlist.factory(waitlistFactory, byAutomatonVariable);
+    }
+    if (useNumberOfThreads) {
+      waitlistFactory = ThreadingSortedWaitlist.factory(waitlistFactory);
     }
 
     switch (reachedSet) {

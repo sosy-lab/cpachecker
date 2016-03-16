@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.apron;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -36,7 +35,6 @@ import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -70,14 +68,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -99,13 +92,12 @@ import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.apron.ApronState.Type;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.InvalidCFAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import apron.DoubleScalar;
 import apron.Interval;
@@ -124,7 +116,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
 
-public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronState>, ApronState, VariableTrackingPrecision> {
+public class ApronTransferRelation extends ForwardingTransferRelation<Collection<ApronState>, ApronState, VariableTrackingPrecision> {
 
   /**
    * This is used for making smaller and greater constraint with octagons
@@ -136,25 +128,16 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
    * the value of the map entry is the explanation for the user
    */
   private static final Map<String, String> UNSUPPORTED_FUNCTIONS
-      = ImmutableMap.of("pthread_create", "threads");
+      = ImmutableMap.of();
 
   private final LogManager logger;
+  private final boolean splitDisequalities;
 
   private final Set<CFANode> loopHeads;
 
-  /**
-   * Class constructor.
-   * @throws InvalidCFAException
-   * @throws InvalidConfigurationException
-   */
-  public ApronTransferRelation(LogManager log, CFA cfa) throws InvalidCFAException {
+  public ApronTransferRelation(LogManager log, LoopStructure loops, boolean pSplitDisequalities) {
     logger = log;
-
-    if (!cfa.getLoopStructure().isPresent()) {
-      throw new InvalidCFAException("OctagonCPA does not work without loop information!");
-    }
-
-    LoopStructure loops = cfa.getLoopStructure().get();
+    splitDisequalities = pSplitDisequalities;
 
     Builder<CFANode> builder = new ImmutableSet.Builder<>();
     for (Loop l : loops.getAllLoops()) {
@@ -162,66 +145,19 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
           builder.addAll(l.getLoopHeads());
     }
     loopHeads = builder.build();
-  }
-
-  boolean done = false;
-
-  @Override
-  public Collection<ApronState> getAbstractSuccessorsForEdge(
-      final AbstractState abstractState, final Precision abstractPrecision, final CFAEdge cfaEdge)
-      throws CPATransferException {
-
-    setInfo(abstractState, abstractPrecision, cfaEdge);
 
     // TODO the creation of the additional ApronManager which then is never used
     // should not be necessary, however, without this constructor call the library
     // does not work properly
-    if (!done) {
     try {
       new ApronManager(Configuration.defaultConfiguration());
     } catch (InvalidConfigurationException e) {
       throw new AssertionError(e);
     }
-    done = true;
-    }
+  }
 
-
-    final Collection<ApronState> preCheck = preCheck();
-    if (preCheck != null) { return preCheck; }
-
-    final Collection<ApronState> successors = new ArrayList<>();
-
-    switch (cfaEdge.getEdgeType()) {
-
-    case AssumeEdge:
-      final AssumeEdge assumption = (AssumeEdge) cfaEdge;
-      successors.addAll(handleAssumption(assumption, assumption.getExpression(), assumption.getTruthAssumption()));
-      break;
-
-    case FunctionCallEdge:
-      final FunctionCallEdge fnkCall = (FunctionCallEdge) cfaEdge;
-      final FunctionEntryNode succ = fnkCall.getSuccessor();
-      final String calledFunctionName = succ.getFunctionName();
-      successors.addAll(handleFunctionCallEdge(fnkCall, fnkCall.getArguments(),
-          succ.getFunctionParameters(), calledFunctionName));
-      break;
-
-    case FunctionReturnEdge:
-      final String callerFunctionName = cfaEdge.getSuccessor().getFunctionName();
-      final FunctionReturnEdge fnkReturnEdge = (FunctionReturnEdge) cfaEdge;
-      final FunctionSummaryEdge summaryEdge = fnkReturnEdge.getSummaryEdge();
-      successors.addAll(handleFunctionReturnEdge(fnkReturnEdge,
-          summaryEdge, summaryEdge.getExpression(), callerFunctionName));
-
-      break;
-
-    case MultiEdge:
-      successors.addAll(handleMultiEdge((MultiEdge) cfaEdge));
-      break;
-
-    default:
-      successors.addAll(handleSimpleEdge(cfaEdge));
-    }
+  @Override
+  protected Collection<ApronState> postProcessing(Collection<ApronState> successors) {
 
     successors.removeAll(Collections.singleton(null));
 
@@ -232,27 +168,29 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
       if (st.isEmpty()) {
         states.remove();
         logger.log(Level.FINER, "removing state because of unsatisfiable constraints:\n" +
-                                 st + "________________\nEdge was:\n" + cfaEdge.getDescription());
+                                 st + "________________\nEdge was:\n" + edge.getDescription());
       }
     }
 
-
-    Set<ApronState> returnStates = new HashSet<>(successors);
-    if (loopHeads.contains(cfaEdge.getSuccessor())) {
+    if (loopHeads.contains(edge.getSuccessor())) {
       Set<ApronState> newStates = new HashSet<>();
       for (ApronState s : successors) {
         newStates.add(s.asLoopHead());
       }
-      returnStates = newStates;
+      return newStates;
+    } else {
+      return new HashSet<>(successors);
     }
-
-    resetInfo();
-
-    return returnStates;
   }
 
   @Override
-  protected Set<ApronState> handleBlankEdge(BlankEdge cfaEdge) throws CPATransferException{
+  protected Collection<ApronState> handleMultiEdge(MultiEdge cfaEdge)
+      throws CPATransferException {
+    return super.handleMultiEdgeReturningCollection(cfaEdge);
+  }
+
+  @Override
+  protected Set<ApronState> handleBlankEdge(BlankEdge cfaEdge) {
     return Collections.singleton(state);
   }
 
@@ -345,10 +283,23 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
                                                                                                    right,
                                                                                                    increasedLeft)))));
             } else {
-              possibleStates.add(state.addConstraint(new Tcons0(Tcons0.DISEQ,
+
+              if(splitDisequalities) {
+                // use same trick as in octagon analysis since disequality does not seem to work
+                possibleStates.add(state.addConstraint(new Tcons0(Tcons0.SUP,
+                                                                  new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
+                                                                                                     left,
+                                                                                                     right)))));
+                possibleStates.add(state.addConstraint(new Tcons0(Tcons0.SUP,
+                                                                  new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
+                                                                                                     right,
+                                                                                                     left)))));
+              } else {
+                possibleStates.add(state.addConstraint(new Tcons0(Tcons0.DISEQ,
                                                                 new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
                                                                                                    left,
                                                                                                    right)))));
+              }
             }
           }
           break;
@@ -456,10 +407,22 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
                                                                                                    right,
                                                                                                    increasedLeft)))));
             } else {
-              possibleStates.add(state.addConstraint(new Tcons0(Tcons0.DISEQ,
+              if(splitDisequalities) {
+                // use same trick as in octagon analysis since disequality does not seem to work
+                possibleStates.add(state.addConstraint(new Tcons0(Tcons0.SUP,
+                                                                  new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
+                                                                                                     left,
+                                                                                                     right)))));
+                possibleStates.add(state.addConstraint(new Tcons0(Tcons0.SUP,
+                                                                  new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
+                                                                                                     right,
+                                                                                                     left)))));
+              } else {
+                possibleStates.add(state.addConstraint(new Tcons0(Tcons0.DISEQ,
                                                                 new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
                                                                                                    left,
                                                                                                    right)))));
+              }
             }
           } else {
             possibleStates.add(state.addConstraint(new Tcons0(Tcons0.EQ,
@@ -581,22 +544,14 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
    * either return the unchanged state or null if the following branch is not reachable.
    *
    * @param value The long value of the CLiteralExpression
-   * @param truthAssumption
+   * @param truthAssumption indicates if we are in the then or the else branch of an assumption
    * @return an OctState or null
    */
   private Set<ApronState> handleLiteralBooleanExpression(long value, boolean truthAssumption, ApronState state) {
-    if (value == 0) {
-      if (truthAssumption) {
-        return Collections.singleton(state);
-      } else {
-        return Collections.emptySet();
-      }
+    if ((value != 0) == truthAssumption) {
+      return Collections.singleton(state);
     } else {
-      if (truthAssumption) {
-        return Collections.emptySet();
-      } else {
-        return Collections.singleton(state);
-      }
+      return Collections.emptySet();
     }
   }
 
@@ -651,8 +606,16 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
     }
 
     Set<ApronState> possibleStates = new HashSet<>();
-    possibleStates.add(state.declareVariable(MemoryLocation.valueOf(calledFunctionName, functionEntryNode.getReturnVariable().get().getName(), 0),
-                                                      getCorrespondingOctStateType(cfaEdge.getSuccessor().getFunctionDefinition().getType().getReturnType())));
+    if (functionEntryNode.getReturnVariable().isPresent()) {
+      possibleStates.add(
+          state.declareVariable(
+              MemoryLocation.valueOf(
+                  calledFunctionName, functionEntryNode.getReturnVariable().get().getName()),
+              getCorrespondingOctStateType(
+                  cfaEdge.getSuccessor().getFunctionDefinition().getType().getReturnType())));
+    } else {
+      possibleStates.add(state);
+    }
 
     // declare all parameters as variables
     for (int i = 0; i < parameters.size(); i++) {
@@ -661,7 +624,8 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
         continue;
       }
 
-      MemoryLocation formalParamName = MemoryLocation.valueOf(calledFunctionName, paramNames.get(i), 0);
+      MemoryLocation formalParamName =
+          MemoryLocation.valueOf(calledFunctionName, paramNames.get(i));
 
       if (!precision.isTracking(formalParamName, parameters.get(i).getType(), functionEntryNode)) {
         continue;
@@ -712,7 +676,9 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
         return Collections.singleton(state.removeLocalVars(calledFunctionName));
       }
 
-      MemoryLocation returnVarName = MemoryLocation.valueOf(calledFunctionName, fnkCall.getFunctionEntry().getReturnVariable().get().getName(), 0);
+      MemoryLocation returnVarName =
+          MemoryLocation.valueOf(
+              calledFunctionName, fnkCall.getFunctionEntry().getReturnVariable().get().getName());
 
       Texpr0Node right = new Texpr0DimNode(state.getVariableIndexFor(returnVarName));
 
@@ -747,7 +713,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
       if (decl.isGlobal()) {
         variableName = MemoryLocation.valueOf(decl.getName());
       } else {
-        variableName = MemoryLocation.valueOf(functionName, decl.getName(), 0);
+        variableName = MemoryLocation.valueOf(functionName, decl.getName());
       }
 
       if (!precision.isTracking(variableName, declaration.getType(), cfaEdge.getSuccessor())) {
@@ -874,14 +840,10 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
       variableName = ((CFieldReference) left).getFieldOwner().toASTString();
     } else {
       variableName = ((CIdExpression) left).toASTString();
-
-      if (!isGlobal(left)) {
-        variableName = buildVarName(functionName, variableName);
-      }
     }
 
-    if (isGlobal(left)) {
-      return MemoryLocation.valueOf(functionName, variableName, 0);
+    if (!isGlobal(left)) {
+      return MemoryLocation.valueOf(functionName, variableName);
     } else {
       return MemoryLocation.valueOf(variableName);
     }
@@ -900,7 +862,10 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
       return Collections.singleton(state);
     }
 
-    MemoryLocation tempVarName = MemoryLocation.valueOf(cfaEdge.getPredecessor().getFunctionName(), ((CIdExpression)cfaEdge.asAssignment().get().getLeftHandSide()).getName(), 0);
+    MemoryLocation tempVarName =
+        MemoryLocation.valueOf(
+            cfaEdge.getPredecessor().getFunctionName(),
+            ((CIdExpression) cfaEdge.asAssignment().get().getLeftHandSide()).getName());
 
     // main function has no __cpa_temp_result_var as the result of the main function
     // is not important for us, we skip here
@@ -935,18 +900,11 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
     return null;
   }
 
+  /**
+   * This Visitor, evaluates all coefficients for a given Expression.
+   */
   class CApronExpressionVisitor extends DefaultCExpressionVisitor<Set<Texpr0Node>, CPATransferException>
       implements CRightHandSideVisitor<Set<Texpr0Node>, CPATransferException> {
-
-    /**
-     * This method creates the Visitor, which evaluates all coefficients for a given
-     * Expression.
-     *
-     * @param state
-     */
-    public CApronExpressionVisitor() {
-    }
-
 
     @Override
     protected Set<Texpr0Node> visitDefault(CExpression pExp) throws CPATransferException {

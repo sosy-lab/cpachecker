@@ -27,14 +27,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
-import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
@@ -52,13 +50,17 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  */
 public class ArrayValue implements Value {
 
+  private static final long serialVersionUID = -3963825961335658001L;
+
+
+  // Array type and element type are only used for checking correctness of parameters
   private final JArrayType arrayType;
 
   /*
    * The element type of arrayType. We store this separately so we don't have to call
    * arrayType.getElementType() for each value we add to the array
    */
-  private final Type elementType;
+  private final JType elementType;
 
   private final int arraySize;
   private final Value[] values;
@@ -75,17 +77,22 @@ public class ArrayValue implements Value {
    *</p>
    *
    * @param pType the type of the array. Only values of this type's element type or subtypes
-   * of this type's element type can be stored in the returned <code>ArrayValue</code> object
+   *    of this type's element type can be stored in the returned <code>ArrayValue</code> object
    * @param pArraySize the size of the array
    */
   public ArrayValue(JArrayType pType, int pArraySize) {
     arrayType = pType;
-    elementType = arrayType.getElementType();
+    elementType = arrayType != null ? arrayType.getElementType() : null;
     arraySize = pArraySize;
     // we can't use concrete Value types because UnknownValue must be allowed
     values = new Value[pArraySize];
 
-    Arrays.fill(values, getInitialValue(pType.getElementType()));
+
+    if (elementType != null) {
+      Arrays.fill(values, getInitialValue(elementType));
+    } else {
+      Arrays.fill(values, UnknownValue.getInstance());
+    }
   }
 
   /**
@@ -102,17 +109,19 @@ public class ArrayValue implements Value {
    *
    * <p>
    * The given list of values may only contain values of types compatible with the given type
-   * (that is values of the type or subtypes of this type and instances of {@link UnknownValue}).
+   * (that is values of the type or subtypes of this type and instances of {@link Value.UnknownValue}).
    * Otherwise, an <code>IllegalArgumentException</code> is thrown at runtime.
    * </p>
-    throw new IllegalArgumentException()
+   *
    * @param pType the type of the array. Only values of this type's element type or subtypes
-   * of this type's element type can be stored in the returned <code>ArrayValue</code> object
+   *    of this type's element type can be stored in the returned <code>ArrayValue</code> object
    * @param pValues a <code>List</code> containing the initial values the array should have
+   *
+   * @throws IllegalArgumentException if a given value is not compatible with the array type
    */
   public ArrayValue(JArrayType pType, List<Value> pValues) {
     arrayType = pType;
-    elementType = arrayType.getElementType();
+    elementType = arrayType != null ? arrayType.getElementType() : null;
     arraySize = pValues.size();
 
     for (Value currentValue : pValues) {
@@ -174,7 +183,7 @@ public class ArrayValue implements Value {
 
     final String errorMessage = "Illegal value " + pValue + " to store in array of type " + arrayType;
 
-    if (pValue.isUnknown()) {
+    if (pValue.isUnknown() || arrayType == null) {
       // as we already check for unknown values here, we won't include it in checks below.
       // this is always fine, do nothing
 
@@ -219,29 +228,8 @@ public class ArrayValue implements Value {
   private boolean isValidComplexValue(Value pValue) {
     checkNotNull(pValue);
 
-    if (pValue.isUnknown() || pValue instanceof NullValue) {
-      return true;
-
-    } else if (pValue instanceof EnumConstantValue) {
-      final EnumConstantValue concreteValue = (EnumConstantValue) pValue;
-      final Type enumType = concreteValue.getEnumType();
-
-      if (enumType instanceof JClassType) {
-        if (enumType.equals(elementType)) {
-          return true;
-
-        } else {
-          Set<JClassOrInterfaceType> superTypes = ((JClassType) enumType).getAllSuperTypesOfClass();
-
-          // rely on hash function/equals method for comparison
-          return superTypes.contains(elementType);
-        }
-      } else {
-        throw new AssertionError("Unhandled enum type " + enumType);
-      }
-    } else {
-      return false;
-    }
+    return pValue.isUnknown() || pValue instanceof NullValue || pValue instanceof EnumConstantValue
+        || arrayType == null;
   }
 
   /**
@@ -257,7 +245,7 @@ public class ArrayValue implements Value {
    * Returns the type of this array. This includes information such as the element type and
    * the number of dimensions this array has.
    *
-   * @return
+   * @return the {@link JArrayType} of this array
    */
   public JArrayType getArrayType() { return arrayType; }
 

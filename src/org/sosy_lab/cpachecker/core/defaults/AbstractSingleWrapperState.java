@@ -27,12 +27,14 @@ import static com.google.common.base.Preconditions.checkState;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 
@@ -47,7 +49,7 @@ import com.google.common.collect.ImmutableList;
 public abstract class AbstractSingleWrapperState implements AbstractWrapperState, Targetable, Partitionable, Serializable {
 
   private static final long serialVersionUID = -332757795984736107L;
-  private static Function<AbstractState, AbstractState> unwrapFunction
+  private static final Function<AbstractState, AbstractState> unwrapFunction
       = new Function<AbstractState, AbstractState>() {
 
     @Override
@@ -84,9 +86,9 @@ public abstract class AbstractSingleWrapperState implements AbstractWrapperState
   }
 
   @Override
-  public String getViolatedPropertyDescription() throws IllegalStateException {
+  public Set<Property> getViolatedProperties() throws IllegalStateException {
     checkState(isTarget());
-    return ((Targetable)wrappedState).getViolatedPropertyDescription();
+    return ((Targetable)wrappedState).getViolatedProperties();
   }
 
   @Override

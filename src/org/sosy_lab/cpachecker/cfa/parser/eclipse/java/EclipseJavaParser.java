@@ -41,6 +41,7 @@ import java.util.logging.Level;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTParser;
+import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -56,7 +57,6 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.Parser;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 import com.google.common.base.Splitter;
 
@@ -95,6 +95,7 @@ class EclipseJavaParser implements Parser {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportTypeHierarchyFile = Paths.get("typeHierarchy.dot");
 
+  @SuppressWarnings("deprecation")
   private final ASTParser parser = ASTParser.newParser(AST.JLS4);
 
   private final LogManager logger;
@@ -148,9 +149,8 @@ class EclipseJavaParser implements Parser {
   /**
    * Parse the program of the Main class in this file into a CFA.
    *
-   * @param fileName  The Main Class File of the program to parse.
+   * @param mainClassName  The Main Class File of the program to parse.
    * @return The CFA.
-   * @throws ParserException If parser or CFA builder cannot handle the  code.
    */
   @Override
   public ParseResult parseFile(String mainClassName, CSourceOriginMapping sourceOriginMapping) throws JParserException {
@@ -191,7 +191,7 @@ class EclipseJavaParser implements Parser {
 
     TypeHierarchy typeHierarchy = TypeHierarchy.createTypeHierachy(logger, astsOfFoundFiles);
 
-    return new Scope(mainClassName, typeHierarchy);
+    return new Scope(mainClassName, typeHierarchy, logger);
   }
 
   private List<JavaFileAST> getASTsOfProgram() throws JParserException {
@@ -207,7 +207,7 @@ class EclipseJavaParser implements Parser {
     return astsOfFoundFiles;
   }
 
-  private Set<Path> getJavaFilesInSourcePaths() throws JParserException {
+  private Set<Path> getJavaFilesInSourcePaths() {
 
     Set<Path> sourceFileToBeParsed = new HashSet<>();
 
@@ -215,12 +215,10 @@ class EclipseJavaParser implements Parser {
       sourceFileToBeParsed.addAll(getJavaFilesInPath(path));
     }
 
-
-
     return sourceFileToBeParsed;
   }
 
-  private Set<Path> getJavaFilesInPath(String path) throws JParserException {
+  private Set<Path> getJavaFilesInPath(String path) {
 
     Path mainDirectory = Paths.get(path);
 
@@ -335,8 +333,12 @@ class EclipseJavaParser implements Parser {
 
       ast.accept(builder);
 
-      String nextClassToBeParsed = builder.getScope().getNextClass();
+      while (scope.hasLocalClassPending()) {
+        AnonymousClassDeclaration nextLocalClassToBeParsed = scope.getNextLocalClass();
+        nextLocalClassToBeParsed.accept(builder);
+      }
 
+      String nextClassToBeParsed = scope.getNextClass();
       while (nextClassToBeParsed != null) {
 
         Path classFile = searchForClassFile(nextClassToBeParsed);
@@ -351,7 +353,12 @@ class EclipseJavaParser implements Parser {
           astNext.accept(builder);
         }
 
-        nextClassToBeParsed = builder.getScope().getNextClass();
+        while (scope.hasLocalClassPending()) {
+          AnonymousClassDeclaration nextLocalClassToBeParsed = scope.getNextLocalClass();
+          nextLocalClassToBeParsed.accept(builder);
+        }
+
+        nextClassToBeParsed = scope.getNextClass();
       }
 
       DynamicBindingCreator tracker = new DynamicBindingCreator(builder);

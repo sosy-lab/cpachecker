@@ -32,13 +32,13 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.ArrayFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.solver.api.ArrayFormula;
+import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.ExpressionToFormulaVisitor;
+import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 public class ExpressionToFormulaVisitorWithArrays extends ExpressionToFormulaVisitor {
 
@@ -59,26 +59,54 @@ public class ExpressionToFormulaVisitorWithArrays extends ExpressionToFormulaVis
   @Override
   public Formula visit(CArraySubscriptExpression pE) throws UnrecognizedCCodeException {
 
-    //  Example for a CArraySubscriptExpression: a[2]
-    //   .arrayExpression: a
-    //   .subscriptExpression: 2
-    //   .type: (int)[]
+    // Examples for a CArraySubscriptExpression:
+    //
+    //    a[2]
+    //      .arrayExpression: a
+    //      .subscriptExpression: 2
+    //      .type: (int)[]
+    //
+    //    --> (select a 2)
+    //
+    //    a[3][7]
+    //      .type: int
+    //      .subscriptExpression: 7
+    //      .arrayExpression: CArraySubscriptExpression
+    //          .type: (int)[]
+    //          .subscriptExpression: 3
+    //          .arrayExpression: CIdExpression a
+    //
+    //    --> (select (select a 7) 3)
 
-    if (!(pE.getArrayExpression() instanceof CIdExpression)) {
-      throw new UnrecognizedCCodeException("CArraySubscriptExpression: Assuming that every array-expression is a CidExpression!", pE);
+    final ArrayFormula<?, ?> selectFrom;
+
+    // Handling of the array expression --------------------------------------
+    if (pE.getArrayExpression() instanceof CIdExpression) {
+      final CIdExpression idExpr = (CIdExpression) pE.getArrayExpression();
+      final String arrayVarName = idExpr.getDeclaration().getQualifiedName();
+      final CType arrayType = pE.getArrayExpression().getExpressionType();
+
+      selectFrom = (ArrayFormula<?, ?>) ctfa.makeVariable(arrayVarName, arrayType, ssa);
+
+    } else if (pE.getArrayExpression() instanceof CArraySubscriptExpression) {
+      final CArraySubscriptExpression subExpr = (CArraySubscriptExpression) pE.getArrayExpression();
+
+      selectFrom = (ArrayFormula<?, ?>) subExpr.accept(this);
+
+    } else {
+      throw new UnrecognizedCCodeException("CArraySubscriptExpression: Unknown type of array-expression!", pE);
     }
 
-    final String arrayVarName = ((CIdExpression) pE.getArrayExpression()).getDeclaration().getQualifiedName();
-    final CType arrayType = pE.getArrayExpression().getExpressionType();
-
-    final ArrayFormula<?, ?> arrayDeclaration = (ArrayFormula<?, ?>) ctfa.makeVariableForMe(arrayVarName, arrayType, ssa);
-    // Make a cast of the subscript expression to the type of the array domain (type of for the index)
-    final Formula arrayIndexExpr = pE.getSubscriptExpression().accept(this);
-    final Formula arrayIndexExprCasted = ctfa.makeCastForMe(
+    // Handling of the index expression --------------------------------------
+    // Make a cast of the subscript expression to the type of the array index
+    final Formula indexExprFormula = pE.getSubscriptExpression().accept(this);
+    final Formula castedIndexExprFormula = ctfa.makeCast(
         pE.getSubscriptExpression().getExpressionType(),
-          machine.getArrayIndexType(), arrayIndexExpr, null, null);
+          machine.getPointerEquivalentSimpleType(), // TODO: Is this correct?
+          indexExprFormula, null, null);
 
-    return amgr.select(arrayDeclaration, arrayIndexExprCasted);
+    // SELECT! ---------------------------------------------------------------
+    return amgr.select(selectFrom, castedIndexExprFormula);
   }
 
   @Override

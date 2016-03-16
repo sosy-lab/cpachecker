@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.reachdef;
 
 import java.io.IOException;
-import java.io.ObjectStreamException;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,10 +38,10 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
-import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefinitionStorage;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 public class ReachingDefState implements AbstractState, Serializable,
@@ -302,7 +301,7 @@ public class ReachingDefState implements AbstractState, Serializable,
     return result;
   }
 
-  private Object writeReplace() throws ObjectStreamException {
+  private Object writeReplace() {
     if (this==topElement) {
       return proxy;
     } else {
@@ -314,20 +313,37 @@ public class ReachingDefState implements AbstractState, Serializable,
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
     out.defaultWriteObject();
 
-    out.writeInt(ReachingDefinitionStorage.getInstance().saveMap(localReachDefs));
-    out.writeInt(ReachingDefinitionStorage.getInstance().saveMap(globalReachDefs));
+    out.writeInt(localReachDefs.size());
+    for(Entry<String, Set<DefinitionPoint>> localReach : localReachDefs.entrySet()){
+      out.writeObject(localReach.getKey());
+      out.writeObject(localReach.getValue());
+    }
+
+    out.writeInt(globalReachDefs.size());
+    for(Entry<String, Set<DefinitionPoint>> globalReach : globalReachDefs.entrySet()){
+      out.writeObject(globalReach.getKey());
+      out.writeObject(globalReach.getValue());
+    }
   }
 
+  @SuppressWarnings("unchecked")
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
 
-    int id;
+    int size;
+    size = in.readInt();
+    localReachDefs = Maps.newHashMapWithExpectedSize(size);
 
-    id = in.readInt();
-    localReachDefs = ReachingDefinitionStorage.getInstance().getMap(id);
+    for(int i=0;i<size;i++){
+      localReachDefs.put((String) in.readObject(), (Set<DefinitionPoint>)in.readObject());
+    }
 
-    id = in.readInt();
-    globalReachDefs = ReachingDefinitionStorage.getInstance().getMap(id);
+    size = in.readInt();
+    globalReachDefs = Maps.newHashMapWithExpectedSize(size);
+
+    for(int i=0;i<size;i++){
+      globalReachDefs.put((String) in.readObject(), (Set<DefinitionPoint>)in.readObject());
+    }
   }
 
 
@@ -337,7 +353,7 @@ public class ReachingDefState implements AbstractState, Serializable,
 
     public SerialProxyReach() {}
 
-    private Object readResolve() throws ObjectStreamException {
+    private Object readResolve() {
       return topElement;
     }
   }
@@ -363,7 +379,7 @@ public class ReachingDefState implements AbstractState, Serializable,
       return "?";
     }
 
-    private Object writeReplace() throws ObjectStreamException {
+    private Object writeReplace() {
       return writeReplace;
     }
 
@@ -373,7 +389,7 @@ public class ReachingDefState implements AbstractState, Serializable,
 
       public SerialProxy() {}
 
-      private Object readResolve() throws ObjectStreamException {
+      private Object readResolve() {
         return instance;
       }
     }
@@ -446,7 +462,7 @@ public class ReachingDefState implements AbstractState, Serializable,
       out.writeInt(exit.getNodeNumber());
     }
 
-    private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+    private void readObject(java.io.ObjectInputStream in) throws IOException {
       int nodeNumber = in.readInt();
       CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
       entry = cfaInfo.getNodeByNodeNumber(nodeNumber);

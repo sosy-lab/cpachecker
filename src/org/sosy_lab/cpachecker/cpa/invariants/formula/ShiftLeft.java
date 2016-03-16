@@ -29,29 +29,18 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  *
  * @param <ConstantType> the type of the constants used in the formulae.
  */
-public class ShiftLeft<ConstantType> extends AbstractFormula<ConstantType> implements InvariantsFormula<ConstantType> {
+public class ShiftLeft<ConstantType> extends AbstractBinaryFormula<ConstantType> implements NumeralFormula<ConstantType> {
 
-  /**
-   * The formula shifted by this operation.
-   */
-  private final InvariantsFormula<ConstantType> shifted;
-
-  /**
-   * The shift distance formula of this operation.
-   */
-  private final InvariantsFormula<ConstantType> shiftDistance;
-
-  /**
+  /*
    * Creates a new left shift formula over the given operands.
    *
    * @param pToShift the formula to be shifted by this operation.
    * @param pShiftDistance the distance by which to shift the first operand to
    * the left.
    */
-  private ShiftLeft(InvariantsFormula<ConstantType> pToShift,
-      InvariantsFormula<ConstantType> pShiftDistance) {
-    this.shifted = pToShift;
-    this.shiftDistance = pShiftDistance;
+  private ShiftLeft(NumeralFormula<ConstantType> pToShift,
+      NumeralFormula<ConstantType> pShiftDistance) {
+    super("<<", false, pToShift, pShiftDistance);
   }
 
   /**
@@ -59,8 +48,8 @@ public class ShiftLeft<ConstantType> extends AbstractFormula<ConstantType> imple
    *
    * @return the formula shifted by this operation.
    */
-  public InvariantsFormula<ConstantType> getShifted() {
-    return this.shifted;
+  public NumeralFormula<ConstantType> getShifted() {
+    return super.getOperand1();
   }
 
   /**
@@ -68,40 +57,18 @@ public class ShiftLeft<ConstantType> extends AbstractFormula<ConstantType> imple
    *
    * @return the shift distance formula of this operation.
    */
-  public InvariantsFormula<ConstantType> getShiftDistance() {
-    return this.shiftDistance;
+  public NumeralFormula<ConstantType> getShiftDistance() {
+    return super.getOperand2();
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o instanceof ShiftLeft) {
-      ShiftLeft<?> other = (ShiftLeft<?>) o;
-      return getShifted().equals(other.getShifted()) && getShiftDistance().equals(other.getShiftDistance());
-    }
-    return false;
-  }
-
-  @Override
-  public int hashCode() {
-    return getShifted().hashCode() << getShiftDistance().hashCode();
-  }
-
-  @Override
-  public String toString() {
-    return String.format("(%s << %s)", getShifted(), getShiftDistance());
-  }
-
-  @Override
-  public <ReturnType> ReturnType accept(InvariantsFormulaVisitor<ConstantType, ReturnType> pVisitor) {
+  public <ReturnType> ReturnType accept(NumeralFormulaVisitor<ConstantType, ReturnType> pVisitor) {
     return pVisitor.visit(this);
   }
 
   @Override
   public <ReturnType, ParamType> ReturnType accept(
-      ParameterizedInvariantsFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
     return pVisitor.visit(this, pParameter);
   }
 
@@ -115,8 +82,8 @@ public class ShiftLeft<ConstantType> extends AbstractFormula<ConstantType> imple
    * @return an invariants formula representing the left shift of the first
    * given operand by the second given operand.
    */
-  static <ConstantType> ShiftLeft<ConstantType> of(InvariantsFormula<ConstantType> pToShift,
-      InvariantsFormula<ConstantType> pShiftDistance) {
+  static <ConstantType> ShiftLeft<ConstantType> of(NumeralFormula<ConstantType> pToShift,
+      NumeralFormula<ConstantType> pShiftDistance) {
     return new ShiftLeft<>(pToShift, pShiftDistance);
   }
 

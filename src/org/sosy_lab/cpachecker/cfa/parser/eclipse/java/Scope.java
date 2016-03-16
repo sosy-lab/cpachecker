@@ -35,7 +35,9 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
 import org.eclipse.jdt.core.dom.ITypeBinding;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JConstructorDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
@@ -66,22 +68,21 @@ class Scope {
   private static final String RETURN_VAR_NAME = "__retval__";
 
   // Stores all found class and reference types
-  private final TypeHierarchy typeHierachy;
+  private final TypeHierarchy typeHierarchy;
 
   // symbolic table for  Variables and other Declarations
   private final LinkedList<Map<String, JSimpleDeclaration>> varsStack = Lists.newLinkedList();
   private final LinkedList<Map<String, JSimpleDeclaration>> varsList = Lists.newLinkedList();
 
   // Stores all found methods and constructors
-  private final Map<String, JMethodDeclaration> methods;
+  private Map<String, JMethodDeclaration> methods;
 
   // Stores all found field declarations
-  private final Map<String, JFieldDeclaration> fields;
+  private Map<String, JFieldDeclaration> fields;
 
   // Stores current class and method
   private String currentMethodName = null;
   private Optional<JVariableDeclaration> returnVariable;
-  private JClassOrInterfaceType currentClassType = null;
 
   // Stores enclosing classes
   private final Stack<JClassOrInterfaceType> classStack = new Stack<>();
@@ -91,10 +92,12 @@ class Scope {
 
   //Track and deliver Classes that need to be parsed
   private final Queue<String> classesToBeParsed = new ConcurrentLinkedQueue<>();
+  private final Queue<AnonymousClassDeclaration> localClassesToBeParsed
+      = new ConcurrentLinkedQueue<>();
+
   private final Set<String> registeredClasses = new HashSet<>();
 
-  // Track depth of current Class
-  private  int depth = 0;
+  private final LogManager logger;
 
 /**
  * Creates the Scope. It stores Information about the program as well
@@ -102,8 +105,10 @@ class Scope {
  *
  * @param pFullyQualifiedMainClassName Name of the main Class of program. *
  * @param pTypeHierarchy Type Hierarchy of program created by {@link TypeHierachyCreator}
+ * @param pLogger a logger
  */
-  public Scope(String pFullyQualifiedMainClassName, TypeHierarchy pTypeHierarchy) {
+  public Scope(String pFullyQualifiedMainClassName, TypeHierarchy pTypeHierarchy,
+      LogManager pLogger) {
 
     fullyQualifiedMainClassName = pFullyQualifiedMainClassName;
     enterProgramScope();
@@ -112,7 +117,9 @@ class Scope {
     methods = pTypeHierarchy.getMethodDeclarations();
     fields = pTypeHierarchy.getFieldDeclarations();
 
-    typeHierachy = pTypeHierarchy;
+    typeHierarchy = pTypeHierarchy;
+
+    logger = pLogger;
   }
 
   private void enterProgramScope() {
@@ -127,7 +134,7 @@ class Scope {
    * @return true, iff Scope is not within method or Class.
    */
   public boolean isProgramScope() {
-    return varsStack.size() == 1 && depth == 0;
+    return varsStack.size() == 1 && classStack.isEmpty();
   }
 
   /**
@@ -137,7 +144,7 @@ class Scope {
    * @return true, iff Scope is within top-level class.
    */
   public boolean isTopClassScope() {
-    return varsStack.size() == 1 && depth == 1;
+    return varsStack.size() == 1 && classStack.size() == 1;
   }
 
   /**
@@ -188,7 +195,7 @@ class Scope {
     // return scope.getCurrentClassType().getName()
     //    + "_" + scope.getCurrentMethodName()
     //    + "::" + var;
-    return getCurrentMethodName() + "::" + pVariableName;
+    return NameConverter.createQualifiedName(getCurrentMethodName(), pVariableName);
   }
 
   /**
@@ -198,19 +205,12 @@ class Scope {
   * @param enteredClassType indicates the class the Visitor enters.
   */
   public void enterClass(JClassOrInterfaceType enteredClassType) {
-      depth++;
+    if (!typeHierarchy.containsType(enteredClassType)) {
+      throw new CFAGenerationRuntimeException(
+          "Could not find Type for Class" + enteredClassType.getName());
+    }
 
-      if (!typeHierachy.containsType(enteredClassType)) {
-        throw new CFAGenerationRuntimeException(
-            "Could not find Type for Class" + enteredClassType.getName());
-      }
-
-      if (depth > 0) {
-        classStack.push(currentClassType);
-      }
-
-      currentClassType = enteredClassType;
-      assert depth >= 0;
+    classStack.push(enteredClassType);
   }
 
   /**
@@ -218,21 +218,13 @@ class Scope {
    * leaves current class while traversing the JDT AST.
    */
   public void leaveClass() {
-    depth--;
 
-    if (depth == 0) {
-      currentClassType = null;
-    } else {
-
-      if (classStack.isEmpty()) {
-        throw new CFAGenerationRuntimeException("Could not find enclosing class of nested class "
-          + currentClassType);
-      }
-
-      currentClassType = classStack.pop();
+    if (classStack.isEmpty()) {
+      throw new CFAGenerationRuntimeException("Could not find enclosing class of nested class "
+        + classStack.peek());
     }
 
-    assert depth >= 0;
+    classStack.pop();
   }
 
   /**
@@ -242,9 +234,11 @@ class Scope {
   public void leaveMethod() {
     checkState(!isTopClassScope());
     varsStack.removeLast();
+
     while (varsList.size() > varsStack.size()) {
       varsList.removeLast();
     }
+
     currentMethodName = null;
   }
 
@@ -276,7 +270,7 @@ class Scope {
    * @return Returns true, if the name is already in use, else false.
    */
   public boolean variableNameInUse(String name, String origName) {
-      checkNotNull(name);
+    checkNotNull(name);
       checkNotNull(origName);
 
       Iterator<Map<String, JSimpleDeclaration>> it = varsList.descendingIterator();
@@ -345,9 +339,9 @@ class Scope {
   public void registerDeclarationOfThisClass(JSimpleDeclaration declaration) {
 
     checkArgument(declaration instanceof JVariableDeclaration
-                  || declaration instanceof JParameterDeclaration,
-                  "Tried to register a declaration which does not define " +
-                      "a name in the standard namespace: " + declaration);
+            || declaration instanceof JParameterDeclaration,
+        "Tried to register a declaration which does not define " +
+            "a name in the standard namespace: " + declaration);
 
     checkArgument(!(declaration instanceof JFieldDeclaration),
         "Can't register a field declaration, it has to be updated within the type Hierarchy");
@@ -380,7 +374,7 @@ class Scope {
   }
 
   public void registerClass(ITypeBinding classBinding) {
-    String className = classBinding.getQualifiedName();
+    String className = NameConverter.convertClassOrInterfaceToFullName(classBinding);
     String topClassName = getTopLevelClass(classBinding);
 
     Queue<JClassOrInterfaceType> toBeAdded = new LinkedList<>();
@@ -402,8 +396,7 @@ class Scope {
     }
 
     //Sub Classes need to be parsed for dynamic Binding
-    JClassOrInterfaceType type =
-        typeHierachy.getType(NameConverter.convertClassOrInterfaceName(classBinding));
+    JClassOrInterfaceType type = typeHierarchy.getType(className);
 
     toBeAdded.addAll(type.getAllSubTypesOfType());
 
@@ -429,10 +422,12 @@ class Scope {
 
     assert nextClass.isTopLevel();
 
-    return nextClass.getQualifiedName();
+    return NameConverter.convertClassOrInterfaceToFullName(nextClass);
   }
 
   public String getNextClass() {
+    assert !hasLocalClassPending() : "Local classes need to be parsed first!";
+
     if (classesToBeParsed.isEmpty()) {
       return null;
     } else {
@@ -440,16 +435,24 @@ class Scope {
     }
   }
 
-  public String getfullyQualifiedMainClassName() {
+  public boolean hasLocalClassPending() {
+    return !localClassesToBeParsed.isEmpty();
+  }
+
+  public AnonymousClassDeclaration getNextLocalClass() {
+    return localClassesToBeParsed.poll();
+  }
+
+  public String getFullyQualifiedMainClassName() {
     return fullyQualifiedMainClassName;
   }
 
   public JClassOrInterfaceType getCurrentClassType() {
-    return currentClassType;
+    return classStack.peek();
   }
 
   public Set<JFieldDeclaration> getFieldDeclarations(JClassOrInterfaceType pType) {
-    return typeHierachy.getFieldDeclarations(pType);
+    return typeHierarchy.getFieldDeclarations(pType);
   }
 
   public Map<String, JFieldDeclaration> getStaticFieldDeclarations() {
@@ -467,7 +470,7 @@ class Scope {
 
     Map<String, JFieldDeclaration> result = new HashMap<>();
 
-    if (typeHierachy.isExternType(pType)) {
+    if (typeHierarchy.isExternType(pType)) {
       return result;
     }
 
@@ -482,33 +485,33 @@ class Scope {
   }
 
   public String getFileOfCurrentType() {
-    if (typeHierachy.containsType(currentClassType)) {
-      return typeHierachy.getFileOfType(currentClassType);
+    if (typeHierarchy.containsType(classStack.peek())) {
+      return typeHierarchy.getFileOfType(classStack.peek());
     } else {
       return "";
     }
   }
 
   public boolean containsInterfaceType(String typeName) {
-    return  typeHierachy.containsInterfaceType(typeName);
+    return  typeHierarchy.containsInterfaceType(typeName);
   }
 
   public JInterfaceType getInterfaceType(String typeName) {
-    return typeHierachy.getInterfaceType(typeName);
+    return typeHierarchy.getInterfaceType(typeName);
   }
 
   public boolean containsClassType(String pTypeName) {
-    return typeHierachy.containsClassType(pTypeName);
+    return typeHierarchy.containsClassType(pTypeName);
   }
 
   public JClassType getClassType(String pTypeName) {
-    return typeHierachy.getClassType(pTypeName);
+    return typeHierarchy.getClassType(pTypeName);
   }
 
   public JInterfaceType createNewInterfaceType(ITypeBinding pTypeBinding) {
-    typeHierachy.updateTypeHierarchy(pTypeBinding);
+    typeHierarchy.updateTypeHierarchy(pTypeBinding);
 
-    String newTypeName = NameConverter.convertClassOrInterfaceName(pTypeBinding);
+    String newTypeName = NameConverter.convertClassOrInterfaceToFullName(pTypeBinding);
 
     if (containsInterfaceType(newTypeName)) {
       return getInterfaceType(newTypeName);
@@ -518,15 +521,27 @@ class Scope {
   }
 
   public JClassType createNewClassType(ITypeBinding pTypeBinding) {
-    typeHierachy.updateTypeHierarchy(pTypeBinding);
+    typeHierarchy.updateTypeHierarchy(pTypeBinding);
 
-    String newTypeName = NameConverter.convertClassOrInterfaceName(pTypeBinding);
+    String newTypeName = NameConverter.convertClassOrInterfaceToFullName(pTypeBinding);
 
     if (containsClassType(newTypeName)) {
       return getClassType(newTypeName);
     } else {
       return JClassType.createUnresolvableType();
     }
+  }
+
+  public JClassType addAnonymousClassDeclaration(AnonymousClassDeclaration pDeclaration) {
+    typeHierarchy.updateTypeHierarchy(pDeclaration, getFileOfCurrentType(), logger);
+    methods = typeHierarchy.getMethodDeclarations();
+    fields = typeHierarchy.getFieldDeclarations();
+
+    String pDeclarationName
+        = NameConverter.convertClassOrInterfaceToFullName(pDeclaration.resolveBinding());
+
+    localClassesToBeParsed.add(pDeclaration);
+    return checkNotNull(typeHierarchy.getClassType(pDeclarationName));
   }
 
   public JMethodDeclaration createExternMethodDeclaration(
@@ -593,6 +608,6 @@ class Scope {
   }
 
   public TypeHierarchy getTypeHierarchy() {
-    return typeHierachy;
+    return typeHierarchy;
   }
 }

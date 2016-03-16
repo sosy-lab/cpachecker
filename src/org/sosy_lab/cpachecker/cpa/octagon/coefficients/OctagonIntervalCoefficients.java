@@ -57,7 +57,6 @@ public class OctagonIntervalCoefficients extends AOctagonCoefficients {
    *
    * @param size The amount of variables for which coefficients should be stored
    * @param index The index of the variable which should be set by default to a given value
-   * @param value The value to which the variable should be set
    */
   public OctagonIntervalCoefficients(int size, int index, OctagonInterval bounds, OctagonState oct) {
     super(size, oct);
@@ -72,8 +71,6 @@ public class OctagonIntervalCoefficients extends AOctagonCoefficients {
    * Create new Coefficients for #size variables. With a constant value.
    *
    * @param size The amount of variables for which coefficients should be stored
-   * @param index The index of the variable which should be set by default to a given value
-   * @param value The value to which the variable should be set
    */
   public OctagonIntervalCoefficients(int size, OctagonInterval bounds, OctagonState oct) {
     super(size, oct);
@@ -380,7 +377,7 @@ public class OctagonIntervalCoefficients extends AOctagonCoefficients {
   public int hashCode() {
     final int prime = 31;
     int result = 7;
-    result = prime * result + Objects.hashCode(coefficients);
+    result = prime * result + Arrays.hashCode(coefficients);
     result = prime * result + Objects.hash(size);
     return result;
   }

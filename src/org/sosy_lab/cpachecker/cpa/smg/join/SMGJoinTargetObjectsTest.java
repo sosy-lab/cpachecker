@@ -27,10 +27,10 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cpa.smg.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
@@ -95,8 +95,7 @@ public class SMGJoinTargetObjectsTest {
     SMGJoinMatchObjects mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, obj1, obj2);
     Assert.assertTrue(mo.isDefined());
 
-    SMGJoinTargetObjects jto = new SMGJoinTargetObjects(mo.getStatus(), smg1, smg2, destSMG, mapping1, mapping2, value1, value2);
-    jto.getStatus(); // Avoid dead store warning
+    new SMGJoinTargetObjects(mo.getStatus(), smg1, smg2, destSMG, mapping1, mapping2, value1, value2);
   }
 
   @Test
@@ -142,9 +141,9 @@ public class SMGJoinTargetObjectsTest {
     smg1.addPointsToEdge(pt1null);
     smg2.addPointsToEdge(pt2null);
 
-    SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(new SMG(smg1), new SMG(smg2), new SMG(destSMG),
-                                                      new SMGNodeMapping(mapping1), new SMGNodeMapping(mapping2),
-                                                      value1, value2);
+    SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(new SMG(smg1), new SMG(destSMG), new SMGNodeMapping(mapping1),
+                                                      new SMGNodeMapping(mapping2), value1,
+                                                      value2);
     SMGJoinTargetObjects jto = new SMGJoinTargetObjects(SMGJoinStatus.EQUAL, smg1, smg2, destSMG, mapping1, mapping2, value1, value2);
     Assert.assertTrue(jto.isDefined());
     Assert.assertEquals(SMGJoinStatus.EQUAL, jto.getStatus());

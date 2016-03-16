@@ -37,15 +37,15 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
+import org.sosy_lab.solver.api.BitvectorFormula;
+import org.sosy_lab.solver.api.Formula;
 
 import com.google.common.base.Optional;
 
-class LvalueVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCodeException> {
+public class LvalueVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCodeException> {
 
   private final CtoFormulaConverter conv;
   private final CFAEdge       edge;
@@ -55,7 +55,7 @@ class LvalueVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCode
   private final Constraints   constraints;
   private final ErrorConditions errorConditions;
 
-  LvalueVisitor(CtoFormulaConverter pConv, CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa,
+  protected LvalueVisitor(CtoFormulaConverter pConv, CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa,
       PointerTargetSetBuilder pPts, Constraints pConstraints, ErrorConditions pErrorConditions) {
 
     conv = pConv;

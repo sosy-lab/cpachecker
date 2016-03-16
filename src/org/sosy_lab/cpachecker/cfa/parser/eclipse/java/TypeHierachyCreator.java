@@ -23,12 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.*;
 
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 
 import org.eclipse.jdt.core.dom.ASTVisitor;
+import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.EnumDeclaration;
 import org.eclipse.jdt.core.dom.FieldDeclaration;
@@ -66,35 +68,24 @@ class TypeHierachyCreator extends ASTVisitor {
   private final THTypeTable typeTable;
   private final TypeHierachyConverter converter;
 
-  /*
+  /**
    * FileName of File, which was parsed into the currently visited Compilation Unit.
    */
   private String fileOfCU;
 
-
-
-
-
-
-  /*
-   * Used for propagating Errors due to wrong naming of files for classes.
+  /**
+   * Used for propagating errors due to wrong naming of files of classes.
    *
    */
   private boolean classNameException = false;
   private String className;
   private String expectedName;
 
-
-
-
-
 /**
- * Creates the Visitor. The created Types are stored in the type table.
+ * Creates the visitor. The created types are stored in the type table.
  *
  * @param pLogger Logger logging progress.
  * @param pTypeTable The type table of the type hierarchy, to be filled with the created types
- * @param pTypes Resulting Types are inserted in this map.
- * @param pTypeOfFiles Maps types to the files they were extracted from.
  */
   public TypeHierachyCreator(LogManager pLogger, THTypeTable pTypeTable) {
     logger = pLogger;
@@ -102,7 +93,25 @@ class TypeHierachyCreator extends ASTVisitor {
     converter = new TypeHierachyConverter(logger, typeTable);
   }
 
+  /**
+   * Creates the visitor with the given default file name.
+   * The created types are stored in the type table.
+   *
+   * <p>This constructor is useful when this class's visit-methods are not used through
+   * {@link #createTypeHierachy}, but directly.
+   * When calling <code>createTypeHierachy</code>, the file names will be set according to the
+   * parsed ASTs. Otherwise, the file name provided in this method will be used.</p>
+   *
+   */
+  public TypeHierachyCreator(LogManager pLogger, THTypeTable pTypeTable, String fileName) {
+    logger = pLogger;
+    typeTable = pTypeTable;
+    converter = new TypeHierachyConverter(logger, typeTable);
+    fileOfCU = fileName;
+  }
+
   public void createTypeHierachy(List<JavaFileAST> pJavaProgram) throws JParserException {
+    String oldFileOfCU = fileOfCU;
 
     for (JavaFileAST ast : pJavaProgram) {
       fileOfCU = ast.getFileName();
@@ -116,6 +125,8 @@ class TypeHierachyCreator extends ASTVisitor {
               ".\n It is instead declared in " + fileOfCU);
       }
     }
+
+    fileOfCU = oldFileOfCU;
   }
 
   @Override
@@ -184,9 +195,28 @@ class TypeHierachyCreator extends ASTVisitor {
 
       JClassOrInterfaceType type = converter.convertClassOrInterfaceType(typeBinding);
       typeTable.registerFileNameOfType(type, fileOfCU);
+    } else {
+      logger.logf(Level.WARNING, "Type %s has no binding.", node.toString());
     }
 
     return !classNameException;
+  }
+
+  @Override
+  public boolean visit(AnonymousClassDeclaration pDeclaration) {
+    final ITypeBinding classBinding = pDeclaration.resolveBinding();
+
+    checkNotNull(classBinding);
+    checkArgument(classBinding.isClass()
+               || classBinding.isEnum()
+               || classBinding.isInterface());
+
+    final THTypeConverter converter = new THTypeConverter(typeTable);
+    final JClassOrInterfaceType classType = converter.convertClassOrInterfaceType(classBinding);
+
+    typeTable.registerFileNameOfType(classType, fileOfCU);
+
+    return VISIT_CHILDREN;
   }
 
   public THTypeTable getTypeTable() {

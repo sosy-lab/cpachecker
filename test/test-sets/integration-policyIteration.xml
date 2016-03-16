@@ -1,40 +1,18 @@
 <?xml version="1.0"?>
-<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="60" hardtimelimit="90" memlimit="500" cpuCores="1">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="100 s" hardtimelimit="120 s" memlimit="2 GB" cpuCores="1">
+    <option name="-noout" />
 
-    <option name="-noout"/>
-    <option name="-policy"/>
-    <option name="-setprop">log.consoleLevel=INFO</option>
+    <option name="-policy-refinement"/>
+    <option name="-setprop">cpa.stator.policy.linearizePolicy=true</option>
 
-    <sourcefiles>
-        <include>../programs/policyiteration/*.c</include>
-    </sourcefiles>
+    <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
 
-    <rundefinition name="vanilla">
-        <sourcefiles>
-            <include>../programs/policyiteration/pointers/*.c</include>
-        </sourcefiles>
+    <tasks>
+        <includesfile>../programs/benchmarks/Loops.set</includesfile>
+    </tasks>
+
+    <rundefinition>
     </rundefinition>
 
-    <rundefinition name="noPointerAliasing">
-        <option name ="-setprop">cpa.predicate.handlePointerAliasing=false</option>
-    </rundefinition>
-
-    <rundefinition name="noPathFocusing">
-        <option name ="-setprop">cpa.stator.policy.pathFocusing=false</option>
-    </rundefinition>
-
-    <rundefinition name="octagons">
-        <sourcefiles>
-            <include>../programs/policyiteration/octagons/*.c</include>
-        </sourcefiles>
-        <option name ="-setprop">cpa.stator.policy.generateOctagons=true</option>
-    </rundefinition>
-
-
-    <columns>
-        <column title="total">Total time for CPA algorithm</column>
-        <column title="abstraction">Time spent in abstraction</column>
-        <column title="value determination">Time spent in merge-step</column>
-    </columns>
 </benchmark>

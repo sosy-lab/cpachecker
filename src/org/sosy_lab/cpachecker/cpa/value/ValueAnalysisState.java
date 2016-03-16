@@ -25,7 +25,10 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
+import java.math.BigInteger;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -33,38 +36,45 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-import org.sosy_lab.cpachecker.util.VariableClassificationBuilder;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.refinement.ForgetfulState;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.solver.api.BitvectorFormula;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
+import org.sosy_lab.solver.api.FloatingPointFormula;
+import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.solver.api.FormulaType.FloatingPointType;
 
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ComparisonChain;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
-import com.google.common.primitives.Longs;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-public class ValueAnalysisState implements AbstractQueryableState, FormulaReportingState, Serializable, Graphable,
+public class ValueAnalysisState implements AbstractQueryableState, FormulaReportingState,
+    ForgetfulState<ValueAnalysisInformation>, Serializable, Graphable,
     LatticeAbstractState<ValueAnalysisState> {
 
   private static final long serialVersionUID = -3152134511524554357L;
@@ -76,25 +86,34 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
   }
 
   /**
-   * the map that keeps the name of variables and their constant values
+   * the map that keeps the name of variables and their constant values (concrete and symbolic ones)
    */
   private PersistentMap<MemoryLocation, Value> constantsMap;
 
-  @SuppressFBWarnings(value="SE_TRANSIENT_FIELD_NOT_RESTORED",
-      justification="After de-serializing, we only read values from this class, and we don't need types for this.")
+  private final Optional<MachineModel> machineModel;
+
   private transient PersistentMap<MemoryLocation, Type> memLocToType = PathCopyingPersistentTreeMap.of();
 
-  public ValueAnalysisState() {
+  public ValueAnalysisState(MachineModel pMachineModel) {
+    this(Optional.of(pMachineModel));
+  }
+
+  public ValueAnalysisState(Optional<MachineModel> pMachineModel) {
+    machineModel = pMachineModel;
     constantsMap = PathCopyingPersistentTreeMap.of();
   }
 
-  public ValueAnalysisState(PersistentMap<MemoryLocation, Value> pConstantsMap, PersistentMap<MemoryLocation, Type> pLocToTypeMap) {
+  public ValueAnalysisState(
+      Optional<MachineModel> pMachineModel,
+      PersistentMap<MemoryLocation, Value> pConstantsMap,
+      PersistentMap<MemoryLocation, Type> pLocToTypeMap) {
+    machineModel = pMachineModel;
     this.constantsMap = pConstantsMap;
     this.memLocToType = pLocToTypeMap;
   }
 
   public static ValueAnalysisState copyOf(ValueAnalysisState state) {
-    return new ValueAnalysisState(state.constantsMap, state.memLocToType);
+    return new ValueAnalysisState(state.machineModel, state.constantsMap, state.memLocToType);
   }
 
   /**
@@ -107,8 +126,18 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     if (blacklist.contains(MemoryLocation.valueOf(variableName))) {
       return;
     }
-    constantsMap = constantsMap.putAndCopy(
-        MemoryLocation.valueOf(variableName), checkNotNull(value));
+
+    addToConstantsMap(MemoryLocation.valueOf(variableName), value);
+  }
+
+  private void addToConstantsMap(final MemoryLocation pMemLoc, final Value pValue) {
+    Value valueToAdd = pValue;
+
+    if (valueToAdd instanceof SymbolicValue) {
+      valueToAdd = ((SymbolicValue) valueToAdd).copyForLocation(pMemLoc);
+    }
+
+    constantsMap = constantsMap.putAndCopy(pMemLoc, checkNotNull(valueToAdd));
   }
 
   /**
@@ -122,11 +151,37 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     if (blacklist.contains(pMemoryLocation)) {
       return;
     }
+
     if (value == null) {
       return;
     }
-    constantsMap = constantsMap.putAndCopy(pMemoryLocation, checkNotNull(value));
+
+    addToConstantsMap(pMemoryLocation, value);
+
     memLocToType = memLocToType.putAndCopy(pMemoryLocation, pType);
+  }
+
+  /**
+   * This method assigns a concrete value to the given {@link SymbolicIdentifier}.
+   *
+   * @param pSymbolicIdentifier the <code>SymbolicIdentifier</code> to assign the concrete value to.
+   * @param pValue value to be assigned.
+   */
+  public void assignConstant(SymbolicIdentifier pSymbolicIdentifier, Value pValue) {
+    for (Map.Entry<MemoryLocation, Value> entry : constantsMap.entrySet()) {
+      MemoryLocation currMemloc = entry.getKey();
+      Value currVal = entry.getValue();
+
+      if (currVal instanceof ConstantSymbolicExpression) {
+        currVal = ((ConstantSymbolicExpression) currVal).getValue();
+      }
+
+      if (currVal instanceof SymbolicIdentifier
+          && ((SymbolicIdentifier) currVal).getId() == pSymbolicIdentifier.getId()) {
+
+        assignConstant(currMemloc, pValue, getTypeForMemoryLocation(currMemloc));
+      }
+    }
   }
 
   /**
@@ -135,23 +190,46 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    * @param variableName the name of the variable to remove
    * @return the value of the removed variable
    */
-  public Pair<Value, Type> forget(String variableName) {
+  public ValueAnalysisInformation forget(String variableName) {
     return forget(MemoryLocation.valueOf(variableName));
   }
 
   /**
    * This method removes a memory location from the underlying map and returns the removed value.
    *
-   * @param variableName the name of the memory location to remove
+   * @param pMemoryLocation the name of the memory location to remove
    * @return the value of the removed memory location
    */
-  public Pair<Value, Type> forget(MemoryLocation pMemoryLocation) {
+  @Override
+  public ValueAnalysisInformation forget(MemoryLocation pMemoryLocation) {
+
+    if (!constantsMap.containsKey(pMemoryLocation)) {
+      return ValueAnalysisInformation.EMPTY;
+    }
+
     Value value = constantsMap.get(pMemoryLocation);
     Type type = memLocToType.get(pMemoryLocation);
     constantsMap = constantsMap.removeAndCopy(pMemoryLocation);
     memLocToType = memLocToType.removeAndCopy(pMemoryLocation);
 
-    return Pair.of(value, type);
+    Map<MemoryLocation, Type> typeAssignment;
+
+    if (type == null) {
+      typeAssignment = Collections.emptyMap();
+    } else {
+      typeAssignment = ImmutableMap.of(pMemoryLocation, type);
+    }
+
+    return new ValueAnalysisInformation(ImmutableMap.of(pMemoryLocation, value),
+                                        typeAssignment);
+  }
+
+  @Override
+  public void remember(final MemoryLocation pLocation, final ValueAnalysisInformation pValueAndType) {
+    final Value value = pValueAndType.getAssignments().get(pLocation);
+    final Type valueType = pValueAndType.getLocationTypes().get(pLocation);
+
+    assignConstant(pLocation, value, valueType);
   }
 
   /**
@@ -180,8 +258,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
   void dropFrame(String functionName) {
     for (MemoryLocation variableName : constantsMap.keySet()) {
       if (variableName.isOnFunctionStack(functionName)) {
-        constantsMap = constantsMap.removeAndCopy(variableName);
-        memLocToType = memLocToType.removeAndCopy(variableName);
+        forget(variableName);
       }
     }
   }
@@ -205,9 +282,10 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    * @return the value associated with the given variable
    */
   public Value getValueFor(MemoryLocation variableName) {
-    return checkNotNull(constantsMap.get(variableName));
-  }
+    Value value = constantsMap.get(variableName);
 
+    return checkNotNull(value);
+  }
 
   /**
    * This method returns the type for the given memory location.
@@ -246,6 +324,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    *
    * @return the total number of variables contained in this state
    */
+  @Override
   public int getSize() {
     return constantsMap.size();
   }
@@ -291,7 +370,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     if (newConstantsMap.size() == reachedState.constantsMap.size()) {
       return reachedState;
     } else {
-      return new ValueAnalysisState(newConstantsMap, newlocToTypeMap);
+      return new ValueAnalysisState(machineModel, newConstantsMap, newlocToTypeMap);
     }
   }
 
@@ -310,11 +389,14 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     }
 
     // also, this element is not less or equal than the other element,
-    // if any one constant's value of the other element differs from the constant's value in this element
+    // if any one constant's value of the other element differs from the constant's value in this
+    // element
     for (Map.Entry<MemoryLocation, Value> otherEntry : other.constantsMap.entrySet()) {
       MemoryLocation key = otherEntry.getKey();
+      Value otherValue = otherEntry.getValue();
+      Value thisValue = constantsMap.get(key);
 
-      if (!otherEntry.getValue().equals(constantsMap.get(key))) {
+      if (!otherValue.equals(thisValue)) {
         return false;
       }
     }
@@ -496,17 +578,64 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
   }
 
   @Override
-  public BooleanFormula getFormulaApproximation(FormulaManagerView manager) {
+  public BooleanFormula getFormulaApproximation(FormulaManagerView manager, PathFormulaManager pfmgr) {
     BooleanFormulaManager bfmgr = manager.getBooleanFormulaManager();
-    NumeralFormulaManager<NumeralFormula, RationalFormula> nfmgr = manager.getRationalFormulaManager();
     BooleanFormula formula = bfmgr.makeBoolean(true);
 
+    if (!machineModel.isPresent()) {
+      return formula;
+    }
+
+    MachineModel machineModel = this.machineModel.get();
+
+    BitvectorFormulaManagerView bitvectorFMGR = manager.getBitvectorFormulaManager();
+    FloatingPointFormulaManagerView floatFMGR = manager.getFloatingPointFormulaManager();
+
     for (Map.Entry<MemoryLocation, Value> entry : constantsMap.entrySet()) {
-      RationalFormula var = nfmgr.makeVariable(entry.getKey().getAsSimpleString());
-      // TODO explicitfloat: handle the case that it's not a long
-      // The following is a hack
-      RationalFormula val = nfmgr.makeNumber(entry.getValue().asLong(CNumericTypes.INT));
-      formula = bfmgr.and(formula, nfmgr.equal(var, val));
+      NumericValue num = entry.getValue().asNumericValue();
+
+      if (num != null) {
+        MemoryLocation memoryLocation = entry.getKey();
+        Type type = getTypeForMemoryLocation(memoryLocation);
+        if (!memoryLocation.isReference() && type instanceof CSimpleType) {
+          CSimpleType simpleType = (CSimpleType) type;
+          if (simpleType.getType().isIntegerType()) {
+            int bitSize = machineModel.getSizeof(simpleType) * machineModel.getSizeofCharInBits();
+            BitvectorFormula var =
+                bitvectorFMGR.makeVariable(bitSize, entry.getKey().getAsSimpleString());
+
+            Number value = num.getNumber();
+            final BitvectorFormula val;
+            if (value instanceof BigInteger) {
+              val = bitvectorFMGR.makeBitvector(bitSize, (BigInteger) value);
+            } else {
+              val = bitvectorFMGR.makeBitvector(bitSize, num.longValue());
+            }
+            formula = bfmgr.and(formula, bitvectorFMGR.equal(var, val));
+          } else if (simpleType.getType().isFloatingPointType()) {
+            final FloatingPointType fpType;
+            switch (simpleType.getType()) {
+            case FLOAT:
+              fpType = FormulaType.getSinglePrecisionFloatingPointType();
+              break;
+            case DOUBLE:
+              fpType = FormulaType.getDoublePrecisionFloatingPointType();
+              break;
+            default:
+              throw new AssertionError("Unsupported floating point type: " + simpleType);
+            }
+            FloatingPointFormula var = floatFMGR.makeVariable(entry.getKey().getAsSimpleString(), fpType);
+            FloatingPointFormula val = floatFMGR.makeNumber(num.doubleValue(), fpType);
+            formula = bfmgr.and(formula, floatFMGR.equalWithFPSemantics(var, val));
+          } else {
+            // ignore in formula-approximation
+          }
+        } else {
+          // ignore in formula-approximation
+        }
+      } else {
+        // ignore in formula-approximation
+      }
     }
 
     return formula;
@@ -569,20 +698,10 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    *
    * @return the set of tracked variables by this state
    */
+  @Override
   public Set<MemoryLocation> getTrackedMemoryLocations() {
     // no copy necessary, set is immutable
     return constantsMap.keySet();
-  }
-
-  /**
-   * This method returns the internal mapping of this state.
-   *
-   * @return the internal mapping of this state
-   * @TODO: eliminate this - breaks encapsulation
-   */
-  Map<MemoryLocation, Value> getConstantsMap() {
-    //TODO Investigate if this API change breaks functionality
-    return constantsMap;
   }
 
   public Map<MemoryLocation, Value> getConstantsMapView() {
@@ -598,190 +717,8 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     return new ValueAnalysisInterpolant(new HashMap<>(constantsMap), new HashMap<>(memLocToType));
   }
 
-  public static class MemoryLocation implements Comparable<MemoryLocation>, Serializable {
-
-    private static final long serialVersionUID = -8910967707373729034L;
-    private final String functionName;
-    private final String identifier;
-    private final long offset;
-
-    /**
-     * This function can be used to {@link Iterables#transform transform}  a collection of {@link String}s
-     * to a collection of {@link MemoryLocation}s, representing the respective memory location of the identifiers.
-     */
-    public static final Function<String, MemoryLocation> FROM_STRING_TO_MEMORYLOCATION =
-        new Function<String, MemoryLocation>() {
-            @Override
-            public MemoryLocation apply(String variableName) { return MemoryLocation.valueOf(variableName); }
-        };
-
-    /**
-     * This function can be used to {@link Iterables#transform transform} a collection of {@link MemoryLocation}s
-     * to a collection of {@link String}s, representing the respective variable identifiers.
-     */
-    public static final Function<MemoryLocation, String> FROM_MEMORYLOCATION_TO_STRING =
-        new Function<MemoryLocation, String>() {
-            @Override
-            public String apply(MemoryLocation memoryLocation) { return memoryLocation.getAsSimpleString(); }
-        };
-
-    private MemoryLocation(String pFunctionName, String pIdentifier,
-        long pOffset) {
-      checkNotNull(pFunctionName);
-      checkNotNull(pIdentifier);
-
-      functionName = pFunctionName;
-      identifier = pIdentifier;
-      offset = pOffset;
-    }
-
-    private MemoryLocation(String pIdentifier, long pOffset) {
-      checkNotNull(pIdentifier);
-
-      functionName = null;
-      identifier = pIdentifier;
-      offset = pOffset;
-    }
-
-    public static MemoryLocation valueOf(String pFunctionName,
-        String pIdentifier, long pOffest) {
-      return new MemoryLocation(pFunctionName, pIdentifier, pOffest);
-    }
-
-    @Override
-    public boolean equals(Object other) {
-
-      if (this == other) {
-        return true;
-      }
-
-      if (!(other instanceof MemoryLocation)) {
-        return false;
-      }
-
-      MemoryLocation otherLocation = (MemoryLocation) other;
-
-      return Objects.equals(functionName, otherLocation.functionName)
-          && Objects.equals(identifier, otherLocation.identifier)
-          && offset == otherLocation.offset;
-    }
-
-    @Override
-    public int hashCode() {
-
-      int hc = 17;
-      int hashMultiplier = 59;
-
-      hc = hc * hashMultiplier + Objects.hashCode(functionName);
-      hc = hc * hashMultiplier + identifier.hashCode();
-      hc = hc * hashMultiplier + Longs.hashCode(offset);
-
-      return hc;
-    }
-
-    public static MemoryLocation valueOf(String pIdentifier, long pOffest) {
-      return new MemoryLocation(pIdentifier, pOffest);
-    }
-
-    public static MemoryLocation valueOf(String pVariableName) {
-
-      String[] nameParts    = pVariableName.split("::");
-      String[] offsetParts  = pVariableName.split("/");
-
-      boolean isScoped  = nameParts.length == 2;
-      boolean hasOffset = offsetParts.length == 2;
-
-      int offset = hasOffset ? Integer.parseInt(offsetParts[1]) : 0;
-
-      if (isScoped) {
-        return new MemoryLocation(nameParts[0], nameParts[1].replace("/" + offset, ""), offset);
-
-      } else {
-        return new MemoryLocation(nameParts[0].replace("/" + offset, ""), offset);
-      }
-    }
-
-    public String getAsSimpleString() {
-      /*
-            String simpleName = identifier + "[" + offset + "]";
-
-      return isOnFunctionStack() ? (functionName + "::" + simpleName) : simpleName;
-      */
-
-      return isOnFunctionStack() ? (functionName + "::" + identifier) : (identifier);
-    }
-
-    public String serialize() {
-      String simpleName = identifier + "/" + offset;
-
-      return isOnFunctionStack() ? (functionName + "::" + simpleName) : simpleName;
-    }
-
-    public boolean isOnFunctionStack() {
-      return functionName != null;
-    }
-
-    public boolean isOnFunctionStack(String pFunctionName) {
-      return functionName != null && pFunctionName.equals(functionName);
-    }
-
-    public String getFunctionName() {
-      return checkNotNull(functionName);
-    }
-
-    public String getIdentifier() {
-      return identifier;
-    }
-
-    public long getOffset() {
-      return offset;
-    }
-
-    @Override
-    public String toString() {
-      return getAsSimpleString();
-    }
-
-    public static PersistentMap<MemoryLocation, Long> transform(
-        PersistentMap<String, Long> pConstantMap) {
-
-      PersistentMap<MemoryLocation, Long> result = PathCopyingPersistentTreeMap.of();
-
-      for (Map.Entry<String, Long> entry : pConstantMap.entrySet()) {
-        result = result.putAndCopy(valueOf(entry.getKey()), checkNotNull(entry.getValue()));
-      }
-
-      return result;
-    }
-
-    @Override
-    public int compareTo(MemoryLocation other) {
-
-      int result = 0;
-
-      if (isOnFunctionStack()) {
-        if (other.isOnFunctionStack()) {
-          result = functionName.compareTo(other.functionName);
-        } else {
-          result = 1;
-        }
-      } else {
-        if (other.isOnFunctionStack()) {
-          result = -1;
-        } else {
-          result = 0;
-        }
-      }
-
-      if (result != 0) {
-        return result;
-      }
-
-      return ComparisonChain.start()
-          .compare(identifier, other.identifier)
-          .compare(offset, other.offset)
-          .result();
-    }
+  public ValueAnalysisInformation getInformation() {
+    return new ValueAnalysisInformation(constantsMap, memLocToType);
   }
 
 
@@ -827,7 +764,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
   /** If there was a recursive function, we have wrong values for scoped variables in the returnState.
    * This function rebuilds a new state with the correct values from the previous callState.
    * We delete the wrong values and insert new values, if necessary. */
-  public ValueAnalysisState rebuildStateAfterFunctionCall(final ValueAnalysisState callState) {
+  public ValueAnalysisState rebuildStateAfterFunctionCall(final ValueAnalysisState callState, final FunctionExitNode functionExit) {
 
     // we build a new state from:
     // - local variables from callState,
@@ -838,23 +775,22 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     final ValueAnalysisState rebuildState = ValueAnalysisState.copyOf(callState);
 
     // first forget all global information
-    for (final ValueAnalysisState.MemoryLocation trackedVar : callState.getTrackedMemoryLocations()) {
+    for (final MemoryLocation trackedVar : callState.getTrackedMemoryLocations()) {
       if (!trackedVar.isOnFunctionStack()) { // global -> delete
         rebuildState.forget(trackedVar);
       }
     }
 
     // second: learn new information
-    for (final ValueAnalysisState.MemoryLocation trackedVar : this.getTrackedMemoryLocations()) {
+    for (final MemoryLocation trackedVar : this.getTrackedMemoryLocations()) {
 
       if (!trackedVar.isOnFunctionStack()) { // global -> override deleted value
         rebuildState.assignConstant(trackedVar, this.getValueFor(trackedVar), this.getTypeForMemoryLocation(trackedVar));
 
-      } else if (VariableClassificationBuilder.FUNCTION_RETURN_VARIABLE.equals(trackedVar.getIdentifier())) {
-        // lets assume, that RETURN_VAR is only tracked along one edge, which is the ReturnEdge.
-        // so that we can ignore the functionname for this condition.
-        assert (!rebuildState.contains(trackedVar)) :
-                "calling function should not contain return-variable of called function: " + trackedVar;
+      } else if (functionExit.getEntryNode().getReturnVariable().isPresent() &&
+          functionExit.getEntryNode().getReturnVariable().get().getQualifiedName().equals(trackedVar.getAsSimpleString())) {
+        /*assert (!rebuildState.contains(trackedVar)) :
+                "calling function should not contain return-variable of called function: " + trackedVar;*/
         if (this.contains(trackedVar)) {
           rebuildState.assignConstant(trackedVar, this.getValueFor(trackedVar), this.getTypeForMemoryLocation(trackedVar));
         }
@@ -862,5 +798,14 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     }
 
     return rebuildState;
+  }
+
+  private void readObject(ObjectInputStream in) throws IOException {
+    try {
+      in.defaultReadObject();
+    } catch (ClassNotFoundException e) {
+      throw new IOException("",e);
+    }
+    memLocToType = PathCopyingPersistentTreeMap.of();
   }
 }

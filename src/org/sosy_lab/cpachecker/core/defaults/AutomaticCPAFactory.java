@@ -37,11 +37,11 @@ import java.util.List;
 import org.sosy_lab.common.ChildFirstPatternClassLoader;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -66,7 +66,7 @@ public class AutomaticCPAFactory implements CPAFactory {
    */
   @Target(ElementType.PARAMETER)
   @Retention(RetentionPolicy.RUNTIME)
-  public static @interface Optional { }
+  public static @interface OptionalAnnotation { }
 
   private final Class<? extends ConfigurableProgramAnalysis> type;
   private final ClassToInstanceMap<Object> injects = MutableClassToInstanceMap.create();
@@ -144,7 +144,7 @@ public class AutomaticCPAFactory implements CPAFactory {
 
       boolean optional = false;
       for (Annotation a : parameterAnnotations[i]) {
-        if (a instanceof Optional) {
+        if (a instanceof OptionalAnnotation) {
           optional = true;
           break;
         }

@@ -28,6 +28,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 
@@ -38,14 +39,17 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.cbmctools.CBMCExecutor;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.CBMCExecutor;
+
+import com.google.common.collect.ImmutableSet;
 
 @Options()
 public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
@@ -85,7 +89,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     assert pReachedSet.isEmpty();
 
     // run CBMC
@@ -102,7 +106,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
 
     } catch (TimeoutException e) {
       logger.log(Level.INFO, "CBMC Algorithm timed out.");
-      return false;
+      return AlgorithmStatus.UNSOUND_AND_PRECISE;
 
     } finally {
       stats.cbmcTime.stop();
@@ -113,7 +117,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
       // exit code and stderr are already logged with level WARNING
       // throw new CPAException("CBMC could not verify the program (CBMC exit code was " + exitCode + ")!");
       logger.log(Level.INFO, "CBMC could not verify the program (CBMC exit code was " + exitCode + ")!");
-      return false;
+      return AlgorithmStatus.UNSOUND_AND_PRECISE;
     }
 
     // ERROR is REACHED
@@ -121,7 +125,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
       // if this is unwinding assertions violation the analysis result is UNKNOWN
       if (cbmc.didUnwindingAssertionFail()) {
         logger.log(Level.INFO, "CBMC terminated with unwinding assertions violation");
-        return false;
+        return AlgorithmStatus.UNSOUND_AND_PRECISE;
       } else {
         pReachedSet.add(new DummyErrorState(), SingletonPrecision.getInstance());
         assert pReachedSet.size() == 1 && pReachedSet.hasWaitingState();
@@ -132,7 +136,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
       }
     }
 
-    return true;
+    return AlgorithmStatus.SOUND_AND_PRECISE;
   }
 
   private List<String> buildCBMCArguments(String fileName) {
@@ -174,7 +178,17 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
+  private static class CbmcReachabilityProperty implements Property {
+
+    @Override
+    public String toString() {
+      return "Target location reachabable with CBMC!";
+    }
+  }
+
   private static class DummyErrorState implements AbstractState, Targetable {
+
+    private final Property prop = new CbmcReachabilityProperty();
 
     @Override
     public boolean isTarget() {
@@ -182,8 +196,8 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     @Override
-    public String getViolatedPropertyDescription() throws IllegalStateException {
-      return "";
+    public Set<Property> getViolatedProperties() throws IllegalStateException {
+      return ImmutableSet.of(prop);
     }
   }
 }

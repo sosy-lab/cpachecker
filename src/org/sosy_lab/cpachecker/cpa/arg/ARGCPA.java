@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ForcedCoveringStopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
@@ -83,24 +84,28 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
   }
 
   @Option(secure=true,
-  description="inform ARG CPA if it is run in a predicated analysis because then it must"
+  description="inform ARG CPA if it is run in an analysis with enabler CPA because then it must "
     + "behave differntly during merge.")
-  private boolean inPredicatedAnalysis = false;
+  private boolean inCPAEnabledAnalysis = false;
 
   @Option(secure=true,
-      description="inform merge operator in predicated analysis that it should delete the subgraph of the merged node"
+      description="inform merge operator in CPA enabled analysis that it should delete the subgraph of the merged node "
         + "which is required to get at most one successor per CFA edge.")
-      private boolean deleteInPredicatedAnalysis = false;
+      private boolean deleteInCPAEnabledAnalysis = false;
 
   @Option(secure=true, name="errorPath.filters",
       description="Filter for irrelevant counterexamples to reduce the number of similar counterexamples reported."
-      + " Only relevant with analysis.stopAfterErrors=false and cpa.arg.errorPath.exportImmediately=true."
+      + " Only relevant with analysis.stopAfterError=false and cpa.arg.errorPath.exportImmediately=true."
       + " Put the weakest and cheapest filter first, e.g., PathEqualityCounterexampleFilter.")
   @ClassOption(packagePrefix="org.sosy_lab.cpachecker.cpa.arg.counterexamples")
   private List<Class<? extends CounterexampleFilter>> cexFilterClasses
       = ImmutableList.<Class<? extends CounterexampleFilter>>of(
           PathEqualityCounterexampleFilter.class);
   private final CounterexampleFilter cexFilter;
+
+  @Option(secure=true, name="errorPath.exportImmediately",
+          description="export error paths to files immediately after they were found")
+  private boolean dumpErrorPathImmediately = false;
 
   private final LogManager logger;
 
@@ -128,7 +133,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     if (wrappedPrec instanceof SimplePrecisionAdjustment) {
       precisionAdjustment = new ARGSimplePrecisionAdjustment((SimplePrecisionAdjustment) wrappedPrec);
     } else {
-      precisionAdjustment = new ARGPrecisionAdjustment(cpa.getPrecisionAdjustment(), inPredicatedAnalysis);
+      precisionAdjustment = new ARGPrecisionAdjustment(cpa.getPrecisionAdjustment(), inCPAEnabledAnalysis);
     }
 
     if (cpa instanceof ConfigurableProgramAnalysisWithBAM) {
@@ -152,16 +157,18 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     if (wrappedMerge == MergeSepOperator.getInstance()) {
       mergeOperator = MergeSepOperator.getInstance();
     } else {
-      if (inPredicatedAnalysis) {
-        mergeOperator = new ARGMergeJoinPredicatedAnalysis(wrappedMerge, deleteInPredicatedAnalysis);
+      if (inCPAEnabledAnalysis) {
+        mergeOperator = new ARGMergeJoinCPAEnabledAnalysis(wrappedMerge, deleteInCPAEnabledAnalysis);
       } else {
         mergeOperator = new ARGMergeJoin(wrappedMerge);
       }
     }
     stopOperator = new ARGStopSep(getWrappedCpa().getStopOperator(), logger, config);
     cexFilter = createCounterexampleFilter(config, logger, cpa);
-    cexExporter = new CEXExporter(config, logger);
-    stats = new ARGStatistics(config, this);
+    ARGPathExporter argPathExporter = new ARGPathExporter(config, logger, cfa);
+    cexExporter = new CEXExporter(config, logger, argPathExporter);
+    stats = new ARGStatistics(config, logger, this, cfa.getMachineModel(),
+        dumpErrorPathImmediately ? null : cexExporter, argPathExporter);
     machineModel = cfa.getMachineModel();
   }
 
@@ -220,9 +227,9 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     // TODO some code relies on the fact that this method is called only one and the result is the root of the ARG
-    return new ARGState(getWrappedCpa().getInitialState(pNode), null);
+    return new ARGState(getWrappedCpa().getInitialState(pNode, pPartition), null);
   }
 
   protected LogManager getLogger() {
@@ -242,11 +249,9 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
   public void addCounterexample(ARGState targetState, CounterexampleInfo pCounterexample) {
     checkArgument(targetState.isTarget());
     checkArgument(!pCounterexample.isSpurious());
-    if (pCounterexample.getTargetPath() != null) {
-      // With BAM, the targetState and the last state of the path
-      // may actually be not identical.
-      checkArgument(pCounterexample.getTargetPath().getLastState().isTarget());
-    }
+    // With BAM, the targetState and the last state of the path
+    // may actually be not identical.
+    checkArgument(pCounterexample.getTargetPath().getLastState().isTarget());
     counterexamples.put(targetState, pCounterexample);
   }
 
@@ -283,9 +288,9 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
 
   void exportCounterexampleOnTheFly(ARGState pTargetState,
     CounterexampleInfo pCounterexampleInfo, int cexIndex) throws InterruptedException {
-    if (cexExporter.shouldDumpErrorPathImmediately()) {
+    if (dumpErrorPathImmediately) {
       if (cexFilter.isRelevant(pCounterexampleInfo)) {
-        cexExporter.exportCounterexample(pTargetState, pCounterexampleInfo, cexIndex, null, true);
+        cexExporter.exportCounterexample(pTargetState, pCounterexampleInfo, cexIndex);
       } else {
         logger.log(Level.FINEST, "Skipping counterexample printing because it is similar to one of already printed.");
       }

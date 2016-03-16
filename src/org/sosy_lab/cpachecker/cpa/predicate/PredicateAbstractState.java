@@ -27,7 +27,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -35,11 +38,13 @@ import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.NonMergeableAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * AbstractState for Symbolic Predicate Abstraction CPA
@@ -67,7 +72,7 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
 
     private static final long serialVersionUID = 8341054099315063986L;
 
-    private AbstractionState(BooleanFormulaManager bfmgr, PathFormula pf,
+    private AbstractionState(PathFormula pf,
         AbstractionFormula pA, PersistentMap<CFANode, Integer> pAbstractionLocations) {
       super(pf, pA, pAbstractionLocations);
       // Check whether the pathFormula of an abstraction element is just "true".
@@ -151,15 +156,27 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     }
   }
 
+  @SuppressFBWarnings(value="SE_TRANSIENT_FIELD_NOT_RESTORED",
+      justification="these objects never end up in the reached set and are never serialized")
   public static class ComputeAbstractionState extends PredicateAbstractState {
 
     private static final long serialVersionUID = -3961784113582993743L;
     private transient final CFANode location;
 
+    /** A constraint is boolean formula that is valid for the current abstraction
+     * and should be conjuncted with the result of the abstraction computation.
+     * The constraint is a not instantiated formula. */
+    private transient final List<BooleanFormula> constraint;
+
     public ComputeAbstractionState(PathFormula pf, AbstractionFormula pA,
         CFANode pLoc, PersistentMap<CFANode, Integer> pAbstractionLocations) {
       super(pf, pA, pAbstractionLocations);
       location = pLoc;
+      constraint = new ArrayList<>(); // NULL represents TRUE, because we do not have a FormulaManager here.
+    }
+
+    public void addConstraint(BooleanFormula pConstraint) {
+      constraint.add(pConstraint);
     }
 
     @Override
@@ -180,12 +197,16 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     public CFANode getLocation() {
       return location;
     }
+
+    public List<BooleanFormula> getConstraints() {
+      return constraint;
+    }
   }
 
-  public static PredicateAbstractState mkAbstractionState(BooleanFormulaManager bfmgr,
+  public static PredicateAbstractState mkAbstractionState(
       PathFormula pF, AbstractionFormula pA,
       PersistentMap<CFANode, Integer> pAbstractionLocations) {
-    return new AbstractionState(bfmgr, pF, pA, pAbstractionLocations);
+    return new AbstractionState(pF, pA, pAbstractionLocations);
   }
 
   public static PredicateAbstractState mkNonAbstractionStateWithNewPathFormula(PathFormula pF,
@@ -203,7 +224,7 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
   private AbstractionFormula abstractionFormula;
 
   /** How often each abstraction location was visited on the path to the current state. */
-  private final PersistentMap<CFANode, Integer> abstractionLocations;
+  private final transient PersistentMap<CFANode, Integer> abstractionLocations;
 
   private PredicateAbstractState(PathFormula pf, AbstractionFormula a,
       PersistentMap<CFANode, Integer> pAbstractionLocations) {
@@ -218,6 +239,9 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     throw new UnsupportedOperationException("Assuming wrong PredicateAbstractStates were merged!");
   }
 
+  /**
+   * @param pMergedInto the state that should be set as merged
+   */
   void setMergedInto(PredicateAbstractState pMergedInto) {
     throw new UnsupportedOperationException("Merging wrong PredicateAbstractStates!");
   }
@@ -245,15 +269,36 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     }
   }
 
-  /**
-   * Replace the path formula part of this element.
-   * THIS IS POTENTIALLY UNSOUND!
-   */
-  public void setPathFormula(PathFormula pPathFormula) {
-    pathFormula = checkNotNull(pPathFormula);
-  }
-
   public PathFormula getPathFormula() {
     return pathFormula;
+  }
+
+  protected Object readResolve() {
+    if (this instanceof AbstractionState) {
+      // consistency check
+      /*Pair<String,Integer> splitName;
+      FormulaManagerView mgr = GlobalInfo.getInstance().getFormulaManager();
+      SSAMap ssa = pathFormula.getSsa();
+
+      for (String var : mgr.extractFreeVariableMap(abstractionFormula.asInstantiatedFormula()).keySet()) {
+        splitName = FormulaManagerView.parseName(var);
+
+        if (splitName.getSecond() == null) {
+          if (ssa.containsVariable(splitName.getFirst())) {
+            throw new StreamCorruptedException("Proof is corrupted, abort reading");
+          }
+          continue;
+        }
+
+        if(splitName.getSecond()!=ssa.getIndex(splitName.getFirst())) {
+          throw new StreamCorruptedException("Proof is corrupted, abort reading");
+        }
+      }*/
+
+      return new AbstractionState(pathFormula,
+          abstractionFormula, PathCopyingPersistentTreeMap.<CFANode, Integer> of());
+    }
+    return new NonAbstractionState(pathFormula, abstractionFormula,
+        PathCopyingPersistentTreeMap.<CFANode, Integer>of());
   }
 }

@@ -44,7 +44,6 @@ public class Precisions {
    * be a sub-type of the type passed as argument.
    *
    * @param <T> The type of the wrapped element.
-   * @param An abstract state
    * @param pType The class object of the type of the wrapped element.
    * @return An instance of an element with type T or null if there is none.
    */
@@ -77,7 +76,7 @@ public class Precisions {
    * order : A, B, D, E, C.
    * </p>
    *
-   * @param as the root state
+   * @param prec the root precision
    *
    * @return a <code>FluentIterable</code> over the given root precision and all precisions
    *         that are wrapped in it, recursively

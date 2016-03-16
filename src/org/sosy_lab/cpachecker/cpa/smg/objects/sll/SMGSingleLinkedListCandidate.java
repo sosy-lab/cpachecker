@@ -27,11 +27,12 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
@@ -121,5 +122,20 @@ public class SMGSingleLinkedListCandidate implements SMGAbstractionCandidate {
   @Override
   public String toString() {
     return "SLL CANDIDATE(start=" + start + ", offset=" + offset + ", length=" + length + ")";
+  }
+
+  @Override
+  public int compareTo(SMGAbstractionCandidate other) {
+    return getScore() - other.getScore();
+  }
+
+  @Override
+  public SMG execute(SMG pSMG) {
+    throw new UnsupportedOperationException("Not Yet Implemented.");
+  }
+
+  @Override
+  public boolean isUnknown() {
+    return false;
   }
 }

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.uninitvars;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
@@ -30,13 +31,14 @@ import java.util.EnumSet;
 import java.util.LinkedList;
 import java.util.Set;
 
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Triple;
 
-public class UninitializedVariablesState implements AbstractQueryableState {
+public class UninitializedVariablesState implements AbstractQueryableState, Serializable {
 
+  private static final long serialVersionUID = 5745797034946117366L;
   private final Collection<String> globalVars;
   private final Deque<Pair<String, Collection<String>>> localVars;
 
@@ -169,21 +171,19 @@ public class UninitializedVariablesState implements AbstractQueryableState {
 
   /**
    * Adds a property to this element
-   * @param pProp
+   * @param pProp the property to add
    */
   void addProperty(ElementProperty pProp) {
     this.properties.add(pProp);
   }
   /**
    * Returns all properties set for this element.
-   * @return
    */
   Set<ElementProperty> getProperties() {
     return this.properties;
   }
   /**
    * Removes all property of this element
-   * @param pProp
    */
   void clearProperties() {
     this.properties.clear();

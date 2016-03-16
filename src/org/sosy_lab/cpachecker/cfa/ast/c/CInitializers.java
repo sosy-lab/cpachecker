@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.*;
 
 import java.math.BigInteger;
 import java.util.ArrayDeque;
@@ -91,7 +92,6 @@ public final class CInitializers {
    * @param decl The variable declaration.
    * @param edge The current CFA edge.
    * @return A (possibly empty) list of assignment statements.
-   * @throws UnrecognizedCCodeException
    */
   public static List<CExpressionAssignmentStatement> convertToAssignments(
       CVariableDeclaration decl, CFAEdge edge) throws UnrecognizedCCodeException {
@@ -275,7 +275,7 @@ public final class CInitializers {
         String fieldName = ((CFieldDesignator)designator).getFieldName();
         if (!(currentType instanceof CCompositeType)
             || ((CCompositeType)currentType).getKind() == ComplexTypeKind.ENUM) {
-          throw new UnrecognizedCCodeException("Designated field initializer for non-struct type", edge, designator);
+          throw new UnrecognizedCCodeException("Designated field initializer for non-struct type " + currentType, edge, designator);
         }
 
         successful = handleInitializerForCompositeType(currentSubobject, Optional.of(fieldName),
@@ -284,7 +284,7 @@ public final class CInitializers {
 
       } else if (designator instanceof CArrayDesignator) {
         if (!(currentType instanceof CArrayType)) {
-          throw new UnrecognizedCCodeException("Designated array initializer for non-array type", edge, designator);
+          throw new UnrecognizedCCodeException("Designated array initializer for non-array type " + currentType, edge, designator);
         }
 
         CArrayType arrayType = (CArrayType)currentType;
@@ -304,7 +304,7 @@ public final class CInitializers {
 
       } else if (designator instanceof CArrayRangeDesignator) {
         if (!(currentType instanceof CArrayType)) {
-          throw new UnrecognizedCCodeException("Designated array initializer for non-array type", edge, designator);
+          throw new UnrecognizedCCodeException("Designated array initializer for non-array type " + currentType, edge, designator);
         }
 
         CArrayType arrayType = (CArrayType)currentType;
@@ -358,9 +358,8 @@ public final class CInitializers {
    * @param targetType The type to search.
    * @param currentSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge)}
    * @param nextSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge)}
-   * @param loc
-   * @param edge
-   * @throws UnrecognizedCCodeException
+   * @param loc the location of the currently handled object
+   * @param edge the edge that is handled here
    */
   private static void findFirstSubobjectWithType(final CType targetType,
       final Deque<CExpression> currentSubobjects, final Deque<Iterator<CExpression>> nextSubobjects,
@@ -370,7 +369,10 @@ public final class CInitializers {
       final CExpression currentSubobject = currentSubobjects.peek();
       final CType currentType = currentSubobject.getExpressionType().getCanonicalType();
 
-      if (targetType.equals(currentType)) {
+      // Ignore modifiers const and volatile for equality checks.
+      CType currentTypeWithoutModifier = withoutConst(withoutVolatile(currentType));
+      CType targetTypeWithoutModifier = withoutConst(withoutVolatile(targetType));
+      if (targetTypeWithoutModifier.equals(currentTypeWithoutModifier)) {
         break;
       }
 

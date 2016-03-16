@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
@@ -104,7 +106,7 @@ public class SMGEdgeHasValue extends SMGEdge {
     return true;
   }
 
-  public boolean isCompatibleField(SMGEdgeHasValue other, MachineModel pModel) {
+  public boolean isCompatibleField(SMGEdgeHasValue other) {
     return type.equals(other.type) && (offset == other.offset);
   }
 
@@ -113,43 +115,19 @@ public class SMGEdgeHasValue extends SMGEdge {
     return pModel.getSizeof(type) == pModel.getSizeof(other.type) && (offset == other.offset) && object == other.object;
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#hashCode()
-   */
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = super.hashCode();
-    result = prime * result + offset;
-    result = prime * result + ((type == null) ? 0 : type.hashCode());
-    return result;
+    return 31 * super.hashCode() + Objects.hash(type, offset);
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#equals(java.lang.Object)
-   */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (!super.equals(obj)) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (obj == null || !(obj instanceof SMGEdgeHasValue)) {
       return false;
     }
     SMGEdgeHasValue other = (SMGEdgeHasValue) obj;
-    if (offset != other.offset) {
-      return false;
-    }
-    if (type == null) {
-      if (other.type != null) {
-        return false;
-      }
-    } else if (!type.getCanonicalType().equals(other.type.getCanonicalType())) {
-      return false;
-    }
-    return true;
+    return super.equals(obj)
+        && offset == other.offset
+        && type.getCanonicalType().equals(other.type.getCanonicalType());
   }
 }

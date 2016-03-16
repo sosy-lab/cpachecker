@@ -30,6 +30,7 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -38,10 +39,10 @@ import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -124,7 +125,7 @@ public class CFAReduction {
   private Collection<CFANode> getErrorNodesWithCPA(MutableCFA cfa) throws InterruptedException {
     try {
       LogManager lLogger = logger.withComponentName("CFAReduction");
-      ReachedSetFactory lReachedSetFactory = new ReachedSetFactory(Configuration.defaultConfiguration(), lLogger);
+      ReachedSetFactory lReachedSetFactory = new ReachedSetFactory(Configuration.defaultConfiguration());
 
       // create new configuration based on existing config but with default set of CPAs
       Configuration lConfig = Configuration.builder()
@@ -136,10 +137,12 @@ public class CFAReduction {
                                            .build();
 
       CPABuilder lBuilder = new CPABuilder(lConfig, lLogger, shutdownNotifier, lReachedSetFactory);
-      ConfigurableProgramAnalysis lCpas = lBuilder.buildCPAs(cfa);
+      ConfigurableProgramAnalysis lCpas = lBuilder.buildCPAWithSpecAutomatas(cfa);
       Algorithm lAlgorithm = CPAAlgorithm.create(lCpas, lLogger, lConfig, shutdownNotifier);
       ReachedSet lReached = lReachedSetFactory.create();
-      lReached.add(lCpas.getInitialState(cfa.getMainFunction()), lCpas.getInitialPrecision(cfa.getMainFunction()));
+      lReached.add(
+          lCpas.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()),
+          lCpas.getInitialPrecision(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()));
 
       lAlgorithm.run(lReached);
 

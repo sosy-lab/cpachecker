@@ -23,24 +23,21 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -48,10 +45,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
-import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValueFormula;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 
 /**
@@ -62,9 +58,8 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
   private boolean missingPointer = false;
 
-  private final ValueAnalysisState state;
-
-  private boolean symbolicValues = false;
+  // This state is read-only! No writing or modification allowed!
+  protected final ValueAnalysisState readableState;
 
   /** This Visitor returns the numeral value for an expression.
    *
@@ -72,15 +67,11 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
    * @param pFunctionName current scope, used only for variable-names
    * @param pMachineModel where to get info about types, for casting and overflows
    * @param pLogger logging
-   * @param pSymbolicValues flag for symbolic value analysis. <code>true</code>
-   *        if a symbolic analysis should be performed, <code>false</code> if a
-   *        concrete value analysis should be performed
    */
   public ExpressionValueVisitor(ValueAnalysisState pState, String pFunctionName,
-      MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger, boolean pSymbolicValues) {
+      MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger) {
     super(pFunctionName, pMachineModel, pLogger);
-    state = pState;
-    symbolicValues = pSymbolicValues;
+    readableState = pState;
   }
 
   /* additional methods */
@@ -93,31 +84,6 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
   public boolean hasMissingPointer() {
     return missingPointer;
-  }
-
-  /** Heuristic to avoid generating too many symbolic values for the same file location. */
-  private static Map<FileLocation, Integer> numberOfSymbolsGenerated = new HashMap<>();
-  private static final int MAX_NUMBER_OF_SYMBOLS_GENERATED = 200;
-
-  @Override
-  public Value visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCCodeException {
-    if (symbolicValues) {
-      // Only generate a symbolic value if we haven't already generated many symbolic
-      // values for this location.
-      FileLocation key = pIastFunctionCallExpression.getFileLocation();
-      int generatedSymbols = 0;
-      if (numberOfSymbolsGenerated.containsKey(key)) {
-        generatedSymbols = numberOfSymbolsGenerated.get(key);
-      }
-
-      if (generatedSymbols < MAX_NUMBER_OF_SYMBOLS_GENERATED) {
-        numberOfSymbolsGenerated.put(key,  generatedSymbols + 1);
-       return new SymbolicValueFormula(
-           new SymbolicValueFormula.SymbolicValue(pIastFunctionCallExpression.toASTString()));
-      }
-    }
-
-    return Value.UnknownValue.getInstance();
   }
 
   @Override
@@ -133,16 +99,18 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
   /** This method returns the value of a variable from the current state. */
   private Value evaluateAIdExpression(AIdExpression varName) {
 
-    MemoryLocation memLoc;
+    final MemoryLocation memLoc;
 
-    if (!ForwardingTransferRelation.isGlobal(varName)) {
-      memLoc = MemoryLocation.valueOf(getFunctionName(), varName.getName(), 0);
+    if (varName.getDeclaration() != null) {
+      memLoc = MemoryLocation.valueOf(varName.getDeclaration().getQualifiedName());
+    } else if (!ForwardingTransferRelation.isGlobal(varName)) {
+      memLoc = MemoryLocation.valueOf(getFunctionName(), varName.getName());
     } else {
-      memLoc = MemoryLocation.valueOf(varName.getName(), 0);
+      memLoc = MemoryLocation.valueOf(varName.getName());
     }
 
-    if (state.contains(memLoc)) {
-      return state.getValueFor(memLoc);
+    if (readableState.contains(memLoc)) {
+      return readableState.getValueFor(memLoc);
     } else {
       return Value.UnknownValue.getInstance();
     }
@@ -157,7 +125,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     }
 
     if (getState().contains(varLoc)) {
-      return state.getValueFor(varLoc);
+      return readableState.getValueFor(varLoc);
     } else {
       return Value.UnknownValue.getInstance();
     }
@@ -180,11 +148,38 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
   }
 
   public boolean canBeEvaluated(CExpression lValue) throws UnrecognizedCCodeException {
-    return lValue.accept(new MemoryLocationEvaluator(this)) != null;
+    return evaluateMemoryLocation(lValue) != null;
   }
 
   public MemoryLocation evaluateMemoryLocation(CExpression lValue) throws UnrecognizedCCodeException {
     return lValue.accept(new MemoryLocationEvaluator(this));
+  }
+
+  /**
+   * Returns the {@link MemoryLocation} of a struct member.
+   * It is assumed that the struct of the given type begins at the given memory location.
+   *
+   * @param pStartLocation the start location of the struct
+   * @param pMemberName the name of the member to return the memory location for
+   * @param pStructType the type of the struct
+   * @return the memory location of the struct member
+   */
+  public MemoryLocation evaluateRelativeMemLocForStructMember(MemoryLocation pStartLocation,
+      String pMemberName, CCompositeType pStructType) throws UnrecognizedCCodeException {
+
+    MemoryLocationEvaluator locationEvaluator = new MemoryLocationEvaluator(this);
+
+    return locationEvaluator.getStructureFieldLocationFromRelativePoint(
+        pStartLocation, pMemberName, pStructType);
+  }
+
+  public MemoryLocation evaluateMemLocForArraySlot(
+      final MemoryLocation pArrayStartLocation,
+      final int pSlotNumber,
+      final CArrayType pArrayType) {
+    MemoryLocationEvaluator locationEvaluator = new MemoryLocationEvaluator(this);
+
+    return locationEvaluator.getArraySlotLocationFromArrayStart(pArrayStartLocation, pSlotNumber, pArrayType);
   }
 
   private static class MemoryLocationEvaluator extends DefaultCExpressionVisitor<MemoryLocation, UnrecognizedCCodeException> {
@@ -263,24 +258,30 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
         return null;
       }
 
-      CType ownerType = fieldOwner.getExpressionType().getCanonicalType();
-      String fieldName = pIastFieldReference.getFieldName();
+      return getStructureFieldLocationFromRelativePoint(memLocOfFieldOwner, pIastFieldReference.getFieldName(),
+          fieldOwner.getExpressionType());
+    }
 
-      Integer offset = getFieldOffset(ownerType, fieldName);
+    protected MemoryLocation getStructureFieldLocationFromRelativePoint(MemoryLocation pStartLocation,
+        String pFieldName, CType pOwnerType) throws UnrecognizedCCodeException {
+
+      CType canonicalOwnerType = pOwnerType.getCanonicalType();
+
+      Integer offset = getFieldOffset(canonicalOwnerType, pFieldName);
 
       if (offset == null) {
         return null;
       }
 
-      if (memLocOfFieldOwner.isOnFunctionStack()) {
+      long baseOffset = pStartLocation.isReference() ? pStartLocation.getOffset() : 0;
 
-        return MemoryLocation.valueOf(memLocOfFieldOwner.getFunctionName(),
-            memLocOfFieldOwner.getIdentifier(),
-            memLocOfFieldOwner.getOffset() + offset);
+      if (pStartLocation.isOnFunctionStack()) {
+
+        return MemoryLocation.valueOf(
+            pStartLocation.getFunctionName(), pStartLocation.getIdentifier(), baseOffset + offset);
       } else {
 
-        return MemoryLocation.valueOf(memLocOfFieldOwner.getIdentifier(),
-            offset + memLocOfFieldOwner.getOffset());
+        return MemoryLocation.valueOf(pStartLocation.getIdentifier(), baseOffset + offset);
       }
     }
 
@@ -298,7 +299,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       throw new AssertionError();
     }
 
-    private Integer getFieldOffset(CCompositeType ownerType, String fieldName) throws UnrecognizedCCodeException {
+    private Integer getFieldOffset(CCompositeType ownerType, String fieldName) {
 
       List<CCompositeTypeMemberDeclaration> membersOfType = ownerType.getMembers();
 
@@ -322,15 +323,39 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       return null;
     }
 
+    protected MemoryLocation getArraySlotLocationFromArrayStart(
+        final MemoryLocation pArrayStartLocation,
+        final int pSlotNumber,
+        final CArrayType pArrayType) {
+
+      long typeSize = evv.getSizeof(pArrayType.getType());
+      long offset = typeSize * pSlotNumber;
+      long baseOffset = pArrayStartLocation.isReference() ? pArrayStartLocation.getOffset() : 0;
+
+      if (pArrayStartLocation.isOnFunctionStack()) {
+
+        return MemoryLocation.valueOf(
+            pArrayStartLocation.getFunctionName(),
+            pArrayStartLocation.getIdentifier(),
+            baseOffset + offset);
+      } else {
+        return MemoryLocation.valueOf(pArrayStartLocation.getIdentifier(), baseOffset + offset);
+      }
+    }
+
     @Override
     public MemoryLocation visit(CIdExpression idExp) throws UnrecognizedCCodeException {
+
+      if (idExp.getDeclaration() != null) {
+        return MemoryLocation.valueOf(idExp.getDeclaration().getQualifiedName());
+      }
 
       boolean isGlobal = ForwardingTransferRelation.isGlobal(idExp);
 
       if (isGlobal) {
-        return MemoryLocation.valueOf(idExp.getName(), 0);
+        return MemoryLocation.valueOf(idExp.getName());
       } else {
-        return MemoryLocation.valueOf(evv.getFunctionName(), idExp.getName(), 0);
+        return MemoryLocation.valueOf(evv.getFunctionName(), idExp.getName());
       }
     }
 
@@ -348,6 +373,6 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
   }
 
   public ValueAnalysisState getState() {
-    return state;
+    return readableState;
   }
 }

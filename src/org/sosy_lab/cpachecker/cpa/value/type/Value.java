@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cpa.value.type;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.Serializable;
+
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 
@@ -36,7 +38,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  * For the future, floats, symbolic values, and SMG nodes should
  * also be supported.
  */
-public interface Value {
+public interface Value extends Serializable {
   public boolean isNumericValue();
 
   /** True if we have no idea about this value(can not track it), false otherwise. */
@@ -55,8 +57,9 @@ public interface Value {
   public Long asLong(CType type);
 
   /** Singleton class used to signal that the value is unknown (could be anything). **/
-  public static final class UnknownValue implements Value {
+  public static final class UnknownValue implements Value, Serializable {
 
+    private static final long serialVersionUID = -300842115868319184L;
     private static final UnknownValue instance = new UnknownValue();
 
     @Override
@@ -92,6 +95,10 @@ public interface Value {
     @Override
     public boolean isExplicitlyKnown() {
       return false;
+    }
+
+    protected Object readResolve() {
+      return instance;
     }
 
   }

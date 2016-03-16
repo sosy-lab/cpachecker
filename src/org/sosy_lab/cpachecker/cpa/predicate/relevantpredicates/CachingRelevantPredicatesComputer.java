@@ -25,13 +25,13 @@ package org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
@@ -90,24 +90,39 @@ public class CachingRelevantPredicatesComputer implements RefineableRelevantPred
   }
 
   @Override
-  public void considerPredicateAsRelevant(Block pBlock, AbstractionPredicate pPredicate) {
+  public CachingRelevantPredicatesComputer considerPredicatesAsRelevant(Block pBlock, Set<AbstractionPredicate> pPredicates) {
     if (delegate instanceof RefineableRelevantPredicatesComputer) {
       RefineableRelevantPredicatesComputer refineableDelegate = (RefineableRelevantPredicatesComputer)delegate;
-      refineableDelegate.considerPredicateAsRelevant(pBlock, pPredicate);
-      removeCacheEntriesForBlock(pBlock, irrelevantCache);
-      removeCacheEntriesForBlock(pBlock, relevantCache);
+      RefineableRelevantPredicatesComputer newComputer = refineableDelegate.considerPredicatesAsRelevant(pBlock, pPredicates);
+
+      if (newComputer == refineableDelegate) {
+        return this;
+      }
+
+      CachingRelevantPredicatesComputer newCachingComputer = new CachingRelevantPredicatesComputer(newComputer);
+
+      // we copy every useful data into the new Computer
+      putAllExceptBlock(this.relevantCache, newCachingComputer.relevantCache, pBlock);
+      putAllExceptBlock(this.irrelevantCache, newCachingComputer.irrelevantCache, pBlock);
+
+      return newCachingComputer;
+    }
+    return this;
+  }
+
+  private static <U, V> void putAllExceptBlock(
+      Map<Pair<Block, U>, V> from,
+      Map<Pair<Block, U>, V> to,
+      Block block) {
+    for (Entry<Pair<Block, U>, V> entry : from.entrySet()) {
+      if (!block.equals(entry.getKey().getFirst())) {
+        to.put(entry.getKey(), entry.getValue());
+      }
     }
   }
 
-  static <U, V> void removeCacheEntriesForBlock(Block pBlock, Map<Pair<Block, U>, V> pCache) {
-    Collection<Pair<Block, U>> removeKeys = new ArrayList<>();
-    for (Pair<Block, U> key : pCache.keySet()) {
-      if (key.getFirst().equals(pBlock)) {
-        removeKeys.add(key);
-      }
-    }
-    for (Pair<Block, U> key : removeKeys) {
-      pCache.remove(key);
-    }
+  @Override
+  public String toString() {
+    return "CachingRelevantPredicatesComputer (" + delegate + ")";
   }
 }

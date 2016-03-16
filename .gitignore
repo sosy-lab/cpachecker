@@ -60,6 +60,9 @@
 
 # /lib/source/
 
+# /scripts/
+/scripts/witness_validation_web_cloud.pyz
+
 # /src/
 /src/.hg*
 /src/build.properties
@@ -221,3 +224,11 @@
 .idea/workspace.xml
 .idea/uiDesigner.xml
 .idea/dictionaries
+.idea/findbugs-idea.xml
+.idea/junitgenerator-prj-settings.xml
+.idea/vcs.xml
+
+# Generated files.
+src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/FormulaParser.java
+src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/FormulaScanner.java
+src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/FormulaSymbols.java

@@ -32,6 +32,7 @@ import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -42,7 +43,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
@@ -62,16 +62,18 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
@@ -88,7 +90,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
       description="which stop operator to use for ValueAnalysisCPA")
   private String stopType = "SEP";
 
-  @Option(secure=true, description="get an initial precison from file")
+  @Option(secure=true, description="get an initial precision from file")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path initialPrecisionFile = null;
 
@@ -104,11 +106,15 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   private ValueAnalysisPrecisionAdjustment precisionAdjustment;
   private final ValueAnalysisReducer reducer;
   private final ValueAnalysisCPAStatistics statistics;
+  private final StateToFormulaWriter writer;
 
   private final Configuration config;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final CFA cfa;
+
+  private boolean refineablePrecisionSet = false;
+  private ValueAnalysisConcreteErrorPathAllocator errorPathAllocator;
 
   private ValueAnalysisCPA(Configuration config, LogManager logger,
       ShutdownNotifier pShutdownNotifier, CFA cfa) throws InvalidConfigurationException {
@@ -129,6 +135,9 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
 
     reducer             = new ValueAnalysisReducer();
     statistics          = new ValueAnalysisCPAStatistics(this, config);
+    writer = new StateToFormulaWriter(config, logger, shutdownNotifier, cfa);
+
+    errorPathAllocator = new ValueAnalysisConcreteErrorPathAllocator(config, logger, cfa.getMachineModel());
   }
 
   private MergeOperator initializeMergeOperator() {
@@ -170,7 +179,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
     }
   }
 
-  private Multimap<CFANode, MemoryLocation> restoreMappingFromFile(CFA cfa) throws InvalidConfigurationException {
+  private Multimap<CFANode, MemoryLocation> restoreMappingFromFile(CFA cfa) {
     Multimap<CFANode, MemoryLocation> mapping = HashMultimap.create();
 
     List<String> contents = null;
@@ -219,8 +228,9 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   public void injectRefinablePrecision() throws InvalidConfigurationException {
 
     // replace the full precision with an empty, refinable precision
-    if (initialPrecisionFile == null) {
+    if (initialPrecisionFile == null && !refineablePrecisionSet) {
       precision = VariableTrackingPrecision.createRefineablePrecision(config, precision);
+      refineablePrecisionSet = true;
     }
   }
 
@@ -245,12 +255,12 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   }
 
   @Override
-  public AbstractState getInitialState(CFANode node) {
-    return new ValueAnalysisState();
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+    return new ValueAnalysisState(cfa.getMachineModel());
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode) {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
     return precision;
   }
 
@@ -287,8 +297,9 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(statistics);
-
+    writer.collectStatistics(pStatsCollection);
     precisionAdjustment.collectStatistics(pStatsCollection);
+    transferRelation.collectStatistics(pStatsCollection);
   }
 
   public ValueAnalysisCPAStatistics getStats() {
@@ -328,9 +339,6 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
 
   @Override
   public ConcreteStatePath createConcreteStatePath(ARGPath pPath) {
-
-    ValueAnalysisConcreteErrorPathAllocator alloc =
-        new ValueAnalysisConcreteErrorPathAllocator(logger, shutdownNotifier);
-    return alloc.allocateAssignmentsToPath(pPath);
+    return errorPathAllocator.allocateAssignmentsToPath(pPath);
   }
 }

@@ -42,13 +42,16 @@ import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 class FillInAllBindingsVisitor extends DefaultCTypeVisitor<Void, RuntimeException> {
 
   private final Scope scope;
+  private final ProgramDeclarations programDeclarations;
 
-  FillInAllBindingsVisitor(Scope pScope) {
+  FillInAllBindingsVisitor(Scope pScope, ProgramDeclarations pProgramDeclarations) {
     scope = pScope;
+    programDeclarations = pProgramDeclarations;
+
   }
 
   @Override
-  public Void visitDefault(CType pT) throws RuntimeException {
+  public Void visitDefault(CType pT) {
     return null;
   }
 
@@ -73,6 +76,9 @@ class FillInAllBindingsVisitor extends DefaultCTypeVisitor<Void, RuntimeExceptio
       CComplexType realType = scope.lookupType(pElaboratedType.getQualifiedName());
       while (realType instanceof CElaboratedType) {
         realType = ((CElaboratedType)realType).getRealType();
+      }
+      if (realType == null) {
+        realType = programDeclarations.lookupType(pElaboratedType.getQualifiedName(), pElaboratedType.getOrigName());
       }
       if (realType != null) {
         pElaboratedType.setRealType(realType);

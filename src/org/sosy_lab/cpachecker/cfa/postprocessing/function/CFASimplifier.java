@@ -65,7 +65,7 @@ public class CFASimplifier {
    * This method makes the simplification step for a single function, the
    * root node is the node where the search for possible simplifications starts.
    *
-   * @param root
+   * @param root start node for simplification
    * @param cfa The cfa where the simplifications should be applied
    */
   private static void simplifyFunction(final CFANode root, final MutableCFA cfa) {
@@ -130,7 +130,7 @@ public class CFASimplifier {
   /**
    * Simplify one branching in the CFA at the given node (if possible).
    * @param branchingPoint The root of the branching (needs to have 2 outgoing AssumeEdges).
-   * @param cfa
+   * @param cfa the cfa which should be simplified
    */
   private static void simplifyBranching(final CFANode branchingPoint, final MutableCFA cfa) {
     CFANode leftEndpoint  = findEndOfBlankEdgeChain(branchingPoint.getLeavingEdge(0).getSuccessor());
@@ -165,8 +165,8 @@ public class CFASimplifier {
       final CFANode endpoint2 = findEndOfBlankEdgeChain(endpoint);
       removeChainOfNodes(endpoint, endpoint2, cfa, removedFileLocations);
 
-      CFAEdge blankEdge = new BlankEdge("skipped uneccesary edges",
-          FileLocation.merge(removedFileLocations), branchingPoint, endpoint2, "skipped uneccesary edges");
+      CFAEdge blankEdge = new BlankEdge("skipped unnecessary edges",
+          FileLocation.merge(removedFileLocations), branchingPoint, endpoint2, "skipped unnecessary edges");
       CFACreationUtils.addEdgeUnconditionallyToCFA(blankEdge);
     }
   }

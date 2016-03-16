@@ -26,9 +26,9 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 import java.util.Collections;
 import java.util.Set;
 
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cpa.smg.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import org.sosy_lab.cpachecker.util.Pair;
 
 
 final public class SMGJoinSubSMGsForAbstraction {
@@ -38,10 +38,6 @@ final public class SMGJoinSubSMGsForAbstraction {
   final private Pair<Set<SMGObject>, Set<Integer>> nonSharedFromSMG1 = null;
   final private Pair<Set<SMGObject>, Set<Integer>> nonSharedFromSMG2= null;
   private boolean defined = false;
-
-  public SMGJoinSubSMGsForAbstraction(SMG pSMG, SMGObject pObj1, SMGObject pObj2) {
-
-  }
 
   public boolean isDefined() {
     return defined;

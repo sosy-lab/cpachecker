@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import com.google.errorprone.annotations.ForOverride;
+
 /**
  * Class similar to {@link ForwardingCExpressionVisitor} that allows to have
  * a different return type than the delegate visitor.
@@ -39,6 +41,7 @@ public abstract class AdaptingCExpressionVisitor<R, D, X extends Exception>
     delegate = pDelegate;
   }
 
+  @ForOverride
   protected abstract R convert(D value, CExpression exp) throws X;
 
   @Override
@@ -108,6 +111,11 @@ public abstract class AdaptingCExpressionVisitor<R, D, X extends Exception>
 
   @Override
   public R visit(CPointerExpression e) throws X {
+    return convert(delegate.visit(e), e);
+  }
+
+  @Override
+  public R visit(CAddressOfLabelExpression e) throws X {
     return convert(delegate.visit(e), e);
   }
 }

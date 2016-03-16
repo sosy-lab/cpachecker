@@ -23,97 +23,83 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
-import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.bam.AbstractBAMBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.bam.BAMBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RefineableRelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.PathChecker;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.solver.api.BooleanFormula;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Sets;
 
 
 /**
- * Implements predicate refinements when using BAM.
- * It is based on the {@link AbstractBAMBasedRefiner} and delegates the work to
- * a {@link ExtendedPredicateRefiner}, which is a small extension of the regular
- * {@link PredicateCPARefiner}.
+ * This is a small extension of {@link PredicateCPARefiner} that supplies it with a special
+ * {@link BlockFormulaStrategy} and {@link RefinementStrategy} so that it respects BAM.
  *
  * So the hierarchy is as follows:
  *
- *               AbstractARGBasedRefiner
- *                         ^
- *                         |                                PredicateAbstractionRefinementStrategy
- *           +-------------+-------------+                                    ^
- *           |                           |                                    |
- * AbstractBAMBasedRefiner       PredicateCPARefiner ---> BAMPredicateAbstractionRefinementStrategy
- *           ^                           ^
- *           |                           |
- *   BAMPredicateRefiner ---> ExtendedPredicateRefiner
+ *        Refiner                  ARGBasedRefiner                     RefinementStrategy
+ *           ^                           ^                                     ^
+ *           |                           |                                     |
+ * AbstractARGBasedRefiner               |                     PredicateAbstractionRefinementStrategy
+ *           ^                           |                                     ^
+ *           |                           |                                     |
+ *     BAMBasedRefiner    --->    PredicateCPARefiner  --->   BAMPredicateAbstractionRefinementStrategy
  *
  * Here ^ means inheritance and -> means reference.
+ *
+ * BAMPredicateRefiner is only used for encapsulating this and providing the static factory method.
  */
-public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implements StatisticsProvider {
+public abstract class BAMPredicateRefiner implements Refiner {
 
-  private final ExtendedPredicateRefiner refiner;
-
-
-  public static Refiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
-    return new BAMPredicateRefiner(pCpa);
+  public static Refiner create(ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
+    return BAMBasedRefiner.forARGBasedRefiner(create0(pCpa), pCpa);
   }
 
-  public BAMPredicateRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
-
-    super(pCpa);
-
+  public static ARGBasedRefiner create0(ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
     if (!(pCpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(BAMPredicateRefiner.class.getSimpleName() + " could not find the PredicateCPA");
     }
@@ -123,86 +109,36 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
       throw new InvalidConfigurationException(BAMPredicateRefiner.class.getSimpleName() + " needs an BAMPredicateCPA");
     }
 
+    Configuration config = predicateCpa.getConfiguration();
     LogManager logger = predicateCpa.getLogger();
+    Solver solver = predicateCpa.getSolver();
+    PathFormulaManager pfmgr = predicateCpa.getPathFormulaManager();
 
-    InterpolationManager manager = new InterpolationManager(
-                                          predicateCpa.getPathFormulaManager(),
-                                          predicateCpa.getSolver(),
-                                          predicateCpa.getConfiguration(),
-                                          predicateCpa.getShutdownNotifier(),
-                                          logger);
+    BlockFormulaStrategy blockFormulaStrategy = new BAMBlockFormulaStrategy(pfmgr);
 
-    PathChecker pathChecker = new PathChecker(logger,
-                                          predicateCpa.getShutdownNotifier(),
-                                          predicateCpa.getPathFormulaManager(),
-                                          predicateCpa.getSolver(),
-                                          predicateCpa.getMachineModel());
+    RefinementStrategy strategy =
+        new BAMPredicateAbstractionRefinementStrategy(
+            config, logger, predicateCpa, solver, predicateCpa.getPredicateManager());
 
-    RefinementStrategy strategy = new BAMPredicateAbstractionRefinementStrategy(
-                                          predicateCpa.getConfiguration(),
-                                          logger,
-                                          predicateCpa,
-                                          predicateCpa.getSolver(),
-                                          predicateCpa.getPredicateManager(),
-                                          predicateCpa.getStaticRefiner());
-
-    this.refiner = new ExtendedPredicateRefiner(
-                                          predicateCpa.getConfiguration(),
-                                          logger,
-                                          pCpa,
-                                          manager,
-                                          pathChecker,
-                                          predicateCpa.getPathFormulaManager(),
-                                          strategy,
-                                          predicateCpa.getSolver(),
-                                          predicateCpa.getAssumesStore());
+    return new PredicateCPARefinerFactory(pCpa)
+        .setBlockFormulaStrategy(blockFormulaStrategy)
+        .create(strategy);
   }
 
-  @Override
-  protected final CounterexampleInfo performRefinement0(ARGReachedSet pReached, ARGPath pPath)
-      throws CPAException, InterruptedException {
+  private static final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
 
-    return refiner.performRefinement(pReached, pPath);
-  }
+    private final PathFormulaManager pfmgr;
 
-  /**
-   * This is a small extension of PredicateCPARefiner that overrides
-   * {@link #getFormulasForPath(List, ARGState)} so that it respects BAM.
-   */
-  private static final class ExtendedPredicateRefiner extends PredicateCPARefiner {
-
-    private final Timer ssaRenamingTimer = new Timer();
-
-    private ExtendedPredicateRefiner(final Configuration config, final LogManager logger,
-        final ConfigurableProgramAnalysis pCpa,
-        final InterpolationManager pInterpolationManager,
-        final PathChecker pPathChecker,
-        final PathFormulaManager pPathFormulaManager,
-        final RefinementStrategy pStrategy,
-        final Solver pSolver,
-        final PredicateAssumeStore pAssumesStore)
-            throws CPAException, InvalidConfigurationException {
-
-      super(config, logger, pCpa, pInterpolationManager, pPathChecker, pPathFormulaManager, pStrategy, pSolver, pAssumesStore);
-
+    private BAMBlockFormulaStrategy(PathFormulaManager pPfmgr) {
+      pfmgr = pPfmgr;
     }
 
     @Override
-    protected final List<BooleanFormula> getFormulasForPath(List<ARGState> pPath, ARGState initialState) throws CPATransferException, InterruptedException {
+    List<BooleanFormula> getFormulasForPath(final ARGState pRoot, final List<ARGState> pPath)
+        throws CPATransferException, InterruptedException {
       // the elements in the path are not expanded, so they contain the path formulas
       // with the wrong indices
       // we need to re-create all path formulas in the flattened ARG
-
-      ssaRenamingTimer.start();
-      try {
-        return computeBlockFormulas(initialState);
-
-      } finally {
-        ssaRenamingTimer.stop();
-      }
-    }
-
-    private List<BooleanFormula> computeBlockFormulas(final ARGState pRoot) throws CPATransferException, InterruptedException {
 
       final Map<ARGState, ARGState> callStacks = new HashMap<>(); // contains states and their next higher callstate
       final Map<ARGState, PathFormula> finishedFormulas = new HashMap<>();
@@ -253,7 +189,8 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
                     "returning from empty callstack is only possible at program-exit";
 
             prevCallState = callStacks.get(callState);
-            parentFormula = rebuildStateAfterFunctionCall(parentFormula, finishedFormulas.get(callState));
+            parentFormula = rebuildStateAfterFunctionCall(parentFormula,
+                finishedFormulas.get(callState), (FunctionExitNode)extractLocation(parentElement));
 
           } else {
             assert callStacks.containsKey(parentElement); // check for null is not enough
@@ -308,20 +245,10 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
     }
 
     /* rebuild indices from outer scope */
-    private PathFormula rebuildStateAfterFunctionCall(PathFormula parentFormula, PathFormula rootFormula) {
-      final SSAMap newSSA = BAMPredicateReducer.updateIndices(rootFormula.getSsa(), parentFormula.getSsa());
+    private PathFormula rebuildStateAfterFunctionCall(final PathFormula parentFormula, final PathFormula rootFormula,
+        final FunctionExitNode functionExitNode) {
+      final SSAMap newSSA = BAMPredicateReducer.updateIndices(rootFormula.getSsa(), parentFormula.getSsa(), functionExitNode);
       return pfmgr.makeNewPathFormula(parentFormula, newSSA);
-    }
-
-    @Override
-    public void collectStatistics(Collection<Statistics> pStatsCollection) {
-      pStatsCollection.add(new Stats() {
-        @Override
-        public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-          super.printStatistics(out, result, reached);
-          out.println("Time for SSA renaming:                " + ssaRenamingTimer);
-        }
-      });
     }
   }
 
@@ -331,77 +258,85 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
    */
   private static class BAMPredicateAbstractionRefinementStrategy extends PredicateAbstractionRefinementStrategy {
 
-    private final RefineableRelevantPredicatesComputer relevantPredicatesComputer;
     private final BAMPredicateCPA predicateCpa;
+    private boolean secondRepeatedCEX = false;
 
-    private List<Region> lastAbstractions = null;
-    private boolean refinedLastRelevantPredicatesComputer = false;
-
-    private BAMPredicateAbstractionRefinementStrategy(final Configuration config, final LogManager logger,
+    private BAMPredicateAbstractionRefinementStrategy(
+        final Configuration config,
+        final LogManager logger,
         final BAMPredicateCPA predicateCpa,
         final Solver pSolver,
-        final PredicateAbstractionManager pPredAbsMgr,
-        final PredicateStaticRefiner pStaticRefiner)
-            throws CPAException, InvalidConfigurationException {
+        final PredicateAbstractionManager pPredAbsMgr)
+        throws InvalidConfigurationException {
 
-      super(config, logger, predicateCpa.getShutdownNotifier(), pPredAbsMgr, pStaticRefiner, pSolver);
-
-      RelevantPredicatesComputer relevantPredicatesComputer = predicateCpa.getRelevantPredicatesComputer();
-      if (relevantPredicatesComputer instanceof RefineableRelevantPredicatesComputer) {
-        this.relevantPredicatesComputer = (RefineableRelevantPredicatesComputer)relevantPredicatesComputer;
-      } else {
-        this.relevantPredicatesComputer = null;
-      }
-
+      super(config, logger, pPredAbsMgr, pSolver);
       this.predicateCpa = predicateCpa;
-    }
-
-    private static final Function<PredicateAbstractState, Region> GET_REGION
-    = new Function<PredicateAbstractState, Region>() {
-        @Override
-        public Region apply(PredicateAbstractState e) {
-          assert e.isAbstractionState();
-          return e.getAbstractionFormula().asRegion();
-        }
-      };
-
-    private List<Region> getRegionsForPath(List<ARGState> path) throws CPATransferException {
-      return from(path)
-              .transform(toState(PredicateAbstractState.class))
-              .transform(GET_REGION)
-              .toList();
     }
 
     @Override
     public void performRefinement(
         ARGReachedSet pReached,
-        List<ARGState> pPath,
+        List<ARGState> abstractionStatesTrace,
         List<BooleanFormula> pInterpolants,
         boolean pRepeatedCounterexample) throws CPAException, InterruptedException {
 
-      // overriding this method is needed, as, in principle, it is possible to get two successive spurious counterexamples
-      // which only differ in its abstractions (with 'aggressive caching').
+      // overriding this method is needed, as, in principle, it is possible
+      // -- to get two successive spurious counterexamples, which only differ in its abstractions (with 'aggressive caching').
+      // -- to have an imprecise predicate-reduce-operator, which can be refined.
 
-      boolean refinedRelevantPredicatesComputer = false;
+      // use flags to wait for the second repeated CEX
+      if (!pRepeatedCounterexample) {
+        pRepeatedCounterexample = false;
+        secondRepeatedCEX = false;
+      }
 
-      if (pRepeatedCounterexample) {
-        //block formulas are the same as last time; check if abstractions also agree
-        pRepeatedCounterexample = getRegionsForPath(pPath).equals(lastAbstractions);
+      else if (pRepeatedCounterexample && !secondRepeatedCEX) {
+        pRepeatedCounterexample = false;
+        secondRepeatedCEX = true;
+      }
 
-        if (pRepeatedCounterexample && !refinedLastRelevantPredicatesComputer && relevantPredicatesComputer != null) {
+      // in case of a (twice) repeated CEX,
+      // we try to improve the reduce-operator by refining the relevantPredicatesComputer.
+      else if (pRepeatedCounterexample && secondRepeatedCEX) {
+        final RelevantPredicatesComputer relevantPredicatesComputer = predicateCpa.getRelevantPredicatesComputer();
+        if (relevantPredicatesComputer instanceof RefineableRelevantPredicatesComputer) {
           //even abstractions agree; try refining relevant predicates reducer
-          refineRelevantPredicatesComputer(pPath, pReached);
-          pRepeatedCounterexample = false;
-          refinedRelevantPredicatesComputer = true;
+          RelevantPredicatesComputer newRelevantPredicatesComputer =
+              refineRelevantPredicatesComputer(abstractionStatesTrace, pReached, (RefineableRelevantPredicatesComputer)relevantPredicatesComputer);
+
+          if (newRelevantPredicatesComputer.equals(relevantPredicatesComputer)) {
+            // repeated CEX && relevantPredicatesComputer was refined && refinement does not produce progress -> error
+            // TODO if this happens, there might be a bug in the analysis!
+            throw new RefinementFailedException(Reason.RepeatedCounterexample, null);
+
+          } else {
+            // we have a better relevantPredicatesComputer, thus update it.
+            logger.logf(Level.FINEST, "refining relevantPredicatesComputer from %s to %s",
+                relevantPredicatesComputer, newRelevantPredicatesComputer);
+            predicateCpa.setRelevantPredicatesComputer(newRelevantPredicatesComputer);
+
+            // reset flags and continue
+            pRepeatedCounterexample = false;
+            secondRepeatedCEX = false;
+          }
+
+        } else {
+          throw new RefinementFailedException(Reason.RepeatedCounterexample, null);
         }
       }
 
-      lastAbstractions = getRegionsForPath(pPath);
-      refinedLastRelevantPredicatesComputer = refinedRelevantPredicatesComputer;
-      super.performRefinement(pReached, pPath, pInterpolants, pRepeatedCounterexample);
+      super.performRefinement(pReached, abstractionStatesTrace, pInterpolants, pRepeatedCounterexample);
     }
 
-    private void refineRelevantPredicatesComputer(List<ARGState> pPath, ARGReachedSet pReached) {
+    /**
+     * In case of repeated counter-example, we try to improve the (dynamic) predicate-reducer
+     * by adding all predicates (that match the block's locations) as relevant predicates.
+     * This overrides/improves the formula-based reducing of abstractions and precision,
+     * where substring-matching against block-local variables is performed.
+     * @return the refined relevantPredicateComputer
+     */
+    private RelevantPredicatesComputer refineRelevantPredicatesComputer(List<ARGState> abstractionStatesTrace, ARGReachedSet pReached,
+        RefineableRelevantPredicatesComputer relevantPredicatesComputer) {
       UnmodifiableReachedSet reached = pReached.asReachedSet();
       Precision oldPrecision = reached.getPrecision(reached.getLastState());
       PredicatePrecision oldPredicatePrecision = Precisions.extractPrecisionByType(oldPrecision, PredicatePrecision.class);
@@ -409,37 +344,28 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
       BlockPartitioning partitioning = predicateCpa.getPartitioning();
       Deque<Block> openBlocks = new ArrayDeque<>();
       openBlocks.push(partitioning.getMainBlock());
-      for (ARGState pathElement : pPath) {
+      for (ARGState pathElement : abstractionStatesTrace) {
         CFANode currentNode = AbstractStates.extractLocation(pathElement);
         Integer currentNodeInstance = getPredicateState(pathElement)
                                       .getAbstractionLocationsOnPath().get(currentNode);
-        if (partitioning.isCallNode(currentNode)) {
-          openBlocks.push(partitioning.getBlockForCallNode(currentNode));
-        }
 
-        Collection<AbstractionPredicate> localPreds = oldPredicatePrecision.getPredicates(currentNode, currentNodeInstance);
+        Set<AbstractionPredicate> localPreds = oldPredicatePrecision.getPredicates(currentNode, currentNodeInstance);
         for (Block block : openBlocks) {
-          for (AbstractionPredicate pred : localPreds) {
-            relevantPredicatesComputer.considerPredicateAsRelevant(block, pred);
-          }
+          relevantPredicatesComputer = relevantPredicatesComputer.considerPredicatesAsRelevant(block, localPreds);
         }
 
-        while (openBlocks.peek().isReturnNode(currentNode)) {
+        // first pop, then push -- otherwise we loose blocks that are entered at block-exit-locations.
+        while (!openBlocks.isEmpty() && openBlocks.peek().isReturnNode(currentNode)) {
           openBlocks.pop();
         }
+
+        if (partitioning.isCallNode(currentNode)) {
+          final Block calledBlock = partitioning.getBlockForCallNode(currentNode);
+          relevantPredicatesComputer = relevantPredicatesComputer.considerPredicatesAsRelevant(calledBlock, localPreds);
+          openBlocks.push(calledBlock);
+        }
       }
-
-      predicateCpa.getReducer().clearCaches();
+      return relevantPredicatesComputer;
     }
-
-    @Override
-    protected void analyzePathPrecisions(ARGReachedSet argReached, List<ARGState> path) {
-      // Not implemented for BAM (different sets of reached states have to be handled)
-    }
-  }
-
-  @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    refiner.collectStatistics(pStatsCollection);
   }
 }

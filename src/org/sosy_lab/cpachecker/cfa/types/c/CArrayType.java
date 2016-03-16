@@ -23,22 +23,34 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.io.IOException;
+import java.io.InvalidObjectException;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
 import java.util.Objects;
+
+import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.AArrayType;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-public class CArrayType extends AArrayType implements CType {
+@SuppressFBWarnings(value="SE_NO_SUITABLE_CONSTRUCTOR",
+    justification="handled by serialization proxy")
+public final class CArrayType extends AArrayType implements CType {
 
+  private static final long serialVersionUID = -6314468260643330323L;
 
-  private final CExpression    length;
+  private final transient CExpression    length;
   private boolean   isConst;
   private boolean   isVolatile;
 
   public CArrayType(boolean pConst, boolean pVolatile,
-      CType pType, CExpression pLength) {
+      CType pType, @Nullable CExpression pLength) {
     super(pType);
     isConst = pConst;
     isVolatile = pVolatile;
@@ -50,12 +62,13 @@ public class CArrayType extends AArrayType implements CType {
     return (CType) super.getType();
   }
 
-  public CExpression getLength() {
+  public @Nullable CExpression getLength() {
     return length;
   }
 
   @Override
   public String toASTString(String pDeclarator) {
+    checkNotNull(pDeclarator);
     return (isConst() ? "const " : "")
         + (isVolatile() ? "volatile " : "")
         +  getType().toASTString(pDeclarator+ ("[" + (length != null ? length.toASTString() : "") + "]"))
@@ -102,7 +115,7 @@ public class CArrayType extends AArrayType implements CType {
    * typedefs in it use #getCanonicalType().equals()
    */
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(@Nullable Object obj) {
     if (this == obj) {
       return true;
     }
@@ -140,5 +153,35 @@ public class CArrayType extends AArrayType implements CType {
         getType().getCanonicalType(isConst || pForceConst,
                                    isVolatile || pForceVolatile),
         length);
+  }
+
+  private Object writeReplace() {
+    return new SerializationProxy(this);
+  }
+
+  /**
+   * javadoc to remove unused parameter warning
+   * @param in the input stream
+   */
+  private void readObject(ObjectInputStream in) throws IOException {
+    throw new InvalidObjectException("Proxy required");
+  }
+
+  private static class SerializationProxy implements Serializable {
+
+    private static final long serialVersionUID = -2013901217157144921L;
+    private final boolean isConst;
+    private final boolean isVolatile;
+    private final CType type;
+
+    public SerializationProxy(CArrayType arrayType) {
+      isConst = arrayType.isConst;
+      isVolatile = arrayType.isVolatile;
+      type = arrayType.getType();
+    }
+
+    private Object readResolve() {
+      return new CArrayType(isConst, isVolatile, type, null);
+    }
   }
 }

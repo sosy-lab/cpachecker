@@ -23,18 +23,21 @@
  */
 package org.sosy_lab.cpachecker.cfa.types;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.Objects;
 
 
 
 public abstract class AArrayType implements Type {
 
+  private static final long serialVersionUID = -2838888440949947901L;
 
   private final Type elementType;
 
 
   public AArrayType(Type pElementType) {
-    elementType = pElementType;
+    elementType = checkNotNull(pElementType);
   }
 
   public Type getType() {

@@ -27,8 +27,6 @@ import java.math.BigInteger;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.cdt.internal.core.dom.parser.c.CArrayType;
-import org.eclipse.cdt.internal.core.dom.parser.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -45,21 +43,19 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
 /**
  * This Visitor implements evaluation of simply typed expressions.
  * An expression is defined as simply typed iff it is not an
- * array type (vgl {@link CArrayType}),
- * a struct or union type (vgl {@link CComplexType}),
- * a imaginary type (vgl {@link CImaginaryLiteralExpression}),
- * or a pointer type (vgl {@link CPointerType}).
+ * array type ({@link org.sosy_lab.cpachecker.cfa.types.c.CArrayType}),
+ * a struct or union type ({@link org.sosy_lab.cpachecker.cfa.types.c.CComplexType}),
+ * a imaginary type ({@link CImaginaryLiteralExpression}),
+ * or a pointer type ({@link org.sosy_lab.cpachecker.cfa.types.c.CPointerType}).
  * The key distinction between these types and simply typed types is,
  * that a value of simply typed types can be represented as a numerical
  * value without losing information.
@@ -141,7 +137,7 @@ public class BDDVectorCExpressionVisitor
       case BINARY_OR:
       case BINARY_XOR: {
 
-        result = arithmeticOperation(lVal, rVal, bvmgr, binaryOperator, calculationType, machineModel);
+        result = arithmeticOperation(lVal, rVal, bvmgr, binaryOperator);
         result = castCValue(result, binaryExpr.getExpressionType(), bvmgr, machineModel);
 
         break;
@@ -154,7 +150,7 @@ public class BDDVectorCExpressionVisitor
       case LESS_THAN:
       case LESS_EQUAL: {
 
-        final Region tmp = booleanOperation(lVal, rVal, bvmgr, binaryOperator, calculationType, machineModel);
+        final Region tmp = booleanOperation(lVal, rVal, bvmgr, binaryOperator, calculationType);
         // return 1 if expression holds, 0 otherwise
 
         int size = 32;
@@ -181,8 +177,7 @@ public class BDDVectorCExpressionVisitor
   }
 
   private static Region[] arithmeticOperation(final Region[] l, final Region[] r, final BitvectorManager bvmgr,
-                                              final BinaryOperator op, final CType calculationType,
-                                              final MachineModel machineModel) {
+                                              final BinaryOperator op) {
 
     switch (op) {
       case PLUS:
@@ -213,8 +208,7 @@ public class BDDVectorCExpressionVisitor
   }
 
   protected static Region booleanOperation(final Region[] l, final Region[] r, final BitvectorManager bvmgr,
-                                         final BinaryOperator op, final CType calculationType,
-                                         final MachineModel machineModel) {
+                                         final BinaryOperator op, final CType calculationType) {
 
     boolean signed = true;
     if (calculationType instanceof CSimpleType) {
@@ -338,8 +332,7 @@ public class BDDVectorCExpressionVisitor
    * @param pTargetType the type of the left side of an assignment
    * @return if evaluation successful, then value, else null
    */
-  public Region[] evaluate(final CExpression pExp, final CType pTargetType)
-          throws UnrecognizedCCodeException {
+  public Region[] evaluate(final CExpression pExp, final CType pTargetType) {
     return castCValue(pExp.accept(this), pTargetType, bvmgr, machineModel);
   }
 

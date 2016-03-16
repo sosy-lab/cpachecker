@@ -42,11 +42,11 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGUnknownValue;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 
 /**
@@ -56,8 +56,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
  * will be done in another class.
  */
 public class ValueAnalysisSMGCommunicator {
-
-  private boolean symbolicValues = new SymbolicValuesOption().areSymbolicValuesEnabled();
 
   private final CFAEdge cfaEdge;
   private final LogManagerWithoutDuplicates logger;
@@ -119,12 +117,12 @@ public class ValueAnalysisSMGCommunicator {
     private final SMGExplicitExpressionEvaluator smgEvaluator;
 
     public ExplicitExpressionValueVisitor() {
-      super(valueAnalysisState, functionName, machineModel, logger, symbolicValues);
+      super(valueAnalysisState, functionName, machineModel, logger);
       smgEvaluator = new SMGExplicitExpressionEvaluator(this);
     }
 
     public ExplicitExpressionValueVisitor(SMGExplicitExpressionEvaluator pSmgEvaluator) {
-      super(valueAnalysisState, functionName, machineModel, logger,symbolicValues);
+      super(valueAnalysisState, functionName, machineModel, logger);
       smgEvaluator = pSmgEvaluator;
     }
 
@@ -134,7 +132,7 @@ public class ValueAnalysisSMGCommunicator {
       LValueAssignmentVisitor visitor = smgEvaluator.getLValueAssignmentVisitor(cfaEdge, smgState);
 
       try {
-        value = pOperand.accept(visitor).getAddress();
+        value = pOperand.accept(visitor).get(0).getObject();
       } catch (CPATransferException e) {
         if (e instanceof UnrecognizedCCodeException) {
           throw (UnrecognizedCCodeException) e;

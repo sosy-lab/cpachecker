@@ -23,10 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.storage;
 
+import java.io.IOException;
+import java.io.Serializable;
+
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Preconditions;
 
@@ -34,17 +38,19 @@ import com.google.common.base.Preconditions;
  * Abstract state for the Collector CPA. Encapsulate a
  * symbolic formula
  */
-public class AssumptionStorageState implements AbstractState {
+public class AssumptionStorageState implements AbstractState, Serializable {
+
+  private static final long serialVersionUID = -3738604180058424317L;
 
   // this formula provides the assumption generated from other sources than heuristics,
   // e.g. assumptions for arithmetic overflow
-  private final BooleanFormula assumption;
+  private transient final BooleanFormula assumption;
 
   // if a heuristic told us to stop the analysis, this formula provides the reason
   // if it is TRUE, there is no reason -> don't stop
-  private final BooleanFormula stopFormula;
+  private transient final BooleanFormula stopFormula;
 
-  private final FormulaManagerView fmgr;
+  private transient final FormulaManagerView fmgr;
 
   // the assumption represented by this class is always the conjunction of "assumption" and "stopFormula"
 
@@ -54,6 +60,10 @@ public class AssumptionStorageState implements AbstractState {
     fmgr = pFmgr;
 
     assert !fmgr.getBooleanFormulaManager().isFalse(assumption); // FALSE would mean "stop the analysis", but this should be signaled by stopFormula
+  }
+
+  public FormulaManagerView getFormulaManager() {
+    return fmgr;
   }
 
   public BooleanFormula getAssumption() {
@@ -107,5 +117,16 @@ public class AssumptionStorageState implements AbstractState {
   @Override
   public int hashCode() {
     return assumption.hashCode() + 17 * stopFormula.hashCode();
+  }
+
+  private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+    Preconditions.checkState(isAssumptionTrue() && isStopFormulaTrue(),
+        "Assumption and stop formula must be true for serialization to be correctly restored");
+    out.defaultWriteObject();
+  }
+
+  private Object readResolve() {
+    FormulaManagerView fmgr = GlobalInfo.getInstance().getAssumptionStorageFormulaManager();
+    return new AssumptionStorageState(fmgr, fmgr.getBooleanFormulaManager().makeBoolean(true), fmgr.getBooleanFormulaManager().makeBoolean(true));
   }
 }

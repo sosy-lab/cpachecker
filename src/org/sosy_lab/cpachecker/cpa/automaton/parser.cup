@@ -24,7 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -41,6 +42,7 @@ import java_cup.runtime.SymbolFactory;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.DummyParser;
@@ -53,6 +55,7 @@ import org.sosy_lab.cpachecker.exceptions.CParserException;
 
 
 import com.google.common.base.Throwables;
+import com.google.common.base.Optional;
 
 parser code {:
   private LogManager logger;
@@ -109,34 +112,42 @@ parser code {:
   */
   public static List<Automaton> parseAutomatonFile(Path pInputFile, Configuration config, LogManager pLogger, MachineModel pMachine, Scope scope, Language pLanguage) throws InvalidConfigurationException {
 
+    try (Reader input = pInputFile.asCharSource(StandardCharsets.UTF_8).openBufferedStream()) {
+      return parseAutomaton(input, Optional.of(pInputFile), config, pLogger, pMachine, scope, pLanguage);
+
+    } catch (IOException e) {
+      throw new InvalidConfigurationException("Could not load automaton from file " + e.getMessage(), e);
+    }
+  }
+
+  /**
+  * Parses a Specification File and returns the Automata found in the file.
+  */
+  public static List<Automaton> parseAutomaton(Reader reader, Optional<Path> pInputFile, Configuration config, LogManager pLogger, MachineModel pMachine, Scope scope, Language pLanguage) throws InvalidConfigurationException {
     ComplexSymbolFactory sf = new ComplexSymbolFactory();
-    try (InputStream input = pInputFile.asByteSource().openStream()) {
-      Scanner scanner = new AutomatonScanner(input, pInputFile, config, pLogger, sf);
+    Scanner scanner = new AutomatonScanner(reader, pInputFile.or(Paths.get("")), pLogger, sf);
 
-      AutomatonParser automatonParser;
+    AutomatonParser automatonParser;
 
-      switch (pLanguage) {
-      case C:
-        CParser cparser = CParser.Factory.getParser(config, pLogger, CParser.Factory.getOptions(config), pMachine);
-        automatonParser = new AutomatonParser(scanner, sf, pLogger, cparser, scope);
-        break;
-      default:
-        automatonParser = new AutomatonParser(scanner, sf, pLogger);
-      }
+    switch (pLanguage) {
+    case C:
+      CParser cparser = CParser.Factory.getParser(config, pLogger, CParser.Factory.getOptions(config), pMachine);
+      automatonParser = new AutomatonParser(scanner, sf, pLogger, cparser, scope);
+      break;
+    default:
+      automatonParser = new AutomatonParser(scanner, sf, pLogger);
+    }
 
-      Symbol symbol = automatonParser.parse();
-
-      return ((List<Automaton>) symbol.value);
-
+    Symbol symbol;
+    try {
+      symbol = automatonParser.parse();
     } catch (Exception e) {
       Throwables.propagateIfPossible(e, InvalidConfigurationException.class);
-      if (e instanceof IOException && e.getMessage() != null) {
-        throw new InvalidConfigurationException("Could not load automaton from file " + e.getMessage(), e);
-      } else {      
-        throw new InvalidConfigurationException("Could not load automaton from file " + pInputFile.getAbsolutePath()
+      throw new InvalidConfigurationException("Could not load automaton from file "
             + " (" + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()) + ")", e);
-      }
     }
+
+    return ((List<Automaton>) symbol.value);
   }
 
   AutomatonASTComparator.ASTMatcher generateASTPattern(String pattern) throws InvalidAutomatonException, InvalidConfigurationException {

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.callstack;
 
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
@@ -48,7 +49,9 @@ public class CallstackReducer implements Reducer {
     } else {
       assert element.getPreviousState() != null;
       CallstackState recursiveResult = copyCallstackUpToCallNode(element.getPreviousState(), callNode);
-      return new CallstackState(recursiveResult, element.getCurrentFunction(), element.getCallNode());
+      return new CallstackState(recursiveResult,
+          element.getCurrentFunction(),
+          element.getCallNode());
     }
   }
 
@@ -74,48 +77,17 @@ public class CallstackReducer implements Reducer {
       return target;
     } else {
       CallstackState recursiveResult = copyCallstackExceptLast(target, source.getPreviousState());
-      return new CallstackState(recursiveResult, source.getCurrentFunction(), source.getCallNode());
+
+      return new CallstackState(
+          recursiveResult,
+          source.getCurrentFunction(),
+          source.getCallNode());
     }
-  }
-
-  private static boolean isEqual(CallstackState reducedTargetElement,
-      CallstackState candidateElement) {
-    if (reducedTargetElement.getDepth() != candidateElement.getDepth()) { return false; }
-
-    while (reducedTargetElement != null) {
-      if (!reducedTargetElement.getCallNode().equals(candidateElement.getCallNode())
-          || !reducedTargetElement.getCurrentFunction().equals(candidateElement.getCurrentFunction())) { return false; }
-      reducedTargetElement = reducedTargetElement.getPreviousState();
-      candidateElement = candidateElement.getPreviousState();
-    }
-
-    return true;
   }
 
   @Override
   public Object getHashCodeForState(AbstractState pElementKey, Precision pPrecisionKey) {
-    return new CallstackStateWithEquals((CallstackState) pElementKey);
-  }
-
-  private static class CallstackStateWithEquals {
-
-    private final CallstackState state;
-
-    public CallstackStateWithEquals(CallstackState pElement) {
-      state = pElement;
-    }
-
-    @Override
-    public boolean equals(Object other) {
-      if (!(other instanceof CallstackStateWithEquals)) { return false; }
-
-      return isEqual(state, ((CallstackStateWithEquals) other).state);
-    }
-
-    @Override
-    public int hashCode() {
-      return (state.getDepth() * 17 + state.getCurrentFunction().hashCode()) * 31 + state.getCallNode().hashCode();
-    }
+    return new CallstackStateEqualsWrapper((CallstackState) pElementKey);
   }
 
   @Override
@@ -147,7 +119,8 @@ public class CallstackReducer implements Reducer {
   }
 
   @Override
-  public AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState entryState, AbstractState expandedState, CFANode exitLocation) {
+  public AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState entryState,
+      AbstractState expandedState, FunctionExitNode exitLocation) {
     return expandedState;
   }
 }

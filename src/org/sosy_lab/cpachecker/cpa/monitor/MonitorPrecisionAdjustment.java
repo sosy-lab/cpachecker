@@ -23,18 +23,22 @@
  */
 package org.sosy_lab.cpachecker.cpa.monitor;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetView;
 import org.sosy_lab.cpachecker.cpa.monitor.MonitorState.TimeoutState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 
+import com.google.common.base.Function;
 import com.google.common.base.Functions;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 
 /**
@@ -53,16 +57,20 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   @Override
-  public PrecisionAdjustmentResult prec(
+  public Optional<PrecisionAdjustmentResult> prec(
       AbstractState pElement, Precision oldPrecision,
-      UnmodifiableReachedSet pElements, AbstractState fullState) throws CPAException, InterruptedException {
+      UnmodifiableReachedSet pElements,
+      Function<AbstractState, AbstractState> projection,
+      AbstractState fullState) throws CPAException, InterruptedException {
 
     Preconditions.checkArgument(pElement instanceof MonitorState);
     MonitorState element = (MonitorState)pElement;
 
     if (element.getWrappedState() == TimeoutState.INSTANCE) {
+
       // we can't call prec() in this case because we don't have an element of the CPA
-      return PrecisionAdjustmentResult.create(pElement, oldPrecision, Action.CONTINUE);
+      return Optional.of(PrecisionAdjustmentResult
+          .create(pElement, oldPrecision, Action.CONTINUE));
     }
 
     UnmodifiableReachedSet elements = new UnmodifiableReachedSetView(
@@ -72,7 +80,10 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment {
     AbstractState oldElement = element.getWrappedState();
 
     totalTimeOfPrecAdj.start();
-    PrecisionAdjustmentResult unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldPrecision, elements, fullState);
+    Optional<PrecisionAdjustmentResult> unwrappedResult = wrappedPrecAdjustment.prec(
+        oldElement, oldPrecision, elements,
+        Functions.compose(MonitorState.getUnwrapFunction(), projection),
+        fullState);
     totalTimeOfPrecAdj.stop();
     long totalTimeOfExecution = totalTimeOfPrecAdj.getLengthOfLastInterval().asMillis();
     // add total execution time to the total time of the previous element
@@ -85,12 +96,17 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment {
 //        preventingCondition = Pair.of(PreventingHeuristicType.PATHCOMPTIME, timeLimitForPath);
 //      }
 //    }
+    if (!unwrappedResult.isPresent()) {
+      return Optional.absent();
+    }
+
+    PrecisionAdjustmentResult unwrapped = unwrappedResult.get();
 
     // no. of nodes and no. of branches on the path does not change, just update the
       // set the adjusted wrapped element and update the time
     MonitorState resultElement =
-      new MonitorState(unwrappedResult.abstractState(), updatedTotalTime, preventingCondition);
+      new MonitorState(unwrapped.abstractState(), updatedTotalTime, preventingCondition);
 
-    return unwrappedResult.withAbstractState(resultElement);
+    return Optional.of(unwrapped.withAbstractState(resultElement));
   }
 }

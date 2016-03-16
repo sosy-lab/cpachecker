@@ -1,25 +1,31 @@
 <?xml version="1.0"?>
-<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="900" hardtimelimit="1000" memlimit="2000">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="2 GB">
   <option name="-noout"/>
   <option name="-heap">1200M</option>
 
-  <sourcefiles name="ControlFlowInteger">
-    <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="Simple">
+  <tasks name="ControlFlowInteger">
+    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+    <!-- SV-Comp files assume that malloc always succeeds -->
+    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+  </tasks>
+  <tasks name="Simple">
     <includesfile>../programs/benchmarks/Simple.set</includesfile>
     <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
-  </sourcefiles>
-  <sourcefiles name="Sequentialized">
+    <!-- SV-Comp files assume that malloc always succeeds -->
+    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+  </tasks>
+  <tasks name="Sequentialized">
     <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="Nested">
+    <!-- SV-Comp files assume that malloc always succeeds -->
+    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+  </tasks>
+  <tasks name="Nested">
     <includesfile>nested.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="Linux-Kernel">
+  </tasks>
+  <tasks name="Linux-Kernel">
     <include>../programs/linux-kernel/*.cil.c</include>
-  </sourcefiles>
+  </tasks>
 
   <propertyfile>../programs/benchmarks/PropertyERROR.prp</propertyfile>
 

@@ -25,30 +25,57 @@ package org.sosy_lab.cpachecker.cpa.loopstack;
 
 import static com.google.common.base.Preconditions.*;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
+
+import com.google.common.base.Objects;
 
 public class LoopstackState implements AbstractState, Partitionable, AvoidanceReportingState {
 
-  private final LoopstackState previousState;
-  private final Loop loop;
+  /**
+   * Parent loop.
+   */
+  private final @Nullable LoopstackState previousState;
+
+  /**
+   * The loop we are currently in.
+   */
+  private final @Nullable Loop loop;
+
+  /**
+   * The depth of the stack of LoopstackStates.
+   */
   private final int depth;
+
+  /**
+   * Number of iterations within the current loop.
+   * Starts at one for any state inside the loop returned by
+   * LoopstackTransferRelation.
+   */
   private final int iteration;
   private final boolean stop;
+  private final boolean loopCounterAbstracted;
 
-  public LoopstackState(LoopstackState previousElement, Loop loop, int iteration, boolean stop) {
+  private int hashCache = 0;
+
+  public LoopstackState(
+      LoopstackState previousElement, Loop loop, int iteration, boolean stop,
+      boolean pLoopCounterAbstracted) {
     this.previousState = checkNotNull(previousElement);
     this.loop = checkNotNull(loop);
     this.depth = previousElement.getDepth() + 1;
     checkArgument(iteration >= 0);
     this.iteration = iteration;
     this.stop = stop;
+    loopCounterAbstracted = pLoopCounterAbstracted;
   }
 
   public LoopstackState() {
@@ -57,6 +84,11 @@ public class LoopstackState implements AbstractState, Partitionable, AvoidanceRe
     depth = 0;
     iteration = 0;
     stop = false;
+    loopCounterAbstracted = false;
+  }
+
+  public boolean isLoopCounterAbstracted() {
+    return loopCounterAbstracted;
   }
 
   public LoopstackState getPreviousState() {
@@ -113,7 +145,10 @@ public class LoopstackState implements AbstractState, Partitionable, AvoidanceRe
 
   @Override
   public int hashCode() {
-    return iteration * 17 + (loop == null ? 0 : loop.hashCode());
+    if (hashCache == 0) {
+      hashCache = Objects.hashCode(iteration, loop, previousState);
+    }
+    return hashCache;
   }
 
   @Override

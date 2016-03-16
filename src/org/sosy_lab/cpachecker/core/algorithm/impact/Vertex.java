@@ -38,8 +38,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -53,6 +53,11 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 class Vertex extends AbstractSingleWrapperState {
   /* Boilerplate code to avoid serializing this class */
   private static final long serialVersionUID = 0xDEADBEEF;
+
+  /**
+   * javadoc to remove unused parameter warning
+   * @param out the output stream
+   */
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
     throw new NotSerializableException();
   }

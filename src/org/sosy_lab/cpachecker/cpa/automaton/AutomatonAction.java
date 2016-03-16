@@ -44,14 +44,13 @@ abstract class AutomatonAction {
 
   // in this method the Value inside the resultValueObject is not important (most ActionClasses will return "" as inner value)
   // more important is if the action was evaluated (ResultValue.canNotEvaluate())
-  abstract ResultValue<? extends Object> eval(AutomatonExpressionArguments pArgs) throws CPATransferException;
+  abstract ResultValue<?> eval(AutomatonExpressionArguments pArgs) throws CPATransferException;
 
   /**
    * Returns if the action can execute on the given AutomatonExpressionArguments.
    * If it cannot execute this is probably because of missing AbstractStates (from other CPAs).
-   * @param pArgs
-   * @return
-   * @throws CPATransferException
+   * @param pArgs the arguments that should be used for execution
+   * @throws CPATransferException may be thrown in subclasses
    */
   boolean canExecuteOn(AutomatonExpressionArguments pArgs) throws CPATransferException {
     return true;
@@ -77,7 +76,7 @@ abstract class AutomatonAction {
       }
       return true;
     }
-    @Override ResultValue<? extends Object> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
+    @Override ResultValue<?> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
       StringBuilder sb = new StringBuilder();
       for (AutomatonExpression expr : toPrint) {
         ResultValue<?> res = expr.eval(pArgs);
@@ -106,7 +105,7 @@ abstract class AutomatonAction {
     boolean canExecuteOn(AutomatonExpressionArguments pArgs) {
       return ! var.eval(pArgs).canNotEvaluate();
     }
-    @Override  ResultValue<? extends Object> eval(AutomatonExpressionArguments pArgs) {
+    @Override  ResultValue<?> eval(AutomatonExpressionArguments pArgs) {
       ResultValue<Integer> res = var.eval(pArgs);
       if (res.canNotEvaluate()) {
         return res;
@@ -151,7 +150,7 @@ abstract class AutomatonAction {
       return false;
     }
     @Override
-    ResultValue<? extends Object> eval(AutomatonExpressionArguments pArgs) {
+    ResultValue<?> eval(AutomatonExpressionArguments pArgs) {
       // replace transition variables
       String processedModificationString = pArgs.replaceVariables(modificationString);
       if (processedModificationString == null) {

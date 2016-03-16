@@ -83,23 +83,23 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
   }
 
   @Override
-  public boolean run(ReachedSet pReached) throws CPAException, InterruptedException {
-    boolean sound = true;
+  public AlgorithmStatus run(ReachedSet pReached) throws CPAException, InterruptedException {
+    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
 
     int count = 0;
 
     do {
       // run the inner algorithm to fill the reached set
-      sound &= innerAlgorithm.run(pReached);
+      status = status.update(innerAlgorithm.run(pReached));
 
-      if (from(pReached).anyMatch(IS_TARGET_STATE)) {
-        return sound;
+      if (from(pReached).anyMatch(IS_TARGET_STATE) && status.isPrecise()) {
+        return status;
       }
 
       count++;
       if (adjustmentLimit >= 0 && count > adjustmentLimit) {
         logger.log(Level.INFO, "Terminating because adjustment limit has been reached.");
-        return sound;
+        return status;
       }
 
       List<AbstractState> statesWithAssumptions = getStatesWithAssumptions(pReached);
@@ -116,13 +116,13 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
         if (!condCpa.adjustPrecision()) {
           // this cpa said "do not continue"
           logger.log(Level.INFO, "Terminating because of", condCpa.getClass().getSimpleName());
-          return sound;
+          return status;
         }
       }
 
     } while (pReached.hasWaitingState());
 
-    return sound;
+    return status;
   }
 
   private List<AbstractState> getStatesWithAssumptions(ReachedSet reached) {

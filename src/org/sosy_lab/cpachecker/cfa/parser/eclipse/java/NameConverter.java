@@ -23,14 +23,21 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.IVariableBinding;
+import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 import com.google.common.base.Joiner;
 
 
 final class NameConverter {
+
+  private static final String DELIMITER = "_";
 
   private NameConverter() {
 
@@ -47,17 +54,16 @@ final class NameConverter {
   public static String convertName(IMethodBinding binding) {
 
     StringBuilder name = new StringBuilder((
-        convertClassOrInterfaceName(binding.getDeclaringClass())
-            + "_" + binding.getName()));
+        convertClassOrInterfaceToFullName(binding.getDeclaringClass())
+            + DELIMITER + binding.getName()));
 
-      String[] typeNames = convertTypeNames(binding.getParameterTypes());
+    String[] typeNames = convertTypeNames(binding.getParameterTypes());
 
-      if (typeNames.length > 0) {
-      name.append("_");
-      }
+    if (typeNames.length > 0) {
+      name.append(DELIMITER);
+    }
 
-      Joiner.on("_").appendTo( name , typeNames);
-
+    Joiner.on(DELIMITER).appendTo(name , typeNames);
 
     return name.toString();
   }
@@ -99,10 +105,9 @@ final class NameConverter {
     // Field Variable are declared with Declaring class before Identifier
     if (vb.isField() && vb.getDeclaringClass() != null) {
 
-      String declaringClassName =
-          vb.getDeclaringClass().getQualifiedName();
+      String declaringClassName = convertClassOrInterfaceToFullName(vb.getDeclaringClass());
 
-      name.append(declaringClassName + "_");
+      name.append(declaringClassName + DELIMITER);
     }
 
     name.append(vb.getName());
@@ -110,11 +115,79 @@ final class NameConverter {
     return name.toString();
   }
 
-  public static String convertClassOrInterfaceName(ITypeBinding classBinding) {
-    return classBinding.getQualifiedName();
+  public static String convertClassOrInterfaceToFullName(ITypeBinding classBinding) {
+
+    if (classBinding.isAnonymous()) {
+
+      // Anonymous types do not have a name, so we just use their key. This way, two anonymous
+      // declarations with exactly the same content are only assigned once
+      String key = classBinding.getKey();
+
+      // cut the semicolon at the end of the key
+      assert key.charAt(key.length() - 1) == ';';
+      return key.substring(0, key.length() - 1);
+
+    } else {
+      return classBinding.getQualifiedName();
+    }
+  }
+
+  public static String convertClassOrInterfaceToSimpleName(ITypeBinding classBinding) {
+
+    if (classBinding.isAnonymous()) {
+
+      // Anonymous types do not have a name, so we just use their key. This way, two anonymous
+      // declarations with exactly the same content are only assigned once
+      String key = classBinding.getKey();
+
+      // cut the semicolon at the end of the key
+      assert key.charAt(key.length() - 1) == ';';
+      return key.substring(0, key.length() - 1);
+
+    } else {
+      return classBinding.getName();
+    }
   }
 
   public static String convertDefaultConstructorName(ITypeBinding classBinding) {
-    return (classBinding.getQualifiedName() + "_" + classBinding.getName());
+    if (classBinding.isAnonymous()) {
+     return convertAnonymousClassConstructorName(classBinding, Collections.<JType>emptyList());
+
+    } else {
+      return (convertClassOrInterfaceToFullName(classBinding)
+          + DELIMITER
+          + convertClassOrInterfaceToSimpleName(classBinding));
+    }
+  }
+
+  public static String convertAnonymousClassConstructorName(
+      ITypeBinding pClassBinding, List<JType> pParameters) {
+
+    ITypeBinding declaringClassBinding = pClassBinding.getDeclaringClass();
+    assert declaringClassBinding != null : "Anonymous class must be nested!";
+
+    StringBuilder name = new StringBuilder(convertClassOrInterfaceToFullName(declaringClassBinding)
+                                          + "."
+                                          + convertClassOrInterfaceToFullName(pClassBinding)
+        + DELIMITER
+                                          + convertClassOrInterfaceToSimpleName(pClassBinding));
+
+    if (!pParameters.isEmpty()) {
+      name.append(DELIMITER);
+    }
+
+    List<String> parameterTypeNames = new ArrayList<>(pParameters.size());
+
+    for (JType t : pParameters) {
+      parameterTypeNames.add(t.toString());
+    }
+
+    Joiner.on(DELIMITER).appendTo(name, parameterTypeNames);
+
+    return name.toString();
+  }
+
+  public static String createQualifiedName(String pMethodName, String pVariableName) {
+    return pMethodName + "::" + pVariableName;
   }
 }

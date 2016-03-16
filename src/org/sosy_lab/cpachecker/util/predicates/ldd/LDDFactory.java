@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.ldd;
 import java.util.Collection;
 import java.util.LinkedList;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import edu.cmu.sei.rtss.jldd.swig.CIntArray;
 import edu.cmu.sei.rtss.jldd.swig.JLDD;
@@ -73,7 +73,7 @@ class LDDFactory {
 
     int testXeq5 = JLDD.Ldd_And(lddManagerPtr, testXleq5, testXgeq5);
     JLDD.jldd_ref(testXeq5);
-    System.out.println("Is x <= 5 && -x < -5 false? " + (testXeq5 == JLDD.Ldd_GetFalse(this.lddManagerPtr)));
+    //"Is x <= 5 && -x < -5 false? " + (testXeq5 == JLDD.Ldd_GetFalse(this.lddManagerPtr)));
 
     constant = theory.create_int_cst(10);
     leq = true;
@@ -97,11 +97,11 @@ class LDDFactory {
 
     int testYeq10 = JLDD.Ldd_And(lddManagerPtr, testYleq10, testYgeq10);
     JLDD.jldd_ref(testYeq10);
-    System.out.println("Is y <= 10 && -y < -10 false? " + (testYeq10 == JLDD.Ldd_GetFalse(this.lddManagerPtr)));
+    //"Is y <= 10 && -y < -10 false? " + (testYeq10 == JLDD.Ldd_GetFalse(this.lddManagerPtr)));
 
     int testXeq5AndYeq10 = JLDD.Ldd_And(lddManagerPtr, testXeq5, testYeq10);
     JLDD.jldd_ref(testXeq5AndYeq10);
-    System.out.println("Is x == 5 && y == 10 false? " + (testXeq5AndYeq10 == JLDD.Ldd_GetFalse(this.lddManagerPtr)));
+    //"Is x == 5 && y == 10 false? " + (testXeq5AndYeq10 == JLDD.Ldd_GetFalse(this.lddManagerPtr)));
 
     constant = theory.create_int_cst(0);
     leq = true;
@@ -114,13 +114,13 @@ class LDDFactory {
     int testYMinusXleq0 = JLDD.Ldd_FromCons(this.lddManagerPtr, constraint);
     JLDD.jldd_ref(testYMinusXleq0);
 
-    System.out.println("Is -x + y <= 0 false? " + (testYMinusXleq0 == JLDD.Ldd_GetFalse(this.lddManagerPtr)));
+    //"Is -x + y <= 0 false? " + (testYMinusXleq0 == JLDD.Ldd_GetFalse(this.lddManagerPtr)));
 
     int testAll = JLDD.Ldd_And(this.lddManagerPtr, testXeq5AndYeq10, testYMinusXleq0);
     JLDD.jldd_ref(testAll);
 
-    System.out.println("Is -x + y <= 0 && x == 5 && y == 10 false? " + (testAll == JLDD.Ldd_GetFalse(this.lddManagerPtr)));
-    System.out.println("What is it really? " + (-5 + 10 <= 0));
+    //"Is -x + y <= 0 && x == 5 && y == 10 false? " + (testAll == JLDD.Ldd_GetFalse(this.lddManagerPtr)));
+    //"What is it really? " + (-5 + 10 <= 0));
 
     */
   }
@@ -133,9 +133,9 @@ class LDDFactory {
         return JLDD.tvpi_create_tvpiz_theory(size);
       case UTVPIZ:
         return JLDD.tvpi_create_utvpiz_theory(size);
+      default:
+        throw new AssertionError("Unhandled enum value in switch: " + type);
       }
-    assert false;
-    return null;
   }
 
   public void setExistsType(ExistsType type) {
@@ -149,6 +149,8 @@ class LDDFactory {
       case LW:
           JLDD.jldd_use_lw_exists(this.lddManagerPtr);
           break;
+      default:
+        throw new AssertionError("Unhandled enum value in switch: " + type);
     }
   }
 

@@ -23,10 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.PropertyChecker;
 
+import java.util.Collection;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -36,13 +39,19 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PropertyChecker;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.pcc.propertychecker.PropertyCheckerBuilder;
 
+import com.google.common.base.Preconditions;
+
 @Options
-public class PropertyCheckerCPA extends AbstractSingleWrapperCPA{
+public class PropertyCheckerCPA extends AbstractSingleWrapperCPA implements ProofChecker {
 
   @Option(secure=true,
       name = "cpa.propertychecker.className",
@@ -55,13 +64,19 @@ public class PropertyCheckerCPA extends AbstractSingleWrapperCPA{
           "with \",\". The empty string represents an empty parameter list.")
   private String checkerParamList = "";
 
-  private PropertyChecker propChecker;
+  private final PropertyChecker propChecker;
+  private final ProofChecker wrappedProofChecker;
 
   public PropertyCheckerCPA(ConfigurableProgramAnalysis pCpa, Configuration pConfig)
       throws InvalidConfigurationException {
     super(pCpa);
     pConfig.inject(this);
     propChecker = PropertyCheckerBuilder.buildPropertyChecker(checkerClass, checkerParamList);
+    if (pCpa instanceof ProofChecker) {
+      wrappedProofChecker = (ProofChecker) pCpa;
+    } else {
+      wrappedProofChecker = null;
+    }
   }
 
   public static CPAFactory factory() {
@@ -94,12 +109,27 @@ public class PropertyCheckerCPA extends AbstractSingleWrapperCPA{
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode) {
-    return getWrappedCpa().getInitialState(pNode);
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+    return getWrappedCpa().getInitialState(pNode, pPartition);
   }
 
   public PropertyChecker getPropChecker() {
     return propChecker;
+  }
+
+  @Override
+  public boolean areAbstractSuccessors(AbstractState pState, CFAEdge pCfaEdge,
+      Collection<? extends AbstractState> pSuccessors) throws CPATransferException,
+      InterruptedException {
+    Preconditions.checkNotNull(wrappedProofChecker, "Wrapped CPA must implement the ProofChecker interface");
+    return wrappedProofChecker.areAbstractSuccessors(pState, pCfaEdge, pSuccessors);
+  }
+
+  @Override
+  public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException,
+      InterruptedException {
+    Preconditions.checkNotNull(wrappedProofChecker, "Wrapped CPA must implement the ProofChecker interface");
+    return wrappedProofChecker.isCoveredBy(pState, pOtherState);
   }
 
 }

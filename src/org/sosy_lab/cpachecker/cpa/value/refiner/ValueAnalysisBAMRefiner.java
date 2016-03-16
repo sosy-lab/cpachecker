@@ -24,40 +24,16 @@
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
-import org.sosy_lab.cpachecker.cpa.bam.AbstractBAMBasedRefiner;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.cpa.bam.BAMBasedRefiner;
 
+public abstract class ValueAnalysisBAMRefiner implements Refiner {
 
-public class ValueAnalysisBAMRefiner extends AbstractBAMBasedRefiner {
-
-  private ValueAnalysisDelegatingRefiner refiner;
-
-  protected ValueAnalysisBAMRefiner(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException, CPAException {
-    super(pCpa);
-    refiner = ValueAnalysisDelegatingRefiner.create(pCpa);
-  }
-
-  public static Refiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
-    return new ValueAnalysisBAMRefiner(pCpa);
-  }
-
-  @Override
-  protected CounterexampleInfo performRefinement0(ARGReachedSet pReached, ARGPath pPath) throws CPAException,
-      InterruptedException {
-    CounterexampleInfo refineResult = refiner.performRefinement(pReached, pPath);
-    if (!refineResult.isSpurious()) {
-      if (refiner.isPathFeasable(pPath)) {
-        throw new RefinementFailedException(RefinementFailedException.Reason.RepeatedCounterexample, null);
-      }
-    }
-
-    return refineResult;
+  public static Refiner create(ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
+    return BAMBasedRefiner.forARGBasedRefiner(
+        ValueAnalysisRefiner.create(pCpa).asARGBasedRefiner(), pCpa);
   }
 
 }

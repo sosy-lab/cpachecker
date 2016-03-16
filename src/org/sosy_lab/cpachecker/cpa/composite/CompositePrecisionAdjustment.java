@@ -23,25 +23,39 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
+
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetView;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-import com.google.common.base.Function;
-import com.google.common.collect.ImmutableList;
+import java.util.logging.Level;
 
 public class CompositePrecisionAdjustment implements PrecisionAdjustment {
-
   protected final ImmutableList<PrecisionAdjustment> precisionAdjustments;
   protected final ImmutableList<StateProjectionFunction> stateProjectionFunctions;
   protected final ImmutableList<PrecisionProjectionFunction> precisionProjectionFunctions;
 
-  public CompositePrecisionAdjustment(ImmutableList<PrecisionAdjustment> precisionAdjustments) {
-    this.precisionAdjustments = precisionAdjustments;
+  private final int precisionAdjustmentIterationLimit;
+  private final LogManager logger;
 
+  public CompositePrecisionAdjustment(
+      ImmutableList<PrecisionAdjustment> precisionAdjustments,
+      LogManager pLogger, int pPrecisionAdjustmentIterationLimit) {
+    this.precisionAdjustments = precisionAdjustments;
+    logger = pLogger;
+
+    precisionAdjustmentIterationLimit = pPrecisionAdjustmentIterationLimit;
     ImmutableList.Builder<StateProjectionFunction> stateProjectionFunctions = ImmutableList.builder();
     ImmutableList.Builder<PrecisionProjectionFunction> precisionProjectionFunctions = ImmutableList.builder();
 
@@ -82,12 +96,26 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
   }
 
   /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment#prec(org.sosy_lab.cpachecker.core.interfaces.AbstractState, org.sosy_lab.cpachecker.core.interfaces.Precision, java.util.Collection)
+   * @see PrecisionAdjustment#prec
    */
   @Override
-  public PrecisionAdjustmentResult prec(AbstractState pElement,
-                                               Precision pPrecision,
-                                               UnmodifiableReachedSet pElements, AbstractState fullState) throws CPAException, InterruptedException {
+  public Optional<PrecisionAdjustmentResult> prec(
+      AbstractState pElement,
+      Precision pPrecision,
+      UnmodifiableReachedSet pElements,
+      Function<AbstractState, AbstractState> projection,
+      AbstractState fullState) throws CPAException, InterruptedException {
+    return prec0(pElement, pPrecision, pElements, projection, fullState, 1);
+  }
+
+  public Optional<PrecisionAdjustmentResult> prec0(
+      AbstractState pElement,
+      Precision pPrecision,
+      UnmodifiableReachedSet pElements,
+      Function<AbstractState, AbstractState> projection,
+      AbstractState fullState,
+      int depth) throws CPAException, InterruptedException {
+
     CompositeState comp = (CompositeState) pElement;
     CompositePrecision prec = (CompositePrecision) pPrecision;
     assert (comp.getWrappedStates().size() == prec.getPrecisions().size());
@@ -100,15 +128,24 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
     Action action = Action.CONTINUE;
 
     for (int i = 0; i < dim; ++i) {
-      UnmodifiableReachedSet slice =
-        new UnmodifiableReachedSetView(pElements, stateProjectionFunctions.get(i), precisionProjectionFunctions.get(i));
       PrecisionAdjustment precisionAdjustment = precisionAdjustments.get(i);
       AbstractState oldElement = comp.get(i);
       Precision oldPrecision = prec.get(i);
-      PrecisionAdjustmentResult out = precisionAdjustment.prec(oldElement, oldPrecision, slice, fullState);
-      AbstractState newElement = out.abstractState();
-      Precision newPrecision = out.precision();
-      if (out.action() == Action.BREAK) {
+      Optional<PrecisionAdjustmentResult> out = precisionAdjustment.prec(
+          oldElement, oldPrecision, pElements,
+          Functions.compose(stateProjectionFunctions.get(i), projection),
+          fullState
+      );
+
+      if (!out.isPresent()) {
+        return Optional.absent();
+      }
+
+      PrecisionAdjustmentResult inner = out.get();
+
+      AbstractState newElement = inner.abstractState();
+      Precision newPrecision = inner.precision();
+      if (inner.action() == Action.BREAK) {
         action = Action.BREAK;
       }
 
@@ -123,7 +160,29 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
     AbstractState outElement = modified ? new CompositeState(outElements.build())     : pElement;
     Precision outPrecision     = modified ? new CompositePrecision(outPrecisions.build()) : pPrecision;
 
-    return PrecisionAdjustmentResult.create(outElement, outPrecision, action);
-  }
+    PrecisionAdjustmentResult out = PrecisionAdjustmentResult.create(outElement, outPrecision, action);
 
+    if (depth == precisionAdjustmentIterationLimit) {
+
+      logger.log(Level.FINER, "Precision adjustment iteration limit reached, returning output.");
+      return Optional.of(out);
+    } else if (!modified) {
+
+      logger.log(Level.FINER, "Precision adjustment iteration has converged.");
+      return Optional.of(out);
+    } else {
+
+      // Recursion is acceptable here as we have very small chains.
+      logger.log(Level.FINER, "Starting new fixpoint iteration of precision adjustment");
+
+      // A very hacky way to pass the updated state to the client CPA.
+      // Works for the most common case of ARGCPA wrapping CompositeCPA and does not hurt the other
+      // cases.
+      if (fullState instanceof ARGState
+            && ((AbstractSingleWrapperState) fullState).getWrappedState() == pElement) {
+        fullState = new ARGState(outElement, null);
+      }
+      return prec0(outElement, outPrecision, pElements, projection, fullState, depth+1);
+    }
+  }
 }

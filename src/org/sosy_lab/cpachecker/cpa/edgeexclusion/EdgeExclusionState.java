@@ -31,6 +31,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
  */
 enum EdgeExclusionState implements AbstractState {
 
-  TOP;
+  TOP
 
 }

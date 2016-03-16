@@ -29,8 +29,13 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
 
 
 public class CHCPrecisionAdjustment implements PrecisionAdjustment {
@@ -42,18 +47,21 @@ public class CHCPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   @Override
-  public PrecisionAdjustmentResult prec(AbstractState successor, Precision precision,
-      UnmodifiableReachedSet states, AbstractState fullState) throws CPAException {
+  public Optional<PrecisionAdjustmentResult> prec(AbstractState successor, Precision precision,
+      UnmodifiableReachedSet states,
+      Function<AbstractState, AbstractState> projection,
+      AbstractState fullState) throws CPAException {
 
     CHCState candidateState = (CHCState)successor;
 
     CHCState ancestor = findVariantAncestor(candidateState);
 
     if (ancestor != null) {
-      AbstractState newState = generalize(candidateState, ancestor, precision);
-      return PrecisionAdjustmentResult.create(newState, precision, Action.CONTINUE);
+      AbstractState newState = generalize(candidateState, ancestor);
+      return Optional.of(PrecisionAdjustmentResult
+          .create(newState, precision, Action.CONTINUE));
     } else {
-      return PrecisionAdjustmentResult.create(successor, precision, Action.CONTINUE);
+      return Optional.of(PrecisionAdjustmentResult.create(successor, precision, Action.CONTINUE));
     }
 
   }
@@ -75,12 +83,11 @@ public class CHCPrecisionAdjustment implements PrecisionAdjustment {
   /**
    * Compute a generalization of reachedState w.r.t. one of its ancestors
    */
-  private AbstractState generalize(CHCState reachedState, CHCState ancestor, Precision precision) {
+  private AbstractState generalize(CHCState reachedState, CHCState ancestor) {
     CHCState gState = new CHCState();
 
     gState.setConstraint(
-        ConstraintManager.generalize(
-            ancestor.getConstraint(), reachedState.getConstraint(), precision));
+        ConstraintManager.generalize(ancestor.getConstraint(), reachedState.getConstraint()));
     return gState;
   }
 

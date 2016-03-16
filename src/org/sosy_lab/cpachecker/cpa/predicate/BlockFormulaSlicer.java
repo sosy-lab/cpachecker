@@ -37,34 +37,26 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -76,9 +68,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -89,35 +81,17 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
-
-public class BlockFormulaSlicer {
+/**
+ * Implementation of {@link BlockFormulaStrategy} that slices the formulas
+ * (i.e., it removes irrelevant parts based on variable usage).
+ */
+class BlockFormulaSlicer extends BlockFormulaStrategy {
 
   /** if important or not, this does not matter, because it will be ignored later,
    * so it can be used for optimization. */
   private static final boolean IS_BLANK_EDGE_IMPORTANT = false;
 
-  final private PathFormulaManager pfmgr;
-  final private boolean sliceBlockFormulas;
-
-  //  TODO future work:
-  //  We could not store the important edges, because they are much more.
-  //  It is more efficient, to store the complement.
-
-  /** This set contains all edges, that are important.
-   * We store the parent- and the child-ARGState, because they are unique,
-   * the edge itself can be used several times (for example in a loop). */
-  final private Multimap<ARGState, ARGState> importantEdges = ArrayListMultimap.create();
-
-  @SuppressWarnings("unused")
-  private static final Function<PredicateAbstractState, BooleanFormula> GET_BLOCK_FORMULA =
-      new Function<PredicateAbstractState, BooleanFormula>() {
-
-        @Override
-        public BooleanFormula apply(PredicateAbstractState e) {
-          assert e.isAbstractionState();
-          return e.getAbstractionFormula().getBlockFormula().getFormula();
-        }
-      };
+  private final PathFormulaManager pfmgr;
 
   private static final Function<PathFormula, BooleanFormula> GET_BOOLEAN_FORMULA =
       new Function<PathFormula, BooleanFormula>() {
@@ -128,13 +102,20 @@ public class BlockFormulaSlicer {
         }
       };
 
-  public BlockFormulaSlicer(PathFormulaManager pPfmgr) {
+  BlockFormulaSlicer(PathFormulaManager pPfmgr) {
     this.pfmgr = pPfmgr;
-    this.sliceBlockFormulas = true;
   }
 
-  public List<BooleanFormula> sliceFormulasForPath(List<ARGState> path, ARGState initialState)
+  @Override
+  List<BooleanFormula> getFormulasForPath(ARGState initialState, List<ARGState> path)
       throws CPATransferException, InterruptedException {
+    // This map contains all edges that are important.
+    // We store the parent- and the child-ARGState, because they are unique,
+    // the CFAEdge itself can be used several times (for example in a loop).
+    // TODO future work:
+    // We could store not the important edges, because they are many.
+    // It is more efficient, to store the complement.
+    final Multimap<ARGState, ARGState> importantEdges = ArrayListMultimap.create();
 
     // first find all ARGStates for each block,
     // a block is a set of states with one start- and one end-state,
@@ -158,7 +139,7 @@ public class BlockFormulaSlicer {
       final ARGState end = path.get(i);
       final Set<ARGState> block = blocks.get(i);
 
-      importantVars = sliceBlock(start, end, block, importantVars);
+      importantVars = sliceBlock(start, end, block, importantVars, importantEdges);
     }
 
     // build new pathformulas, forwards
@@ -173,7 +154,7 @@ public class BlockFormulaSlicer {
       final Set<ARGState> block = blocks.remove(0);
 
       final PathFormula oldPf = pfmgr.makeEmptyPathFormula(pf);
-      pf = buildFormula(start, end, block, oldPf);
+      pf = buildFormula(start, end, block, oldPf, importantEdges);
       pfs.add(pf);
     }
 
@@ -208,7 +189,8 @@ public class BlockFormulaSlicer {
 
 
   private Collection<String> sliceBlock(ARGState start, ARGState end,
-      Set<ARGState> block, Collection<String> importantVars) {
+      Set<ARGState> block, Collection<String> importantVars,
+      final Multimap<ARGState, ARGState> importantEdges) {
 
     // this map contains all done states with their vars (if not removed through cleanup)
     final Map<ARGState, Collection<String>> s2v = Maps.newHashMapWithExpectedSize(block.size());
@@ -254,7 +236,7 @@ public class BlockFormulaSlicer {
       }
 
       // handle state
-      final Collection<String> vars = handleEdgesForState(current, s2v, s2s, block);
+      final Collection<String> vars = handleEdgesForState(current, s2v, s2s, block, importantEdges);
       s2v.put(current, vars);
 
       // cleanup, remove states, that will not be used in future
@@ -274,7 +256,8 @@ public class BlockFormulaSlicer {
   private Collection<String> handleEdgesForState(ARGState current,
       Map<ARGState, Collection<String>> s2v,
       Multimap<ARGState, ARGState> s2s,
-      Set<ARGState> block) {
+      Set<ARGState> block,
+      final Multimap<ARGState, ARGState> importantEdges) {
 
     final List<ARGState> usedChildren = from(current.getChildren()).filter(in(block)).toList();
     assert usedChildren.size() > 0 : "no child for " + current.getStateId();
@@ -446,8 +429,7 @@ public class BlockFormulaSlicer {
     return true;
   }
 
-  /** This function handles statements like "a = 0;" and calls of external functions.
-   * @param pImportantVars */
+  /** This function handles statements like "a = 0;" and calls of external functions. */
   private boolean handleStatement(CStatementEdge edge,
       Collection<String> importantVars) {
     final AStatement statement = edge.getStatement();
@@ -460,9 +442,7 @@ public class BlockFormulaSlicer {
     // call of external function, "scanf(...)" without assignment
     // internal functioncalls are handled as FunctionCallEdges
     else if (statement instanceof CFunctionCallStatement) {
-      return handleExternalFunctionCall(edge,
-          ((CFunctionCallStatement) statement).
-              getFunctionCallExpression().getParameterExpressions());
+      return true;
 
       // "exp;" -> nothing to do?
     } else if (statement instanceof CExpressionStatement) {
@@ -508,11 +488,6 @@ public class BlockFormulaSlicer {
       // pointer assignment or something else --> important
       return true;
     }
-  }
-
-  private boolean handleExternalFunctionCall(CStatementEdge pEdge,
-      List<CExpression> parameterExpressions) {
-    return true;
   }
 
   /** This function handles functionStatements like "return (x)".
@@ -606,7 +581,7 @@ public class BlockFormulaSlicer {
   }
 
   /** This Visitor collects all var-names in the expression. */
-  private class VarCollector implements CExpressionVisitor<Void, RuntimeException> {
+  private class VarCollector extends DefaultCExpressionVisitor<Void, RuntimeException> {
 
     final Collection<String> vars;
     final private String functionName;
@@ -617,7 +592,7 @@ public class BlockFormulaSlicer {
     }
 
     @Override
-    public Void visit(CArraySubscriptExpression exp) {
+    protected Void visitDefault(CExpression pExp) {
       return null;
     }
 
@@ -641,45 +616,10 @@ public class BlockFormulaSlicer {
     }
 
     @Override
-    public Void visit(CFieldReference exp) {
-      return null;
-    }
-
-    @Override
     public Void visit(CIdExpression exp) {
       String var = exp.getName();
       String function = isGlobal(exp) ? null : functionName;
       vars.add(buildVarName(function, var));
-      return null;
-    }
-
-    @Override
-    public Void visit(CCharLiteralExpression exp) {
-      return null;
-    }
-
-    @Override
-    public Void visit(CFloatLiteralExpression exp) {
-      return null;
-    }
-
-    @Override
-    public Void visit(CIntegerLiteralExpression exp) {
-      return null;
-    }
-
-    @Override
-    public Void visit(CStringLiteralExpression exp) {
-      return null;
-    }
-
-    @Override
-    public Void visit(CImaginaryLiteralExpression exp) {
-      return null;
-    }
-
-    @Override
-    public Void visit(CTypeIdExpression exp) {
       return null;
     }
 
@@ -701,7 +641,9 @@ public class BlockFormulaSlicer {
    * The SSA-indices of the new formula are based on the old formula.
    */
   private PathFormula buildFormula(ARGState start, ARGState end,
-      Collection<ARGState> block, PathFormula oldPf) throws CPATransferException, InterruptedException {
+      Collection<ARGState> block, PathFormula oldPf,
+      final Multimap<ARGState, ARGState> importantEdges)
+          throws CPATransferException, InterruptedException {
 
     // this map contains all done states with their formulas
     final Map<ARGState, PathFormula> s2f = Maps.newHashMapWithExpectedSize(block.size());
@@ -742,7 +684,7 @@ public class BlockFormulaSlicer {
       }
 
       // handle state
-      final PathFormula pf = makeFormulaForState(current, s2f);
+      final PathFormula pf = makeFormulaForState(current, s2f, importantEdges);
       s2f.put(current, pf);
 
       // cleanup, remove states, that will not be used in future
@@ -756,7 +698,8 @@ public class BlockFormulaSlicer {
   }
 
 
-  private PathFormula makeFormulaForState(ARGState current, Map<ARGState, PathFormula> s2f)
+  private PathFormula makeFormulaForState(ARGState current, Map<ARGState, PathFormula> s2f,
+      final Multimap<ARGState, ARGState> importantEdges)
       throws CPATransferException, InterruptedException {
 
     assert current.getParents().size() > 0 : "no parent for " + current.getStateId();
@@ -765,7 +708,7 @@ public class BlockFormulaSlicer {
     final List<PathFormula> pfs = new ArrayList<>(current.getParents().size());
     for (ARGState parent : current.getParents()) {
       final PathFormula oldPf = s2f.get(parent);
-      pfs.add(buildFormulaForEdge(parent, current, oldPf));
+      pfs.add(buildFormulaForEdge(parent, current, oldPf, importantEdges));
     }
 
     PathFormula joined = pfs.get(0);
@@ -776,9 +719,10 @@ public class BlockFormulaSlicer {
     return joined;
   }
 
-  private PathFormula buildFormulaForEdge(ARGState parent, ARGState child, PathFormula oldFormula)
+  private PathFormula buildFormulaForEdge(ARGState parent, ARGState child, PathFormula oldFormula,
+      final Multimap<ARGState, ARGState> importantEdges)
       throws CPATransferException, InterruptedException {
-    if (sliceBlockFormulas && !importantEdges.containsEntry(parent, child)) {
+    if (!importantEdges.containsEntry(parent, child)) {
       return oldFormula;
     } else {
       return pfmgr.makeAnd(oldFormula, parent.getEdgeToChild(child));

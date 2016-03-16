@@ -189,7 +189,7 @@ public class SimpleIntProviderFactory {
             }
 
             @Override
-            protected Integer visitDefault(CExpression pExp) throws RuntimeException {
+            protected Integer visitDefault(CExpression pExp) {
               return counter.count(pExp);
             }
           });
@@ -213,12 +213,12 @@ public class SimpleIntProviderFactory {
       CStatement stmt = stmtEdge.getStatement();
       count += stmt.accept(new CStatementVisitor<Integer, RuntimeException>() {
         @Override
-        public Integer visit(CExpressionStatement pStmt) throws RuntimeException {
+        public Integer visit(CExpressionStatement pStmt) {
           return countExpressions(pStmt.getExpression(), counter);
         }
 
         @Override
-        public Integer visit(CExpressionAssignmentStatement assignment) throws RuntimeException {
+        public Integer visit(CExpressionAssignmentStatement assignment) {
           int count = 0;
           count += countExpressions(assignment.getLeftHandSide(), counter);
           count += countExpressions(assignment.getRightHandSide(), counter);
@@ -227,7 +227,7 @@ public class SimpleIntProviderFactory {
 
         @Override
         public Integer visit(CFunctionCallAssignmentStatement pStmt)
-            throws RuntimeException {
+            {
           int count = 0;
           CFunctionCallExpression exp = pStmt.getFunctionCallExpression();
           count += countExpressions(exp.getFunctionNameExpression(), counter);
@@ -239,7 +239,7 @@ public class SimpleIntProviderFactory {
         }
 
         @Override
-        public Integer visit(CFunctionCallStatement pStmt) throws RuntimeException {
+        public Integer visit(CFunctionCallStatement pStmt) {
           int count = 0;
           CFunctionCallExpression exp = pStmt.getFunctionCallExpression();
           count += countExpressions(exp.getFunctionNameExpression(), counter);
@@ -378,23 +378,23 @@ public class SimpleIntProviderFactory {
       CStatement stmt = stmtEdge.getStatement();
       count += stmt.accept(new CStatementVisitor<Integer, RuntimeException>() {
         @Override
-        public Integer visit(CExpressionStatement pStmt) throws RuntimeException {
+        public Integer visit(CExpressionStatement pStmt) {
           return 0;
         }
 
         @Override
-        public Integer visit(CExpressionAssignmentStatement assignment) throws RuntimeException {
+        public Integer visit(CExpressionAssignmentStatement assignment) {
           return 0;
         }
 
         @Override
         public Integer visit(CFunctionCallAssignmentStatement pStmt)
-            throws RuntimeException {
+            {
           return 1;
         }
 
         @Override
-        public Integer visit(CFunctionCallStatement pStmt) throws RuntimeException {
+        public Integer visit(CFunctionCallStatement pStmt) {
           return 1;
         }});
       break;

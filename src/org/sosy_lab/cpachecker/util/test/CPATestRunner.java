@@ -28,15 +28,13 @@ import java.util.logging.Handler;
 import java.util.logging.SimpleFormatter;
 import java.util.logging.StreamHandler;
 
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.StringBuildingLogHandler;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 
 /**
  * Helper class for running CPA tests.
@@ -60,9 +58,9 @@ public class CPATestRunner {
       String pSourceCodeFilePath,
       boolean writeLogToSTDOUT) throws Exception {
 
-    Configuration config = Configuration.builder()
-        .addConverter(FileOption.class, FileTypeConverter.createWithSafePathsOnly(Configuration.defaultConfiguration()))
-        .setOptions(pProperties).build();
+    Configuration config = TestDataTools.configurationForTest()
+        .setOptions(pProperties)
+        .build();
 
     StringBuildingLogHandler stringLogHandler = new StringBuildingLogHandler();
 
@@ -74,8 +72,8 @@ public class CPATestRunner {
     }
 
     LogManager logger = new BasicLogManager(config, h);
-    ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
-    CPAchecker cpaChecker = new CPAchecker(config, logger, shutdownNotifier);
+    ShutdownManager shutdownManager = ShutdownManager.create();
+    CPAchecker cpaChecker = new CPAchecker(config, logger, shutdownManager);
     try {
       CPAcheckerResult results = cpaChecker.run(pSourceCodeFilePath);
       return new TestResults(stringLogHandler.getLog(), results);

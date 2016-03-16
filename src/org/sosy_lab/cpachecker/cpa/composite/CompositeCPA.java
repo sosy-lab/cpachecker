@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
+import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -55,8 +56,9 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProvider, WrapperCPA, ConfigurableProgramAnalysisWithBAM, ProofChecker {
 
@@ -69,9 +71,16 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
     private String merge = "AGREE";
 
     @Option(secure=true,
-    description="inform Composite CPA if it is run in a predicated analysis because then it must"
-      + "behave differntly during merge.")
-    private boolean inPredicatedAnalysis = false;
+    description="inform Composite CPA if it is run in a CPA enabled analysis because then it must "
+      + "behave differently during merge.")
+    private boolean inCPAEnabledAnalysis = false;
+
+    @Option(secure=true,
+    description="Number of times to run the precision adjustment. "
+        + "The subsequent runs of precision adjustment can see the precision adjustment results"
+        + "of the previous run.")
+    @IntegerOption(min=1)
+    private int precisionAdjustmentIterationLimit = 1;
   }
 
   private static class CompositeCPAFactory extends AbstractCPAFactory {
@@ -129,9 +138,9 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       if (mergeSep) {
         compositeMerge = MergeSepOperator.getInstance();
       } else {
-        if (options.inPredicatedAnalysis) {
+        if (options.inCPAEnabledAnalysis) {
           if (options.merge.equals("AGREE")) {
-            compositeMerge = new CompositeMergeAgreePredicatedAnalysisOperator(mergeOperators.build(), stopOps, abmgr);
+            compositeMerge = new CompositeMergeAgreeCPAEnabledAnalysisOperator(mergeOperators.build(), stopOps, abmgr);
           } else {
             throw new InvalidConfigurationException("Merge PLAIN is currently not supported in predicated analysis");
           }
@@ -147,7 +156,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       }
 
       CompositeDomain compositeDomain = new CompositeDomain(domains.build());
-      CompositeTransferRelation compositeTransfer = new CompositeTransferRelation(transferRelations.build(), options.inPredicatedAnalysis, getConfiguration());
+      CompositeTransferRelation compositeTransfer = new CompositeTransferRelation(transferRelations.build(), getConfiguration(), cfa);
       CompositeStopOperator compositeStop = new CompositeStopOperator(stopOps);
 
       PrecisionAdjustment compositePrecisionAdjustment;
@@ -155,10 +164,14 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
         compositePrecisionAdjustment = new CompositeSimplePrecisionAdjustment(simplePrecisionAdjustments.build());
       } else {
         compositePrecisionAdjustment =
-            new CompositePrecisionAdjustment(precisionAdjustments.build());
+            new CompositePrecisionAdjustment(
+                precisionAdjustments.build(),
+                getLogger(),
+                options.precisionAdjustmentIterationLimit);
       }
 
-      return new CompositeCPA(compositeDomain, compositeTransfer, compositeMerge, compositeStop,
+      return new CompositeCPA(
+          compositeDomain, compositeTransfer, compositeMerge, compositeStop,
           compositePrecisionAdjustment, cpas);
     }
 
@@ -200,7 +213,8 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   private final ImmutableList<ConfigurableProgramAnalysis> cpas;
 
-  protected CompositeCPA(AbstractDomain abstractDomain,
+  protected CompositeCPA(
+      AbstractDomain abstractDomain,
       CompositeTransferRelation transferRelation,
       MergeOperator mergeOperator,
       CompositeStopOperator stopOperator,
@@ -260,24 +274,24 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   @Override
-  public AbstractState getInitialState(CFANode node) {
-    Preconditions.checkNotNull(node);
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+    Preconditions.checkNotNull(pNode);
 
     ImmutableList.Builder<AbstractState> initialStates = ImmutableList.builder();
     for (ConfigurableProgramAnalysis sp : cpas) {
-      initialStates.add(sp.getInitialState(node));
+      initialStates.add(sp.getInitialState(pNode, pPartition));
     }
 
     return new CompositeState(initialStates.build());
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode node) {
-    Preconditions.checkNotNull(node);
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition partition) {
+    Preconditions.checkNotNull(pNode);
 
     ImmutableList.Builder<Precision> initialPrecisions = ImmutableList.builder();
     for (ConfigurableProgramAnalysis sp : cpas) {
-      initialPrecisions.add(sp.getInitialPrecision(node));
+      initialPrecisions.add(sp.getInitialPrecision(pNode, partition));
     }
     return new CompositePrecision(initialPrecisions.build());
   }

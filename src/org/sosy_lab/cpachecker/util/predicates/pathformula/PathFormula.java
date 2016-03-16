@@ -25,17 +25,22 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.IOException;
+import java.io.InvalidObjectException;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 public final class PathFormula implements Serializable {
 
-  private static final long serialVersionUID = -7716850731790578619L;
-  private final transient BooleanFormula formula;
+  private static final long serialVersionUID = -7716850731790578620L;
+  private final BooleanFormula formula;
   private final SSAMap ssa;
   private final int length;
   private final PointerTargetSet pts;
@@ -69,6 +74,14 @@ public final class PathFormula implements Serializable {
     return getFormula().toString();
   }
 
+  /**
+   * Change the constraint associated with the path formula, but keep everything
+   * else as is.
+   */
+  public PathFormula updateFormula(BooleanFormula newConstraint) {
+    return new PathFormula(newConstraint, ssa, pts, length);
+  }
+
   @Override
   public boolean equals(@Nullable Object obj) {
     if (this == obj) {
@@ -95,5 +108,42 @@ public final class PathFormula implements Serializable {
     result = prime * result + pts.hashCode();
     result = prime * result + ssa.hashCode();
     return result;
+  }
+
+  private Object writeReplace() {
+    return new SerializationProxy(this);
+  }
+
+  /**
+   * javadoc to remove unused parameter warning
+   * @param in the input stream
+   */
+  private void readObject(ObjectInputStream in) throws IOException {
+    throw new InvalidObjectException("Proxy required");
+  }
+
+  private static class SerializationProxy implements Serializable {
+    // (de)serialization only works properly for formulae which were built with the same
+    // formula manager as used by PredicateCPA
+    private static final long serialVersionUID = 309890892L;
+
+    private final String formulaDump;
+    private final SSAMap ssa;
+    private final int length;
+    private final PointerTargetSet pts;
+
+    public SerializationProxy(PathFormula pPathFormula) {
+      FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
+      formulaDump = mgr.dumpFormula(pPathFormula.formula).toString();
+      ssa = pPathFormula.ssa;
+      length = pPathFormula.length;
+      pts = pPathFormula.pts;
+    }
+
+    private Object readResolve() {
+      FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
+      BooleanFormula formula = mgr.parse(formulaDump);
+      return new PathFormula(formula, ssa, pts, length);
+    }
   }
 }

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,6 +36,8 @@ import com.google.common.base.Strings;
  * It does not allow any modifiers and has only a single instance.
  */
 public final class CVoidType implements CType {
+
+  private static final long serialVersionUID = 1385808708190595556L;
 
   public final static CVoidType VOID = new CVoidType(false, false);
 
@@ -79,6 +83,7 @@ public final class CVoidType implements CType {
 
   @Override
   public String toASTString(String pDeclarator) {
+    checkNotNull(pDeclarator);
     List<String> parts = new ArrayList<>();
 
     if (isConst()) {
@@ -102,5 +107,9 @@ public final class CVoidType implements CType {
   @Override
   public CVoidType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
     return create(isConst || pForceConst, isVolatile || pForceVolatile);
+  }
+
+  private Object readResolve() {
+    return create(isConst, isVolatile);
   }
 }

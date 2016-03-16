@@ -27,22 +27,28 @@ import static com.google.common.base.Preconditions.*;
 
 import java.util.Objects;
 
+import javax.annotation.Nullable;
+
 
 public final class CElaboratedType implements CComplexType {
 
+  private static final long serialVersionUID = -3566628634889842927L;
   private final ComplexTypeKind kind;
-  private final String   name;
-  private final boolean   isConst;
-  private final boolean   isVolatile;
+  private String name;
+  private final String origName;
+  private final boolean isConst;
+  private final boolean isVolatile;
 
   private CComplexType realType = null;
 
   public CElaboratedType(boolean pConst, final boolean pVolatile,
-      final ComplexTypeKind pKind, final String pName, final CComplexType pRealType) {
+      final ComplexTypeKind pKind, final String pName, final String pOrigName,
+      final @Nullable CComplexType pRealType) {
     isConst = pConst;
     isVolatile = pVolatile;
-    kind = pKind;
+    kind = checkNotNull(pKind);
     name = pName.intern();
+    origName = pOrigName.intern();
     realType = pRealType;
   }
 
@@ -60,6 +66,14 @@ public final class CElaboratedType implements CComplexType {
   }
 
   @Override
+  public String getOrigName() {
+    if (realType != null) {
+      return realType.getOrigName();
+    }
+    return origName;
+  }
+
+  @Override
   public ComplexTypeKind getKind() {
     return kind;
   }
@@ -68,7 +82,7 @@ public final class CElaboratedType implements CComplexType {
    * Get the real type which this type references
    * (either a CCompositeType or a CEnumType, or null if unknown).
    */
-  public CComplexType getRealType() {
+  public @Nullable CComplexType getRealType() {
     if (realType instanceof CElaboratedType) {
       // resolve chains of elaborated types
       return ((CElaboratedType)realType).getRealType();
@@ -84,12 +98,18 @@ public final class CElaboratedType implements CComplexType {
     checkNotNull(pRealType);
     checkArgument(pRealType != this);
     checkArgument(pRealType.getKind() == kind);
-    checkArgument(pRealType.getName().equals(name));
+
+    // all elaborated types are renamed such that they only match on the struct
+    // name suffixed with the filename, when setting the realtype the name
+    // may change to be only the struct name without the suffix
+    checkArgument(name.contains(pRealType.getName()));
     realType = pRealType;
+    name = realType.getName();
   }
 
   @Override
   public String toASTString(String pDeclarator) {
+    checkNotNull(pDeclarator);
     StringBuilder lASTString = new StringBuilder();
 
     if (isConst()) {
@@ -145,7 +165,7 @@ public final class CElaboratedType implements CComplexType {
    * typedefs in it use #getCanonicalType().equals()
    */
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(@Nullable Object obj) {
     if (this == obj) {
       return true;
     }
@@ -162,6 +182,25 @@ public final class CElaboratedType implements CComplexType {
   }
 
   @Override
+  public boolean equalsWithOrigName(@Nullable Object obj) {
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof CElaboratedType)) {
+      return false;
+    }
+
+    CElaboratedType other = (CElaboratedType) obj;
+
+    return isConst == other.isConst
+           && isVolatile == other.isVolatile
+           && kind == other.kind
+           && (Objects.equals(name, other.name) || (origName.isEmpty() && other.origName.isEmpty()))
+           && Objects.equals(realType, other.realType);
+  }
+
+  @Override
   public CType getCanonicalType() {
     return getCanonicalType(false, false);
   }
@@ -169,7 +208,7 @@ public final class CElaboratedType implements CComplexType {
   @Override
   public CType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
     if (realType == null) {
-      return new CElaboratedType(isConst || pForceConst, isVolatile || pForceVolatile, kind, name, null);
+      return new CElaboratedType(isConst || pForceConst, isVolatile || pForceVolatile, kind, name, origName, null);
     } else {
       return realType.getCanonicalType(isConst || pForceConst, isVolatile || pForceVolatile);
     }

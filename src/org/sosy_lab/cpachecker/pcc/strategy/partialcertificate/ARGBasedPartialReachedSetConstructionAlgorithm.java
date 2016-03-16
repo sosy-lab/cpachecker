@@ -29,12 +29,17 @@ import java.util.Collections;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
@@ -45,7 +50,7 @@ public class ARGBasedPartialReachedSetConstructionAlgorithm extends
   private ConfigurableProgramAnalysis cpa;
 
   public ARGBasedPartialReachedSetConstructionAlgorithm(final boolean pReturnARGStatesInsteadOfWrappedStates) {
-    super(pReturnARGStatesInsteadOfWrappedStates);
+    super(pReturnARGStatesInsteadOfWrappedStates, false);
   }
 
   @Override
@@ -64,21 +69,29 @@ public class ARGBasedPartialReachedSetConstructionAlgorithm extends
   private class ExtendedNodeSelectionARGPass extends NodeSelectionARGPass {
 
     private final Precision precision;
+    private final boolean handlePredicateStates;
 
     public ExtendedNodeSelectionARGPass(final Precision pRootPrecision, final ARGState pRoot) {
       super(pRoot);
       precision = pRootPrecision;
+      handlePredicateStates = AbstractStates.extractStateByType(pRoot, PredicateAbstractState.class) != null;
     }
 
     @Override
     protected boolean isToAdd(final ARGState pNode) {
       boolean isToAdd = super.isToAdd(pNode);
       if (!isToAdd && !pNode.isCovered()) {
-        for (ARGState parent : pNode.getParents()) {
-          if (!isTransferSuccessor(parent, pNode)) {
-            isToAdd = true;
+        if (handlePredicateStates) {
+          CFANode loc = AbstractStates.extractLocation(pNode);
+          isToAdd = isPredicateAbstractionState(pNode)
+              || loc.getNumEnteringEdges() > 0 && !(loc instanceof FunctionEntryNode || loc instanceof FunctionExitNode);
+        } else {
+          for (ARGState parent : pNode.getParents()) {
+            if (!isTransferSuccessor(parent, pNode)) {
+              isToAdd = true;
+            }
+            break;
           }
-          break;
         }
       }
       return isToAdd;
@@ -87,8 +100,17 @@ public class ARGBasedPartialReachedSetConstructionAlgorithm extends
     private boolean isTransferSuccessor(ARGState pPredecessor, ARGState pChild) {
       CFAEdge edge = pPredecessor.getEdgeToChild(pChild);
       try {
-        Collection<AbstractState> successors = new ArrayList<>(
-            cpa.getTransferRelation().getAbstractSuccessorsForEdge(pPredecessor.getWrappedState(), precision, edge));
+        Collection<AbstractState> successors;
+        if (edge == null) {
+          successors =
+              new ArrayList<>(cpa.getTransferRelation().getAbstractSuccessors(
+                  pPredecessor.getWrappedState(), precision));
+        } else {
+          successors =
+              new ArrayList<>(
+                  cpa.getTransferRelation().getAbstractSuccessorsForEdge(
+                      pPredecessor.getWrappedState(), precision, edge));
+        }
         // check if child is the successor computed by transfer relation
         if (successors.contains(pChild.getWrappedState())) { return true; }
         // check if check only failed because it is not the same object
@@ -104,6 +126,10 @@ public class ARGBasedPartialReachedSetConstructionAlgorithm extends
       } catch (InterruptedException | CPAException e) {
       }
       return false;
+    }
+
+    private boolean isPredicateAbstractionState(ARGState pChild) {
+      return PredicateAbstractState.getPredicateState(pChild).isAbstractionState();
     }
 
   }

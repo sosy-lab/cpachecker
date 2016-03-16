@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -33,8 +33,6 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -55,28 +53,28 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.Address;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssignments;
+import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
-import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcerteStatePathNode;
+import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcreteStatePathNode;
 import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.core.counterexample.MemoryName;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.collect.ImmutableMap;
 
 public class SMGConcreteErrorPathAllocator {
 
-  @SuppressWarnings("unused")
-  private final LogManager logger;
+  private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 
   private MemoryName memoryName = new MemoryName() {
 
@@ -86,8 +84,8 @@ public class SMGConcreteErrorPathAllocator {
     }
   };
 
-  public SMGConcreteErrorPathAllocator(LogManager pLogger) {
-    logger = pLogger;
+  public SMGConcreteErrorPathAllocator(AssumptionToEdgeAllocator pAssumptionToEdgeAllocator) {
+    assumptionToEdgeAllocator = pAssumptionToEdgeAllocator;
   }
 
   public ConcreteStatePath allocateAssignmentsToPath(ARGPath pPath) {
@@ -111,24 +109,14 @@ public class SMGConcreteErrorPathAllocator {
     return createConcreteStatePath(path);
   }
 
-  public Model allocateAssignmentsToPath(List<Pair<SMGState, CFAEdge>> pPath, MachineModel pMachineModel)
-      throws InterruptedException {
-
-    pPath.remove(pPath.size() - 1);
-
+  public CFAPathWithAssumptions allocateAssignmentsToPath(List<Pair<SMGState, CFAEdge>> pPath) {
     ConcreteStatePath concreteStatePath = createConcreteStatePath(pPath);
-
-    CFAPathWithAssignments pathWithAssignments =
-        CFAPathWithAssignments.of(concreteStatePath, logger, pMachineModel);
-
-    Model model = Model.empty();
-
-    return model.withAssignmentInformation(pathWithAssignments);
+    return CFAPathWithAssumptions.of(concreteStatePath, assumptionToEdgeAllocator);
   }
 
   private ConcreteStatePath createConcreteStatePath(List<Pair<SMGState, CFAEdge>> pPath) {
 
-    List<ConcerteStatePathNode> result = new ArrayList<>(pPath.size());
+    List<ConcreteStatePathNode> result = new ArrayList<>(pPath.size());
 
     // Until SMGObjects are comparable for persistant maps, this object is mutable
     // and depends on side effects
@@ -139,7 +127,7 @@ public class SMGConcreteErrorPathAllocator {
       SMGState pSMGState = edgeStatePair.getFirst();
       CFAEdge edge = edgeStatePair.getSecond();
 
-      ConcerteStatePathNode node;
+      ConcreteStatePathNode node;
 
       if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
 
@@ -156,7 +144,7 @@ public class SMGConcreteErrorPathAllocator {
     return new ConcreteStatePath(result);
   }
 
-  private ConcerteStatePathNode createMultiEdge(SMGState pSMGState, MultiEdge multiEdge,
+  private ConcreteStatePathNode createMultiEdge(SMGState pSMGState, MultiEdge multiEdge,
       SMGObjectAddressMap pVariableAddresses) {
 
     int size = multiEdge.getEdges().size();
@@ -245,44 +233,44 @@ public class SMGConcreteErrorPathAllocator {
     }
 
     @Override
-    protected Boolean visitDefault(CExpression pExp) throws RuntimeException {
+    protected Boolean visitDefault(CExpression pExp) {
       return true;
     }
 
     @Override
-    public Boolean visit(CArraySubscriptExpression pE) throws RuntimeException {
+    public Boolean visit(CArraySubscriptExpression pE) {
       return !alreadyAssigned.contains(pE);
     }
 
     @Override
-    public Boolean visit(CBinaryExpression pE) throws RuntimeException {
+    public Boolean visit(CBinaryExpression pE) {
       return pE.getOperand1().accept(this)
           && pE.getOperand2().accept(this);
     }
 
     @Override
-    public Boolean visit(CCastExpression pE) throws RuntimeException {
+    public Boolean visit(CCastExpression pE) {
       return pE.getOperand().accept(this);
     }
 
     //TODO Complex Cast
     @Override
-    public Boolean visit(CFieldReference pE) throws RuntimeException {
+    public Boolean visit(CFieldReference pE) {
       return !alreadyAssigned.contains(pE);
     }
 
     @Override
-    public Boolean visit(CIdExpression pE) throws RuntimeException {
+    public Boolean visit(CIdExpression pE) {
       return !alreadyAssigned.contains(pE);
     }
 
     @Override
-    public Boolean visit(CPointerExpression pE) throws RuntimeException {
+    public Boolean visit(CPointerExpression pE) {
       return !alreadyAssigned.contains(pE);
     }
 
     @Override
-    public Boolean visit(CUnaryExpression pE) throws RuntimeException {
+    public Boolean visit(CUnaryExpression pE) {
       return pE.getOperand().accept(this);
     }
   }
@@ -337,12 +325,12 @@ public class SMGConcreteErrorPathAllocator {
     for (SMGEdgeHasValue hvEdge : symbolicValues) {
 
       int symbolicValue = hvEdge.getValue();
-      BigDecimal value = null;
+      BigInteger value = null;
 
       if(symbolicValue == 0) {
-        value = BigDecimal.ZERO;
+        value = BigInteger.ZERO;
       } else if (pSMGState.isPointer(symbolicValue)) {
-        SMGEdgePointsTo pointer;
+        SMGAddressValue pointer;
         try {
           pointer = pSMGState.getPointerFromValue(symbolicValue);
         } catch (SMGInconsistentException e) {
@@ -351,9 +339,9 @@ public class SMGConcreteErrorPathAllocator {
 
 
         //TODO ugly, use common representation
-        value = (BigDecimal) pAdresses.calculateAddress(pointer.getObject(), pointer.getOffset(), pSMGState).getAsNumber();
+        value = pAdresses.calculateAddress(pointer.getObject(), pointer.getOffset().getAsInt(), pSMGState).getAddressValue();
       } else if (pSMGState.isExplicit(symbolicValue)) {
-        value = BigDecimal.valueOf(pSMGState.getExplicit(symbolicValue).getAsLong());
+        value = BigInteger.valueOf(pSMGState.getExplicit(symbolicValue).getAsLong());
       } else {
         continue;
       }
@@ -368,10 +356,11 @@ public class SMGConcreteErrorPathAllocator {
   private static class SMGObjectAddressMap {
 
     private Map<SMGObject, Address> objectAddressMap = new HashMap<>();
-    private Address nextAlloc = Address.valueOf(BigDecimal.valueOf(100));
+    private Address nextAlloc = Address.valueOf(BigInteger.valueOf(100));
     private Map<LeftHandSide, Address> variableAddressMap = new HashMap<>();
 
-    public Address calculateAddress(SMGObject pObject, int pOffset, SMGState pSMGState) {
+    public Address calculateAddress(SMGObject pObject, int pOffset,
+        SMGState pSMGState) {
 
       // Create a new base address for the object if necessary
       if (!objectAddressMap.containsKey(pObject)) {
@@ -380,11 +369,14 @@ public class SMGConcreteErrorPathAllocator {
         if (lhs != null) {
           variableAddressMap.put(lhs, nextAlloc);
         }
-        nextAlloc =
-            nextAlloc.addOffset(BigDecimal.valueOf(nextAlloc.getAsNumber().longValue() + pObject.getSize() + 1));
+        BigInteger objectSize = BigInteger.valueOf(pObject.getSize());
+
+        BigInteger nextAllocOffset = nextAlloc.getAddressValue().add(objectSize).add(BigInteger.ONE);
+
+        nextAlloc = nextAlloc.addOffset(nextAllocOffset);
       }
 
-      return Address.valueOf(BigDecimal.valueOf(objectAddressMap.get(pObject).getAsNumber().longValue() + pOffset));
+      return objectAddressMap.get(pObject).addOffset(BigInteger.valueOf(pOffset));
     }
 
     public Map<LeftHandSide, Address> getAddressMap() {

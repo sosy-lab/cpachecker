@@ -38,9 +38,7 @@ import java.util.logging.Level;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -51,7 +49,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
@@ -67,6 +65,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -85,50 +84,63 @@ import com.google.common.collect.Sets;
  */
 public class CProgramScope implements Scope {
 
-  private static final Function<CFANode, Iterable<? extends CSimpleDeclaration>> TO_C_SIMPLE_DECLARATIONS =
-      new Function<CFANode, Iterable<? extends CSimpleDeclaration>>() {
-
-        @Override
-        public Iterable<? extends CSimpleDeclaration> apply(CFANode pNode) {
-
-          return CFAUtils.leavingEdges(pNode).transformAndConcat(new Function<CFAEdge, Iterable<? extends CSimpleDeclaration>>() {
+  private static final Function<CFANode, Iterable<? extends CSimpleDeclaration>>
+      TO_C_SIMPLE_DECLARATIONS =
+          new Function<CFANode, Iterable<? extends CSimpleDeclaration>>() {
 
             @Override
-            public Iterable<? extends CSimpleDeclaration> apply(CFAEdge pEdge) {
+            public Iterable<? extends CSimpleDeclaration> apply(final CFANode pNode) {
 
-              if (pEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
-                CDeclaration dcl = ((CDeclarationEdge) pEdge).getDeclaration();
-                return Collections.singleton(dcl);
-              }
-              if (pEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
-                FunctionCallEdge fce = (FunctionCallEdge) pEdge;
-                AFunctionDeclaration decl = fce.getSuccessor().getFunctionDefinition();
-                return from(decl.getParameters()).filter(CSimpleDeclaration.class);
-              }
+              return CFAUtils.leavingEdges(pNode)
+                  .transformAndConcat(
+                      new Function<CFAEdge, Iterable<? extends CSimpleDeclaration>>() {
 
-              if (pEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
-                MultiEdge edge = (MultiEdge) pEdge;
-                Collection<CSimpleDeclaration> result = new ArrayList<>();
+                        @Override
+                        public Iterable<? extends CSimpleDeclaration> apply(CFAEdge pEdge) {
 
-                for (CFAEdge innerEdge : edge.getEdges()) {
-                  Iterables.addAll(result, apply(innerEdge));
-                }
+                          if (pEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
+                            CDeclaration dcl = ((CDeclarationEdge) pEdge).getDeclaration();
+                            return Collections.singleton(dcl);
+                          }
 
-                return result;
-              }
+                          if (pNode instanceof FunctionEntryNode) {
+                            FunctionEntryNode entryNode = (FunctionEntryNode) pNode;
+                            return from(entryNode.getFunctionParameters())
+                                .filter(CSimpleDeclaration.class);
+                          }
 
-              return Collections.emptySet();
+                          if (pEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
+                            MultiEdge edge = (MultiEdge) pEdge;
+                            Collection<CSimpleDeclaration> result = new ArrayList<>();
+
+                            for (CFAEdge innerEdge : edge.getEdges()) {
+                              Iterables.addAll(result, apply(innerEdge));
+                            }
+
+                            return result;
+                          }
+
+                          return Collections.emptySet();
+                        }
+                      });
             }
-
-          });
-        }
-      };
+          };
 
   private static final Predicate<CSimpleDeclaration> HAS_NAME = new Predicate<CSimpleDeclaration>() {
 
     @Override
     public boolean apply(CSimpleDeclaration pDeclaration) {
-      return pDeclaration.getName() != null && pDeclaration.getQualifiedName() != null;
+      if (pDeclaration.getName() != null && pDeclaration.getQualifiedName() != null) {
+        return true;
+      }
+      if (pDeclaration.getName() == null
+          && pDeclaration.getQualifiedName() == null
+          && pDeclaration instanceof CComplexTypeDeclaration) {
+        CComplexTypeDeclaration complexTypeDeclaration = (CComplexTypeDeclaration) pDeclaration;
+        CComplexType complexType = complexTypeDeclaration.getType();
+        return complexType != null && complexType.getName() != null && complexType.getQualifiedName() != null;
+      }
+      return false;
     }
   };
 
@@ -136,7 +148,18 @@ public class CProgramScope implements Scope {
 
     @Override
     public String apply(CSimpleDeclaration pDeclaration) {
-      return pDeclaration.getName();
+      String result = pDeclaration.getName();
+      if (result != null) {
+        return result;
+      }
+      if (pDeclaration instanceof CComplexTypeDeclaration) {
+        CComplexTypeDeclaration complexTypeDeclaration = (CComplexTypeDeclaration) pDeclaration;
+        CComplexType complexType = complexTypeDeclaration.getType();
+        if (complexType != null && complexType.getName() != null && complexType.getQualifiedName() != null) {
+          return complexType.getName();
+        }
+      }
+      throw new AssertionError("Cannot extract a name.");
     }
   };
 
@@ -145,6 +168,9 @@ public class CProgramScope implements Scope {
     @Override
     public String apply(CSimpleDeclaration pDeclaration) {
       String name = pDeclaration.getName();
+      if (name == null) {
+        return getComplexDeclarationName(pDeclaration);
+      }
       String originalName = pDeclaration.getOrigName();
       String qualifiedName = pDeclaration.getQualifiedName();
       if (name.equals(originalName)) {
@@ -153,6 +179,24 @@ public class CProgramScope implements Scope {
       assert qualifiedName.endsWith(name);
 
       return qualifiedName.substring(0, qualifiedName.length() - name.length()) + originalName;
+    }
+
+    private String getComplexDeclarationName(CSimpleDeclaration pDeclaration) {
+      if (pDeclaration instanceof CComplexTypeDeclaration) {
+        CComplexType complexType = ((CComplexTypeDeclaration) pDeclaration).getType();
+        if (complexType != null) {
+          String name = complexType.getName();
+          String originalName = complexType.getOrigName();
+          String qualifiedName = complexType.getQualifiedName();
+          if (name.equals(originalName)) {
+            return qualifiedName;
+          }
+          assert qualifiedName.endsWith(name);
+
+          return qualifiedName.substring(0, qualifiedName.length() - name.length()) + originalName;
+        }
+      }
+      throw new AssertionError("Cannot extract a name.");
     }
   };
 
@@ -222,7 +266,9 @@ public class CProgramScope implements Scope {
      */
     Collection<CFANode> nodes = cfa.getAllNodes();
 
-    FluentIterable<CSimpleDeclaration> dcls = FluentIterable.from(nodes).transformAndConcat(TO_C_SIMPLE_DECLARATIONS).filter(HAS_NAME);
+    FluentIterable<CSimpleDeclaration> allDcls = FluentIterable.from(nodes).transformAndConcat(TO_C_SIMPLE_DECLARATIONS);
+
+    FluentIterable<CSimpleDeclaration> dcls = allDcls.filter(HAS_NAME);
 
     FluentIterable<CFunctionDeclaration> functionDcls = dcls.filter(CFunctionDeclaration.class);
     FluentIterable<CSimpleDeclaration> nonFunctionDcls = dcls.filter(not(instanceOf(CFunctionDeclaration.class)));
@@ -247,11 +293,11 @@ public class CProgramScope implements Scope {
 
   @Override
   public boolean isGlobalScope() {
-    return false;
+    return functionName == null;
   }
 
   @Override
-  public boolean variableNameInUse(String pName, String pOrigName) {
+  public boolean variableNameInUse(String pName) {
     return variableNames.contains(pName);
   }
 
@@ -260,8 +306,8 @@ public class CProgramScope implements Scope {
 
     CSimpleDeclaration result;
 
-    if (simulatesFunctionScope()) {
-      result = qualifiedDeclarations.get(getCurrentFunctionName() + "::" + pName);
+    if (!isGlobalScope()) {
+      result = qualifiedDeclarations.get(createScopedNameOf(pName));
       if (result != null) {
         return result;
       }
@@ -287,8 +333,8 @@ public class CProgramScope implements Scope {
   @Override
   public CComplexType lookupType(String pName) {
     CComplexType result = null;
-    if (simulatesFunctionScope()) {
-      String functionQualifiedName = getCurrentFunctionName() + "::" + pName;
+    if (!isGlobalScope()) {
+      String functionQualifiedName = createScopedNameOf(pName);
       result = lookupQualifiedComplexType(functionQualifiedName, qualifiedTypes);
       if (result != null) {
         return result;
@@ -316,8 +362,8 @@ public class CProgramScope implements Scope {
   @Override
   public CType lookupTypedef(String pName) {
     CType result = null;
-    if (simulatesFunctionScope()) {
-      String functionQualifiedName = getCurrentFunctionName() + "::" + pName;
+    if (!isGlobalScope()) {
+      String functionQualifiedName = createScopedNameOf(pName);
       result = lookupQualifiedComplexType(functionQualifiedName, qualifiedTypeDefs);
       if (result != null) {
         return result;
@@ -347,7 +393,7 @@ public class CProgramScope implements Scope {
 
   @Override
   public String createScopedNameOf(String pName) {
-    if (simulatesFunctionScope()) {
+    if (!isGlobalScope()) {
       return getCurrentFunctionName() + "::" + pName;
     }
     return pName;
@@ -357,26 +403,35 @@ public class CProgramScope implements Scope {
    * Returns the name for the type as it would be if it is renamed.
    */
   @Override
-  public String getRenamedTypeName(String type) {
-    return type + "__" + currentFile;
+  public String getFileSpecificTypeName(String type) {
+    if (isFileSpecificTypeName(type)) {
+      return type;
+    }
+    String fileSpecificTypeName = type + "__" + currentFile;
+    if (currentFile.isEmpty()
+        && lookupTypedef(fileSpecificTypeName) == null
+        && lookupTypedef(type) != null) {
+      return type;
+    }
+    return fileSpecificTypeName;
+  }
+
+  @Override
+  public boolean isFileSpecificTypeName(String type) {
+    return type.endsWith("__" + currentFile);
   }
 
   /**
    * Create a CProgramScope that tries to simulate a function scope.
    *
    * @param pFunctionName the
-   * @return
    */
   public CProgramScope createFunctionScope(String pFunctionName) {
     return new CProgramScope(this, pFunctionName);
   }
 
-  public boolean simulatesFunctionScope() {
-    return functionName != null;
-  }
-
   public String getCurrentFunctionName() {
-    Preconditions.checkState(simulatesFunctionScope());
+    Preconditions.checkState(!isGlobalScope());
     return functionName;
   }
 
@@ -627,13 +682,13 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public Void visitDefault(CType pT) throws RuntimeException {
+    public Void visitDefault(CType pT) {
       collectedTypes.add(pT);
       return null;
     }
 
     @Override
-    public Void visit(CArrayType pArrayType) throws RuntimeException {
+    public Void visit(CArrayType pArrayType) {
       if (!collectedTypes.contains(pArrayType)) {
         collectedTypes.add(pArrayType);
         pArrayType.getType().accept(this);
@@ -645,7 +700,7 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public Void visit(CCompositeType pCompositeType) throws RuntimeException {
+    public Void visit(CCompositeType pCompositeType) {
       if (!collectedTypes.contains(pCompositeType)) {
         collectedTypes.add(pCompositeType);
         for (CCompositeTypeMemberDeclaration member : pCompositeType.getMembers()) {
@@ -656,7 +711,7 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public Void visit(CElaboratedType pElaboratedType) throws RuntimeException {
+    public Void visit(CElaboratedType pElaboratedType) {
       if (!collectedTypes.contains(pElaboratedType)) {
         collectedTypes.add(pElaboratedType);
         if (pElaboratedType.getRealType() != null) {
@@ -667,7 +722,7 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public Void visit(CFunctionType pFunctionType) throws RuntimeException {
+    public Void visit(CFunctionType pFunctionType) {
       if (!collectedTypes.contains(pFunctionType)) {
         collectedTypes.add(pFunctionType);
         for (CType parameterType : pFunctionType.getParameters()) {
@@ -678,7 +733,7 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public Void visit(CPointerType pPointerType) throws RuntimeException {
+    public Void visit(CPointerType pPointerType) {
       if (!collectedTypes.contains(pPointerType)) {
         collectedTypes.add(pPointerType);
         pPointerType.getType().accept(this);
@@ -687,7 +742,7 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public Void visit(CTypedefType pTypedefType) throws RuntimeException {
+    public Void visit(CTypedefType pTypedefType) {
       if (!collectedTypes.contains(pTypedefType)) {
         collectedTypes.add(pTypedefType);
         pTypedefType.getRealType().accept(this);

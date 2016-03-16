@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
-import java.util.IdentityHashMap;
-import java.util.Map;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
@@ -35,8 +33,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.solver.api.FormulaType;
 
 
 public class CtoFormulaTypeHandler {
@@ -48,11 +45,7 @@ public class CtoFormulaTypeHandler {
 
   private final FormulaType<?> pointerType;
 
-  private final Map<CType, FormulaType<?>> typeCache = new IdentityHashMap<>();
-
-  public CtoFormulaTypeHandler(LogManager pLogger,
-      FormulaEncodingOptions pOptions,
-      MachineModel pMachineModel, FormulaManagerView pFmgr) {
+  public CtoFormulaTypeHandler(LogManager pLogger, MachineModel pMachineModel) {
     logger = new LogManagerWithoutDuplicates(pLogger);
     machineModel = pMachineModel;
 
@@ -88,15 +81,6 @@ public class CtoFormulaTypeHandler {
   }
 
   public FormulaType<?> getFormulaTypeFromCType(CType type) {
-    FormulaType<?> result = typeCache.get(type);
-    if (result == null) {
-      result = getFormulaTypeFromCType0(type);
-      typeCache.put(type, result);
-    }
-    return result;
-  }
-
-  protected FormulaType<?> getFormulaTypeFromCType0(CType type) {
     if (type instanceof CSimpleType) {
       CSimpleType simpleType = (CSimpleType)type;
       switch (simpleType.getType()) {

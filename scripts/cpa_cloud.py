@@ -24,17 +24,36 @@ CPAchecker web page:
   http://cpachecker.sosy-lab.org
 """
 
-import subprocess
+# prepare for Python 3
+from __future__ import absolute_import, division, print_function, unicode_literals
+
+import glob
+import os
 import logging
-from sys import argv
-import os.path
+import subprocess
+import sys
+sys.dont_write_bytecode = True # prevent creation of .pyc files
+for egg in glob.glob(os.path.join(os.path.dirname(__file__), os.pardir, 'lib', 'python-benchmark', '*.whl')):
+    sys.path.insert(0, egg)
+
+# Add ./benchmark/tools to __path__ of benchexec.tools package
+# such that additional tool-wrapper modules can be placed in this directory.
+import benchexec.tools
+benchexec.tools.__path__ = [os.path.join(os.path.dirname(__file__), 'benchmark', 'tools')] + benchexec.tools.__path__
+
+import benchexec.tools.cpachecker
+cpachecker = benchexec.tools.cpachecker.Tool()
+executable = cpachecker.executable()
+required_files = cpachecker.program_files(executable)
 
 # install cloud and dependencies
 ant = subprocess.Popen(["ant", "resolve-benchmark-dependencies"])
 ant.communicate()
 ant.wait()
 
-parameters = " ".join(argv[1:-1])
+# assume that last parameter is the input file
+argv = sys.argv
+parameters = argv[1:-1]
 in_file = argv[-1]
 
 # start cloud and wait for exit
@@ -44,12 +63,14 @@ logLevel = "FINER"
 
 cpachecker_dir = os.path.normpath(os.path.join(os.path.dirname(argv[0]), os.pardir)) # directory above script directory
 lib_dir = os.path.abspath(os.path.join("lib", "java-benchmark"))
-cmd_line = ["java", "-jar", os.path.join(lib_dir, "vcloud.jar"), "cpachecker",\
-            "--loglevel", logLevel,\
-            "--input", in_file,\
-            "--cpachecker-dir", cpachecker_dir,\
-            "--parameters", parameters\
+cmd_line = ["java", "-jar", os.path.join(lib_dir, "vcloud.jar"), "cpachecker",
+            "--loglevel", logLevel,
+            "--input", in_file,
+            "--requiredFiles", ','.join(required_files),
+            "--cpachecker-dir", cpachecker_dir,
+            "--", executable
             ]
+cmd_line.extend(parameters)
 
 logging.debug("CPAchecker command: ", cmd_line)
 cloud = subprocess.Popen(cmd_line)

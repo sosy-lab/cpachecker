@@ -23,9 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-
-
-public class CNumericTypes {
+public final class CNumericTypes {
 
   private CNumericTypes() { }
 

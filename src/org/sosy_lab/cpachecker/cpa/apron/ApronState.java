@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.apron;
 
+import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -31,20 +33,39 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
+import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.solver.api.BitvectorFormula;
+import org.sosy_lab.solver.api.BitvectorFormulaManager;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
+
+import com.google.common.math.DoubleMath;
 
 import apron.Abstract0;
 import apron.Dimchange;
 import apron.Dimension;
+import apron.DoubleScalar;
 import apron.Interval;
 import apron.Lincons0;
 import apron.Linexpr0;
+import apron.MpfrScalar;
+import apron.MpqScalar;
+import apron.Scalar;
 import apron.Tcons0;
+import apron.Texpr0BinNode;
+import apron.Texpr0CstNode;
+import apron.Texpr0DimNode;
 import apron.Texpr0Intern;
 import apron.Texpr0Node;
+import apron.Texpr0UnNode;
+import gmp.Mpfr;
 
 /**
  * An element of Abstract0 abstract domain. This element contains an {@link Abstract0} which
@@ -52,15 +73,17 @@ import apron.Texpr0Node;
  * provides a mapping from variable names to variables.
  *
  */
-public class ApronState implements AbstractState {
+public class ApronState implements AbstractState, Serializable, FormulaReportingState {
+
+  private static final long serialVersionUID = -7953805400649927048L;
 
   enum Type {
-    INT, FLOAT;
+    INT, FLOAT
   }
 
   // the Apron state representation
-  private Abstract0 apronState;
-  private ApronManager apronManager;
+  private transient Abstract0 apronState;
+  private transient ApronManager apronManager;
 
   // mapping from variable name to its identifier
   private List<MemoryLocation> integerToIndexMap;
@@ -68,7 +91,7 @@ public class ApronState implements AbstractState {
   private Map<MemoryLocation, Type> variableToTypeMap;
   private final boolean isLoopHead;
 
-  private LogManager logger;
+  private transient LogManager logger;
 
   // also top element
   public ApronState(LogManager log, ApronManager manager) {
@@ -141,13 +164,44 @@ logger.log(Level.FINEST, "apron state: isEqual");
 
       if (integerToIndexMap.containsAll(state.integerToIndexMap)
           && realToIndexMap.containsAll(state.realToIndexMap)) {
-        Pair<ApronState, ApronState> checkStates = shrinkToFittingSize(state);
         logger.log(Level.FINEST, "apron state: isIncluded");
-        return checkStates.getFirst().apronState.isIncluded(apronManager.getManager(), checkStates.getSecond().apronState);
+        return forgetVars(state).isIncluded(apronManager.getManager(), state.apronState);
       } else {
         return false;
       }
     }
+  }
+
+  private Abstract0 forgetVars(ApronState pConsiderSubsetOfVars){
+    int amountInts = integerToIndexMap.size()-pConsiderSubsetOfVars.integerToIndexMap.size();
+    int[] removeDim = new int[amountInts+realToIndexMap.size()-pConsiderSubsetOfVars.realToIndexMap.size()];
+
+    int arrayPos = 0;
+
+    for (int indexThis = 0, indexParam = 0; indexThis < integerToIndexMap.size();) {
+      if (indexParam < pConsiderSubsetOfVars.integerToIndexMap.size()
+          && integerToIndexMap.get(indexThis).equals(pConsiderSubsetOfVars.integerToIndexMap.get(indexParam))) {
+        indexParam++;
+      } else {
+        removeDim[arrayPos] = indexThis;
+        arrayPos++;
+      }
+      indexThis++;
+    }
+
+    for(int indexThis=0, indexParam=0; indexThis<realToIndexMap.size();){
+      if(indexParam < pConsiderSubsetOfVars.realToIndexMap.size()
+          && realToIndexMap.get(indexThis).equals(pConsiderSubsetOfVars.realToIndexMap.get(indexParam))){
+        indexParam++;
+      } else {
+        removeDim[arrayPos] = indexThis;
+        arrayPos++;
+      }
+      indexThis++;
+    }
+
+    return apronState.removeDimensionsCopy(apronManager.getManager(),
+        new Dimchange(amountInts, removeDim.length-amountInts, removeDim));
   }
 
   /**
@@ -157,7 +211,7 @@ logger.log(Level.FINEST, "apron state: isEqual");
    * by the Transferrelation)
    * @param oldState the ApronState which has the preferred size, is the parameter,
    *                 so we can check if the variables are matching if not an Exception is thrown
-   * @return
+   * @return a pair of the shrinked caller and the shrinked stated
    */
   public Pair<ApronState, ApronState> shrinkToFittingSize(ApronState oldState) {
     int maxEqualIntIndex = 0;
@@ -390,7 +444,15 @@ logger.log(Level.FINEST, "apron state: isEqual");
     }
     if (assignment != null) {
       logger.log(Level.FINEST, "apron state: assignCopy: " + leftVarName + " = " + assignment);
-      return new ApronState(apronState.assignCopy(apronManager.getManager(), varIndex, assignment, null),
+      Abstract0 retState = apronState.assignCopy(apronManager.getManager(), varIndex, assignment, null);
+
+      if (retState == null) {
+        logger.log(Level.WARNING, "Assignment of expression to variable yielded an empty state,"
+            + " forgetting the value of the variable as fallback.");
+        return forget(leftVarName);
+      }
+
+      return new ApronState(retState,
                             apronManager,
                             integerToIndexMap,
                             realToIndexMap,
@@ -483,5 +545,156 @@ logger.log(Level.FINEST, "apron state: isEqual");
     Dimension dim = newState.apronState.getDimension(apronManager.getManager());
     assert dim.intDim + dim.realDim == newState.sizeOfVariables();
     return newState;
+  }
+
+  private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+    out.defaultWriteObject();
+    byte[] serialized = apronState.serialize(apronManager.getManager());
+    out.writeInt(serialized.length);
+    out.write(serialized);
+  }
+
+  private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+    in.defaultReadObject();
+
+    logger = GlobalInfo.getInstance().getApronLogManager();
+    apronManager = GlobalInfo.getInstance().getApronManager();
+
+    byte[] deserialized = new byte[in.readInt()];
+    in.readFully(deserialized);
+    apronState = Abstract0.deserialize(apronManager.getManager(), deserialized);
+  }
+
+  @Override
+  public BooleanFormula getFormulaApproximation(FormulaManagerView pManager, PathFormulaManager pPfmgr) {
+    BitvectorFormulaManager bitFmgr = pManager.getBitvectorFormulaManager();
+    BooleanFormulaManager bFmgr = pManager.getBooleanFormulaManager();
+    Tcons0[] constraints = apronState.toTcons(apronManager.getManager());
+
+    BooleanFormula result = bFmgr.makeBoolean(true);
+
+    for (Tcons0 cons : constraints) {
+      result = bFmgr.and(result, createFormula(bFmgr, bitFmgr, cons));
+    }
+
+    return result;
+  }
+
+  private BooleanFormula createFormula(BooleanFormulaManager bFmgr,
+                                       final BitvectorFormulaManager bitFmgr,
+                                       final Tcons0 constraint) {
+    Texpr0Node tree = constraint.toTexpr0Node();
+    BitvectorFormula formula = new Texpr0ToFormulaVisitor(bitFmgr).visit(tree);
+
+    //TODO fix size, machinemodel needed?
+    BitvectorFormula rightHandside = bitFmgr.makeBitvector(32, 0);
+    switch(constraint.kind) {
+    case Tcons0.DISEQ: return bFmgr.not(bitFmgr.equal(formula, rightHandside));
+    case Tcons0.EQ: return bitFmgr.equal(formula, rightHandside);
+    case Tcons0.SUP: return bitFmgr.greaterThan(formula, rightHandside, true);
+    case Tcons0.SUPEQ: return bitFmgr.greaterOrEquals(formula, rightHandside, true);
+      default:
+        throw new AssertionError("unhandled constraint kind");
+    }
+  }
+
+  abstract class Texpr0NodeTraversal<T> {
+
+   T visit(Texpr0Node node) {
+      if (node instanceof Texpr0BinNode) {
+        return visit((Texpr0BinNode)node);
+      } else if (node instanceof Texpr0CstNode) {
+        return visit((Texpr0CstNode)node);
+      } else if (node instanceof Texpr0DimNode) {
+        return visit((Texpr0DimNode)node);
+      } else if (node instanceof Texpr0UnNode) {
+        return visit((Texpr0UnNode)node);
+      }
+
+      throw new AssertionError("Unhandled Texpr0Node subclass.");
+    }
+
+   abstract T visit(Texpr0BinNode node);
+   abstract T visit(Texpr0CstNode node);
+   abstract T visit(Texpr0DimNode node);
+   abstract T visit(Texpr0UnNode node);
+  }
+
+  class Texpr0ToFormulaVisitor extends Texpr0NodeTraversal<BitvectorFormula> {
+
+    BitvectorFormulaManager bitFmgr;
+
+    public Texpr0ToFormulaVisitor(BitvectorFormulaManager pBitFmgr) {
+      bitFmgr = pBitFmgr;
+    }
+
+    @Override
+    BitvectorFormula visit(Texpr0BinNode pNode) {
+      BitvectorFormula left = visit(pNode.getLeftArgument());
+      BitvectorFormula right = visit(pNode.getRightArgument());
+      switch(pNode.getOperation()) {
+
+      // real operations
+      case Texpr0BinNode.OP_ADD: return bitFmgr.add(left, right);
+      case Texpr0BinNode.OP_DIV: return bitFmgr.divide(left, right, true);
+      case Texpr0BinNode.OP_MOD: return bitFmgr.modulo(left, right, true);
+      case Texpr0BinNode.OP_SUB: return bitFmgr.subtract(left, right);
+      case Texpr0BinNode.OP_MUL: return bitFmgr.multiply(left, right);
+      case Texpr0BinNode.OP_POW: throw new AssertionError("Pow not implemented in this visitor");
+      default:
+        throw new AssertionError("Unhandled operator for binary nodes.");
+      }
+    }
+
+    @Override
+    BitvectorFormula visit(Texpr0CstNode pNode) {
+      if (pNode.isScalar()) {
+        double value;
+        Scalar scalar = pNode.getConstant().inf();
+        if (scalar instanceof DoubleScalar) {
+         value = ((DoubleScalar)scalar).get();
+        } else if (scalar instanceof MpqScalar) {
+          value = ((MpqScalar)scalar).get().doubleValue();
+        } else if (scalar instanceof MpfrScalar) {
+          value = ((MpfrScalar)scalar).get().doubleValue(Mpfr.RNDN);
+        } else {
+          throw new AssertionError("Unhandled Scalar subclass: " + scalar.getClass());
+        }
+        if (DoubleMath.isMathematicalInteger(value)) {
+          // TODO fix size, machineModel needed?
+          return bitFmgr.makeBitvector(32, (int) value);
+        } else {
+          throw new AssertionError("Floats are currently not handled");
+        }
+
+      } else {
+        // this is an interval and cannot be handled here because we need
+        // the other side of the operator to create > or < constraints
+        throw new AssertionError("Intervals are currently not handled");
+      }
+    }
+
+    @Override
+    BitvectorFormula visit(Texpr0DimNode pNode) {
+
+      // TODO fix size, machinemodel needed?
+      if (isInt(pNode.dim)) {
+        return bitFmgr.makeVariable(32, integerToIndexMap.get(pNode.dim).getAsSimpleString());
+      } else {
+        return bitFmgr.makeVariable(32, realToIndexMap.get(pNode.dim - integerToIndexMap.size()).getAsSimpleString());
+      }
+    }
+
+    @Override
+    BitvectorFormula visit(Texpr0UnNode pNode) {
+      BitvectorFormula operand = visit(pNode.getArgument());
+      switch(pNode.getOperation()) {
+      case Texpr0UnNode.OP_NEG: return bitFmgr.negate(operand);
+      case Texpr0UnNode.OP_SQRT: throw new AssertionError("sqrt not implemented in this visitor");
+      default:
+        // nothing to do here, we ignore casts
+      }
+      return operand;
+    }
   }
 }

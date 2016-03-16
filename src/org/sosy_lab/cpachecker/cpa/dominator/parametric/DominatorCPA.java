@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
@@ -76,8 +77,8 @@ public class DominatorCPA {
     return precisionAdjustment;
   }
 
-  public AbstractState getInitialState(CFANode node) {
-    AbstractState dominatedInitialState_tmp = this.cpa.getInitialState(node);
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+    AbstractState dominatedInitialState_tmp = this.cpa.getInitialState(pNode, pPartition);
 
     AbstractState dominatedInitialState = dominatedInitialState_tmp;
 
@@ -88,7 +89,7 @@ public class DominatorCPA {
     return initialState;
   }
 
-  public Precision getInitialPrecision(CFANode pNode) {
+  public Precision getInitialPrecision() {
     return null;
   }
 }

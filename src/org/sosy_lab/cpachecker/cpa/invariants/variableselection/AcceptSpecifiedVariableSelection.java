@@ -27,8 +27,10 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
@@ -42,27 +44,27 @@ public class AcceptSpecifiedVariableSelection<ConstantType> implements VariableS
 
   private final VariableSelectionJoiner variableSelectionJoiner = new VariableSelectionJoiner();
 
-  private final ImmutableSet<String> specifiedVariables;
+  private final ImmutableSet<MemoryLocation> specifiedVariables;
 
-  public AcceptSpecifiedVariableSelection(Iterable<? extends String> pIterable) {
+  public AcceptSpecifiedVariableSelection(Iterable<? extends MemoryLocation> pIterable) {
     this.specifiedVariables = ImmutableSet.copyOf((pIterable));
   }
 
   @Override
-  public boolean contains(final String pVariableName) {
+  public boolean contains(final MemoryLocation pMemoryLocation) {
 
-    return FluentIterable.from(specifiedVariables).anyMatch(new Predicate<String>() {
+    return FluentIterable.from(specifiedVariables).anyMatch(new Predicate<MemoryLocation>() {
 
       @Override
-      public boolean apply(@Nullable String pArg0) {
-        if (pVariableName.equals(pArg0)) {
+      public boolean apply(@Nullable MemoryLocation pArg0) {
+        if (pMemoryLocation.equals(pArg0)) {
           return true;
         }
-        if (pArg0.endsWith("[*]")) {
-          int arraySubscriptIndex = pVariableName.indexOf('[');
+        if (pArg0.getIdentifier().endsWith("[*]")) {
+          int arraySubscriptIndex = pMemoryLocation.getIdentifier().indexOf('[');
           if (arraySubscriptIndex >= 0) {
-            String containedArray = pArg0.substring(0, pArg0.indexOf('['));
-            String array = pVariableName.substring(arraySubscriptIndex);
+            String containedArray = pArg0.getIdentifier().substring(0, pArg0.getIdentifier().indexOf('['));
+            String array = pMemoryLocation.getIdentifier().substring(arraySubscriptIndex);
             return containedArray.equals(array);
           }
         }
@@ -73,9 +75,9 @@ public class AcceptSpecifiedVariableSelection<ConstantType> implements VariableS
   }
 
   @Override
-  public VariableSelection<ConstantType> acceptAssumption(InvariantsFormula<ConstantType> pAssumption) {
-    Set<String> involvedVariables = pAssumption.accept(this.collectVarsVisitor);
-    for (String involvedVariable : involvedVariables) {
+  public VariableSelection<ConstantType> acceptAssumption(BooleanFormula<ConstantType> pAssumption) {
+    Set<MemoryLocation> involvedVariables = pAssumption.accept(this.collectVarsVisitor);
+    for (MemoryLocation involvedVariable : involvedVariables) {
       if (contains(involvedVariable)) {
         /*
          * Extend the set of specified variables transitively.
@@ -92,8 +94,8 @@ public class AcceptSpecifiedVariableSelection<ConstantType> implements VariableS
   }
 
   @Override
-  public VariableSelection<ConstantType> acceptAssignment(String pVariableName, InvariantsFormula<ConstantType> pAssumption) {
-    if (contains(pVariableName)) {
+  public VariableSelection<ConstantType> acceptAssignment(MemoryLocation pMemoryLocation, NumeralFormula<ConstantType> pAssumption) {
+    if (contains(pMemoryLocation)) {
       /*
        * Extend the set of specified variables transitively.
        * See acceptAssumptions for thoughts about this.
@@ -137,7 +139,7 @@ public class AcceptSpecifiedVariableSelection<ConstantType> implements VariableS
 
   }
 
-  private VariableSelection<ConstantType> join(Set<String> pSpecifiedVariables) {
+  private VariableSelection<ConstantType> join(Set<MemoryLocation> pSpecifiedVariables) {
     if (this.specifiedVariables == pSpecifiedVariables || this.specifiedVariables.containsAll(pSpecifiedVariables)) {
       return this;
     }

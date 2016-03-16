@@ -36,10 +36,12 @@ public class AutomatonMatchesWaitlist extends AbstractSortedWaitlist<Integer> {
 
   @Override
   protected Integer getSortKey(AbstractState pState) {
-    AutomatonState automatonState =
-      AbstractStates.extractStateByType(pState, AutomatonState.class);
+    int sortKey = 0;
+    for (AutomatonState automatonState : AbstractStates.asIterable(pState).filter(AutomatonState.class)) {
+      sortKey = Math.max(sortKey, automatonState.getMatches());
+    }
 
-    return (automatonState != null) ? automatonState.getMatches() : 0;
+    return sortKey;
   }
 
   public static WaitlistFactory factory(final WaitlistFactory pSecondaryStrategy) {

@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /**
- * Interface for classes representing a analysis that can be proof checked.
+ * Interface for classes representing an analysis that can be proof checked.
  */
 public interface ProofChecker {
   /**

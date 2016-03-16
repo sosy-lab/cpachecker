@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.interfaces;
 
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
 
 public interface Reducer {
@@ -39,7 +40,7 @@ public interface Reducer {
 
   /** Returns a hashable object for the stateKey and the precisionKey.
    * This object is used to identify elements in the
-   * {@link org.sosy_lab.cpachecker.cpa.bam.BAMCache.AbstractStateHash AbstractStateHash}. */
+   * <code> BAMCache.AbstractStateHash </code>. */
   Object getHashCodeForState(AbstractState stateKey, Precision precisionKey);
 
   /** Returns a (non-negative) value for the difference between two precisions.
@@ -55,7 +56,7 @@ public interface Reducer {
 
   /**
    * Use the expandedState as basis for a new state,
-   * that can be used as rebuildState for the next funcion-return-edge.
+   * that can be used as rebuildState for the next function-return-edge.
    *
    * @param rootState state before the function-call. this is the predecessor of the block-start-state, that will be reduced.
    * @param entryState state after the function-call. this is the block-start-state, that will be reduced.
@@ -79,5 +80,5 @@ public interface Reducer {
    * returnState <------------  rebuildState
    */
   AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState entryState,
-                                              AbstractState expandedState, CFANode exitLocation);
+      AbstractState expandedState, FunctionExitNode exitLocation);
   }

@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
+import com.google.errorprone.annotations.ForOverride;
 
 /**
  * Default implementation of a sorted waitlist.
@@ -64,10 +65,12 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
 
   /**
    * Method that generates the sorting key for any abstract state.
+   * States with largest key are considered first.
    * This method may not return null.
    * If this method throws an exception, no guarantees about the state of the
    * current instance of this class are made.
    */
+  @ForOverride
   protected abstract K getSortKey(AbstractState pState);
 
   @Override

@@ -33,7 +33,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -546,7 +546,7 @@ public class CFunctionPointerResolver {
     return declaredType.getCanonicalType().equals(actualType.getCanonicalType());
   }
 
-  private final boolean checkParamSizes(CFunctionCallExpression functionCallExpression,
+  private boolean checkParamSizes(CFunctionCallExpression functionCallExpression,
       CFunctionType functionType) {
     //get the parameter expression
     List<CExpression> parameters = functionCallExpression.getParameterExpressions();

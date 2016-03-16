@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.bdd;
 import java.io.PrintStream;
 import java.util.Collection;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -34,46 +34,48 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisPathInterpolator;
+import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisStrongestPostOperator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
+import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.collect.Multimap;
 
 /**
  * Refiner implementation that delegates to {@link ValueAnalysisPathInterpolator}.
  */
-public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, StatisticsProvider {
+public class BddRefiner implements ARGBasedRefiner, Statistics, StatisticsProvider {
 
   /**
    * refiner used for value-analysis interpolation refinement
    */
   private final ValueAnalysisPathInterpolator interpolatingRefiner;
 
-  private final CFA cfa;
-
-  private final LogManager logger;
-  private final Configuration config;
+  private final FeasibilityChecker<ValueAnalysisState> checker;
 
   private int previousErrorPathId = -1;
 
@@ -81,7 +83,8 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
   private int numberOfValueAnalysisRefinements           = 0;
   private int numberOfSuccessfulValueAnalysisRefinements = 0;
 
-  public static BddRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
+  public static Refiner create(ConfigurableProgramAnalysis cpa)
+      throws InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(BddRefiner.class.getSimpleName() + " could not find the BDDCPA");
     }
@@ -93,55 +96,55 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
       throw new InvalidConfigurationException(BddRefiner.class.getSimpleName() + " needs a BDDCPA");
     }
 
-    BddRefiner refiner = initialiseValueAnalysisRefiner(cpa, bddCpa);
+    Configuration config = bddCpa.getConfiguration();
+    LogManager logger = bddCpa.getLogger();
+    CFA cfa = bddCpa.getCFA();
+    ShutdownNotifier shutdownNotifier = bddCpa.getShutdownNotifier();
 
-    return refiner;
+    bddCpa.injectRefinablePrecision();
+
+    final StrongestPostOperator<ValueAnalysisState> strongestPostOperator =
+        new ValueAnalysisStrongestPostOperator(logger, Configuration.builder().build(), cfa);
+
+    final FeasibilityChecker<ValueAnalysisState> feasibilityChecker =
+        new ValueAnalysisFeasibilityChecker(strongestPostOperator, logger, cfa, config);
+
+    final ValueAnalysisPathInterpolator pathInterpolator =
+        new ValueAnalysisPathInterpolator(
+            feasibilityChecker,
+            strongestPostOperator,
+            new ValueAnalysisPrefixProvider(logger, cfa, config),
+            config,
+            logger,
+            shutdownNotifier,
+            cfa);
+
+    BddRefiner refiner = new BddRefiner(feasibilityChecker, pathInterpolator);
+    return AbstractARGBasedRefiner.forARGBasedRefiner(refiner, cpa);
   }
 
-  private static BddRefiner initialiseValueAnalysisRefiner(
-      ConfigurableProgramAnalysis cpa, BDDCPA pBddCpa)
-          throws CPAException, InvalidConfigurationException {
-    Configuration config  = pBddCpa.getConfiguration();
-    LogManager logger     = pBddCpa.getLogger();
-
-    pBddCpa.injectRefinablePrecision();
-
-    return new BddRefiner(
-        config,
-        logger,
-        pBddCpa.getShutdownNotifier(),
-        cpa,
-        pBddCpa.getCFA());
-  }
-
-  protected BddRefiner(
-      final Configuration pConfig,
-      final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier,
-      final ConfigurableProgramAnalysis pCpa,
-      final CFA pCfa) throws CPAException, InvalidConfigurationException {
-    super(pCpa);
-
-    interpolatingRefiner  = new ValueAnalysisPathInterpolator(pConfig, pLogger, pShutdownNotifier, pCfa);
-    config                = pConfig;
-    cfa                   = pCfa;
-    logger                = pLogger;
+  private BddRefiner(
+      final FeasibilityChecker<ValueAnalysisState> pFeasibilityChecker,
+      final ValueAnalysisPathInterpolator pPathInterpolator) {
+    checker = pFeasibilityChecker;
+    interpolatingRefiner = pPathInterpolator;
   }
 
   @Override
-  protected CounterexampleInfo performRefinement(final ARGReachedSet reached, final ARGPath pErrorPath)
+  public CounterexampleInfo performRefinementForPath(
+      final ARGReachedSet reached, final ARGPath pErrorPath)
       throws CPAException, InterruptedException {
-
-    MutableARGPath errorPath = pErrorPath.mutableCopy();
 
     // if path is infeasible, try to refine the precision
     if (!isPathFeasable(pErrorPath)) {
-      if (performValueAnalysisRefinement(reached, errorPath)) {
+      if (performValueAnalysisRefinement(reached, pErrorPath)) {
         return CounterexampleInfo.spurious();
       }
     }
 
-    return CounterexampleInfo.feasible(pErrorPath, Model.empty());
+    // we use the imprecise version of the CounterexampleInfo, due to the possible
+    // merges which are done in the BDD Analysis
+    return CounterexampleInfo.feasibleImprecise(pErrorPath);
   }
 
   /**
@@ -152,14 +155,14 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
    * @returns true, if the value-analysis refinement was successful, else false
    * @throws CPAException when value-analysis interpolation fails
    */
-  private boolean performValueAnalysisRefinement(final ARGReachedSet reached, final MutableARGPath errorPath) throws CPAException, InterruptedException {
+  private boolean performValueAnalysisRefinement(final ARGReachedSet reached, final ARGPath errorPath) throws CPAException, InterruptedException {
     numberOfValueAnalysisRefinements++;
 
     int currentErrorPathId = errorPath.toString().hashCode();
 
     // same error path as in last iteration -> no progress
     if (currentErrorPathId == previousErrorPathId) {
-      throw new RefinementFailedException(Reason.RepeatedCounterexample, errorPath.immutableCopy());
+      throw new RefinementFailedException(Reason.RepeatedCounterexample, errorPath);
     }
 
     previousErrorPathId = currentErrorPathId;
@@ -211,15 +214,7 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
    * @return true, if the path is feasible, else false
    * @throws CPAException if the path check gets interrupted
    */
-  boolean isPathFeasable(ARGPath path) throws CPAException {
-    try {
-      // create a new ValueAnalysisPathChecker, which does check the given path at full precision
-      ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa, config);
-
+  boolean isPathFeasable(ARGPath path) throws CPAException, InterruptedException {
       return checker.isFeasible(path);
-    }
-    catch (InterruptedException | InvalidConfigurationException e) {
-      throw new CPAException("counterexample-check failed: ", e);
-    }
   }
 }

@@ -55,7 +55,7 @@ public interface AbstractStateWithAssumptions extends AbstractState {
    * and should not be used. In particular, there is no guarantee that the list
    * of edges corresponds to a connected chain of nodes and edges.
    *
-   * @param functionName
+   * @param functionName the function name where the assumptions are
    * @return A (possibly empty list) of assume edges.
    */
   List<AssumeEdge> getAsAssumeEdges(String functionName);

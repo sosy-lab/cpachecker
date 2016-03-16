@@ -25,7 +25,8 @@ package org.sosy_lab.cpachecker.cmdline;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.common.ShutdownManager;
+
 
 /**
  * This class is a thread which should be registered as a VM shutdown hook.
@@ -34,7 +35,7 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 class ShutdownHook extends Thread {
 
   private final Thread mainThread;
-  private final ShutdownNotifier shutdownNotifier;
+  private final ShutdownManager shutdownManager;
 
   private volatile boolean enabled = true;
 
@@ -42,9 +43,9 @@ class ShutdownHook extends Thread {
    * Create a shutdown hook. This constructor needs to be called from the
    * thread in which CPAchecker is run.
    */
-  public ShutdownHook(ShutdownNotifier pShutdownNotifier) {
+  public ShutdownHook(ShutdownManager pShutdownManager) {
     super("Shutdown Hook");
-    shutdownNotifier = checkNotNull(pShutdownNotifier);
+    shutdownManager = checkNotNull(pShutdownManager);
 
     mainThread = Thread.currentThread();
   }
@@ -65,7 +66,8 @@ class ShutdownHook extends Thread {
 
     if (enabled && mainThread.isAlive()) {
       // probably the user pressed Ctrl+C
-      shutdownNotifier.requestShutdown("The JVM is shutting down, probably because Ctrl+C was pressed.");
+      shutdownManager.requestShutdown(
+          "The JVM is shutting down, probably because Ctrl+C was pressed.");
 
       // Keep this thread alive to that the main thread has the chance to
       // print the statistics.

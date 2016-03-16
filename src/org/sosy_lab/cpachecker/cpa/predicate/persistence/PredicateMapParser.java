@@ -23,10 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -34,7 +35,8 @@ import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.sosy_lab.common.Pair;
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -42,15 +44,19 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.Converter;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.Converter.PrecisionConverter;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.FormulaParser;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -95,21 +101,24 @@ public class PredicateMapParser {
   @Option(secure=true, description="Apply location- and function-specific predicates globally (to all locations in the program)")
   private boolean applyGlobally = false;
 
+  @Option(secure=true, description = "when reading predicates from file, convert them from Integer- to BV-theory or reverse.")
+  private PrecisionConverter encodePredicates = PrecisionConverter.DISABLE;
+
   private final CFA cfa;
 
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
   private final FormulaManagerView fmgr;
   private final AbstractionManager amgr;
 
   private final Map<Integer, CFANode> idToNodeMap = Maps.newHashMap();
 
-  public PredicateMapParser(Configuration config, CFA pCfa,
+  public PredicateMapParser(Configuration pConfig, CFA pCfa,
       LogManager pLogger,
       FormulaManagerView pFmgr, AbstractionManager pAmgr) throws InvalidConfigurationException {
-    config.inject(this);
+    pConfig.inject(this);
 
     cfa = pCfa;
-    logger = pLogger;
+    logger = new LogManagerWithoutDuplicates(pLogger);
     fmgr = pFmgr;
     amgr = pAmgr;
   }
@@ -118,7 +127,6 @@ public class PredicateMapParser {
    * Parse a file in the format described above and create a PredicatePrecision
    * object with all the predicates.
    * @param file The file to parse.
-   * @param initialGlobalPredicates A additional set of global predicates (for all locations).
    * @return A PredicatePrecision containing all the predicates from the file.
    * @throws IOException If the file cannot be read.
    * @throws PredicateParsingFailedException If there is a syntax error in the file.
@@ -134,7 +142,7 @@ public class PredicateMapParser {
   }
 
   /**
-   * @see #parsePredicates(Path, CFA, Collection, FormulaManager, AbstractionManager, LogManager)
+   * @see #parsePredicates(Path)
    * Instead of reading from a file, this method reads from a BufferedReader
    * (available primarily for testing).
    */
@@ -146,6 +154,18 @@ public class PredicateMapParser {
     int lineNo = defParsingResult.getFirst();
     String commonDefinitions = defParsingResult.getSecond();
 
+    final Converter converter = Converter.getConverter(encodePredicates, cfa, logger);
+    if (encodePredicates != PrecisionConverter.DISABLE) {
+      final StringBuilder str = new StringBuilder();
+      for (String line : commonDefinitions.split("\n")) {
+        final String converted = convertFormula(converter, line);
+        if (converted != null) {
+          str.append(converted).append("\n");
+        }
+      }
+      commonDefinitions = str.toString();
+    }
+
     // second, read map of predicates
     Set<AbstractionPredicate> globalPredicates = Sets.newHashSet();
     SetMultimap<String, AbstractionPredicate> functionPredicates = HashMultimap.create();
@@ -156,7 +176,6 @@ public class PredicateMapParser {
     while ((currentLine = reader.readLine()) != null) {
       lineNo++;
       currentLine = currentLine.trim();
-
       if (currentLine.isEmpty()) {
         // blank lines separates sections
         currentSet = null;
@@ -227,6 +246,17 @@ public class PredicateMapParser {
       } else {
         // we expect a predicate
         if (currentLine.startsWith("(assert ") && currentLine.endsWith(")")) {
+
+          if (encodePredicates != PrecisionConverter.DISABLE) {
+            currentLine = convertFormula(converter, currentLine);
+            if (currentLine == null) {
+              // ignore formula, if converting fails.
+              // We parse only predicates for a precision,
+              // so we can ignore some predicates without losing too much information.
+              continue;
+            }
+          }
+
           BooleanFormula f;
           try {
             f = fmgr.parse(commonDefinitions + currentLine);
@@ -245,6 +275,10 @@ public class PredicateMapParser {
     return new PredicatePrecision(
         ImmutableSetMultimap.<Pair<CFANode,Integer>, AbstractionPredicate>of(),
         localPredicates, functionPredicates, globalPredicates);
+  }
+
+  private @Nullable String convertFormula(final Converter converter, final String line) {
+    return FormulaParser.convertFormula(checkNotNull(converter), line, logger);
   }
 
   private CFANode getCFANodeWithId(int id) {
