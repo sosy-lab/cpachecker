@@ -34,16 +34,13 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
 public class BDDReducer implements Reducer {
 
-  private final NamedRegionManager mgr;
   private final PredicateManager predmgr;
 
-  BDDReducer(NamedRegionManager pMgr, PredicateManager pPredmgr) {
-    mgr = pMgr;
+  BDDReducer(PredicateManager pPredmgr) {
     predmgr = pPredmgr;
   }
 
