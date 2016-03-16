@@ -54,6 +54,8 @@ public final class PolicyAbstractedState extends PolicyState
    */
   private final int locationID;
 
+  private final int hashCode;
+
   private PolicyAbstractedState(CFANode node,
       Map<Template, PolicyBound> pAbstraction,
       CongruenceState pCongruence,
@@ -70,6 +72,17 @@ public final class PolicyAbstractedState extends PolicyState
     congruence = pCongruence;
     locationID = pLocationID;
     manager = pManager;
+    hashCode =
+        Objects.hash(
+            node,
+            ssaMap,
+            pointerTargetSet,
+            extraInvariant,
+            predecessor,
+            abstraction,
+            congruence,
+            locationID,
+            manager);
   }
 
   public int getLocationID() {
@@ -203,16 +216,7 @@ public final class PolicyAbstractedState extends PolicyState
 
   @Override
   public int hashCode() {
-    return Objects.hash(
-        getNode(),
-        ssaMap,
-        pointerTargetSet,
-        extraInvariant,
-        predecessor,
-        abstraction,
-        congruence,
-        locationID,
-        manager);
+    return hashCode;
   }
 
   @Override
@@ -225,7 +229,7 @@ public final class PolicyAbstractedState extends PolicyState
       return Objects.equals(getNode(), other.getNode())
           && Objects.equals(pointerTargetSet, other.pointerTargetSet)
           && Objects.equals(extraInvariant, other.extraInvariant)
-          && Objects.equals(predecessor, other.predecessor)
+          && predecessor.equals(other.predecessor)
           && Objects.equals(abstraction, other.abstraction)
           && Objects.equals(congruence, other.congruence)
           && Objects.equals(locationID, other.locationID)
