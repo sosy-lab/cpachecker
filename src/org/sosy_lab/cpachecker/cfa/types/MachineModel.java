@@ -50,51 +50,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
  */
 public enum MachineModel {
   /**
-   * Machine model representing a 32bit Linux machine
-   */
-  LINUX32(
-      // numeric types
-      2,  // short
-      4,  // int
-      4,  // long int
-      8,  // long long int
-      4,  // float
-      8,  // double
-      12, // long double
-
-      // other
-      1, // void
-      1, // bool
-      4,  // pointer
-
-      false // enablePadding
-      ),
-
-  /**
-   * Machine model representing a 64bit Linux machine
-   */
-  LINUX64(
-      // numeric types
-      2,  // short
-      4,  // int
-      8,  // long int
-      8,  // long long int
-      4,  // float
-      8,  // double
-      16, // long double
-
-      // other
-      1, // void
-      1, // bool
-      8, // pointer
-
-      false // enablePadding
-      ),
-
-  /**
    * Machine model representing a 32bit Linux machine with alignment:
    */
-  LINUX_WITH_ALIGNMENT32(
+  LINUX32(
       // numeric types
       2,  // short
       4,  // int
@@ -121,15 +79,13 @@ public enum MachineModel {
       // alignof other
       1, // void
       1, //bool
-      4, //pointer
-
-      true // enablePadding
-   ),
+      4  //pointer
+  ),
 
   /**
    * Machine model representing a 64bit Linux machine with alignment:
    */
-  LINUX_WITH_ALIGNMENT64(
+  LINUX64(
       // numeric types
       2,  // short
       4,  // int
@@ -142,7 +98,7 @@ public enum MachineModel {
       // other
       1, // void
       1, // bool
-      8,  // pointer
+      8, // pointer
 
       //  alignof numeric types
       2,  // short
@@ -156,10 +112,8 @@ public enum MachineModel {
       // alignof other
       1, // void
       1, // bool
-      8, // pointer
-
-      true // enablePadding
-   );
+      8  // pointer
+  );
 
   // numeric types
   private final int     sizeofShort;
@@ -198,16 +152,27 @@ public enum MachineModel {
   private final int mSizeofCharInBits = 8;
   private final CSimpleType ptrEquivalent;
 
-  // enable Padding and Alignof calculations
-  private boolean enabledPadding;
-
-  private MachineModel(int pSizeofShort, int pSizeofInt, int pSizeofLongInt,
-                       int pSizeofLongLongInt, int pSizeofFloat, int pSizeofDouble,
-                       int pSizeofLongDouble, int pSizeofVoid, int pSizeofBool, int pSizeOfPtr,
-                       int pAlignofShort, int pAlignofInt, int pAlignofLongInt,
-                       int pAlignofLongLongInt, int pAlignofFloat, int pAlignofDouble,
-                       int pAlignofLongDouble, int pAlignofVoid, int pAlignofBool, int pAlignofPtr,
-                       boolean pEnabledPadding) {
+  private MachineModel(
+      int pSizeofShort,
+      int pSizeofInt,
+      int pSizeofLongInt,
+      int pSizeofLongLongInt,
+      int pSizeofFloat,
+      int pSizeofDouble,
+      int pSizeofLongDouble,
+      int pSizeofVoid,
+      int pSizeofBool,
+      int pSizeOfPtr,
+      int pAlignofShort,
+      int pAlignofInt,
+      int pAlignofLongInt,
+      int pAlignofLongLongInt,
+      int pAlignofFloat,
+      int pAlignofDouble,
+      int pAlignofLongDouble,
+      int pAlignofVoid,
+      int pAlignofBool,
+      int pAlignofPtr) {
     sizeofShort = pSizeofShort;
     sizeofInt = pSizeofInt;
     sizeofLongInt = pSizeofLongInt;
@@ -230,8 +195,6 @@ public enum MachineModel {
     alignofBool = pAlignofBool;
     alignofPtr = pAlignofPtr;
 
-    enabledPadding = pEnabledPadding;
-
     if (sizeofPtr == sizeofInt) {
       ptrEquivalent = CNumericTypes.INT;
     } else if (sizeofPtr == sizeofLongInt) {
@@ -244,17 +207,6 @@ public enum MachineModel {
       throw new AssertionError("No ptr-Equivalent found");
     }
   }
-
-  private MachineModel(int pSizeofShort, int pSizeofInt, int pSizeofLongInt,
-                       int pSizeofLongLongInt, int pSizeofFloat, int pSizeofDouble,
-                       int pSizeofLongDouble, int pSizeofVoid, int pSizeofBool, int pSizeOfPtr,
-                       boolean pEnabledPadding) {
-    this(pSizeofShort, pSizeofInt, pSizeofLongInt, pSizeofLongLongInt, pSizeofFloat,
-         pSizeofDouble, pSizeofLongDouble, pSizeofVoid, pSizeofBool, pSizeOfPtr,
-         pSizeofShort, pSizeofInt, pSizeofLongInt, pSizeofLongLongInt, pSizeofFloat,
-         pSizeofDouble, pSizeofLongDouble, pSizeofVoid, pSizeofBool, pSizeOfPtr,
-         pEnabledPadding);
-    }
 
   public CSimpleType getPointerEquivalentSimpleType() {
     return ptrEquivalent;
@@ -665,9 +617,7 @@ public enum MachineModel {
       switch (pCompositeType.getKind()) {
         case STRUCT:
         case UNION:
-
-          int alignof = model.enabledPadding ? 1 : 0;   // used for compliance with previous
-                                                        // implementation alignof as sizeof
+          int alignof = 1;
           int alignOfType = 0;
           // TODO: Take possible padding into account
           for (CCompositeTypeMemberDeclaration decl : pCompositeType.getMembers()) {
@@ -729,9 +679,6 @@ public enum MachineModel {
   }
 
   public int getPadding(int pOffset, CType pType) {
-    if (!enabledPadding) {
-      return 0;
-    }
     int alignof = getAlignof(pType);
     int padding = alignof - (pOffset % alignof);
     if (padding < alignof) {
