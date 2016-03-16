@@ -31,11 +31,13 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.ShadowCFAEdgeFactory.ShadowCFANode;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 
 import java.io.IOException;
 import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
@@ -105,6 +107,7 @@ class ARGToGraphMLWriter {
       }
 
       sb.append(createNodeForElement(currentElement));
+      sb.append(createStateHint(currentElement));
 
       for (ARGState covered : currentElement.getCoveredByThis()) {
         edgeCounter++;
@@ -292,6 +295,65 @@ class ARGToGraphMLWriter {
     builder.append("      </data>\n");
     builder.append("      <data key=\"d3\"/>\n");
     builder.append("    </edge>\n\n");
+
+    return builder.toString();
+  }
+
+  private static String createStateHint(final ARGState pElement) {
+    final String stateNodeId = Integer.toString(pElement.getStateId());
+    final String hintNodeId = stateNodeId + "hint";
+
+    final StringBuilder labelBuilder = new StringBuilder();
+
+    Collection<AutomatonState> automatonStates =
+        AbstractStates.extractStatesByType(pElement, AutomatonState.class);
+    for (AutomatonState state : automatonStates) {
+      labelBuilder.append(state.toString());
+    }
+
+    final StringBuilder builder = new StringBuilder();
+
+    if (labelBuilder.length() > 0) {
+      // Add the hint node
+      builder.append("    <node id=\"n").append(hintNodeId).append("\">\n");
+      builder.append("      <data key=\"d0\">\n");
+      builder.append("        <y:ShapeNode>\n");
+      builder.append(
+          "          <y:Geometry height=\"50.0\" width=\"250.0\" x=\"0.0\" y=\"0.0\"/>\n");
+      builder.append("          <y:Fill color=\"#BEBEBE\" transparent=\"false\"/>\n");
+      builder.append("          <y:BorderStyle color=\"#000000\" type=\"line\" width=\"0.0\"/>\n");
+      builder
+          .append("          <y:NodeLabel alignment=\"center\" autoSizePolicy=\"content\" ")
+          .append("fontFamily=\"Dialog\" fontSize=\"12\" fontStyle=\"plain\" ")
+          .append("hasBackgroundColor=\"false\" hasLineColor=\"false\" modelName=\"internal\" ")
+          .append("modelPosition=\"c\" textColor=\"#000000\" visible=\"true\">")
+          .append(labelBuilder.toString())
+          .append("</y:NodeLabel>\n");
+      builder.append("          <y:Shape type=\"rectangle\"/>\n");
+      builder.append("        </y:ShapeNode>\n");
+      builder.append("      </data>\n");
+      builder.append("      <data key=\"d1\"/>\n");
+      builder.append("    </node>\n\n");
+
+      // Create the edge between node and hint node
+      edgeCounter++;
+      builder
+          .append("    <edge id=\"e")
+          .append(edgeCounter)
+          .append("\" source=\"n")
+          .append(stateNodeId)
+          .append("\" target=\"n")
+          .append(hintNodeId)
+          .append("\">\n");
+      builder.append("      <data key=\"d2\">\n");
+      builder.append("        <y:PolyLineEdge>\n");
+      builder.append("          <y:LineStyle color=\"#000000\" type=\"line\" width=\"1.0\"/>\n");
+      builder.append("          <y:Arrows source=\"none\" target=\"none\"/>\n");
+      builder.append("        </y:PolyLineEdge>\n");
+      builder.append("      </data>\n");
+      builder.append("      <data key=\"d3\"/>\n");
+      builder.append("    </edge>\n\n");
+    }
 
     return builder.toString();
   }
