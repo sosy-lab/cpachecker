@@ -161,17 +161,17 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
   public static class ComputeAbstractionState extends PredicateAbstractState {
 
     private static final long serialVersionUID = -3961784113582993743L;
-    private transient final CFANode location;
 
     /** A constraint is boolean formula that is valid for the current abstraction
      * and should be conjuncted with the result of the abstraction computation.
      * The constraint is a not instantiated formula. */
     private transient final List<BooleanFormula> constraint;
 
-    public ComputeAbstractionState(PathFormula pf, AbstractionFormula pA,
-        CFANode pLoc, PersistentMap<CFANode, Integer> pAbstractionLocations) {
+    public ComputeAbstractionState(
+        PathFormula pf,
+        AbstractionFormula pA,
+        PersistentMap<CFANode, Integer> pAbstractionLocations) {
       super(pf, pA, pAbstractionLocations);
-      location = pLoc;
       constraint = new ArrayList<>(); // NULL represents TRUE, because we do not have a FormulaManager here.
     }
 
@@ -192,10 +192,6 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     @Override
     public String toString() {
       return "Abstraction location: true, Abstraction: <TO COMPUTE>";
-    }
-
-    public CFANode getLocation() {
-      return location;
     }
 
     public List<BooleanFormula> getConstraints() {

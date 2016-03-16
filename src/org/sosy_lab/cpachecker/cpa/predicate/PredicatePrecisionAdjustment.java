@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.ComputeAbstractionState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -105,8 +106,9 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
       if (element instanceof ComputeAbstractionState) {
         PredicatePrecision precision = (PredicatePrecision)pPrecision;
+        CFANode location = AbstractStates.extractLocation(fullState);
 
-        return computeAbstraction((ComputeAbstractionState)element, precision);
+        return computeAbstraction((ComputeAbstractionState) element, precision, location);
       } else {
         return Optional.of(PrecisionAdjustmentResult.create(
             element, pPrecision, PrecisionAdjustmentResult.Action.CONTINUE));
@@ -124,14 +126,12 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
    * Compute an abstraction.
    */
   private Optional<PrecisionAdjustmentResult> computeAbstraction(
-      ComputeAbstractionState element,
-      PredicatePrecision precision)
+      ComputeAbstractionState element, PredicatePrecision precision, CFANode loc)
       throws SolverException, CPAException, InterruptedException {
 
     AbstractionFormula abstractionFormula = element.getAbstractionFormula();
     PersistentMap<CFANode, Integer> abstractionLocations = element.getAbstractionLocationsOnPath();
     PathFormula pathFormula = element.getPathFormula();
-    CFANode loc = element.getLocation();
     Integer newLocInstance = firstNonNull(abstractionLocations.get(loc), 0) + 1;
 
     numAbstractions++;
