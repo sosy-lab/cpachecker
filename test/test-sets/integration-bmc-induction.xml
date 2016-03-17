@@ -20,6 +20,20 @@
       <includesfile>../programs/benchmarks/HeapReach.set</includesfile>
       <includesfile>../programs/benchmarks/Loops.set</includesfile>
       <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+
+      <!--
+           The following two tasks need to be removed from the test set,
+           because they nondeterministically change between false (correct)
+           and true (wrong),
+           due to conflicts between the linear-arithmetic SMT solver
+           and the bit-precise invariant generator.
+           There is another task that _reliably_ documents the issue
+           (../programs/benchmarks/loops/sum03_false-unreach-call_true-termination.i)
+           and will therefore be preserved.
+       -->
+      <exclude>../programs/benchmarks/loop-acceleration/const_false-unreach-call1.i</exclude>
+      <exclude>../programs/benchmarks/loop-acceleration/underapprox_false-unreach-call2.i</exclude>
+
       <exclude>../programs/loop-lit/afnp2014_true-unreach-call.c.i</exclude>
       <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
       <exclude>../programs/benchmarks/seq-pthread/*</exclude>
