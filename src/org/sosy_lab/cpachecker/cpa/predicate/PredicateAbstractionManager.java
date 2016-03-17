@@ -1120,6 +1120,10 @@ public class PredicateAbstractionManager {
 
   // delegate methods
 
+  public AbstractionPredicate makeFalsePredicate() {
+    return amgr.makeFalsePredicate();
+  }
+
   public Set<AbstractionPredicate> extractPredicates(Region pRegion) {
     return amgr.extractPredicates(pRegion);
   }
