@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -132,9 +133,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   @Option(secure=true, description="Number of value determination steps allowed before widening is run."
       + " Value of '-1' runs value determination until convergence.")
   private int wideningThreshold = -1;
-
-  @Option(secure=true, description="Use extra invariant during abstraction")
-  private boolean useExtraPredicateDuringAbstraction = true;
 
   private final FormulaManagerView fmgr;
   private final CFA cfa;
@@ -269,22 +267,30 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       final UnmodifiableReachedSet states,
       final AbstractState pArgState) throws CPAException, InterruptedException {
 
-    final PolicyIntermediateState iState;
-    if (state.isAbstract()) {
+    // Formulas reported by other CPAs.
+    BooleanFormula extraInvariant = extractFormula(pArgState);
 
-      // We are re-doing the abstraction due to newly available information.
-      iState = state.asAbstracted().getGenerationState().get();
-    } else {
-      iState = state.asIntermediate();
+
+    if (state.isAbstract()) { // Re-entrance to precision adjustment.
+                              // Update the extra invariant or return identity.
+                              // We never need to re-compute the abstraction as the transition
+                              // relation already captures all possible behaviors from the previous
+                              // state.
+                              // Consequently, only the invariant at the *previous* state
+                              // is interesting.
+
+      PolicyAbstractedState aState = state.asAbstracted();
+      if (!aState.getExtraInvariant().equals(extraInvariant)) {
+        aState = aState.withNewExtraInvariant(extraInvariant);
+      }
+      return continueResult(aState, precision);
     }
+
+    final PolicyIntermediateState iState = state.asIntermediate();
     final boolean hasTargetState = filter(
         AbstractStates.asIterable(pArgState),
         AbstractStates.IS_TARGET_STATE).iterator().hasNext();
     final boolean shouldPerformAbstraction = shouldPerformAbstraction(iState, pArgState);
-
-    // Formulas reported by other CPAs.
-    BooleanFormula extraInvariant = extractFormula(pArgState);
-    logger.log(Level.FINE, "Reported formulas: ", extraInvariant);
 
     // Perform reachability checking, either for property states, or when the
     // formula gets too long, or before abstractions.
@@ -334,29 +340,19 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         outState = abstraction;
       }
 
-      if (state.isAbstract()) {
-        PolicyAbstractedState prevValue = state.asAbstracted();
-
-        // Return identity if the value did not get strictly smaller.
-        // !(outState < prevValue) <=> prevValue <= outState.
-        if (isLessOrEqualAbstracted(prevValue, outState)) {
-          outState = prevValue;
-          toNodePrecision = precision;
-        }
-      }
-
-      return Optional.of(
-          PrecisionAdjustmentResult.create(
-              outState,
-              toNodePrecision,
-              PrecisionAdjustmentResult.Action.CONTINUE));
+      return continueResult(outState, toNodePrecision);
     } else {
-      return Optional.of(
-          PrecisionAdjustmentResult.create(
-              iState,
-              precision,
-              PrecisionAdjustmentResult.Action.CONTINUE));
+      return continueResult(iState, precision);
     }
+  }
+
+  /**
+   * Shortcut to avoid clumsy object creation.
+   */
+  private Optional<PrecisionAdjustmentResult> continueResult(PolicyState s, Precision p) {
+    return Optional.of(
+        PrecisionAdjustmentResult.create(
+            s, p, PrecisionAdjustmentResult.Action.CONTINUE));
   }
 
   private PolicyAbstractedState emulateLargeStep(
@@ -607,7 +603,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       statistics.stopValueDeterminationTimer();
     }
 
-    return Optional.of(stateWithUpdates.replaceAbstraction(newAbstraction));
+    return Optional.of(stateWithUpdates.withNewAbstraction(newAbstraction));
   }
 
   /**
@@ -706,14 +702,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     try (OptimizationProverEnvironment optEnvironment = solver.newOptEnvironment()) {
       optEnvironment.addConstraint(annotatedFormula);
       optEnvironment.addConstraint(startConstraints);
-
-      if (useExtraPredicateDuringAbstraction) {
-
-        // Invariant from other CPAs.
-        optEnvironment.addConstraint(
-            fmgr.instantiate(extraInvariant, state.getPathFormula().getSsa())
-        );
-      }
 
       // Invariant from the invariant generator.
       optEnvironment.addConstraint(

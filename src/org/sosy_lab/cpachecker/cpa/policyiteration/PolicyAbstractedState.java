@@ -98,11 +98,20 @@ public final class PolicyAbstractedState extends PolicyState
   /**
    * Replace the abstraction with the given input.
    */
-  public PolicyAbstractedState replaceAbstraction(
+  public PolicyAbstractedState withNewAbstraction(
       Map<Template, PolicyBound> newAbstraction) {
     return new PolicyAbstractedState(getNode(),
         newAbstraction, congruence, locationID, manager, ssaMap,
         pointerTargetSet, extraInvariant, predecessor);
+  }
+
+  /**
+   * Replace the extra invariant with the given input.
+   */
+  public PolicyAbstractedState withNewExtraInvariant(BooleanFormula pNewExtraInvariant) {
+    return new PolicyAbstractedState(getNode(),
+        abstraction, congruence, locationID, manager, ssaMap,
+        pointerTargetSet, pNewExtraInvariant, predecessor);
   }
 
   public ImmutableMap<Template, PolicyBound> getAbstraction() {
