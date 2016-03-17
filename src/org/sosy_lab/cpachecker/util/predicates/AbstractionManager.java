@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -157,6 +159,12 @@ public final class AbstractionManager {
     AbstractionPredicate result = atomToPredicate.get(atom);
 
     if (result == null) {
+      checkArgument(
+          atom.equals(fmgr.uninstantiate(atom)),
+          "Regions and AbstractionPredicates should always represent uninstantiated formula, "
+              + "but attempting to create predicate for instantiated formula %s",
+          atom);
+
       BooleanFormula symbVar = fmgr.createPredicateVariable("PRED" + numberOfPredicates);
       Region absVar =
           (rmgr instanceof SymbolicRegionManager)
@@ -473,7 +481,7 @@ public final class AbstractionManager {
           @Override
           public Region apply(BooleanFormula pInput) {
             if (atomToPredicate.containsKey(pInput)) {
-            return atomToPredicate.get(pInput).getAbstractVariable();
+              return atomToPredicate.get(pInput).getAbstractVariable();
             }
             return makePredicate(pInput).getAbstractVariable();
           }
