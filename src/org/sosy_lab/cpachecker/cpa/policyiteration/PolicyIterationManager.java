@@ -262,39 +262,28 @@ public class PolicyIterationManager implements IPolicyIterationManager {
    */
   @Override
   public Optional<PrecisionAdjustmentResult> precisionAdjustment(
-      final PolicyState state,
-      final PolicyPrecision precision,
+      final PolicyState inputState,
+      final PolicyPrecision inputPrecision,
       final UnmodifiableReachedSet states,
       final AbstractState pArgState) throws CPAException, InterruptedException {
 
+    final PolicyIntermediateState iState;
+    if (inputState.isAbstract()) {
+      iState = inputState.asAbstracted().getGenerationState().get();
+    } else {
+      iState = inputState.asIntermediate();
+    }
+
+    final boolean hasTargetState = filter(
+        AbstractStates.asIterable(pArgState), AbstractStates.IS_TARGET_STATE).iterator().hasNext();
     // Formulas reported by other CPAs.
     BooleanFormula extraInvariant = extractFormula(pArgState);
 
-
-    if (state.isAbstract()) { // Re-entrance to precision adjustment.
-                              // Update the extra invariant or return identity.
-                              // We never need to re-compute the abstraction as the transition
-                              // relation already captures all possible behaviors from the previous
-                              // state.
-                              // Consequently, only the invariant at the *previous* state
-                              // is interesting.
-
-      PolicyAbstractedState aState = state.asAbstracted();
-      if (!aState.getExtraInvariant().equals(extraInvariant)) {
-        aState = aState.withNewExtraInvariant(extraInvariant);
-      }
-      return continueResult(aState, precision);
-    }
-
-    final PolicyIntermediateState iState = state.asIntermediate();
-    final boolean hasTargetState = filter(
-        AbstractStates.asIterable(pArgState),
-        AbstractStates.IS_TARGET_STATE).iterator().hasNext();
     final boolean shouldPerformAbstraction = shouldPerformAbstraction(iState, pArgState);
 
     // Perform reachability checking, either for property states, or when the
     // formula gets too long, or before abstractions.
-    if ((hasTargetState && checkTargetStates
+    if (!inputState.isAbstract() && (hasTargetState && checkTargetStates
         || (lengthLimitForSATCheck != -1 &&
               iState.getPathFormula().getLength() > lengthLimitForSATCheck)
         || shouldPerformAbstraction
@@ -306,28 +295,25 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
     // Perform the abstraction, if necessary.
     if (shouldPerformAbstraction) {
-      PolicyPrecision toNodePrecision = templateManager.precisionForNode(state.getNode());
+      CFANode node = inputState.getNode();
+      PolicyPrecision toNodePrecision = templateManager.precisionForNode(inputState.getNode());
       Optional<PolicyAbstractedState> sibling = findSibling(iState, states, pArgState);
 
-      int locationID;
-      if (sibling.isPresent()) {
-        locationID = sibling.get().getLocationID();
-      } else if (state.isAbstract()) {
-        locationID = state.asAbstracted().getLocationID();
-      } else {
-        locationID = locationIDGenerator.getFreshId();
-        logger.log(Level.INFO, "Generating new location ID", locationID,
-            " for node ", state.getNode());
-      }
-
-      statistics.startAbstractionTimer();
       PolicyAbstractedState abstraction;
-      try {
-        abstraction = performAbstraction(iState, locationID, sibling, toNodePrecision,
-            extraInvariant);
-        logger.log(Level.FINE, ">>> Abstraction produced a state: ", abstraction);
-      } finally {
-        statistics.stopAbstractionTimer();
+      if (!inputState.isAbstract()) {
+        statistics.startAbstractionTimer();
+        try {
+          abstraction = performAbstraction(
+              iState, getLocationID(sibling, node), sibling, toNodePrecision, extraInvariant);
+          logger.log(Level.FINE, ">>> Abstraction produced a state: ", abstraction);
+        } finally {
+          statistics.stopAbstractionTimer();
+        }
+      } else {
+
+        // Abstraction is as precise as possible with respect to the previously computed state.
+        // Strengthening can not make it more precise.
+        abstraction = inputState.asAbstracted().withNewExtraInvariant(extraInvariant);
       }
 
       PolicyAbstractedState outState;
@@ -335,15 +321,34 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
         // Emulate large-step (join followed by value-determination) on the
         // resulting abstraction at the same location.
-        outState = emulateLargeStep(abstraction, sibling.get(), precision, extraInvariant);
+        outState = emulateLargeStep(abstraction, sibling.get(), inputPrecision, extraInvariant);
       } else {
         outState = abstraction;
       }
 
+      if (inputState.isAbstract()
+          && isLessOrEqualAbstracted(inputState.asAbstracted(), outState)
+          && inputPrecision.equals(toNodePrecision)) {
+        outState = inputState.asAbstracted().withNewExtraInvariant(extraInvariant);
+        toNodePrecision = inputPrecision;
+      }
+
       return continueResult(outState, toNodePrecision);
     } else {
-      return continueResult(iState, precision);
+      return continueResult(iState, inputPrecision);
     }
+  }
+
+  private int getLocationID(Optional<PolicyAbstractedState> sibling, CFANode node) {
+    int locationID;
+    if (sibling.isPresent()) {
+      locationID = sibling.get().getLocationID();
+    } else {
+      locationID = locationIDGenerator.getFreshId();
+      logger.log(Level.INFO, "Generating new location ID", locationID,
+          " for node ", node);
+    }
+    return locationID;
   }
 
   /**

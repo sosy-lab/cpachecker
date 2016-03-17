@@ -109,6 +109,11 @@ public final class PolicyAbstractedState extends PolicyState
    * Replace the extra invariant with the given input.
    */
   public PolicyAbstractedState withNewExtraInvariant(BooleanFormula pNewExtraInvariant) {
+    if (pNewExtraInvariant.equals(extraInvariant)) {
+
+      // Very important to return identity.
+      return this;
+    }
     return new PolicyAbstractedState(getNode(),
         abstraction, congruence, locationID, manager, ssaMap,
         pointerTargetSet, pNewExtraInvariant, predecessor);
