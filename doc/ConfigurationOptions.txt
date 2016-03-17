@@ -2201,9 +2201,6 @@ cpa.value.trackJavaArrayValues = true
 custominstructions.binaryOperatorForSimpleCustomInstruction = ""
   allowed values: [MULTIPLY, DIVIDE, MODULO, PLUS, MINUS, SHIFT_LEFT, SHIFT_RIGHT, LESS_THAN, GREATER_THAN, LESS_EQUAL, GREATER_EQUAL, BINARY_AND, BINARY_XOR, BINARY_OR, EQUALS, NOT_EQUALS, ]
 
-# Prefix for files containing the custom instruction requirements.
-custominstructions.ciFilePrefix = "ci"
-
 # Signature for custom instruction, describes names and order of input and
 # output variables of a custom instruction
 custominstructions.ciSignature = "ci_spec.txt"
