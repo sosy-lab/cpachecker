@@ -296,6 +296,13 @@ public class BAMPredicateReducer implements Reducer {
     AbstractionFormula rootAbstraction = rootState.getAbstractionFormula();
     AbstractionFormula reducedAbstraction = reducedState.getAbstractionFormula();
 
+    // De-serialized AbstractionFormula are missing the Regions which we need for expand(),
+    // so we re-create them here.
+    rootAbstraction = pamgr.buildAbstraction(
+        rootAbstraction.asFormula(), rootAbstraction.getBlockFormula());
+    reducedAbstraction = pamgr.buildAbstraction(
+        reducedAbstraction.asFormula(), reducedAbstraction.getBlockFormula());
+
     Collection<AbstractionPredicate> rootPredicates = pamgr.extractPredicates(rootAbstraction.asInstantiatedFormula());
     Collection<AbstractionPredicate> relevantRootPredicates =
         cpa.getRelevantPredicatesComputer().getRelevantPredicates(pReducedContext, rootPredicates);
@@ -318,14 +325,9 @@ public class BAMPredicateReducer implements Reducer {
     SSAMap newSSA = builder.build();
     PathFormula newPathFormula = pmgr.makeNewPathFormula(pmgr.makeEmptyPathFormula(), newSSA);
 
-
-    Region reducedRegion =
-        pamgr.buildRegionFromFormulaWithUnknownAtoms(reducedAbstraction.asFormula());
-    Region rootRegion = pamgr.buildRegionFromFormulaWithUnknownAtoms(rootAbstraction.asFormula());
-
     AbstractionFormula newAbstractionFormula =
-        pamgr.expand(reducedRegion, rootRegion, relevantRootPredicates, newSSA,
-            reducedAbstraction.getBlockFormula());
+        pamgr.expand(reducedAbstraction.asRegion(), rootAbstraction.asRegion(),
+            relevantRootPredicates, newSSA, reducedAbstraction.getBlockFormula());
 
     PersistentMap<CFANode, Integer> abstractionLocations = rootState.getAbstractionLocationsOnPath();
 

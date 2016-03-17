@@ -1116,10 +1116,6 @@ public class PredicateAbstractionManager {
     return amgr.extractPredicates(pRegion);
   }
 
-  public Region buildRegionFromFormulaWithUnknownAtoms(BooleanFormula pF) {
-    return amgr.buildRegionFromFormulaWithUnknownAtoms(pF);
-  }
-
   private Set<AbstractionNode> getSuccessorsInAbstractionTree(int pIdOfLastAbstractionReused) {
     Preconditions.checkNotNull(reuseAbstractionsFrom);
     return abstractionStorage.getSuccessorAbstractions(pIdOfLastAbstractionReused);
