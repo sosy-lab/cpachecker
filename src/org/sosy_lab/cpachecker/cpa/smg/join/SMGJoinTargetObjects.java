@@ -89,7 +89,7 @@ final class SMGJoinTargetObjects {
   public SMGJoinTargetObjects(SMGJoinStatus pStatus,
                               SMG pSMG1, SMG pSMG2, SMG pDestSMG,
                               SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
-                              Integer pAddress1, Integer pAddress2) throws SMGInconsistentException {
+                              Integer pAddress1, Integer pAddress2, boolean identicalInputSmgs) throws SMGInconsistentException {
 
     inputSMG1 = pSMG1;
     inputSMG2 = pSMG2;
@@ -137,7 +137,7 @@ final class SMGJoinTargetObjects {
 
     SMGJoinSubSMGs jss = new SMGJoinSubSMGs(status, inputSMG1, inputSMG2, destSMG,
                                             mapping1, mapping2,
-                                            target1, target2, newObject, 0, false);
+                                            target1, target2, newObject, 0, false, identicalInputSmgs);
     if (jss.isDefined()) {
       defined = true;
       status = jss.getStatus();

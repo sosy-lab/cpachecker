@@ -46,12 +46,13 @@ final class SMGJoinValues {
   private final boolean recoverable;
 
   private static boolean joinValuesIdentical(SMGJoinValues pJV, Integer pV1, Integer pV2) {
-    if (pV1 == pV2) {
+    if (pV1.equals(pV2) ) {
       pJV.value = pV1;
       pJV.defined = true;
+      return true;
     }
 
-    return pV1.equals(pV2) && !pJV.getInputSMG1().isPointer(pV1) && !pJV.getInputSMG2().isPointer(pV2);
+    return false;
   }
 
   private static boolean joinValuesAlreadyJoined(SMGJoinValues pJV, Integer pV1, Integer pV2) {
@@ -70,8 +71,6 @@ final class SMGJoinValues {
       if (pJV.mapping1.containsKey(pV1) || pJV.mapping2.containsKey(pV2)) {
         return true;
       }
-
-      // TODO can be deleted when equality check of value is resolved in main function
 
       Integer newValue;
 
@@ -96,11 +95,11 @@ final class SMGJoinValues {
     return ((! pJV.inputSMG1.isPointer(pV1)) || (! pJV.inputSMG2.isPointer(pV2)));
   }
 
-  private static boolean joinValuesPointers(SMGJoinValues pJV, Integer pV1, Integer pV2) throws SMGInconsistentException {
+  private static boolean joinValuesPointers(SMGJoinValues pJV, Integer pV1, Integer pV2, boolean identicalInputSmg) throws SMGInconsistentException {
     SMGJoinTargetObjects jto = new SMGJoinTargetObjects(pJV.status,
                                                         pJV.inputSMG1, pJV.inputSMG2, pJV.destSMG,
                                                         pJV.mapping1, pJV.mapping2,
-                                                        pV1, pV2);
+                                                        pV1, pV2, identicalInputSmg);
     if (jto.isDefined()) {
       pJV.status = jto.getStatus();
       pJV.inputSMG1 = jto.getInputSMG1();
@@ -126,7 +125,7 @@ final class SMGJoinValues {
   public SMGJoinValues(SMGJoinStatus pStatus,
                         SMG pSMG1, SMG pSMG2, SMG pDestSMG,
                         SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
-                        Integer pValue1, Integer pValue2, int pLDiff, boolean pIncreaseLevelAndRelabelTargetSpc) throws SMGInconsistentException {
+                        Integer pValue1, Integer pValue2, int pLDiff, boolean pIncreaseLevelAndRelabelTargetSpc, boolean identicalInputSmg) throws SMGInconsistentException {
     mapping1 = pMapping1;
     mapping2 = pMapping2;
     status = pStatus;
@@ -134,10 +133,7 @@ final class SMGJoinValues {
     inputSMG2 = pSMG2;
     destSMG = pDestSMG;
 
-//    TODO: Currently, this happens even when we join different SMGs, which have identical sbymbolic values,
-//          but are not really identical. We might need to relabel the values before the full join
-//          to ensure the values are disjunct
-    if (SMGJoinValues.joinValuesIdentical(this, pValue1, pValue2)) {
+    if ( identicalInputSmg && SMGJoinValues.joinValuesIdentical(this, pValue1, pValue2)) {
       abstractionCandidates = ImmutableList.of();
       recoverable = defined;
       return;
@@ -161,7 +157,7 @@ final class SMGJoinValues {
       return;
     }
 
-    if (SMGJoinValues.joinValuesPointers(this, pValue1, pValue2)) {
+    if (SMGJoinValues.joinValuesPointers(this, pValue1, pValue2, identicalInputSmg)) {
       recoverable = defined;
       return;
     }

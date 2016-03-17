@@ -63,7 +63,7 @@ final class SMGJoinSubSMGs {
       SMG pSMG1, SMG pSMG2, SMG pDestSMG,
       SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
       SMGObject pObj1, SMGObject pObj2, SMGObject pNewObject,
-      int pLDiff, boolean pIncreaseLevelAndRelabelTargetSpc) throws SMGInconsistentException {
+      int pLDiff, boolean pIncreaseLevelAndRelabelTargetSpc, boolean identicalInputSmg) throws SMGInconsistentException {
 
     SMGJoinFields joinFields = new SMGJoinFields(pSMG1, pSMG2, pObj1, pObj2);
     subSmgAbstractionCandidates = ImmutableList.of();
@@ -129,7 +129,7 @@ final class SMGJoinSubSMGs {
       }
 
       SMGJoinValues joinValues = new SMGJoinValues(status, inputSMG1, inputSMG2, destSMG,
-          mapping1, mapping2, hvIn1.getValue(), hvIn2.getValue(), pLDiff, pIncreaseLevelAndRelabelTargetSpc);
+          mapping1, mapping2, hvIn1.getValue(), hvIn2.getValue(), pLDiff, pIncreaseLevelAndRelabelTargetSpc, identicalInputSmg);
 
       /* If the join of the values is not defined and can't be
        * recovered through abstraction, the join fails.*/
