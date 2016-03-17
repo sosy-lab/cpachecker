@@ -2150,6 +2150,9 @@ cpa.value.refinement.restart = PIVOT
 # error-path for the same target-state.
 cpa.value.refinement.searchForFurtherErrorPaths = false
 
+# store all refined paths
+cpa.value.refinement.storeAllRefinedPaths = false
+
 # whether to use the top-down interpolation strategy or the bottom-up
 # interpolation strategy
 cpa.value.refinement.useTopDownInterpolationStrategy = true
