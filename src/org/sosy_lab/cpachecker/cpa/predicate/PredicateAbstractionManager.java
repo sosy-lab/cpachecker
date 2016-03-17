@@ -1097,13 +1097,13 @@ public class PredicateAbstractionManager {
 
   /**
    * Create a single AbstractionPredicate representing a formula.
-   * @param pFormula The formula to use (without SSA indices!), may not simply be "true".
+   * @param pFormula The formula to use (with SSA indices), may not simply be "true".
    * @return A single abstraction predicate.
    */
   public AbstractionPredicate createPredicateFor(BooleanFormula pFormula) {
     checkArgument(!bfmgr.isTrue(pFormula));
 
-    return amgr.makePredicate(pFormula);
+    return amgr.makePredicate(fmgr.uninstantiate(pFormula));
   }
 
   // delegate methods

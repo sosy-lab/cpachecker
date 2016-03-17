@@ -316,7 +316,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       }
 
     } else {
-      preds = ImmutableList.of(predAbsMgr.createPredicateFor(fmgr.uninstantiate(interpolant)));
+      preds = ImmutableList.of(predAbsMgr.createPredicateFor(interpolant));
     }
     assert !preds.isEmpty() : "Interpolant without relevant predicates: " + pInterpolant + "; simplified to " + interpolant;
 
