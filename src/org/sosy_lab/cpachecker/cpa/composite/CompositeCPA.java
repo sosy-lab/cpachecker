@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
-import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -56,9 +56,8 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
 public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProvider, WrapperCPA, ConfigurableProgramAnalysisWithBAM, ProofChecker {
 
@@ -74,13 +73,6 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
     description="inform Composite CPA if it is run in a CPA enabled analysis because then it must "
       + "behave differently during merge.")
     private boolean inCPAEnabledAnalysis = false;
-
-    @Option(secure=true,
-    description="Number of times to run the precision adjustment. "
-        + "The subsequent runs of precision adjustment can see the precision adjustment results"
-        + "of the previous run.")
-    @IntegerOption(min=1)
-    private int precisionAdjustmentIterationLimit = 1;
   }
 
   private static class CompositeCPAFactory extends AbstractCPAFactory {
@@ -164,10 +156,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
         compositePrecisionAdjustment = new CompositeSimplePrecisionAdjustment(simplePrecisionAdjustments.build());
       } else {
         compositePrecisionAdjustment =
-            new CompositePrecisionAdjustment(
-                precisionAdjustments.build(),
-                getLogger(),
-                options.precisionAdjustmentIterationLimit);
+            new CompositePrecisionAdjustment(precisionAdjustments.build(), getLogger());
       }
 
       return new CompositeCPA(

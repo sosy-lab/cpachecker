@@ -924,11 +924,6 @@ cpa.composite.inCPAEnabledAnalysis = false
 cpa.composite.merge = "AGREE"
   allowed values: [PLAIN, AGREE]
 
-# Number of times to run the precision adjustment. The subsequent runs of
-# precision adjustment can see the precision adjustment resultsof the
-# previous run.
-cpa.composite.precisionAdjustmentIterationLimit = 1
-
 # Split MultiEdges and pass each inner edge to the component CPAs to allow
 # strengthen calls after each single edge. Does not work with backwards
 # analysis!
