@@ -300,7 +300,7 @@ public class CLangSMG extends SMG {
     Set<SMGObject> stray_objects = new HashSet<>(Sets.difference(getObjects(), seen));
     for (SMGObject stray_object : stray_objects) {
       if (stray_object.notNull()) {
-        if (isObjectValid(stray_object)) {
+        if (isObjectValid(stray_object) && !isObjectExternallyAllocated(stray_object)) {
           setMemoryLeak();
         }
         removeObjectAndEdges(stray_object);

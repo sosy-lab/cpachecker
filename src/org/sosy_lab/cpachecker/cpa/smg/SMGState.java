@@ -504,7 +504,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * @return the value and the state (may be the given state)
    */
   public SMGValueAndState readValue(SMGObject pObject, int pOffset, CType pType) throws SMGInconsistentException {
-    if (! heap.isObjectValid(pObject)) {
+    if (! heap.isObjectValid(pObject) && !heap.isObjectExternallyAllocated(pObject)) {
       SMGState newState = setInvalidRead();
       return SMGValueAndState.of(newState);
     }
@@ -603,7 +603,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   private SMGStateEdgePair writeValue(SMGObject pObject, int pOffset, CType pType, Integer pValue) throws SMGInconsistentException {
     // vgl Algorithm 1 Byte-Precise Verification of Low-Level List Manipulation FIT-TR-2012-04
 
-    if (! heap.isObjectValid(pObject)) {
+    if (! heap.isObjectValid(pObject) && !heap.isObjectExternallyAllocated(pObject)) {
       //Attempt to write to invalid object
       SMGState newState = setInvalidWrite();
       return new SMGStateEdgePair(newState);
@@ -868,6 +868,22 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return SMGKnownAddVal.valueOf(new_value, new_object, 0);
   }
 
+  /** memory externally allocated could be freed by the user */
+  // TODO: refactore
+  public SMGAddressValue addExternalAllocation(int pSize, String pLabel) throws SMGInconsistentException {
+    SMGRegion new_object = new SMGRegion(pSize, pLabel);
+    int new_value = SMGValueFactory.getNewValue();
+    SMGEdgePointsTo points_to = new SMGEdgePointsTo(new_value, new_object, 0);
+    heap.addHeapObject(new_object);
+    heap.addValue(new_value);
+    heap.addPointsToEdge(points_to);
+
+    heap.setExternallyAllocatedFlag(new_object, true);
+
+    performConsistencyCheck(SMGRuntimeCheck.HALF);
+    return SMGKnownAddVal.valueOf(new_value, new_object, 0);
+  }
+
   /** memory allocated on the stack is automatically freed when leaving the current function scope */
   public SMGAddressValue addNewStackAllocation(int pSize, String pLabel) throws SMGInconsistentException {
     SMGRegion new_object = new SMGRegion(pSize, pLabel);
@@ -931,7 +947,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    */
   public SMGState free(Integer address, Integer offset, SMGObject smgObject) throws SMGInconsistentException {
 
-    if (!heap.isHeapObject(smgObject)) {
+    if (!heap.isHeapObject(smgObject) && !heap.isObjectExternallyAllocated(smgObject)) {
       // You may not free any objects not on the heap.
 
       return setInvalidFree();
@@ -940,6 +956,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     if (!(offset == 0)) {
       // you may not invoke free on any address that you
       // didn't get through a malloc invocation.
+      // TODO: externally allocated memory could be freed partially
 
       return setInvalidFree();
     }
@@ -952,6 +969,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     }
 
     heap.setValidity(smgObject, false);
+    heap.setExternallyAllocatedFlag(smgObject, false);
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(smgObject);
 
     List<SMGEdgeHasValue> to_remove = new ArrayList<>();

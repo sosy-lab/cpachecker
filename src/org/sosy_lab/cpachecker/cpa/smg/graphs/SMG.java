@@ -47,6 +47,7 @@ public class SMG {
   private Set<SMGEdgeHasValue> hv_edges = new HashSet<>();
   private Map<Integer, SMGEdgePointsTo> pt_edges = new HashMap<>();
   private Map<SMGObject, Boolean> object_validity = new HashMap<>();
+  private Map<SMGObject, SMG.ExternalObjectFlag> objectAllocationIdentity = new HashMap<>();
   private NeqRelation neq = new NeqRelation();
 
   private final MachineModel machine_model;
@@ -93,6 +94,7 @@ public class SMG {
     hv_edges.addAll(pHeap.hv_edges);
     neq.putAll(pHeap.neq);
     object_validity.putAll(pHeap.object_validity);
+    objectAllocationIdentity.putAll(pHeap.objectAllocationIdentity);
     objects.addAll(pHeap.objects);
     pt_edges.putAll(pHeap.pt_edges);
     values.addAll(pHeap.values);
@@ -140,7 +142,7 @@ public class SMG {
    *
    */
   final public void addObject(final SMGObject pObj) {
-    addObject(pObj, true);
+    addObject(pObj, true, false);
   }
 
   /**
@@ -167,6 +169,7 @@ public class SMG {
   final public void removeObject(final SMGObject pObj) {
     objects.remove(pObj);
     object_validity.remove(pObj);
+    objectAllocationIdentity.remove(pObj);
   }
 
   /**
@@ -202,9 +205,10 @@ public class SMG {
    * @param pValidity Validity of the newly added object.
    *
    */
-  final public void addObject(final SMGObject pObj, final boolean pValidity) {
+  final public void addObject(final SMGObject pObj, final boolean pValidity, final boolean pExternal) {
     objects.add(pObj);
     object_validity.put(pObj, pValidity);
+    objectAllocationIdentity.put(pObj, new ExternalObjectFlag(pExternal));
   }
 
   /**
@@ -278,6 +282,24 @@ public class SMG {
     }
 
     object_validity.put(pObject, pValidity);
+  }
+
+  /**
+   * Sets the ExternallyAllocatedFlag of the object pObject to pExternal.
+   * Throws {@link IllegalArgumentException} if pObject is
+   * not present in SMG.
+   *
+   * Keeps consistency: no
+   *
+   * @param pObject An object.
+   * @param pExternal Validity to set.
+   */
+  public void setExternallyAllocatedFlag(SMGObject pObject, boolean pExternal) {
+    if (! objects.contains(pObject)) {
+      throw new IllegalArgumentException("Object [" + pObject + "] not in SMG");
+    }
+
+    objectAllocationIdentity.put(pObject, new ExternalObjectFlag(pExternal));
   }
 
   /**
@@ -428,6 +450,18 @@ public class SMG {
   }
 
   /**
+   * Getter for determing if the object pObject is externally allocated
+   * Throws {@link IllegalAccessException} if pObject is not present is the SMG
+   */
+  final public Boolean isObjectExternallyAllocated(SMGObject pObject) {
+    if ( ! objects.contains(pObject)) {
+      throw new IllegalArgumentException("Object [" + pObject + "] not in SMG");
+    }
+
+    return objectAllocationIdentity.get(pObject).isExternal();
+  }
+
+  /**
    * Getter for obtaining SMG machine model. Constant.
    * @return SMG machine model
    */
@@ -528,5 +562,21 @@ public class SMG {
 
   public Set<Integer> getNeqsForValue(Integer pV) {
     return neq.getNeqsForValue(pV);
+  }
+
+  private class ExternalObjectFlag {
+    boolean external;
+
+    public ExternalObjectFlag(boolean pExternal) {
+      external = pExternal;
+    }
+
+    public boolean isExternal() {
+      return external;
+    }
+
+    public void setExternal(boolean pExternal) {
+      external = pExternal;
+    }
   }
 }

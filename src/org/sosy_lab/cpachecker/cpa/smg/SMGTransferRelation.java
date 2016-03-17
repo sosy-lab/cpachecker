@@ -190,6 +190,12 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   private ImmutableSet<String> deallocationFunctions = ImmutableSet.of(
       "free");
 
+  @Option(secure = true, name="externalAllocationFunction", description = "Function which indicate on external allocated memory")
+  private String externalAllocationFunction = "ext_allocation";
+
+  @Option(secure = true, name = "externalAllocationSize", description = "Default size of externally allocated memory")
+  private int externalAllocationSize = Integer.MAX_VALUE;
+
   final private LogManagerWithoutDuplicates logger;
   final private MachineModel machineModel;
   private final AtomicInteger id_counter;
@@ -388,6 +394,24 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       return expressionEvaluator.evaluateAddress(pState, pCfaEdge, pRvalue);
     }
 
+    public final SMGAddressValueAndStateList evaluateExternalAllocation(CFunctionCallExpression pFunctionCall,
+        SMGState pState, CFAEdge pCFAEdge) throws SMGInconsistentException {
+      SMGState currentState = pState;
+
+      String functionName = pFunctionCall.getFunctionNameExpression().toASTString();
+
+      List<SMGAddressValueAndState> result = new ArrayList<>();
+
+      // TODO line numbers are not unique when we have multiple input files!
+      String allocation_label = functionName + "_ID" + SMGValueFactory.getNewValue() + "_Line:"
+          + pFunctionCall.getFileLocation().getStartingLineNumber();
+      SMGAddressValue new_address = currentState.addExternalAllocation(externalAllocationSize,
+          allocation_label);
+
+      result.add(SMGAddressValueAndState.of(currentState, new_address));
+
+      return SMGAddressValueAndStateList.copyOfAddressValueList(result);
+    }
     /** The method "alloca" (or "__builtin_alloca") allocates memory from the stack.
      * The memory is automatically freed at function-exit.
      */
@@ -620,7 +644,8 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     public final boolean isABuiltIn(String functionName) {
       return (BUILTINS.contains(functionName) || isNondetBuiltin(functionName) ||
-          isConfigurableAllocationFunction(functionName) || isDeallocationFunction(functionName));
+          isConfigurableAllocationFunction(functionName) || isDeallocationFunction(functionName) ||
+          isExternalAllocationFunction(functionName));
     }
 
     private static final String NONDET_PREFIX = "__VERIFIER_nondet_";
@@ -634,6 +659,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     public boolean isDeallocationFunction(String functionName) {
       return deallocationFunctions.contains(functionName);
+    }
+
+    public boolean isExternalAllocationFunction(String functionName) {
+      return externalAllocationFunction.equals(functionName);
     }
 
     public SMGAddressValueAndStateList evaluateMemcpy(CFunctionCallExpression pFunctionCall,
@@ -1258,6 +1287,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         if (builtins.isDeallocationFunction(functionName)) {
           newStates = builtins.evaluateFree(cFCExpression, newState, pCfaEdge);
         }
+        if (builtins.isExternalAllocationFunction(functionName)) {
+          newStates = builtins.evaluateExternalAllocation(cFCExpression, newState, pCfaEdge).asSMGStateList();
+        }
+
         switch (functionName) {
         case "__VERIFIER_BUILTIN_PLOT":
           builtins.evaluateVBPlot(cFCExpression, newState);
@@ -2187,6 +2220,11 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
             SMGAddressValueAndStateList configAllocEdge = builtins.evaluateConfigurableAllocationFunction(
                 pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
             return configAllocEdge;
+          }
+          if (builtins.isExternalAllocationFunction(functionName)) {
+            SMGAddressValueAndStateList extAllocEdge = builtins.evaluateExternalAllocation
+                (pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
+            return extAllocEdge;
           }
           switch (functionName) {
           case "__VERIFIER_BUILTIN_PLOT":

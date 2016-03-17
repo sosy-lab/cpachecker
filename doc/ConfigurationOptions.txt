@@ -1801,6 +1801,12 @@ cpa.smg.exportSMG.file = "smg/smg-%s.dot"
 cpa.smg.exportSMGwhen = NEVER
   enum:     [NEVER, LEAF, INTERESTING, EVERY]
 
+# Function which indicate on external allocated memory
+cpa.smg.externalAllocationFunction = "ext_allocation"
+
+# Default size of externally allocated memory
+cpa.smg.externalAllocationSize = Integer.MAX_VALUE
+
 # Size of memory that cannot be calculated will be guessed.
 cpa.smg.guessSizeOfUnknownMemorySize = false
 
@@ -1988,9 +1994,6 @@ cpa.stator.policy.unrollingRefinementThreshold = 2
 
 # Cache formulas produced by path formula manager
 cpa.stator.policy.useCachingPathFormulaManager = true
-
-# Use extra invariant during abstraction
-cpa.stator.policy.useExtraPredicateDuringAbstraction = true
 
 # Generate invariants and strengthen the formulas during abstraction with
 # them.
