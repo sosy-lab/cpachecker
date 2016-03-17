@@ -111,9 +111,6 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathCounterTemplate dumpCIRequirements = PathCounterTemplate.ofFormatString("ci%d.smt");
 
-  @Option(secure=true, description="Prefix for files containing the custom instruction requirements.")
-  private String ciFilePrefix = "ci";
-
   @Option(secure=true, description="Qualified name of class for abstract state which provides custom instruction requirements.")
   private String requirementsStateClassName;
 
