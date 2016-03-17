@@ -27,8 +27,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -38,8 +39,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.NonMergeableAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -162,21 +163,20 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
 
     private static final long serialVersionUID = -3961784113582993743L;
 
-    /** A constraint is boolean formula that is valid for the current abstraction
-     * and should be conjuncted with the result of the abstraction computation.
-     * The constraint is a not instantiated formula. */
-    private transient final List<BooleanFormula> constraint;
+    /** Additional predicates are not instantiated formulas,
+     * which can be used for the abstraction. */
+    private transient final Set<AbstractionPredicate> additionalPredicates;
 
     public ComputeAbstractionState(
         PathFormula pf,
         AbstractionFormula pA,
         PersistentMap<CFANode, Integer> pAbstractionLocations) {
       super(pf, pA, pAbstractionLocations);
-      constraint = new ArrayList<>(); // NULL represents TRUE, because we do not have a FormulaManager here.
+      additionalPredicates = new HashSet<>();
     }
 
-    public void addConstraint(BooleanFormula pConstraint) {
-      constraint.add(pConstraint);
+    public void addAdditionalPredicates(Collection<AbstractionPredicate> pPredicates) {
+      additionalPredicates.addAll(pPredicates);
     }
 
     @Override
@@ -194,8 +194,8 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
       return "Abstraction location: true, Abstraction: <TO COMPUTE>";
     }
 
-    public List<BooleanFormula> getConstraints() {
-      return constraint;
+    public Set<AbstractionPredicate> getAdditionalPredicates() {
+      return additionalPredicates;
     }
   }
 
