@@ -24,11 +24,9 @@
 package org.sosy_lab.cpachecker.util.predicates.regions;
 
 import static com.google.common.base.Preconditions.*;
-import static com.google.common.collect.FluentIterable.from;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Set;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.Triple;
@@ -185,17 +183,6 @@ public class SymbolicRegionManager implements RegionManager {
   @Override
   public Triple<Region, Region, Region> getIfThenElse(Region pF) {
     throw new UnsupportedOperationException("Use toFormula(Region) instead of traversal.");
-  }
-
-  @Override
-  public Set<Region> extractPredicates(Region f) {
-    return from(fmgr.extractAtoms(toFormula(f), false))
-        .transform(new Function<BooleanFormula, Region>() {
-          @Override
-          public Region apply(BooleanFormula input) {
-            return new SymbolicRegion(bfmgr, input);
-          }
-        }).toSet();
   }
 
   @Override

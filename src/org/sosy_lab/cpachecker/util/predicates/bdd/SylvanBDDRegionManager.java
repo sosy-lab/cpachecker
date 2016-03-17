@@ -36,12 +36,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
 
 import javax.annotation.concurrent.GuardedBy;
-
-import jsylvan.JSylvan;
 
 import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -70,6 +67,8 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.Longs;
+
+import jsylvan.JSylvan;
 
 /**
  * A wrapper for the Sylvan (http://fmt.ewi.utwente.nl/tools/sylvan/) parallel BDD package,
@@ -296,11 +295,6 @@ class SylvanBDDRegionManager implements RegionManager {
     Region result = wrap(JSylvan.makeExists(unwrap(pF1), varSet));
     deref(varSet);
     return result;
-  }
-
-  @Override
-  public Set<Region> extractPredicates(Region pF) {
-    throw new UnsupportedOperationException();
   }
 
   @Override

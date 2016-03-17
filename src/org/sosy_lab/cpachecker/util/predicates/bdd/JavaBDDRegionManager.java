@@ -37,12 +37,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
-
-import net.sf.javabdd.BDD;
-import net.sf.javabdd.BDDFactory;
-import net.sf.javabdd.JFactory;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -69,9 +64,12 @@ import org.sosy_lab.solver.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.solver.visitors.BooleanFormulaVisitor;
 
 import com.google.common.base.Function;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+
+import net.sf.javabdd.BDD;
+import net.sf.javabdd.BDDFactory;
+import net.sf.javabdd.JFactory;
 /**
  * A wrapper for the javabdd (http://javabdd.sf.net) package.
  *
@@ -440,23 +438,6 @@ class JavaBDDRegionManager implements RegionManager {
     f.free();
 
     return result;
-  }
-
-  @Override
-  public Set<Region> extractPredicates(Region pF) {
-    cleanupReferences();
-
-    BDD f = unwrap(pF);
-    int[] vars = f.scanSet();
-    if (vars == null) {
-      return ImmutableSet.of();
-    }
-
-    ImmutableSet.Builder<Region> predicateBuilder = ImmutableSet.builder();
-    for (int var : vars) {
-      predicateBuilder.add(wrap(factory.ithVar(var)));
-    }
-    return predicateBuilder.build();
   }
 
   @Override
