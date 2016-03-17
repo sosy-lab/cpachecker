@@ -263,7 +263,7 @@ public class AppliedCustomInstructionParserTest {
     }
     int startNodeNr = expectedStart.getNodeNumber();
 
-    CustomInstructionApplications cia = aciParser.parse(p);
+    CustomInstructionApplications cia = aciParser.parse(p, Paths.createTempPath("ci_spec", "txt"));
     Map<CFANode, AppliedCustomInstruction> cis = cia.getMapping();
     Truth.assertThat(cis.size()).isEqualTo(4);
     List<CFANode> aciNodes = new ArrayList<>(2);
