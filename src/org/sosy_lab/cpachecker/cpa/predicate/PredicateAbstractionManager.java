@@ -243,12 +243,6 @@ public class PredicateAbstractionManager {
     }
 
     abstractionStorage = new PredicateAbstractionsStorage(reuseAbstractionsFrom, logger, fmgr, null);
-    SSAMap extractionSsa = SSAMap.emptySSAMap().withDefault(1);
-    for (AbstractionNode an : abstractionStorage.getAbstractions().values()) {
-      BooleanFormula instanceFm = fmgr.instantiate(an.getFormula(), extractionSsa);
-      extractPredicates(instanceFm);
-    }
-
   }
 
   /**
@@ -548,7 +542,7 @@ public class PredicateAbstractionManager {
         if (implication) {
           stats.numAbstractionReuses++;
 
-          Region reuseFormulaRegion = buildRegionFromFormula(reuseFormula);
+          Region reuseFormulaRegion = amgr.buildRegionFromFormulaWithUnknownAtoms(reuseFormula);
           return new AbstractionFormula(
               fmgr,
               reuseFormulaRegion,
@@ -569,13 +563,7 @@ public class PredicateAbstractionManager {
     BooleanFormula eliminationResult = fmgr.uninstantiate(
         fmgr.eliminateDeadVariables(pF, pSsa));
 
-    Collection<BooleanFormula> atoms = fmgr.extractAtoms(eliminationResult, false);
-    for (BooleanFormula atom: atoms) {
-      amgr.makePredicate(atom);
-      extractPredicates(atom);
-    }
-
-    return amgr.buildRegionFromFormula(eliminationResult);
+    return amgr.buildRegionFromFormulaWithUnknownAtoms(eliminationResult);
 
   }
 
@@ -734,7 +722,7 @@ public class PredicateAbstractionManager {
    */
   public AbstractionFormula buildAbstraction(final BooleanFormula f,
       final PathFormula blockFormula) {
-    Region r = amgr.buildRegionFromFormula(f);
+    Region r = amgr.buildRegionFromFormulaWithUnknownAtoms(f);
     return makeAbstractionFormula(r, blockFormula.getSsa(), blockFormula);
   }
 
@@ -1126,10 +1114,6 @@ public class PredicateAbstractionManager {
 
   public Set<AbstractionPredicate> extractPredicates(Region pRegion) {
     return amgr.extractPredicates(pRegion);
-  }
-
-  public Region buildRegionFromFormula(BooleanFormula pF) {
-    return amgr.buildRegionFromFormula(pF);
   }
 
   public Region buildRegionFromFormulaWithUnknownAtoms(BooleanFormula pF) {

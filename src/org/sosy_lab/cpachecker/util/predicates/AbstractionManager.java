@@ -54,7 +54,6 @@ import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Function;
-import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Maps;
 
@@ -433,18 +432,6 @@ public final class AbstractionManager {
     }
 
     return vars;
-  }
-
-
-  public Region buildRegionFromFormula(BooleanFormula pF) {
-    return rmgr.fromFormula(pF, fmgr,
-        Functions.compose(new Function<AbstractionPredicate, Region>() {
-
-          @Override
-          public Region apply(AbstractionPredicate pInput) {
-            return pInput.getAbstractVariable();
-          }
-        }, Functions.forMap(atomToPredicate)));
   }
 
   public Region buildRegionFromFormulaWithUnknownAtoms(BooleanFormula pF) {

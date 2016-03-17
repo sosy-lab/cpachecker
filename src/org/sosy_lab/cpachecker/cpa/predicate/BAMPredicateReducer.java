@@ -296,9 +296,6 @@ public class BAMPredicateReducer implements Reducer {
     AbstractionFormula rootAbstraction = rootState.getAbstractionFormula();
     AbstractionFormula reducedAbstraction = reducedState.getAbstractionFormula();
 
-    // create region predicates for every atom in formula
-    pamgr.extractPredicates(reducedAbstraction.asInstantiatedFormula());
-
     Collection<AbstractionPredicate> rootPredicates = pamgr.extractPredicates(rootAbstraction.asInstantiatedFormula());
     Collection<AbstractionPredicate> relevantRootPredicates =
         cpa.getRelevantPredicatesComputer().getRelevantPredicates(pReducedContext, rootPredicates);
@@ -322,8 +319,9 @@ public class BAMPredicateReducer implements Reducer {
     PathFormula newPathFormula = pmgr.makeNewPathFormula(pmgr.makeEmptyPathFormula(), newSSA);
 
 
-    Region reducedRegion = pamgr.buildRegionFromFormula(reducedAbstraction.asFormula());
-    Region rootRegion = pamgr.buildRegionFromFormula(rootAbstraction.asFormula());
+    Region reducedRegion =
+        pamgr.buildRegionFromFormulaWithUnknownAtoms(reducedAbstraction.asFormula());
+    Region rootRegion = pamgr.buildRegionFromFormulaWithUnknownAtoms(rootAbstraction.asFormula());
 
     AbstractionFormula newAbstractionFormula =
         pamgr.expand(reducedRegion, rootRegion, relevantRootPredicates, newSSA,

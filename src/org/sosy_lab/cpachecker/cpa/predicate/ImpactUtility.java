@@ -148,9 +148,6 @@ final class ImpactUtility {
 
     CFANode location = AbstractStates.extractLocation(s);
 
-    // Extract predicates from interpolants.
-    Collection<AbstractionPredicate> preds = predAbsMgr.extractPredicates(itp);
-
     // Compute an abstraction with the new predicates.
     abstractionTime.start();
     AbstractionFormula newAbstraction;
@@ -159,11 +156,13 @@ final class ImpactUtility {
       newAbstraction = predAbsMgr.buildAbstraction(fmgr.uninstantiate(itp), blockFormula);
 
     } else if (abstractInterpolantOnly) {
-      // Compute an abstraction of "itp"
+      // Compute an abstraction of "itp" using the predicates from "itp".
+      Collection<AbstractionPredicate> preds = predAbsMgr.extractPredicates(itp);
       newAbstraction = predAbsMgr.buildAbstraction(location, itp, blockFormula, preds);
 
     } else {
-      // Compute an abstraction of "lastAbstraction & blockFormula"
+      // Compute an abstraction of "lastAbstraction & blockFormula" using the predicates from "itp".
+      Collection<AbstractionPredicate> preds = predAbsMgr.extractPredicates(itp);
       newAbstraction = predAbsMgr.buildAbstraction(location, lastAbstraction, blockFormula, preds);
     }
     abstractionTime.stop();
