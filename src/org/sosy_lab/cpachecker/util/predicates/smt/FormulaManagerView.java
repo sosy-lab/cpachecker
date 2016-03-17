@@ -32,6 +32,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 
@@ -81,11 +82,9 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -1117,10 +1116,10 @@ public class FormulaManagerView {
   /**
    * Extract all atoms of a given boolean formula.
    */
-  public Collection<BooleanFormula> extractAtoms(
+  public ImmutableSet<BooleanFormula> extractAtoms(
       BooleanFormula pFormula,
       final boolean splitArithEqualities) {
-    final Set<BooleanFormula> result = new LinkedHashSet<>();
+    final ImmutableSet.Builder<BooleanFormula> result = ImmutableSet.builder();
     booleanFormulaManager.visitRecursively(new DefaultBooleanFormulaVisitor<TraversalProcess>(){
       @Override
       protected TraversalProcess visitDefault() {
@@ -1144,7 +1143,7 @@ public class FormulaManagerView {
       }
 
     }, pFormula);
-    return result;
+    return result.build();
   }
 
   /**

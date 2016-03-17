@@ -1116,14 +1116,14 @@ public class PredicateAbstractionManager {
    * call {@link #getPredicateFor(BooleanFormula)} instead.
    *
    * @param pFormula The formula with the atoms (with SSA indices).
-   * @return A (possibly empty) collection of AbstractionPredicates.
+   * @return A (possibly empty) collection of AbstractionPredicates without duplicates.
    */
   public Collection<AbstractionPredicate> getPredicatesForAtomsOf(BooleanFormula pFormula) {
     if (bfmgr.isFalse(pFormula)) {
       return ImmutableList.of(amgr.makeFalsePredicate());
     }
 
-    Collection<BooleanFormula> atoms = fmgr.extractAtoms(pFormula, splitItpAtoms);
+    Set<BooleanFormula> atoms = fmgr.extractAtoms(pFormula, splitItpAtoms);
 
     List<AbstractionPredicate> preds = new ArrayList<>(atoms.size());
 
