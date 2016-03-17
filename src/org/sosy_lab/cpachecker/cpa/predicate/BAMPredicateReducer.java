@@ -303,7 +303,7 @@ public class BAMPredicateReducer implements Reducer {
     reducedAbstraction = pamgr.buildAbstraction(
         reducedAbstraction.asFormula(), reducedAbstraction.getBlockFormula());
 
-    Collection<AbstractionPredicate> rootPredicates = pamgr.extractPredicates(rootAbstraction.asInstantiatedFormula());
+    Collection<AbstractionPredicate> rootPredicates = pamgr.getPredicatesForAtomsOf(rootAbstraction.asInstantiatedFormula());
     Collection<AbstractionPredicate> relevantRootPredicates =
         cpa.getRelevantPredicatesComputer().getRelevantPredicates(pReducedContext, rootPredicates);
     //for each removed predicate, we have to lookup the old (expanded) value and insert it to the reducedStates region

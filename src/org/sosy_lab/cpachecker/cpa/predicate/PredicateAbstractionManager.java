@@ -542,7 +542,7 @@ public class PredicateAbstractionManager {
         if (implication) {
           stats.numAbstractionReuses++;
 
-          Region reuseFormulaRegion = amgr.buildRegionFromFormulaWithUnknownAtoms(reuseFormula);
+          Region reuseFormulaRegion = amgr.convertFormulaToRegion(reuseFormula);
           return new AbstractionFormula(
               fmgr,
               reuseFormulaRegion,
@@ -563,7 +563,7 @@ public class PredicateAbstractionManager {
     BooleanFormula eliminationResult = fmgr.uninstantiate(
         fmgr.eliminateDeadVariables(pF, pSsa));
 
-    return amgr.buildRegionFromFormulaWithUnknownAtoms(eliminationResult);
+    return amgr.convertFormulaToRegion(eliminationResult);
 
   }
 
@@ -722,7 +722,7 @@ public class PredicateAbstractionManager {
    */
   public AbstractionFormula buildAbstraction(final BooleanFormula f,
       final PathFormula blockFormula) {
-    Region r = amgr.buildRegionFromFormulaWithUnknownAtoms(f);
+    Region r = amgr.convertFormulaToRegion(f);
     return makeAbstractionFormula(r, blockFormula.getSsa(), blockFormula);
   }
 
@@ -1020,7 +1020,7 @@ public class PredicateAbstractionManager {
   }
 
   private AbstractionFormula makeAbstractionFormula(Region abs, SSAMap ssaMap, PathFormula blockFormula) {
-    BooleanFormula symbolicAbs = amgr.toConcrete(abs);
+    BooleanFormula symbolicAbs = amgr.convertRegionToFormula(abs);
     BooleanFormula instantiatedSymbolicAbs = fmgr.instantiate(symbolicAbs, ssaMap);
 
     if (simplifyAbstractionFormula) {
@@ -1075,10 +1075,13 @@ public class PredicateAbstractionManager {
 
   /**
    * Extract all atoms from a formula and create predicates for them.
+   * If instead a single predicate should be created for the whole formula,
+   * call {@link #getPredicateFor(BooleanFormula)} instead.
+   *
    * @param pFormula The formula with the atoms (with SSA indices).
    * @return A (possibly empty) collection of AbstractionPredicates.
    */
-  public Collection<AbstractionPredicate> extractPredicates(BooleanFormula pFormula) {
+  public Collection<AbstractionPredicate> getPredicatesForAtomsOf(BooleanFormula pFormula) {
     if (bfmgr.isFalse(pFormula)) {
       return ImmutableList.of(amgr.makeFalsePredicate());
     }
@@ -1097,10 +1100,13 @@ public class PredicateAbstractionManager {
 
   /**
    * Create a single AbstractionPredicate representing a formula.
+   * If instead a predicate should be used for each atom in this formula,
+   * call {@link #getPredicatesForAtomsOf(BooleanFormula)}.
+   *
    * @param pFormula The formula to use (with SSA indices), may not simply be "true".
    * @return A single abstraction predicate.
    */
-  public AbstractionPredicate createPredicateFor(BooleanFormula pFormula) {
+  public AbstractionPredicate getPredicateFor(BooleanFormula pFormula) {
     checkArgument(!bfmgr.isTrue(pFormula));
 
     return amgr.makePredicate(fmgr.uninstantiate(pFormula));
@@ -1112,6 +1118,16 @@ public class PredicateAbstractionManager {
     return amgr.makeFalsePredicate();
   }
 
+  /**
+   * Return the set of predicates that occur in a region.
+   *
+   * Note: this method currently fails with SymbolicRegionManager,
+   * and it probably cannot really be fixed either, because when using symbolic regions
+   * we do not know what are the predicates (a predicate does not need to be an SMT atom,
+   * it can be larger).
+   *
+   * Thus better avoid using this method if possible.
+   */
   public Set<AbstractionPredicate> extractPredicates(Region pRegion) {
     return amgr.extractPredicates(pRegion);
   }

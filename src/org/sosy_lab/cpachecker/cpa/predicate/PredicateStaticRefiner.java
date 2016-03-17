@@ -503,9 +503,9 @@ public class PredicateStaticRefiner extends StaticRefiner
 
     Collection<AbstractionPredicate> preds;
     if (atomicPredicates) {
-      preds = predAbsManager.extractPredicates(relevantAssumesFormula);
+      preds = predAbsManager.getPredicatesForAtomsOf(relevantAssumesFormula);
     } else {
-      preds = ImmutableList.of(predAbsManager.createPredicateFor(relevantAssumesFormula));
+      preds = ImmutableList.of(predAbsManager.getPredicateFor(relevantAssumesFormula));
     }
 
     return preds;

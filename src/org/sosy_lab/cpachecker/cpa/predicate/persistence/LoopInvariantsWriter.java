@@ -109,7 +109,7 @@ public class LoopInvariantsWriter {
                            .toSortedSet(CFAUtils.NODE_NUMBER_COMPARATOR)) {
 
         Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
-        BooleanFormula formula = absmgr.toConcrete(region);
+        BooleanFormula formula = absmgr.convertRegionToFormula(region);
 
         writer.append("loop__");
         writer.append(loc.getFunctionName());
@@ -137,7 +137,7 @@ public class LoopInvariantsWriter {
       for (CFANode loc : from(cfa.getAllLoopHeads().get())
                            .toSortedSet(CFAUtils.NODE_NUMBER_COMPARATOR)) {
         Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
-        BooleanFormula formula = absmgr.toConcrete(region);
+        BooleanFormula formula = absmgr.convertRegionToFormula(region);
         Pair<String, List<String>> locInvariant = PredicatePersistenceUtils.splitFormula(fmgr, formula);
 
         for (String def : locInvariant.getSecond()) {

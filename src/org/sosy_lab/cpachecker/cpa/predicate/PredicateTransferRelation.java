@@ -529,7 +529,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
    */
   private void addConstraintIfValid(ComputeAbstractionState pPredicateState,
       BooleanFormula constraint) {
-    pPredicateState.addAdditionalPredicates(formulaManager.extractPredicates(constraint));
+    pPredicateState.addAdditionalPredicates(formulaManager.getPredicatesForAtomsOf(constraint));
   }
 
   private PredicateAbstractState strengthen(CFANode pNode, PredicateAbstractState pElement,

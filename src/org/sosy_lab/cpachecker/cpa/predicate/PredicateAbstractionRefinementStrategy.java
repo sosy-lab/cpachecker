@@ -294,7 +294,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
       itpSimplification.start();
       // need to call extractPredicates() for registering all predicates
-      allPredsCount = predAbsMgr.extractPredicates(interpolant).size();
+      allPredsCount = predAbsMgr.getPredicatesForAtomsOf(interpolant).size();
       interpolant = predAbsMgr.buildAbstraction(fmgr.uninstantiate(interpolant), blockFormula).asInstantiatedFormula();
       itpSimplification.stop();
 
@@ -309,14 +309,14 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     }
 
     if (atomicPredicates) {
-      preds = predAbsMgr.extractPredicates(interpolant);
+      preds = predAbsMgr.getPredicatesForAtomsOf(interpolant);
 
       if (useBddInterpolantSimplification) {
         irrelevantPredsInItp.setNextValue(allPredsCount-preds.size());
       }
 
     } else {
-      preds = ImmutableList.of(predAbsMgr.createPredicateFor(interpolant));
+      preds = ImmutableList.of(predAbsMgr.getPredicateFor(interpolant));
     }
     assert !preds.isEmpty() : "Interpolant without relevant predicates: " + pInterpolant + "; simplified to " + interpolant;
 
