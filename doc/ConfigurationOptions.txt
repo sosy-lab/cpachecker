@@ -2209,8 +2209,16 @@ custominstructions.binaryOperatorForSimpleCustomInstruction = ""
 # Prefix for files containing the custom instruction requirements.
 custominstructions.ciFilePrefix = "ci"
 
+# Signature for custom instruction, describes names and order of input and
+# output variables of a custom instruction
+custominstructions.ciSignature = "ci_spec.txt"
+
 # File to be parsed
 custominstructions.definitionFile = no default value
+
+# Where to dump the requirements on custom instruction extracted from
+# analysis
+custominstructions.dumpCIRequirements = "ci%d.smt"
 
 # Try to remove informations from requirements which is irrelevant for custom
 # instruction behavior
