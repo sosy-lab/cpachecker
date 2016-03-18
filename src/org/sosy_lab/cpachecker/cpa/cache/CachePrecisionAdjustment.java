@@ -23,18 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.cache;
 
-import java.util.HashMap;
-import java.util.Map;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
+import java.util.HashMap;
+import java.util.Map;
 
 /*
  * CAUTION: The cache for precision adjustment is only correct for CPAs that do
@@ -75,6 +76,18 @@ public class CachePrecisionAdjustment implements PrecisionAdjustment {
     }
 
     return lResult;
+  }
+
+  @Override
+  public Optional<PrecisionAdjustmentResult> postAdjustmentStrengthen(
+      AbstractState result,
+      Precision precision,
+      Iterable<AbstractState> otherStates,
+      Iterable<Precision> otherPrecisions,
+      UnmodifiableReachedSet states,
+      Function<AbstractState, AbstractState> stateProjection,
+      AbstractState resultFullState) throws CPAException, InterruptedException {
+    return Optional.of(PrecisionAdjustmentResult.create(result, precision, Action.CONTINUE));
   }
 
 }

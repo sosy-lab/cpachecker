@@ -23,10 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints.refiner;
 
-import java.io.PrintStream;
-import java.util.Collection;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
 
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -43,10 +41,13 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.ConstraintsPrecision;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
+import java.io.PrintStream;
+import java.util.Collection;
+
+import javax.annotation.Nullable;
 
 /**
  * {@link PrecisionAdjustment} for
@@ -73,6 +74,18 @@ public class ConstraintsPrecisionAdjustment implements PrecisionAdjustment, Stat
     return prec((ConstraintsState) pStateToAdjust,
                 (ConstraintsPrecision) pPrecision,
                 pFullState);
+  }
+
+  @Override
+  public Optional<PrecisionAdjustmentResult> postAdjustmentStrengthen(
+      AbstractState result,
+      Precision precision,
+      Iterable<AbstractState> otherStates,
+      Iterable<Precision> otherPrecisions,
+      UnmodifiableReachedSet states,
+      Function<AbstractState, AbstractState> stateProjection,
+      AbstractState resultFullState) throws CPAException, InterruptedException {
+    return Optional.of(PrecisionAdjustmentResult.create(result, precision, Action.CONTINUE));
   }
 
   private Optional<PrecisionAdjustmentResult> prec(

@@ -66,6 +66,18 @@ public class CHCPrecisionAdjustment implements PrecisionAdjustment {
 
   }
 
+  @Override
+  public Optional<PrecisionAdjustmentResult> postAdjustmentStrengthen(
+      AbstractState result,
+      Precision precision,
+      Iterable<AbstractState> otherStates,
+      Iterable<Precision> otherPrecisions,
+      UnmodifiableReachedSet states,
+      Function<AbstractState, AbstractState> stateProjection,
+      AbstractState resultFullState) throws CPAException, InterruptedException {
+    return Optional.of(PrecisionAdjustmentResult.create(result, precision, Action.CONTINUE));
+  }
+
   private CHCState findVariantAncestor(CHCState candidateState) {
     CHCState variantAncestor = candidateState.getAncestor();
     while (variantAncestor != null) {

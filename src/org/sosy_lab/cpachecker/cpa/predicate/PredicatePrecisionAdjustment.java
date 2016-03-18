@@ -26,10 +26,9 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
@@ -41,6 +40,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.ComputeAbstractionState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -53,9 +53,10 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.google.common.collect.Sets;
+import java.util.Set;
+import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
@@ -119,6 +120,18 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     } finally {
       totalPrecTime.stop();
     }
+  }
+
+  @Override
+  public Optional<PrecisionAdjustmentResult> postAdjustmentStrengthen(
+      AbstractState result,
+      Precision precision,
+      Iterable<AbstractState> otherStates,
+      Iterable<Precision> otherPrecisions,
+      UnmodifiableReachedSet states,
+      Function<AbstractState, AbstractState> stateProjection,
+      AbstractState resultFullState) throws CPAException, InterruptedException {
+    return Optional.of(PrecisionAdjustmentResult.create(result, precision, Action.CONTINUE));
   }
 
   /**

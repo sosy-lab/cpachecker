@@ -25,10 +25,9 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import static com.google.common.base.Preconditions.checkState;
 
-import java.io.PrintStream;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -59,9 +58,10 @@ import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableSet;
+import java.io.PrintStream;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
 @Options(prefix="cpa.value.blk")
 public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, StatisticsProvider {
@@ -272,5 +272,17 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
         state.forget(memoryLocation);
       }
     }
+  }
+
+  @Override
+  public Optional<PrecisionAdjustmentResult> postAdjustmentStrengthen(
+      AbstractState result,
+      Precision precision,
+      Iterable<AbstractState> otherStates,
+      Iterable<Precision> otherPrecisions,
+      UnmodifiableReachedSet states,
+      Function<AbstractState, AbstractState> stateProjection,
+      AbstractState resultFullState) throws CPAException, InterruptedException {
+    return Optional.of(PrecisionAdjustmentResult.create(result, precision, Action.CONTINUE));
   }
 }

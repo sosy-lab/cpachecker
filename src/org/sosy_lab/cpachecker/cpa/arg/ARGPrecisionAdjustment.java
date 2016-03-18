@@ -23,8 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import java.util.HashSet;
-import java.util.Set;
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -35,11 +38,8 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterables;
+import java.util.HashSet;
+import java.util.Set;
 
 public class ARGPrecisionAdjustment implements PrecisionAdjustment {
 
@@ -111,6 +111,18 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
     element.replaceInARGWith(resultElement); // this completely eliminates element
 
     return Optional.of(PrecisionAdjustmentResult.create(resultElement, newPrecision, action));
+  }
+
+  @Override
+  public Optional<PrecisionAdjustmentResult> postAdjustmentStrengthen(
+      AbstractState result,
+      Precision precision,
+      Iterable<AbstractState> otherStates,
+      Iterable<Precision> otherPrecisions,
+      UnmodifiableReachedSet states,
+      Function<AbstractState, AbstractState> stateProjection,
+      AbstractState resultFullState) throws CPAException, InterruptedException {
+    return Optional.of(PrecisionAdjustmentResult.create(result, precision, Action.CONTINUE));
   }
 
   /**
