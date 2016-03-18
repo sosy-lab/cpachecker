@@ -26,14 +26,12 @@ package org.sosy_lab.cpachecker.cpa.composite;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import com.google.common.base.Function;
@@ -167,14 +165,6 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
 
       // Recursion is acceptable here as we have very small chains.
       logger.log(Level.FINER, "Starting new fixpoint iteration of precision adjustment");
-
-      // A very hacky way to pass the updated state to the client CPA.
-      // Works for the most common case of ARGCPA wrapping CompositeCPA and does not hurt the other
-      // cases.
-      if (fullState instanceof ARGState
-            && ((AbstractSingleWrapperState) fullState).getWrappedState() == pElement) {
-        fullState = new ARGState(outElement, null);
-      }
       return prec0(outElement, outPrecision, pElements, projection, fullState, depth+1);
     }
   }
