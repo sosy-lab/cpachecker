@@ -193,9 +193,6 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   @Option(secure = true, name="externalAllocationFunction", description = "Function which indicate on external allocated memory")
   private String externalAllocationFunction = "ext_allocation";
 
-  @Option(secure = true, name = "externalAllocationSize", description = "Default size of externally allocated memory")
-  private int externalAllocationSize = Integer.MAX_VALUE;
-
   final private LogManagerWithoutDuplicates logger;
   final private MachineModel machineModel;
   private final AtomicInteger id_counter;
@@ -405,8 +402,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       // TODO line numbers are not unique when we have multiple input files!
       String allocation_label = functionName + "_ID" + SMGValueFactory.getNewValue() + "_Line:"
           + pFunctionCall.getFileLocation().getStartingLineNumber();
-      SMGAddressValue new_address = currentState.addExternalAllocation(externalAllocationSize,
-          allocation_label);
+      SMGAddressValue new_address = currentState.addExternalAllocation(allocation_label);
 
       result.add(SMGAddressValueAndState.of(currentState, new_address));
 

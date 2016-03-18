@@ -564,7 +564,7 @@ public class SMG {
     return neq.getNeqsForValue(pV);
   }
 
-  private class ExternalObjectFlag {
+  private static class ExternalObjectFlag {
     boolean external;
 
     public ExternalObjectFlag(boolean pExternal) {

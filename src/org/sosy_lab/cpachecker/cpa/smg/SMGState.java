@@ -39,6 +39,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
@@ -88,6 +89,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   private final int id;
 
   private final SMGRuntimeCheck runtimeCheckLevel;
+  private final String externalAllocationRecursiveName = "r_";
+  private final int externalAllocationSize;
+
 
   //TODO These flags are not enough, they should contain more about the nature of the error.
   private final boolean invalidWrite;
@@ -131,7 +135,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * @param pSMGRuntimeCheck consistency check threshold
    */
   public SMGState(LogManager pLogger, MachineModel pMachineModel, boolean pTargetMemoryErrors,
-      boolean pUnknownOnUndefined, SMGRuntimeCheck pSMGRuntimeCheck) {
+      boolean pUnknownOnUndefined, SMGRuntimeCheck pSMGRuntimeCheck, int pExternalAllocationSize) {
     heap = new CLangSMG(pMachineModel);
     logger = pLogger;
     id_counter = new AtomicInteger(0);
@@ -143,11 +147,13 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     invalidFree = false;
     invalidRead = false;
     invalidWrite = false;
+    externalAllocationSize = pExternalAllocationSize;
   }
 
   public SMGState(LogManager pLogger, boolean pTargetMemoryErrors,
       boolean pUnknownOnUndefined, SMGRuntimeCheck pSMGRuntimeCheck, CLangSMG pHeap,
-      AtomicInteger pId, int pPredId, Map<SMGKnownSymValue, SMGKnownExpValue> pMergedExplicitValues) {
+      AtomicInteger pId, int pPredId, Map<SMGKnownSymValue, SMGKnownExpValue> pMergedExplicitValues,
+      int pExternalAllocationSize) {
     // merge
     heap = pHeap;
     logger = pLogger;
@@ -161,6 +167,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     invalidRead = false;
     invalidWrite = false;
     explicitValues.putAll(pMergedExplicitValues);
+    externalAllocationSize = pExternalAllocationSize;
   }
 
   SMGState(SMGState pOriginalState, SMGRuntimeCheck pSMGRuntimeCheck) {
@@ -176,6 +183,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     invalidFree = pOriginalState.invalidFree;
     invalidRead = pOriginalState.invalidRead;
     invalidWrite = pOriginalState.invalidWrite;
+    externalAllocationSize = pOriginalState.externalAllocationSize;
   }
 
   /**
@@ -199,6 +207,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     invalidFree = pOriginalState.invalidFree;
     invalidRead = pOriginalState.invalidRead;
     invalidWrite = pOriginalState.invalidWrite;
+    externalAllocationSize = pOriginalState.externalAllocationSize;
   }
 
   private SMGState(SMGState pOriginalState, Property pProperty) {
@@ -235,11 +244,12 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     invalidFree = pInvalidFree;
     invalidRead = pInvalidRead;
     invalidWrite = pInvalidWrite;
+    externalAllocationSize = pOriginalState.externalAllocationSize;
   }
 
   public SMGState(Map<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues,
       CLangSMG pHeap,
-      LogManager pLogger) {
+      LogManager pLogger, int pExternalAllocationSize) {
 
     heap = pHeap;
     logger = pLogger;
@@ -255,6 +265,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     id_counter = new AtomicInteger(1);
     id = 0;
 
+    externalAllocationSize = pExternalAllocationSize;
   }
 
   /**
@@ -487,8 +498,16 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     // Do not create a value if the read is invalid.
     if(valueAndState.getObject().isUnknown()  && valueAndState.getSmgState().invalidRead == false) {
-      Integer newValue = SMGValueFactory.getNewValue();
-      SMGStateEdgePair stateAndNewEdge = writeValue(pObject, pOffset, pType, newValue);
+      SMGStateEdgePair stateAndNewEdge;
+      if (valueAndState.getSmgState().heap.isObjectExternallyAllocated(pObject) && pType.getCanonicalType()
+          instanceof CPointerType) {
+        SMGAddressValue new_address = valueAndState.getSmgState().addExternalAllocation(externalAllocationRecursiveName +
+            pObject.getLabel());
+        stateAndNewEdge = writeValue(pObject, pOffset, pType, new_address);
+      } else {
+        Integer newValue = SMGValueFactory.getNewValue();
+        stateAndNewEdge = writeValue(pObject, pOffset, pType, newValue);
+      }
       return SMGValueAndState.of(stateAndNewEdge.getState(), SMGKnownSymValue.valueOf(stateAndNewEdge.getNewEdge().getValue()));
     } else {
       return valueAndState;
@@ -762,7 +781,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       }
 
       return new SMGState(logger, memoryErrors, unknownOnUndefined, runtimeCheckLevel, destHeap,
-          id_counter, predecessorId, mergedExplicitValues);
+          id_counter, predecessorId, mergedExplicitValues, reachedState.externalAllocationSize);
     } else {
       return reachedState;
     }
@@ -870,8 +889,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   /** memory externally allocated could be freed by the user */
   // TODO: refactore
-  public SMGAddressValue addExternalAllocation(int pSize, String pLabel) throws SMGInconsistentException {
-    SMGRegion new_object = new SMGRegion(pSize, pLabel);
+  public SMGAddressValue addExternalAllocation(String pLabel) throws SMGInconsistentException {
+    SMGRegion new_object = new SMGRegion(externalAllocationSize, pLabel);
     int new_value = SMGValueFactory.getNewValue();
     SMGEdgePointsTo points_to = new SMGEdgePointsTo(new_value, new_object, 0);
     heap.addHeapObject(new_object);
@@ -1129,7 +1148,14 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   public void identifyEqualValues(SMGKnownSymValue pKnownVal1, SMGKnownSymValue pKnownVal2) {
 
     assert !isInNeq(pKnownVal1, pKnownVal2);
+    assert !(explicitValues.get(pKnownVal1) != null &&
+        explicitValues.get(pKnownVal1).equals(explicitValues.get(pKnownVal2)));
+
     heap.mergeValues(pKnownVal1.getAsInt(), pKnownVal2.getAsInt());
+    SMGKnownExpValue expVal = explicitValues.remove(pKnownVal2);
+    if (expVal != null) {
+      explicitValues.put(pKnownVal1, expVal);
+    }
   }
 
   public void identifyNonEqualValues(SMGKnownSymValue pKnownVal1, SMGKnownSymValue pKnownVal2) {
@@ -1219,7 +1245,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   public SMGInterpolant createInterpolant() {
     // TODO Copy necessary?
-    return new SMGInterpolant(new HashMap<>(explicitValues), new CLangSMG(heap), logger);
+    return new SMGInterpolant(new HashMap<>(explicitValues), new CLangSMG(heap), logger, externalAllocationSize);
   }
 
   public CType getTypeForMemoryLocation(MemoryLocation pMemoryLocation) {
