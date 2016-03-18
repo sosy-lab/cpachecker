@@ -196,8 +196,8 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
         outPrecisions.add(newPrecision);
       }
 
-      outElement = modified ? new CompositeState(outElements.build())     : comp;
-      outPrecision     = modified ? new CompositePrecision(outPrecisions.build()) : prec;
+      outElement = modified ? new CompositeState(outElements.build())     : outElement;
+      outPrecision     = modified ? new CompositePrecision(outPrecisions.build()) : outPrecision;
     }
 
     PrecisionAdjustmentResult out =
