@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2016  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.apron.refiner;
+package org.sosy_lab.cpachecker.cpa.octagon.refiner;
 
 import java.io.PrintStream;
 import java.util.Collection;
@@ -51,20 +51,19 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.apron.ApronCPA;
-import org.sosy_lab.cpachecker.cpa.apron.ApronManager;
-import org.sosy_lab.cpachecker.cpa.apron.ApronState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.octagon.refiner.OctagonAnalysisFeasabilityChecker;
+import org.sosy_lab.cpachecker.cpa.octagon.OctagonCPA;
+import org.sosy_lab.cpachecker.cpa.octagon.OctagonState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisPathInterpolator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
 import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
@@ -73,21 +72,17 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.collect.Multimap;
 
-import apron.ApronException;
-
 /**
  * Refiner implementation that delegates to {@link ValueAnalysisPathInterpolator},
  * and if this fails, optionally delegates also to {@link PredicateCPARefiner}.
  */
-@Options(prefix="cpa.apron.refiner")
-class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, StatisticsProvider {
+@Options(prefix="cpa.octagon.refiner")
+class OctagonArgBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, StatisticsProvider {
 
   /**
    * refiner used for value-analysis interpolation refinement
    */
   private final ValueAnalysisPathInterpolator interpolatingRefiner;
-
-  private final FeasibilityChecker<ValueAnalysisState> valueAnalysisChecker;
 
   /**
    * the hash code of the previous error path
@@ -100,12 +95,12 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
   @Option(secure=true, description="whether or not to check for repeated refinements, to then reset the refinement root")
   private boolean checkForRepeatedRefinements = true;
 
-  @Option(secure=true, description="Timelimit for the backup feasibility check with the apron analysis."
+  @Option(secure=true, description="Timelimit for the backup feasibility check with the octagon analysis."
       + "(use seconds or specify a unit; 0 for infinite)")
   @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
                   defaultUserUnit=TimeUnit.SECONDS,
                   min=0)
-  private TimeSpan timeForApronFeasibilityCheck = TimeSpan.ofNanos(0);
+  private TimeSpan timeForOctagonFeasibilityCheck = TimeSpan.ofNanos(0);
 
   // statistics
   private int numberOfValueAnalysisRefinements           = 0;
@@ -120,23 +115,25 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
    * value analysis refinements will make no sense any more because they are too
    * imprecise
    */
-  private boolean existsExplicitApronRefinement = false;
+  private boolean existsExplicitOctagonRefinement = false;
 
   private final CFA cfa;
+
+  private final OctagonManager octagonManager;
+  private final TransferRelation octagonTransfer;
+  private final FeasibilityChecker<ValueAnalysisState> valueChecker;
+
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final Configuration config;
 
-  private final ApronManager apronManager;
-  private final TransferRelation apronTransfer;
-
-  ApronARGBasedDelegatingRefiner(
+  OctagonArgBasedDelegatingRefiner(
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
       final CFA pCfa,
-      final ApronManager pApronManager,
-      final TransferRelation pApronTransfer,
+      final OctagonManager pOctagonManager,
+      final TransferRelation pOctagonTransfer,
       final FeasibilityChecker<ValueAnalysisState> pValueAnalysisFeasibilityChecker,
       final ValueAnalysisPathInterpolator pValueAnalysisPathInterpolator)
       throws InvalidConfigurationException {
@@ -147,9 +144,9 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
     shutdownNotifier = pShutdownNotifier;
     cfa = pCfa;
 
-    apronManager = pApronManager;
-    apronTransfer = pApronTransfer;
-    valueAnalysisChecker = pValueAnalysisFeasibilityChecker;
+    octagonManager = pOctagonManager;
+    octagonTransfer = pOctagonTransfer;
+    valueChecker = pValueAnalysisFeasibilityChecker;
     interpolatingRefiner = pValueAnalysisPathInterpolator;
   }
 
@@ -159,30 +156,26 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
       throws CPAException, InterruptedException {
 
     // if path is infeasible, try to refine the precision
-    if (!isPathFeasable(pErrorPath) && !existsExplicitApronRefinement) {
+    if (!isPathFeasable(pErrorPath) && !existsExplicitOctagonRefinement) {
       if (performValueAnalysisRefinement(reached, pErrorPath)) {
         return CounterexampleInfo.spurious();
       }
     }
 
     // if the path is infeasible, try to refine the precision, this time
-    // only with apron states, this is more precise than only using the value analysis
+    // only with octagons, this is more precise than only using the value analysis
     // refinement
-    OctagonAnalysisFeasabilityChecker apronChecker;
-    try {
-      apronChecker = createApronFeasibilityChecker(pErrorPath);
-    } catch (ApronException e) {
-      throw new RuntimeException("An error occured while operating with the apron library", e);
-    }
-    if (!apronChecker.isFeasible()) {
-      if (performApronAnalysisRefinement(reached, apronChecker)) {
-        existsExplicitApronRefinement = true;
+    OctagonAnalysisFeasabilityChecker octChecker = createOctagonFeasibilityChecker(pErrorPath);
+
+    if (!octChecker.isFeasible()) {
+      if (performOctagonAnalysisRefinement(reached, octChecker)) {
+        existsExplicitOctagonRefinement = true;
         return CounterexampleInfo.spurious();
       }
     }
 
     // we use the imprecise version of the CounterexampleInfo, due to the possible
-    // merges which are done in the ApronCPA
+    // merges which are done in the OctagonCPA
     return CounterexampleInfo.feasibleImprecise(pErrorPath);
   }
 
@@ -197,11 +190,11 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
   private boolean performValueAnalysisRefinement(final ARGReachedSet reached, final ARGPath errorPath) throws CPAException, InterruptedException {
     numberOfValueAnalysisRefinements++;
 
-    UnmodifiableReachedSet reachedSet       = reached.asReachedSet();
-    Precision precision                     = reachedSet.getPrecision(reachedSet.getLastState());
-    VariableTrackingPrecision apronPrecision = (VariableTrackingPrecision) Precisions.asIterable(precision).filter(VariableTrackingPrecision.isMatchingCPAClass(ApronCPA.class)).get(0);
+    UnmodifiableReachedSet reachedSet = reached.asReachedSet();
+    Precision precision               = reachedSet.getPrecision(reachedSet.getLastState());
+    VariableTrackingPrecision octPrecision         = (VariableTrackingPrecision) Precisions.asIterable(precision).filter(VariableTrackingPrecision.isMatchingCPAClass(OctagonCPA.class)).get(0);
 
-    VariableTrackingPrecision refinedApronPrecision;
+    VariableTrackingPrecision refinedOctPrecision;
     Pair<ARGState, CFAEdge> refinementRoot;
 
 
@@ -218,35 +211,33 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
       refinementRoot = interpolatingRefiner.determineRefinementRoot(errorPath, increment, true);
     }
 
-    refinedApronPrecision  = apronPrecision.withIncrement(increment);
+    refinedOctPrecision  = octPrecision.withIncrement(increment);
 
-    if (valueAnalysisRefinementWasSuccessful(errorPath, apronPrecision, refinedApronPrecision)) {
+    if (valueAnalysisRefinementWasSuccessful(errorPath, octPrecision, refinedOctPrecision)) {
       numberOfSuccessfulValueAnalysisRefinements++;
       reached.removeSubtree(refinementRoot.getFirst(),
-                            refinedApronPrecision,
-                            VariableTrackingPrecision.isMatchingCPAClass(ApronCPA.class));
+                            refinedOctPrecision,
+                            VariableTrackingPrecision.isMatchingCPAClass(OctagonCPA.class));
       return true;
-
     } else {
       return false;
     }
   }
 
-  private boolean performApronAnalysisRefinement(final ARGReachedSet reached, final OctagonAnalysisFeasabilityChecker checker) {
-    UnmodifiableReachedSet reachedSet       = reached.asReachedSet();
-    Precision precision                     = reachedSet.getPrecision(reachedSet.getLastState());
-    VariableTrackingPrecision apronPrecision = (VariableTrackingPrecision) Precisions.asIterable(precision).filter(VariableTrackingPrecision.isMatchingCPAClass(ApronCPA.class)).get(0);
+  private boolean performOctagonAnalysisRefinement(final ARGReachedSet reached, final OctagonAnalysisFeasabilityChecker checker) {
+    UnmodifiableReachedSet reachedSet = reached.asReachedSet();
+    Precision precision               = reachedSet.getPrecision(reachedSet.getLastState());
+    VariableTrackingPrecision octPrecision         = (VariableTrackingPrecision) Precisions.asIterable(precision).filter(VariableTrackingPrecision.isMatchingCPAClass(OctagonCPA.class)).get(0);
 
     Multimap<CFANode, MemoryLocation> increment = checker.getPrecisionIncrement();
-    // no newly tracked variables, so the refinement was not successful // TODO why is this commented out
+    // no newly tracked variables, so the refinement was not successful, TODO why is this code commented out?
     if (increment.isEmpty()) {
     //  return false;
     }
 
     reached.removeSubtree(((ARGState)reachedSet.getFirstState()).getChildren().iterator().next(),
-                          apronPrecision.withIncrement(increment),
-                          VariableTrackingPrecision.isMatchingCPAClass(ApronCPA.class));
-
+                           octPrecision.withIncrement(increment),
+                          VariableTrackingPrecision.isMatchingCPAClass(OctagonCPA.class));
     logger.log(Level.INFO, "Refinement successful, precision incremented, following variables are now tracked additionally:\n" + new TreeSet<>(increment.values()));
 
     return true;
@@ -297,7 +288,7 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
 
   @Override
   public String getName() {
-    return "ApronAnalysisDelegatingRefiner";
+    return "OctagonAnalysisDelegatingRefiner";
   }
 
   @Override
@@ -314,31 +305,31 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
    * @throws CPAException if the path check gets interrupted
    */
   boolean isPathFeasable(ARGPath path) throws CPAException, InterruptedException {
-    return valueAnalysisChecker.isFeasible(path);
+    return valueChecker.isFeasible(path);
   }
 
   /**
    * Creates a new OctagonAnalysisPathChecker, which checks the given path at full precision.
    */
-  private OctagonAnalysisFeasabilityChecker createApronFeasibilityChecker(ARGPath path) throws CPAException, ApronException {
+  private OctagonAnalysisFeasabilityChecker createOctagonFeasibilityChecker(ARGPath path) throws CPAException, InterruptedException {
     try {
       OctagonAnalysisFeasabilityChecker checker;
 
       // no specific timelimit set for octagon feasibility check
-      if (timeForApronFeasibilityCheck.isEmpty()) {
+      if (timeForOctagonFeasibilityCheck.isEmpty()) {
         checker =
             new OctagonAnalysisFeasabilityChecker(
                 config,
                 shutdownNotifier,
                 path,
-                ApronCPA.class,
+                OctagonCPA.class,
                 cfa.getVarClassification(),
-                apronTransfer,
-                new ApronState(logger, apronManager));
+                octagonTransfer,
+                new OctagonState(logger, octagonManager));
 
       } else {
         ShutdownManager shutdown = ShutdownManager.createWithParent(shutdownNotifier);
-        WalltimeLimit l = WalltimeLimit.fromNowOn(timeForApronFeasibilityCheck);
+        WalltimeLimit l = WalltimeLimit.fromNowOn(timeForOctagonFeasibilityCheck);
         ResourceLimitChecker limits = new ResourceLimitChecker(shutdown, Collections.<ResourceLimit>singletonList(l));
 
         limits.start();
@@ -347,17 +338,16 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
                 config,
                 shutdown.getNotifier(),
                 path,
-                ApronCPA.class,
+                OctagonCPA.class,
                 cfa.getVarClassification(),
-                apronTransfer,
-                new ApronState(logger, apronManager));
+                octagonTransfer,
+                new OctagonState(logger, octagonManager));
         limits.cancel();
       }
 
       return checker;
-    } catch (InterruptedException | InvalidConfigurationException e) {
+    } catch (InvalidConfigurationException e) {
       throw new CPAException("counterexample-check failed: ", e);
     }
   }
-
 }
