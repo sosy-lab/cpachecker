@@ -144,8 +144,8 @@ public class RuleSpecification {
 
   @Override
   public String toString() {
-    return "[specification=" + specificationKey + ", time=" + cpuTime +
-        ", status=" + specificationStatus + "]";
+    return "[assert=" + specificationKey + ", time=" + cpuTime +
+        ", verdict=" + specificationStatus + "]";
   }
 
 }

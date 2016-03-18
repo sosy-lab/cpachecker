@@ -76,17 +76,27 @@ public class ConditionalMAVListener implements AnalysisListener {
     // Get cpu time.
     Long currentCpuTime = mav.getCurrentCpuTime();
 
-    // Check HTL.
-    if (mav.getLastCheckedSpecification() == null &&
-        !mav.checkHardTimeLimit(currentCpuTime))
+    // Check First Interval Time Limit (FITL).
+    if (mav.getLastCheckedSpecification() == MultiAspectVerification.FIRST_SPEC &&
+        !mav.checkFirstIntervalTimeLimit(currentCpuTime))
     {
       // Stop analysis with verdict UNKNOWN.
-      throw new CPAException("Hard Time Limit was reached");
+      // TODO: add option for re-launching inside one verification run
+      throw new CPAException("First Interval Time Limit has been exhausted");
     }
 
-    // Check ATL.
+    // Check Idle Interval Time Limit (IITL).
+    if (mav.getLastCheckedSpecification() == null &&
+        !mav.checkIdleIntervalTimeLimit(currentCpuTime))
+    {
+      // Stop analysis with verdict UNKNOWN.
+      // TODO: add option for re-launching inside one verification run
+      throw new CPAException("Idle Interval Time Limit has been exhausted");
+    }
+
+    // Check Basic Interval Time Limit (BITL).
     if (mav.getLastCheckedSpecification() != null &&
-        !mav.checkAbstractionTimeLimit(currentCpuTime))
+        !mav.checkBasicIntervalTimeLimit(currentCpuTime))
     {
       ControlAutomatonCPA controlAutomatonCPA = mav.getCurrentControlAutomaton();
       SpecificationKey specificationKey = mav.getLastCheckedSpecification();
@@ -96,15 +106,16 @@ public class ConditionalMAVListener implements AnalysisListener {
       mav.disableSpecification(controlAutomatonCPA, specificationKey);
       if (mav.cleanPrecision(reachedSet, specificationKey))
       {
+        // deprecated time limit
         logger.log(Level.WARNING, "Cleaning precisions has exhausted its timeout and " +
             "was stopped");
       }
 
-      // Reset last checked specification (start checking for HTL).
+      // Reset last checked specification (start checking for IITL).
       mav.setLastCheckedSpecification(null);
 
-      logger.log(Level.INFO, "Specification " + specificationKey +
-          " has exhausted its Abstraction Time Limit " +
+      logger.log(Level.INFO, "Assert " + specificationKey +
+          " has exhausted its Basic Interval Time Limit " +
           "and will not be checked anymore");
       mav.printToFile();
     }
@@ -212,7 +223,7 @@ public class ConditionalMAVListener implements AnalysisListener {
         mav.changeSpecificationStatus(specificationKey, SpecificationStatus.UNSAFE);
 
         // Check STL.
-        if (!mav.checkSpecificationTimeLimit(cpuTime))
+        if (!mav.checkAssertTimeLimit(cpuTime))
         {
           stopCheckingSpecification(SpecificationStatus.UNSAFE, pReached, reached, path, specificationKey);
           mav.setLastCheckedSpecification(null);
@@ -230,7 +241,7 @@ public class ConditionalMAVListener implements AnalysisListener {
       // have exhausted its time limit.
 
       // Check STL.
-      if (!mav.checkSpecificationTimeLimit(cpuTime))
+      if (!mav.checkAssertTimeLimit(cpuTime))
       {
         if (mav.getLastCheckedSpecification() == null)
         {
@@ -243,8 +254,8 @@ public class ConditionalMAVListener implements AnalysisListener {
           // Mark this specification as Unknown.
           stopCheckingSpecification(SpecificationStatus.UNKNOWN, pReached, reached, path, specificationKey);
         }
-        logger.log(Level.INFO, "Specification " + specificationKey +
-            " has exhausted its Specification Time Limit " +
+        logger.log(Level.INFO, "Assert " + specificationKey +
+            " has exhausted its Assert Time Limit " +
             "and will not be checked anymore");
 
         // Reset last checked specification (start checking HTL).
@@ -258,11 +269,10 @@ public class ConditionalMAVListener implements AnalysisListener {
       }
     }
 
-    logger.log(Level.INFO, "Refinement " + refinementNumber + " finished with " +
+    logger.log(Level.ALL, "Refinement " + refinementNumber + " finished with " +
         isSpurious + ": " + specificationKey +
         "; sum time: " + cpuTime + "ms");
-    logger.log(Level.ALL, "Current results for all rule specifications:\n" + mav);
-    logger.log(Level.ALL, "Last checked rule specification: " + mav.getLastCheckedSpecification());
+    logger.log(Level.ALL, "Last checked assert (LCA): " + mav.getLastCheckedSpecification());
 
     // Print results into file if specified.
     mav.printToFile();
@@ -289,6 +299,7 @@ public class ConditionalMAVListener implements AnalysisListener {
     mav.disableSpecification(controlAutomatonCPA, specificationKey);
     if (mav.cleanPrecision(pReached, specificationKey))
     {
+      // deprecated time limit
       logger.log(Level.WARNING, "Cleaning precisions has exhausted its timeout and " +
           "was stopped");
     }

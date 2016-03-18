@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.mav;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -57,6 +58,8 @@ import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 @Options(prefix="analysis.mav")
 public class MultiAspectVerification {
 
+  static SpecificationKey FIRST_SPEC = new SpecificationKey("");
+
   /**
    * Where specification ids are presented:
    * AUTOMATON - Automaton name (default);
@@ -85,22 +88,24 @@ public class MultiAspectVerification {
           "(for Multi-Aspect Verification only)")
   private boolean stopAfterError = true;
 
-  @Option(secure=true, name="hardTimeLimitAtStart",
-      description="Check for hard time limit at start of the analysis)")
-  private boolean hardTimeLimitAtStart = false;
+  @Option(secure=true, name="firstIntervalTimeLimit",
+      description="time limit for the first interval in MAV algorithm")
+  private int firstIntervalTimeLimit = 0;
 
-  @Option(secure=true, name="abstractionTimeLimit",
-      description="abstraction time limit")
-  private int abstractionTimeLimit = 0;
+  @Option(secure=true, name="basicIntervalTimeLimit",
+      description="time limit for all intervals in MAV algorithm")
+  private int basicIntervalTimeLimit = 0;
 
-  @Option(secure=true, name="specificationTimeLimit",
-      description="specification time limit")
-  private int specificationTimeLimit = 0;
+  @Option(secure=true, name="assertTimeLimit",
+      description="time limit for each assert in MAV")
+  private int assertTimeLimit = 0;
 
-  @Option(secure=true, name="hardTimeLimit",
-      description="hard time limit")
-  private int hardTimeLimit = 0;
+  @Option(secure=true, name="idleIntervalTimeLimit",
+      description="time limit for idle intervals in MAV (hard time limit)")
+  private int idleIntervalTimeLimit = 0;
 
+  // TODO: remove it
+  @Deprecated
   @Option(secure=true, name="precisionClearingTimeLimit",
       description="precision clearing time limit")
   private int precisionClearingTimeLimit = 0;
@@ -144,10 +149,7 @@ public class MultiAspectVerification {
     ruleSpecifications = new HashMap<>();
     this.config = pConfig;
     this.config.inject(this);
-    if (!hardTimeLimitAtStart) {
-      // Add specification at start in order to not checking for HTL.
-      lastSpecificationKey = new SpecificationKey("");
-    }
+    lastSpecificationKey = new SpecificationKey("");
     this.controlAutomaton = null;
   }
 
@@ -197,17 +199,24 @@ public class MultiAspectVerification {
     ruleSpecifications.put(differentSpecification.getSpecificationKey(), differentSpecification);
   }
 
-  public boolean checkAbstractionTimeLimit(long currentAbstractionTime) {
+  public boolean checkBasicIntervalTimeLimit(long currentAbstractionTime) {
     // Do not check for time limit if is set to 0.
-    if (abstractionTimeLimit <= 0) { return true; }
-    if (currentAbstractionTime > abstractionTimeLimit * 1000) { return false; }
+    if (basicIntervalTimeLimit <= 0) { return true; }
+    if (currentAbstractionTime > basicIntervalTimeLimit * 1000) { return false; }
     return true;
   }
 
-  public boolean checkHardTimeLimit(long currentHardTime) {
+  public boolean checkIdleIntervalTimeLimit(long currentHardTime) {
     // Do not check for time limit if is set to 0.
-    if (hardTimeLimit <= 0) { return true; }
-    if (currentHardTime > hardTimeLimit * 1000) { return false; }
+    if (idleIntervalTimeLimit <= 0) { return true; }
+    if (currentHardTime > idleIntervalTimeLimit * 1000) { return false; }
+    return true;
+  }
+
+  public boolean checkFirstIntervalTimeLimit(long currentTime) {
+    // Do not check for time limit if is set to 0.
+    if (firstIntervalTimeLimit <= 0) { return true; }
+    if (currentTime > firstIntervalTimeLimit * 1000) { return false; }
     return true;
   }
 
@@ -218,10 +227,10 @@ public class MultiAspectVerification {
     return true;
   }
 
-  public boolean checkSpecificationTimeLimit(long currentSpecificationTime) {
+  public boolean checkAssertTimeLimit(long currentSpecificationTime) {
     // Do not check for time limit if is set to 0.
-    if (specificationTimeLimit <= 0) { return true; }
-    if (currentSpecificationTime > specificationTimeLimit * 1000) { return false; }
+    if (assertTimeLimit <= 0) { return true; }
+    if (currentSpecificationTime > assertTimeLimit * 1000) { return false; }
     return true;
   }
 
@@ -254,7 +263,14 @@ public class MultiAspectVerification {
   }
 
   public void printToFile() throws CPAException {
-    if (resultsFile == null) { return; }
+    if (resultsFile == null) {
+      PrintStream outputStream = System.out;
+      // TODO: add more options for outputStream
+      outputStream.print(toString());
+      outputStream.println("LCA=" + lastSpecificationKey);
+      outputStream.println();
+      return;
+    }
     try {
       File file = new File(resultsFile);
       FileWriter writer = new FileWriter(file);
