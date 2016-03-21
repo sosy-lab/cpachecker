@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMCEXSubgraphComputer.BackwardARGState;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
@@ -298,6 +299,10 @@ public class ARGSubtreeRemover {
     }
   }
 
+  /** get a mapping from states to their reached-set,
+   * such that "reached.contains(state)" is satisfied.
+   * We limit the mapping to block-call-states only,
+   * because this is sufficient for further processing. */
   private Map<ARGState, UnmodifiableReachedSet> getReachedSetMapping(ARGPath path,
                                                                    UnmodifiableReachedSet mainReachedSet) {
 
@@ -317,12 +322,12 @@ public class ARGSubtreeRemover {
         openReachedSets.pop();
       }
 
-      // this line comes after handling returnStates --> returnStates from path are part of the outer-block-reachedSet
-      pathElementToOuterReachedSet.put(pathState, openReachedSets.peek());
-
+      // this part comes after handling returnStates --> returnStates from path are part of the outer-block-reachedSet
       if (data.initialStateToReachedSet.containsKey(state)) {
+        // limit mapping to call-states only -> less memory-overhead
+        pathElementToOuterReachedSet.put(pathState, openReachedSets.peek());
         // the block can be equal, if this is a loop-block.
-          openReachedSets.push(data.initialStateToReachedSet.get(state));
+        openReachedSets.push(data.initialStateToReachedSet.get(state));
       }
     }
 
@@ -333,7 +338,7 @@ public class ARGSubtreeRemover {
                                                     List<Precision> pNewPrecisions, Block rootBlock, Deque<ARGState> remainingPathElements,
                                                     Map<ARGState, UnmodifiableReachedSet> pathElementToOuterReachedSet,
                                                     Multimap<ARGState, ARGState> neededRemoveCachedSubtreeCalls) {
-    UnmodifiableReachedSet outerReachedSet = pathElementToOuterReachedSet.get(rootState);
+    UnmodifiableReachedSet outerReachedSet = Preconditions.checkNotNull(pathElementToOuterReachedSet.get(rootState));
 
     boolean isNewPrecisionEntry = createNewPreciseEntry(
         getReachedState(rootState),
