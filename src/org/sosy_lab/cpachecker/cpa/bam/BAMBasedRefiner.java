@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.bam.BAMCEXSubgraphComputer.MissingBlockException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -122,8 +123,10 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
     try {
       computeSubtreeTimer.start();
       try {
-        rootOfSubgraph = computeCounterexampleSubgraph(pLastElement, pMainReachedSet);
-        if (rootOfSubgraph == BAMCEXSubgraphComputer.DUMMY_STATE_FOR_MISSING_BLOCK) {
+        try {
+          rootOfSubgraph = computeCounterexampleSubgraph(pLastElement, pMainReachedSet);
+        } catch (MissingBlockException e) {
+          // We return NULL, such that the method performRefinementForPath can handle it.
           return null;
         }
       } finally {
@@ -145,7 +148,7 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
   //returns root of a subtree leading from the root element of the given reachedSet to the target state
   //subtree is represented using children and parents of ARGElements, where newTreeTarget is the ARGState
   //in the constructed subtree that represents target
-  private ARGState computeCounterexampleSubgraph(ARGState target, ARGReachedSet pMainReachedSet) {
+  private ARGState computeCounterexampleSubgraph(ARGState target, ARGReachedSet pMainReachedSet) throws MissingBlockException {
     assert pMainReachedSet.asReachedSet().contains(target);
 
     // cleanup old states from last refinement
