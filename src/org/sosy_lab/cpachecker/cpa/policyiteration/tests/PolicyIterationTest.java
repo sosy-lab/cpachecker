@@ -71,8 +71,7 @@ public class PolicyIterationTest {
   public void pointer_past_abstraction_true_assert() throws Exception {
     check("pointers/pointer_past_abstraction_true_assert.c", ImmutableMap.of(
             "CompositeCPA.cpas", CPAS_W_SLICING,
-            "cpa.stator.policy.generateOctagons", "true",
-            "cpa.composite.precisionAdjustmentIterationLimit", "2"
+            "cpa.stator.policy.generateOctagons", "true"
         )
     );
   }
@@ -82,8 +81,7 @@ public class PolicyIterationTest {
     check("pointers/pointer_past_abstraction_false_assert.c"
         , ImmutableMap.of(
             "CompositeCPA.cpas", CPAS_W_SLICING,
-            "cpa.stator.policy.runCongruence", "false",
-            "cpa.composite.precisionAdjustmentIterationLimit", "2"
+            "cpa.stator.policy.runCongruence", "false"
         )
     );
   }
@@ -93,7 +91,6 @@ public class PolicyIterationTest {
         ImmutableMap.of(
             "CompositeCPA.cpas", CPAS_W_SLICING,
             "cpa.stator.policy.generateOctagons", "true",
-            "cpa.composite.precisionAdjustmentIterationLimit", "2",
             "cpa.stator.policy.linearizePolicy", "false"
         ));
   }
@@ -108,7 +105,7 @@ public class PolicyIterationTest {
         ImmutableMap.of("cpa.stator.policy.generateOctagons", "true"));
   }
 
-  @Test public void ineqality_true_assert() throws Exception {
+  @Test public void inequality_true_assert() throws Exception {
     check("inequality_true_assert.c");
   }
 
@@ -132,7 +129,7 @@ public class PolicyIterationTest {
     check("valdet_prefixing_true_assert.c",
         ImmutableMap.of("cpa.stator.policy.generateOctagons", "true",
 
-            // Enabling two options below make non-prefixing variation of
+            // Enabling two options below force non-prefixing variation of
             // val.det. work.
             "cpa.stator.policy.shortCircuitSyntactic", "false",
             "cpa.stator.policy.checkPolicyInitialCondition", "false"));
@@ -169,6 +166,13 @@ public class PolicyIterationTest {
             "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.functionpointer.FunctionPointerCPA, cpa.loopstack.LoopstackCPA, cpa.value.ValueAnalysisCPA, cpa.policyiteration.PolicyCPA",
             "precision.trackIntAddVariables", "false",
             "precision.trackVariablesBesidesEqAddBool", "false"));
+  }
+
+  @Test public void boolean_true_assert_with_partitioning() throws Exception {
+    // Use partitioning to track boolean variables.
+    check("boolean_true_assert.c",
+        ImmutableMap.of("cpa.stator.policy.generateOctagons", "true",
+            "cpa.stator.policy.mergeIntermediateStates", "NEVER"));
   }
 
   private void check(String filename) throws Exception {

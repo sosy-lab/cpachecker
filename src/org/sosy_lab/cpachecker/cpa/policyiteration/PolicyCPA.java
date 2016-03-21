@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -162,7 +161,15 @@ public class PolicyCPA extends SingleEdgeTransferRelation
       UnmodifiableReachedSet states,
       Function<AbstractState, AbstractState> stateProjection,
       AbstractState resultFullState) throws CPAException, InterruptedException {
-    return Optional.of(PrecisionAdjustmentResult.create(result, precision, Action.CONTINUE));
+    return policyIterationManager.postAdjustmentStrengthen(
+        (PolicyState) result,
+        (PolicyPrecision) precision,
+        otherStates,
+        otherPrecisions,
+        states,
+        stateProjection,
+        resultFullState
+    );
   }
 
   @Override
