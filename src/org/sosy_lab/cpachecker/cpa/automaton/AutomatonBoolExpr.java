@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
@@ -151,6 +152,49 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
     static AutomatonBoolExpr of(Set<CFANode> pAcceptedNodes) {
       return new MatchSuccessor(ImmutableSet.copyOf(pAcceptedNodes));
+    }
+  }
+
+  class EpsilonMatch implements AutomatonBoolExpr {
+
+    private final AutomatonBoolExpr expr;
+
+    private EpsilonMatch(AutomatonBoolExpr pExpr) {
+      Preconditions.checkArgument(!(pExpr instanceof EpsilonMatch));
+      expr = Objects.requireNonNull(pExpr);
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
+        throws CPATransferException {
+      ResultValue<Boolean> evaluation = expr.eval(pArgs);
+      CFAEdge edge = pArgs.getCfaEdge();
+      while (!Boolean.TRUE.equals(evaluation.getValue())
+          && edge.getSuccessor().getNumLeavingEdges() == 1
+          && AutomatonGraphmlCommon.handleAsEpsilonEdge(edge.getSuccessor().getLeavingEdge(0))) {
+        edge = edge.getSuccessor().getLeavingEdge(0);
+        AutomatonExpressionArguments args =
+            new AutomatonExpressionArguments(
+                pArgs.getState(),
+                pArgs.getAutomatonVariables(),
+                pArgs.getAbstractStates(),
+                edge,
+                pArgs.getLogger());
+        evaluation = expr.eval(args);
+      }
+      return evaluation;
+    }
+
+    @Override
+    public String toString() {
+      return "~" + expr;
+    }
+
+    static AutomatonBoolExpr of(AutomatonBoolExpr pExpr) {
+      if (pExpr instanceof EpsilonMatch) {
+        return pExpr;
+      }
+      return new EpsilonMatch(pExpr);
     }
 
   }
