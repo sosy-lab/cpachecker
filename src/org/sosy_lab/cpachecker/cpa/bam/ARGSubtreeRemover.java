@@ -30,7 +30,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.LinkedList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -275,17 +275,18 @@ public class ARGSubtreeRemover {
     Map<ARGState, UnmodifiableReachedSet> pathElementToOuterReachedSet = getReachedSetMapping(
         pPath, mainReachedSet.asReachedSet());
 
-    Deque<ARGState> remainingPathElements = new LinkedList<>(pPath.asStatesList());
 
-    // we pop states until the cutState has been found
-    // this code is ugly, we should improve it!
-    while (!remainingPathElements.peek().equals(pElement)) {
-      remainingPathElements.pop();
-    }
-    assert remainingPathElements.peek() == pElement;
 
-    while (!remainingPathElements.isEmpty()) {
-      ARGState currentElement = remainingPathElements.pop();
+    // we start at the cutState, because until then the precision seems to be sufficient.
+    Iterator<ARGState> remainingPathElements = pPath.asStatesList().iterator();
+    ARGState currentElement;
+    do {
+      currentElement = remainingPathElements.next();
+    } while (currentElement != pElement);
+    assert remainingPathElements.hasNext() : "cutState not found in path";
+
+    // we start with the cutState and iterate over the rest of the path
+    while (remainingPathElements.hasNext()) {
         if (data.initialStateToReachedSet.containsKey(currentElement.getWrappedState())) {
           ARGState currentReachedState = getReachedState(currentElement);
           CFANode node = extractLocation(currentReachedState);
@@ -295,6 +296,9 @@ public class ARGSubtreeRemover {
           removeUnpreciseCacheEntriesOnPath(currentElement, reducedState, pNewPrecisions, currentBlock,
                   remainingPathElements, pathElementToOuterReachedSet,
                   neededRemoveCachedSubtreeCalls);
+        }
+        if (remainingPathElements.hasNext()) {
+          currentElement = remainingPathElements.next();
         }
     }
   }
@@ -335,7 +339,8 @@ public class ARGSubtreeRemover {
   }
 
   private boolean removeUnpreciseCacheEntriesOnPath(ARGState rootState, AbstractState reducedRootState,
-                                                    List<Precision> pNewPrecisions, Block rootBlock, Deque<ARGState> remainingPathElements,
+                                                    List<Precision> pNewPrecisions, Block rootBlock,
+                                                    Iterator<ARGState> remainingPathElements,
                                                     Map<ARGState, UnmodifiableReachedSet> pathElementToOuterReachedSet,
                                                     Multimap<ARGState, ARGState> neededRemoveCachedSubtreeCalls) {
     UnmodifiableReachedSet outerReachedSet = Preconditions.checkNotNull(pathElementToOuterReachedSet.get(rootState));
@@ -347,8 +352,8 @@ public class ARGSubtreeRemover {
     //fine, this block will not lead to any problems anymore, but maybe inner blocks will?
     //-> check other (inner) blocks on path
     boolean foundInnerUnpreciseEntries = false;
-    while (!remainingPathElements.isEmpty()) {
-      ARGState currentElement = remainingPathElements.pop();
+    while (remainingPathElements.hasNext()) {
+      ARGState currentElement = remainingPathElements.next();
 
       if (data.initialStateToReachedSet.containsKey(currentElement.getWrappedState())) {
         ARGState currentReachedState = getReachedState(currentElement);
