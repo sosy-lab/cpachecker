@@ -38,6 +38,8 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+import java.util.logging.Level;
+
 public class CompositePrecisionAdjustment implements PrecisionAdjustment {
   protected final ImmutableList<PrecisionAdjustment> precisionAdjustments;
   protected final ImmutableList<StateProjectionFunction> stateProjectionFunctions;
@@ -145,10 +147,10 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
     outElements = ImmutableList.builder();
     outPrecisions = ImmutableList.builder();
 
-    // TODO: call in a fixpoint??
     modified = true;
 
     while (modified) {
+      logger.log(Level.FINE, "Starting new iteration of post-adjustment strengthening");
       modified = false;
       for (int i = 0; i < dim; ++i) {
         PrecisionAdjustment precisionAdjustment = precisionAdjustments.get(i);
