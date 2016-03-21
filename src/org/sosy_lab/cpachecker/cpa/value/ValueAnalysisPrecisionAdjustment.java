@@ -63,19 +63,19 @@ import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 
-@Options(prefix="cpa.value.blk")
+@Options(prefix="cpa.value.abstraction")
 public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, StatisticsProvider {
 
-  @Option(secure=true, description="restrict abstractions to branching points")
+  @Option(secure=true, description="restrict abstraction computations to branching points")
   private boolean alwaysAtBranch = false;
 
-  @Option(secure=true, description="restrict abstractions to join points")
+  @Option(secure=true, description="restrict abstraction computations to join points")
   private boolean alwaysAtJoin = false;
 
-  @Option(secure=true, description="restrict abstractions to function calls/returns")
+  @Option(secure=true, description="restrict abstraction computations to function calls/returns")
   private boolean alwaysAtFunction = false;
 
-  @Option(secure=true, description="restrict abstractions to loop heads")
+  @Option(secure=true, description="restrict abstraction computations to loop heads")
   private boolean alwaysAtLoop = false;
 
   @Option(secure=true, description="toggle liveness abstraction")
@@ -83,6 +83,9 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
 
   @Option(secure=true, description="restrict liveness abstractions to nodes with more than one entering and/or leaving edge")
   private boolean onlyAtNonLinearCFA = false;
+
+  @Option(secure=true, description="skip abstraction computations until the given number of abstraction calls is reached")
+  private int threshold = -1;
 
   private final ImmutableSet<CFANode> loopHeads;
 
@@ -160,7 +163,9 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
 
     // compute the abstraction based on the value-analysis precision
     totalAbstraction.start();
-    enforcePrecision(resultState, location, pPrecision);
+    if (totalAbstraction.getUpdateCount() > threshold) {
+      enforcePrecision(resultState, location, pPrecision);
+    }
     totalAbstraction.stop();
 
     // compute the abstraction for assignment thresholds

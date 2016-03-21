@@ -2048,6 +2048,29 @@ cpa.uninitvars.stop = "sep"
 cpa.validVars.merge = "JOIN"
   allowed values: [SEP, JOIN]
 
+# restrict abstraction computations to branching points
+cpa.value.abstraction.alwaysAtBranch = false
+
+# restrict abstraction computations to function calls/returns
+cpa.value.abstraction.alwaysAtFunction = false
+
+# restrict abstraction computations to join points
+cpa.value.abstraction.alwaysAtJoin = false
+
+# restrict abstraction computations to loop heads
+cpa.value.abstraction.alwaysAtLoop = false
+
+# toggle liveness abstraction
+cpa.value.abstraction.doLivenessAbstraction = false
+
+# restrict liveness abstractions to nodes with more than one entering and/or
+# leaving edge
+cpa.value.abstraction.onlyAtNonLinearCFA = false
+
+# skip abstraction computations until the given number of abstraction calls
+# is reached
+cpa.value.abstraction.threshold = -1
+
 # Whether to replace symbolic values with a concrete value when only one
 # value is possible for an assumption to be true (e.g. for (x == 1) set x to
 # 1, even if x is a symbolic expression).
@@ -2056,25 +2079,6 @@ cpa.value.assignSymbolicAssumptionVars = false
 # Process the Automaton ASSUMEs as if they were statements, not as if they
 # were assumptions.
 cpa.value.automatonAssumesAsStatements = false
-
-# restrict abstractions to branching points
-cpa.value.blk.alwaysAtBranch = false
-
-# restrict abstractions to function calls/returns
-cpa.value.blk.alwaysAtFunction = false
-
-# restrict abstractions to join points
-cpa.value.blk.alwaysAtJoin = false
-
-# restrict abstractions to loop heads
-cpa.value.blk.alwaysAtLoop = false
-
-# toggle liveness abstraction
-cpa.value.blk.doLivenessAbstraction = false
-
-# restrict liveness abstractions to nodes with more than one entering and/or
-# leaving edge
-cpa.value.blk.onlyAtNonLinearCFA = false
 
 # if there is an assumption like (x!=0), this option sets unknown
 # (uninitialized) variables to 1L, when the true-branch is handled.
