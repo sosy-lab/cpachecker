@@ -114,7 +114,7 @@ public class BitVectorInfo {
       }
       size = sizeInChars * pMachineModel.getSizeofCharInBits();
       assert size >= 0;
-      signed = type instanceof CSimpleType ? pMachineModel.isSigned((CSimpleType) type) : false;
+      signed = (type instanceof CSimpleType) && pMachineModel.isSigned((CSimpleType) type);
     } else if (type instanceof JSimpleType) {
       switch (((JSimpleType) type).getType()) {
       case BOOLEAN:
