@@ -65,25 +65,33 @@ public class BAMCEXSubgraphComputer {
    * Then we expect, that the next actions are removing cache-entries from bam-cache,
    * updating some waitlists and restarting the CPA-algorithm, so that the missing block is analyzed again.
    *
+   * If the CEX contains a state, where several blocks overlap (happens at block-start and block-end),
+   * the new CEX-graph contains the states of the most-outer block/reached-set.
+   *
    * @param target a state from the reachedSet, is used as the last state of the returned subgraph.
    * @param pMainReachedSet most outer reached set, contains the target-state.
    *
    * @return root of a subgraph, that contains all states on all paths to newTreeTarget.
    *         The subgraph contains only copies of the real ARG states,
    *         because one real state can be used multiple times in one path.
-   *         The map "pathStateToReachedState" should be used to search the correct real state.
    * @throws MissingBlockException for re-computing some blocks
    */
-  BackwardARGState computeCounterexampleSubgraph(final ARGState target, final ARGReachedSet reachedSet)
+  BackwardARGState computeCounterexampleSubgraph(final ARGState target, final ARGReachedSet pMainReachedSet)
       throws MissingBlockException {
-    assert reachedSet.asReachedSet().contains(target);
-    return computeCounterexampleSubgraph(target, reachedSet, new BAMCEXSubgraphComputer.BackwardARGState(target));
+    assert pMainReachedSet.asReachedSet().contains(target);
+    BackwardARGState root = computeCounterexampleSubgraph(pMainReachedSet, new BackwardARGState(target));
+    assert pMainReachedSet.asReachedSet().getFirstState() == root.getARGState();
+    return root;
   }
 
-  private BackwardARGState computeCounterexampleSubgraph(final ARGState target,
-        final ARGReachedSet reachedSet, final BackwardARGState newTreeTarget)
-            throws MissingBlockException {
-      assert reachedSet.asReachedSet().contains(target);
+  /** compute a subgraph within the given reached set,
+   * backwards from target (wrapped by newTreeTarget) towards the root of the reached set. */
+  private BackwardARGState computeCounterexampleSubgraph(
+      final ARGReachedSet reachedSet, final BackwardARGState newTreeTarget)
+          throws MissingBlockException {
+    ARGState target = newTreeTarget.getARGState();
+    assert reachedSet.asReachedSet().contains(target);
+
     // start by creating ARGElements for each node needed in the tree
     final Map<ARGState, BackwardARGState> finishedStates = new HashMap<>();
     final NavigableSet<ARGState> waitlist = new TreeSet<>(); // for sorted IDs in ARGstates
@@ -123,26 +131,18 @@ public class BAMCEXSubgraphComputer {
           // We must use a cached reachedSet to process further, because the block has its own reachedSet.
           // The returned 'innerTreeRoot' is the rootNode of the subtree, created from the cached reachedSet.
           // The current subtree (successors of child) is appended beyond the innerTree, to get a complete subgraph.
-          final ARGState reducedTarget = (ARGState) data.expandedStateToReducedState.get(child);
-          BackwardARGState innerTreeRoot;
           try {
-            innerTreeRoot = computeCounterexampleSubgraphForBlock(currentState, reducedTarget, newChild);
+            computeCounterexampleSubgraphForBlock(newCurrentState, newChild);
           } catch (MissingBlockException e) {
             ARGSubtreeRemover.removeSubtree(reachedSet, currentState);
             throw new MissingBlockException();
           }
 
-          // reconnect ARG: replace the state 'innerTree' with the current state.
-          for (ARGState innerChild : innerTreeRoot.getChildren()) {
-            innerChild.addParent(newCurrentState);
-          }
-          innerTreeRoot.removeFromARG();
-
-
-          // now the complete inner tree (including all successors of the state innerTree on paths to reducedTarget)
-          // is inserted between newCurrentState and child.
-
-
+          // TODO possible bug, unhandled case:
+          // If we merge-join two branches that are started within a block outside of the block, the CEX is wrong/undefined.
+          // This problem does not appear with predicate analysis, because block-end is abstraction state and there will not be a merge.
+          // This problem does not appear with value analysis, because of merge-sep.
+          // We should really check BDD-analysis :-)
 
         } else {
           // child is a normal successor
@@ -154,6 +154,7 @@ public class BAMCEXSubgraphComputer {
 
       if (currentState.getParents().isEmpty()) {
         assert root == null : "root should not be set before";
+        assert waitlist.isEmpty() : "root should have the smallest ID";
         root = newCurrentState;
       }
     }
@@ -167,24 +168,20 @@ public class BAMCEXSubgraphComputer {
    * (recursively, if needed).
    *
    * If the target is reachable via a missing block (aka "hole"),
-   * the DUMMY_STATE_FOR_MISSING_BLOCK is returned.
+   * we throw a MissingBlockException.
    * Then we expect, that the next actions are removing cache-entries from bam-cache,
    * updating some waitlists and restarting the CPA-algorithm, so that the missing block is analyzed again.
    *
-   * @param expandedRoot the expanded initial state of the reachedSet of current block
-   * @param reducedTarget exit-state of the reachedSet of current block
-   * @param newTreeTarget copy of the exit-state of the reachedSet of current block.
-   *                     newTreeTarget has only children, that are all part of the Pseudo-ARG
+   * @param newExpandedRoot the (wrapped) expanded initial state of the reachedSet of current block
+   * @param newExpandedTarget copy of the exit-state of the reachedSet of current block.
+   *                     newExpandedTarget has only children, that are all part of the Pseudo-ARG
    *                     (these children are copies of states from reachedSets of other blocks)
-   *
-   * @return the default return value is the rootState of the Pseudo-ARG.
-   *         We return NULL, if reachedSet is invalid, i.e. there is a 'hole' in it,
-   *         maybe because of a refinement of the block at another CEX-refinement.
-   *         In that case we also perform some cleanup-operations.
    */
-  private BackwardARGState computeCounterexampleSubgraphForBlock(
-      final ARGState expandedRoot, final ARGState reducedTarget, final BackwardARGState newTreeTarget)
-          throws MissingBlockException {
+  private void computeCounterexampleSubgraphForBlock(
+          final BackwardARGState newExpandedRoot,
+          final BackwardARGState newExpandedTarget) throws MissingBlockException {
+
+    final ARGState reducedTarget = (ARGState) data.expandedStateToReducedState.get(newExpandedTarget.getARGState());
 
     // first check, if the cached state is valid.
     if (reducedTarget.isDestroyed()) {
@@ -193,19 +190,17 @@ public class BAMCEXSubgraphComputer {
       throw new MissingBlockException();
     }
 
-    // TODO why do we use 'abstractStateToReachedSet' to get the reachedSet and not 'bamCache'?
+    ARGState expandedRoot = (ARGState) newExpandedRoot.getWrappedState();
     final ReachedSet reachedSet = data.initialStateToReachedSet.get(expandedRoot);
+    assert reachedSet.contains(reducedTarget) : "reduced state '" + reducedTarget
+        + "' is not part of reachedset with root '" + reachedSet.getFirstState() + "'";
 
-    // we found the reachedSet, corresponding to the root and precision.
-    // now try to find the target in the reach set.
-
-    assert reachedSet.contains(reducedTarget) :
-      "reduced state '" + reducedTarget + "' is not part of reachedset with root '" + reachedSet.getFirstState() + "'";
-
-    // we found the target; now construct a subtree in the ARG starting with targetARGElement
-    final BackwardARGState result;
+    // we found the reached-set, corresponding to the root and precision.
+    // now try to find a path from the target towards the root of the reached-set.
+    BackwardARGState newInnerTarget = new BackwardARGState(reducedTarget);
+    final BackwardARGState newInnerRoot;
     try {
-      result = computeCounterexampleSubgraph(reducedTarget, new ARGReachedSet(reachedSet), newTreeTarget);
+      newInnerRoot = computeCounterexampleSubgraph(new ARGReachedSet(reachedSet), newInnerTarget);
     } catch (MissingBlockException e) {
       //enforce recomputation to update cached subtree
       logger.log(Level.FINE,
@@ -218,7 +213,25 @@ public class BAMCEXSubgraphComputer {
       data.bamCache.removeReturnEntry(reducedRootState, reachedSet.getPrecision(reachedSet.getFirstState()), rootBlock);
       throw new MissingBlockException();
     }
-    return result;
+
+    // reconnect ARG: replace the root of the inner block
+    // with the existing state from the outer block with the current state,
+    // then delete this node.
+    for (ARGState innerChild : newInnerRoot.getChildren()) {
+      innerChild.addParent(newExpandedRoot);
+    }
+    newInnerRoot.removeFromARG();
+
+    // reconnect ARG: replace the target of the inner block
+    // with the existing state from the outer block with the current state,
+    // then delete this node.
+    for (ARGState innerParent : newInnerTarget.getParents()) {
+      newExpandedTarget.addParent(innerParent);
+    }
+    newInnerTarget.removeFromARG();
+
+    // now the complete inner tree (including all successors of the state innerTree on paths to reducedTarget)
+    // is inserted between newCurrentState and child.
   }
 
 
