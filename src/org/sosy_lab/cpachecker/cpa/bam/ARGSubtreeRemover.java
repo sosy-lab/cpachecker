@@ -142,21 +142,7 @@ public class ARGSubtreeRemover {
     return data.getMostInnerState(((BackwardARGState) state).getARGState());
   }
 
-  /**
-   * @return <code>true</code>, if the precision of the first element of the given reachedSet changed by this operation; <code>false</code>, otherwise.
-   */
-  private static boolean removeSubtree(ReachedSet reachedSet, ARGState argElement,
-                                       List<Precision> newPrecisions, List<Predicate<? super Precision>> pPrecisionTypes) {
-    ARGReachedSet argReachedSet = new ARGReachedSet(reachedSet);
-    boolean updateCacheNeeded = argElement.getParents().contains(reachedSet.getFirstState());
-    if (newPrecisions.isEmpty()) {
-      removeSubtree(argReachedSet, argElement);
-    } else {
-      argReachedSet.removeSubtree(argElement, newPrecisions, pPrecisionTypes);
-    }
-    return updateCacheNeeded;
-  }
-
+  /** just remove a state and its subtree from the given reachedSet. */
   static void removeSubtree(ARGReachedSet reachedSet, ARGState argElement) {
     if (BAMTransferRelation.isHeadOfMainFunction(extractLocation(argElement))) {
       reachedSet.removeSubtree((ARGState)reachedSet.asReachedSet().getLastState());
@@ -187,10 +173,14 @@ public class ARGSubtreeRemover {
       assert reachedSet.contains(removeElement) : "removing state from wrong reachedSet: " + removeElement;
       assert !removeElement.getParents().isEmpty();
 
-      final Pair<List<Precision>, List<Predicate<? super Precision>>> p = getUpdatedPrecision(
-          reachedSet.getPrecision(removeElement), rootSubtree, pNewPrecisions, pPrecisionTypes);
-      final List<Precision> newPrecision = p.getFirst();
-      final List<Predicate<? super Precision>> newPrecisionTypes = p.getSecond();
+      Precision newPrecision = null;
+      Predicate<? super Precision> newPrecisionType = null;
+      if (!pNewPrecisions.isEmpty()) {
+        final Pair<Precision, Predicate<? super Precision>> p = getUpdatedPrecision(
+            reachedSet.getPrecision(removeElement), rootSubtree, pNewPrecisions, pPrecisionTypes);
+        newPrecision = p.getFirst();
+        newPrecisionType = p.getSecond();
+      }
 
       AbstractState reducedRootState = wrappedReducer.getVariableReducedState(rootState, rootSubtree, rootNode);
       Precision reducedRootPrecision = reachedSet.getPrecision(reachedSet.getFirstState());
@@ -199,9 +189,18 @@ public class ARGSubtreeRemover {
 
       logger.log(Level.FINEST, "Removing subtree, adding a new cached entry, and removing the former cached entries");
 
-      if (removeSubtree(reachedSet, removeElement, newPrecision, newPrecisionTypes) && !newPrecision.isEmpty()) {
+      boolean updateCacheNeeded = removeElement.getParents().contains(reachedSet.getFirstState());
+
+      ARGReachedSet argReachedSet = new ARGReachedSet(reachedSet);
+      if (newPrecision == null) {
+        removeSubtree(argReachedSet, removeElement);
+      } else {
+        argReachedSet.removeSubtree(removeElement, newPrecision, newPrecisionType);
+      }
+
+      if (updateCacheNeeded && newPrecision != null) {
         logger.log(Level.FINER, "updating cache");
-        bamCache.updatePrecisionForEntry(reducedRootState, reducedRootPrecision, rootSubtree, newPrecision.get(0));
+        bamCache.updatePrecisionForEntry(reducedRootState, reducedRootPrecision, rootSubtree, newPrecision);
       }
 
     } finally {
@@ -215,28 +214,19 @@ public class ARGSubtreeRemover {
    * For BAM we build the correct 'complete' precision, because we have to reduce it for the current block.
    * Thus instead of a list, we only have one top-level precision-object that wraps other updated precisions.
    */
-  private Pair<List<Precision>, List<Predicate<? super Precision>>> getUpdatedPrecision(
-      Precision removePrecision, final Block rootSubtree,
+  private Pair<Precision, Predicate<? super Precision>> getUpdatedPrecision(
+      Precision removePrecision, final Block context,
       final List<Precision> precisions, final List<Predicate<? super Precision>> precisionTypes) {
-    assert precisions.size() == precisionTypes.size();
-
-    if (precisions.isEmpty()) {
-      // short-cut, precision remains equal
-      return Pair.of(precisions, precisionTypes);
-    }
+    assert precisions.size() == precisionTypes.size() && !precisions.isEmpty();
 
     for (int i = 0; i < precisions.size(); i++) {
       removePrecision = Precisions.replaceByType(removePrecision, precisions.get(i), precisionTypes.get(i));
     }
 
-    final Precision reducedPrecision = wrappedReducer.getVariableReducedPrecision(removePrecision, rootSubtree);
+    final Precision reducedPrecision = wrappedReducer.getVariableReducedPrecision(removePrecision, context);
 
-    final List<Precision>  newPrecision = new ArrayList<>(1);
-    final List<Predicate<? super Precision>> newPrecisionTypes = new ArrayList<>(1);
-    newPrecision.add(reducedPrecision);
-    newPrecisionTypes.add(Predicates.instanceOf(reducedPrecision.getClass()));
-
-    return Pair.of(newPrecision, newPrecisionTypes);
+    return Pair.<Precision, Predicate<? super Precision>>of(
+        reducedPrecision, Predicates.instanceOf(reducedPrecision.getClass()));
   }
 
   /** returns only those states, where a block starts that is 'open' at the cutState. */
