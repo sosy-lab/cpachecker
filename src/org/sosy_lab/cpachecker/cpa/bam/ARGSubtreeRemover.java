@@ -36,7 +36,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
@@ -50,6 +49,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 
 import com.google.common.base.Predicate;
@@ -155,9 +155,13 @@ public class ARGSubtreeRemover {
    */
   private static boolean removeSubtree(ReachedSet reachedSet, ARGState argElement,
                                        List<Precision> newPrecisions, List<Predicate<? super Precision>> pPrecisionTypes) {
-    ARGReachedSet argReachSet = new ARGReachedSet(reachedSet);
+    ARGReachedSet argReachedSet = new ARGReachedSet(reachedSet);
     boolean updateCacheNeeded = argElement.getParents().contains(reachedSet.getFirstState());
-    removeSubtree(argReachSet, argElement, newPrecisions, pPrecisionTypes);
+    if (newPrecisions.isEmpty()) {
+      removeSubtree(argReachedSet, argElement);
+    } else {
+      argReachedSet.removeSubtree(argElement, newPrecisions, pPrecisionTypes);
+    }
     return updateCacheNeeded;
   }
 
@@ -166,15 +170,6 @@ public class ARGSubtreeRemover {
       reachedSet.removeSubtree((ARGState)reachedSet.asReachedSet().getLastState());
     } else {
       reachedSet.removeSubtree(argElement);
-    }
-  }
-
-  private static void removeSubtree(ARGReachedSet reachedSet, ARGState argElement,
-                                    List<Precision> newPrecisions, List<Predicate<? super Precision>> pPrecisionTypes) {
-    if (newPrecisions.isEmpty()) {
-      removeSubtree(reachedSet, argElement);
-    } else {
-      reachedSet.removeSubtree(argElement, newPrecisions, pPrecisionTypes);
     }
   }
 

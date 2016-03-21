@@ -114,15 +114,15 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
   }
 
   @Override
-  protected final ARGPath computePath(ARGState pLastElement, ARGReachedSet pReachedSet) throws InterruptedException, CPATransferException {
+  protected final ARGPath computePath(ARGState pLastElement, ARGReachedSet pMainReachedSet) throws InterruptedException, CPATransferException {
     assert pLastElement.isTarget();
-    assert pReachedSet.asReachedSet().contains(pLastElement) : "targetState must be in mainReachedSet.";
+    assert pMainReachedSet.asReachedSet().contains(pLastElement) : "targetState must be in mainReachedSet.";
 
     computePathTimer.start();
     try {
       computeSubtreeTimer.start();
       try {
-        rootOfSubgraph = computeCounterexampleSubgraph(pLastElement, pReachedSet);
+        rootOfSubgraph = computeCounterexampleSubgraph(pLastElement, pMainReachedSet);
         if (rootOfSubgraph == BAMCEXSubgraphComputer.DUMMY_STATE_FOR_MISSING_BLOCK) {
           return null;
         }
@@ -145,13 +145,13 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
   //returns root of a subtree leading from the root element of the given reachedSet to the target state
   //subtree is represented using children and parents of ARGElements, where newTreeTarget is the ARGState
   //in the constructed subtree that represents target
-  private ARGState computeCounterexampleSubgraph(ARGState target, ARGReachedSet reachedSet) {
-    assert reachedSet.asReachedSet().contains(target);
+  private ARGState computeCounterexampleSubgraph(ARGState target, ARGReachedSet pMainReachedSet) {
+    assert pMainReachedSet.asReachedSet().contains(target);
 
     // cleanup old states from last refinement
     subgraphStatesToReachedState.clear();
 
     final BAMCEXSubgraphComputer cexSubgraphComputer = new BAMCEXSubgraphComputer(bamCpa, subgraphStatesToReachedState);
-    return cexSubgraphComputer.computeCounterexampleSubgraph(target, reachedSet);
+    return cexSubgraphComputer.computeCounterexampleSubgraph(target, pMainReachedSet);
   }
 }

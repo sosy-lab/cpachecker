@@ -111,6 +111,7 @@ public class BAMCEXSubgraphComputer {
         if (!finishedStates.containsKey(child)) {
           // child is not in the subgraph, that leads to the target,so ignore it.
           // because of the ordering, all important children should be finished already.
+          // We skip children, that are not finished, they belong to branches that d not lead to the target.
           continue;
         }
 
@@ -118,26 +119,26 @@ public class BAMCEXSubgraphComputer {
 
         if (data.expandedStateToReducedState.containsKey(child)) {
           assert data.initialStateToReachedSet.containsKey(currentState) : "parent should be initial state of reached-set";
-          // If child-state is an expanded state, we are at the exit-location of a block.
+          // If child-state is an expanded state, the child is at the exit-location of a block.
           // In this case, we enter the block (backwards).
           // We must use a cached reachedSet to process further, because the block has its own reachedSet.
-          // The returned 'innerTree' is the rootNode of the subtree, created from the cached reachedSet.
+          // The returned 'innerTreeRoot' is the rootNode of the subtree, created from the cached reachedSet.
           // The current subtree (successors of child) is appended beyond the innerTree, to get a complete subgraph.
           final ARGState reducedTarget = (ARGState) data.expandedStateToReducedState.get(child);
-          BackwardARGState innerTree = computeCounterexampleSubgraphForBlock(currentState, reducedTarget, newChild);
-          if (innerTree == DUMMY_STATE_FOR_MISSING_BLOCK) {
+          BackwardARGState innerTreeRoot = computeCounterexampleSubgraphForBlock(currentState, reducedTarget, newChild);
+          if (innerTreeRoot == DUMMY_STATE_FOR_MISSING_BLOCK) {
             ARGSubtreeRemover.removeSubtree(reachedSet, currentState);
             return DUMMY_STATE_FOR_MISSING_BLOCK;
           }
 
           // reconnect ARG: replace the state 'innerTree' with the current state.
-          for (ARGState innerChild : innerTree.getChildren()) {
+          for (ARGState innerChild : innerTreeRoot.getChildren()) {
             innerChild.addParent(newCurrentState);
           }
-          innerTree.removeFromARG();
+          innerTreeRoot.removeFromARG();
 
-          assert pathStateToReachedState.containsKey(innerTree) : "root of subgraph was not finished";
-          pathStateToReachedState.remove(innerTree); // not needed any more
+          assert pathStateToReachedState.containsKey(innerTreeRoot) : "root of subgraph was not finished";
+          pathStateToReachedState.remove(innerTreeRoot); // not needed any more
 
           // now the complete inner tree (including all successors of the state innerTree on paths to reducedTarget)
           // is inserted between newCurrentState and child.
