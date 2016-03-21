@@ -90,16 +90,16 @@ public class ARGSubtreeRemover {
     assert Iterables.getLast(pPath.asStatesList()).getWrappedState() == lastState : "path should end with target state";
     assert lastState.isTarget();
 
-    final List<ARGState> relevantCallNodes = getRelevantDefinitionNodes(pPath.asStatesList(), element);
-    assert relevantCallNodes.get(0).getWrappedState() == firstState : "root should be relevant";
-    assert relevantCallNodes.size() >= 1 : "at least the main-function should be open at the target-state";
+    final List<ARGState> relevantCallStates = getRelevantCallStates(pPath.asStatesList(), element);
+    assert relevantCallStates.get(0).getWrappedState() == firstState : "root should be relevant";
+    assert relevantCallStates.size() >= 1 : "at least the main-function should be open at the target-state";
 
     Multimap<ARGState, ARGState> neededRemoveCachedSubtreeCalls = LinkedHashMultimap.create();
 
     //iterate from root to element and remove all subtrees for subgraph calls
-    for (int i = 0; i < relevantCallNodes.size() - 1; i++) { // ignore root and the last element
-      final ARGState pathElement = relevantCallNodes.get(i);
-      final ARGState nextElement = relevantCallNodes.get(i+1);
+    for (int i = 0; i < relevantCallStates.size() - 1; i++) { // ignore root and the last element
+      final ARGState pathElement = relevantCallStates.get(i);
+      final ARGState nextElement = relevantCallStates.get(i+1);
       neededRemoveCachedSubtreeCalls.put(
               getReachedState(pathElement),
               getReachedState(nextElement));
@@ -109,7 +109,7 @@ public class ARGSubtreeRemover {
       ensureExactCacheHitsOnPath(mainReachedSet, pPath, element, pNewPrecisions, neededRemoveCachedSubtreeCalls);
     }
 
-    final ARGState lastRelevantNode = getReachedState(Iterables.getLast(relevantCallNodes));
+    final ARGState lastRelevantNode = getReachedState(Iterables.getLast(relevantCallStates));
     final ARGState target = getReachedState(element);
     for (final Entry<ARGState, ARGState> removeCachedSubtreeArguments : neededRemoveCachedSubtreeCalls.entries()) {
       ReachedSet nextReachedSet = data.initialStateToReachedSet.get(removeCachedSubtreeArguments.getValue());
@@ -130,7 +130,7 @@ public class ARGSubtreeRemover {
       removeCachedSubtree(removeCachedSubtreeArguments.getKey(), removeCachedSubtreeArguments.getValue(), newPrecisions, newPrecisionTypes);
     }
 
-    removeCachedSubtree(getReachedState(Iterables.getLast(relevantCallNodes)),
+    removeCachedSubtree(getReachedState(Iterables.getLast(relevantCallStates)),
             getReachedState(element), pNewPrecisions, pNewPrecisionTypes);
 
     // the main-reachedset contains only the root, exit-states and targets.
@@ -240,7 +240,7 @@ public class ARGSubtreeRemover {
   }
 
   /** returns only those states, where a block starts that is 'open' at the cutState. */
-  private List<ARGState> getRelevantDefinitionNodes(List<ARGState> path, ARGState bamCutState) {
+  private List<ARGState> getRelevantCallStates(List<ARGState> path, ARGState bamCutState) {
     final Deque<ARGState> openCallStates = new ArrayDeque<>();
     for (final ARGState bamState : path) {
 
