@@ -23,10 +23,17 @@
  */
 package org.sosy_lab.cpachecker.util;
 
-import static com.google.common.base.Predicates.*;
+import static com.google.common.base.Predicates.equalTo;
+import static com.google.common.base.Predicates.in;
+import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 
-import java.util.Set;
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.TreeTraverser;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -41,14 +48,10 @@ import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.BooleanFormulaManager;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.TreeTraverser;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Helper class that provides several useful methods for handling AbstractStates.
@@ -276,15 +279,22 @@ public final class AbstractStates {
    */
   public static BooleanFormula extractReportedFormulas(FormulaManagerView manager, AbstractState state,
       PathFormulaManager pfmgr) {
-    BooleanFormulaManager bfmgr = manager.getBooleanFormulaManager();
-    BooleanFormula result = bfmgr.makeBoolean(true);
+
+    return extractReportedFormulas(manager, asIterable(state), pfmgr);
+  }
+
+  public static BooleanFormula extractReportedFormulas(FormulaManagerView manager,
+                                                       Iterable<AbstractState> states,
+                                                       PathFormulaManager pfmgr) {
+    List<BooleanFormula> extraInvariants = new ArrayList<>();
 
     // traverse through all the sub-states contained in this state
-    for (FormulaReportingState s : asIterable(state).filter(FormulaReportingState.class)) {
-
-      result = bfmgr.and(result, s.getFormulaApproximation(manager, pfmgr));
+    for (FormulaReportingState s : FluentIterable.from(states).filter(FormulaReportingState
+        .class)) {
+      extraInvariants.add(s.getFormulaApproximation(manager, pfmgr));
     }
 
-    return result;
+    return manager.getBooleanFormulaManager().and(extraInvariants);
+
   }
 }
