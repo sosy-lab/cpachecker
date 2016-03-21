@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
+import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix.RawInfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -103,7 +104,7 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
         .toList();
 
     List<Object> terms = new ArrayList<>(abstractionStates.size());
-    List<InfeasiblePrefix> infeasiblePrefixes = new ArrayList<>();
+    List<RawInfeasiblePrefix> rawPrefixes = new ArrayList<>();
 
     try (@SuppressWarnings("unchecked")
       InterpolatingProverEnvironmentWithAssumptions<Object> prover =
@@ -149,13 +150,15 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
               // and it would be cumbersome for ABE, so lets skip it
               ARGPath currentPrefixPath = ARGUtils.getOnePathTo(currentState);
 
-              infeasiblePrefixes.add(InfeasiblePrefix.buildForPredicateDomain(currentPrefixPath,
+              // put prefix data into a simple container for now
+              rawPrefixes.add(new RawInfeasiblePrefix(currentPrefixPath,
                   interpolantSequence,
-                  finalPathFormula,
-                  solver.getFormulaManager()));
+                  finalPathFormula));
 
+              // stop once threshold for max. length of prefix is reached, relevant
+              // e.g., for ECA programs where error paths often exceed 10.000 transition
               if (currentPrefixPath.size() >= maxPrefixLength) {
-                return infeasiblePrefixes;
+                break;
               }
 
               // remove reason for UNSAT from solver stack
@@ -179,13 +182,20 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
           currentBlockIndex++;
 
           // put hard-limit on number of prefixes
-          if (infeasiblePrefixes.size() == maxPrefixCount) {
+          if (rawPrefixes.size() == maxPrefixCount) {
             break;
           }
         }
 
         iterator.advance();
       }
+    }
+
+    // finally, create actual prefixes after solver stack is empty again,
+    // doing it that way avoids problems with SMTInterpol (cf. commit 20405)
+    List<InfeasiblePrefix> infeasiblePrefixes = new ArrayList<>(rawPrefixes.size());
+    for (RawInfeasiblePrefix rawPrefix : rawPrefixes) {
+      infeasiblePrefixes.add(InfeasiblePrefix.buildForPredicateDomain(rawPrefix, solver.getFormulaManager()));
     }
 
     return infeasiblePrefixes;
