@@ -47,14 +47,12 @@ public class BAMCEXSubgraphComputer {
   private final BlockPartitioning partitioning;
   private final Reducer reducer;
   private final BAMDataManager data;
-  private final Map<ARGState, ARGState> pathStateToReachedState;
   private final LogManager logger;
 
-  BAMCEXSubgraphComputer(BAMCPA bamCpa, Map<ARGState, ARGState> pPathStateToReachedState) {
+  BAMCEXSubgraphComputer(BAMCPA bamCpa) {
     this.partitioning = bamCpa.getBlockPartitioning();
     this.reducer = bamCpa.getReducer();
     this.data = bamCpa.getData();
-    this.pathStateToReachedState = pPathStateToReachedState;
     this.logger = bamCpa.getLogger();
   }
 
@@ -91,7 +89,6 @@ public class BAMCEXSubgraphComputer {
     final NavigableSet<ARGState> waitlist = new TreeSet<>(); // for sorted IDs in ARGstates
     BackwardARGState root = null; // to be assigned later
 
-    pathStateToReachedState.put(newTreeTarget, target);
     finishedStates.put(target, newTreeTarget);
     waitlist.addAll(target.getParents()); // add parent for further processing
     while (!waitlist.isEmpty()) {
@@ -104,7 +101,6 @@ public class BAMCEXSubgraphComputer {
 
       final BackwardARGState newCurrentState = new BackwardARGState(currentState);
       finishedStates.put(currentState, newCurrentState);
-      pathStateToReachedState.put(newCurrentState, currentState);
 
       // add parent for further processing
       waitlist.addAll(currentState.getParents());
@@ -142,20 +138,11 @@ public class BAMCEXSubgraphComputer {
           }
           innerTreeRoot.removeFromARG();
 
-          assert pathStateToReachedState.containsKey(innerTreeRoot) : "root of subgraph was not finished";
-          pathStateToReachedState.remove(innerTreeRoot); // not needed any more
 
           // now the complete inner tree (including all successors of the state innerTree on paths to reducedTarget)
           // is inserted between newCurrentState and child.
 
-          assert pathStateToReachedState.containsKey(newChild) : "end of subgraph was not handled";
-          assert pathStateToReachedState.get(newCurrentState) == currentState : "input-state must be from outer reachedset";
 
-          // check that at block output locations the first reached state is used for the CEXsubgraph,
-          // i.e. the reduced abstract state from the (next) inner block's reached set.
-          assert pathStateToReachedState.get(newChild) == data.expandedStateToReducedState.get(child) : "output-state must be from (next) inner reachedset";
-
-          pathStateToReachedState.put(newChild, child); // override previous entry for newChild with child-state of most outer block-exit.
 
         } else {
           // child is a normal successor

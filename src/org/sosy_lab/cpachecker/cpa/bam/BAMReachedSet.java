@@ -27,7 +27,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import javax.annotation.Nullable;
 
@@ -52,8 +51,6 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
   private final BAMCPA bamCpa;
   private final ARGPath path;
   private final ARGState rootOfSubgraph;
-  private final Collection<AbstractState> subgraph;
-  private final Map<ARGState, ARGState> subgraphStatesToReachedState;
   private final Timer removeCachedSubtreeTimer;
 
   private final Function<AbstractState, Precision> GET_PRECISION = new Function<AbstractState, Precision>() {
@@ -67,25 +64,25 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
   };
 
   public BAMReachedSet(BAMCPA cpa, ARGReachedSet pMainReachedSet, ARGPath pPath,
-      Map<ARGState, ARGState> pSubgraphStatesToReachedState, ARGState pRootOfSubgraph,
+      ARGState pRootOfSubgraph,
       Timer pRemoveCachedSubtreeTimer) {
     super(pMainReachedSet);
     this.bamCpa = cpa;
     this.path = pPath;
-    this.subgraphStatesToReachedState = pSubgraphStatesToReachedState;
     this.rootOfSubgraph = pRootOfSubgraph;
-    this.subgraph = Collections.<AbstractState>unmodifiableCollection(subgraphStatesToReachedState.keySet());
     this.removeCachedSubtreeTimer = pRemoveCachedSubtreeTimer;
 
-    assert subgraph.containsAll(path.asStatesList()) : "path should traverse reached states";
+    assert rootOfSubgraph.getSubgraph().containsAll(path.asStatesList()) : "path should traverse reachable states";
     assert pRootOfSubgraph == path.getFirstState() : "path should start with root-state";
-    assert subgraph.containsAll(pRootOfSubgraph.getSubgraph()) : "reached states should match states reachable from root";
-    assert pRootOfSubgraph.getSubgraph().containsAll(subgraph) : "states reachable from root should match reached states";
   }
 
   @Override
   public UnmodifiableReachedSet asReachedSet() {
     return new UnmodifiableReachedSet() {
+
+      private final Collection<AbstractState> subgraph =
+          Collections.<AbstractState>unmodifiableCollection(rootOfSubgraph.getSubgraph());
+
       @Override
       public Collection<AbstractState> asCollection() {
         return subgraph;
@@ -163,7 +160,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
   @Override
   public void removeSubtree(ARGState element, List<Precision> newPrecisions, List<Predicate<? super Precision>> pPrecisionTypes) {
     Preconditions.checkArgument(newPrecisions.size()==pPrecisionTypes.size());
-    assert subgraphStatesToReachedState.containsKey(element);
+    assert rootOfSubgraph.getSubgraph().contains(element);
     final ARGSubtreeRemover argSubtreeRemover = new ARGSubtreeRemover(bamCpa, removeCachedSubtreeTimer);
     argSubtreeRemover.removeSubtree(delegate, path, element,
             newPrecisions, pPrecisionTypes);
@@ -174,8 +171,6 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
     // The only important step is to remove the last state of the reached-set,
     // because without this step there is an assertion in Predicate-RefinementStrategy.
     for (ARGState state : element.getSubgraph()) {
-      subgraphStatesToReachedState.remove(state);
-      // subgraph is backed by subgraphStatesToReachedState.keys(), so we do not need to update it.
       state.removeFromARG();
     }
   }

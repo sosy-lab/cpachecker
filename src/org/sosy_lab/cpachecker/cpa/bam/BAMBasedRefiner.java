@@ -25,9 +25,6 @@ package org.sosy_lab.cpachecker.cpa.bam;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
@@ -61,9 +58,7 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
   final Timer removeCachedSubtreeTimer = new Timer();
 
   private final BAMCPA bamCpa;
-  private final Map<ARGState, ARGState> subgraphStatesToReachedState = new HashMap<>();
   private ARGState rootOfSubgraph = null;
-
 
   private BAMBasedRefiner(
       ARGBasedRefiner pRefiner, ARGCPA pArgCpa, BAMCPA pBamCpa, LogManager pLogger) {
@@ -109,7 +104,7 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
       return CounterexampleInfo.spurious();
     } else {
       // wrap the original reached-set to have a valid "view" on all reached states.
-      pReached = new BAMReachedSet(bamCpa, pReached, pPath, subgraphStatesToReachedState, rootOfSubgraph, removeCachedSubtreeTimer);
+      pReached = new BAMReachedSet(bamCpa, pReached, pPath, rootOfSubgraph, removeCachedSubtreeTimer);
       return super.performRefinementForPath(pReached, pPath);
     }
   }
@@ -150,11 +145,7 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
   //in the constructed subtree that represents target
   private ARGState computeCounterexampleSubgraph(ARGState target, ARGReachedSet pMainReachedSet) throws MissingBlockException {
     assert pMainReachedSet.asReachedSet().contains(target);
-
-    // cleanup old states from last refinement
-    subgraphStatesToReachedState.clear();
-
-    final BAMCEXSubgraphComputer cexSubgraphComputer = new BAMCEXSubgraphComputer(bamCpa, subgraphStatesToReachedState);
+    final BAMCEXSubgraphComputer cexSubgraphComputer = new BAMCEXSubgraphComputer(bamCpa);
     return cexSubgraphComputer.computeCounterexampleSubgraph(target, pMainReachedSet);
   }
 }
