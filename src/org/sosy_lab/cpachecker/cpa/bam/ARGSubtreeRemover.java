@@ -346,7 +346,7 @@ public class ARGSubtreeRemover {
     UnmodifiableReachedSet outerReachedSet = Preconditions.checkNotNull(pathElementToOuterReachedSet.get(rootState));
 
     boolean isNewPrecisionEntry = createNewPreciseEntry(
-        getReachedState(rootState),
+        (ARGState) rootState.getWrappedState(),
         reducedRootState, pNewPrecisions, rootBlock, outerReachedSet);
 
     //fine, this block will not lead to any problems anymore, but maybe inner blocks will?
