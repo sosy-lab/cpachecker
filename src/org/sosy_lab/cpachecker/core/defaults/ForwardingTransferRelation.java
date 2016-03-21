@@ -177,7 +177,6 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
 
     case AssumeEdge:
       final AssumeEdge assumption = (AssumeEdge) cfaEdge;
-      final AExpression aExpression = assumption.getExpression();
       successor = handleAssumption(assumption, assumption.getExpression(), assumption.getTruthAssumption());
       break;
 
