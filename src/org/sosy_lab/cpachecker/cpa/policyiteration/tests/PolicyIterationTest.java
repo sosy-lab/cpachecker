@@ -1,16 +1,16 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration.tests;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.junit.Test;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
-import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Map;
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 /**
  * Integration testing for policy iteration.
@@ -71,19 +71,17 @@ public class PolicyIterationTest {
   public void pointer_past_abstraction_true_assert() throws Exception {
     check("pointers/pointer_past_abstraction_true_assert.c", ImmutableMap.of(
             "CompositeCPA.cpas", CPAS_W_SLICING,
-            "cpa.stator.policy.generateOctagons", "true",
-            "cpa.composite.precisionAdjustmentIterationLimit", "2"
+            "cpa.stator.policy.generateOctagons", "true"
         )
     );
   }
 
   @Test
   public void pointer_past_abstraction_false_assert() throws Exception {
-    check("pointers/pointer_past_abstraction_false_assert.c"
-        , ImmutableMap.of(
+    check("pointers/pointer_past_abstraction_false_assert.c",
+        ImmutableMap.of(
             "CompositeCPA.cpas", CPAS_W_SLICING,
-            "cpa.stator.policy.runCongruence", "false",
-            "cpa.composite.precisionAdjustmentIterationLimit", "2"
+            "cpa.stator.policy.runCongruence", "false"
         )
     );
   }
@@ -93,7 +91,6 @@ public class PolicyIterationTest {
         ImmutableMap.of(
             "CompositeCPA.cpas", CPAS_W_SLICING,
             "cpa.stator.policy.generateOctagons", "true",
-            "cpa.composite.precisionAdjustmentIterationLimit", "2",
             "cpa.stator.policy.linearizePolicy", "false"
         ));
   }
