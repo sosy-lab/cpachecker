@@ -162,14 +162,14 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
     Preconditions.checkArgument(newPrecisions.size()==pPrecisionTypes.size());
     assert rootOfSubgraph.getSubgraph().contains(element);
     final ARGSubtreeRemover argSubtreeRemover = new ARGSubtreeRemover(bamCpa, removeCachedSubtreeTimer);
-    argSubtreeRemover.removeSubtree(delegate, path, element,
-            newPrecisions, pPrecisionTypes);
+    argSubtreeRemover.removeSubtree(delegate, path, element, newPrecisions, pPrecisionTypes);
 
     // post-processing, cleanup data-structures.
     // We remove all states reachable from 'element'. This step is not precise,
     // because sub-reached-sets might be changed and we do not remove the corresponding states.
     // The only important step is to remove the last state of the reached-set,
     // because without this step there is an assertion in Predicate-RefinementStrategy.
+    // We can ignore waitlist-updates and coverage here, because there is no coverage in a BAM-CEX.
     for (ARGState state : element.getSubgraph()) {
       state.removeFromARG();
     }
