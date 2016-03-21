@@ -99,7 +99,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
   }
 
-  static enum MatchLoopHead implements AutomatonBoolExpr {
+  static enum MatchLoopStart implements AutomatonBoolExpr {
     INSTANCE;
 
     @Override
@@ -115,7 +115,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
     @Override
     public String toString() {
-      return "PROGRAM-ENTRY";
+      return "LOOP-START";
     }
   }
 
