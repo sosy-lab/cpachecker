@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.Collections;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
@@ -52,6 +53,7 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Implements a boolean expression that evaluates and returns a <code>MaybeBoolean</code> value when <code>eval()</code> is called.
@@ -117,6 +119,40 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     public String toString() {
       return "LOOP-START";
     }
+  }
+
+  class MatchSuccessor implements AutomatonBoolExpr {
+
+    private final Set<CFANode> acceptedNodes;
+
+    private MatchSuccessor(Set<CFANode> pAcceptedNodes) {
+      this.acceptedNodes = pAcceptedNodes;
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
+        throws CPATransferException {
+      CFAEdge edge = pArgs.getCfaEdge();
+      CFANode successor = edge.getSuccessor();
+      if (acceptedNodes.contains(successor)) {
+        return AutomatonBoolExpr.CONST_TRUE;
+      }
+      return AutomatonBoolExpr.CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return "SUCCESSOR IN " + acceptedNodes;
+    }
+
+    static AutomatonBoolExpr of(CFANode pAcceptedNode) {
+      return new MatchSuccessor(Collections.singleton(pAcceptedNode));
+    }
+
+    static AutomatonBoolExpr of(Set<CFANode> pAcceptedNodes) {
+      return new MatchSuccessor(ImmutableSet.copyOf(pAcceptedNodes));
+    }
+
   }
 
   /**
