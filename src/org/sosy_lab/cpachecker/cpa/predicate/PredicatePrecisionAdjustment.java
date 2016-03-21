@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.ComputeAbstractionState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -125,13 +124,43 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   @Override
   public Optional<PrecisionAdjustmentResult> postAdjustmentStrengthen(
       AbstractState result,
-      Precision precision,
+      Precision pPrecision,
       Iterable<AbstractState> otherStates,
       Iterable<Precision> otherPrecisions,
       UnmodifiableReachedSet states,
       Function<AbstractState, AbstractState> stateProjection,
-      AbstractState resultFullState) throws CPAException, InterruptedException {
-    return Optional.of(PrecisionAdjustmentResult.create(result, precision, Action.CONTINUE));
+      AbstractState fullState) throws CPAException, InterruptedException {
+    totalPrecTime.start();
+    try {
+      PredicateAbstractState element = (PredicateAbstractState)result;
+
+      BooleanFormula extraInvariant = AbstractStates.extractReportedFormulas(fmgr,
+          otherStates, pathFormulaManager);
+
+      if (element instanceof ComputeAbstractionState) {
+        ComputeAbstractionState computeState = (ComputeAbstractionState) element;
+        PredicatePrecision precision = (PredicatePrecision)pPrecision;
+        CFANode location = AbstractStates.extractLocation(fullState);
+
+        PathFormula newPathFormula = pathFormulaManager.makeAnd(
+            computeState.getPathFormula(), extraInvariant);
+        computeState = new ComputeAbstractionState(
+            newPathFormula, computeState.getAbstractionFormula(),
+            computeState.getAbstractionLocationsOnPath()
+        );
+
+        return computeAbstraction(computeState, precision, location);
+      } else {
+        return Optional.of(PrecisionAdjustmentResult.create(
+            element, pPrecision, PrecisionAdjustmentResult.Action.CONTINUE));
+      }
+
+
+    } catch (SolverException e) {
+      throw new CPAException("Solver Failure", e);
+    } finally {
+      totalPrecTime.stop();
+    }
   }
 
   /**
