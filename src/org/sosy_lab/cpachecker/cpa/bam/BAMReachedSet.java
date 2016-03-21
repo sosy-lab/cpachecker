@@ -166,7 +166,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
     assert subgraphStatesToReachedState.containsKey(element);
     final ARGSubtreeRemover argSubtreeRemover = new ARGSubtreeRemover(bamCpa, removeCachedSubtreeTimer);
     argSubtreeRemover.removeSubtree(delegate, path, element,
-            newPrecisions, pPrecisionTypes, subgraphStatesToReachedState);
+            newPrecisions, pPrecisionTypes);
 
     // post-processing, cleanup data-structures.
     // We remove all states reachable from 'element'. This step is not precise,

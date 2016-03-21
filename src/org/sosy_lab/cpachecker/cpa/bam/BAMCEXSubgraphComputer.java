@@ -226,28 +226,20 @@ public class BAMCEXSubgraphComputer {
   }
 
 
-  /**
-   * This is a ARGState, that counts backwards, used to build the Pseudo-ARG for CEX-retrieval.
-   * As the Pseudo-ARG is build backwards starting at its end-state, we count the ID backwards.
+  /** This ARGState is used to build the Pseudo-ARG for CEX-retrieval.
    *
    * TODO we could replace the BackwardARGState completely by a normal ARGState,
    * we just keep it for debugging. */
-  private static class BackwardARGState extends ARGState {
+  static class BackwardARGState extends ARGState {
 
     private static final long serialVersionUID = -3279533907385516993L;
-    private int decreasingStateID;
-    private static int nextDecreaseID = Integer.MAX_VALUE;
 
     public BackwardARGState(ARGState originalState) {
-      super(originalState.getWrappedState(), null);
-      decreasingStateID = nextDecreaseID--;
+      super(originalState, null);
     }
 
-    @Override
-    /** unused */
-    public boolean isOlderThan(ARGState other) {
-      if (other instanceof BackwardARGState) { return decreasingStateID < ((BackwardARGState) other).decreasingStateID; }
-      return super.isOlderThan(other);
+    public ARGState getARGState() {
+      return (ARGState) getWrappedState();
     }
 
     @Override
