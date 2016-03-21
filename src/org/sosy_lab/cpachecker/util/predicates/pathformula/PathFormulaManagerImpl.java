@@ -607,7 +607,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           return bfmgr.makeBoolean(true);
         }
 
-        BooleanFormula pred = bfmgr.makeVariable(BRANCHING_PREDICATE_NAME + pathElement.getStateId(), 0);
+        BooleanFormula pred = bfmgr.makeVariable(BRANCHING_PREDICATE_NAME + pathElement.getStateId());
 
         // create formula by edge, be sure to use the correct SSA indices!
         // TODO the class PathFormulaManagerImpl should not depend on PredicateAbstractState,
@@ -649,8 +649,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
     Map<Integer, Boolean> preds = Maps.newHashMap();
     for (ValueAssignment entry : model) {
-      String canonicalName =
-          FormulaManagerView.parseName(entry.getName()).getFirstNotNull();
+      String canonicalName = entry.getName();
 
       if (fmgr.getFormulaType(entry.getKey()).isBooleanType()) {
         String name = BRANCHING_PREDICATE_NAME_PATTERN.matcher(canonicalName).replaceFirst("");
