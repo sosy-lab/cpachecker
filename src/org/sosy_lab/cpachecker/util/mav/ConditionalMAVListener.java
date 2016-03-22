@@ -86,25 +86,24 @@ public class ConditionalMAVListener implements AnalysisListener {
   public void beforeAbstractionStep(ReachedSet reachedSet) throws CPAException {
     // Get cpu time.
     Long currentCpuTime = mav.getCurrentCpuTime();
+    SpecificationKey specificationKey = mav.getLastCheckedSpecification();
 
-    // Check Idle Interval Time Limit (IITL).
-    if (mav.getLastCheckedSpecification() == null &&
-        !mav.checkIdleIntervalTimeLimit(currentCpuTime))
-    {
-      // Stop analysis with verdict UNKNOWN.
-      throw new IdleIntervalTimeLimitExhaustionException("Idle Interval Time Limit has been exhausted");
-    }
+    if (specificationKey == null) {
+      // Idle Interval
 
-    // Check Basic Interval Time Limit (BITL).
-    if (mav.getLastCheckedSpecification() != null &&
-        !mav.checkBasicIntervalTimeLimit(currentCpuTime))
-    {
-      ControlAutomatonCPA controlAutomatonCPA = mav.getCurrentControlAutomaton();
-      SpecificationKey specificationKey = mav.getLastCheckedSpecification();
+      // Check Idle Interval Time Limit (IITL).
+      if (!mav.checkIdleIntervalTimeLimit(currentCpuTime))
+      {
+        // Stop analysis.
+        throw new IdleIntervalTimeLimitExhaustionException("Idle Interval Time Limit has been exhausted");
+      }
 
-      // TODO: option for not checking FIRST_SPEC
-      if (specificationKey.equals(MultiAspectVerification.FIRST_SPEC)) {
-        logger.log(Level.INFO, "There is no assert left to check");
+    } else if (specificationKey.equals(MultiAspectVerification.FIRST_SPEC)) {
+      // First Interval
+
+      // Check First Interval Time Limit (IITL).
+      if (!mav.checkFirstIntervalTimeLimit(currentCpuTime))
+      {
         for (RuleSpecification specificationAssert : mav.getAllSpecifications()) {
           mav.changeSpecificationStatus(specificationAssert.getSpecificationKey(),
               SpecificationStatus.UNKNOWN);
@@ -112,26 +111,33 @@ public class ConditionalMAVListener implements AnalysisListener {
         mav.printToFile();
         throw new CPAException("First Interval Time Limit has been exhausted");
       }
+    } else {
+      // Basic Interval
 
-      mav.updateTime(specificationKey);
-      mav.changeSpecificationStatus(specificationKey, SpecificationStatus.UNKNOWN);
-      mav.disableSpecification(controlAutomatonCPA, specificationKey);
-      if (mav.cleanPrecision(reachedSet, specificationKey))
+      // Check Basic Interval Time Limit (BITL).
+      if (!mav.checkBasicIntervalTimeLimit(currentCpuTime))
       {
-        // deprecated time limit
-        logger.log(Level.WARNING, "Cleaning precisions has exhausted its timeout and " +
-            "was stopped");
+        ControlAutomatonCPA controlAutomatonCPA = mav.getCurrentControlAutomaton();
+
+        mav.updateTime(specificationKey);
+        mav.changeSpecificationStatus(specificationKey, SpecificationStatus.UNKNOWN);
+        mav.disableSpecification(controlAutomatonCPA, specificationKey);
+        if (mav.cleanPrecision(reachedSet, specificationKey))
+        {
+          // deprecated time limit
+          logger.log(Level.WARNING, "Cleaning precisions has exhausted its timeout and " +
+              "was stopped");
+        }
+
+        // Reset last checked specification (start checking for IITL).
+        mav.setLastCheckedSpecification(null);
+
+        logger.log(Level.INFO, "Assert " + specificationKey +
+            " has exhausted its Basic Interval Time Limit " +
+            "and will not be checked anymore");
+        mav.printToFile();
       }
-
-      // Reset last checked specification (start checking for IITL).
-      mav.setLastCheckedSpecification(null);
-
-      logger.log(Level.INFO, "Assert " + specificationKey +
-          " has exhausted its Basic Interval Time Limit " +
-          "and will not be checked anymore");
-      mav.printToFile();
     }
-
   }
 
   /**

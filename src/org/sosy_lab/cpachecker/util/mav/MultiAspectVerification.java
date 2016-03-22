@@ -100,6 +100,10 @@ public class MultiAspectVerification {
       description="time limit for idle intervals in MAV (hard time limit)")
   private int idleIntervalTimeLimit = 0;
 
+  @Option(secure=true, name="firstIntervalTimeLimit",
+      description="time limit for idle intervals in MAV (hard time limit)")
+  private int firstIntervalTimeLimit = 0;
+
   // TODO: remove it
   @Deprecated
   @Option(secure=true, name="precisionClearingTimeLimit",
@@ -234,6 +238,13 @@ public class MultiAspectVerification {
     // Do not check for time limit if is set to 0.
     if (idleIntervalTimeLimit <= 0) { return true; }
     if (currentHardTime > idleIntervalTimeLimit * 1000) { return false; }
+    return true;
+  }
+
+  public boolean checkFirstIntervalTimeLimit(long currentTime) {
+    // Do not check for time limit if is set to 0.
+    if (firstIntervalTimeLimit <= 0) { return true; }
+    if (currentTime > firstIntervalTimeLimit * 1000) { return false; }
     return true;
   }
 
