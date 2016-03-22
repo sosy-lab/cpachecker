@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet.CompositeField;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -69,7 +70,7 @@ import org.sosy_lab.solver.api.FormulaType;
 import com.google.common.base.Equivalence;
 import com.google.common.collect.ImmutableList;
 
-class PointerTargetSetManager {
+public class PointerTargetSetManager {
 
   private static final String UNITED_BASE_UNION_TAG_PREFIX = "__VERIFIER_base_union_of_";
   private static final String UNITED_BASE_FIELD_NAME_PREFIX = "__VERIFIER_united_base_field";
@@ -113,7 +114,7 @@ class PointerTargetSetManager {
             mergePointerTargetSets(final PointerTargetSet pts1,
                                    final PointerTargetSet pts2,
                                    final SSAMapBuilder resultSSA,
-                                   final CToFormulaConverterWithPointerAliasing conv)
+                                   final CtoFormulaConverter conv)
                                        throws InterruptedException {
 
     if (pts1.isEmpty() && pts2.isEmpty()) {
@@ -437,19 +438,19 @@ class PointerTargetSetManager {
   /**
    * The method is used to speed up {@code sizeof} computation by caching sizes of declared composite types.
    */
-  int getSize(CType cType) {
+  protected int getSize(CType cType) {
     return typeHandler.getSizeof(cType);
   }
 
   /**
    * The method is used to speed up member offset computation for declared composite types.
    */
-  int getOffset(CCompositeType compositeType, final String memberName) {
+  public int getOffset(CCompositeType compositeType, final String memberName) {
     return typeHandler.getOffset(compositeType, memberName);
   }
 
 
-  BooleanFormula getNextBaseAddressInequality(final String newBase,
+  protected BooleanFormula getNextBaseAddressInequality(final String newBase,
                                                         final PersistentSortedMap<String, CType> bases,
                                                         final String lastBase) {
     final FormulaType<?> pointerType = typeHandler.getPointerType();
@@ -498,13 +499,14 @@ class PointerTargetSetManager {
    * @return The targets map together with all the added targets.
    */
   @CheckReturnValue
-  PersistentSortedMap<String, PersistentList<PointerTarget>> addToTargets(final String base,
-                          final CType currentType,
-                          final @Nullable CType containerType,
-                          final int properOffset,
-                          final int containerOffset,
-                          PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
-                          final PersistentSortedMap<CompositeField, Boolean> fields) {
+  protected PersistentSortedMap<String, PersistentList<PointerTarget>> addToTargets(
+      final String base,
+      final CType currentType,
+      final @Nullable CType containerType,
+      final int properOffset,
+      final int containerOffset,
+      PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
+      final PersistentSortedMap<CompositeField, Boolean> fields) {
     final CType cType = CTypeUtils.simplifyType(currentType);
     /* Remove assertion: it fails on a correct code (gcc compiles it)
      * struct A;

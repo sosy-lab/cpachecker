@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 
-class CSizeofVisitor extends BaseSizeofVisitor
+public class CSizeofVisitor extends BaseSizeofVisitor
                                    implements CTypeVisitor<Integer, IllegalArgumentException> {
 
   public CSizeofVisitor(final MachineModel machineModel,

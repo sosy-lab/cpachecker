@@ -81,7 +81,7 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
   /**
    * The method is used to speed up member offset computation for declared composite types.
    */
-  int getOffset(CCompositeType compositeType, final String memberName) {
+  public int getOffset(CCompositeType compositeType, final String memberName) {
     compositeType = (CCompositeType) CTypeUtils.simplifyType(compositeType);
     assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
     Multiset<String> multiset = offsets.get(compositeType);
@@ -97,7 +97,7 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
    * Adds the declared composite type to the cache saving its size as well as the offset of every
    * member of the composite.
    */
-  void addCompositeTypeToCache(CCompositeType compositeType) {
+  public void addCompositeTypeToCache(CCompositeType compositeType) {
     compositeType = (CCompositeType) CTypeUtils.simplifyType(compositeType);
     if (offsets.containsKey(compositeType)) {
       // Support for empty structs though it's a GCC extension

@@ -482,7 +482,7 @@ class AssignmentHandler {
         final FormulaType<?> targetType = conv.getFormulaTypeFromCType(type);
         addRetentionConstraints(pattern, type, ufName, oldIndex, newIndex, targetType, null);
       }
-    } else if (pattern.isSemiexact()) {
+    } else if (pattern.isSemiExact()) {
       Preconditions.checkArgument(startAddress != null,
                                   "Start address is mandatory for semiexact pointer target patterns");
       // For semiexact retention constraints we need the first element type of the composite

@@ -120,11 +120,11 @@ public final class PointerTargetSet implements Serializable {
     return BASE_PREFIX + name;
   }
 
-  static boolean isBaseName(final String name) {
+  public static boolean isBaseName(final String name) {
     return name.startsWith(BASE_PREFIX);
   }
 
-  static String getBase(final String baseName) {
+  public static String getBase(final String baseName) {
     return baseName.replaceFirst(BASE_PREFIX, "");
   }
 
@@ -175,7 +175,7 @@ public final class PointerTargetSet implements Serializable {
     }
   }
 
-  PointerTargetSet(final PersistentSortedMap<String, CType> bases,
+  public PointerTargetSet(final PersistentSortedMap<String, CType> bases,
                            final String lastBase,
                            final PersistentSortedMap<CompositeField, Boolean> fields,
                            final PersistentSortedMap<String, DeferredAllocationPool> deferredAllocations,
@@ -193,6 +193,26 @@ public final class PointerTargetSet implements Serializable {
       // so we assert here that isEmpty() implies that it is also empty.
       assert targets.isEmpty();
     }
+  }
+
+  public PersistentSortedMap<String, CType> getBases() {
+    return bases;
+  }
+
+  public PersistentSortedMap<CompositeField, Boolean> getFields() {
+    return fields;
+  }
+
+  public PersistentSortedMap<String, DeferredAllocationPool> getDeferredAllocations() {
+    return deferredAllocations;
+  }
+
+  public PersistentSortedMap<String, PersistentList<PointerTarget>> getTargets() {
+    return targets;
+  }
+
+  public String getLastBase() {
+    return lastBase;
   }
 
   private static final PointerTargetSet EMPTY_INSTANCE = new PointerTargetSet(
