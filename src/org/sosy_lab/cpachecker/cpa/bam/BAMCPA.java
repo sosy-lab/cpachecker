@@ -39,6 +39,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockToDotWriter;
+import org.sosy_lab.cpachecker.cfa.blocks.builder.BlockPartitioningBuilder;
+import org.sosy_lab.cpachecker.cfa.blocks.builder.ExtendedBlockPartitioningBuilder;
 import org.sosy_lab.cpachecker.cfa.blocks.builder.FunctionAndLoopPartitioning;
 import org.sosy_lab.cpachecker.cfa.blocks.builder.PartitioningHeuristic;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -109,6 +111,10 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
       + "to re-explore the program along the error-path.")
   private boolean doPrecisionRefinementForAllStates = false;
 
+  @Option(secure = true,
+      description = "Use more fast partitioning builder, which can not handle loops")
+  private boolean useExtendedPartitioningBuilder = false;
+
   public BAMCPA(ConfigurableProgramAnalysis pCpa, Configuration config, LogManager pLogger,
       ReachedSetFactory pReachedSetFactory, ShutdownNotifier pShutdownNotifier, CFA pCfa) throws InvalidConfigurationException, CPAException {
     super(pCpa);
@@ -155,7 +161,13 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     if (blockPartitioning == null) {
-      blockPartitioning = heuristic.buildPartitioning(pNode);
+      BlockPartitioningBuilder blockBuilder;
+      if (useExtendedPartitioningBuilder) {
+        blockBuilder = new ExtendedBlockPartitioningBuilder();
+      } else {
+        blockBuilder = new BlockPartitioningBuilder();
+      }
+      blockPartitioning = heuristic.buildPartitioning(pNode, blockBuilder);
 
       if (exportBlocksPath != null) {
         BlockToDotWriter writer = new BlockToDotWriter(blockPartitioning);

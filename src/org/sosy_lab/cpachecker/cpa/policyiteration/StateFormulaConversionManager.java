@@ -1,9 +1,11 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map.Entry;
+
+import javax.annotation.Nullable;
+
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
@@ -16,21 +18,10 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map.Entry;
-
-import javax.annotation.Nullable;
-
 /**
  * Class responsible for converting states to formulas.
  */
-@Options(prefix="cpa.stator.policy")
 public class StateFormulaConversionManager {
-
-  // Buggy optimization, see test/programs/policyiteration/slow_merge_true_assert.c
-  @Option(secure=true, description="Use latest version of abstracted states")
-  private boolean useLatestVersion = false;
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
@@ -41,23 +32,17 @@ public class StateFormulaConversionManager {
   private @Nullable InvariantSupplier invariants = null;
 
   public StateFormulaConversionManager(
-      Configuration config,
       FormulaManagerView pFmgr,
-      PathFormulaManager pPfmgr, CongruenceManager pCongruenceManager,
-      TemplateManager pTemplateManager, InvariantGenerator pInvariantGenerator)
-      throws InvalidConfigurationException {
-
-    config.inject(this);
+      PathFormulaManager pPfmgr,
+      CongruenceManager pCongruenceManager,
+      TemplateManager pTemplateManager,
+      InvariantGenerator pInvariantGenerator) {
     fmgr = pFmgr;
     pfmgr = pPfmgr;
     congruenceManager = pCongruenceManager;
     templateManager = pTemplateManager;
     invariantGenerator = pInvariantGenerator;
     bfmgr = pFmgr.getBooleanFormulaManager();
-  }
-
-  public boolean shouldUseLatestVersion() {
-    return useLatestVersion;
   }
 
   /**
@@ -108,7 +93,7 @@ public class StateFormulaConversionManager {
       PolicyIntermediateState state,
       boolean attachExtraInvariant) throws CPAException {
     return bfmgr.and(abstractStateToConstraints(fmgr, pfmgr,
-        state.getGeneratingState().getLatestVersion(), attachExtraInvariant));
+        state.getGeneratingState(), attachExtraInvariant));
   }
 
   /**

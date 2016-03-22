@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -94,7 +95,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
@@ -186,6 +189,9 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   @Option(secure=true, name="deallocationFunctions", description = "Deallocation functions")
   private ImmutableSet<String> deallocationFunctions = ImmutableSet.of(
       "free");
+
+  @Option(secure = true, name="externalAllocationFunction", description = "Function which indicate on external allocated memory")
+  private String externalAllocationFunction = "ext_allocation";
 
   final private LogManagerWithoutDuplicates logger;
   final private MachineModel machineModel;
@@ -385,6 +391,23 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       return expressionEvaluator.evaluateAddress(pState, pCfaEdge, pRvalue);
     }
 
+    public final SMGAddressValueAndStateList evaluateExternalAllocation(CFunctionCallExpression pFunctionCall,
+        SMGState pState, CFAEdge pCFAEdge) throws SMGInconsistentException {
+      SMGState currentState = pState;
+
+      String functionName = pFunctionCall.getFunctionNameExpression().toASTString();
+
+      List<SMGAddressValueAndState> result = new ArrayList<>();
+
+      // TODO line numbers are not unique when we have multiple input files!
+      String allocation_label = functionName + "_ID" + SMGValueFactory.getNewValue() + "_Line:"
+          + pFunctionCall.getFileLocation().getStartingLineNumber();
+      SMGAddressValue new_address = currentState.addExternalAllocation(allocation_label);
+
+      result.add(SMGAddressValueAndState.of(currentState, new_address));
+
+      return SMGAddressValueAndStateList.copyOfAddressValueList(result);
+    }
     /** The method "alloca" (or "__builtin_alloca") allocates memory from the stack.
      * The memory is automatically freed at function-exit.
      */
@@ -617,7 +640,8 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     public final boolean isABuiltIn(String functionName) {
       return (BUILTINS.contains(functionName) || isNondetBuiltin(functionName) ||
-          isConfigurableAllocationFunction(functionName) || isDeallocationFunction(functionName));
+          isConfigurableAllocationFunction(functionName) || isDeallocationFunction(functionName) ||
+          isExternalAllocationFunction(functionName));
     }
 
     private static final String NONDET_PREFIX = "__VERIFIER_nondet_";
@@ -631,6 +655,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     public boolean isDeallocationFunction(String functionName) {
       return deallocationFunctions.contains(functionName);
+    }
+
+    public boolean isExternalAllocationFunction(String functionName) {
+      return externalAllocationFunction.equals(functionName);
     }
 
     public SMGAddressValueAndStateList evaluateMemcpy(CFunctionCallExpression pFunctionCall,
@@ -1255,6 +1283,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         if (builtins.isDeallocationFunction(functionName)) {
           newStates = builtins.evaluateFree(cFCExpression, newState, pCfaEdge);
         }
+        if (builtins.isExternalAllocationFunction(functionName)) {
+          newStates = builtins.evaluateExternalAllocation(cFCExpression, newState, pCfaEdge).asSMGStateList();
+        }
+
         switch (functionName) {
         case "__VERIFIER_BUILTIN_PLOT":
           builtins.evaluateVBPlot(cFCExpression, newState);
@@ -1609,8 +1641,8 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       return handleInitializerList(pNewState, pVarDecl, pEdge,
           pNewObject, pOffset, pLValueType, ((CInitializerList) pInitializer));
     } else if (pInitializer instanceof CDesignatedInitializer) {
-      // TODO handle CDesignatedInitializer
-      return ImmutableList.of(pNewState);
+      throw new AssertionError("Error in handling initializer, designated Initializer " + pInitializer.toASTString()
+          + " should not appear at this point.");
 
     } else {
       throw new UnrecognizedCCodeException("Did not recognize Initializer", pInitializer);
@@ -1643,6 +1675,36 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     return ImmutableList.of(pNewState);
   }
 
+  private Pair<Integer, Integer> calculateOffsetAndPostionOfFieldFromDesignator(
+      int offsetAtStartOfStruct,
+      List<CCompositeTypeMemberDeclaration> pMemberTypes,
+      CDesignatedInitializer pInitializer,
+      CFAEdge pEdge,
+      SMGState pNewState,
+      CCompositeType pLValueType) throws UnrecognizedCCodeException {
+
+    // TODO More Designators?
+    assert pInitializer.getDesignators().size() == 1;
+
+    String fieldDesignator = ((CFieldDesignator) pInitializer.getDesignators().get(0)).getFieldName();
+
+    int offset = offsetAtStartOfStruct;
+
+    for (int listCounter = 0; listCounter < pMemberTypes.size(); listCounter++) {
+
+      CCompositeTypeMemberDeclaration memberDcl = pMemberTypes.get(listCounter);
+
+      if (memberDcl.getName().equals(fieldDesignator)) {
+        return Pair.of(offset, listCounter);
+      } else {
+        if (pLValueType.getKind() == ComplexTypeKind.STRUCT) {
+          offset = offset + expressionEvaluator.getSizeof(pEdge, memberDcl.getType(), pNewState);
+        }
+      }
+    }
+    throw new UnrecognizedCCodeException("CDesignator field name not in struct.", pInitializer);
+  }
+
   private List<SMGState> handleInitializerList(
       SMGState pNewState, CVariableDeclaration pVarDecl, CFAEdge pEdge,
       SMGObject pNewObject, int pOffset, CCompositeType pLValueType,
@@ -1658,7 +1720,47 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     List<Pair<SMGState, Integer>> offsetAndStates = new ArrayList<>();
     offsetAndStates.add(startOffsetAndState);
 
+    // Move preinitialization of global variable because of unpredictable fields' order within CDesignatedInitializer
+    if (pVarDecl.isGlobal()) {
+
+      List<Pair<SMGState, Integer>> result = new ArrayList<>(offsetAndStates.size());
+
+      for (Pair<SMGState, Integer> offsetAndState : offsetAndStates) {
+
+        int offset = offsetAndState.getSecond();
+        SMGState newState = offsetAndState.getFirst();
+
+        int sizeOfType = expressionEvaluator.getSizeof(pEdge, pLValueType, pNewState);
+
+        if (offset - pOffset < sizeOfType) {
+          newState = writeValue(newState, pNewObject, offset,
+              AnonymousTypes.createTypeWithLength(sizeOfType - (offset - pOffset)), SMGKnownSymValue.ZERO, pEdge);
+        }
+
+        result.add(Pair.of(newState, offset));
+      }
+
+      offsetAndStates = result;
+    }
+
+
     for (CInitializer initializer : pNewInitializer.getInitializers()) {
+
+      if (initializer instanceof CDesignatedInitializer) {
+        Pair<Integer, Integer> offsetAndPosition =
+            calculateOffsetAndPostionOfFieldFromDesignator(pOffset, memberTypes,
+                (CDesignatedInitializer) initializer, pEdge, pNewState, pLValueType);
+
+        int offset = offsetAndPosition.getFirst();
+        listCounter = offsetAndPosition.getSecond();
+        initializer = ((CDesignatedInitializer) initializer).getRightHandSide();
+
+        List<Pair<SMGState, Integer>> resultOffsetAndStatesDesignated = new ArrayList<>();
+        resultOffsetAndStatesDesignated.add(Pair.of(pNewState, offset));
+
+        offsetAndStates = resultOffsetAndStatesDesignated;
+
+      }
 
       if (listCounter >= memberTypes.size()) {
         throw new UnrecognizedCCodeException(
@@ -1691,28 +1793,6 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
       offsetAndStates = resultOffsetAndStates;
       listCounter++;
-    }
-
-    if (pVarDecl.isGlobal()) {
-
-      List<Pair<SMGState, Integer>> result = new ArrayList<>(offsetAndStates.size());
-
-      for (Pair<SMGState, Integer> offsetAndState : offsetAndStates) {
-
-        int offset = offsetAndState.getSecond();
-        SMGState newState = offsetAndState.getFirst();
-
-        int sizeOfType = expressionEvaluator.getSizeof(pEdge, pLValueType, pNewState);
-
-        if (offset - pOffset < sizeOfType) {
-          newState = writeValue(newState, pNewObject, offset,
-              AnonymousTypes.createTypeWithLength(sizeOfType - (offset - pOffset)), SMGKnownSymValue.ZERO, pEdge);
-        }
-
-        result.add(Pair.of(newState, offset));
-      }
-
-      offsetAndStates = result;
     }
 
     return FluentIterable.from(offsetAndStates).transform(new Function<Pair<SMGState, Integer>, SMGState>() {
@@ -2136,6 +2216,11 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
             SMGAddressValueAndStateList configAllocEdge = builtins.evaluateConfigurableAllocationFunction(
                 pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
             return configAllocEdge;
+          }
+          if (builtins.isExternalAllocationFunction(functionName)) {
+            SMGAddressValueAndStateList extAllocEdge = builtins.evaluateExternalAllocation
+                (pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
+            return extAllocEdge;
           }
           switch (functionName) {
           case "__VERIFIER_BUILTIN_PLOT":

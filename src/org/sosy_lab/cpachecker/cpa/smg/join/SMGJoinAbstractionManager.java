@@ -127,13 +127,13 @@ public class SMGJoinAbstractionManager {
         sharedIPointerNonSharedIP.getFirst();
     Set<SMGEdgePointsTo> nonSharedIPointer = sharedIPointerNonSharedIP.getSecond();
 
-    if (nonSharedOPointer.size() != nonSharedOPointer.size()) {
+    if (!nonSharedIPointer.isEmpty()) {
       return Optional.absent();
     }
 
     GenericAbstractionCandidateTemplate result = GenericAbstractionCandidateTemplate
         .createSimpleInductiveGenericAbstractionTemplate(sharedFields, sharedIPointer,
-            nonSharedIPointer, sharedOPointer, nonSharedOPointer, root);
+            sharedOPointer, nonSharedOPointer, root);
     return Optional.of(result);
   }
 

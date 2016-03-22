@@ -21,22 +21,21 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.bam;
+package org.sosy_lab.cpachecker.util.refinement;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -46,22 +45,24 @@ import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
-public class DelegatingBAMRefiner extends AbstractBAMBasedRefiner {
+/**
+ * This is a {@link ARGBasedRefiner} that delegates each refinement
+ * to a list of given {@link ARGBasedRefiner}s (in the given order)
+ * until one succeeds.
+ */
+public final class DelegatingARGBasedRefiner implements ARGBasedRefiner, StatisticsProvider {
 
-  private final List<AbstractBAMBasedRefiner> refiners;
+  private final List<ARGBasedRefiner> refiners;
 
   private final List<StatCounter> totalRefinementsSelected;
   private final List<StatCounter> totalRefinementsFinished;
   private final LogManager logger;
 
-  public DelegatingBAMRefiner(
-      final ConfigurableProgramAnalysis pCpa, final AbstractBAMBasedRefiner... pRefiners)
-      throws InvalidConfigurationException {
-    super(pCpa);
-
-    logger = ((BAMCPA) pCpa).getLogger();
-    refiners = Arrays.asList(pRefiners);
+  public DelegatingARGBasedRefiner(final LogManager pLogger, final ARGBasedRefiner... pRefiners) {
+    logger = pLogger;
+    refiners = ImmutableList.copyOf(pRefiners);
 
     totalRefinementsSelected = new ArrayList<>();
     totalRefinementsFinished = new ArrayList<>();
@@ -77,7 +78,7 @@ public class DelegatingBAMRefiner extends AbstractBAMBasedRefiner {
   }
 
   @Override
-  protected CounterexampleInfo performRefinement0(final ARGReachedSet reached, ARGPath pErrorPath)
+  public CounterexampleInfo performRefinementForPath(final ARGReachedSet reached, ARGPath pErrorPath)
       throws CPAException, InterruptedException {
 
     CounterexampleInfo cex = null;
@@ -93,7 +94,7 @@ public class DelegatingBAMRefiner extends AbstractBAMBasedRefiner {
 
         logger.logf(Level.FINE, "starting refinement %d of %d with %s", i + 1, refiners.size(),
             refiners.get(i).getClass().getSimpleName());
-        cex = refiners.get(i).performRefinement(reached, pErrorPath);
+        cex = refiners.get(i).performRefinementForPath(reached, pErrorPath);
 
         if (cex.isSpurious()) {
           logger.logf(Level.FINE, "refinement %d of %d was successful", i + 1, refiners.size());
@@ -128,7 +129,7 @@ public class DelegatingBAMRefiner extends AbstractBAMBasedRefiner {
 
       @Override
       public String getName() {
-        return DelegatingBAMRefiner.class.getSimpleName();
+        return DelegatingARGBasedRefiner.class.getSimpleName();
       }
 
       @Override
@@ -144,8 +145,10 @@ public class DelegatingBAMRefiner extends AbstractBAMBasedRefiner {
       }
     });
 
-    for (AbstractBAMBasedRefiner refiner : refiners) {
-      refiner.collectStatistics(pStatsCollection);
+    for (ARGBasedRefiner refiner : refiners) {
+      if (refiner instanceof StatisticsProvider) {
+        ((StatisticsProvider) refiner).collectStatistics(pStatsCollection);
+      }
     }
   }
 }

@@ -32,11 +32,15 @@ import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -196,6 +200,63 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
 
       return exceedingMemoryLocations;
     }
+  }
+  private class AssignementsInPathConditionReducer implements Reducer {
+
+    @Override
+    public AbstractState getVariableReducedState(AbstractState pExpandedState, Block pContext, CFANode pCallNode) {
+      return getInitialState(pCallNode);
+    }
+
+    @Override
+    public AbstractState getVariableExpandedState(AbstractState pRootState, Block pReducedContext, AbstractState pReducedState) {
+      return pRootState;
+    }
+
+    @Override
+    public Precision getVariableReducedPrecision(Precision pPrecision, Block pContext) {
+      return pPrecision;
+    }
+
+    @Override
+    public Precision getVariableExpandedPrecision(Precision pRootPrecision, Block pRootContext,
+        Precision pReducedPrecision) {
+      return pRootPrecision;
+    }
+
+    @Override
+    public Object getHashCodeForState(AbstractState pStateKey, Precision pPrecisionKey) {
+      return ((UniqueAssignmentsInPathConditionState)pStateKey).mapping;
+    }
+
+    @Override
+    public int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision) {
+      return 0;
+    }
+
+    @Override
+    public AbstractState getVariableReducedStateForProofChecking(AbstractState pExpandedState, Block pContext,
+        CFANode pCallNode) {
+      return getVariableReducedState(pExpandedState, pContext, pCallNode);
+    }
+
+    @Override
+    public AbstractState getVariableExpandedStateForProofChecking(AbstractState pRootState, Block pReducedContext,
+        AbstractState pReducedState) {
+      return getVariableExpandedState(pRootState, pReducedContext, pReducedState);
+    }
+
+    @Override
+    public AbstractState rebuildStateAfterFunctionCall(AbstractState pRootState, AbstractState pEntryState,
+        AbstractState pExpandedState, FunctionExitNode pExitLocation) {
+      return pRootState;
+    }
+
+  }
+
+  @Override
+  public Reducer getReducer() {
+    return new AssignementsInPathConditionReducer();
   }
 
   /**

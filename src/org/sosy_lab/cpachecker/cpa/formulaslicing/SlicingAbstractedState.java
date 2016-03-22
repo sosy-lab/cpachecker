@@ -13,6 +13,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -51,7 +52,10 @@ public class SlicingAbstractedState
 
   private final CFANode node;
 
-  private final boolean isSliced;
+  /**
+   * Under which paths this state is inductive.
+   */
+  private final ImmutableSet<PathFormulaWithStartSSA> inductiveUnder;
 
   private SlicingAbstractedState(
       Set<BooleanFormula> pSlice,
@@ -60,23 +64,50 @@ public class SlicingAbstractedState
       FormulaManagerView pFmgr,
       Optional<SlicingIntermediateState> pGeneratingState,
       CFANode pNode,
-      boolean pIsSliced) {
+      Iterable<PathFormulaWithStartSSA> pInductiveUnder) {
+    inductiveUnder = ImmutableSet.copyOf(pInductiveUnder);
     semiClauses = ImmutableSet.copyOf(pSlice);
     ssaMap = pSsaMap;
     pointerTargetSet = pPointerTargetSet;
     fmgr = pFmgr;
     generatingState = pGeneratingState;
     node = pNode;
-    isSliced = pIsSliced;
   }
 
-  public static SlicingAbstractedState of(Set<BooleanFormula> pSlice,
-      SSAMap pSsaMap, PointerTargetSet pPointerTargetSet,
-      FormulaManagerView pFmgr,
-      CFANode pNode,
-      Optional<SlicingIntermediateState> pGeneratingState, boolean pIsSliced) {
+  public Set<PathFormulaWithStartSSA> getInductiveUnder() {
+    return inductiveUnder;
+  }
+
+  public static SlicingAbstractedState ofClauses(Set<BooleanFormula> pSlice,
+                                          SSAMap pSsaMap, PointerTargetSet pPointerTargetSet,
+                                          FormulaManagerView pFmgr,
+                                          CFANode pNode,
+                                          Optional<SlicingIntermediateState> pGeneratingState) {
+    return new SlicingAbstractedState(
+        pSlice, pSsaMap, pPointerTargetSet, pFmgr,
+        pGeneratingState, pNode,
+        ImmutableSet.<PathFormulaWithStartSSA>of());
+  }
+
+  public static SlicingAbstractedState makeSliced(Set<BooleanFormula> pSlice,
+                                          SSAMap pSsaMap, PointerTargetSet pPointerTargetSet,
+                                          FormulaManagerView pFmgr,
+                                          CFANode pNode,
+                                          Optional<SlicingIntermediateState> pGeneratingState,
+                                          Iterable<PathFormulaWithStartSSA> trace) {
     return new SlicingAbstractedState(pSlice, pSsaMap, pPointerTargetSet, pFmgr,
-        pGeneratingState, pNode, pIsSliced);
+        pGeneratingState, pNode, trace);
+  }
+
+  public static SlicingAbstractedState copyOf(SlicingAbstractedState sliced) {
+    return new SlicingAbstractedState(
+        sliced.semiClauses,
+        sliced.ssaMap,
+        sliced.pointerTargetSet,
+        sliced.fmgr,
+        sliced.generatingState,
+        sliced.node,
+        sliced.inductiveUnder);
   }
 
   public Optional<SlicingIntermediateState> getGeneratingState(){
@@ -103,17 +134,26 @@ public class SlicingAbstractedState
     return semiClauses;
   }
 
+  public Set<BooleanFormula> getInstantiatedAbstraction() {
+    Set<BooleanFormula> out = new HashSet<>(semiClauses.size());
+    for (BooleanFormula f : semiClauses) {
+      out.add(fmgr.instantiate(f, ssaMap));
+    }
+    return out;
+  }
+
   public static SlicingAbstractedState empty(
       FormulaManagerView pFmgr,
       CFANode startingNode
   ) {
-    return SlicingAbstractedState.of(
+    return new SlicingAbstractedState(
         ImmutableSet.<BooleanFormula>of(),
         SSAMap.emptySSAMap(),
         PointerTargetSet.emptyPointerTargetSet(),
-        pFmgr, startingNode,
+        pFmgr,
         Optional.<SlicingIntermediateState>absent(),
-        false);
+        startingNode,
+        ImmutableSet.<PathFormulaWithStartSSA>of());
   }
 
   @Override
@@ -135,13 +175,9 @@ public class SlicingAbstractedState
     return Joiner.on("\n---\n").join(semiClauses);
   }
 
-  public boolean isSliced() {
-    return isSliced;
-  }
-
   @Override
   public boolean shouldBeHighlighted() {
-    return isSliced;
+    return false;
   }
 
   @Override

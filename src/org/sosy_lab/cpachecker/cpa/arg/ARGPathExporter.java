@@ -435,6 +435,10 @@ public class ARGPathExporter {
         stateScopes.put(pTo, isFunctionScope ? functionName : "");
       }
 
+      if (pEdge.getSuccessor().isLoopStart()) {
+        nodeFlags.put(pTo, NodeFlag.ISLOOPSTART);
+      }
+
       if (AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge)) {
         return result;
       }

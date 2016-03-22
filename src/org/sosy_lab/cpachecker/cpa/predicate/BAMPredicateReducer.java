@@ -28,8 +28,6 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Cto
 import java.util.Collection;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
@@ -39,14 +37,16 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
@@ -296,10 +296,14 @@ public class BAMPredicateReducer implements Reducer {
     AbstractionFormula rootAbstraction = rootState.getAbstractionFormula();
     AbstractionFormula reducedAbstraction = reducedState.getAbstractionFormula();
 
-    // create region predicates for every atom in formula
-    pamgr.extractPredicates(reducedAbstraction.asInstantiatedFormula());
+    // De-serialized AbstractionFormula are missing the Regions which we need for expand(),
+    // so we re-create them here.
+    rootAbstraction = pamgr.buildAbstraction(
+        rootAbstraction.asFormula(), rootAbstraction.getBlockFormula());
+    reducedAbstraction = pamgr.buildAbstraction(
+        reducedAbstraction.asFormula(), reducedAbstraction.getBlockFormula());
 
-    Collection<AbstractionPredicate> rootPredicates = pamgr.extractPredicates(rootAbstraction.asInstantiatedFormula());
+    Collection<AbstractionPredicate> rootPredicates = pamgr.getPredicatesForAtomsOf(rootAbstraction.asInstantiatedFormula());
     Collection<AbstractionPredicate> relevantRootPredicates =
         cpa.getRelevantPredicatesComputer().getRelevantPredicates(pReducedContext, rootPredicates);
     //for each removed predicate, we have to lookup the old (expanded) value and insert it to the reducedStates region
@@ -321,13 +325,9 @@ public class BAMPredicateReducer implements Reducer {
     SSAMap newSSA = builder.build();
     PathFormula newPathFormula = pmgr.makeNewPathFormula(pmgr.makeEmptyPathFormula(), newSSA);
 
-
-    Region reducedRegion = pamgr.buildRegionFromFormula(reducedAbstraction.asFormula());
-    Region rootRegion = pamgr.buildRegionFromFormula(rootAbstraction.asFormula());
-
     AbstractionFormula newAbstractionFormula =
-        pamgr.expand(reducedRegion, rootRegion, relevantRootPredicates, newSSA,
-            reducedAbstraction.getBlockFormula());
+        pamgr.expand(reducedAbstraction.asRegion(), rootAbstraction.asRegion(),
+            relevantRootPredicates, newSSA, reducedAbstraction.getBlockFormula());
 
     PersistentMap<CFANode, Integer> abstractionLocations = rootState.getAbstractionLocationsOnPath();
 
@@ -411,8 +411,9 @@ public class BAMPredicateReducer implements Reducer {
     // everything is prepared, so build a new AbstractionState.
     // we do this as 'future abstraction', because we do not have enough information
     // (necessary classes and managers) for the abstraction-process at this place.
-    PredicateAbstractState rebuildState = new PredicateAbstractState.ComputeAbstractionState(
-            executedFunctionWithSSA, rootState.getAbstractionFormula(), exitLocation, abstractionLocations);
+    PredicateAbstractState rebuildState =
+        new PredicateAbstractState.ComputeAbstractionState(
+            executedFunctionWithSSA, rootState.getAbstractionFormula(), abstractionLocations);
 
     logger.log(Level.ALL,
             "\noldAbs: ", rootState.getAbstractionFormula().asInstantiatedFormula(),

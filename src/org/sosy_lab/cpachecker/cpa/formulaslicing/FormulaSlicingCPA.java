@@ -1,9 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
-import java.util.Collection;
-import java.util.List;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -40,8 +38,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
+import java.util.Collection;
+import java.util.List;
+
+import javax.annotation.Nullable;
 
 
 @Options(prefix="cpa.slicing")
@@ -59,36 +59,32 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   private final StopOperator stopOperator;
   private final IFormulaSlicingManager manager;
   private final MergeOperator mergeOperator;
-  private final LoopTransitionFinder loopTransitionFinder;
   private final InductiveWeakeningManager inductiveWeakeningManager;
 
   private FormulaSlicingCPA(
       Configuration pConfiguration,
       LogManager pLogger,
-      ShutdownNotifier shutdownNotifier,
+      ShutdownNotifier pShutdownNotifier,
       CFA cfa
   ) throws InvalidConfigurationException {
     pConfiguration.inject(this);
 
-    Solver solver = Solver.create(pConfiguration, pLogger, shutdownNotifier);
+    Solver solver = Solver.create(pConfiguration, pLogger, pShutdownNotifier);
     FormulaManagerView formulaManager = solver.getFormulaManager();
     PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(
-        formulaManager, pConfiguration, pLogger, shutdownNotifier, cfa,
+        formulaManager, pConfiguration, pLogger, pShutdownNotifier, cfa,
         AnalysisDirection.FORWARD);
 
     if (useCachingPathFormulaManager) {
       pathFormulaManager = new CachingPathFormulaManager(pathFormulaManager);
     }
 
-    loopTransitionFinder = new LoopTransitionFinder(
-        pConfiguration, cfa.getLoopStructure().get(), pathFormulaManager, formulaManager, pLogger,
-        shutdownNotifier);
-
-    inductiveWeakeningManager = new InductiveWeakeningManager(pConfiguration, solver, pLogger);
+    inductiveWeakeningManager = new InductiveWeakeningManager(pConfiguration, solver, pLogger,
+        pShutdownNotifier);
     manager = new FormulaSlicingManager(
         pConfiguration,
         pathFormulaManager, formulaManager, cfa,
-        inductiveWeakeningManager, solver, pLogger);
+        inductiveWeakeningManager, solver, pShutdownNotifier);
     stopOperator = new StopSepOperator(this);
     mergeOperator = this;
   }
@@ -173,7 +169,6 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
-    loopTransitionFinder.collectStatistics(statsCollection);
     manager.collectStatistics(statsCollection);
     inductiveWeakeningManager.collectStatistics(statsCollection);
   }

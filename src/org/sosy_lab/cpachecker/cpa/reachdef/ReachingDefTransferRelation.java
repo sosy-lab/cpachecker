@@ -23,12 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.reachdef;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.ShutdownNotifier;
@@ -88,8 +88,8 @@ public class ReachingDefTransferRelation implements TransferRelation {
     if (nodes == null) {
       throw new CPATransferException("CPA not properly initialized.");
     }
-    Vector<AbstractState> successors = new Vector<>();
-    Vector<CFAEdge> definitions = new Vector<>();
+    List<AbstractState> successors = new ArrayList<>();
+    List<CFAEdge> definitions = new ArrayList<>();
     for (CFANode node : nodes) {
       for (CFAEdge cfaedge : CFAUtils.leavingEdges(node)) {
         shutdownNotifier.shutdownIfNecessary();
@@ -272,6 +272,8 @@ public class ReachingDefTransferRelation implements TransferRelation {
         break;
       }
       case BlankEdge:
+        break;
+      case ReturnStatementEdge:
         break;
       default:
         throw new CPATransferException("Unknown CFA edge type incorporated in MultiEdge.");

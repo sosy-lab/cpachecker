@@ -43,7 +43,7 @@ public class Automata {
 
     AutomatonInternalState targetState = AutomatonInternalState.ERROR;
     AutomatonTransition toTarget = new AutomatonTransition(
-        AutomatonBoolExpr.MatchLoopHead.INSTANCE,
+        AutomatonBoolExpr.MatchLoopStart.INSTANCE,
         Collections.<AutomatonBoolExpr>emptyList(),
         Collections.<AutomatonAction>emptyList(),
         targetState);

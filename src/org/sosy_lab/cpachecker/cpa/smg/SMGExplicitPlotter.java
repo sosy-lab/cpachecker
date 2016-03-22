@@ -229,7 +229,7 @@ public final class SMGExplicitPlotter {
     Location location = Location.valueOf(obj, smg.getFunctionName(obj));
 
     return "value_" + pEdge.getValue() + " -> " + locationIndex.get(location) + "[label=\"+" + pEdge.getOffset()
-        + "b\"];";
+        + "B\"];";
   }
 
   private static String smgObjectAsDot(SMGObject pObject, CLangSMG pSmg) {

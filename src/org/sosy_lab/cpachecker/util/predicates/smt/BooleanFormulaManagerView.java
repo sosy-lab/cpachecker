@@ -23,14 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import java.util.Collection;
+import java.util.Set;
+
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.visitors.TraversalProcess;
-
-import java.util.Collection;
-import java.util.Set;
 
 
 public class BooleanFormulaManagerView extends BaseManagerView implements BooleanFormulaManager {
@@ -161,8 +161,6 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
    * through the formula and somehow transform it (i.e., return a boolean formula).
    * This class ensures that each identical subtree of the formula
    * is visited only once to avoid the exponential explosion.
-   * When a subclass wants to traverse into a subtree of the formula,
-   * it needs to call {@link #visitIfNotSeen(BooleanFormula)} to ensure this.
    *
    * By default this class implements the identity function.
    *

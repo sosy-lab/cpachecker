@@ -133,12 +133,15 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
       }
       if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
         if (memberCompositeType != null) {
+          offset += machineModel.getPadding(offset, memberCompositeType);
           offset += sizes.count(memberCompositeType);
         } else {
+          offset += machineModel.getPadding(offset, memberDeclaration.getType());
           offset += memberDeclaration.getType().accept(sizeofVisitor);
         }
       }
     }
+    offset += machineModel.getPadding(offset, compositeType);
 
     assert compositeType.getKind() != ComplexTypeKind.STRUCT || offset == size :
            "Incorrect sizeof or offset of the last member: " + compositeType;

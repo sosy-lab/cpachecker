@@ -60,14 +60,22 @@ final class SMGJoinMapTargetAddress {
       }
     }
 
-    if(pAddress1 == pAddress2) {
+    if(pAddress1.equals(pAddress2)) {
       value = pAddress1;
     } else {
       value = SMGValueFactory.getNewValue();
     }
 
     smg.addValue(value);
-    smg.addPointsToEdge(new SMGEdgePointsTo(value, target, pt.getOffset()));
+
+    SMGEdgePointsTo nPtEdge;
+    if(pt.getValue() == value && pt.getObject().equals(target)) {
+      nPtEdge = pt;
+    } else {
+      nPtEdge = new SMGEdgePointsTo(value, target, pt.getOffset());
+    }
+
+    smg.addPointsToEdge(nPtEdge);
     mapping1.map(pAddress1, value);
     mapping2.map(pAddress2, value);
   }

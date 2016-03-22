@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import java.util.Collection;
 import java.util.Set;
 
 import org.junit.Before;
@@ -55,6 +54,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.google.common.truth.Truth;
 
 @RunWith(Parameterized.class)
@@ -119,7 +119,7 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
     BooleanFormula f = bmgrv.or(ImmutableList.of(
         bmgrv.and(atom1, atom2), bmgrv.and(atom1, atom3), atom4, atom5));
 
-    Collection<BooleanFormula> atoms = mgrv.extractAtoms(f, true);
+    Set<BooleanFormula> atoms = mgrv.extractAtoms(f, true);
     Set<BooleanFormula> expected = ImmutableSet.of(stripNot(atom1), stripNot(atom2), stripNot(atom3), stripNot(atom4), stripNot(atom5));
 
     // Assert that atoms contains all of atom1-5
@@ -127,7 +127,7 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
     assertThat(atoms).hasSize(6);
     assertThat(atoms).containsAllIn(expected);
 
-    atoms.removeAll(expected);
+    atoms = Sets.difference(atoms, expected);
     BooleanFormula remainingAtom = Iterables.getOnlyElement(atoms);
     assertThatFormula(remainingAtom).isEquivalentTo(stripNot(atom1ineq));
   }

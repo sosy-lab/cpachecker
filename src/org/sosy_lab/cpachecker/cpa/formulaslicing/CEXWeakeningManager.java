@@ -3,6 +3,7 @@ package org.sosy_lab.cpachecker.cpa.formulaslicing;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -71,18 +72,20 @@ public class CEXWeakeningManager {
   private final LogManager logger;
   private final InductiveWeakeningStatistics statistics;
   private final Random r = new Random();
+  private final ShutdownNotifier shutdownNotifier;
 
   public CEXWeakeningManager(
       FormulaManagerView pFmgr,
       Solver pSolver,
       LogManager pLogger,
       InductiveWeakeningStatistics pStatistics,
-      Configuration config) throws InvalidConfigurationException {
+      Configuration config, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     config.inject(this);
     solver = pSolver;
     logger = pLogger;
     statistics = pStatistics;
     bfmgr = pFmgr.getBooleanFormulaManager();
+    shutdownNotifier = pShutdownNotifier;
   }
 
   public void setRemovalSelectionStrategy(SELECTION_STRATEGY strategy) {
@@ -120,22 +123,19 @@ public class CEXWeakeningManager {
       Set<BooleanFormula> pSelectorsWithIntermediate) throws SolverException, InterruptedException {
 
     final Set<BooleanFormula> toAbstract = new HashSet<>(pSelectorsWithIntermediate);
+    List<BooleanFormula> selectorConstraints = new ArrayList<>();
+    for (BooleanFormula selector : selectionInfo.keySet()) {
+      selectorConstraints.add(bfmgr.not(selector));
+    }
+
+    int noIterations = 0;
     try (ProverEnvironment env = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       env.push(query);
 
-      List<BooleanFormula> selectorConstraints = new ArrayList<>();
-      // TODO: use solving-with-assumptions instead.
-      for (BooleanFormula selector : selectionInfo.keySet()) {
-        selectorConstraints.add(bfmgr.not(selector));
-      }
-      env.push(bfmgr.and(selectorConstraints));
-
-      logger.log(Level.FINE, "Query = " + query);
-
-      while (!env.isUnsat()) {
-        final Model m = env.getModel();
-
-        statistics.noCexIterations.incrementAndGet();
+      while (!env.isUnsatWithAssumptions(selectorConstraints)) {
+        noIterations++;
+        shutdownNotifier.shutdownIfNecessary();
+        Model m = env.getModel();
 
         toAbstract.addAll(getSelectorsToAbstract(
             ImmutableSet.copyOf(toAbstract),
@@ -145,7 +145,7 @@ public class CEXWeakeningManager {
             logger,
             0
         ));
-        env.pop();
+
         selectorConstraints.clear();
         for (BooleanFormula selector : selectionInfo.keySet()) {
           if (toAbstract.contains(selector)) {
@@ -154,10 +154,9 @@ public class CEXWeakeningManager {
             selectorConstraints.add(bfmgr.not(selector));
           }
         }
-        env.push(bfmgr.and(selectorConstraints));
       }
     }
-
+    statistics.noCexIterations.setNextValue(noIterations);
     return toAbstract;
   }
 

@@ -2,9 +2,7 @@ package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import java.util.logging.Level;
-import java.util.logging.SimpleFormatter;
-import java.util.logging.StreamHandler;
+import com.google.common.collect.ImmutableMap;
 
 import org.junit.After;
 import org.junit.Before;
@@ -25,7 +23,9 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import com.google.common.collect.ImmutableMap;
+import java.util.logging.Level;
+import java.util.logging.SimpleFormatter;
+import java.util.logging.StreamHandler;
 
 public class InductiveWeakeningManagerTest {
   private CFACreator creator;
@@ -52,7 +52,8 @@ public class InductiveWeakeningManagerTest {
     Solver solver = Solver.create(config, logger, notifier);
     fmgr = solver.getFormulaManager();
 
-    inductiveWeakeningManager = new InductiveWeakeningManager(config, solver, logger);
+    inductiveWeakeningManager = new InductiveWeakeningManager(config, solver, logger,
+        ShutdownNotifier.createDummy());
   }
 
   @After public void tearDown() throws Exception {

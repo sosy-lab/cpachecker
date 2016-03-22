@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 /** This class contains all additional data-structures needed to run BAM.
  * If possible, we should clear some data sometimes to avoid memory-leaks. */
@@ -120,5 +121,12 @@ public class BAMDataManager {
       state = expandedStateToReducedState.get(state);
     }
     return false;
+  }
+
+  ARGState getMostInnerState(ARGState state) {
+    while (expandedStateToReducedState.containsKey(state)) {
+      state = (ARGState) expandedStateToReducedState.get(state);
+    }
+    return state;
   }
 }

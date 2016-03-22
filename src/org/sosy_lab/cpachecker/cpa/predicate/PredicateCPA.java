@@ -26,8 +26,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import java.util.Collection;
 import java.util.logging.Level;
 
-import javax.annotation.Nullable;
-
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -104,10 +102,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
       description="which stop operator to use for predicate cpa (usually SEP should be used in analysis)")
   private String stopType = "SEP";
 
-  @Option(secure=true, name="refinement.performInitialStaticRefinement",
-      description="use heuristic to extract predicates from the CFA statically on first refinement")
-  private boolean performInitialStaticRefinement = false;
-
   @Option(secure=true, description="Generate invariants and strengthen the formulas during abstraction with them.")
   private boolean useInvariantsForAbstraction = false;
 
@@ -130,7 +124,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicateCPAStatistics stats;
   private final PredicateAbstractState topState;
   private final PredicatePrecisionBootstrapper precisionBootstraper;
-  private final PredicateStaticRefiner staticRefiner;
   private final CFA cfa;
   private final AbstractionManager abstractionManager;
   private final InvariantGenerator invariantGenerator;
@@ -167,7 +160,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     RegionManager regionManager;
     if (abstractionType.equals("FORMULA") || blk.alwaysReturnsFalse()) {
       // No need to load BDD library if we never abstract (might use lots of memory)
-      regionManager = new SymbolicRegionManager(formulaManager, solver);
+      regionManager = new SymbolicRegionManager(solver);
     } else {
       assert abstractionType.equals("BDD");
       regionManager = new BDDManagerFactory(config, logger).createRegionManager();
@@ -175,7 +168,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
     logger.log(Level.INFO, "Using predicate analysis with", libraries + ".");
 
-    abstractionManager = new AbstractionManager(regionManager, formulaManager, config, logger, solver);
+    abstractionManager = new AbstractionManager(regionManager, config, logger, solver);
 
     prefixProvider = new PredicateBasedPrefixProvider(config, logger, solver, pathFormulaManager);
     invariantsManager =
@@ -192,7 +185,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     predicateManager =
         new PredicateAbstractionManager(
             abstractionManager,
-            formulaManager,
             pathFormulaManager,
             solver,
             config,
@@ -223,13 +215,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
       invariantGenerator = CPAInvariantGenerator.create(config, logger, invariantShutdown, Optional.<ShutdownManager>absent(), cfa);
     } else {
       invariantGenerator = new DoNothingInvariantGenerator();
-    }
-
-    if (performInitialStaticRefinement) {
-      staticRefiner = new PredicateStaticRefiner(config, logger, solver,
-          pathFormulaManager, formulaManager, predicateManager, cfa);
-    } else {
-      staticRefiner = null;
     }
 
     precisionBootstraper = new PredicatePrecisionBootstrapper(config, logger, cfa, abstractionManager, formulaManager);
@@ -307,11 +292,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   public ShutdownNotifier getShutdownNotifier() {
     return shutdownNotifier;
-  }
-
-  @Nullable
-  public PredicateStaticRefiner getStaticRefiner() {
-    return staticRefiner;
   }
 
   public PrefixProvider getPrefixProvider() {

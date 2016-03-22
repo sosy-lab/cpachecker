@@ -1,8 +1,8 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import java.io.PrintStream;
-import java.math.BigInteger;
-import java.util.concurrent.TimeUnit;
+import com.google.common.base.Objects;
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Multiset;
 
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -10,9 +10,9 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
-import com.google.common.base.Objects;
-import com.google.common.collect.HashMultiset;
-import com.google.common.collect.Multiset;
+import java.io.PrintStream;
+import java.math.BigInteger;
+import java.util.concurrent.TimeUnit;
 
 public class PolicyIterationStatistics implements Statistics {
 
@@ -37,7 +37,6 @@ public class PolicyIterationStatistics implements Statistics {
   private final CFA cfa;
 
   private BigInteger wideningTemplatesGenerated = BigInteger.ZERO;
-  int latestLocationID = 0;
 
   public void incWideningTemplatesGenerated() {
     wideningTemplatesGenerated = wideningTemplatesGenerated.add(BigInteger.ONE);
@@ -131,7 +130,6 @@ public class PolicyIterationStatistics implements Statistics {
     printStats(out, templateUpdateStats, "updates for given template on a given location");
     printStats(out, mergeUpdateStats, "merges of abstract states on a given location");
 
-    out.printf("Latest locationID: %d%n", latestLocationID);
     out.printf("Number of loop heads: %d%n", cfa.getAllLoopHeads().get().size());
     printTimer(out, linearizationTimer, "formula linearization");
   }

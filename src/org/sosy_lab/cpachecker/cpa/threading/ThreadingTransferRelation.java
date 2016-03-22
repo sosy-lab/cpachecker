@@ -137,7 +137,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
     ThreadingState state = (ThreadingState) pState;
 
-    final ThreadingState threadingState = exitThreads(state);
+    ThreadingState threadingState = exitThreads(state);
 
     final String activeThread = getActiveThread(cfaEdge, threadingState);
 
@@ -147,7 +147,13 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       return Collections.emptySet();
     }
 
-    // TODO we should exit after analyzing the edge, not before.
+    // check if a local-access-lock allows to avoid exploration of some threads
+    if (useLocalAccessLocks) {
+      threadingState = handleLocalAccessLock(cfaEdge, threadingState, activeThread);
+      if (threadingState == null) {
+        return Collections.emptySet();
+      }
+    }
 
     // check, if we can abort the complete analysis of all other threads after this edge.
     if (isEndOfMainFunction(cfaEdge) || isTerminatingEdge(cfaEdge)) {
@@ -158,10 +164,6 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     // get all possible successors
     Collection<ThreadingState> results = getAbstractSuccessorsFromWrappedCPAs(
         activeThread, threadingState, precision, cfaEdge);
-
-    if (useLocalAccessLocks) {
-      results = handleLocalAccessLock(cfaEdge, threadingState, activeThread, results);
-    }
 
     return getAbstractSuccessorsForEdge0(cfaEdge, threadingState, activeThread, results);
   }
@@ -473,26 +475,23 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
   /** optimization for interleaved threads.
    * When a thread only accesses local variables, we ignore other threads
-   * and add an internal 'atomic' lock. */
-  private Collection<ThreadingState> handleLocalAccessLock(CFAEdge cfaEdge, final ThreadingState threadingState,
-      String activeThread, Collection<ThreadingState> results) {
+   * and add an internal 'atomic' lock.
+   * @return updated state if possible, else NULL. */
+  private @Nullable ThreadingState handleLocalAccessLock(CFAEdge cfaEdge, final ThreadingState threadingState,
+      String activeThread) {
 
     // check if local access lock exists and is set for current thread
     if (threadingState.hasLock(LOCAL_ACCESS_LOCK) && !threadingState.hasLock(activeThread, LOCAL_ACCESS_LOCK)) {
-      return Collections.emptySet();
+      return null;
     }
 
     // add local access lock, if necessary and possible
-    final Collection<ThreadingState> newResults = new ArrayList<>();
     final boolean isImporantForThreading = globalAccessChecker.hasGlobalAccess(cfaEdge) || isImporantForThreading(cfaEdge);
-    for (ThreadingState ts : results) {
-      if (isImporantForThreading) {
-        newResults.add(ts.removeLockAndCopy(activeThread, LOCAL_ACCESS_LOCK));
-      } else {
-        newResults.add(ts.addLockAndCopy(activeThread, LOCAL_ACCESS_LOCK));
-      }
+    if (isImporantForThreading) {
+      return threadingState.removeLockAndCopy(activeThread, LOCAL_ACCESS_LOCK);
+    } else {
+      return threadingState.addLockAndCopy(activeThread, LOCAL_ACCESS_LOCK);
     }
-    return newResults;
   }
 
   private boolean isImporantForThreading(CFAEdge cfaEdge) {

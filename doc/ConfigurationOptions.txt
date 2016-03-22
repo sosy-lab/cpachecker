@@ -191,7 +191,7 @@ analysis.interprocedural = true
 
 # the machine model, which determines the sizes of types like int
 analysis.machineModel = LINUX32
-  enum:     [LINUX32, LINUX64, LINUX_WITH_ALIGNMENT32, LINUX_WITH_ALIGNMENT64]
+  enum:     [LINUX32, LINUX64]
 
 # memorize previously used (incomplete) reached sets after a restart of the
 # analysis
@@ -414,11 +414,6 @@ cegar.globalRefinement = false
 # the package name starts with 'org.sosy_lab.cpachecker.', this prefix can be
 # omitted.
 cegar.refiner = no default value
-
-# whether or not to let auxiliary refiner score and refine a path that is
-# feasible for the primary refiner, this allows to only extract prefixes that
-# are exclusive to the auxiliary refiner
-cegar.useFeasiblePathForAuxRefiner = false
 
 # whether or not to use refinement selection to decide which domain to refine
 cegar.useRefinementSelection = false
@@ -687,6 +682,9 @@ cpa.arg.errorPath.exportAsSource = true
 # export error paths to files immediately after they were found
 cpa.arg.errorPath.exportImmediately = false
 
+# export error path as witness/graphml file
+cpa.arg.errorPath.exportWitness = true
+
 # export error path as text file
 cpa.arg.errorPath.file = "ErrorPath.%d.txt"
 
@@ -825,6 +823,9 @@ cpa.bam.maximalDepthForExplicitRecursion = -1
 # export used parts of blocked ARG as .dot file
 cpa.bam.simplifiedArgFile = "BlockedARGSimplified.dot"
 
+# Use more fast partitioning builder, which can not handle loops
+cpa.bam.useExtendedPartitioningBuilder = false
+
 # max bitsize for values and vars, initial value
 cpa.bdd.bitsize = 64
 
@@ -922,11 +923,6 @@ cpa.composite.inCPAEnabledAnalysis = false
 # cpas agree on this. This is probably what you want.
 cpa.composite.merge = "AGREE"
   allowed values: [PLAIN, AGREE]
-
-# Number of times to run the precision adjustment. The subsequent runs of
-# precision adjustment can see the precision adjustment resultsof the
-# previous run.
-cpa.composite.precisionAdjustmentIterationLimit = 1
 
 # Split MultiEdges and pass each inner edge to the component CPAs to allow
 # strengthen calls after each single edge. Does not work with backwards
@@ -1754,6 +1750,9 @@ cpa.slicing.eliminateDeadVars = true
 # Limit for explicit CNF expansion (potentially exponential otherwise)
 cpa.slicing.expansionDepthLimit = 1
 
+# Filter clauses by liveness
+cpa.slicing.filterByLiveness = true
+
 # Instead of considering the entire SCC, ignore the function nested in the
 # loop. UNSOUND!
 cpa.slicing.ignoreFunctionCallsInLoop = false
@@ -1776,6 +1775,10 @@ cpa.slicing.selectorAnnotationMode = LITERALS
 # relation
 cpa.slicing.sortSelectionVariablesSyntactic = true
 
+# Time for loop generation before aborting.
+# (Use seconds or specify a unit; 0 for infinite)
+cpa.slicing.timeForLoopGeneration = 0s
+
 # Cache formulas produced by path formula manager
 cpa.slicing.useCachingPathFormulaManager = true
 
@@ -1784,7 +1787,7 @@ cpa.slicing.useOuterStrengthening = true
 
 # Inductive weakening strategy
 cpa.slicing.weakeningStrategy = CEX
-  enum:     [SYNTACTIC, DESTRUCTIVE, CEX, FACTORIZATION]
+  enum:     [SYNTACTIC, DESTRUCTIVE, CEX]
 
 # Array allocation functions
 cpa.smg.arrayAllocationFunctions = {
@@ -1807,6 +1810,12 @@ cpa.smg.exportSMG.file = "smg/smg-%s.dot"
 # Describes when SMG graphs should be dumped.
 cpa.smg.exportSMGwhen = NEVER
   enum:     [NEVER, LEAF, INTERESTING, EVERY]
+
+# Function which indicate on external allocated memory
+cpa.smg.externalAllocationFunction = "ext_allocation"
+
+# Default size of externally allocated memory
+cpa.smg.externalAllocationSize = Integer.MAX_VALUE
 
 # Size of memory that cannot be calculated will be guessed.
 cpa.smg.guessSizeOfUnknownMemorySize = false
@@ -1922,6 +1931,10 @@ cpa.statistics.statisticsCPAFile = no default value
 # evenness)
 cpa.stator.congruence.trackCongruenceSum = false
 
+# Where to perform abstraction
+cpa.stator.policy.abstractionLocations = LOOPHEAD
+  enum:     [ALL, LOOPHEAD, MERGE]
+
 # Check whether the policy depends on the initial value
 cpa.stator.policy.checkPolicyInitialCondition = true
 
@@ -1969,9 +1982,6 @@ cpa.stator.policy.lengthLimitForSATCheck = 300
 # Remove UFs and ITEs from policies.
 cpa.stator.policy.linearizePolicy = true
 
-# Perform abstraction only at the nodes from the cut-set.
-cpa.stator.policy.pathFocusing = true
-
 # Run simple congruence analysis
 cpa.stator.policy.runCongruence = true
 
@@ -1995,19 +2005,13 @@ cpa.stator.policy.unrollingRefinementThreshold = 2
 # Cache formulas produced by path formula manager
 cpa.stator.policy.useCachingPathFormulaManager = true
 
-# Use extra invariant during abstraction
-cpa.stator.policy.useExtraPredicateDuringAbstraction = true
-
 # Generate invariants and strengthen the formulas during abstraction with
 # them.
 cpa.stator.policy.useInvariantsForAbstraction = false
 
-# Use latest version of abstracted states
-cpa.stator.policy.useLatestVersion = false
-
 # Use the optimized abstraction, which takes into the account the previously
-# obtained bound at the location. Interferes with:obtaining templates using
-# convex hull and split-sep merge configuration.
+# obtained bound at the location. Interferes withobtaining templates using
+# convex hull.
 cpa.stator.policy.usePreviousBounds = true
 
 # Strategy for filtering variables out of templates
@@ -2054,6 +2058,29 @@ cpa.uninitvars.stop = "sep"
 cpa.validVars.merge = "JOIN"
   allowed values: [SEP, JOIN]
 
+# restrict abstraction computations to branching points
+cpa.value.abstraction.alwaysAtBranch = false
+
+# restrict abstraction computations to function calls/returns
+cpa.value.abstraction.alwaysAtFunction = false
+
+# restrict abstraction computations to join points
+cpa.value.abstraction.alwaysAtJoin = false
+
+# restrict abstraction computations to loop heads
+cpa.value.abstraction.alwaysAtLoop = false
+
+# toggle liveness abstraction
+cpa.value.abstraction.doLivenessAbstraction = false
+
+# restrict liveness abstractions to nodes with more than one entering and/or
+# leaving edge
+cpa.value.abstraction.onlyAtNonLinearCFA = false
+
+# skip abstraction computations until the given number of abstraction calls
+# is reached
+cpa.value.abstraction.threshold = -1
+
 # Whether to replace symbolic values with a concrete value when only one
 # value is possible for an assumption to be true (e.g. for (x == 1) set x to
 # 1, even if x is a symbolic expression).
@@ -2062,25 +2089,6 @@ cpa.value.assignSymbolicAssumptionVars = false
 # Process the Automaton ASSUMEs as if they were statements, not as if they
 # were assumptions.
 cpa.value.automatonAssumesAsStatements = false
-
-# restrict abstractions to branching points
-cpa.value.blk.alwaysAtBranch = false
-
-# restrict abstractions to function calls/returns
-cpa.value.blk.alwaysAtFunction = false
-
-# restrict abstractions to join points
-cpa.value.blk.alwaysAtJoin = false
-
-# restrict abstractions to loop heads
-cpa.value.blk.alwaysAtLoop = false
-
-# toggle liveness abstraction
-cpa.value.blk.doLivenessAbstraction = false
-
-# restrict liveness abstractions to nodes with more than one entering and/or
-# leaving edge
-cpa.value.blk.onlyAtNonLinearCFA = false
 
 # if there is an assumption like (x!=0), this option sets unknown
 # (uninitialized) variables to 1L, when the true-branch is handled.
@@ -2152,7 +2160,10 @@ cpa.value.refinement.restart = PIVOT
 
 # instead of reporting a repeated counter-example, search and refine another
 # error-path for the same target-state.
-cpa.value.refinement.searchForFurtherErrorPaths = true
+cpa.value.refinement.searchForFurtherErrorPaths = false
+
+# store all refined paths
+cpa.value.refinement.storeAllRefinedPaths = false
 
 # whether to use the top-down interpolation strategy or the bottom-up
 # interpolation strategy
@@ -2207,11 +2218,16 @@ cpa.value.trackJavaArrayValues = true
 custominstructions.binaryOperatorForSimpleCustomInstruction = ""
   allowed values: [MULTIPLY, DIVIDE, MODULO, PLUS, MINUS, SHIFT_LEFT, SHIFT_RIGHT, LESS_THAN, GREATER_THAN, LESS_EQUAL, GREATER_EQUAL, BINARY_AND, BINARY_XOR, BINARY_OR, EQUALS, NOT_EQUALS, ]
 
-# Prefix for files containing the custom instruction requirements.
-custominstructions.ciFilePrefix = "ci"
+# Signature for custom instruction, describes names and order of input and
+# output variables of a custom instruction
+custominstructions.ciSignature = "ci_spec.txt"
 
 # File to be parsed
 custominstructions.definitionFile = no default value
+
+# Where to dump the requirements on custom instruction extracted from
+# analysis
+custominstructions.dumpCIRequirements = "ci%d.smt"
 
 # Try to remove informations from requirements which is irrelevant for custom
 # instruction behavior
@@ -2611,6 +2627,9 @@ staticRefiner.applyScoped = true
 
 # Dump CFA assume edges as SMTLIB2 formulas to a file.
 staticRefiner.assumePredicatesFile = no default value
+
+# split generated heuristic predicates into atoms
+staticRefiner.atomicPredicates = true
 
 # collect at most this number of assumes along a path, backwards from each
 # target (= error) location

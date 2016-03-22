@@ -143,7 +143,7 @@ public class CBinaryExpressionBuilderTest {
 
   private void checkArithmeticCalculationTypes(BinaryOperator op) throws UnrecognizedCCodeException {
     checkCalculation(op, U_INT, U_INT, U_INT);
-    if (machineModel == MachineModel.LINUX32 || machineModel == MachineModel.LINUX_WITH_ALIGNMENT32) {
+    if (machineModel == MachineModel.LINUX32) {
       checkCalculation(op, U_INT, S_LONG_INT, U_LONG_INT); // !!!!
     } else {
       checkCalculation(op, U_INT, S_LONG_INT, S_LONG_INT);
@@ -158,7 +158,7 @@ public class CBinaryExpressionBuilderTest {
     checkCalculation(op, S_LONG_INT, U_LONG_LONG_INT, U_LONG_LONG_INT);
 
     checkCalculation(op, U_LONG_INT, U_LONG_INT, U_LONG_INT);
-    if (machineModel == MachineModel.LINUX64 || machineModel == MachineModel.LINUX_WITH_ALIGNMENT64) {
+    if (machineModel == MachineModel.LINUX64) {
       checkCalculation(op, U_LONG_INT, S_LONG_LONG_INT, U_LONG_LONG_INT); // !!!!
     } else {
       checkCalculation(op, U_LONG_INT, S_LONG_LONG_INT, S_LONG_LONG_INT);

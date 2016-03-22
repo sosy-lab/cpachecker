@@ -27,6 +27,7 @@ import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -45,6 +46,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
@@ -61,6 +63,8 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import com.google.errorprone.annotations.ForOverride;
 
 /**
  * A generic refiner using a {@link VariableTrackingPrecision}.
@@ -87,9 +91,17 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate interpolationTreeExportFile = PathTemplate.ofFormatString("interpolationTree.%d-%d.dot");
 
+  /* This option is broken with BAM, because BAM expects the refinementRoot belongs to origin path
+   * (see ARGSubtreeRemover.removeSubtree)
+   * If we here find a further path, refine it, try to remove a different subtree and fail*/
   @Option(secure = true, description="instead of reporting a repeated counter-example, "
       + "search and refine another error-path for the same target-state.")
-  private boolean searchForFurtherErrorPaths = true;
+  private boolean searchForFurtherErrorPaths = false;
+
+  /* This option is useful for BAM configuration with Predicate analysis
+   */
+  @Option(secure = true, description="store all refined paths")
+  private boolean storeAllRefinedPaths = false;
 
   protected final LogManager logger;
 
@@ -103,7 +115,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
 
   private final PathExtractor pathExtractor;
 
-  private int previousErrorPathId = -1;
+  private Set<Integer> previousErrorPathIds = Sets.newHashSet();
 
   // statistics
   private final StatCounter refinementCounter = new StatCounter("Number of refinements");
@@ -142,9 +154,12 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   }
 
   private boolean madeProgress(ARGPath path) {
-    boolean progress = (previousErrorPathId == -1 || previousErrorPathId != obtainErrorPathId(path));
+    boolean progress = (previousErrorPathIds.isEmpty() || !previousErrorPathIds.contains(obtainErrorPathId(path)));
 
-    previousErrorPathId = obtainErrorPathId(path);
+    if (!storeAllRefinedPaths) {
+      previousErrorPathIds.clear();
+    }
+    previousErrorPathIds.add(obtainErrorPathId(path));
 
     return progress;
   }
@@ -155,7 +170,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     return performRefinement(new ARGReachedSet(pReached, argCpa)).isSpurious();
   }
 
-  public CounterexampleInfo performRefinement(final ARGReachedSet pReached)
+  private CounterexampleInfo performRefinement(final ARGReachedSet pReached)
       throws CPAException, InterruptedException {
 
     Collection<ARGState> targets = pathExtractor.getTargetStates(pReached);
@@ -166,12 +181,38 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
           targetPaths.get(0));
     }
 
-    return performRefinement(pReached, targets, targetPaths);
+    return performRefinementForPaths(pReached, targets, targetPaths);
   }
 
-  public CounterexampleInfo performRefinement(
-      final ARGReachedSet pReached, ARGPath targetPathToUse
-  ) throws CPAException, InterruptedException {
+  /**
+   * Provide an adaptor from {@link GenericRefiner} (which implements {@link Refiner})
+   * and provides global refinements) to {@link ARGBasedRefiner},
+   * which provides path-specific refinements.
+   */
+  public ARGBasedRefiner asARGBasedRefiner() {
+    class GenericRefinerToARGBasedRefinerAdaptor implements ARGBasedRefiner, StatisticsProvider {
+      @Override
+      public CounterexampleInfo performRefinementForPath(ARGReachedSet pReached, ARGPath pPath)
+          throws CPAException, InterruptedException {
+        return GenericRefiner.this.performRefinementForPath(pReached, pPath);
+      }
+
+      @Override
+      public void collectStatistics(Collection<Statistics> pStatsCollection) {
+        GenericRefiner.this.collectStatistics(pStatsCollection);
+      }
+
+      @Override
+      public String toString() {
+        return GenericRefiner.this.toString();
+      }
+    }
+    return new GenericRefinerToARGBasedRefinerAdaptor();
+  }
+
+  private final CounterexampleInfo performRefinementForPath(
+      final ARGReachedSet pReached, ARGPath targetPathToUse)
+      throws CPAException, InterruptedException {
     Collection<ARGState> targets = Collections.singleton(targetPathToUse.getLastState());
 
     boolean repeatingCEX = !madeProgress(targetPathToUse);
@@ -184,7 +225,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     // Possible problem: alternating error-paths
     if (repeatingCEX && searchForFurtherErrorPaths) {
       for (ARGPath targetPath : pathExtractor.getTargetPaths(targets)) {
-        if (!targetPathToUse.equals(targetPath)) {
+        if (madeProgress(targetPath)) {
           logger.log(Level.INFO, "The error path given to", getClass().getSimpleName(), "is a repeated counterexample,",
               "so instead, refiner uses a new error path extracted from the reachset.");
           targetPathToUse = targetPath;
@@ -198,10 +239,10 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
       throw new RefinementFailedException(Reason.RepeatedCounterexample, targetPathToUse);
     }
 
-    return performRefinement(pReached, targets, Lists.newArrayList(targetPathToUse));
+    return performRefinementForPaths(pReached, targets, Lists.newArrayList(targetPathToUse));
   }
 
-  private CounterexampleInfo performRefinement(
+  private CounterexampleInfo performRefinementForPaths(
       final ARGReachedSet pReached,
       final Collection<ARGState> pTargets,
       final List<ARGPath> pTargetPaths
@@ -227,7 +268,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
       final InterpolationTree<S, I> pInterpolationTree
       ) throws InterruptedException;
 
-  protected InterpolationTree<S, I> obtainInterpolants(List<ARGPath> pTargetPaths)
+  private InterpolationTree<S, I> obtainInterpolants(List<ARGPath> pTargetPaths)
       throws CPAException, InterruptedException {
 
     InterpolationTree<S, I> interpolationTree = createInterpolationTree(pTargetPaths);
@@ -241,9 +282,9 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   }
 
   /**
-   * This method creates the interpolation tree. As there is only a single target, it is irrelevant
-   * whether to use top-down or bottom-up interpolation, as the tree is degenerated to a list.
+   * This method creates the interpolation tree.
    */
+  @ForOverride
   protected InterpolationTree<S, I> createInterpolationTree(List<ARGPath> targets) {
     return new InterpolationTree<>(interpolantManager, logger, targets, true);
   }
@@ -294,7 +335,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
 
       if (isErrorPathFeasible(currentPath)) {
         if(feasiblePath == null) {
-          previousErrorPathId = obtainErrorPathId(currentPath);
+          madeProgress(currentPath);
           feasiblePath = currentPath;
         }
 
@@ -325,7 +366,8 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     return CounterexampleInfo.spurious();
   }
 
-  public boolean isErrorPathFeasible(final ARGPath errorPath)
+  @ForOverride
+  protected boolean isErrorPathFeasible(final ARGPath errorPath)
       throws CPAException, InterruptedException {
     return checker.isFeasible(errorPath);
   }

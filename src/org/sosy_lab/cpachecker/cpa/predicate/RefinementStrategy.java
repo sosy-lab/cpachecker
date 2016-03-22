@@ -30,17 +30,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
@@ -70,9 +65,6 @@ public abstract class RefinementStrategy {
   private final StatInt nonTrivialPathStates = new StatInt(StatKind.SUM, "Length (states) of path with itp non-trivial itp");
   private final StatInt falsePathSuffixStates = new StatInt(StatKind.SUM, "Length (states) of path with itp 'false'");
 
-  private final StatInt equalPrecisionsOnPaths = new StatInt(StatKind.SUM, "Equal precisions along paths");
-  private final StatInt differentPrecisionsOnPaths = new StatInt(StatKind.SUM, "Different precisions along paths");
-
   private final StatInt numberOfAffectedStates = new StatInt(StatKind.SUM, "Number of affected states");
   private final StatInt totalPathLengthToInfeasibility = new StatInt(StatKind.AVG, "Length of refined path (in blocks)");
 
@@ -86,9 +78,7 @@ public abstract class RefinementStrategy {
         .put(nonTrivialPathStates)
         .put(falsePathSuffixStates)
         .put(differentNontrivialInterpolants)
-        .put(equalNontrivialInterpolants)
-        .put(differentPrecisionsOnPaths)
-        .put(equalPrecisionsOnPaths);
+        .put(equalNontrivialInterpolants);
     }
   };
 
@@ -99,35 +89,6 @@ public abstract class RefinementStrategy {
     solver = pSolver;
     bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
   }
-
-  public boolean needsInterpolants() {
-    return true;
-  }
-
-  @ForOverride
-  protected void analyzePathPrecisions(ARGReachedSet argReached, List<ARGState> path) {
-    int equalPrecisions = 0;
-    int differentPrecisions = 0;
-
-    UnmodifiableReachedSet reached = argReached.asReachedSet();
-    PredicatePrecision lastPaPrec = null;
-    for (ARGState state : path) {
-      Precision prec = reached.getPrecision(state);
-      PredicatePrecision paPrec = Precisions.extractPrecisionByType(prec, PredicatePrecision.class);
-      if (lastPaPrec != null) {
-        if (lastPaPrec.equals(paPrec)) {
-          equalPrecisions++;
-        } else {
-          differentPrecisions++;
-        }
-      }
-      lastPaPrec = paPrec;
-    }
-
-    equalPrecisionsOnPaths.setNextValue(equalPrecisions);
-    differentPrecisionsOnPaths.setNextValue(differentPrecisions);
-  }
-
 
   public void performRefinement(ARGReachedSet pReached, List<ARGState> abstractionStatesTrace,
       List<BooleanFormula> pInterpolants, boolean pRepeatedCounterexample) throws CPAException, InterruptedException {
@@ -160,7 +121,7 @@ public abstract class RefinementStrategy {
   private Pair<ARGState, List<ARGState>> evaluateInterpolantsOnPath(
       ARGState pTargetState,
       List<ARGState> abstractionStatesTrace,
-      List<BooleanFormula> pInterpolants) throws RefinementFailedException, SolverException, InterruptedException {
+      List<BooleanFormula> pInterpolants) throws SolverException, InterruptedException {
 
     // Skip the last element of the path, itp is always false there
     abstractionStatesTrace = abstractionStatesTrace.subList(0, abstractionStatesTrace.size()-1);
@@ -233,13 +194,6 @@ public abstract class RefinementStrategy {
     numberOfAffectedStates.setNextValue(changedElements.size());
     if (infeasiblePartOfARG == pTargetState) {
       pathLengthToInfeasibility++;
-
-      if (changedElements.isEmpty()) {
-        // The only reason why this might appear is that the very last block is
-        // infeasible in itself, however, we check for such cases during strengthen,
-        // so they shouldn't appear here.
-        throw new RefinementFailedException(Reason.InterpolationFailed, null);
-      }
     }
 
     // Update global statistics
