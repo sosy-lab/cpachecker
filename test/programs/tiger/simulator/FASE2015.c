@@ -1,4 +1,5 @@
 extern int __VERIFIER_nondet_int();
+extern int input();
 
 int __SELECTED_FEATURE_FOOBAR_SPL;
 int __SELECTED_FEATURE_LE;
@@ -44,9 +45,9 @@ int foobar(int x, int y, int z) {
 
 
 int main() {
-	int x = __VERIFIER_nondet_int();
-	int y = __VERIFIER_nondet_int();
-	int z = __VERIFIER_nondet_int();
+	int x = input();
+	int y = input();
+	int z = input();
 
 	__SELECTED_FEATURE_FOOBAR_SPL = __VERIFIER_nondet_int();
 	__SELECTED_FEATURE_GR = __VERIFIER_nondet_int();

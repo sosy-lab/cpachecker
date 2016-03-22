@@ -1,4 +1,5 @@
 extern int __VERIFIER_nondet_int();
+extern int input();
 
 int a;
 
@@ -10,11 +11,13 @@ int validProduct() {
 }
 
 int main() {
-	int x = __VERIFIER_nondet_int();
+	int x = input();
 	a = __VERIFIER_nondet_int();
 	
 	if (validProduct()) {
-		G1: x = 1;
+		if (x <= 10) {
+			G1: x = 1;
+		}
 	}
 		
 	return 0;

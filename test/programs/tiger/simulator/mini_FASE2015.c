@@ -1,4 +1,5 @@
 extern int __VERIFIER_nondet_int();
+extern int input();
 
 int __SELECTED_FEATURE_PLUS;
 
@@ -10,12 +11,14 @@ int validProduct() {
 }
 
 int main() {
-	int x = 0;
+	int x = input();
 	
 	__SELECTED_FEATURE_PLUS = __VERIFIER_nondet_int();
 
 	if (validProduct()) {
-		G1: x = 10;	
+		if (x < 10) {
+			G1: x = 10;	
+		}
 	}
 
 	return 0;

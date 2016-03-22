@@ -1869,7 +1869,8 @@ int valid_product();
 
 
 extern int __VERIFIER_nondet_int(void);
-int select_one() {if (__VERIFIER_nondet_int()) return 1; else return 0;}
+extern int __VERIFIER_nondet_bool(void);
+int select_one() {if (__VERIFIER_nondet_bool()) return 1; else return 0;}
 
 
 void select_features() {
@@ -1890,7 +1891,8 @@ void select_helpers() {
 }
 
 int valid_product() {
-  return (( !__SELECTED_FEATURE_Encrypt || __SELECTED_FEATURE_Decrypt ) && ( !__SELECTED_FEATURE_Decrypt || __SELECTED_FEATURE_Encrypt )) && ( !__SELECTED_FEATURE_Encrypt || __SELECTED_FEATURE_Keys ) && (( !__SELECTED_FEATURE_Sign || __SELECTED_FEATURE_Verify ) && ( !__SELECTED_FEATURE_Verify || __SELECTED_FEATURE_Sign )) && ( !__SELECTED_FEATURE_Sign || __SELECTED_FEATURE_Keys ) && ( __SELECTED_FEATURE_Base ) ;
+  return 1;
+  // (( !__SELECTED_FEATURE_Encrypt || __SELECTED_FEATURE_Decrypt ) && ( !__SELECTED_FEATURE_Decrypt || __SELECTED_FEATURE_Encrypt )) && ( !__SELECTED_FEATURE_Encrypt || __SELECTED_FEATURE_Keys ) && (( !__SELECTED_FEATURE_Sign || __SELECTED_FEATURE_Verify ) && ( !__SELECTED_FEATURE_Verify || __SELECTED_FEATURE_Sign )) && ( !__SELECTED_FEATURE_Sign || __SELECTED_FEATURE_Keys ) && ( __SELECTED_FEATURE_Base ) ;
 }
 # 1 "scenario.c"
 # 1 "<eingebaut>"
@@ -1956,57 +1958,57 @@ void test() {
         op10 = 0;
         op11 = 0;
         splverifierCounter = splverifierCounter + 1;
-        if (!op1 && get_nondet()) {
+        if (!op1 && __VERIFIER_nondet_bool()) {
             if (__SELECTED_FEATURE_Keys)
                 bobKeyAdd();
             op1 = 1;
         }
-        else if (!op2 && get_nondet()) {
+        else if (!op2 && __VERIFIER_nondet_bool()) {
             if (__SELECTED_FEATURE_AutoResponder)
                 rjhSetAutoRespond();
             op2 = 1;
         }
-        else if (!op3 && get_nondet()) {
+        else if (!op3 && __VERIFIER_nondet_bool()) {
             if (__SELECTED_FEATURE_Keys)
                 rjhDeletePrivateKey();
             op3 = 1;
         }
-        else if (!op4 && get_nondet()) {
+        else if (!op4 && __VERIFIER_nondet_bool()) {
             if (__SELECTED_FEATURE_Keys)
                 rjhKeyAdd();
             op4 = 1;
         }
-        else if (!op5 && get_nondet()) {
+        else if (!op5 && __VERIFIER_nondet_bool()) {
             if (__SELECTED_FEATURE_Keys)
                 chuckKeyAddRjh();
             op5 = 1;
         }
-        else if (!op6 && get_nondet()) {
+        else if (!op6 && __VERIFIER_nondet_bool()) {
             if (__SELECTED_FEATURE_Forward)
                 rjhEnableForwarding();
             op6 = 1;
         }
-        else if (!op7 && get_nondet()) {
+        else if (!op7 && __VERIFIER_nondet_bool()) {
             if (__SELECTED_FEATURE_Keys)
                 rjhKeyChange();
             op7 = 1;
         }
-        else if (!op8 && get_nondet()) {
+        else if (!op8 && __VERIFIER_nondet_bool()) {
             if (__SELECTED_FEATURE_AddressBook)
                 bobSetAddressBook();
             op8 = 1;
         }
-        else if (!op9 && get_nondet()) {
+        else if (!op9 && __VERIFIER_nondet_bool()) {
             if (__SELECTED_FEATURE_Keys)
                 chuckKeyAdd();
             op9 = 1;
         }
-        else if (!op10 && get_nondet()) {
+        else if (!op10 && __VERIFIER_nondet_bool()) {
             if (__SELECTED_FEATURE_Keys)
                 bobKeyChange();
             op10 = 1;
         }
-        else if (!op11 && get_nondet()) {
+        else if (!op11 && __VERIFIER_nondet_bool()) {
             if (__SELECTED_FEATURE_Keys)
                 chuckKeyAdd();
             op11 = 1;
@@ -2444,13 +2446,6 @@ rjhToBob()
 
   sendEmail(rjh,bob);
 }
-
-
-int get_nondet() {
-    int nd;
-    return nd;
-}
-
 
 
 void setup() {

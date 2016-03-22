@@ -27,16 +27,16 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import org.junit.BeforeClass;
 import org.junit.Ignore;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.Timeout;
 import org.sosy_lab.cpachecker.core.AlgorithmResult;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.test.Interval.Comparators;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
@@ -46,18 +46,18 @@ import org.sosy_lab.cpachecker.util.test.TestRunStatisticsParser;
 
 public class TigerTest {
 
-  @Rule
-  public Timeout globalTimeout = Timeout.seconds(20); // 20 seconds max per method tested
+//  @Rule
+//  public Timeout globalTimeout = Timeout.seconds(20); // 20 seconds max per method tested
 
   private static final String FASE_C = "test/programs/tiger/simulator/FASE2015.c";
   private static final String MINI_FASE_C = "test/programs/tiger/simulator/mini_FASE2015.c";
   private static final String EXAMPLE_C = "test/programs/tiger/products/example.c";
   private static final String MINI_EXAMPLE_C = "test/programs/tiger/products/mini_example.c";
 
-  public static List<Pair<String, String>> miniExampleTS = null;
-  public static List<Pair<String, String>> exampleTS = null;
-  public static List<Pair<String, String>> miniFaseTS = null;
-  public static List<Pair<String, String>> faseTS = null;
+  public static List<Pair<String, Pair<String, List<Interval>>>> miniExampleTS = null;
+  public static List<Pair<String, Pair<String, List<Interval>>>> exampleTS = null;
+  public static List<Pair<String, Pair<String, List<Interval>>>> miniFaseTS = null;
+  public static List<Pair<String, Pair<String, List<Interval>>>> faseTS = null;
 
   public static String miniFaseFm = "__SELECTED_FEATURE_PLUS";
   public static String faseFm = "__SELECTED_FEATURE_FOOBAR_SPL  " +
@@ -85,26 +85,87 @@ public class TigerTest {
   @BeforeClass
   public static void initializeExpectedTestSuites() {
     miniExampleTS = new ArrayList<>();
-    miniExampleTS.add(Pair.of("G1", "true"));
+    List<Interval> miniExampleIntervals = new ArrayList<>();
+    miniExampleIntervals.add(new Interval(null, null, new BigInteger("10"), Comparators.LE, -1, null));
+    miniExampleTS.add(Pair.of("G1", Pair.of("true", miniExampleIntervals)));
+
 
     exampleTS = new ArrayList<>();
-    exampleTS.add(Pair.of("G1", "true"));
-    exampleTS.add(Pair.of("G2", "false")); // infeasible
-    exampleTS.add(Pair.of("G3", "true"));
-    exampleTS.add(Pair.of("G4", "true"));
-    exampleTS.add(Pair.of("G5", "true"));
+    List<Interval> exampleIntervalsG1 = new ArrayList<>();
+    exampleIntervalsG1.add(new Interval(null, null, null, null, 1, Comparators.LE)); // x
+    exampleIntervalsG1.add(new Interval(null, null, null, null, 0, Comparators.GE)); // y
+    exampleIntervalsG1.add(new Interval(null, null, null, null, -1, null)); // z
+    exampleTS.add(Pair.of("G1", Pair.of("true", exampleIntervalsG1)));
+
+    List<Interval> exampleIntervalsG2 = new ArrayList<>();
+    exampleTS.add(Pair.of("G2", Pair.of("false", exampleIntervalsG2))); // infeasible
+
+    List<Interval> exampleIntervalsG3 = new ArrayList<>();
+    exampleIntervalsG3.add(new Interval(null, null, null, null, 1, Comparators.GE)); // x
+    exampleIntervalsG3.add(new Interval(null, null, null, null, 0, Comparators.LE)); // y
+    exampleIntervalsG3.add(new Interval(null, null, null, null, -1, null)); // z
+    exampleTS.add(Pair.of("G3", Pair.of("true", exampleIntervalsG3)));
+
+    List<Interval> exampleIntervalsG4 = new ArrayList<>();
+    exampleIntervalsG4.add(new Interval(null, null, null, null, -1, null)); // x
+    exampleIntervalsG4.add(new Interval(null, null, null, null, -1, null)); // y
+    exampleIntervalsG4.add(new Interval(new BigInteger("10"), Comparators.GT, null, null, -1, null)); // z
+    exampleTS.add(Pair.of("G4", Pair.of("true", exampleIntervalsG4)));
+
+    List<Interval> exampleIntervalsG5 = new ArrayList<>();
+    exampleIntervalsG5.add(new Interval(null, null, null, null, -1, null)); // x
+    exampleIntervalsG5.add(new Interval(null, null, null, null, -1, null)); // y
+    exampleIntervalsG5.add(new Interval(new BigInteger("10"), Comparators.GT, null, null, -1, null)); // z
+    exampleTS.add(Pair.of("G5", Pair.of("true", exampleIntervalsG5)));
+
 
     miniFaseTS = new ArrayList<>();
-    miniFaseTS.add(Pair.of("G1", "true"));
+    List<Interval> miniFaseIntervals = new ArrayList<>();
+    miniFaseIntervals.add(new Interval(null, null, new BigInteger("10"), Comparators.LE, -1, null));
+    miniFaseTS.add(Pair.of("G1", Pair.of("true", miniFaseIntervals)));
 
     faseTS = new ArrayList<>();
-    faseTS.add(Pair.of("G1", "__SELECTED_FEATURE_PLUS"));
-    faseTS.add(Pair.of("G2", "__SELECTED_FEATURE_MINUS"));
-    faseTS.add(Pair.of("G3", "__SELECTED_FEATURE_MINUS & __SELECTED_FEATURE_NOTNEGATIVE"));
-    faseTS.add(Pair.of("G4", "__SELECTED_FEATURE_GR"));
-    faseTS.add(Pair.of("G5", "__SELECTED_FEATURE_GR"));
-    faseTS.add(Pair.of("G6", "__SELECTED_FEATURE_LE"));
-    faseTS.add(Pair.of("G7", "__SELECTED_FEATURE_LE"));
+    List<Interval> faseIntervalsG1 = new ArrayList<>();
+    faseIntervalsG1.add(new Interval(null, null, null, null, -1, null)); // x
+    faseIntervalsG1.add(new Interval(null, null, null, null, -1, null)); // y
+    faseIntervalsG1.add(new Interval(null, null, null, null, -1, null)); // z
+    faseTS.add(Pair.of("G1", Pair.of("__SELECTED_FEATURE_PLUS", faseIntervalsG1)));
+
+    List<Interval> faseIntervalsG2 = new ArrayList<>();
+    faseIntervalsG2.add(new Interval(null, null, null, null, -1, null)); // x
+    faseIntervalsG2.add(new Interval(null, null, null, null, -1, null)); // y
+    faseIntervalsG2.add(new Interval(null, null, null, null, -1, null)); // z
+    faseTS.add(Pair.of("G2", Pair.of("__SELECTED_FEATURE_MINUS", faseIntervalsG2)));
+
+    List<Interval> faseIntervalsG3 = new ArrayList<>();
+    faseIntervalsG3.add(new Interval(null, null, null, null, -1, null)); // x
+    faseIntervalsG3.add(new Interval(null, null, null, null, -1, null)); // y
+    faseIntervalsG3.add(new Interval(null, null, null, null, -1, null)); // z
+    faseTS.add(Pair.of("G3", Pair.of("__SELECTED_FEATURE_MINUS & __SELECTED_FEATURE_NOTNEGATIVE", faseIntervalsG3)));
+
+    List<Interval> faseIntervalsG4 = new ArrayList<>();
+    faseIntervalsG4.add(new Interval(null, null, null, null, 1, Comparators.LE)); // x
+    faseIntervalsG4.add(new Interval(null, null, null, null, 0, Comparators.GE)); // y
+    faseIntervalsG4.add(new Interval(null, null, null, null, -1, null)); // z
+    faseTS.add(Pair.of("G4", Pair.of("__SELECTED_FEATURE_GR", faseIntervalsG4)));
+
+    List<Interval> faseIntervalsG5 = new ArrayList<>();
+    faseIntervalsG5.add(new Interval(null, null, null, null, 1, Comparators.GT)); // x
+    faseIntervalsG5.add(new Interval(null, null, null, null, 0, Comparators.LT)); // y
+    faseIntervalsG5.add(new Interval(null, null, null, null, -1, null)); // z
+    faseTS.add(Pair.of("G5", Pair.of("__SELECTED_FEATURE_GR", faseIntervalsG5)));
+
+    List<Interval> faseIntervalsG6 = new ArrayList<>();
+    faseIntervalsG6.add(new Interval(null, null, null, null, 1, Comparators.GE)); // x
+    faseIntervalsG6.add(new Interval(null, null, null, null, 0, Comparators.LE)); // y
+    faseIntervalsG6.add(new Interval(null, null, null, null, -1, null)); // z
+    faseTS.add(Pair.of("G6", Pair.of("__SELECTED_FEATURE_LE", faseIntervalsG6)));
+
+    List<Interval> faseIntervalsG7 = new ArrayList<>();
+    faseIntervalsG7.add(new Interval(null, null, null, null, 1, Comparators.LE)); // x
+    faseIntervalsG7.add(new Interval(null, null, null, null, 0, Comparators.GE)); // y
+    faseIntervalsG7.add(new Interval(null, null, null, null, -1, null)); // z
+    faseTS.add(Pair.of("G7", Pair.of("__SELECTED_FEATURE_LE", faseIntervalsG7)));
   }
 
   /*
@@ -140,7 +201,7 @@ public class TigerTest {
     assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
 
     assertTrue(testSuite.getGoals().size() == miniExampleTS.size());
-    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, miniExampleTS, null));
+    assertTrue(TigerTestHelper.validTestCases(testSuite, miniExampleTS, null));
   }
 
   /**
@@ -173,7 +234,7 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == miniExampleTS.size());
-    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, miniExampleTS, null));
+    assertTrue(TigerTestHelper.validTestCases(testSuite, miniExampleTS, null));
   }
 
   /**
@@ -205,7 +266,7 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == miniExampleTS.size());
-    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, miniExampleTS, null));
+    assertTrue(TigerTestHelper.validTestCases(testSuite, miniExampleTS, null));
   }
 
   /**
@@ -237,7 +298,7 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == miniExampleTS.size());
-    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, miniExampleTS, null));
+    assertTrue(TigerTestHelper.validTestCases(testSuite, miniExampleTS, null));
   }
 
   /**
@@ -270,7 +331,7 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == miniExampleTS.size());
-    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, miniExampleTS, null));
+    assertTrue(TigerTestHelper.validTestCases(testSuite, miniExampleTS, null));
   }
 
   /**
@@ -302,7 +363,7 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == miniExampleTS.size());
-    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, miniExampleTS, null));
+    assertTrue(TigerTestHelper.validTestCases(testSuite, miniExampleTS, null));
   }
 
   /**
@@ -335,7 +396,7 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == miniExampleTS.size());
-    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, miniExampleTS, null));
+    assertTrue(TigerTestHelper.validTestCases(testSuite, miniExampleTS, null));
   }
 
   /*
@@ -372,7 +433,7 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == exampleTS.size());
-    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, exampleTS, null));
+    assertTrue(TigerTestHelper.validTestCases(testSuite, exampleTS, null));
   }
 
   /**
@@ -407,7 +468,7 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == exampleTS.size());
-    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, exampleTS, null));
+    assertTrue(TigerTestHelper.validTestCases(testSuite, exampleTS, null));
   }
 
   /**
@@ -448,7 +509,7 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == exampleTS.size());
-    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, exampleTS, null));
+    assertTrue(TigerTestHelper.validTestCases(testSuite, exampleTS, null));
   }
 
   /**
@@ -481,7 +542,7 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == exampleTS.size());
-    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, exampleTS, null));
+    assertTrue(TigerTestHelper.validTestCases(testSuite, exampleTS, null));
   }
 
   /**
@@ -516,7 +577,7 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == exampleTS.size());
-    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, exampleTS, null));
+    assertTrue(TigerTestHelper.validTestCases(testSuite, exampleTS, null));
   }
 
   /**
@@ -550,7 +611,7 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == exampleTS.size());
-    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, exampleTS, null));
+    assertTrue(TigerTestHelper.validTestCases(testSuite, exampleTS, null));
   }
 
   /*
@@ -586,7 +647,7 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == miniFaseTS.size());
-    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, miniFaseTS, miniFaseFm));
+    assertTrue(TigerTestHelper.validTestCases(testSuite, miniFaseTS, miniFaseFm));
   }
 
   /**
@@ -619,7 +680,7 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == miniFaseTS.size());
-    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, miniFaseTS, miniFaseFm));
+    assertTrue(TigerTestHelper.validTestCases(testSuite, miniFaseTS, miniFaseFm));
   }
 
   /**
@@ -651,7 +712,7 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == miniFaseTS.size());
-    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, miniFaseTS, miniFaseFm));
+    assertTrue(TigerTestHelper.validTestCases(testSuite, miniFaseTS, miniFaseFm));
   }
 
   /**
@@ -683,7 +744,7 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == miniFaseTS.size());
-    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, miniFaseTS, miniFaseFm));
+    assertTrue(TigerTestHelper.validTestCases(testSuite, miniFaseTS, miniFaseFm));
   }
 
   /**
@@ -716,7 +777,7 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == miniFaseTS.size());
-    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, miniFaseTS, miniFaseFm));
+    assertTrue(TigerTestHelper.validTestCases(testSuite, miniFaseTS, miniFaseFm));
   }
 
   /**
@@ -749,7 +810,7 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == miniFaseTS.size());
-    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, miniFaseTS, miniFaseFm));
+    assertTrue(TigerTestHelper.validTestCases(testSuite, miniFaseTS, miniFaseFm));
   }
 
   /**
@@ -783,7 +844,7 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == faseTS.size());
-    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, faseTS, faseFm));
+    assertTrue(TigerTestHelper.validTestCases(testSuite, faseTS, faseFm));
   }
 
   @Test
@@ -808,6 +869,9 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(7);
     assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(7);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+
+    assertTrue(testSuite.getGoals().size() == faseTS.size());
+    assertTrue(TigerTestHelper.validTestCases(testSuite, faseTS, faseFm));
   }
 
 
@@ -833,6 +897,9 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(7);
     assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(7);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+
+    assertTrue(testSuite.getGoals().size() == faseTS.size());
+    assertTrue(TigerTestHelper.validTestCases(testSuite, faseTS, faseFm));
   }
 
 
@@ -859,6 +926,9 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(7);
     assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(7);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+
+    assertTrue(testSuite.getGoals().size() == faseTS.size());
+    assertTrue(TigerTestHelper.validTestCases(testSuite, faseTS, faseFm));
   }
 
   /**
@@ -892,7 +962,7 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == faseTS.size());
-    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, faseTS, faseFm));
+    assertTrue(TigerTestHelper.validTestCases(testSuite, faseTS, faseFm));
   }
 
   /**
@@ -925,7 +995,7 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == faseTS.size());
-    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, faseTS, faseFm));
+    assertTrue(TigerTestHelper.validTestCases(testSuite, faseTS, faseFm));
   }
 
   /**
@@ -959,7 +1029,7 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == faseTS.size());
-    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, faseTS, faseFm));
+    assertTrue(TigerTestHelper.validTestCases(testSuite, faseTS, faseFm));
   }
 
   /**
@@ -993,7 +1063,7 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == faseTS.size());
-    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, faseTS, faseFm));
+    assertTrue(TigerTestHelper.validTestCases(testSuite, faseTS, faseFm));
   }
 
   /**
@@ -1026,7 +1096,7 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == faseTS.size());
-    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, faseTS, faseFm));
+    assertTrue(TigerTestHelper.validTestCases(testSuite, faseTS, faseFm));
   }
 
   /*
@@ -1046,7 +1116,7 @@ public class TigerTest {
     prop.put("tiger.useOmegaLabel", "false");
     prop.put("cpa.automaton.splitOnTargetStatesToInactive", "true");
     prop.put("tiger.fqlQuery",
-        "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))).\"EDGES(ID)*\"");
+        "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))+EDGES(@LABEL(G5))).\"EDGES(ID)*\"");
 
     TestResults results = CPATestRunner.run(prop, EXAMPLE_C);
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
@@ -1054,9 +1124,12 @@ public class TigerTest {
     assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(3);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(4);
     assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+
+    assertTrue(testSuite.getGoals().size() == exampleTS.size());
+    assertTrue(TigerTestHelper.validTestCases(testSuite, exampleTS, null));
   }
 
   /**
@@ -1072,7 +1145,7 @@ public class TigerTest {
     prop.put("tiger.useOmegaLabel", "true");
     prop.put("cpa.automaton.splitOnTargetStatesToInactive", "true");
     prop.put("tiger.fqlQuery",
-        "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))).\"EDGES(ID)*\"");
+        "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))+EDGES(@LABEL(G5))).\"EDGES(ID)*\"");
 
     TestResults results = CPATestRunner.run(prop, EXAMPLE_C);
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
@@ -1080,9 +1153,12 @@ public class TigerTest {
     assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(3);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(4);
     assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+
+    assertTrue(testSuite.getGoals().size() == exampleTS.size());
+    assertTrue(TigerTestHelper.validTestCases(testSuite, exampleTS, null));
   }
 
 }

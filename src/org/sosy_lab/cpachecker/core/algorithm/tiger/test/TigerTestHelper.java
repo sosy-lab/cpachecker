@@ -27,12 +27,14 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -91,20 +93,21 @@ public class TigerTestHelper {
     return configuration;
   }
 
-  public static boolean validPresenceConditions(TestSuite pSuite,
-      List<Pair<String, String>> pExpectedTestSuite, String pFeatureModel)
-          throws InvalidConfigurationException, SolverException, InterruptedException {
+  public static boolean validTestCases(TestSuite pSuite,
+      List<Pair<String, Pair<String, List<Interval>>>> pMiniExampleTS,
+      String pFeatureModel)
+      throws InvalidConfigurationException, SolverException, InterruptedException {
 
     SolverHelper helper = new SolverHelper();
     BooleanFormulaManagerView bfm = helper.getFormulaManager().getBooleanFormulaManager();
     BooleanFormula fm = helper.parseFormula(pFeatureModel);
 
     for (Goal goal : pSuite.getGoals()) {
-      Pair<String, String> expectedGoal = getGoalFromExpectedTestSuite(goal, pExpectedTestSuite);
-      if (expectedGoal == null) {
-        throw new AssertionFailedError("Expected result for goal " + goal.getName() + " is missing!");
-      }
-      BooleanFormula expectedPC = helper.parseFormula(expectedGoal.getSecond());
+      Pair<String, Pair<String, List<Interval>>> expectedGoal =
+          getGoalFromExpectedTestSuite(goal, pMiniExampleTS);
+      if (expectedGoal == null) { throw new AssertionFailedError(
+          "Expected result for goal " + goal.getName() + " is missing!"); }
+      BooleanFormula expectedPC = helper.parseFormula(expectedGoal.getSecond().getFirst());
 
       if (pSuite.isGoalCovered(goal)) {
         // Goal is (partially) feasible
@@ -121,9 +124,15 @@ public class TigerTestHelper {
           goalPC = appendFeatureModel(helper, fm, goalPC);
         }
 
-        if (!helper.equivalent(expectedPC, goalPC)) {
-          throw new AssertionFailedError("Feasible presence condition of "
-                + goal.getName() + " does not match with expected feasible presence condition.");
+        if (!helper.equivalent(expectedPC,
+            goalPC)) { throw new AssertionFailedError("Feasible presence condition of "
+                + goal.getName() + " does not match with expected feasible presence condition."); }
+
+        List<TestCase> testCases = pSuite.getCoveringTestCases(goal);
+        for (TestCase testCase : testCases) {
+          if (!checkInputs(testCase.getInputs(),
+              expectedGoal.getSecond().getSecond(), testCase)) { throw new AssertionFailedError(
+                  "Inputs for testing " + goal.getName() + " do not match with expected inputs."); }
         }
       }
 
@@ -132,7 +141,8 @@ public class TigerTestHelper {
         BooleanFormula goalPC = null;
         if (pSuite.isVariabilityAware()) {
           expectedPC = bfm.not(expectedPC);
-          goalPC = helper.parseFormula(pSuite.dumpRegion(pSuite.getInfeasiblePresenceCondition(goal)).toString());
+          goalPC = helper.parseFormula(
+              pSuite.dumpRegion(pSuite.getInfeasiblePresenceCondition(goal)).toString());
         } else {
           goalPC = bfm.makeBoolean(false);
         }
@@ -142,10 +152,23 @@ public class TigerTestHelper {
           goalPC = appendFeatureModel(helper, fm, goalPC);
         }
 
-        if (!helper.equivalent(expectedPC, goalPC)) {
-          throw new AssertionFailedError("Infeasible presence condition of " + goal.getName()
-                    + " does not match with expected infeasible presence condition.");
-        }
+        if (!helper.equivalent(expectedPC, goalPC)) { throw new AssertionFailedError(
+            "Infeasible presence condition of " + goal.getName()
+                + " does not match with expected infeasible presence condition."); }
+      }
+    }
+
+    return true;
+  }
+
+  private static boolean checkInputs(List<BigInteger> pInputs,
+      List<Interval> pList, TestCase testCase) {
+    if (pInputs.size() != pList.size()) { return false; }
+
+    for (int i = 0; i < pInputs.size(); i++) {
+      Interval expectedInput = pList.get(i);
+      if (!expectedInput.compare(pInputs.get(i), testCase)) {
+        return false;
       }
     }
 
@@ -160,9 +183,10 @@ public class TigerTestHelper {
     return expectedPresenceCondition;
   }
 
-  private static Pair<String, String> getGoalFromExpectedTestSuite(Goal pGoal,
-      List<Pair<String, String>> pExpectedTestSuite) {
-    for (Pair<String, String> pair : pExpectedTestSuite) {
+  private static Pair<String, Pair<String, List<Interval>>> getGoalFromExpectedTestSuite(
+      Goal pGoal,
+      List<Pair<String, Pair<String, List<Interval>>>> pMiniExampleTS) {
+    for (Pair<String, Pair<String, List<Interval>>> pair : pMiniExampleTS) {
       if (pGoal.getName().equals(pair.getFirst())) { return pair; }
     }
     return null;
