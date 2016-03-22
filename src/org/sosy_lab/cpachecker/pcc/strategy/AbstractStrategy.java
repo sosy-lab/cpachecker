@@ -85,7 +85,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     numThreads = Math.min(Runtime.getRuntime().availableProcessors(), numThreads);
     logger = pLogger;
     proofInfo = new ProofStatesInfoCollector(pConfig);
-    stats = new PCStrategyStatistics();
+    stats = new PCStrategyStatistics(file);
     pccStats.add(stats);
   }
 
@@ -205,6 +205,15 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
 
     protected int countIterations = 0;
     protected int proofSize = 0;
+    protected final long fileProofSize;
+
+    public PCStrategyStatistics(final Path pFile) {
+      if (pFile != null) {
+        fileProofSize = pFile.toFile().length();
+      } else {
+        fileProofSize = -1;
+      }
+    }
 
     @Override
     public String getName() {
@@ -245,6 +254,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
           + stopTimer.getNumberOfIntervals()
           + ")");
       out.println(" Time for checking property:          "   + propertyCheckingTimer);
+      out.println("Proof file size (bytes):                      "  + fileProofSize);
     }
 
     public void increaseProofSize(int pIncrement) {
