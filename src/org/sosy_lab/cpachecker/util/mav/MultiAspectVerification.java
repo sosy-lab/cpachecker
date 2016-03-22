@@ -58,14 +58,13 @@ import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 @Options(prefix="analysis.mav")
 public class MultiAspectVerification {
 
-  static SpecificationKey FIRST_SPEC = new SpecificationKey("");
-
   /**
-   * Where specification ids are presented:
-   * AUTOMATON - Automaton name (default);
-   * VIOLATED_PROPERTY - Violated property description in automaton transitions
+   * Where precisions will be cleaned:
+   * NONE - do not clean;
+   * WAITLIST - clean precisions in waitlist;
+   * ALL - clean precisions in all abstract states.
    */
-  public enum SpecificationComparators {AUTOMATON, VIOLATED_PROPERTY}
+  public enum PrecisionCleanSet {NONE, WAITLIST, ALL}
 
   /**
    * Precision clean strategy:
@@ -76,21 +75,18 @@ public class MultiAspectVerification {
   public enum PrecisionCleanStrategy {NONE, FULL, BY_SPECIFICATION}
 
   /**
-   * Where precisions will be cleaned:
-   * NONE - do not clean;
-   * WAITLIST - clean precisions in waitlist;
-   * ALL - clean precisions in all abstract states.
+   * Where specification ids are presented:
+   * AUTOMATON - Automaton name (default);
+   * VIOLATED_PROPERTY - Violated property description in automaton transitions
    */
-  public enum PrecisionCleanSet {NONE, WAITLIST, ALL}
+  public enum SpecificationComparators {AUTOMATON, VIOLATED_PROPERTY}
+
+  static SpecificationKey FIRST_SPEC = new SpecificationKey("");
 
   @Option(secure=true, name="stopAfterError",
       description="Stop checking for current specification after the first error was found" +
           "(for Multi-Aspect Verification only)")
   private boolean stopAfterError = true;
-
-  @Option(secure=true, name="firstIntervalTimeLimit",
-      description="time limit for the first interval in MAV algorithm")
-  private int firstIntervalTimeLimit = 0;
 
   @Option(secure=true, name="basicIntervalTimeLimit",
       description="time limit for all intervals in MAV algorithm")
@@ -113,6 +109,10 @@ public class MultiAspectVerification {
   @Option(secure=true, name="resultsFile",
       description="file for information reuse")
   private String resultsFile = null;
+
+  @Option(secure=true, name="relaunchInOneRun",
+      description="Relaunch MAV inside one verification run")
+  private boolean relaunchInOneRun = false;
 
   @Option(secure=true, name="specificationComparator",
       description="comparator for Specification Id. " +
@@ -139,10 +139,10 @@ public class MultiAspectVerification {
   private Map<SpecificationKey, RuleSpecification> ruleSpecifications;
 
   private SpecificationKey lastSpecificationKey;
+
   private SpecificationKey currentSpecificationKey;
   private ControlAutomatonCPA controlAutomaton;
   private final Configuration config;
-
   public MultiAspectVerification(Configuration pConfig)
           throws InvalidConfigurationException
   {
@@ -153,28 +153,37 @@ public class MultiAspectVerification {
     this.controlAutomaton = null;
   }
 
-  public boolean isStopAfterError() {
-    return stopAfterError;
+  public void addNewSpecification(List<Automaton> automata) {
+    for (Automaton errorAutomaton : automata) {
+      switch (specificationComparator) {
+      case AUTOMATON:
+        String specificationId = errorAutomaton.getName();
+        SpecificationKey specificationKey = new SpecificationKey(specificationId);
+        RuleSpecification specification = new RuleSpecification(specificationKey);
+        addNewSpecification(specification);
+        break;
+      case VIOLATED_PROPERTY:
+        for (AutomatonInternalState automatonInternalState : errorAutomaton.getStates()) {
+          List<AutomatonTransition> automatonTransitionSet = automatonInternalState.getTransitions();
+          for (AutomatonTransition automatonTransition : automatonTransitionSet) {
+            specificationId = automatonTransition.getName();
+            SpecificationKey errorLabel = new SpecificationKey(specificationId);
+            if (!ruleSpecifications.containsKey(errorLabel)) {
+              specification = new RuleSpecification(errorLabel);
+            addNewSpecification(specification);
+            }
+          }
+        }
+        break;
+      default:
+        assert false;
+        break;
+      }
+    }
   }
 
-  /**
-   * Get Precision of selected class.
-   * @param specificationKey
-   * @param pPrecisionType
-   * @return
-   */
-  public AdjustablePrecision getPrecision(SpecificationKey specificationKey,
-      Class<? extends AdjustablePrecision> pPrecisionType) {
-    if (specificationKey == null)
-    {
-      return null;
-    }
-    RuleSpecification tmpRuleSpecification = ruleSpecifications.get(specificationKey);
-    if (tmpRuleSpecification != null)
-    {
-      return tmpRuleSpecification.getPrecision(pPrecisionType);
-    }
-    return null;
+  private void addNewSpecification(RuleSpecification differentSpecification) {
+    ruleSpecifications.put(differentSpecification.getSpecificationKey(), differentSpecification);
   }
 
   /**
@@ -195,8 +204,23 @@ public class MultiAspectVerification {
     }
   }
 
-  private void addNewSpecification(RuleSpecification differentSpecification) {
-    ruleSpecifications.put(differentSpecification.getSpecificationKey(), differentSpecification);
+  public void changeSpecificationStatus(SpecificationKey targetErrorLabel, SpecificationStatus specificationStatus) {
+    if (targetErrorLabel == null)
+    {
+      return;
+    }
+    RuleSpecification tmpRuleSpecification = ruleSpecifications.get(targetErrorLabel);
+    if (tmpRuleSpecification != null)
+    {
+      tmpRuleSpecification.setStatus(specificationStatus);
+    }
+  }
+
+  public boolean checkAssertTimeLimit(long currentSpecificationTime) {
+    // Do not check for time limit if is set to 0.
+    if (assertTimeLimit <= 0) { return true; }
+    if (currentSpecificationTime > assertTimeLimit * 1000) { return false; }
+    return true;
   }
 
   public boolean checkBasicIntervalTimeLimit(long currentAbstractionTime) {
@@ -213,227 +237,11 @@ public class MultiAspectVerification {
     return true;
   }
 
-  public boolean checkFirstIntervalTimeLimit(long currentTime) {
-    // Do not check for time limit if is set to 0.
-    if (firstIntervalTimeLimit <= 0) { return true; }
-    if (currentTime > firstIntervalTimeLimit * 1000) { return false; }
-    return true;
-  }
-
   public boolean checkPrecisionClearingTimeLimit(long currentTime) {
     // Do not check for time limit if is set to 0.
     if (precisionClearingTimeLimit <= 0) { return true; }
     if (currentTime > precisionClearingTimeLimit * 1000) { return false; }
     return true;
-  }
-
-  public boolean checkAssertTimeLimit(long currentSpecificationTime) {
-    // Do not check for time limit if is set to 0.
-    if (assertTimeLimit <= 0) { return true; }
-    if (currentSpecificationTime > assertTimeLimit * 1000) { return false; }
-    return true;
-  }
-
-  public Long getCpuTime(SpecificationKey targetErrorLabel) {
-    if (targetErrorLabel == null) {
-      return -1L;
-    }
-    RuleSpecification tmpRuleSpecification = ruleSpecifications.get(targetErrorLabel);
-    if (tmpRuleSpecification != null)
-    {
-      return tmpRuleSpecification.getCpuTime();
-    }
-    return -1L;
-  }
-
-  public Long getCurrentCpuTime() throws CPAException {
-    Long currentCpuTime = 0L;
-    try {
-      Long fullCpuTime = ProcessCpuTime.read();
-      currentCpuTime = fullCpuTime - previousCpuTimeMeasurement;
-      currentCpuTime = (long) (currentCpuTime / 1e6); // convert to ms
-    } catch (JMException e) {
-      throw new CPAException(e.getMessage());
-    }
-    return currentCpuTime;
-  }
-
-  public Collection<RuleSpecification> getAllSpecifications() {
-    return ruleSpecifications.values();
-  }
-
-  public void printToFile() throws CPAException {
-    if (resultsFile == null) {
-      PrintStream outputStream = System.out;
-      // TODO: add more options for outputStream
-      outputStream.print(toString());
-      outputStream.println("LCA=" + lastSpecificationKey);
-      outputStream.println();
-      return;
-    }
-    try {
-      File file = new File(resultsFile);
-      FileWriter writer = new FileWriter(file);
-      writer.write(toString());
-      if (lastSpecificationKey != null) {
-        writer.write(lastSpecificationKey.toString()+"\n");
-      }
-      writer.flush();
-      writer.close();
-    } catch (IOException e) {
-      throw new CPAException("Can not write to file MAV results");
-    }
-  }
-
-  public void changeSpecificationStatus(SpecificationKey targetErrorLabel, SpecificationStatus specificationStatus) {
-    if (targetErrorLabel == null)
-    {
-      return;
-    }
-    RuleSpecification tmpRuleSpecification = ruleSpecifications.get(targetErrorLabel);
-    if (tmpRuleSpecification != null)
-    {
-      tmpRuleSpecification.setStatus(specificationStatus);
-    }
-  }
-
-  public void startTimers() throws CPAException {
-    try {
-      previousCpuTimeMeasurement = ProcessCpuTime.read();
-    } catch (JMException e) {
-      throw new CPAException(e.getMessage());
-    }
-  }
-
-  @Override
-  public String toString() {
-    String result = "";
-    for (RuleSpecification differentSpecification : ruleSpecifications.values()) {
-      result = result + differentSpecification.toString() + "\n";
-    }
-    return result;
-  }
-
-  public void updateTime(SpecificationKey targetErrorLabel) throws CPAException {
-    // Calculate current time.
-    Long currentCpuTime = 0L;
-    try {
-      Long fullCpuTime = ProcessCpuTime.read();
-      currentCpuTime = fullCpuTime - previousCpuTimeMeasurement;
-      previousCpuTimeMeasurement = fullCpuTime;
-      currentCpuTime = (long) (currentCpuTime / 1e6); // convert to ms
-    } catch (JMException e) {
-      throw new CPAException(e.getMessage());
-    }
-
-    // Update current time.
-    incTime(targetErrorLabel, currentCpuTime);
-  }
-
-  private void incTime(SpecificationKey targetErrorLabel, Long cpuTime) {
-    if (targetErrorLabel == null)
-    {
-      return;
-    }
-    RuleSpecification tmpRuleSpecification = ruleSpecifications.get(targetErrorLabel);
-    if (tmpRuleSpecification != null)
-    {
-      tmpRuleSpecification.addCpuTime(cpuTime);
-    }
-  }
-
-  public SpecificationKey getCurrentSpecification() {
-    return currentSpecificationKey;
-  }
-
-  public ControlAutomatonCPA getCurrentControlAutomaton() {
-    return controlAutomaton;
-  }
-
-  public void setCurrentSpecification(SpecificationKey currentCheckedSpecification, ControlAutomatonCPA automaton) {
-    this.currentSpecificationKey = currentCheckedSpecification;
-    this.controlAutomaton = automaton;
-  }
-
-  public SpecificationKey getLastCheckedSpecification() {
-    return lastSpecificationKey;
-  }
-
-  public void setLastCheckedSpecification(SpecificationKey pLastCheckedLabel) {
-    lastSpecificationKey = pLastCheckedLabel;
-  }
-
-  /**
-   * Create specification key by known target state.
-   * @param targetState
-   * @return
-   */
-  public SpecificationKey getViolatedSpecification(AutomatonState targetState) {
-    SpecificationKey specificationKey = null;
-    switch (specificationComparator) {
-    case AUTOMATON:
-      ControlAutomatonCPA targetAutomaton = targetState.getAutomaton();
-      specificationKey = new SpecificationKey(targetAutomaton.getAutomaton().getName());
-      break;
-    case VIOLATED_PROPERTY:
-      specificationKey = new SpecificationKey(targetState.getTransitionName());
-      break;
-    default:
-      assert false;
-      break;
-    }
-    return specificationKey;
-  }
-
-  public void disableSpecification(ControlAutomatonCPA controlAutomatonCPA,
-      SpecificationKey specificationKey) {
-    if (specificationKey == null || controlAutomatonCPA == null) {
-      // Do nothing.
-      return;
-    }
-    switch (specificationComparator) {
-    case AUTOMATON:
-      assert Objects.equals(controlAutomatonCPA.getAutomaton().getName(), specificationKey.getId());
-      controlAutomatonCPA.disable();
-      break;
-    case VIOLATED_PROPERTY:
-      controlAutomatonCPA.disable(specificationKey.getId());
-      break;
-    default:
-      assert false;
-      break;
-    }
-  }
-
-  public SpecificationComparators getComparator() {
-    return specificationComparator;
-  }
-
-  public void addNewSpecification(List<Automaton> automata) {
-    for (Automaton errorAutomaton : automata) {
-      switch (specificationComparator) {
-      case AUTOMATON:
-        String specificationId = errorAutomaton.getName();
-        SpecificationKey specificationKey = new SpecificationKey(specificationId);
-        RuleSpecification specification = new RuleSpecification(specificationKey);
-        addNewSpecification(specification);
-        break;
-      case VIOLATED_PROPERTY:
-        for (AutomatonInternalState automatonInternalState : errorAutomaton.getStates()) {
-          List<AutomatonTransition> automatonTransitionSet = automatonInternalState.getTransitions();
-          for (AutomatonTransition automatonTransition : automatonTransitionSet) {
-            specificationId = automatonTransition.getName();
-            SpecificationKey errorLabel = new SpecificationKey(specificationId);
-            specification = new RuleSpecification(errorLabel);
-            addNewSpecification(specification);
-          }
-        }
-        break;
-      default:
-        assert false;
-        break;
-      }
-    }
   }
 
   public boolean cleanPrecision(ReachedSet reachedSet, SpecificationKey specificationKey)
@@ -517,6 +325,197 @@ public class MultiAspectVerification {
     }
 
     return false;
+  }
+
+  public void disableSpecification(ControlAutomatonCPA controlAutomatonCPA,
+      SpecificationKey specificationKey) {
+    if (specificationKey == null || controlAutomatonCPA == null) {
+      // Do nothing.
+      return;
+    }
+    switch (specificationComparator) {
+    case AUTOMATON:
+      assert Objects.equals(controlAutomatonCPA.getAutomaton().getName(), specificationKey.getId());
+      controlAutomatonCPA.disable();
+      break;
+    case VIOLATED_PROPERTY:
+      controlAutomatonCPA.disable(specificationKey.getId());
+      break;
+    default:
+      assert false;
+      break;
+    }
+  }
+
+  public Collection<RuleSpecification> getAllSpecifications() {
+    return ruleSpecifications.values();
+  }
+
+  public SpecificationComparators getComparator() {
+    return specificationComparator;
+  }
+
+  public Long getCpuTime(SpecificationKey targetErrorLabel) {
+    if (targetErrorLabel == null) {
+      return -1L;
+    }
+    RuleSpecification tmpRuleSpecification = ruleSpecifications.get(targetErrorLabel);
+    if (tmpRuleSpecification != null)
+    {
+      return tmpRuleSpecification.getCpuTime();
+    }
+    return -1L;
+  }
+
+  public ControlAutomatonCPA getCurrentControlAutomaton() {
+    return controlAutomaton;
+  }
+
+  public Long getCurrentCpuTime() throws CPAException {
+    Long currentCpuTime = 0L;
+    try {
+      Long fullCpuTime = ProcessCpuTime.read();
+      currentCpuTime = fullCpuTime - previousCpuTimeMeasurement;
+      currentCpuTime = (long) (currentCpuTime / 1e6); // convert to ms
+    } catch (JMException e) {
+      throw new CPAException(e.getMessage());
+    }
+    return currentCpuTime;
+  }
+
+  public SpecificationKey getCurrentSpecification() {
+    return currentSpecificationKey;
+  }
+
+  public SpecificationKey getLastCheckedSpecification() {
+    return lastSpecificationKey;
+  }
+
+  /**
+   * Get Precision of selected class.
+   * @param specificationKey
+   * @param pPrecisionType
+   * @return
+   */
+  public AdjustablePrecision getPrecision(SpecificationKey specificationKey,
+      Class<? extends AdjustablePrecision> pPrecisionType) {
+    if (specificationKey == null)
+    {
+      return null;
+    }
+    RuleSpecification tmpRuleSpecification = ruleSpecifications.get(specificationKey);
+    if (tmpRuleSpecification != null)
+    {
+      return tmpRuleSpecification.getPrecision(pPrecisionType);
+    }
+    return null;
+  }
+
+  /**
+   * Create specification key by known target state.
+   * @param targetState
+   * @return
+   */
+  public SpecificationKey getViolatedSpecification(AutomatonState targetState) {
+    SpecificationKey specificationKey = null;
+    switch (specificationComparator) {
+    case AUTOMATON:
+      ControlAutomatonCPA targetAutomaton = targetState.getAutomaton();
+      specificationKey = new SpecificationKey(targetAutomaton.getAutomaton().getName());
+      break;
+    case VIOLATED_PROPERTY:
+      specificationKey = new SpecificationKey(targetState.getTransitionName());
+      break;
+    default:
+      assert false;
+      break;
+    }
+    return specificationKey;
+  }
+
+  private void incTime(SpecificationKey targetErrorLabel, Long cpuTime) {
+    if (targetErrorLabel == null)
+    {
+      return;
+    }
+    RuleSpecification tmpRuleSpecification = ruleSpecifications.get(targetErrorLabel);
+    if (tmpRuleSpecification != null)
+    {
+      tmpRuleSpecification.addCpuTime(cpuTime);
+    }
+  }
+
+  public boolean isRelaunchInOneRun() {
+    return relaunchInOneRun;
+  }
+
+  public boolean isStopAfterError() {
+    return stopAfterError;
+  }
+
+  public void printToFile() throws CPAException {
+    if (resultsFile == null) {
+      PrintStream outputStream = System.out;
+      // TODO: add more options for outputStream
+      outputStream.print(toString());
+      outputStream.println("LCA=" + lastSpecificationKey);
+      outputStream.println();
+      return;
+    }
+    try {
+      File file = new File(resultsFile);
+      FileWriter writer = new FileWriter(file);
+      writer.write(toString());
+      if (lastSpecificationKey != null) {
+        writer.write(lastSpecificationKey.toString()+"\n");
+      }
+      writer.flush();
+      writer.close();
+    } catch (IOException e) {
+      throw new CPAException("Can not write to file MAV results");
+    }
+  }
+
+  public void setCurrentSpecification(SpecificationKey currentCheckedSpecification, ControlAutomatonCPA automaton) {
+    this.currentSpecificationKey = currentCheckedSpecification;
+    this.controlAutomaton = automaton;
+  }
+
+  public void setLastCheckedSpecification(SpecificationKey pLastCheckedLabel) {
+    lastSpecificationKey = pLastCheckedLabel;
+  }
+
+  public void startTimers() throws CPAException {
+    try {
+      previousCpuTimeMeasurement = ProcessCpuTime.read();
+    } catch (JMException e) {
+      throw new CPAException(e.getMessage());
+    }
+  }
+
+  @Override
+  public String toString() {
+    String result = "";
+    for (RuleSpecification differentSpecification : ruleSpecifications.values()) {
+      result = result + differentSpecification.toString() + "\n";
+    }
+    return result;
+  }
+
+  public void updateTime(SpecificationKey targetErrorLabel) throws CPAException {
+    // Calculate current time.
+    Long currentCpuTime = 0L;
+    try {
+      Long fullCpuTime = ProcessCpuTime.read();
+      currentCpuTime = fullCpuTime - previousCpuTimeMeasurement;
+      previousCpuTimeMeasurement = fullCpuTime;
+      currentCpuTime = (long) (currentCpuTime / 1e6); // convert to ms
+    } catch (JMException e) {
+      throw new CPAException(e.getMessage());
+    }
+
+    // Update current time.
+    incTime(targetErrorLabel, currentCpuTime);
   }
 
 }

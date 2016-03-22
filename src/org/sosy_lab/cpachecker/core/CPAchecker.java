@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.IdleIntervalTimeLimitExhaustionException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -248,6 +249,8 @@ public class CPAchecker {
         GlobalInfo.getInstance().storeCFA(cfa);
         shutdownNotifier.shutdownIfNecessary();
 
+        AnalysisNotifier.getInstance().onStartAnalysis(cfa);
+
         final SpecAutomatonCompositionType speComposition =
             initialStatesFor.contains(InitialStatesFor.TARGET)
             ? SpecAutomatonCompositionType.BACKWARD_TO_ENTRY_SPEC
@@ -392,8 +395,6 @@ public class CPAchecker {
     // register management interface for CPAchecker
     CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger, shutdownManager);
 
-    AnalysisNotifier.getInstance().onStartAnalysis();
-
     stats.startAnalysisTimer();
     try {
       do {
@@ -405,6 +406,9 @@ public class CPAchecker {
 
       logger.log(Level.INFO, "Stopping analysis ...");
       return status;
+    } catch (IdleIntervalTimeLimitExhaustionException e) {
+
+      return AnalysisNotifier.getInstance().restartInOneRun(status, algorithm, reached);
 
     } finally {
       stats.stopAnalysisTimer();

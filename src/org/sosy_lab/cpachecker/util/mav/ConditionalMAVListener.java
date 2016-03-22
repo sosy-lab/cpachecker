@@ -29,10 +29,17 @@ import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisNotifier.AnalysisListener;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.defaults.AdjustablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
@@ -40,7 +47,10 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
+import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.IdleIntervalTimeLimitExhaustionException;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.mav.RuleSpecification.SpecificationStatus;
 
 
@@ -51,6 +61,7 @@ public class ConditionalMAVListener implements AnalysisListener {
 
   private LogManager logger;
   private Configuration config;
+  private CFA cfa;
 
   public ConditionalMAVListener(Configuration config, LogManager logger)
       throws InvalidConfigurationException {
@@ -76,22 +87,12 @@ public class ConditionalMAVListener implements AnalysisListener {
     // Get cpu time.
     Long currentCpuTime = mav.getCurrentCpuTime();
 
-    // Check First Interval Time Limit (FITL).
-    if (mav.getLastCheckedSpecification() == MultiAspectVerification.FIRST_SPEC &&
-        !mav.checkFirstIntervalTimeLimit(currentCpuTime))
-    {
-      // Stop analysis with verdict UNKNOWN.
-      // TODO: add option for re-launching inside one verification run
-      throw new CPAException("First Interval Time Limit has been exhausted");
-    }
-
     // Check Idle Interval Time Limit (IITL).
     if (mav.getLastCheckedSpecification() == null &&
         !mav.checkIdleIntervalTimeLimit(currentCpuTime))
     {
       // Stop analysis with verdict UNKNOWN.
-      // TODO: add option for re-launching inside one verification run
-      throw new CPAException("Idle Interval Time Limit has been exhausted");
+      throw new IdleIntervalTimeLimitExhaustionException("Idle Interval Time Limit has been exhausted");
     }
 
     // Check Basic Interval Time Limit (BITL).
@@ -100,6 +101,17 @@ public class ConditionalMAVListener implements AnalysisListener {
     {
       ControlAutomatonCPA controlAutomatonCPA = mav.getCurrentControlAutomaton();
       SpecificationKey specificationKey = mav.getLastCheckedSpecification();
+
+      // TODO: option for not checking FIRST_SPEC
+      if (specificationKey.equals(MultiAspectVerification.FIRST_SPEC)) {
+        logger.log(Level.INFO, "There is no assert left to check");
+        for (RuleSpecification specificationAssert : mav.getAllSpecifications()) {
+          mav.changeSpecificationStatus(specificationAssert.getSpecificationKey(),
+              SpecificationStatus.UNKNOWN);
+        }
+        mav.printToFile();
+        throw new CPAException("First Interval Time Limit has been exhausted");
+      }
 
       mav.updateTime(specificationKey);
       mav.changeSpecificationStatus(specificationKey, SpecificationStatus.UNKNOWN);
@@ -153,13 +165,19 @@ public class ConditionalMAVListener implements AnalysisListener {
     return result;
   }
 
+  private void startTimers() throws CPAException {
+    mav.startTimers();
+    mav.printToFile();
+    mav.setLastCheckedSpecification(MultiAspectVerification.FIRST_SPEC);
+  }
+
   /**
    * Start timer and print initial specifications set.
    */
   @Override
-  public void onStartAnalysis() throws CPAException {
-    mav.startTimers();
-    mav.printToFile();
+  public void onStartAnalysis(CFA cfa) throws CPAException {
+    startTimers();
+    this.cfa = cfa;
   }
 
   /**
@@ -319,6 +337,46 @@ public class ConditionalMAVListener implements AnalysisListener {
   @Override
   public void onPrecisionIncrementCreate(AdjustablePrecision adjustablePrecision) {
     mav.addPrecision(adjustablePrecision);
+  }
+
+  @Override
+  public AlgorithmStatus onRestartInOneRun(AlgorithmStatus pStatus,
+      Algorithm algorithm, ReachedSet reached) throws CPAEnabledAnalysisPropertyViolationException, CPAException, InterruptedException {
+    if (!mav.isRelaunchInOneRun()) {
+      throw new CPAException("Idle Interval Time Limit has been exhausted");
+    }
+    AlgorithmStatus status = pStatus;
+    boolean isCompleted = false;
+    int iterationNumber = 2;
+    do{
+      try {
+        do {
+
+          // clear reached
+          CFANode initLocation = cfa.getMainFunction();
+          ConfigurableProgramAnalysis cpa = GlobalInfo.getInstance().getCPA().get();
+          final AbstractState initialState = cpa.getInitialState(initLocation, StateSpacePartition.getDefaultPartition());
+          final Precision initialPrecision = cpa.getInitialPrecision(initLocation, StateSpacePartition.getDefaultPartition());
+          reached.clear();
+          reached.add(initialState, initialPrecision);
+
+          startTimers();
+
+          logger.log(Level.INFO, "Restarting analysis ...");
+          logger.log(Level.INFO, "Iteration " + iterationNumber);
+          iterationNumber++;
+
+          status = status.update(algorithm.run(reached));
+
+        } while (reached.hasWaitingState());
+        logger.log(Level.INFO, "Stopping analysis ...");
+        isCompleted = true;
+      } catch (IdleIntervalTimeLimitExhaustionException e1) {
+        // new iteration
+      }
+    } while (!isCompleted);
+
+    return status;
   }
 
 }
