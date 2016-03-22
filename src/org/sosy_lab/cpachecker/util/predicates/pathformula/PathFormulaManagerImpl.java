@@ -63,14 +63,18 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.arrays.CtoFormulaType
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.heaparray.CToFormulaConverterWithHeapArray;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTarget;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
+import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.QuantifiedFormulaManagerView;
+import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
@@ -102,6 +106,16 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Option(secure=true, description="Call 'simplify' on generated formulas.")
   private boolean simplifyGeneratedPathFormulas = false;
 
+  @Option(secure = true, description = "Use the theory of arrays for heap memory abstraction. "
+      + "This supports pointer aliasing and replaces the option \"handlePointerAliasing\".")
+  private boolean handleHeapArray = false;
+
+  @Option(secure = true, description = "Use quantifiers together with the heap-array converter. "
+      + "This requires the option \"handleHeapArray=true\" and a SMT solver that is capable of the "
+      + "theory of arrays and quantifiers (e.g. Z3 or PRINCESS). Universal quantifiers will only "
+      + "be introduced for array initializer statements.")
+  private boolean useQuantifiersOnArrays = false;
+
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";
   private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
       "^.*" + BRANCHING_PREDICATE_NAME + "(?=\\d+$)");
@@ -114,6 +128,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final FunctionFormulaManagerView ffmgr;
+  private final ArrayFormulaManagerView afmgr;
   private final CtoFormulaConverter converter;
   private final CtoFormulaTypeHandler typeHandler;
   private final LogManager logger;
@@ -161,14 +176,38 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     direction = pDirection;
 
     if (handleArrays) {
+      afmgr = fmgr.getArrayFormulaManager();
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
       typeHandler = new CtoFormulaTypeHandlerWithArrays(pLogger, pMachineModel);
       converter = new CToFormulaConverterWithArrays(options, fmgr, pMachineModel,
           pVariableClassification, logger, shutdownNotifier, typeHandler, direction);
 
-      logger.log(Level.WARNING, "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
+      logger.log(Level.WARNING,
+          "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
 
+    } else if (handleHeapArray) {
+      afmgr = fmgr.getArrayFormulaManager();
+      final FormulaEncodingWithPointerAliasingOptions options =
+          new FormulaEncodingWithPointerAliasingOptions(config);
+      TypeHandlerWithPointerAliasing aliasingTypeHandler =
+          new TypeHandlerWithPointerAliasing(pLogger, pMachineModel, options);
+      typeHandler = aliasingTypeHandler;
+
+      if (useQuantifiersOnArrays) {
+        QuantifiedFormulaManagerView qfmgr = fmgr.getQuantifiedFormulaManager();
+        assert qfmgr != null : "To use the analysis with option \"cpa.predicate"
+              + ".useQuantifiersOnArrays=true\", you have to use a solver supporting quantifier "
+              + "theories!";
+
+        converter = new CToFormulaConverterWithHeapArray(options, fmgr, pMachineModel,
+            pVariableClassification, logger, shutdownNotifier, aliasingTypeHandler, direction,
+            qfmgr);
+      } else {
+        converter = new CToFormulaConverterWithHeapArray(options, fmgr, pMachineModel,
+            pVariableClassification, logger, shutdownNotifier, aliasingTypeHandler, direction);
+      }
     } else if (handlePointerAliasing) {
+      afmgr = null;
       final FormulaEncodingWithPointerAliasingOptions options = new FormulaEncodingWithPointerAliasingOptions(config);
       TypeHandlerWithPointerAliasing aliasingTypeHandler = new TypeHandlerWithPointerAliasing(pLogger, pMachineModel, options);
       typeHandler = aliasingTypeHandler;
@@ -177,6 +216,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           aliasingTypeHandler, direction);
 
     } else {
+      afmgr = null;
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
       typeHandler = new CtoFormulaTypeHandler(pLogger, pMachineModel);
       converter = new CtoFormulaConverter(options, fmgr, pMachineModel,
@@ -427,11 +467,12 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
     if (useNondetFlags && symbolName.equals(NONDET_FLAG_VARIABLE)) {
       return makeSsaNondetFlagMerger(oldIndex, newIndex);
-
+    } else if (handleHeapArray && CToFormulaConverterWithHeapArray.isSMTArray(symbolName)) {
+      assert symbolName.equals(CToFormulaConverterWithHeapArray.getArrayName(symbolType));
+      return makeSsaArrayMerger(symbolName, symbolType, oldIndex, newIndex);
     } else if (CToFormulaConverterWithPointerAliasing.isUF(symbolName)) {
       assert symbolName.equals(CToFormulaConverterWithPointerAliasing.getUFName(symbolType));
       return makeSsaUFMerger(symbolName, symbolType, oldIndex, newIndex, oldPts);
-
     } else {
       return makeSsaVariableMerger(symbolName, symbolType, oldIndex, newIndex);
     }
@@ -456,6 +497,22 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     return fmgr.assignment(newVariable, oldVariable);
   }
 
+  private BooleanFormula makeSsaArrayMerger(
+      final String pFunctionName,
+      final CType pReturnType,
+      final int pOldIndex,
+      final int pNewIndex) {
+    assert pOldIndex < pNewIndex;
+    final FormulaType<?> returnFormulaType = converter.getFormulaTypeFromCType(pReturnType);
+    final ArrayFormula<?, ?> newArray =
+        afmgr.makeArray(
+            pFunctionName + "@" + pNewIndex, FormulaType.IntegerType, returnFormulaType);
+    final ArrayFormula<?, ?> oldArray =
+        afmgr.makeArray(
+            pFunctionName + "@" + pOldIndex, FormulaType.IntegerType, returnFormulaType);
+    return fmgr.makeEqual(newArray, oldArray);
+  }
+
   private BooleanFormula makeSsaUFMerger(final String functionName,
                                                   final CType returnType,
                                                   final int oldIndex,
@@ -470,14 +527,15 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(typeHandler.getPointerType(), target.getBaseName()),
                                                   fmgr.makeNumber(typeHandler.getPointerType(), target.getOffset()));
 
-      final BooleanFormula retention = fmgr.assignment(ffmgr.declareAndCallUninterpretedFunction(functionName,
-                                                                              newIndex,
-                                                                              returnFormulaType,
-                                                                              targetAddress),
-                                                      ffmgr.declareAndCallUninterpretedFunction(functionName,
-                                                                              oldIndex,
-                                                                              returnFormulaType,
-                                                                              targetAddress));
+      final BooleanFormula retention= fmgr.assignment(
+            ffmgr.declareAndCallUninterpretedFunction(functionName,
+                newIndex,
+                returnFormulaType,
+                targetAddress),
+            ffmgr.declareAndCallUninterpretedFunction(functionName,
+                oldIndex,
+                returnFormulaType,
+                targetAddress));
       result = fmgr.makeAnd(result, retention);
     }
 

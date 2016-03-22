@@ -1341,6 +1341,10 @@ cpa.predicate.handleArrays = false
 # Handle field access via extract and concat instead of new variables.
 cpa.predicate.handleFieldAccess = false
 
+# Use the theory of arrays for heap memory abstraction. This supports pointer
+# aliasing and replaces the option "handlePointerAliasing".
+cpa.predicate.handleHeapArray = false
+
 # If disabled, all implicitly initialized fields and elements are treated as
 # non-dets
 cpa.predicate.handleImplicitInitialization = true
@@ -1689,6 +1693,12 @@ cpa.predicate.useParameterVariables = false
 # Insert tmp-parameters for global variables at function-entries. The global
 # variables are also encoded with return-variables at function-exit.
 cpa.predicate.useParameterVariablesForGlobals = false
+
+# Use quantifiers together with the heap-array converter. This requires the
+# option "handleHeapArray=true" and a SMT solver that is capable of the
+# theory of arrays and quantifiers (e.g. Z3 or PRINCESS). Universal
+# quantifiers will only be introduced for array initializer statements.
+cpa.predicate.useQuantifiersOnArrays = false
 
 # Enable fallback to UFs if a solver does not support non-linear arithmetics.
 # This option only effects MULT, MOD and DIV.
