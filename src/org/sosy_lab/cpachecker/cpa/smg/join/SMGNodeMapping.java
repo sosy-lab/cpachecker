@@ -73,6 +73,25 @@ class SMGNodeMapping {
     value_map.put(key, value);
   }
 
+  public void removeValue(Integer value) {
+
+    for (Entry<Integer, Integer> entry : value_map.entrySet()) {
+      if (entry.getValue().equals(value)) {
+        value_map.remove(entry.getKey());
+        return;
+      }
+    }
+  }
+
+  public void removeValue(SMGObject value) {
+    for (Entry<SMGObject, SMGObject> entry : object_map.entrySet()) {
+      if (entry.getValue().equals(value)) {
+        object_map.remove(entry.getKey());
+        return;
+      }
+    }
+  }
+
   public boolean containsKey(Integer key) {
     return value_map.containsKey(key);
   }

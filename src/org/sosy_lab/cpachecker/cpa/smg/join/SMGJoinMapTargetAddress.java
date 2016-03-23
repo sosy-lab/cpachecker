@@ -26,9 +26,11 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 import java.util.Collection;
 
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
 
 final class SMGJoinMapTargetAddress {
   private SMG smg;
@@ -38,7 +40,7 @@ final class SMGJoinMapTargetAddress {
 
   public SMGJoinMapTargetAddress(SMG pSMG1, SMG destSMG, SMGNodeMapping pMapping1,
                              SMGNodeMapping pMapping2, Integer pAddress1,
-                             Integer pAddress2) {
+                             Integer pAddress2, boolean relabel) {
     smg = destSMG;
     mapping1 = pMapping1;
     mapping2 = pMapping2;
@@ -46,8 +48,17 @@ final class SMGJoinMapTargetAddress {
 
     // TODO: Ugly, refactor
     SMGEdgePointsTo pt = pSMG1.getPointer(pAddress1);
+    SMGEdgePointsTo pt2 = pSMG1.getPointer(pAddress2);
     if (pt.getObject().notNull()) {
       target = pMapping1.get(pt.getObject());
+    }
+
+    SMGTargetSpecifier tg;
+
+    if(pt.getObject() instanceof SMGDoublyLinkedList || pt2 == null) {
+      tg = pt.getTargetSpecifier();
+    } else {
+      tg = pt2.getTargetSpecifier();
     }
 
     // TODO: Ugly, refactor
@@ -68,12 +79,11 @@ final class SMGJoinMapTargetAddress {
 
     smg.addValue(value);
 
-    SMGEdgePointsTo nPtEdge;
-    if(pt.getValue() == value && pt.getObject().equals(target)) {
-      nPtEdge = pt;
-    } else {
-      nPtEdge = new SMGEdgePointsTo(value, target, pt.getOffset());
+    if (relabel && target instanceof SMGDoublyLinkedList) {
+      tg = SMGTargetSpecifier.ALL;
     }
+
+    SMGEdgePointsTo nPtEdge = new SMGEdgePointsTo(value, target, pt.getOffset(), tg);
 
     smg.addPointsToEdge(nPtEdge);
     mapping1.map(pAddress1, value);

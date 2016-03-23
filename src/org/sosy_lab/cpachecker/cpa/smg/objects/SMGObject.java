@@ -36,6 +36,12 @@ public abstract class SMGObject {
     public String toString() {
       return "NULL";
     }
+
+    @Override
+    public SMGObject copy() {
+      // fancy way of referencing itself
+      return SMGObject.getNullObject();
+    }
   };
 
   static public SMGObject getNullObject() {
@@ -59,6 +65,8 @@ public abstract class SMGObject {
     label = pOther.label;
     level = pOther.getLevel();
   }
+
+  public abstract SMGObject copy();
 
   public String getLabel() {
     return label;
@@ -96,8 +104,9 @@ public abstract class SMGObject {
 
   /**
    * @param pOther object to join with
+   * @param pIncreaseLevel increase Nesting level.
    */
-  public SMGObject join(SMGObject pOther) {
+  public SMGObject join(SMGObject pOther, boolean pIncreaseLevel) {
     throw new UnsupportedOperationException("join() called on SMGObject instance, not on a subclass");
   }
 

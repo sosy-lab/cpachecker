@@ -97,7 +97,7 @@ public final class SMGSingleLinkedList extends SMGObject implements SMGAbstractO
   }
 
   @Override
-  public SMGObject join(SMGObject pOther) {
+  public SMGObject join(SMGObject pOther, boolean increaseLevel) {
     if (! pOther.isAbstract()) {
       return new SMGSingleLinkedList(this);
     }
@@ -112,5 +112,10 @@ public final class SMGSingleLinkedList extends SMGObject implements SMGAbstractO
     }
 
     throw new UnsupportedOperationException("join() called on incompatible abstract objects");
+  }
+
+  @Override
+  public SMGObject copy() {
+    return new SMGSingleLinkedList(this);
   }
 }

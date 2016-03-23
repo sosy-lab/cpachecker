@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGAbstractObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
 
 import com.google.common.collect.Iterators;
 
@@ -139,6 +140,18 @@ final class SMGJoinMatchObjects {
     if (SMGJoinMatchObjects.checkConsistentObjects(pObj1, pObj2, pSMG1, pSMG2)) {
       return;
     }
+
+    if (pObj1 instanceof SMGDoublyLinkedList && pObj2 instanceof SMGDoublyLinkedList) {
+
+      SMGDoublyLinkedList l1 = (SMGDoublyLinkedList) pObj1;
+      SMGDoublyLinkedList l2 = (SMGDoublyLinkedList) pObj2;
+
+      if (l1.getHfo() != l2.getHfo() || l1.getNfo() != l2.getNfo()
+          || l1.getPfo() != l2.getPfo()) {
+        return;
+      }
+    }
+
 
     if (SMGJoinMatchObjects.checkMatchingAbstractions(pObj1, pObj2)) {
       return;

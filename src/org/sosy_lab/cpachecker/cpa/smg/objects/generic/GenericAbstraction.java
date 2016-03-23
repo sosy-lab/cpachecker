@@ -119,4 +119,9 @@ public class GenericAbstraction extends SMGObject implements SMGAbstractObject {
   public GenericAbstractionCandidateTemplate createCandidateTemplate() {
     return GenericAbstractionCandidateTemplate.valueOf(materlisationStepMap);
   }
+
+  @Override
+  public SMGObject copy() {
+    return new GenericAbstraction(getSize(), getLabel(), materlisationStepMap, abstractToConcretePointerMap);
+  }
 }

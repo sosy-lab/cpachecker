@@ -21,20 +21,33 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.smg.objects.dls;
+package org.sosy_lab.cpachecker.cpa.smg;
 
-import java.util.Set;
-
-import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
-import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionFinder;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
-
-public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder {
+/**
+ * Target Specifier for specifying target of pointer.
+ */
+public enum SMGTargetSpecifier {
+  REGION ,
+  FIRST,
+  LAST,
+  ALL,
+  UNKNOWN;
 
   @Override
-  public Set<SMGAbstractionCandidate> traverse(CLangSMG pSmg) {
-    // TODO Auto-generated method stub
-    return null;
+  public String toString() {
+    switch (this) {
+      case REGION:
+        return "reg";
+      case FIRST:
+        return "fst";
+      case LAST:
+        return "lst";
+      case ALL:
+        return "all";
+      case UNKNOWN:
+        return "unknown";
+      default:
+        throw new AssertionError();
+    }
   }
-
 }

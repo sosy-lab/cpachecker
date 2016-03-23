@@ -42,7 +42,7 @@ public class SMGRegionTest {
   public void testJoin() {
     SMGRegion region = new SMGRegion(8, "region");
     SMGRegion region_same = new SMGRegion(8, "region");
-    SMGObject objectJoint = region.join(region_same);
+    SMGObject objectJoint = region.join(region_same, false);
     Assert.assertTrue(objectJoint instanceof SMGRegion);
     SMGRegion regionJoint = (SMGRegion)objectJoint;
 
@@ -54,7 +54,7 @@ public class SMGRegionTest {
   public void testJoinDiffSize() {
     SMGRegion region = new SMGRegion(8, "region");
     SMGRegion regionDiff = new SMGRegion(10, "region");
-    region.join(regionDiff);
+    region.join(regionDiff, false);
   }
 
   @Test

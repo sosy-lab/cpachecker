@@ -129,7 +129,7 @@ final class SMGJoinSubSMGs {
       }
 
       SMGJoinValues joinValues = new SMGJoinValues(status, inputSMG1, inputSMG2, destSMG,
-          mapping1, mapping2, hvIn1.getValue(), hvIn2.getValue(), pLDiff, pIncreaseLevelAndRelabelTargetSpc, identicalInputSmg);
+          mapping1, mapping2, hvIn1.getValue(), hvIn2.getValue(), pLDiff, pIncreaseLevelAndRelabelTargetSpc, identicalInputSmg, pObj1.getLevel(), pObj2.getLevel());
 
       /* If the join of the values is not defined and can't be
        * recovered through abstraction, the join fails.*/

@@ -38,6 +38,10 @@ public final class SMGRegion extends SMGObject implements SMGObjectTemplate {
     super(pOther);
   }
 
+  public SMGRegion(int pSize, String pLabel, int pLevel) {
+    super(pSize, pLabel, pLevel);
+  }
+
   @Override
   public String toString() {
     return "REGION( "+ getLabel() + ", " + getSize() + "b)";
@@ -76,13 +80,17 @@ public final class SMGRegion extends SMGObject implements SMGObjectTemplate {
   }
 
   @Override
-  public SMGObject join(SMGObject pOther) {
+  public SMGObject join(SMGObject pOther, boolean increaseLevel) {
     if (pOther.isAbstract()) {
       // I am concrete, and the other is abstract: the abstraction should
       // know how to join with me
-      return pOther.join(this);
+      return pOther.join(this, increaseLevel);
     } else if (getSize() == pOther.getSize()) {
-      return this;
+      if(increaseLevel) {
+        return new SMGRegion(this.getSize(), this.getLabel(), getLevel() + 1);
+      } else {
+        return this;
+      }
     }
     throw new UnsupportedOperationException("join() called on incompatible SMGObjects");
   }
@@ -90,5 +98,10 @@ public final class SMGRegion extends SMGObject implements SMGObjectTemplate {
   @Override
   public SMGRegion createConcreteObject(Map<Integer, Integer> pAbstractToConcretePointerMap) {
     return new SMGRegion(getSize(), getLabel() + " ID " + SMGValueFactory.getNewValue());
+  }
+
+  @Override
+  public SMGObject copy() {
+    return new SMGRegion(this);
   }
 }
