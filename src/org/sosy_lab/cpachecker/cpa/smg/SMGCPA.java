@@ -113,7 +113,6 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
 
     abstractDomain = DelegateAbstractDomain.<SMGState>getInstance();
     mergeOperator = MergeSepOperator.getInstance();
-    //mergeOperator = SMGMerge.getInstance();
 
     if(stopType.equals("NEVER")) {
       stopOperator = new StopNeverOperator();
