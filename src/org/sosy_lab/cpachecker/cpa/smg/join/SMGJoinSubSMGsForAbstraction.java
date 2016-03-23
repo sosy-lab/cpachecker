@@ -123,6 +123,8 @@ final public class SMGJoinSubSMGsForAbstraction {
 
     defined = true;
     status = s;
+    resultSMG = smg;
+    newAbstractObject = dls;
 
     nonSharedObjectsFromSMG1 = new HashSet<>();
     nonSharedObjectsFromSMG2 = new HashSet<>();

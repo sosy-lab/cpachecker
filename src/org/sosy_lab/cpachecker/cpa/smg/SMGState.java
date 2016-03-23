@@ -762,7 +762,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     SMGJoin join = new SMGJoin(this.heap, reachedState.heap);
 
-    join.getStatus();
     if (join.isDefined() && join.getStatus() != SMGJoinStatus.INCOMPARABLE
         && join.getStatus() != SMGJoinStatus.INCOMPLETE) {
 

@@ -88,16 +88,17 @@ final class SMGJoinValues {
 
       Integer newValue;
 
-      if(pV1 == pV2) {
+      // TODO Investigate for joinSubSMGForAbstraction
+      if(pV1.equals(pV2)) {
         newValue = pV1;
       } else {
         newValue = SMGValueFactory.getNewValue();
       }
 
-      if(pLevelV1 - pLevelV2 < lDiff) {
-        SMGJoinStatus.updateStatus(pJV.status, SMGJoinStatus.LEFT_ENTAIL);
-      } else if(pLevelV1 - pLevelV2 > lDiff) {
-        SMGJoinStatus.updateStatus(pJV.status, SMGJoinStatus.RIGHT_ENTAIL);
+      if (pLevelV1 - pLevelV2 < lDiff) {
+        pJV.status = SMGJoinStatus.updateStatus(pJV.status, SMGJoinStatus.LEFT_ENTAIL);
+      } else if (pLevelV1 - pLevelV2 > lDiff) {
+        pJV.status = SMGJoinStatus.updateStatus(pJV.status, SMGJoinStatus.RIGHT_ENTAIL);
       }
 
       pJV.destSMG.addValue(newValue);
@@ -299,7 +300,7 @@ final class SMGJoinValues {
     SMGJoinStatus newJoinStatus =
         pTarget1.getMinimumLength() == 0 ? SMGJoinStatus.LEFT_ENTAIL : SMGJoinStatus.INCOMPARABLE;
 
-    SMGJoinStatus.updateStatus(status, newJoinStatus);
+    status = SMGJoinStatus.updateStatus(status, newJoinStatus);
 
     copyDlsSubSmgToDestSMG(pTarget1, mapping1, inputSMG1, destSMG, nf);
 
