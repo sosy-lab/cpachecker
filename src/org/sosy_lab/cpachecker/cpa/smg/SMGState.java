@@ -771,7 +771,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       Map<SMGKnownSymValue, SMGKnownExpValue> mergedExplicitValues = new HashMap<>();
 
       for (Entry<SMGKnownSymValue, SMGKnownExpValue> entry : explicitValues.entrySet()) {
-        if(destHeap.getValues().contains(entry.getKey())) {
+        if(destHeap.getValues().contains(entry.getKey().getAsInt())) {
           mergedExplicitValues.put(entry.getKey(), entry.getValue());
         }
       }
