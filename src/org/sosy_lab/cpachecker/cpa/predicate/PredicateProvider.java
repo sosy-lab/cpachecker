@@ -61,6 +61,10 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
+/**
+ * This class provides additional predicates for a given source of information.
+ * The predicates can be used in the precision adjustment.
+ */
 @Options(prefix = "cpa.predicate")
 public class PredicateProvider {
 
@@ -88,6 +92,11 @@ public class PredicateProvider {
     predFmgr = pPredMgr;
   }
 
+  /**
+   * Get predicates either extracted from the given state or
+   * received from other source (i.e. file) related to the state.
+   * The relation might just be the same location.
+   */
   public Set<AbstractionPredicate> getPredicates(AbstractState pFullState) throws CPATransferException {
     Set<AbstractionPredicate> result = new HashSet<>();
 
@@ -102,7 +111,6 @@ public class PredicateProvider {
 
     return result;
   }
-
 
   private Set<AbstractionPredicate> getPredicatesFromAbstractionFromFile(CFANode pLocation)
       throws CPATransferException {
