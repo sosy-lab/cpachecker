@@ -194,7 +194,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
     transfer =
         new PredicateTransferRelation(
-            config, logger, direction, pCfa, formulaManager, pfMgr, blk, predicateManager);
+            config, logger, direction, formulaManager, pfMgr, blk, predicateManager);
 
     topState = PredicateAbstractState.mkAbstractionState(
         pathFormulaManager.makeEmptyPathFormula(),
@@ -221,9 +221,11 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     initialPrecision = precisionBootstraper.prepareInitialPredicates();
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
 
+    PredicateProvider predicateProvider = new PredicateProvider(config, pCfa, logger, formulaManager, predicateManager);
+
     prec =
         new PredicatePrecisionAdjustment(
-            logger, formulaManager, pfMgr, predicateManager, invariantGenerator);
+            logger, formulaManager, pfMgr, predicateManager, invariantGenerator, predicateProvider);
 
     if (stopType.equals("SEP")) {
       stop = new PredicateStopOperator(domain);

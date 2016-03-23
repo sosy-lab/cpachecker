@@ -27,9 +27,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import java.io.Serializable;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -39,7 +36,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.NonMergeableAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Preconditions;
@@ -163,20 +159,11 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
 
     private static final long serialVersionUID = -3961784113582993743L;
 
-    /** Additional predicates are not instantiated formulas,
-     * which can be used for the abstraction. */
-    private transient final Set<AbstractionPredicate> additionalPredicates;
-
     public ComputeAbstractionState(
         PathFormula pf,
         AbstractionFormula pA,
         PersistentMap<CFANode, Integer> pAbstractionLocations) {
       super(pf, pA, pAbstractionLocations);
-      additionalPredicates = new HashSet<>();
-    }
-
-    public void addAdditionalPredicates(Collection<AbstractionPredicate> pPredicates) {
-      additionalPredicates.addAll(pPredicates);
     }
 
     @Override
@@ -192,10 +179,6 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     @Override
     public String toString() {
       return "Abstraction location: true, Abstraction: <TO COMPUTE>";
-    }
-
-    public Set<AbstractionPredicate> getAdditionalPredicates() {
-      return additionalPredicates;
     }
   }
 

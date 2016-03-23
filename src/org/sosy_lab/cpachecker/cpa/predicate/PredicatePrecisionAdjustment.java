@@ -74,13 +74,15 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
   private @Nullable InvariantGenerator invariantGenerator;
   private InvariantSupplier invariants;
+  private final PredicateProvider predicateProvider;
 
   public PredicatePrecisionAdjustment(
       LogManager pLogger,
       FormulaManagerView pFmgr,
       PathFormulaManager pPfmgr,
       PredicateAbstractionManager pPredAbsManager,
-      InvariantGenerator pInvariantGenerator) {
+      InvariantGenerator pInvariantGenerator,
+      PredicateProvider pPredicateProvider) {
 
     logger = pLogger;
     fmgr = pFmgr;
@@ -89,6 +91,8 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
     invariantGenerator = checkNotNull(pInvariantGenerator);
     invariants = InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
+
+    predicateProvider = pPredicateProvider;
   }
 
   @Override
@@ -107,7 +111,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
         PredicatePrecision precision = (PredicatePrecision)pPrecision;
         CFANode location = AbstractStates.extractLocation(fullState);
 
-        return computeAbstraction((ComputeAbstractionState) element, precision, location);
+        return computeAbstraction((ComputeAbstractionState) element, precision, location, fullState);
       } else {
         return Optional.of(PrecisionAdjustmentResult.create(
             element, pPrecision, PrecisionAdjustmentResult.Action.CONTINUE));
@@ -125,7 +129,8 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
    * Compute an abstraction.
    */
   private Optional<PrecisionAdjustmentResult> computeAbstraction(
-      ComputeAbstractionState element, PredicatePrecision precision, CFANode loc)
+      ComputeAbstractionState element, PredicatePrecision precision, CFANode loc,
+      AbstractState fullState)
       throws SolverException, CPAException, InterruptedException {
 
     AbstractionFormula abstractionFormula = element.getAbstractionFormula();
@@ -146,13 +151,16 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       pathFormula = pathFormulaManager.makeAnd(pathFormula, invariant);
     }
 
+    // get additional predicates
+    Set<AbstractionPredicate> additionalPredicates = predicateProvider.getPredicates(fullState);
+
     AbstractionFormula newAbstractionFormula = null;
 
     // compute new abstraction
     computingAbstractionTime.start();
     try {
       Set<AbstractionPredicate> preds = precision.getPredicates(loc, newLocInstance);
-      preds = Sets.union(preds, element.getAdditionalPredicates());
+      preds = Sets.union(preds, additionalPredicates);
 
       // compute a new abstraction with a precision based on `preds`
       newAbstractionFormula = formulaManager.buildAbstraction(

@@ -380,10 +380,6 @@ class PredicateCPAStatistics extends AbstractStatistics {
     if (trans.strengthenCheckTimer.getNumberOfIntervals() > 0) {
       out.println("  Time for satisfiability checks:    " + trans.strengthenCheckTimer);
     }
-    if (trans.strengthenReuseConvertTimer.getNumberOfIntervals() > 0) {
-      out.println("  Time for abstraction converter:    " + trans.strengthenReuseConvertTimer);
-      out.println("  Time for abstraction reading:      " + trans.strengthenReuseReadTimer);
-    }
     out.println("Time for prec operator:              " + prec.totalPrecTime);
     if (prec.numAbstractions > 0) {
       out.println("  Time for abstraction:              " + prec.computingAbstractionTime + " (Max: " + prec.computingAbstractionTime.getMaxTime().formatAs(SECONDS) + ", Count: " + prec.computingAbstractionTime.getNumberOfIntervals() + ")");
