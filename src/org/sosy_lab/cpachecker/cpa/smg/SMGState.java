@@ -36,6 +36,7 @@ import java.util.logging.Level;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -44,6 +45,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.SMGAddressValueAndState;
+import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.SMGAddressValueAndStateList;
 import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
@@ -448,7 +451,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   /**
-   * Returns a Points-To edge leading from a value.
+   * Returns a Points-To edge leading from a value. If the target is an abstract heap segment,
+   * materialize heap segment.
    *
    * Constant.
    *
@@ -459,10 +463,13 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    *
    * @throws SMGInconsistentException When the value passed does not have a Points-To edge.
    */
-  public SMGAddressValue getPointerFromValue(Integer pValue) throws SMGInconsistentException {
+  public SMGAddressValueAndStateList getPointerFromValue(Integer pValue) throws SMGInconsistentException {
     if (heap.isPointer(pValue)) {
       SMGEdgePointsTo addressValue = heap.getPointer(pValue);
-      return SMGKnownAddVal.valueOf(addressValue.getValue(), addressValue.getObject(), addressValue.getOffset());
+
+      SMGAddressValue address = SMGKnownAddVal.valueOf(addressValue.getValue(), addressValue.getObject(), addressValue.getOffset());
+
+      return SMGAddressValueAndStateList.of(SMGAddressValueAndState.of(this, address));
     }
 
     throw new SMGInconsistentException("Asked for a Points-To edge for a non-pointer value");
@@ -1281,5 +1288,69 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     }
 
     return "__" + functionName;
+  }
+
+  public PointerComparisonResult comparePointer(SMGSymbolicValue pV1, SMGSymbolicValue pV2, BinaryOperator pOp) {
+
+    SMGEdgePointsTo pointer1 = heap.getPointer(pV1.getAsInt());
+    SMGEdgePointsTo pointer2 = heap.getPointer(pV2.getAsInt());
+    SMGObject object1 = pointer1.getObject();
+    SMGObject object2 = pointer2.getObject();
+
+    boolean isTrue = false;
+    boolean isFalse = true;
+
+    // there can be more precise comparsion when pointer point to the
+    // same object.
+    if (object1 == object2) {
+      int offset1 = pointer1.getOffset();
+      int offset2 = pointer2.getOffset();
+
+      switch (pOp) {
+      case GREATER_EQUAL:
+        isTrue = offset1 >= offset2;
+        isFalse = !isTrue;
+        break;
+      case GREATER_THAN:
+        isTrue = offset1 > offset2;
+        isFalse = !isTrue;
+        break;
+      case LESS_EQUAL:
+        isTrue = offset1 <= offset2;
+        isFalse = !isTrue;
+        break;
+      case LESS_THAN:
+        isTrue = offset1 < offset2;
+        isFalse = !isTrue;
+        break;
+      default:
+        throw new AssertionError("Impossible case thrown");
+      }
+
+    }
+    return PointerComparisonResult.valueOf(isTrue, isFalse);
+  }
+
+  public static class PointerComparisonResult {
+
+    private final boolean isTrue;
+    private final boolean isFalse;
+
+    private PointerComparisonResult(boolean pIsTrue, boolean pIsFalse) {
+      isTrue = pIsTrue;
+      isFalse = pIsFalse;
+    }
+
+    public static PointerComparisonResult valueOf(boolean pIsTrue, boolean pIsFalse) {
+      return new PointerComparisonResult(pIsTrue, pIsFalse);
+    }
+
+    public boolean isTrue() {
+      return isTrue;
+    }
+
+    public boolean isFalse() {
+      return isFalse;
+    }
   }
 }

@@ -332,7 +332,7 @@ public class SMGConcreteErrorPathAllocator {
       } else if (pSMGState.isPointer(symbolicValue)) {
         SMGAddressValue pointer;
         try {
-          pointer = pSMGState.getPointerFromValue(symbolicValue);
+          pointer = pSMGState.getPointerFromValue(symbolicValue).asAddressValueAndStateList().get(0).getObject();
         } catch (SMGInconsistentException e) {
           throw new AssertionError();
         }

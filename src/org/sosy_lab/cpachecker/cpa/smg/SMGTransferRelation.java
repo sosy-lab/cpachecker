@@ -2360,7 +2360,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       }
 
       @Override
-      protected SMGAddressValueAndState createAddressOfFunction(CIdExpression pIdFunctionExpression)
+      protected SMGAddressValueAndStateList createAddressOfFunction(CIdExpression pIdFunctionExpression)
           throws SMGInconsistentException {
         SMGState state = getInitialSmgState();
 

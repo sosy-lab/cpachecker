@@ -37,6 +37,8 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
+import com.google.common.collect.Iterables;
+
 
 public class SMGStateTest {
   static private final  LogManager logger = TestLogManager.getInstance();
@@ -231,7 +233,7 @@ public class SMGStateTest {
 
     Integer pointer = pt.getValue().intValue();
 
-    SMGAddressValue pt_obtained = state.getPointerFromValue(pointer);
+    SMGAddressValue pt_obtained = Iterables.getOnlyElement(state.getPointerFromValue(pointer).asAddressValueAndStateList()).getObject();
     Assert.assertEquals(pt_obtained.getObject(), pt.getObject());
   }
 
