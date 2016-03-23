@@ -2170,9 +2170,12 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
         List<SMGAddressAndState> addresses = super.visit(pLValue);
 
+        List<SMGAddressAndState> results =  new ArrayList<>(addresses.size());
+
         for (SMGAddressAndState address : addresses) {
           if (address.getObject().isUnknown()) {
-            address.getSmgState().setUnknownDereference();
+            SMGState newState = address.getSmgState().setUnknownDereference();
+            results.add(SMGAddressAndState.of(newState, address.getObject()));
           }
         }
         return addresses;
