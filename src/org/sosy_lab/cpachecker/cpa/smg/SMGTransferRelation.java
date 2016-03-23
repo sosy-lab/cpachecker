@@ -2165,20 +2165,23 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       }
 
       @Override
-      public List<SMGAddressAndState> visit(CPointerExpression pLValue) throws CPATransferException {
+      public List<SMGAddressAndState> visit(CPointerExpression pLValue)
+          throws CPATransferException {
         logger.log(Level.FINEST, ">>> Handling statement: assignment to dereferenced pointer");
 
         List<SMGAddressAndState> addresses = super.visit(pLValue);
 
-        List<SMGAddressAndState> results =  new ArrayList<>(addresses.size());
+        List<SMGAddressAndState> results = new ArrayList<>(addresses.size());
 
         for (SMGAddressAndState address : addresses) {
           if (address.getObject().isUnknown()) {
             SMGState newState = address.getSmgState().setUnknownDereference();
-            results.add(SMGAddressAndState.of(newState, address.getObject()));
+            results.add(SMGAddressAndState.of(newState));
+          } else {
+            results.add(address);
           }
         }
-        return addresses;
+        return results;
       }
 
       @Override
