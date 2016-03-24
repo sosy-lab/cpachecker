@@ -105,32 +105,22 @@ public class BlockOperator {
   public int numBlkBranch = 0;
   public int numBlkThreshold = 0;
 
-  private CFA cfa = null;
-
   /**
    * Check whether an abstraction should be computed.
    *
-   * @param succLoc Successor CFA location (of the analysis).
-   * @param predLoc Predecessor CFA location (of the analysis).
-   *
-   *   ATTENTION: for the backwards analysis the successor/predecessor of the edge do not match succLoc/predLoc.
-   *
-   * @param edge    The edge between succLoc and predLoc.
-   *
-   * @return true if succLoc is an abstraction location. For now a location is
-   * an abstraction location if it has an incoming loop-back edge, if it is
-   * the start node of a function or if it is the call site from a function call.
+   * @param loc Current CFA location (of the analysis).
+   * @return true if loc is an abstraction location according to the configuration.
    */
-  public boolean isBlockEnd(CFANode succLoc, CFANode predLoc, CFAEdge edge, int thresholdValue) {
+  public boolean isBlockEnd(final CFANode loc, final int thresholdValue) {
     // If you change this function, make sure to adapt alwaysReturnsFalse(), too!
 
     if (alwaysAndOnlyAtExplicitNodes) {
       assert (explicitAbstractionNodes != null);
-      return explicitAbstractionNodes.contains(succLoc);
+      return explicitAbstractionNodes.contains(loc);
     }
 
     if (alwaysAtExplicitNodes && explicitAbstractionNodes != null
-        && explicitAbstractionNodes.contains(succLoc)) {
+        && explicitAbstractionNodes.contains(loc)) {
       return true;
     }
 
@@ -139,37 +129,37 @@ public class BlockOperator {
       return true;
     }
 
-    if (alwaysAtFunctions && isFunctionCall(succLoc)) {
+    if (alwaysAtFunctions && isFunctionCall(loc)) {
       numBlkFunctions++;
       return true;
     }
 
-    if (alwaysAtEntryFunctionHead && isFirstLocationInMainFunctionBody(succLoc)) {
+    if (alwaysAtEntryFunctionHead && isFirstLocationInMainFunctionBody(loc)) {
       numBlkEntryFunctionHeads++;
       return true;
     }
 
-    if (alwaysAtFunctionHeads && isFunctionHead(succLoc)) {
+    if (alwaysAtFunctionHeads && isFunctionHead(loc)) {
       numBlkFunctionHeads++;
       return true;
     }
 
-    if (alwaysAtFunctionCallNodes && isBeforeFunctionCall(succLoc)) {
+    if (alwaysAtFunctionCallNodes && isBeforeFunctionCall(loc)) {
       numBlkFunctionHeads++;
       return true;
     }
 
-    if (alwaysAtLoops && isLoopHead(succLoc)) {
+    if (alwaysAtLoops && isLoopHead(loc)) {
       numBlkLoops++;
       return true;
     }
 
-    if (alwaysAtJoin && isJoinNode(succLoc)) {
+    if (alwaysAtJoin && isJoinNode(loc)) {
       numBlkJoins++;
       return true;
     }
 
-    if (alwaysAtBranch && isBranchNode(succLoc)) {
+    if (alwaysAtBranch && isBranchNode(loc)) {
       numBlkBranch++;
       return true;
     }
@@ -181,16 +171,16 @@ public class BlockOperator {
           numBlkThreshold++;
           return true;
 
-        } else if (absOnFunction && isFunctionCall(succLoc)) {
+        } else if (absOnFunction && isFunctionCall(loc)) {
           numBlkThreshold++;
           numBlkFunctions++;
           return true;
 
-        } else if (absOnLoop && isLoopHead(succLoc)) {
+        } else if (absOnLoop && isLoopHead(loc)) {
           numBlkThreshold++;
           numBlkLoops++;
           return true;
-        } else if (absOnJoin && isJoinNode(succLoc)) {
+        } else if (absOnJoin && isJoinNode(loc)) {
           numBlkThreshold++;
           numBlkJoins++;
           return true;
@@ -203,12 +193,12 @@ public class BlockOperator {
       // Specifying blk.functions and blk.loops does not make sense with threshold=0.
       // For compatibility reasons, act as if blk.alwaysAtFunctions / blk.alwaysAtLoops
       // was instead specified.
-      if (absOnFunction && isFunctionCall(succLoc)) {
+      if (absOnFunction && isFunctionCall(loc)) {
         numBlkFunctions++;
         return true;
       }
 
-      if (absOnLoop && isLoopHead(succLoc)) {
+      if (absOnLoop && isLoopHead(loc)) {
         numBlkLoops++;
         return true;
       }
@@ -218,7 +208,7 @@ public class BlockOperator {
   }
 
   /**
-   * If this method returns true, {@link #isBlockEnd(CFANode, CFANode, CFAEdge, int)}
+   * If this method returns true, {@link #isBlockEnd(CFANode, int)}
    * is guaranteed to always return false.
    * This can be used to add optimizations.
    */
@@ -262,8 +252,7 @@ public class BlockOperator {
     this.explicitAbstractionNodes = pNodes;
   }
 
-  public void setCFA(CFA pCfa) {
-    this.cfa = pCfa;
+  public void setCFA(CFA cfa) {
     if (absOnLoop || alwaysAtLoops) {
       if (cfa.getAllLoopHeads().isPresent()) {
         loopHeads = cfa.getAllLoopHeads().get();

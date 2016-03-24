@@ -150,7 +150,6 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
       PredicateAbstractState element = (PredicateAbstractState) pElement;
       CFANode loc = getAnalysisSuccesor(edge);
-      CFANode predloc = getAnalysisPredecessor(edge);
 
       // Check whether abstraction is false.
       // Such elements might get created when precision adjustment computes an abstraction.
@@ -161,7 +160,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       logger.log(Level.ALL, "New path formula is", pathFormula);
 
       // check whether to do abstraction
-      boolean doAbstraction = blk.isBlockEnd(loc, predloc, edge, pathFormula.getLength());
+      boolean doAbstraction = blk.isBlockEnd(loc, pathFormula.getLength());
 
       return createState(element, pathFormula, doAbstraction);
 
@@ -178,14 +177,6 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       return pEdge.getPredecessor();
     } else {
       return pEdge.getSuccessor();
-    }
-  }
-
-  private CFANode getAnalysisPredecessor(CFAEdge pEdge) {
-    if (direction == AnalysisDirection.BACKWARD) {
-      return pEdge.getSuccessor();
-    } else {
-      return pEdge.getPredecessor();
     }
   }
 
