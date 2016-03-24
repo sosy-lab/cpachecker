@@ -240,10 +240,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
     Builder<CFANode> result = ImmutableSet.builder();
 
     for (AppliedCustomInstruction aci : pCia.getMapping().values()) {
-      for(CFANode node: aci.getStartAndEndNodes()) {
-        // add the predecessors of node on which we want to abstract, predecessor is used to determine if we abstract
-        result.addAll(CFAUtils.predecessorsOf(node));
-      }
+      result.addAll(aci.getStartAndEndNodes());
     }
     return result.build();
   }

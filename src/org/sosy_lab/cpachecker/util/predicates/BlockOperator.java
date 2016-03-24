@@ -131,11 +131,11 @@ public class BlockOperator {
 
     if (alwaysAndOnlyAtExplicitNodes) {
       assert (explicitAbstractionNodes != null);
-      return explicitAbstractionNodes.contains(predLoc);
+      return explicitAbstractionNodes.contains(succLoc);
     }
 
     if (alwaysAtExplicitNodes && explicitAbstractionNodes != null
-        && explicitAbstractionNodes.contains(predLoc)) {
+        && explicitAbstractionNodes.contains(succLoc)) {
       return true;
     }
 
