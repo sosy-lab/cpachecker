@@ -42,11 +42,11 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.ComputeAbstractionState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -68,6 +68,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   int maxBlockSize = 0;
 
   private final LogManager logger;
+  private final BlockOperator blk;
   private final PredicateAbstractionManager formulaManager;
   private final PathFormulaManager pathFormulaManager;
   private final FormulaManagerView fmgr;
@@ -80,6 +81,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       LogManager pLogger,
       FormulaManagerView pFmgr,
       PathFormulaManager pPfmgr,
+      BlockOperator pBlk,
       PredicateAbstractionManager pPredAbsManager,
       InvariantGenerator pInvariantGenerator,
       PredicateProvider pPredicateProvider) {
@@ -87,6 +89,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     logger = pLogger;
     fmgr = pFmgr;
     pathFormulaManager = pPfmgr;
+    blk = pBlk;
     formulaManager = pPredAbsManager;
 
     invariantGenerator = checkNotNull(pInvariantGenerator);
@@ -107,11 +110,13 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     try {
       PredicateAbstractState element = (PredicateAbstractState)pElement;
 
-      if (element instanceof ComputeAbstractionState) {
-        PredicatePrecision precision = (PredicatePrecision)pPrecision;
-        CFANode location = AbstractStates.extractLocation(fullState);
+      CFANode location = AbstractStates.extractLocation(fullState);
+      PathFormula pathFormula = element.getPathFormula();
 
-        return computeAbstraction((ComputeAbstractionState) element, precision, location, fullState);
+      if (!element.isAbstractionState() && blk.isBlockEnd(location, pathFormula.getLength())) {
+        PredicatePrecision precision = (PredicatePrecision)pPrecision;
+
+        return computeAbstraction(element, precision, location, fullState);
       } else {
         return Optional.of(PrecisionAdjustmentResult.create(
             element, pPrecision, PrecisionAdjustmentResult.Action.CONTINUE));
@@ -129,7 +134,9 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
    * Compute an abstraction.
    */
   private Optional<PrecisionAdjustmentResult> computeAbstraction(
-      ComputeAbstractionState element, PredicatePrecision precision, CFANode loc,
+      PredicateAbstractState element,
+      PredicatePrecision precision,
+      CFANode loc,
       AbstractState fullState)
       throws SolverException, CPAException, InterruptedException {
 

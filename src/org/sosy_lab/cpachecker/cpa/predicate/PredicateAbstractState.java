@@ -41,8 +41,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 /**
  * AbstractState for Symbolic Predicate Abstraction CPA
  */
@@ -153,35 +151,6 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     }
   }
 
-  @SuppressFBWarnings(value="SE_TRANSIENT_FIELD_NOT_RESTORED",
-      justification="these objects never end up in the reached set and are never serialized")
-  public static class ComputeAbstractionState extends PredicateAbstractState {
-
-    private static final long serialVersionUID = -3961784113582993743L;
-
-    public ComputeAbstractionState(
-        PathFormula pf,
-        AbstractionFormula pA,
-        PersistentMap<CFANode, Integer> pAbstractionLocations) {
-      super(pf, pA, pAbstractionLocations);
-    }
-
-    @Override
-    public boolean isAbstractionState() {
-      return false;
-    }
-
-    @Override
-    public Object getPartitionKey() {
-      return this;
-    }
-
-    @Override
-    public String toString() {
-      return "Abstraction location: true, Abstraction: <TO COMPUTE>";
-    }
-  }
-
   public static PredicateAbstractState mkAbstractionState(
       PathFormula pF, AbstractionFormula pA,
       PersistentMap<CFANode, Integer> pAbstractionLocations) {
@@ -192,6 +161,13 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
       PredicateAbstractState oldState) {
     return new NonAbstractionState(pF, oldState.getAbstractionFormula(),
                                         oldState.getAbstractionLocationsOnPath());
+  }
+
+  static PredicateAbstractState mkNonAbstractionState(
+      PathFormula pF,
+      AbstractionFormula pA,
+      PersistentMap<CFANode, Integer> pAbstractionLocations) {
+    return new NonAbstractionState(pF, pA, pAbstractionLocations);
   }
 
   /** The path formula for the path from the last abstraction node to this node.

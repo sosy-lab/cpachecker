@@ -55,7 +55,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.ComputeAbstractionState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
@@ -160,9 +159,12 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       logger.log(Level.ALL, "New path formula is", pathFormula);
 
       // check whether to do abstraction
-      boolean doAbstraction = blk.isBlockEnd(loc, pathFormula.getLength());
-
-      return createState(element, pathFormula, doAbstraction);
+      if (satCheckAtAbstraction && blk.isBlockEnd(loc, pathFormula.getLength())) {
+        if (unsatCheck(element.getAbstractionFormula(), pathFormula)) {
+          return Collections.emptySet();
+        }
+      }
+      return handleNonAbstractionFormulaLocation(pathFormula, element);
 
     } catch (SolverException e) {
       throw new CPATransferException("Solver failed during successor generation", e);
@@ -179,26 +181,6 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       return pEdge.getSuccessor();
     }
   }
-
-  private Collection<? extends PredicateAbstractState> createState(
-      PredicateAbstractState oldState, PathFormula pathFormula, boolean doAbstraction)
-      throws SolverException, InterruptedException {
-    if (doAbstraction) {
-      if (satCheckAtAbstraction) {
-        if (unsatCheck(oldState.getAbstractionFormula(), pathFormula)) {
-          return Collections.emptySet();
-        }
-      }
-      return Collections.singleton(
-          new PredicateAbstractState.ComputeAbstractionState(
-              pathFormula,
-              oldState.getAbstractionFormula(),
-              oldState.getAbstractionLocationsOnPath()));
-    } else {
-      return handleNonAbstractionFormulaLocation(pathFormula, oldState);
-    }
-  }
-
 
   /**
    * Does special things when we do not compute an abstraction for the
@@ -438,15 +420,8 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
    * Returns a new state with a given pathFormula. All other fields stay equal.
    */
   private PredicateAbstractState replacePathFormula(PredicateAbstractState oldElement, PathFormula newPathFormula) {
-    if (oldElement instanceof ComputeAbstractionState) {
-      return new ComputeAbstractionState(
-          newPathFormula,
-          oldElement.getAbstractionFormula(),
-          oldElement.getAbstractionLocationsOnPath());
-    } else {
-      assert !oldElement.isAbstractionState();
-      return mkNonAbstractionStateWithNewPathFormula(newPathFormula, oldElement);
-    }
+    assert !oldElement.isAbstractionState();
+    return mkNonAbstractionStateWithNewPathFormula(newPathFormula, oldElement);
   }
 
   private PredicateAbstractState strengthenSatCheck(

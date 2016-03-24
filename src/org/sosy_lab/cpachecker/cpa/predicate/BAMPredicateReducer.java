@@ -412,7 +412,7 @@ public class BAMPredicateReducer implements Reducer {
     // we do this as 'future abstraction', because we do not have enough information
     // (necessary classes and managers) for the abstraction-process at this place.
     PredicateAbstractState rebuildState =
-        new PredicateAbstractState.ComputeAbstractionState(
+        PredicateAbstractState.mkNonAbstractionState(
             executedFunctionWithSSA, rootState.getAbstractionFormula(), abstractionLocations);
 
     logger.log(Level.ALL,

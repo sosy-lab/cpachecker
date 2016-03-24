@@ -225,7 +225,13 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
     prec =
         new PredicatePrecisionAdjustment(
-            logger, formulaManager, pfMgr, predicateManager, invariantGenerator, predicateProvider);
+            logger,
+            formulaManager,
+            pfMgr,
+            blk,
+            predicateManager,
+            invariantGenerator,
+            predicateProvider);
 
     if (stopType.equals("SEP")) {
       stop = new PredicateStopOperator(domain);
