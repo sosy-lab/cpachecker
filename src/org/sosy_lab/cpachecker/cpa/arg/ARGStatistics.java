@@ -39,7 +39,6 @@ import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -65,6 +64,7 @@ import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
 import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA.PartitionState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
@@ -88,10 +88,15 @@ public class ARGStatistics implements IterationStatistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path argFile = Paths.get("ARG.dot");
 
+  @Option(secure = true, name = "graphml.file", description = "Export final ARG as .graphml file."
+      + " The .graphml file will be in die GraphML dialect of the tool \"yEd\".")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path graphMLFile = Paths.get("ARG.graphml");
+
   @Option(secure=true, name="proofWitness",
       description="export a proof as .graphml file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path proofWitness = Paths.get("ARG.graphml");
+  private Path proofWitness = Paths.get("Witness.graphml");
 
   @Option(secure=true, name="simplifiedARG.file",
       description="export final ARG as .dot file, showing only loop heads and function entries/exits")
@@ -245,6 +250,15 @@ public class ARGStatistics implements IterationStatistics {
             ARGUtils.CHILDREN_OF_STATE,
             Predicates.alwaysTrue(),
             isTargetPathEdge);
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
+      }
+    }
+
+    if (graphMLFile != null) {
+      try (Writer w = Files.openOutputFile(adjustPathNameForPartitioning(rootState, graphMLFile))) {
+        ARGToGraphMLWriter.write(
+            w, rootState, ARGUtils.CHILDREN_OF_STATE, Predicates.alwaysTrue(), isTargetPathEdge);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
       }

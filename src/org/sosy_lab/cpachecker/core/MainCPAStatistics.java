@@ -28,8 +28,10 @@ import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -99,6 +101,11 @@ public class MainCPAStatistics implements Statistics, AlgorithmIterationListener
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path reachedSetFile = Paths.get("reached.txt");
 
+  @Option(secure=true, name="statistics.iteration.file",
+      description="Dump statistics on the progress of the analysis to...")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path iterationStatsFile = Paths.get("iteration-stats.csv");
+
   @Option(secure=true, name="reachedSet.dot",
       description="print reached set to graph file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -113,6 +120,9 @@ public class MainCPAStatistics implements Statistics, AlgorithmIterationListener
   private final MemoryStatistics memStats;
   private final CoverageReport coverageReport;
   private Thread memStatsThread;
+
+  private PrintWriter iterationStatsTarget = null;
+  private int iterationStatsCounter = 0;
 
   private Collection<IterationStatistics> iterationStats;
 
@@ -140,6 +150,14 @@ public class MainCPAStatistics implements Statistics, AlgorithmIterationListener
       memStatsThread.start();
     } else {
       memStats = null;
+    }
+
+    if (iterationStatsFile != null) {
+      try {
+        iterationStatsTarget = new PrintWriter(iterationStatsFile.toFile());
+      } catch (FileNotFoundException e) {
+        logger.log(Level.WARNING, "Iteration statistics cannot be opened!", e);
+      }
     }
 
     programTime.start();
@@ -513,6 +531,21 @@ public class MainCPAStatistics implements Statistics, AlgorithmIterationListener
 
     for(IterationStatistics s: iterationStats) {
       s.printIterationStatistics(System.out, pReached);
+    }
+
+    if (iterationStatsTarget != null) {
+      StringBuilder line = new StringBuilder();
+
+      iterationStatsCounter++;
+      line.append(Integer.toString(iterationStatsCounter));
+      line.append("\t");
+      line.append(pReached.size());
+      line.append("\t");
+      line.append(pReached.getWaitlist().size());
+      line.append("\t");
+
+      iterationStatsTarget.println(line.toString());
+      iterationStatsTarget.flush();
     }
   }
 }
