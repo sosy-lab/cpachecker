@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
@@ -127,7 +126,7 @@ public class BlockOperator {
    * an abstraction location if it has an incoming loop-back edge, if it is
    * the start node of a function or if it is the call site from a function call.
    */
-  public boolean isBlockEnd(CFANode succLoc, CFANode predLoc, CFAEdge edge, PathFormula pf) {
+  public boolean isBlockEnd(CFANode succLoc, CFANode predLoc, CFAEdge edge, int thresholdValue) {
     // If you change this function, make sure to adapt alwaysReturnsFalse(), too!
 
     if (alwaysAndOnlyAtExplicitNodes) {
@@ -184,7 +183,7 @@ public class BlockOperator {
     }
 
     if (threshold > 0) {
-      if (isThresholdFulfilled(pf)) {
+      if (isThresholdFulfilled(thresholdValue)) {
 
         if (alwaysAfterThreshold) {
           numBlkThreshold++;
@@ -227,7 +226,7 @@ public class BlockOperator {
   }
 
   /**
-   * If this method returns true, {@link #isBlockEnd(CFANode, CFANode, CFAEdge, PathFormula)}
+   * If this method returns true, {@link #isBlockEnd(CFANode, CFANode, CFAEdge, int)}
    * is guaranteed to always return false.
    * This can be used to add optimizations.
    */
@@ -254,8 +253,8 @@ public class BlockOperator {
     return pSuccLoc.getNumEnteringEdges()>1;
   }
 
-  protected boolean isThresholdFulfilled(PathFormula pf) {
-    return pf.getLength() >= threshold;
+  protected boolean isThresholdFulfilled(int thresholdValue) {
+    return thresholdValue >= threshold;
   }
 
   protected boolean isLoopHead(CFANode succLoc) {

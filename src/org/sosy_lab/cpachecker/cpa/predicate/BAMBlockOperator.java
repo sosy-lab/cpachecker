@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 @Options
 public class BAMBlockOperator extends BlockOperator {
@@ -46,8 +45,8 @@ public class BAMBlockOperator extends BlockOperator {
    * @see{@link BlockOperator#isBlockEnd}
    */
   @Override
-  public boolean isBlockEnd(CFANode succLoc, CFANode predLoc, CFAEdge edge, PathFormula pPf) {
-    return super.isBlockEnd(succLoc, predLoc, edge, pPf)
+  public boolean isBlockEnd(CFANode succLoc, CFANode predLoc, CFAEdge edge, int thresholdValue) {
+    return super.isBlockEnd(succLoc, predLoc, edge, thresholdValue)
         || partitioning.isCallNode(succLoc)
         || partitioning.isReturnNode(succLoc);
   }
