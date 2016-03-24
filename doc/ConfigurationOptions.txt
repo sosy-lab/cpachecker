@@ -1211,7 +1211,7 @@ cpa.predicate.abstraction.simplify = false
 
 # What to use for storing abstractions
 cpa.predicate.abstraction.type = "BDD"
-  allowed values: [BDD, SYLVAN, FORMULA]
+  allowed values: [BDD, FORMULA]
 
 # Export one abstraction formula for each abstraction state into a file?
 cpa.predicate.abstractions.export = true
