@@ -128,6 +128,9 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
   @Option(secure=true, description = "Use explicit state in predicate analysis")
   private boolean useExplicitStateInPredicateAnalysis = false;
 
+  @Option(secure=true, description = "Use explicit state in predicate analysis 2")
+  private boolean useExplicitStateInPredicateAnalysis2 = false;
+
   // statistics
   final Timer postTimer = new Timer();
   final Timer satCheckTimer = new Timer();
@@ -195,7 +198,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       PathFormula pathFormula;
 
       // by Romanov
-      if (useExplicitStateInPredicateAnalysis &&
+      if (useExplicitStateInPredicateAnalysis2 &&
           (!(pPrecision instanceof PredicatePrecision) ||
               ((PredicatePrecision)pPrecision).isEmpty())) {
         pathFormula = pathFormulaManager.makeEmptyFakePathFormula();
@@ -217,7 +220,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
       // check whether to do abstraction
       final boolean doAbstraction;
-      if (useExplicitStateInPredicateAnalysis && predloc.getNumEnteringEdges() == 0) {
+      if (useExplicitStateInPredicateAnalysis2 && predloc.getNumEnteringEdges() == 0) {
         doAbstraction = true;
       } else {
         doAbstraction = blk.isBlockEnd(loc, predloc, edge, pathFormula);

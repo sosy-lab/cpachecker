@@ -111,6 +111,9 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   @Option(secure=true, description = "Use explicit state in predicate analysis")
   private boolean useExplicitStateInPredicateAnalysis = false;
 
+  @Option(secure=true, description = "Use explicit state in predicate analysis 2")
+  private boolean useExplicitStateInPredicateAnalysis2 = false;
+
   @Option(secure=true, name="precision.sharing",
       description="Where to apply the found predicates to?")
   private PredicateSharing predicateSharing = PredicateSharing.LOCATION;
@@ -630,7 +633,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
         current = Iterables.get(current.getParents(), 0);
 
         if (getPredicateState(current).isAbstractionState()) {
-          if (useExplicitStateInPredicateAnalysis && b) {
+          if (useExplicitStateInPredicateAnalysis2 && b) {
             firstInterpolationPoint = current;
             b = false;
           }
@@ -641,7 +644,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
           }
         }
       }
-      if (useExplicitStateInPredicateAnalysis && b) {
+      if (useExplicitStateInPredicateAnalysis2 && b) {
         firstInterpolationPoint = current;
         b = false;
       }

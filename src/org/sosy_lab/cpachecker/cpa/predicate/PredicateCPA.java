@@ -115,6 +115,9 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   @Option(secure=true, description = "Use explicit state in predicate analysis")
   private boolean useExplicitStateInPredicateAnalysis = false;
 
+  @Option(secure=true, description = "Use explicit state in predicate analysis 2")
+  private boolean useExplicitStateInPredicateAnalysis2 = false;
+
   protected final Configuration config;
   protected final LogManager logger;
   protected final ShutdownNotifier shutdownNotifier;
@@ -366,5 +369,9 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   public boolean useExplicitStateInPredicateAnalysis() {
     return useExplicitStateInPredicateAnalysis;
+  }
+
+  public boolean useExplicitStateInPredicateAnalysis2() {
+    return useExplicitStateInPredicateAnalysis2;
   }
 }

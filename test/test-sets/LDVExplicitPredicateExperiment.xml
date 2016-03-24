@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="145" hardtimelimit="160" memlimit="8000" cpuCores="4">
+  <!-- <option name="-setprop">log.consoleLevel=ALL</option> -->
+  <option name="-heap">7000M</option>
+
+  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
+
+  <rundefinition>
+    <tasks>
+      <includesfile>LDVExplicitPredicateExperiment.set</includesfile>
+      <option name="-skipRecursion"/>
+      <option name="-64"/>
+      <!-- SV-Comp files assume that malloc always succeeds -->
+      <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+      <!-- <option name="-setprop">cpa.predicate.useExplicitStateInPredicateAnalysis=true</option>-->
+      <option name="-setprop">cpa.predicate.useExplicitStateInPredicateAnalysis2=true</option>
+    </tasks>
+    <option name="-ldv"/>
+  </rundefinition>
+
+   <columns>
+    <column title="total">Total time for CPAchecker</column>
+    <column title="CPA time">time for CPA algorithm</column>
+    <column title="Post">Time for post operator</column>
+    <column title="Formula">Time for path formula creation</column>
+    <column title="CPU">CPU time for analysis</column>
+    <column title="Reached set">Size of reached set</column>
+  </columns>
+</benchmark>

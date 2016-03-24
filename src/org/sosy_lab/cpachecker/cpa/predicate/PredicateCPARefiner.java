@@ -149,6 +149,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   protected final CFA cfa;
   protected final ShutdownNotifier shutdownNotifier;
   protected final boolean useExplicitStateInPredicateAnalysis;
+  protected final boolean useExplicitStateInPredicateAnalysis2;
 
   public PredicateCPARefiner(final Configuration pConfig, final LogManager pLogger,
       final ConfigurableProgramAnalysis pCpa,
@@ -177,6 +178,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     cfa = pCfa;
     shutdownNotifier = CPAs.retrieveCPA(pCpa, PredicateCPA.class).getShutdownNotifier();
     useExplicitStateInPredicateAnalysis = CPAs.retrieveCPA(pCpa, PredicateCPA.class).useExplicitStateInPredicateAnalysis();
+    useExplicitStateInPredicateAnalysis2 = CPAs.retrieveCPA(pCpa, PredicateCPA.class).useExplicitStateInPredicateAnalysis2();
     prefixProvider = pPrefixProvider;
 
     logger.log(Level.INFO, "Using refinement for predicate analysis with " + strategy.getClass().getSimpleName() + " strategy.");
@@ -206,7 +208,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
  // check if there exists a fake PathFormula in abstraction states
     boolean foundFakePathFormula = false;
-    if(useExplicitStateInPredicateAnalysis) {
+    if(useExplicitStateInPredicateAnalysis2) {
       
       ImmutableList<ARGState> predicateStates = from(abstractionStatesTrace).toList();
       UnmodifiableIterator<ARGState> abstractionIt = predicateStates.iterator();
