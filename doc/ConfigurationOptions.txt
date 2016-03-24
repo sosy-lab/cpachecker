@@ -1302,6 +1302,10 @@ cpa.arg.errorPath.source = "ErrorPath.%d.c"
 cpa.arg.export = true
 cpa.arg.file = "ARG.dot"
 
+# Export final ARG as .graphml file. The .graphml file will be in die GraphML
+# dialect of the tool "yEd".
+cpa.arg.graphml.file = "ARG.graphml"
+
 # inform ARG CPA if it is run in an analysis with enabler CPA because then it
 # must behave differntly during merge.
 # inform ARG CPA if it is run in a CPA enabled analysis because then it
@@ -1313,7 +1317,7 @@ cpa.arg.inCPAEnabledAnalysis = false
 cpa.arg.keepCoveredStatesInReached = false
 
 # export a proof as .graphml file
-cpa.arg.proofWitness = "ARG.graphml"
+cpa.arg.proofWitness = "Witness.graphml"
 
 # export simplified ARG that shows all refinements to .dot file
 cpa.arg.refinements.file = "ARGRefinements.dot"
@@ -1373,6 +1377,9 @@ cpa.automaton.prec.limit.violations = 1
 # Behaviour on a property that has already been fully handled.
 cpa.automaton.prec.onHandledTarget = SIGNAL
   enum:     [SIGNAL, BOTTOM, INACTIVE]
+
+# Split to a state 'INACTIVE' when reaching a target state.
+cpa.automaton.splitOnTargetStatesToInactive = false
 
 # Whether to treat automaton states with an internal error state as targets.
 # This should be the standard use case.
@@ -3140,6 +3147,9 @@ staticRefiner.maxBackscanPathAssumes = 1
 # write some statistics to disk
 statistics.export = true
 statistics.file = "Statistics.txt"
+
+# Dump statistics on the progress of the analysis to...
+statistics.iteration.file = "iteration-stats.csv"
 
 # track memory usage of JVM during runtime
 statistics.memory = true
