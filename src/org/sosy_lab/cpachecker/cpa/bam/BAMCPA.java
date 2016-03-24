@@ -39,8 +39,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockToDotWriter;
-import org.sosy_lab.cpachecker.cfa.blocks.builder.BlockPartitioningBuilder;
-import org.sosy_lab.cpachecker.cfa.blocks.builder.ExtendedBlockPartitioningBuilder;
 import org.sosy_lab.cpachecker.cfa.blocks.builder.FunctionAndLoopPartitioning;
 import org.sosy_lab.cpachecker.cfa.blocks.builder.PartitioningHeuristic;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -111,10 +109,6 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
       + "to re-explore the program along the error-path.")
   private boolean doPrecisionRefinementForAllStates = false;
 
-  @Option(secure = true,
-      description = "Use more fast partitioning builder, which can not handle loops")
-  private boolean useExtendedPartitioningBuilder = false;
-
   public BAMCPA(ConfigurableProgramAnalysis pCpa, Configuration config, LogManager pLogger,
       ReachedSetFactory pReachedSetFactory, ShutdownNotifier pShutdownNotifier, CFA pCfa) throws InvalidConfigurationException, CPAException {
     super(pCpa);
@@ -145,14 +139,13 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
       }
 
       transfer = new BAMTransferRelationWithFixPointForRecursion(config, logger, this, wrappedProofChecker, data, pShutdownNotifier);
-      stop = new BAMStopOperatorForRecursion(pCpa.getStopOperator(), transfer);
     } else {
       transfer = new BAMTransferRelation(config, logger, this, wrappedProofChecker, data, pShutdownNotifier);
-      stop = new BAMStopOperator(pCpa.getStopOperator(), transfer);
     }
 
     prec = new BAMPrecisionAdjustment(pCpa.getPrecisionAdjustment(), data, transfer, logger);
     merge = new BAMMergeOperator(pCpa.getMergeOperator(), transfer);
+    stop = new BAMStopOperator(pCpa.getStopOperator(), transfer);
 
     stats = new BAMCPAStatistics(this, data, config, logger);
     heuristic = getPartitioningHeuristic();
@@ -161,13 +154,7 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     if (blockPartitioning == null) {
-      BlockPartitioningBuilder blockBuilder;
-      if (useExtendedPartitioningBuilder) {
-        blockBuilder = new ExtendedBlockPartitioningBuilder();
-      } else {
-        blockBuilder = new BlockPartitioningBuilder();
-      }
-      blockPartitioning = heuristic.buildPartitioning(pNode, blockBuilder);
+      blockPartitioning = heuristic.buildPartitioning(pNode);
 
       if (exportBlocksPath != null) {
         BlockToDotWriter writer = new BlockToDotWriter(blockPartitioning);

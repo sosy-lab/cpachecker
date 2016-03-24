@@ -1,7 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.truth.Truth;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -36,10 +35,11 @@ public class SemiCNFManagerTest extends SolverBasedTest0{
 
   @Before
   public void setUp() throws InvalidConfigurationException {
-    Configuration d = Configuration.defaultConfiguration();
     FormulaManagerView mgrView = new FormulaManagerView(
-        mgr, d, TestLogManager.getInstance());
-    semiCNFManager = new SemiCNFManager(mgrView, d);
+        mgr,
+        Configuration.defaultConfiguration(),
+        TestLogManager.getInstance());
+    semiCNFManager = new SemiCNFManager(mgrView);
     bfmgr = mgrView.getBooleanFormulaManager();
   }
 
@@ -82,44 +82,18 @@ public class SemiCNFManagerTest extends SolverBasedTest0{
     );
     BooleanFormula converted = semiCNFManager.convert(input);
     assertThatFormula(converted).isEquivalentTo(input);
-    BooleanFormula expected =
+    assertThatFormula(converted).isEqualTo(
         bfmgr.and(
-            bfmgr.makeVariable("a"),
-            bfmgr.makeVariable("b"),
-            bfmgr.makeVariable("c"),
-            bfmgr.makeVariable("d")
-        );
-    Truth.assertThat(bfmgr.toConjunctionArgs(converted, true)).isEqualTo(bfmgr.toConjunctionArgs(
-        expected, true
-    ));
-  }
-
-  @Test
-  public void testExplicitExpansion() throws Exception {
-    BooleanFormula input = bfmgr.or(
-        bfmgr.and(ImmutableList.of(v("a"), v("b"), v("c"))),
-        bfmgr.and(ImmutableList.of(v("d"), v("e"), v("f")))
+            ImmutableList.of(
+                bfmgr.makeVariable("a"),
+                bfmgr.makeVariable("b"),
+                bfmgr.makeVariable("c"),
+                bfmgr.makeVariable("d")
+            )
+        )
     );
-    BooleanFormula converted = semiCNFManager.convert(input);
-    assertThatFormula(converted).isEquivalentTo(input);
-    BooleanFormula expected =
-        bfmgr.and(
-            bfmgr.or(v("a"), v("d")),
-            bfmgr.or(v("a"), v("e")),
-            bfmgr.or(v("a"), v("f")),
-            bfmgr.or(v("b"), v("d")),
-            bfmgr.or(v("b"), v("e")),
-            bfmgr.or(v("b"), v("f")),
-            bfmgr.or(v("c"), v("d")),
-            bfmgr.or(v("c"), v("e")),
-            bfmgr.or(v("c"), v("f"))
-        );
-    Truth.assertThat(bfmgr.toConjunctionArgs(converted, true)).isEqualTo(bfmgr.toConjunctionArgs(
-        expected, true
-    ));
-  }
 
-  private BooleanFormula v(String name) {
-    return bfmgr.makeVariable(name);
+
+
   }
 }

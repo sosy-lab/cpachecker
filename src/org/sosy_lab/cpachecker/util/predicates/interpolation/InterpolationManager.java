@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -74,7 +75,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BasicProverEnvironment;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -101,19 +101,18 @@ public final class InterpolationManager {
   private final Timer interpolantVerificationTimer = new Timer();
   private int reusedFormulasOnSolverStack = 0;
 
-  public void printStatistics(StatisticsWriter w0) {
-    w0.put("Counterexample analysis", cexAnalysisTimer + " (Max: " + cexAnalysisTimer.getMaxTime().formatAs(TimeUnit.SECONDS) + ", Calls: " + cexAnalysisTimer.getNumberOfIntervals() + ")");
-    StatisticsWriter w1 = w0.beginLevel();
+  public void printStatistics(PrintStream out) {
+    out.println("  Counterexample analysis:            " + cexAnalysisTimer + " (Max: " + cexAnalysisTimer.getMaxTime().formatAs(TimeUnit.SECONDS) + ", Calls: " + cexAnalysisTimer.getNumberOfIntervals() + ")");
     if (cexAnalysisGetUsefulBlocksTimer.getNumberOfIntervals() > 0) {
-      w1.put("Cex.focusing", cexAnalysisGetUsefulBlocksTimer + " (Max: " + cexAnalysisGetUsefulBlocksTimer.getMaxTime().formatAs(TimeUnit.SECONDS) + ")");
+      out.println("    Cex.focusing:                     " + cexAnalysisGetUsefulBlocksTimer + " (Max: " + cexAnalysisGetUsefulBlocksTimer.getMaxTime().formatAs(TimeUnit.SECONDS) + ")");
     }
-    w1.put("Refinement sat check", satCheckTimer);
+    out.println("    Refinement sat check:             " + satCheckTimer);
     if (reuseInterpolationEnvironment && satCheckTimer.getNumberOfIntervals() > 0) {
-      w1.put("Reused formulas on solver stack", reusedFormulasOnSolverStack + " (Avg: " + div(reusedFormulasOnSolverStack, satCheckTimer.getNumberOfIntervals()) + ")");
+      out.println("    Reused formulas on solver stack:  " + reusedFormulasOnSolverStack + " (Avg: " + div(reusedFormulasOnSolverStack, satCheckTimer.getNumberOfIntervals()) + ")");
     }
-    w1.put("Interpolant computation", getInterpolantTimer);
+    out.println("    Interpolant computation:          " + getInterpolantTimer);
     if (interpolantVerificationTimer.getNumberOfIntervals() > 0) {
-      w1.put("Interpolant verification", interpolantVerificationTimer);
+      out.println("    Interpolant verification:         " + interpolantVerificationTimer);
     }
   }
 

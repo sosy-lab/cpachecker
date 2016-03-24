@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.ufCheckingProver;
 
+import java.math.BigInteger;
+import java.util.logging.Level;
+
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingBasicProverEnvironment.UFCheckingProverOptions;
@@ -30,9 +33,6 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.Model.ValueAssignment;
-
-import java.math.BigInteger;
-import java.util.logging.Level;
 
 /** This class contains code for a better evaluation of UFs. */
 public class FunctionApplicationManager {
@@ -135,7 +135,7 @@ public class FunctionApplicationManager {
         return fmgr.getBooleanFormulaManager().makeBoolean(true);
       }
 
-      Formula uf = fmgr.getFunctionFormulaManager().declareAndCallUF(
+      Formula uf = fmgr.getFunctionFormulaManager().declareAndCallUninterpretedFunction(
           func.getName(),
           getType(),
           fmgr.makeNumber(getType(), arg1),
@@ -168,7 +168,7 @@ public class FunctionApplicationManager {
         return fmgr.getBooleanFormulaManager().makeBoolean(true);
       }
 
-      Formula uf = fmgr.getFunctionFormulaManager().declareAndCallUF(
+      Formula uf = fmgr.getFunctionFormulaManager().declareAndCallUninterpretedFunction(
           func.getName(),
           getType(),
           fmgr.makeNumber(getType(), p1));

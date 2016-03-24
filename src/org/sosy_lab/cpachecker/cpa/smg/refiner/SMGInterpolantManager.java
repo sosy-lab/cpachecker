@@ -35,10 +35,10 @@ public class SMGInterpolantManager implements InterpolantManager<SMGState, SMGIn
   private final MachineModel model;
   private final SMGInterpolant initalInterpolant;
 
-  public SMGInterpolantManager(MachineModel pModel, LogManager pLogger, CFA pCfa, int pExternalAllocationSize) {
+  public SMGInterpolantManager(MachineModel pModel, LogManager pLogger, CFA pCfa) {
     logger = pLogger;
     model = pModel;
-    initalInterpolant = SMGInterpolant.createInitial(logger, model, pCfa.getMainFunction(), pExternalAllocationSize);
+    initalInterpolant = SMGInterpolant.createInitial(logger, model, pCfa.getMainFunction());
   }
 
   @Override

@@ -23,11 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import static org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.BitwiseAndUfName;
-import static org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.BitwiseNotUfName;
-import static org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.BitwiseOrUfName;
-import static org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.BitwiseXorUfName;
+import static org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.*;
 import static org.sosy_lab.solver.api.FormulaType.getBitvectorTypeWithSize;
+
+import java.math.BigInteger;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -41,29 +44,23 @@ import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.FormulaType.BitvectorType;
-import org.sosy_lab.solver.api.FunctionDeclaration;
+import org.sosy_lab.solver.api.FunctionFormulaManager;
 import org.sosy_lab.solver.api.NumeralFormula;
 import org.sosy_lab.solver.api.NumeralFormulaManager;
-import org.sosy_lab.solver.api.UFManager;
-
-import java.math.BigInteger;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import org.sosy_lab.solver.api.UfDeclaration;
 
 class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
   extends BaseManagerView implements BitvectorFormulaManager {
 
   private final BooleanFormulaManager booleanFormulaManager;
   private final NumeralFormulaManager<? super T, T> numericFormulaManager;
-  private final UFManager functionManager;
-  private final FunctionDeclaration<T> bitwiseAndUfDecl;
-  private final FunctionDeclaration<T> bitwiseOrUfDecl;
-  private final FunctionDeclaration<T> bitwiseXorUfDecl;
-  private final FunctionDeclaration<T> bitwiseNotUfDecl;
-  private final FunctionDeclaration<T> leftShiftUfDecl;
-  private final FunctionDeclaration<T> rightShiftUfDecl;
+  private final FunctionFormulaManager functionManager;
+  private final UfDeclaration<T> bitwiseAndUfDecl;
+  private final UfDeclaration<T> bitwiseOrUfDecl;
+  private final UfDeclaration<T> bitwiseXorUfDecl;
+  private final UfDeclaration<T> bitwiseNotUfDecl;
+  private final UfDeclaration<T> leftShiftUfDecl;
+  private final UfDeclaration<T> rightShiftUfDecl;
   private final FormulaType<T> formulaType;
   private final ReplaceBitvectorEncodingOptions options;
 
@@ -82,7 +79,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
       FormulaWrappingHandler pWrappingHandler,
       BooleanFormulaManager pBooleanFormulaManager,
       NumeralFormulaManager<? super T, T> rawNumericFormulaManager,
-      UFManager rawFunctionManager,
+      FunctionFormulaManager rawFunctionManager,
       final ReplaceBitvectorEncodingOptions pOptions) {
     super(pWrappingHandler);
     booleanFormulaManager = pBooleanFormulaManager;
@@ -105,26 +102,25 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
     return (T)super.unwrap(pNumber);
   }
 
-  private FunctionDeclaration<T> createUnaryFunction(String name) {
-    return functionManager.declareUF(name, formulaType, formulaType);
+  private UfDeclaration<T> createUnaryFunction(String name) {
+    return functionManager.declareUninterpretedFunction(name, formulaType, formulaType);
   }
 
-  private FunctionDeclaration<T> createBinaryFunction(String name) {
-    return functionManager.declareUF(name, formulaType, formulaType, formulaType);
+  private UfDeclaration<T> createBinaryFunction(String name) {
+    return functionManager.declareUninterpretedFunction(name, formulaType, formulaType, formulaType);
   }
 
-  private BitvectorFormula makeUf(FormulaType<BitvectorFormula> realreturn, FunctionDeclaration<T> decl,
-                                  BitvectorFormula... t1) {
+  private BitvectorFormula makeUf(FormulaType<BitvectorFormula> realreturn, UfDeclaration<T> decl, BitvectorFormula... t1) {
     List<Formula> args = unwrap(Arrays.<Formula>asList(t1));
 
-    return wrap(realreturn, functionManager.callUF(decl, args));
+    return wrap(realreturn, functionManager.callUninterpretedFunction(decl, args));
   }
 
-  private final Map<Integer[], FunctionDeclaration<T>> extractMethods = new HashMap<>();
+  private final Map<Integer[], UfDeclaration<T>> extractMethods = new HashMap<>();
 
-  private FunctionDeclaration<T> getExtractDecl(int pMsb, int pLsb) {
+  private UfDeclaration<T> getExtractDecl(int pMsb, int pLsb) {
     Integer[] hasKey = new Integer[]{pMsb, pLsb};
-    FunctionDeclaration<T> value = extractMethods.get(hasKey);
+    UfDeclaration<T> value = extractMethods.get(hasKey);
     if (value == null) {
       value = createUnaryFunction("_extract("+ pMsb + "," + pLsb + ")_");
       extractMethods.put(hasKey, value);
@@ -132,11 +128,11 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
     return value;
   }
 
-  private Map<Integer[], FunctionDeclaration<T>> concatMethods = new HashMap<>();
+  private Map<Integer[], UfDeclaration<T>> concatMethods = new HashMap<>();
 
-  private FunctionDeclaration<T> getConcatDecl(int firstSize, int secoundSize) {
+  private UfDeclaration<T> getConcatDecl(int firstSize, int secoundSize) {
     Integer[] hasKey = new Integer[]{firstSize, secoundSize};
-    FunctionDeclaration<T> value = concatMethods.get(hasKey);
+    UfDeclaration<T> value = concatMethods.get(hasKey);
     if (value == null) {
       value = createUnaryFunction("_concat("+ firstSize + "," + secoundSize + ")_");
       concatMethods.put(hasKey, value);
@@ -144,11 +140,11 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
     return value;
   }
 
-  private final Map<Triple<String, Boolean, Integer>, FunctionDeclaration<T>> UFDeclarations = new HashMap<>();
+  private final Map<Triple<String, Boolean, Integer>, UfDeclaration<T>> UFDeclarations = new HashMap<>();
 
-  private FunctionDeclaration<T> getUFDecl(String name, int id, boolean signed) {
+  private UfDeclaration<T> getUFDecl(String name, int id, boolean signed) {
     Triple<String, Boolean, Integer> key = Triple.of(name, signed, id);
-    FunctionDeclaration<T> value = UFDeclarations.get(key);
+    UfDeclaration<T> value = UFDeclarations.get(key);
     if (value == null) {
       String UFname = String.format("_%s%s(%d)_", name, (signed ? "Signed" : "Unsigned"), id);
       value = createUnaryFunction(UFname);
@@ -333,7 +329,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
     if (options.ignoreExtractConcat) {
       return wrap(returnType, unwrap(pSecound));
     }
-    FunctionDeclaration<T> concatUfDecl = getConcatDecl(firstLength, secoundLength);
+    UfDeclaration<T> concatUfDecl = getConcatDecl(firstLength, secoundLength);
     return makeUf(returnType, concatUfDecl, pFirst, pSecound);
   }
 
@@ -343,7 +339,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
     if (options.ignoreExtractConcat) {
       return wrap(returnType, unwrap(pFirst));
     }
-    FunctionDeclaration<T> extractUfDecl = getExtractDecl(pMsb, pLsb);
+    UfDeclaration<T> extractUfDecl = getExtractDecl(pMsb, pLsb);
     return makeUf(returnType, extractUfDecl, pFirst);
   }
 
@@ -353,7 +349,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
     if (options.ignoreExtractConcat) {
       return wrap(returnType, unwrap(pNumber));
     }
-    FunctionDeclaration<T> extendUfDecl = getUFDecl("extend", pExtensionBits, pSigned);
+    UfDeclaration<T> extendUfDecl = getUFDecl("extend", pExtensionBits, pSigned);
     return makeUf(returnType, extendUfDecl, pNumber);
   }
 

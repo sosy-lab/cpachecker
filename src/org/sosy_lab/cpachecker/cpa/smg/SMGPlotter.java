@@ -88,17 +88,9 @@ public final class SMGPlotter {
       String color;
       String style;
       if (smg.isObjectValid(pRegion)) {
-        if (smg.isObjectExternallyAllocated(pRegion)) {
-          color = "green"; style = "solid";
-        } else {
-          color = "black"; style = "solid";
-        }
+        color="black"; style="solid";
       } else {
-        if (smg.isObjectExternallyAllocated(pRegion)) {
-          color = "green"; style = "dotted";
-        } else {
-          color = "red"; style = "dotted";
-        }
+        color="red"; style="dotted";
       }
 
       node = new SMGObjectNode("region", defaultDefinition(color, shape, style, pRegion));
@@ -290,7 +282,7 @@ public final class SMGPlotter {
   }
 
   private String smgPTEdgeAsDot(SMGEdgePointsTo pEdge) {
-    return "value_" + pEdge.getValue() + " -> " + objectIndex.get(pEdge.getObject()).getName() + "[label=\"+" + pEdge.getOffset() + "B\"];";
+    return "value_" + pEdge.getValue() + " -> " + objectIndex.get(pEdge.getObject()).getName() + "[label=\"+" + pEdge.getOffset() + "b\"];";
   }
 
   private static String smgValueAsDot(int value, Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues) {

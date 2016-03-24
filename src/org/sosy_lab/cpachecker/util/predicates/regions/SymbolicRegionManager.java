@@ -24,9 +24,11 @@
 package org.sosy_lab.cpachecker.util.predicates.regions;
 
 import static com.google.common.base.Preconditions.*;
+import static com.google.common.collect.FluentIterable.from;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Set;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.Triple;
@@ -90,9 +92,11 @@ public class SymbolicRegionManager implements RegionManager {
   private final SymbolicRegion trueRegion;
   private final SymbolicRegion falseRegion;
 
-  public SymbolicRegionManager(Solver pSolver) {
+  private int predicateCount = 0;
+
+  public SymbolicRegionManager(FormulaManagerView pFmgr, Solver pSolver) {
     solver = pSolver;
-    fmgr = solver.getFormulaManager();
+    fmgr = pFmgr;
     bfmgr = fmgr.getBooleanFormulaManager();
     trueRegion = new SymbolicRegion(bfmgr,  bfmgr.makeBoolean(true));
     falseRegion = new SymbolicRegion(bfmgr,  bfmgr.makeBoolean(false));
@@ -107,10 +111,6 @@ public class SymbolicRegionManager implements RegionManager {
 
   public BooleanFormula toFormula(Region r) {
     return ((SymbolicRegion)r).f;
-  }
-
-  public Region createPredicate(BooleanFormula pAtom) {
-    return new SymbolicRegion(bfmgr, pAtom);
   }
 
   @Override
@@ -177,12 +177,24 @@ public class SymbolicRegionManager implements RegionManager {
 
   @Override
   public Region createPredicate() {
-    throw new UnsupportedOperationException("Call createPredicate(BooleanFormula) instead.");
+    return new SymbolicRegion(bfmgr,
+        bfmgr.makeVariable("__PREDICATE__" + predicateCount++));
   }
 
   @Override
   public Triple<Region, Region, Region> getIfThenElse(Region pF) {
-    throw new UnsupportedOperationException("Use toFormula(Region) instead of traversal.");
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public Set<Region> extractPredicates(Region f) {
+    return from(fmgr.extractAtoms(toFormula(f), false))
+        .transform(new Function<BooleanFormula, Region>() {
+          @Override
+          public Region apply(BooleanFormula input) {
+            return new SymbolicRegion(bfmgr, input);
+          }
+        }).toSet();
   }
 
   @Override

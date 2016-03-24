@@ -66,14 +66,6 @@ public class StatInt extends AbstractStatValue {
     }
   }
 
-  public int getMax() {
-    return maxValue;
-  }
-
-  public int getMin() {
-    return minValue;
-  }
-
   @Override
   public int getUpdateCount() {
     return valueCount;

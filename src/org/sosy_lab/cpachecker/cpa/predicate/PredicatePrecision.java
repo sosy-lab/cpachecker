@@ -29,10 +29,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
 import com.google.common.base.Function;
@@ -375,5 +375,12 @@ public class PredicatePrecision implements Precision {
       result.putAll(transformFunction.apply(entry.getKey()), entry.getValue());
     }
     return result;
+  }
+
+  boolean isEmpty() {
+    return getLocationInstancePredicates().isEmpty() &&
+        getLocalPredicates().isEmpty() &&
+        getFunctionPredicates().isEmpty() &&
+        getGlobalPredicates().isEmpty();
   }
 }

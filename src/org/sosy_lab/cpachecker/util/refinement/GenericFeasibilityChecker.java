@@ -87,7 +87,7 @@ public class GenericFeasibilityChecker<S extends ForgetfulState<?>>
   }
 
   @Override
-  public final boolean isFeasible(
+  public boolean isFeasible(
       final ARGPath pPath,
       final S pStartingPoint,
       final Deque<S> pCallstack

@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.Collections;
-import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
@@ -54,7 +52,6 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
 
 /**
  * Implements a boolean expression that evaluates and returns a <code>MaybeBoolean</code> value when <code>eval()</code> is called.
@@ -98,103 +95,6 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     @Override
     public String toString() {
       return "PROGRAM-ENTRY";
-    }
-
-  }
-
-  static enum MatchLoopStart implements AutomatonBoolExpr {
-    INSTANCE;
-
-    @Override
-    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
-        throws CPATransferException {
-      CFAEdge edge = pArgs.getCfaEdge();
-      CFANode successor = edge.getSuccessor();
-      if (successor.isLoopStart()) {
-        return AutomatonBoolExpr.CONST_TRUE;
-      }
-      return AutomatonBoolExpr.CONST_FALSE;
-    }
-
-    @Override
-    public String toString() {
-      return "LOOP-START";
-    }
-  }
-
-  class MatchSuccessor implements AutomatonBoolExpr {
-
-    private final Set<CFANode> acceptedNodes;
-
-    private MatchSuccessor(Set<CFANode> pAcceptedNodes) {
-      this.acceptedNodes = pAcceptedNodes;
-    }
-
-    @Override
-    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
-        throws CPATransferException {
-      CFAEdge edge = pArgs.getCfaEdge();
-      CFANode successor = edge.getSuccessor();
-      if (acceptedNodes.contains(successor)) {
-        return AutomatonBoolExpr.CONST_TRUE;
-      }
-      return AutomatonBoolExpr.CONST_FALSE;
-    }
-
-    @Override
-    public String toString() {
-      return "SUCCESSOR IN " + acceptedNodes;
-    }
-
-    static AutomatonBoolExpr of(CFANode pAcceptedNode) {
-      return new MatchSuccessor(Collections.singleton(pAcceptedNode));
-    }
-
-    static AutomatonBoolExpr of(Set<CFANode> pAcceptedNodes) {
-      return new MatchSuccessor(ImmutableSet.copyOf(pAcceptedNodes));
-    }
-  }
-
-  class EpsilonMatch implements AutomatonBoolExpr {
-
-    private final AutomatonBoolExpr expr;
-
-    private EpsilonMatch(AutomatonBoolExpr pExpr) {
-      Preconditions.checkArgument(!(pExpr instanceof EpsilonMatch));
-      expr = Objects.requireNonNull(pExpr);
-    }
-
-    @Override
-    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
-        throws CPATransferException {
-      ResultValue<Boolean> evaluation = expr.eval(pArgs);
-      CFAEdge edge = pArgs.getCfaEdge();
-      while (!Boolean.TRUE.equals(evaluation.getValue())
-          && edge.getSuccessor().getNumLeavingEdges() == 1
-          && AutomatonGraphmlCommon.handleAsEpsilonEdge(edge.getSuccessor().getLeavingEdge(0))) {
-        edge = edge.getSuccessor().getLeavingEdge(0);
-        AutomatonExpressionArguments args =
-            new AutomatonExpressionArguments(
-                pArgs.getState(),
-                pArgs.getAutomatonVariables(),
-                pArgs.getAbstractStates(),
-                edge,
-                pArgs.getLogger());
-        evaluation = expr.eval(args);
-      }
-      return evaluation;
-    }
-
-    @Override
-    public String toString() {
-      return "~" + expr;
-    }
-
-    static AutomatonBoolExpr of(AutomatonBoolExpr pExpr) {
-      if (pExpr instanceof EpsilonMatch) {
-        return pExpr;
-      }
-      return new EpsilonMatch(pExpr);
     }
 
   }

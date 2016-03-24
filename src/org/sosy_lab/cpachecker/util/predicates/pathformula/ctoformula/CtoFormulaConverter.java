@@ -23,19 +23,21 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.areEqualWithMatchingPointerArray;
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.getRealFieldOwner;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.*;
 
-import com.google.common.base.CharMatcher;
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -82,14 +84,17 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.VariableClassificationBuilder;
@@ -98,6 +103,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.DummyPointerTargetSetBuilder;
@@ -106,20 +112,19 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.solver.api.BitvectorFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.FloatingPointFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
-import org.sosy_lab.solver.api.FunctionDeclaration;
+import org.sosy_lab.solver.api.UfDeclaration;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.CharMatcher;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 
 /**
  * Class containing all the code that converts C code into a formula.
@@ -174,7 +179,7 @@ public class CtoFormulaConverter {
   // Index to be used for first assignment to a variable (must be higher than VARIABLE_UNINITIALIZED!)
   private static final int VARIABLE_FIRST_ASSIGNMENT = 2;
 
-  private final FunctionDeclaration<?> stringUfDecl;
+  private final UfDeclaration<?> stringUfDecl;
 
   protected final HashSet<CVariableDeclaration> globalDeclarations = new HashSet<>();
 
@@ -198,7 +203,7 @@ public class CtoFormulaConverter {
 
     this.direction = pDirection;
 
-    stringUfDecl = ffmgr.declareUF(
+    stringUfDecl = ffmgr.declareUninterpretedFunction(
             "__string__", typeHandler.getPointerType(), FormulaType.IntegerType);
   }
 
@@ -409,7 +414,7 @@ public class CtoFormulaConverter {
     if (result == null) {
       // generate a new string literal. We generate a new UIf
       int n = nextStringLitIndex++;
-      result = ffmgr.callUF(
+      result = ffmgr.callUninterpretedFunction(
           stringUfDecl, nfmgr.makeNumber(n));
       stringLitToFormula.put(literal, result);
     }
@@ -463,7 +468,7 @@ public class CtoFormulaConverter {
         return value;
       }
 
-      final Formula overflowUF = ffmgr.declareAndCallUF(
+      final Formula overflowUF = ffmgr.declareAndCallUninterpretedFunction(
           // UF-string-format copied from ReplaceBitvectorWithNumeralAndFunctionTheory.getUFDecl
           String.format("_%s%s(%d)_", "overflow", (signed ? "Signed" : "Unsigned"), machineModel.getSizeofInBits(sType)),
           numberType,
@@ -699,7 +704,8 @@ public class CtoFormulaConverter {
     }
 
     // handle the edge
-    BooleanFormula edgeFormula = createFormulaForEdge(edge, function, ssa, pts, constraints, errorConditions);
+    BooleanFormula edgeFormula = createFormulaForEdge(edge, function, ssa, pts, constraints, errorConditions,
+        oldFormula.getValueAnalysisState());
 
     // result-constraints must be added _after_ handling the edge (some lines above),
     // because this edge could write a global value.
@@ -797,6 +803,8 @@ public class CtoFormulaConverter {
     }
   }
 
+  private boolean inMultiEdge = false;
+
   /**
    * This helper method creates a formula for an CFA edge, given the current function, SSA map and constraints.
    *
@@ -809,44 +817,56 @@ public class CtoFormulaConverter {
   private BooleanFormula createFormulaForEdge(
       final CFAEdge edge, final String function,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
-      final Constraints constraints, final ErrorConditions errorConditions)
+      final Constraints constraints, final ErrorConditions errorConditions,
+      final ValueAnalysisState explicitState)
           throws UnrecognizedCCodeException, UnrecognizedCFAEdgeException, InterruptedException {
+
+    SSAMapBuilder originalSSAMapBuilder = ssa.build().builder();
+    BooleanFormula ret;
+
     switch (edge.getEdgeType()) {
     case StatementEdge: {
-      return makeStatement((CStatementEdge) edge, function,
+      ret = makeStatement((CStatementEdge)edge, function,
           ssa, pts, constraints, errorConditions);
+      break;
     }
 
     case ReturnStatementEdge: {
       CReturnStatementEdge returnEdge = (CReturnStatementEdge)edge;
-      return makeReturn(returnEdge.asAssignment(), returnEdge, function,
+      ret = makeReturn(returnEdge.asAssignment(), returnEdge, function,
           ssa, pts, constraints, errorConditions);
+      break;
     }
 
     case DeclarationEdge: {
-      return makeDeclaration((CDeclarationEdge)edge, function, ssa, pts, constraints, errorConditions);
+      ret = makeDeclaration((CDeclarationEdge)edge, function, ssa, pts, constraints, errorConditions);
+      break;
     }
 
     case AssumeEdge: {
       CAssumeEdge assumeEdge = (CAssumeEdge)edge;
-      return makePredicate(assumeEdge.getExpression(), assumeEdge.getTruthAssumption(),
+      ret = makePredicate(assumeEdge.getExpression(), assumeEdge.getTruthAssumption(),
           assumeEdge, function, ssa, pts, constraints, errorConditions);
+      break;
     }
 
     case BlankEdge: {
-      return bfmgr.makeBoolean(true);
+      ret = bfmgr.makeBoolean(true);
+      break;
     }
 
     case FunctionCallEdge: {
-      return makeFunctionCall((CFunctionCallEdge)edge, function,
+      ret = makeFunctionCall((CFunctionCallEdge)edge, function,
           ssa, pts, constraints, errorConditions);
+      break;
     }
 
     case FunctionReturnEdge: {
       // get the expression from the summary edge
       CFunctionSummaryEdge ce = ((CFunctionReturnEdge)edge).getSummaryEdge();
-      return makeExitFunction(ce, function,
+      ret = makeExitFunction(ce, function,
           ssa, pts, constraints, errorConditions);
+      break;
     }
 
     case MultiEdge: {
@@ -857,9 +877,12 @@ public class CtoFormulaConverter {
         if (singleEdge instanceof BlankEdge) {
           continue;
         }
-        multiEdgeFormulas.add(createFormulaForEdge(singleEdge, function, ssa, pts, constraints, errorConditions));
+        multiEdgeFormulas.add(createFormulaForEdge(singleEdge, function, ssa, pts, constraints, errorConditions,
+            explicitState));
+        inMultiEdge = true;
         shutdownNotifier.shutdownIfNecessary();
       }
+      inMultiEdge = false;
 
       // Big conjunction at the end is better than creating a new conjunction
       // after each edge for some SMT solvers.
@@ -869,6 +892,41 @@ public class CtoFormulaConverter {
     default:
       throw new UnrecognizedCFAEdgeException(edge);
     }
+
+    if (options.useExplicitStateInPredicateAnalysis()) {
+      List<Pair<CExpression, Value>> useValues = new ArrayList<>();
+
+      if (explicitState != null && !inMultiEdge) {
+          for (Map.Entry<MemoryLocation, Value> entry : explicitState.getConstantsMapView().entrySet()) {
+            String varName = entry.getKey().getAsString0();
+            if (/*explicitState.isMemLocRelevant(entry.getKey()) &&*/
+                ssa.getType(varName) != null) {
+              CExpression e = new CIdExpression(FileLocation.DUMMY,
+                  new CVariableDeclaration(FileLocation.DUMMY,
+                                           false,
+                                           CStorageClass.AUTO,
+                                           ssa.getType(varName),
+                                          entry.getKey().getIdentifier(),
+                                          entry.getKey().getIdentifier(),
+                                          varName,
+                                          null));
+            useValues.add(Pair.of(e, entry.getValue()));
+          // TODO store CType of variables in ValueAnalysisState
+          // (when a new variable is being added into a map)
+          } else {
+            logger.log(Level.ALL, "Could not add value! " + varName);
+          }
+        }
+      }
+
+      if (this instanceof CToFormulaConverterWithPointerAliasing) {
+        ((CToFormulaConverterWithPointerAliasing)this). createAndAddExplicitConstraints(
+            edge, function, originalSSAMapBuilder, constraints,
+            errorConditions, pts, useValues);
+      }
+    }
+
+    return ret;
   }
 
   protected BooleanFormula makeStatement(

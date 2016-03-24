@@ -138,7 +138,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     pmgr = predCpa.getPathFormulaManager();
-    MachineModel machineModel = pCFA.getMachineModel();
+    MachineModel machineModel = predCpa.getMachineModel();
 
     assignmentToPathAllocator = new AssignmentToPathAllocator(config, shutdownNotifier, pLogger, machineModel);
     argPathExporter = new ARGPathExporter(config, logger, cfa);
@@ -160,9 +160,9 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     if (getTargetLocations().isEmpty() || !cfa.getAllLoopHeads().isPresent()) {
       return CandidateGenerator.EMPTY_GENERATOR;
     } else {
-      Set<CFANode> loopHeads = getLoopHeads();
       return new StaticCandidateProvider(
-          Sets.<CandidateInvariant>newHashSet(new TargetLocationCandidateInvariant(loopHeads)));
+          Sets.<CandidateInvariant>newHashSet(
+              new TargetLocationCandidateInvariant(cfa.getAllLoopHeads().get())));
     }
   }
 

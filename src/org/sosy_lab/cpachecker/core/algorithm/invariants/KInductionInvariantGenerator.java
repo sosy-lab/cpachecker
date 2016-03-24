@@ -30,7 +30,6 @@ import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Queue;
@@ -71,7 +70,6 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithmForInvariantGeneration;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateInvariant;
@@ -99,12 +97,9 @@ import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
-import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.solver.SolverException;
 
-import com.google.common.base.Predicates;
 import com.google.common.base.Throwables;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -144,18 +139,9 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
 
     final Timer invariantGeneration = new Timer();
 
-    private Integer totalNumberOfCandidates = null;
-
-    private int numberOfConfirmedCandidates = 0;
-
     @Override
     public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-      StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
-      writer.put("Time for invariant generation", invariantGeneration);
-      if (totalNumberOfCandidates != null) {
-        writer.put("Total number of candidates", totalNumberOfCandidates);
-      }
-      writer.put("Number of confirmed candidates", numberOfConfirmedCandidates);
+      out.println("Time for invariant generation:   " + invariantGeneration);
       super.printStatistics(out, result, reached);
     }
 
@@ -214,15 +200,10 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
             pTargetLocationProvider));
   }
 
-  static KInductionInvariantGenerator create(
-      final Configuration pConfig,
-      final LogManager pLogger,
-      final ShutdownManager pShutdownManager,
-      final CFA pCFA,
-      final ReachedSetFactory pReachedSetFactory,
-      CandidateGenerator candidateGenerator,
-      boolean pAsync)
-      throws InvalidConfigurationException, CPAException {
+  public static KInductionInvariantGenerator create(final Configuration pConfig,
+      final LogManager pLogger, final ShutdownManager pShutdownManager,
+      final CFA pCFA, final ReachedSetFactory pReachedSetFactory, CandidateGenerator candidateGenerator, boolean pAsync)
+          throws InvalidConfigurationException, CPAException {
 
     return new KInductionInvariantGenerator(
             pConfig,
@@ -245,83 +226,13 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
     reachedSetFactory = pReachedSetFactory;
     async = pAsync;
 
-    if (pCandidateGenerator instanceof StaticCandidateProvider) {
-      StaticCandidateProvider staticCandidateProvider =
-          (StaticCandidateProvider) pCandidateGenerator;
-      stats.totalNumberOfCandidates =
-          FluentIterable.from(staticCandidateProvider.getAllCandidates())
-              .filter(Predicates.not(Predicates.instanceOf(TargetLocationCandidateInvariant.class)))
-              .size();
-    }
-    CandidateGenerator statisticsCandidateGenerator =
-        new CandidateGenerator() {
-
-          private final Set<CandidateInvariant> confirmedCandidates = Sets.newHashSet();
-
-          @Override
-          public boolean produceMoreCandidates() {
-            return pCandidateGenerator.produceMoreCandidates();
-          }
-
-          @Override
-          public Iterator<CandidateInvariant> iterator() {
-            final Iterator<CandidateInvariant> it = pCandidateGenerator.iterator();
-            return new Iterator<CandidateInvariant>() {
-
-              @Override
-              public boolean hasNext() {
-                return it.hasNext();
-              }
-
-              @Override
-              public CandidateInvariant next() {
-                return it.next();
-              }
-
-              @Override
-              public void remove() {
-                it.remove();
-              }
-            };
-          }
-
-          @Override
-          public boolean hasCandidatesAvailable() {
-            return pCandidateGenerator.hasCandidatesAvailable();
-          }
-
-          @Override
-          public Set<? extends CandidateInvariant> getConfirmedCandidates() {
-            return pCandidateGenerator.getConfirmedCandidates();
-          }
-
-          @Override
-          public void confirmCandidates(Iterable<CandidateInvariant> pCandidates) {
-            pCandidateGenerator.confirmCandidates(pCandidates);
-            for (CandidateInvariant invariant : pCandidates) {
-              if (!(invariant instanceof TargetLocationCandidateInvariant)
-                  && confirmedCandidates.add(invariant)) {
-                ++stats.numberOfConfirmedCandidates;
-              }
-            }
-          }
-        };
-
     CPABuilder invGenBMCBuilder =
         new CPABuilder(config, logger, shutdownManager.getNotifier(), pReachedSetFactory);
     cpa = invGenBMCBuilder.buildCPAWithSpecAutomatas(cfa);
     Algorithm cpaAlgorithm = CPAAlgorithm.create(cpa, logger, config, shutdownManager.getNotifier());
-    algorithm =
-        new BMCAlgorithmForInvariantGeneration(
-            cpaAlgorithm,
-            cpa,
-            config,
-            logger,
-            pReachedSetFactory,
-            shutdownManager,
-            cfa,
-            stats,
-            statisticsCandidateGenerator);
+    algorithm = new BMCAlgorithmForInvariantGeneration(
+        cpaAlgorithm, cpa, config, logger, pReachedSetFactory,
+        shutdownManager, cfa, stats, pCandidateGenerator);
 
     PredicateCPA predicateCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
     if (predicateCPA == null) {
@@ -461,13 +372,9 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
           reachedSet);
     }
 
-    final TargetLocationCandidateInvariant safetyProperty;
+    final TargetLocationCandidateInvariant safetyProperty = new TargetLocationCandidateInvariant(pCFA.getAllLoopHeads().get());
     if (pCFA.getAllLoopHeads().isPresent()) {
-      safetyProperty =
-          new TargetLocationCandidateInvariant(BMCHelper.getLoopHeads(pCFA, pTargetLocationProvider));
       candidates.add(safetyProperty);
-    } else {
-      safetyProperty = null;
     }
 
     if (pOptions.terminateOnCounterexample) {
@@ -490,8 +397,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
             @Override
             public CandidateInvariant next() {
               if (safetyPropertyConfirmed) {
-                throw new NoSuchElementException(
-                    "No more candidates available: The safety property has already been confirmed.");
+                throw new NoSuchElementException("No more candidates available: The safety property has already been confirmed.");
               }
               return candidate = iterator.next();
             }
@@ -520,7 +426,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
         @Override
         public void confirmCandidates(Iterable<CandidateInvariant> pCandidates) {
           super.confirmCandidates(pCandidates);
-          if (safetyProperty != null && Iterables.contains(pCandidates, safetyProperty)) {
+          if (Iterables.contains(pCandidates, safetyProperty)) {
             safetyPropertyConfirmed = true;
           }
         }
@@ -534,15 +440,9 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
       KInductionInvariantGeneratorOptions options) throws InvalidConfigurationException,
       CPAException {
     ConfigurationBuilder configBuilder = Configuration.builder();
-    List<String> copyOptions = Arrays.asList(
-        "analysis.machineModel",
-        "cpa.callstack.skipRecursion",
-        "cpa.callstack.skipVoidRecursion",
-        "cpa.callstack.skipFunctionPointerRecursion");
-    for (String copyOption : copyOptions) {
-      if (pConfig.hasProperty(copyOption)) {
-        configBuilder.copyOptionFrom(pConfig, copyOption);
-      }
+    String machineModelOption = "analysis.machineModel";
+    if (pConfig.hasProperty(machineModelOption)) {
+      configBuilder.copyOptionFrom(pConfig, machineModelOption);
     }
     configBuilder.setOption("cpa", "cpa.arg.ARGCPA");
     configBuilder.setOption("ARGCPA.cpa", "cpa.composite.CompositeCPA");
@@ -551,7 +451,6 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
         "cpa.location.LocationCPA, "
             + "cpa.callstack.CallstackCPA, "
             + "cpa.functionpointer.FunctionPointerCPA");
-    configBuilder.setOption("output.disable", "true");
     Configuration config = configBuilder.build();
     ShutdownNotifier notifier = pShutdownManager.getNotifier();
     ReachedSet reachedSet = pReachedSetFactory.create();
@@ -614,8 +513,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
                   && !visited.contains(successor)) {
                 potentialAdditionalCandidates.put(
                     successor,
-                    new ExpressionTreeLocationInvariant(
-                        groupId, successor, candidate, toCodeVisitorCache));
+                    new ExpressionTreeLocationInvariant(groupId, successor, candidate));
               }
             }
           }
@@ -634,12 +532,10 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
       }
     }
     for (ExpressionTreeLocationInvariant expressionTreeLocationInvariant : expressionTreeLocationInvariants) {
-      candidates.add(
-          new ExpressionTreeLocationInvariant(
-              expressionTreeLocationInvariant.getGroupId(),
-              expressionTreeLocationInvariant.getLocation(),
-              expressionTrees.get(expressionTreeLocationInvariant.getGroupId()),
-              toCodeVisitorCache));
+      candidates.add(new ExpressionTreeLocationInvariant(
+          expressionTreeLocationInvariant.getGroupId(),
+          expressionTreeLocationInvariant.getLocation(),
+          expressionTrees.get(expressionTreeLocationInvariant.getGroupId())));
     }
   }
 

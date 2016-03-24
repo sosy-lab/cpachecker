@@ -106,7 +106,6 @@ public class AutomatonGraphmlCommon {
     ISVIOLATIONNODE("violation", ElementType.NODE, "isViolationNode", "boolean"),
     ISENTRYNODE("entry", ElementType.NODE, "isEntryNode", "boolean"),
     ISSINKNODE("sink", ElementType.NODE, "isSinkNode", "boolean"),
-    ISLOOPSTART("loopHead", ElementType.NODE, "isLoopHead", "boolean"),
     VIOLATEDPROPERTY("violatedProperty", ElementType.NODE, "violatedProperty", "string"),
     SOURCECODELANGUAGE("sourcecodelang", ElementType.GRAPH, "sourcecodeLanguage", "string"),
     PROGRAMFILE("programfile", ElementType.GRAPH, "programFile", "string"),
@@ -166,8 +165,7 @@ public class AutomatonGraphmlCommon {
     ISFRONTIER(KeyDef.ISFRONTIERNODE),
     ISVIOLATION(KeyDef.ISVIOLATIONNODE),
     ISENTRY(KeyDef.ISENTRYNODE),
-    ISSINKNODE(KeyDef.ISSINKNODE),
-    ISLOOPSTART(KeyDef.ISLOOPSTART);
+    ISSINKNODE(KeyDef.ISSINKNODE);
 
     public final KeyDef key;
 

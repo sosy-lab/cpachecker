@@ -168,6 +168,10 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
     return variableName + "/" + offset.get();
   }
 
+  public String getAsString0() {
+    return isOnFunctionStack() ? (functionName + "::" + identifier) : (identifier);
+  }
+
   public String serialize() {
     return getAsSimpleString();
   }

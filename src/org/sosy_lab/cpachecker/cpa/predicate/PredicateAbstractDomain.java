@@ -30,7 +30,9 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.solver.SolverException;
 
 @Options(prefix="cpa.predicate")
@@ -39,7 +41,10 @@ public class PredicateAbstractDomain implements AbstractDomain {
   @Option(secure=true, description="whether to include the symbolic path formula in the "
     + "coverage checks or do only the fast abstract checks")
   private boolean symbolicCoverageCheck = false;
-
+  
+  @Option(secure=true, description = "Use explicit state in predicate analysis")
+  private boolean useExplicitStateInPredicateAnalysis = false;
+  
   // statistics
   public final Timer coverageCheckTimer = new Timer();
   public final Timer bddCoverageCheckTimer = new Timer();
@@ -47,10 +52,28 @@ public class PredicateAbstractDomain implements AbstractDomain {
 
   private final PredicateAbstractionManager mgr;
 
-  public PredicateAbstractDomain(Configuration config, PredicateAbstractionManager pPredAbsManager)
-      throws InvalidConfigurationException {
+  public PredicateAbstractDomain(PredicateCPA pCpa, Configuration config) throws InvalidConfigurationException {
     config.inject(this, PredicateAbstractDomain.class);
-    mgr = pPredAbsManager;
+    mgr = pCpa.getPredicateManager();
+  }
+
+  private boolean handleValueAnalysisState(final boolean result, final PredicateAbstractState e1, final PredicateAbstractState e2) {
+    if (result) {
+      final ValueAnalysisState s1 = e1.getPathFormula().getValueAnalysisState();
+      final ValueAnalysisState s2 = e2.getPathFormula().getValueAnalysisState();
+      if (s2 == null) {
+      } else if (s1 == null) {
+        // null is already wider than any explicit state
+        return false;
+      } else if (!s1.isLessOrEqual(s2)) {
+        for (final MemoryLocation loc : s2.getDifference(s1)) {
+          s1.forget(loc);
+        }
+        return false;
+      }
+      return true;
+    }
+    return false;
   }
 
   @Override
@@ -80,7 +103,12 @@ public class PredicateAbstractDomain implements AbstractDomain {
       boolean result = mgr.checkCoverage(e1.getAbstractionFormula(), e2.getAbstractionFormula());
 
       bddCoverageCheckTimer.stop();
-      return result;
+
+      if (useExplicitStateInPredicateAnalysis) {
+        return handleValueAnalysisState(result, e1, e2);
+      } else {
+        return result;
+      }
 
     } else if (e2.isAbstractionState()) {
       if (symbolicCoverageCheck) {
@@ -89,7 +117,12 @@ public class PredicateAbstractDomain implements AbstractDomain {
         boolean result = mgr.checkCoverage(e1.getAbstractionFormula(), e1.getPathFormula(), e2.getAbstractionFormula());
 
         symbolicCoverageCheckTimer.stop();
-        return result;
+
+        if (useExplicitStateInPredicateAnalysis) {
+          return handleValueAnalysisState(result, e1, e2);
+        } else {
+          return result;
+        }
 
       } else {
         return false;

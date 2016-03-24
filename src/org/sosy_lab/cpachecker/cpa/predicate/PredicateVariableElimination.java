@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2016  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,22 +21,11 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.smg.objects.dls;
+package org.sosy_lab.cpachecker.cpa.predicate;
 
-import java.util.Set;
 
-import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
-import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionFinder;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 
-public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder {
+public class PredicateVariableElimination {
 
-  private SMGDoublyLinkedListCandidateFinder() {};
-
-  @Override
-  public Set<SMGAbstractionCandidate> traverse(CLangSMG pSmg) {
-    // TODO Auto-generated method stub
-    return null;
-  }
 
 }

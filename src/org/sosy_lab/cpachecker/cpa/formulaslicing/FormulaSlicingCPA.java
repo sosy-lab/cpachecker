@@ -59,32 +59,37 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   private final StopOperator stopOperator;
   private final IFormulaSlicingManager manager;
   private final MergeOperator mergeOperator;
+  private final LoopTransitionFinder loopTransitionFinder;
   private final InductiveWeakeningManager inductiveWeakeningManager;
 
   private FormulaSlicingCPA(
       Configuration pConfiguration,
       LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier,
+      ShutdownNotifier shutdownNotifier,
       CFA cfa
   ) throws InvalidConfigurationException {
     pConfiguration.inject(this);
 
-    Solver solver = Solver.create(pConfiguration, pLogger, pShutdownNotifier);
+    Solver solver = Solver.create(pConfiguration, pLogger, shutdownNotifier);
     FormulaManagerView formulaManager = solver.getFormulaManager();
     PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(
-        formulaManager, pConfiguration, pLogger, pShutdownNotifier, cfa,
+        formulaManager, pConfiguration, pLogger, shutdownNotifier, cfa,
         AnalysisDirection.FORWARD);
 
     if (useCachingPathFormulaManager) {
       pathFormulaManager = new CachingPathFormulaManager(pathFormulaManager);
     }
 
-    inductiveWeakeningManager = new InductiveWeakeningManager(pConfiguration, solver, pLogger,
-        pShutdownNotifier);
+    loopTransitionFinder = new LoopTransitionFinder(
+        pConfiguration, cfa.getLoopStructure().get(), pathFormulaManager, formulaManager, pLogger,
+        shutdownNotifier);
+
+    inductiveWeakeningManager =
+        new InductiveWeakeningManager(pConfiguration, formulaManager, solver, pLogger);
     manager = new FormulaSlicingManager(
         pConfiguration,
-        pathFormulaManager, formulaManager, cfa,
-        inductiveWeakeningManager, solver, pShutdownNotifier);
+        pathFormulaManager, formulaManager, cfa, loopTransitionFinder,
+        inductiveWeakeningManager, solver);
     stopOperator = new StopSepOperator(this);
     mergeOperator = this;
   }
@@ -135,7 +140,8 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   public Collection<? extends AbstractState> strengthen(AbstractState state,
       List<AbstractState> otherStates, @Nullable CFAEdge cfaEdge,
       Precision precision) throws CPATransferException, InterruptedException {
-    return null;
+    return manager.strengthen((SlicingState)state,
+        otherStates, cfaEdge);
   }
 
   @Override
@@ -169,6 +175,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
+    loopTransitionFinder.collectStatistics(statsCollection);
     manager.collectStatistics(statsCollection);
     inductiveWeakeningManager.collectStatistics(statsCollection);
   }

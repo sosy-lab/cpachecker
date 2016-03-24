@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -47,9 +46,9 @@ class FormulaAndTreeSupplier implements InvariantSupplier, ExpressionTreeSupplie
   }
 
   @Override
-  public BooleanFormula getInvariantFor(
-      CFANode pNode, FormulaManagerView pFmgr, PathFormulaManager pPfmgr, PathFormula pContext) {
-    return invariantSupplier.getInvariantFor(pNode, pFmgr, pPfmgr, pContext);
+  public BooleanFormula getInvariantFor(CFANode pNode, FormulaManagerView pFmgr,
+      PathFormulaManager pPfmgr) {
+    return invariantSupplier.getInvariantFor(pNode, pFmgr, pPfmgr);
   }
 
 }

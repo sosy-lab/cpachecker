@@ -46,22 +46,20 @@ import com.google.common.collect.ImmutableMap;
 
 public class SMGInterpolant implements Interpolant<SMGState> {
 
-  private static final SMGInterpolant FALSE = new SMGInterpolant(null, null, null, 0);
+  private static final SMGInterpolant FALSE = new SMGInterpolant(null, null, null);
 
   private final Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues;
   private final CLangSMG heap;
   private final LogManager logger;
-  private final int externalAllocationSize;
 
 
   public SMGInterpolant(Map<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues,
       CLangSMG pHeap,
-      LogManager pLogger, int pExternalAllocationSize) {
+      LogManager pLogger) {
 
     explicitValues = pExplicitValues;
     heap = pHeap;
     logger = pLogger;
-    externalAllocationSize = pExternalAllocationSize;
   }
 
   @Override
@@ -71,8 +69,7 @@ public class SMGInterpolant implements Interpolant<SMGState> {
       throw new IllegalStateException("Can't reconstruct state from FALSE-interpolant");
     } else {
       // TODO Copy necessary?
-      return new SMGState(new HashMap<>(explicitValues), new CLangSMG(heap), logger,
-          externalAllocationSize);
+      return new SMGState(new HashMap<>(explicitValues), new CLangSMG(heap), logger);
     }
   }
 
@@ -133,11 +130,11 @@ public class SMGInterpolant implements Interpolant<SMGState> {
     joinedExplicitValues.putAll(other.explicitValues);
 
 
-    return new SMGInterpolant(joinedExplicitValues, join.getJointSMG(), logger, externalAllocationSize);
+    return new SMGInterpolant(joinedExplicitValues, join.getJointSMG(), logger);
   }
 
   public static SMGInterpolant createInitial(LogManager logger, MachineModel model,
-      FunctionEntryNode pMainFunctionNode, int pExternalAllocationSize) {
+      FunctionEntryNode pMainFunctionNode) {
     Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues = ImmutableMap.of();
     CLangSMG heap = new CLangSMG(model);
     AFunctionDeclaration mainFunction = pMainFunctionNode.getFunctionDefinition();
@@ -146,7 +143,7 @@ public class SMGInterpolant implements Interpolant<SMGState> {
       heap.addStackFrame((CFunctionDeclaration) mainFunction);
     }
 
-    return new SMGInterpolant(explicitValues, heap, logger, pExternalAllocationSize);
+    return new SMGInterpolant(explicitValues, heap, logger);
   }
 
   public static SMGInterpolant getFalseInterpolant() {

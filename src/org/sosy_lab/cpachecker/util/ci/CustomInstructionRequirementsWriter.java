@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.ci;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
@@ -31,7 +32,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.PathCounterTemplate;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -55,16 +56,18 @@ import com.google.common.collect.Sets;
 
 public class CustomInstructionRequirementsWriter {
 
+  private final String filePrefix;
+  private int fileID;
   private final Class<?> requirementsState;
   private AbstractRequirementsTranslator<? extends AbstractState> abstractReqTranslator;
   private final LogManager logger;
   private final boolean enableRequirementSlicing;
-  private final PathCounterTemplate fileTemplate;
 
-  public CustomInstructionRequirementsWriter(final PathCounterTemplate ciReqFiles,
-      final Class<?> reqirementsState, final LogManager log, final ConfigurableProgramAnalysis cpa,
-      boolean enableRequirementSlicing) throws CPAException {
-    fileTemplate = ciReqFiles;
+  public CustomInstructionRequirementsWriter(final String pFilePrefix, final Class<?> reqirementsState,
+      final LogManager log, final ConfigurableProgramAnalysis cpa, boolean enableRequirementSlicing)
+          throws CPAException {
+   filePrefix = pFilePrefix;
+    fileID = 0;
     this.requirementsState = reqirementsState;
     logger = log;
     this.enableRequirementSlicing = enableRequirementSlicing;
@@ -86,8 +89,9 @@ public class CustomInstructionRequirementsWriter {
 
     Pair<List<String>, String> fakeSMTDesc = pACI.getFakeSMTDescription();
     List<String> set = removeDuplicates(convertedRequirements.getFirst().getFirst(), convertedRequirements.getSecond().getFirst(), fakeSMTDesc.getFirst());
+    fileID++;
 
-    try (Writer br = Files.openOutputFile(fileTemplate.getFreshPath())){
+    try (Writer br = Files.openOutputFile(Paths.get("output"+File.separator+filePrefix+fileID+".smt"))) {
       for (String element : set) {
         br.write(element);
         br.write("\n");

@@ -297,9 +297,7 @@ public class AutomatonGraphmlParser {
         }
       }
 
-      if (entryNodeId == null) {
-        throw new WitnessParseException("You must define an entry node.");
-      }
+      Preconditions.checkNotNull(entryNodeId, "You must define an entry node.");
 
       // Determine distances to violation states
       Queue<String> waitlist = new ArrayDeque<>(violationStates);
@@ -419,14 +417,6 @@ public class AutomatonGraphmlParser {
 
         // Never match on the dummy edge directly after the main function entry node
         AutomatonBoolExpr conjunctedTriggers = new AutomatonBoolExpr.Negation(AutomatonBoolExpr.MatchProgramEntry.INSTANCE);
-
-        // Match a loop start
-        if (targetNodeFlags.contains(NodeFlag.ISLOOPSTART)) {
-          conjunctedTriggers =
-              and(
-                  conjunctedTriggers,
-                  AutomatonBoolExpr.EpsilonMatch.of(AutomatonBoolExpr.MatchLoopStart.INSTANCE));
-        }
 
         // Add assumptions to the transition
         if (considerAssumptions) {
@@ -773,7 +763,7 @@ public class AutomatonGraphmlParser {
         ExpressionTree<AExpression> expressionTree = parseStatement(assumeCode, pScope, pCParser);
         result = And.of(result, expressionTree);
       } catch (CParserException e) {
-        logger.log(Level.WARNING, "Cannot parse code: " + assumeCode);
+        logger.log(Level.WARNING, e, "Cannot parse code: " + assumeCode);
       }
     }
     return result;

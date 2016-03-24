@@ -93,7 +93,7 @@ class BAMCPAStatistics implements Statistics {
 
   private final BAMCPA cpa;
   private final BAMDataManager data;
-  private List<BAMBasedRefiner> refiners = new ArrayList<>();
+  private List<AbstractBAMBasedRefiner> refiners = new ArrayList<>();
   private final LogManager logger;
 
   public BAMCPAStatistics(BAMCPA cpa, BAMDataManager pData, Configuration config, LogManager logger)
@@ -110,7 +110,7 @@ class BAMCPAStatistics implements Statistics {
     return "BAMCPA";
   }
 
-  public void addRefiner(BAMBasedRefiner pRefiner) {
+  public void addRefiner(AbstractBAMBasedRefiner pRefiner) {
     refiners.add(pRefiner);
   }
 
@@ -148,7 +148,7 @@ class BAMCPAStatistics implements Statistics {
     out.println("Time for expanding precisions:                                  " + reducer.expandPrecisionTime + " (Calls: " + reducer.expandPrecisionTime.getNumberOfIntervals() + ")");
 
 
-    for (BAMBasedRefiner refiner : refiners) {
+    for (AbstractBAMBasedRefiner refiner : refiners) {
       // TODO We print these statistics also for use-cases of BAM-refiners, that never use timers. Can we ignore them?
       out.println("\n" + refiner.getClass().getSimpleName() + ":");
       out.println("  Compute path for refinement:                                  " + refiner.computePathTimer);

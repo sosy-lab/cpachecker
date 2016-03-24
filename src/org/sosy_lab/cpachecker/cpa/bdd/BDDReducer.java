@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.bdd;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -33,14 +34,16 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
-import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
 public class BDDReducer implements Reducer {
 
+  private final NamedRegionManager mgr;
   private final PredicateManager predmgr;
 
-  BDDReducer(PredicateManager pPredmgr) {
+  BDDReducer(NamedRegionManager pMgr, PredicateManager pPredmgr) {
+    mgr = pMgr;
     predmgr = pPredmgr;
   }
 
@@ -75,20 +78,8 @@ public class BDDReducer implements Reducer {
     BDDState reducedState = (BDDState)pReducedState;
 
     // remove all vars, that are used in the block
-    final Set<String> trackedVars = predmgr.getTrackedVars().keySet();
-    final Set<String> blockVars = getVarsOfBlock(reducedContext);
-    for (final String var : trackedVars) {
-      if (blockVars.contains(var)) {
-        int size = predmgr.getTrackedVars().get(var);
-        Region[] toRemove = predmgr.createPredicateWithoutPrecisionCheck(var, size);
-        state = state.forget(toRemove);
-      }
-    }
-
-    // TODO maybe we have to add some heuristics like in BAMPredicateReducer,
-    // because we existentially quantify "block-inner" variables from formulas like "outer==inner".
-    // This is sound, but leads to weaker formulas, maybe to weak for a useful analysis.
-    // Or simpler solution: We could replace this Reducer with a NoOpReducer.
+    Set<Region> usedVars = mgr.extractPredicates(state.getRegion());
+    state = state.forget(usedVars.toArray(new Region[usedVars.size()]));
 
     // add information from block to state
     state = state.addConstraint(reducedState.getRegion());

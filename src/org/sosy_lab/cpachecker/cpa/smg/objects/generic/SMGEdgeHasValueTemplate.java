@@ -47,9 +47,4 @@ public class SMGEdgeHasValueTemplate extends SMGEdgeTemplate
   public int getValue() {
     return getAbstractValue();
   }
-
-  @Override
-  public String toString() {
-    return getObjectTemplate().toString() + " O" + getOffset() + "B->" + getValue();
-  }
 }

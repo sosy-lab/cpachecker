@@ -61,10 +61,13 @@ public class CachingPathFormulaManager implements PathFormulaManager {
             = new HashMap<>();
 
   private final PathFormula emptyFormula;
+  private final PathFormula emptyFakeFormula;
 
   public CachingPathFormulaManager(PathFormulaManager pDelegate) {
     delegate = pDelegate;
     emptyFormula = delegate.makeEmptyPathFormula();
+    emptyFakeFormula = delegate.makeEmptyPathFormula();
+    emptyFakeFormula.setFakeTrue(true);
   }
 
   @Override
@@ -125,6 +128,10 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   public PathFormula makeEmptyPathFormula() {
     return emptyFormula;
   }
+  @Override
+  public PathFormula makeEmptyFakePathFormula() {
+    return emptyFakeFormula;
+  }
 
   @Override
   public PathFormula makeEmptyPathFormula(PathFormula pOldFormula) {
@@ -177,5 +184,4 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   public BooleanFormula buildImplicationTestAsUnsat(PathFormula pF1, PathFormula pF2) throws InterruptedException {
     return delegate.buildImplicationTestAsUnsat(pF1, pF2);
   }
-
 }

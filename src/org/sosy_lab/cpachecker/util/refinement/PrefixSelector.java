@@ -232,7 +232,7 @@ public class PrefixSelector {
 
     @Override
     public int computeScore(final InfeasiblePrefix pPrefix) {
-      return sign * classification.get().obtainDomainTypeScoreForVariables(pPrefix.extractSetOfIdentifiers(), loopStructure);
+      return sign * classification.get().obtainDomainTypeScoreForVariables(pPrefix.extractSetOfVariables(), loopStructure);
     }
   }
 
@@ -249,7 +249,7 @@ public class PrefixSelector {
 
     @Override
     public int computeScore(final InfeasiblePrefix pPrefix) {
-      int score = classification.get().obtainDomainTypeScoreForVariables(pPrefix.extractSetOfIdentifiers(), loopStructure);
+      int score = classification.get().obtainDomainTypeScoreForVariables(pPrefix.extractSetOfVariables(), loopStructure);
 
       if(score != Integer.MAX_VALUE) {
         score = 0;
@@ -294,7 +294,7 @@ public class PrefixSelector {
     @Override
     public int computeScore(final InfeasiblePrefix pPrefix) {
       int count = 0;
-      for (String variable : pPrefix.extractSetOfIdentifiers()) {
+      for (String variable : pPrefix.extractSetOfVariables()) {
         count = count + classification.get().getAssignedVariables().count(variable);
       }
 
@@ -313,7 +313,7 @@ public class PrefixSelector {
     @Override
     public int computeScore(final InfeasiblePrefix pPrefix) {
       int count = 0;
-      for (String variable : pPrefix.extractSetOfIdentifiers()) {
+      for (String variable : pPrefix.extractSetOfVariables()) {
         count = count + classification.get().getAssumedVariables().count(variable);
       }
 

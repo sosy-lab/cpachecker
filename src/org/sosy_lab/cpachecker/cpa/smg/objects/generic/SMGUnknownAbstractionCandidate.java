@@ -23,22 +23,29 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects.generic;
 
+import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 
-public class SMGUnknownAbstractionCandidate implements SMGGenericAbstractionCandidate {
+public class SMGUnknownAbstractionCandidate implements SMGAbstractionCandidate {
 
   private final static SMGUnknownAbstractionCandidate INSTANCE = new SMGUnknownAbstractionCandidate();
 
   private SMGUnknownAbstractionCandidate() {}
 
   @Override
-  public int compareTo(SMGGenericAbstractionCandidate other) {
+  public int compareTo(SMGAbstractionCandidate other) {
     return getScore() - other.getScore();
   }
 
   @Override
   public int getScore() {
     return 0;
+  }
+
+  @Override
+  public CLangSMG execute(CLangSMG pSMG) {
+    throw new UnsupportedOperationException("Unknown abstraction cannot be executed");
   }
 
   @Override

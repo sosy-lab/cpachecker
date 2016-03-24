@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.collect.ImmutableList;
+import java.math.BigDecimal;
 
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -35,23 +35,23 @@ import org.sosy_lab.solver.api.FloatingPointFormulaManager;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.FormulaType.FloatingPointType;
-import org.sosy_lab.solver.api.FunctionDeclaration;
+import org.sosy_lab.solver.api.FunctionFormulaManager;
 import org.sosy_lab.solver.api.NumeralFormula;
 import org.sosy_lab.solver.api.NumeralFormulaManager;
-import org.sosy_lab.solver.api.UFManager;
+import org.sosy_lab.solver.api.UfDeclaration;
 
-import java.math.BigDecimal;
+import com.google.common.collect.ImmutableList;
 
 class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
         extends BaseManagerView
         implements FloatingPointFormulaManager {
 
   private final BooleanFormulaManager booleanManager;
-  private final UFManager functionManager;
+  private final FunctionFormulaManager functionManager;
   private final NumeralFormulaManager<? super T, T> numericFormulaManager;
   private final FormulaType<T> formulaType;
 
-  private final FunctionDeclaration<BooleanFormula> isSubnormalUfDecl;
+  private final UfDeclaration<BooleanFormula> isSubnormalUfDecl;
   private final T zero;
   private final T nanVariable;
   private final T plusInfinityVariable;
@@ -60,7 +60,7 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
   ReplaceFloatingPointWithNumeralAndFunctionTheory(
       FormulaWrappingHandler pWrappingHandler,
       NumeralFormulaManager<? super T, T> pReplacementManager,
-      UFManager rawFunctionManager,
+      FunctionFormulaManager rawFunctionManager,
       BooleanFormulaManager pBooleaManager) {
     super(pWrappingHandler);
     numericFormulaManager = pReplacementManager;
@@ -68,8 +68,7 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
     functionManager = rawFunctionManager;
 
     formulaType = numericFormulaManager.getFormulaType();
-    isSubnormalUfDecl = functionManager.declareUF("__isSubnormal__", FormulaType.BooleanType,
-        formulaType);
+    isSubnormalUfDecl = functionManager.declareUninterpretedFunction("__isSubnormal__", FormulaType.BooleanType, formulaType);
 
     zero = numericFormulaManager.makeNumber(0);
     nanVariable = numericFormulaManager.makeVariable("__NaN__");
@@ -107,10 +106,10 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
       T2 result = (T2)pNumber;
       return result;
     } else {
-      FunctionDeclaration<T2> castFunction = functionManager.declareUF(
+      UfDeclaration<T2> castFunction = functionManager.declareUninterpretedFunction(
           "__cast_" + type + "_to_" + pTargetType + "__",
           pTargetType, type);
-      return functionManager.callUF(castFunction, ImmutableList.of(pNumber));
+      return functionManager.callUninterpretedFunction(castFunction, ImmutableList.of(pNumber));
     }
   }
 
@@ -193,7 +192,7 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
   }
   @Override
   public BooleanFormula isSubnormal(FloatingPointFormula pNumber) {
-    return functionManager.callUF(isSubnormalUfDecl,
+    return functionManager.callUninterpretedFunction(isSubnormalUfDecl,
         ImmutableList.of(unwrap(pNumber)));
   }
 

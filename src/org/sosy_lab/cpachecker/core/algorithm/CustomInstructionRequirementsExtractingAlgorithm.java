@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Writer;
@@ -45,7 +46,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -102,14 +102,8 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path appliedCustomInstructionsDefinition;
 
-  @Option(secure=true, name="ciSignature", description = "Signature for custom instruction, describes names and order of input and output variables of a custom instruction")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path ciSpec = Paths.get("ci_spec.txt");
-
-  @Option(secure = true,
-      description = "Where to dump the requirements on custom instruction extracted from analysis")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathCounterTemplate dumpCIRequirements = PathCounterTemplate.ofFormatString("ci%d.smt");
+  @Option(secure=true, description="Prefix for files containing the custom instruction requirements.")
+  private String ciFilePrefix = "ci";
 
   @Option(secure=true, description="Qualified name of class for abstract state which provides custom instruction requirements.")
   private String requirementsStateClassName;
@@ -189,7 +183,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
     try {
       if (binaryOperatorForSimpleCustomInstruction.isEmpty()) {
         cia = new AppliedCustomInstructionParser(shutdownNotifier, logger, cfa)
-            .parse(appliedCustomInstructionsDefinition, ciSpec);
+                .parse(appliedCustomInstructionsDefinition);
       } else {
         logger.log(Level.FINE, "Using a simple custom instruction. Find out the applications ourselves");
         cia = findSimpleCustomInstructionApplications(BinaryOperator.valueOf(binaryOperatorForSimpleCustomInstruction));
@@ -298,7 +292,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
       }
     }
 
-    try (Writer br = Files.openOutputFile(ciSpec)) {
+    try (Writer br = Files.openOutputFile(Paths.get("output" + File.separator + "ci_spec.txt"))) {
       // write signature
       br.write(ci.getSignature() + "\n");
       String ciString = ci.getFakeSMTDescription().getSecond();
@@ -318,9 +312,8 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
    */
   private void extractRequirements(final ARGState root, final CustomInstructionApplications cia)
       throws InterruptedException, CPAException {
-    CustomInstructionRequirementsWriter writer =
-        new CustomInstructionRequirementsWriter(dumpCIRequirements,
-            requirementsStateClass, logger, cpa, enableRequirementSlicing);
+    CustomInstructionRequirementsWriter writer = new CustomInstructionRequirementsWriter(ciFilePrefix,
+        requirementsStateClass, logger, cpa, enableRequirementSlicing);
     Collection<ARGState> ciStartNodes = getCustomInstructionStartNodes(root, cia);
 
     List<Pair<ARGState, Collection<ARGState>>> requirements = new ArrayList<>(ciStartNodes.size());

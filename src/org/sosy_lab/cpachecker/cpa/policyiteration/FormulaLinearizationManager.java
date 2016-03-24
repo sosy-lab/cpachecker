@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -58,7 +59,7 @@ public class FormulaLinearizationManager {
    *  x NOT(EQ(A, B)) => (A > B) \/ (A < B)
    */
   public BooleanFormula linearize(BooleanFormula input) {
-    return bfmgr.transformRecursively(new BooleanFormulaTransformationVisitor(fmgr) {
+    return bfmgr.visit(new BooleanFormulaTransformationVisitor(fmgr) {
       @Override
       public BooleanFormula visitNot(BooleanFormula pOperand) {
         List<BooleanFormula> split = fmgr.splitNumeralEqualityIfPossible(pOperand);
@@ -78,15 +79,15 @@ public class FormulaLinearizationManager {
    * Annotate disjunctions with choice variables.
    */
   public BooleanFormula annotateDisjunctions(BooleanFormula input) {
-    return bfmgr.transformRecursively(new BooleanFormulaTransformationVisitor(fmgr) {
+    return bfmgr.visit(new BooleanFormulaTransformationVisitor(fmgr) {
       @Override
-      public BooleanFormula visitOr(List<BooleanFormula> processed) {
+      public BooleanFormula visitOr(List<BooleanFormula> pOperands) {
         IntegerFormula choiceVar = getFreshVar();
         List<BooleanFormula> newArgs = new ArrayList<>();
-        for (int i = 0; i < processed.size(); i++) {
+        for (int i = 0; i < pOperands.size(); i++) {
           newArgs.add(
               bfmgr.and(
-                  processed.get(i), fmgr.makeEqual(choiceVar, ifmgr.makeNumber(i))));
+                  visitIfNotSeen(pOperands.get(i)), fmgr.makeEqual(choiceVar, ifmgr.makeNumber(i))));
         }
         return bfmgr.or(newArgs);
       }
@@ -159,9 +160,9 @@ public class FormulaLinearizationManager {
 
       Boolean cond = model.evaluate(pCondition);
       if (cond != null && cond) {
-        return pThenFormula;
+        return visitIfNotSeen(pThenFormula);
       } else {
-        return pElseFormula;
+        return visitIfNotSeen(pElseFormula);
       }
     }
   }
@@ -238,7 +239,8 @@ public class FormulaLinearizationManager {
       @Override
       public TraversalProcess visitFunction(Formula f,
           List<Formula> args,
-          FunctionDeclaration<?> decl) {
+          FunctionDeclaration decl,
+          Function<List<Formula>, Formula> newApplicationConstructor) {
         if (decl.getKind() == FunctionDeclarationKind.UF) {
           UFs.put(decl.getName(), Pair.of(f, args));
 

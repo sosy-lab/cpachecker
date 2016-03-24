@@ -32,6 +32,7 @@ import java.io.Serializable;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -44,6 +45,33 @@ public final class PathFormula implements Serializable {
   private final SSAMap ssa;
   private final int length;
   private final PointerTargetSet pts;
+
+  /*
+   * A reference to a ValueAnalysisState that came together with
+   * the last PredicateAbstractState after the previous transfer operation
+   */
+  private ValueAnalysisState valueAnalysisState = null;
+
+  public ValueAnalysisState getValueAnalysisState() {
+    return valueAnalysisState;
+  }
+  /*
+   * This must be set during a strengthening operation for the
+   * future use by the next transfer operation
+   */
+  public void setValueAnalysisState(ValueAnalysisState pValueAnalysisState) {
+    valueAnalysisState = pValueAnalysisState;
+  }
+
+  // by Romanov
+  private boolean isFakeTrue = false;
+
+  public boolean isFakeTrue() {
+    return isFakeTrue;
+  }
+  public void setFakeTrue(boolean isFakeTrue) {
+    this.isFakeTrue = isFakeTrue;
+  }
 
   public PathFormula(BooleanFormula pf, SSAMap ssa, PointerTargetSet pts,
       int pLength) {
@@ -96,6 +124,9 @@ public final class PathFormula implements Serializable {
         && formula.equals(other.formula)
         && ssa.equals(other.ssa)
         && pts.equals(other.pts)
+        && (valueAnalysisState == null && other.valueAnalysisState == null ||
+            valueAnalysisState != null && other.valueAnalysisState != null &&
+            valueAnalysisState.equals(other.valueAnalysisState))
         ;
   }
 
@@ -107,6 +138,7 @@ public final class PathFormula implements Serializable {
     result = prime * result + length;
     result = prime * result + pts.hashCode();
     result = prime * result + ssa.hashCode();
+    result = prime * result + (valueAnalysisState != null ? valueAnalysisState.hashCode() : 0);
     return result;
   }
 

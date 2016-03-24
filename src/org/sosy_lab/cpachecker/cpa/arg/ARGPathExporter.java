@@ -38,7 +38,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
-import java.util.Queue;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.logging.Level;
@@ -134,7 +133,6 @@ import com.google.common.collect.MapDifference.ValueDifference;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Queues;
-import com.google.common.collect.Sets;
 import com.google.common.collect.SortedMapDifference;
 import com.google.common.collect.TreeMultimap;
 
@@ -426,17 +424,10 @@ public class ARGPathExporter {
       final TransitionCondition result = new TransitionCondition();
 
       if (graphType != GraphType.ERROR_WITNESS) {
-        ExpressionTree<Object> invariant = ExpressionTrees.getTrue();
-        if (exportInvariant(pEdge.getSuccessor())) {
-          invariant = simplifier.simplify(invariantProvider.provideInvariantFor(pEdge, pFromState));
-        }
-        putStateInvariant(pTo, invariant);
+        ExpressionTree<Object> invariant = simplifier.simplify(invariantProvider.provideInvariantFor(pEdge, pFromState));
         String functionName = pEdge.getSuccessor().getFunctionName();
+        putStateInvariant(pTo, invariant);
         stateScopes.put(pTo, isFunctionScope ? functionName : "");
-      }
-
-      if (pEdge.getSuccessor().isLoopStart()) {
-        nodeFlags.put(pTo, NodeFlag.ISLOOPSTART);
       }
 
       if (AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge)) {
@@ -1234,54 +1225,6 @@ public class ARGPathExporter {
       }
       return result;
     }
-  }
-
-  private boolean exportInvariant(CFANode pReferenceNode) {
-    Queue<CFANode> waitlist = Queues.newArrayDeque();
-    Set<CFANode> visited = Sets.newHashSet();
-    waitlist.offer(pReferenceNode);
-    visited.add(pReferenceNode);
-    for (CFAEdge assumeEdge : CFAUtils.enteringEdges(pReferenceNode).filter(AssumeEdge.class)) {
-      if (visited.add(assumeEdge.getPredecessor())) {
-        waitlist.offer(assumeEdge.getPredecessor());
-      }
-    }
-    Predicate<CFAEdge> epsilonEdge =
-        new Predicate<CFAEdge>() {
-
-          @Override
-          public boolean apply(CFAEdge pEdge) {
-            return !(pEdge instanceof AssumeEdge);
-          }
-        };
-    Predicate<CFANode> loopProximity =
-        cfa.getAllLoopHeads().isPresent()
-            ? new Predicate<CFANode>() {
-
-              @Override
-              public boolean apply(CFANode pNode) {
-                return cfa.getAllLoopHeads().get().contains(pNode) || pNode.isLoopStart();
-              }
-            }
-            : new Predicate<CFANode>() {
-
-              @Override
-              public boolean apply(CFANode pNode) {
-                return pNode.isLoopStart();
-              }
-            };
-    while (!waitlist.isEmpty()) {
-      CFANode current = waitlist.poll();
-      if (loopProximity.apply(current)) {
-        return true;
-      }
-      for (CFAEdge enteringEdge : CFAUtils.enteringEdges(current).filter(epsilonEdge)) {
-        if (visited.add(enteringEdge.getPredecessor())) {
-          waitlist.offer(enteringEdge.getPredecessor());
-        }
-      }
-    }
-    return false;
   }
 
   private static class DelayedAssignmentsKey {

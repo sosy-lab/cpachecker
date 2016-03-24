@@ -76,13 +76,6 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
       description="which stop operator to use for the SMGCPA")
   private String stopType = "SEP";
 
-  @Option(secure = true, name = "externalAllocationSize", description = "Default size of externally allocated memory")
-  private int externalAllocationSize = Integer.MAX_VALUE;
-
-  public int getExternalAllocationSize() {
-    return externalAllocationSize;
-  }
-
   private final AbstractDomain abstractDomain;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
@@ -113,7 +106,6 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
 
     abstractDomain = DelegateAbstractDomain.<SMGState>getInstance();
     mergeOperator = MergeSepOperator.getInstance();
-    //mergeOperator = SMGMerge.getInstance();
 
     if(stopType.equals("NEVER")) {
       stopOperator = new StopNeverOperator();
@@ -161,8 +153,7 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
   }
 
   public SMGState getInitialState(CFANode pNode) {
-    SMGState initState = new SMGState(logger, machineModel, memoryErrors, unknownOnUndefined,
-        runtimeCheck, externalAllocationSize);
+    SMGState initState = new SMGState(logger, machineModel, memoryErrors, unknownOnUndefined, runtimeCheck);
 
     try {
       initState.performConsistencyCheck(SMGRuntimeCheck.FULL);

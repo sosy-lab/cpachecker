@@ -28,9 +28,6 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
@@ -54,26 +51,11 @@ public class ToCodeFormulaVisitor
             Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>>,
             ExpressionTree<String>> {
 
-  private static final CSimpleType[] TYPES = new CSimpleType[] {
-    CNumericTypes.SIGNED_CHAR,
-    CNumericTypes.UNSIGNED_CHAR,
-    CNumericTypes.SHORT_INT,
-    CNumericTypes.UNSIGNED_SHORT_INT,
-    CNumericTypes.INT,
-    CNumericTypes.SIGNED_INT,
-    CNumericTypes.UNSIGNED_INT,
-    CNumericTypes.LONG_INT,
-    CNumericTypes.UNSIGNED_LONG_INT,
-    CNumericTypes.LONG_LONG_INT,
-    CNumericTypes.UNSIGNED_LONG_LONG_INT};
-
   /**
    * The formula evaluation visitor used to evaluate compound state invariants
    * formulae to compound states.
    */
   private final FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor;
-
-  private final MachineModel machineModel;
 
   /**
    * Creates a new visitor for converting compound state invariants formulae to
@@ -81,24 +63,9 @@ public class ToCodeFormulaVisitor
    *
    * @param pEvaluationVisitor the formula evaluation visitor used to evaluate
    * compound state invariants formulae to compound states.
-   * @param pMachineModel the machine model used to find the cast types.
    */
-  public ToCodeFormulaVisitor(FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor, MachineModel pMachineModel) {
+  public ToCodeFormulaVisitor(FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
     this.evaluationVisitor = pEvaluationVisitor;
-    this.machineModel = pMachineModel;
-  }
-
-  private CSimpleType determineType(BitVectorInfo pBitVectorInfo) {
-    int sizeOfChar = machineModel.getSizeofCharInBits();
-    int size = pBitVectorInfo.getSize();
-    boolean isSigned = pBitVectorInfo.isSigned();
-    for (CSimpleType type : TYPES) {
-      if (machineModel.isSigned(type) == isSigned
-          && machineModel.getSizeof(type) * sizeOfChar >= size) {
-        return type;
-      }
-    }
-    return CNumericTypes.INT;
   }
 
   /**
@@ -143,10 +110,7 @@ public class ToCodeFormulaVisitor
       value = value.and(BigInteger.valueOf(2).pow(size).subtract(BigInteger.valueOf(1)));
     }
     String result = value.toString();
-    if (!pBitVectorInfo.isSigned()) {
-      result += "U";
-    }
-    if (pBitVectorInfo.getSize() > 32) {
+    if (pBitVectorInfo.isSigned() && value.compareTo(BigInteger.ZERO) < 0 && pBitVectorInfo.getSize() > 32) {
       result += "LL";
     }
     return result;
@@ -154,46 +118,12 @@ public class ToCodeFormulaVisitor
 
   @Override
   public String visit(Add<CompoundInterval> pAdd, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    NumeralFormula<CompoundInterval> summand1 = pAdd.getSummand1();
-    NumeralFormula<CompoundInterval> summand2 = pAdd.getSummand2();
-    String summand1Str = summand1.accept(this, pEnvironment);
-    String summand2Str = summand2.accept(this, pEnvironment);
-    if (summand1Str == null || summand2Str == null) {
+    String summand1 = pAdd.getSummand1().accept(this, pEnvironment);
+    String summand2 = pAdd.getSummand2().accept(this, pEnvironment);
+    if (summand1 == null || summand2 == null) {
       return evaluate(pAdd, pEnvironment);
     }
-    NumeralFormula<CompoundInterval> negated = getNegated(summand1);
-    String negatedStr = negated == null ? null : negated.accept(this, pEnvironment);
-    if (negatedStr != null) {
-      return "(" + summand2Str + " - " + negatedStr + ")";
-    }
-    negated = getNegated(summand2);
-    negatedStr = negated == null ? null : negated.accept(this, pEnvironment);
-    if (negated != null) {
-      return "(" + summand1Str + " - " + negatedStr + ")";
-    }
-    return "(" + summand1Str + " + " + summand2Str + ")";
-  }
-
-  private NumeralFormula<CompoundInterval> getNegated(NumeralFormula<CompoundInterval> pFormula) {
-    if (!(pFormula instanceof Multiply)) {
-      return null;
-    }
-    Multiply<CompoundInterval> multiply = (Multiply<CompoundInterval>) pFormula;
-    if (multiply.getFactor1() instanceof Constant) {
-      Constant<CompoundInterval> constant = (Constant<CompoundInterval>) multiply.getFactor1();
-      CompoundInterval value = constant.getValue();
-      if (value.isSingleton() && value.contains(BigInteger.valueOf(-1))) {
-        return multiply.getFactor2();
-      }
-    }
-    if (multiply.getFactor2() instanceof Constant) {
-      Constant<CompoundInterval> constant = (Constant<CompoundInterval>) multiply.getFactor2();
-      CompoundInterval value = constant.getValue();
-      if (value.isSingleton() && value.contains(BigInteger.valueOf(-1))) {
-        return multiply.getFactor1();
-      }
-    }
-    return null;
+    return "(" + summand1 + " + " + summand2 + ")";
   }
 
   @Override
@@ -254,11 +184,6 @@ public class ToCodeFormulaVisitor
     if (factor1 == null || factor2 == null) {
       return evaluate(pMultiply, pEnvironment);
     }
-    NumeralFormula<CompoundInterval> negated = getNegated(pMultiply);
-    String negatedStr = negated == null ? null : negated.accept(this, pEnvironment);
-    if (negatedStr != null) {
-      return "(-" + negatedStr + ")";
-    }
     return "(" + factor1 + " * " + factor2 + ")";
   }
 
@@ -290,12 +215,11 @@ public class ToCodeFormulaVisitor
     int sourceSize = sourceInfo.getSize();
     int targetSize = targetInfo.getSize();
     String sourceFormula = pCast.getCasted().accept(this, pEnvironment);
-    if (sourceSize == targetSize && sourceInfo.isSigned() == targetInfo.isSigned()
-        || sourceFormula == null) {
+    if (sourceSize == targetSize || sourceFormula == null) {
       return sourceFormula;
     }
-    CSimpleType castType = determineType(targetInfo);
-    return String.format("(%s) %s", castType, sourceFormula);
+    // TODO correct casts
+    return sourceFormula;
   }
 
   @Override
@@ -341,14 +265,13 @@ public class ToCodeFormulaVisitor
     BitVectorInfo bitVectorInfo = pEqual.getOperand1().getBitVectorInfo();
 
     // Check not equals
-    ExpressionTree<String> inversion = ExpressionTrees.getTrue();
     CompoundInterval op1EvalInvert = pEqual.getOperand1().accept(evaluationVisitor, pEnvironment).invert();
     if (op1EvalInvert.isSingleton() && pEqual.getOperand2() instanceof Variable) {
-      inversion = And.of(inversion, not(Equal.of(Constant.of(bitVectorInfo, op1EvalInvert), pEqual.getOperand2()).accept(this, pEnvironment)));
+      return not(Equal.of(Constant.of(bitVectorInfo, op1EvalInvert), pEqual.getOperand2()).accept(this, pEnvironment));
     }
     CompoundInterval op2EvalInvert = pEqual.getOperand2().accept(evaluationVisitor, pEnvironment).invert();
     if (op2EvalInvert.isSingleton() && pEqual.getOperand1() instanceof Variable) {
-      inversion = And.of(inversion,  not(Equal.of(pEqual.getOperand1(), Constant.of(bitVectorInfo, op2EvalInvert)).accept(this, pEnvironment)));
+      return not(Equal.of(pEqual.getOperand1(), Constant.of(bitVectorInfo, op2EvalInvert)).accept(this, pEnvironment));
     }
 
     // General case
@@ -386,9 +309,9 @@ public class ToCodeFormulaVisitor
         }
         bf = Or.of(bf, intervalFormula);
       }
-      return And.of(bf, inversion);
+      return bf;
     }
-    return And.of(equal(operand1, operand2), inversion);
+    return equal(operand1, operand2);
   }
 
   @Override
@@ -460,7 +383,7 @@ public class ToCodeFormulaVisitor
     if (pOp instanceof LeafExpression) {
       return ((LeafExpression<String>) pOp).negate();
     }
-    return LeafExpression.<String>of(String.format("(!(%s))", pOp));
+    return LeafExpression.<String>of(String.format("(!%s)", pOp));
   }
 
   @Override

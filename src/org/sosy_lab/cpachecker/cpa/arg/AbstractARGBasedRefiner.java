@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
-import java.util.Collection;
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
@@ -37,8 +34,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -50,47 +45,25 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 import com.google.errorprone.annotations.ForOverride;
 
-/**
- * Base implementation for {@link Refiner}s that provides access to ARG utilities
- * (e.g., it provide an error path to the actual refinement code).
- *
- * To use this, implement {@link ARGBasedRefiner} and call
- * {@link AbstractARGBasedRefiner#forARGBasedRefiner(ARGBasedRefiner, ConfigurableProgramAnalysis)}.
- */
-public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
+public abstract class AbstractARGBasedRefiner implements Refiner {
 
   private int refinementNumber;
 
-  private final ARGBasedRefiner refiner;
   private final ARGCPA argCpa;
   private final LogManager logger;
 
   private int counterexamplesCounter = 0;
 
-  protected AbstractARGBasedRefiner(ARGBasedRefiner pRefiner, ARGCPA pCpa, LogManager pLogger) {
-    refiner = pRefiner;
-    argCpa = pCpa;
-    logger = pLogger;
-  }
-
-  /**
-   * Create a {@link Refiner} instance from a {@link ARGBasedRefiner} instance.
-   */
-  public static Refiner forARGBasedRefiner(
-      final ARGBasedRefiner pRefiner, final ConfigurableProgramAnalysis pCpa)
-      throws InvalidConfigurationException {
-    checkArgument(
-        !(pRefiner instanceof Refiner),
-        "ARGBasedRefiners may not implement Refiner, choose between these two!");
-
-    if (!(pCpa instanceof WrapperCPA)) {
+  protected AbstractARGBasedRefiner(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
+    if (pCpa instanceof WrapperCPA) {
+      argCpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(ARGCPA.class);
+    } else {
       throw new InvalidConfigurationException("ARG CPA needed for refinement");
     }
-    ARGCPA argCpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(ARGCPA.class);
     if (argCpa == null) {
       throw new InvalidConfigurationException("ARG CPA needed for refinement");
     }
-    return new AbstractARGBasedRefiner(pRefiner, argCpa, argCpa.getLogger());
+    this.logger = argCpa.getLogger();
   }
 
   private static final Function<CFAEdge, String> pathToFunctionCalls
@@ -127,7 +100,7 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
 
     final CounterexampleInfo counterexample;
     try {
-      counterexample = performRefinementForPath(reached, path);
+      counterexample = performRefinement(reached, path);
     } catch (RefinementFailedException e) {
       if (e.getErrorPath() == null) {
         e.setErrorPath(path);
@@ -171,10 +144,8 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
    * @param pPath the potential error path
    * @return Information about the counterexample.
    */
-  protected CounterexampleInfo performRefinementForPath(ARGReachedSet pReached, ARGPath pPath)
-      throws CPAException, InterruptedException {
-    return refiner.performRefinementForPath(pReached, pPath);
-  }
+  protected abstract CounterexampleInfo performRefinement(ARGReachedSet pReached, ARGPath pPath)
+            throws CPAException, InterruptedException;
 
   /**
    * This method may be overwritten if the standard behavior of <code>ARGUtils.getOnePathTo()</code> is not
@@ -192,17 +163,5 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
   @Nullable
   protected ARGPath computePath(ARGState pLastElement, ARGReachedSet pReached) throws InterruptedException, CPATransferException {
     return ARGUtils.getOnePathTo(pLastElement);
-  }
-
-  @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (refiner instanceof StatisticsProvider) {
-      ((StatisticsProvider) refiner).collectStatistics(pStatsCollection);
-    }
-  }
-
-  @Override
-  public String toString() {
-    return refiner.toString();
   }
 }

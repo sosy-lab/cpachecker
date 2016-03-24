@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
  */
 public enum MachineModel {
   /**
-   * Machine model representing a 32bit Linux machine with alignment:
+   * Machine model representing a 32bit Linux machine
    */
   LINUX32(
       // numeric types
@@ -65,25 +65,11 @@ public enum MachineModel {
       // other
       1, // void
       1, // bool
-      4, // pointer
-
-      // alignof numeric types
-      2, // short
-      4, //int
-      4, //long int
-      8, // long long int
-      4, //float
-      4, //double
-      4, //long double
-
-      // alignof other
-      1, // void
-      1, //bool
-      4  //pointer
-  ),
+      4  // pointer
+      ),
 
   /**
-   * Machine model representing a 64bit Linux machine with alignment:
+   * Machine model representing a 64bit Linux machine
    */
   LINUX64(
       // numeric types
@@ -98,22 +84,8 @@ public enum MachineModel {
       // other
       1, // void
       1, // bool
-      8, // pointer
-
-      //  alignof numeric types
-      2,  // short
-      4,  // int
-      8,  // long int
-      8,  // long long int
-      4,  // float
-      8,  // double
-      16, // long double
-
-      // alignof other
-      1, // void
-      1, // bool
       8  // pointer
-  );
+      );
 
   // numeric types
   private final int     sizeofShort;
@@ -129,50 +101,16 @@ public enum MachineModel {
   private final int     sizeofBool;
   private final int     sizeofPtr;
 
-
-  // alignof numeric types
-  private final int     alignofShort;
-  private final int     alignofInt;
-  private final int     alignofLongInt;
-  private final int     alignofLongLongInt;
-  private final int     alignofFloat;
-  private final int     alignofDouble;
-  private final int     alignofLongDouble;
-
-  // alignof other
-  private final int     alignofVoid;
-  private final int     alignofBool;
-  private final int     alignofPtr;
-
   // according to ANSI C, sizeof(char) is always 1
   private final int mSizeofChar = 1;
-  private final int mAlignofChar = 1;
 
   // a char is always a byte, but a byte doesn't have to be 8 bits
   private final int mSizeofCharInBits = 8;
   private final CSimpleType ptrEquivalent;
 
-  private MachineModel(
-      int pSizeofShort,
-      int pSizeofInt,
-      int pSizeofLongInt,
-      int pSizeofLongLongInt,
-      int pSizeofFloat,
-      int pSizeofDouble,
-      int pSizeofLongDouble,
-      int pSizeofVoid,
-      int pSizeofBool,
-      int pSizeOfPtr,
-      int pAlignofShort,
-      int pAlignofInt,
-      int pAlignofLongInt,
-      int pAlignofLongLongInt,
-      int pAlignofFloat,
-      int pAlignofDouble,
-      int pAlignofLongDouble,
-      int pAlignofVoid,
-      int pAlignofBool,
-      int pAlignofPtr) {
+  private MachineModel(int pSizeofShort, int pSizeofInt, int pSizeofLongInt,
+      int pSizeofLongLongInt, int pSizeofFloat, int pSizeofDouble,
+      int pSizeofLongDouble, int pSizeofVoid, int pSizeofBool, int pSizeOfPtr) {
     sizeofShort = pSizeofShort;
     sizeofInt = pSizeofInt;
     sizeofLongInt = pSizeofLongInt;
@@ -183,17 +121,6 @@ public enum MachineModel {
     sizeofVoid = pSizeofVoid;
     sizeofBool = pSizeofBool;
     sizeofPtr = pSizeOfPtr;
-
-    alignofShort = pAlignofShort;
-    alignofInt = pAlignofInt;
-    alignofLongInt = pAlignofLongInt;
-    alignofLongLongInt = pAlignofLongLongInt;
-    alignofFloat = pAlignofFloat;
-    alignofDouble = pAlignofDouble;
-    alignofLongDouble = pAlignofLongDouble;
-    alignofVoid = pAlignofVoid;
-    alignofBool = pAlignofBool;
-    alignofPtr = pAlignofPtr;
 
     if (sizeofPtr == sizeofInt) {
       ptrEquivalent = CNumericTypes.INT;
@@ -351,77 +278,6 @@ public enum MachineModel {
     return getSizeof(type) * getSizeofCharInBits();
   }
 
-  public int getAlignofShort() {
-    return alignofShort;
-  }
-
-  public int getAlignofInt() {
-    return alignofInt;
-  }
-
-  public int getAlignofLongInt() {
-    return alignofLongInt;
-  }
-
-  public int getAlignofLongLongInt() {
-    return alignofLongLongInt;
-  }
-
-  public int getAlignofFloat() {
-    return alignofFloat;
-  }
-
-  public int getAlignofDouble() {
-    return alignofDouble;
-  }
-
-  public int getAlignofLongDouble() {
-    return alignofLongDouble;
-  }
-
-  public int getAlignofVoid() {
-    return alignofVoid;
-  }
-
-  public int getAlignofBool() {
-    return alignofBool;
-  }
-
-  public int getAlignofChar() {
-    return mAlignofChar;
-  }
-
-  public int getAlignofPtr() {
-    return alignofPtr;
-  }
-
-  public int getAlignof(CSimpleType type) {
-    switch (type.getType()) {
-      case BOOL:        return getAlignofBool();
-      case CHAR:        return getAlignofChar();
-      case FLOAT:       return getAlignofFloat();
-      case UNSPECIFIED: // unspecified is the same as int
-      case INT:
-        if (type.isLongLong()) {
-          return getAlignofLongLongInt();
-        } else if (type.isLong()) {
-          return getAlignofLongInt();
-        } else if (type.isShort()) {
-          return getAlignofShort();
-        } else {
-          return getAlignofInt();
-        }
-      case DOUBLE:
-        if (type.isLong()) {
-          return getAlignofLongDouble();
-        } else {
-          return getAlignofDouble();
-        }
-      default:
-        throw new AssertionError("Unrecognized CBasicType " + type.getType());
-    }
-  }
-
   /** returns INT, if the type is smaller than INT, else the type itself. */
   public CSimpleType getPromotedCType(CSimpleType pType) {
 
@@ -515,10 +371,8 @@ public enum MachineModel {
       int size = 0;
       // TODO: Take possible padding into account
       for (CCompositeTypeMemberDeclaration decl : pCompositeType.getMembers()) {
-        size += model.getPadding(size, decl.getType());
         size += decl.getType().accept(this);
       }
-      size += model.getPadding(size, pCompositeType);
       return size;
     }
 
@@ -617,14 +471,15 @@ public enum MachineModel {
       switch (pCompositeType.getKind()) {
         case STRUCT:
         case UNION:
-          int alignof = 1;
-          int alignOfType = 0;
+
+          int size = 0;
+          int sizeOfType = 0;
           // TODO: Take possible padding into account
           for (CCompositeTypeMemberDeclaration decl : pCompositeType.getMembers()) {
-            alignOfType = decl.getType().accept(this);
-            alignof = Math.max(alignof, alignOfType);
+            sizeOfType = decl.getType().accept(this);
+            size = Math.max(size, sizeOfType);
           }
-          return alignof;
+          return size;
 
         case ENUM: // There is no such kind of Composite Type.
         default: throw new AssertionError();
@@ -639,7 +494,7 @@ public enum MachineModel {
     @Override
     public Integer visit(CEnumType pEnumType) throws IllegalArgumentException {
       // enums are always ints
-      return model.getAlignofInt();
+      return model.getSizeofInt();
     }
 
     @Override
@@ -650,7 +505,8 @@ public enum MachineModel {
 
     @Override
     public Integer visit(CPointerType pPointerType) throws IllegalArgumentException {
-      return model.getAlignofPtr();
+      // for now we assume that for pointer types alignof has the same value as sizeof
+      return model.getSizeofPtr();
     }
 
     @Override
@@ -660,7 +516,8 @@ public enum MachineModel {
 
     @Override
     public Integer visit(CSimpleType pSimpleType) throws IllegalArgumentException {
-      return model.getAlignof(pSimpleType);
+      // for now we assume that for simple types alignof has the same values as sizeof
+      return model.getSizeof(pSimpleType);
     }
 
     @Override
@@ -670,20 +527,11 @@ public enum MachineModel {
 
     @Override
     public Integer visit(CVoidType pVoidType) throws IllegalArgumentException {
-      return model.getAlignofVoid();
+      return model.getSizeofVoid();
     }
   }
 
   public int getAlignof(CType type) {
     return type.accept(alignofVisitor);
-  }
-
-  public int getPadding(int pOffset, CType pType) {
-    int alignof = getAlignof(pType);
-    int padding = alignof - (pOffset % alignof);
-    if (padding < alignof) {
-      return padding;
-    }
-    return 0;
   }
 }

@@ -27,7 +27,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
@@ -52,9 +51,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
@@ -162,18 +159,10 @@ public class EdgeAnalyzer {
       if (returnStatementEdge.getExpression().isPresent()) {
         AExpression returnExpression = returnStatementEdge.getExpression().get();
         Map<MemoryLocation, CType> result = new HashMap<>();
-            Optional<? extends AAssignment> returnAssignment = returnStatementEdge.asAssignment();
-            if (returnAssignment.isPresent()) {
-              result.putAll(getInvolvedVariableTypes(returnAssignment.get(), pCfaEdge));
-            } else {
-              Optional<? extends AVariableDeclaration> retVar =
-                  returnStatementEdge.getSuccessor().getEntryNode().getReturnVariable();
-              if (retVar.isPresent()) {
-                CExpression idExpression =
-                    new CIdExpression(
-                        returnStatementEdge.getFileLocation(), (CSimpleDeclaration) retVar.get());
-                result.putAll(getInvolvedVariableTypes(idExpression, pCfaEdge));
-              }
+        Optional<? extends AVariableDeclaration> retVar = returnStatementEdge.getSuccessor().getEntryNode().getReturnVariable();
+        if (retVar.isPresent()) {
+          CType type = (CType) retVar.get().getType();
+          result.put(MemoryLocation.valueOf(retVar.get().getQualifiedName()), type);
         }
         result.putAll(getInvolvedVariableTypes(returnExpression, pCfaEdge));
         return result;
@@ -184,11 +173,22 @@ public class EdgeAnalyzer {
       AStatementEdge statementEdge = (AStatementEdge) pCfaEdge;
       AStatement statement = statementEdge.getStatement();
       if (statement instanceof AExpressionAssignmentStatement) {
-            return getInvolvedVariableTypes((AExpressionAssignmentStatement) statement, pCfaEdge);
+        AExpressionAssignmentStatement expressionAssignmentStatement = (AExpressionAssignmentStatement) statement;
+        Map<MemoryLocation, CType> result = new HashMap<>();
+        result.putAll(getInvolvedVariableTypes(expressionAssignmentStatement.getLeftHandSide(), pCfaEdge));
+        result.putAll(getInvolvedVariableTypes(expressionAssignmentStatement.getRightHandSide(), pCfaEdge));
+        return result;
       } else if (statement instanceof AExpressionStatement) {
         return getInvolvedVariableTypes(((AExpressionStatement) statement).getExpression(), pCfaEdge);
       } else if (statement instanceof AFunctionCallAssignmentStatement) {
-            return getInvolvedVariableTypes((AFunctionCallAssignmentStatement) statement, pCfaEdge);
+        AFunctionCallAssignmentStatement functionCallAssignmentStatement = (AFunctionCallAssignmentStatement) statement;
+        Map<MemoryLocation, CType> result = new HashMap<>();
+        result.putAll(getInvolvedVariableTypes(functionCallAssignmentStatement.getLeftHandSide(), pCfaEdge));
+        AFunctionCallExpression functionCallExpression = functionCallAssignmentStatement.getFunctionCallExpression();
+        for (AExpression expression : functionCallExpression.getParameterExpressions()) {
+          result.putAll(getInvolvedVariableTypes(expression, pCfaEdge));
+        }
+        return result;
       } else if (statement instanceof AFunctionCallStatement) {
         AFunctionCallStatement functionCallStatement = (AFunctionCallStatement) statement;
         Map<MemoryLocation, CType> result = new HashMap<>();
@@ -211,22 +211,7 @@ public class EdgeAnalyzer {
           Map<MemoryLocation, CType> result = new HashMap<>();
           Optional<? extends AVariableDeclaration> retVar = functionReturnEdge.getFunctionEntry().getReturnVariable();
           if (retVar.isPresent()) {
-              AExpression idExpression =
-                  new CIdExpression(
-                      functionReturnEdge.getFileLocation(), (CSimpleDeclaration) retVar.get());
-              idExpression =
-                  ExpressionToFormulaVisitor.makeCastFromArrayToPointerIfNecessary(
-                      idExpression,
-                      functionCallAssignmentStatement.getLeftHandSide().getExpressionType());
-              result.putAll(
-                  getInvolvedVariableTypes(
-                      idExpression,
-                      new MemoryLocationExtractor(
-                          compoundIntervalManagerFactory,
-                          machineModel,
-                          functionReturnEdge.getPredecessor().getFunctionName(),
-                          Collections
-                              .<MemoryLocation, NumeralFormula<CompoundInterval>>emptyMap())));
+            result.put(MemoryLocation.valueOf(retVar.get().getQualifiedName()), (CType) retVar.get().getType());
           }
           result.putAll(getInvolvedVariableTypes(functionCallAssignmentStatement.getLeftHandSide(), pCfaEdge));
           return result;
@@ -238,38 +223,6 @@ public class EdgeAnalyzer {
     default:
       return Collections.emptyMap();
     }
-  }
-
-  private Map<MemoryLocation, CType> getInvolvedVariableTypes(
-      AAssignment pAssignment, CFAEdge pCfaEdge) {
-    if (pAssignment instanceof AExpressionAssignmentStatement) {
-      AExpressionAssignmentStatement expressionAssignmentStatement =
-          (AExpressionAssignmentStatement) pAssignment;
-      Map<MemoryLocation, CType> result = new HashMap<>();
-      result.putAll(
-          getInvolvedVariableTypes(expressionAssignmentStatement.getLeftHandSide(), pCfaEdge));
-      result.putAll(
-          getInvolvedVariableTypes(
-              ExpressionToFormulaVisitor.makeCastFromArrayToPointerIfNecessary(
-                  expressionAssignmentStatement.getRightHandSide(),
-                  expressionAssignmentStatement.getLeftHandSide().getExpressionType()),
-              pCfaEdge));
-      return result;
-    }
-    if (pAssignment instanceof AFunctionCallAssignmentStatement) {
-      AFunctionCallAssignmentStatement functionCallAssignmentStatement =
-          (AFunctionCallAssignmentStatement) pAssignment;
-      Map<MemoryLocation, CType> result = new HashMap<>();
-      result.putAll(
-          getInvolvedVariableTypes(functionCallAssignmentStatement.getLeftHandSide(), pCfaEdge));
-      AFunctionCallExpression functionCallExpression =
-          functionCallAssignmentStatement.getFunctionCallExpression();
-      for (AExpression expression : functionCallExpression.getParameterExpressions()) {
-        result.putAll(getInvolvedVariableTypes(expression, pCfaEdge));
-      }
-      return result;
-    }
-    return Collections.emptyMap();
   }
 
   private Map<? extends MemoryLocation, ? extends CType> getInvolvedVariableTypes(AParameterDeclaration pParameter,
@@ -343,10 +296,8 @@ public class EdgeAnalyzer {
       for (ALeftHandSide leftHandSide : ((CExpression) pExpression).accept(LHSVisitor.INSTANCE)) {
         NumeralFormula<CompoundInterval> formula;
         try {
-          ExpressionToFormulaVisitor etfv =
-              new ExpressionToFormulaVisitor(
-                  compoundIntervalManagerFactory, machineModel, pVariableNameExtractor);
-          formula = ((CExpression) leftHandSide).accept(etfv);
+          formula = ((CExpression) leftHandSide).accept(
+              new ExpressionToFormulaVisitor(compoundIntervalManagerFactory, machineModel, pVariableNameExtractor));
 
           for (MemoryLocation memoryLocation : formula.accept(COLLECT_VARS_VISITOR)) {
             result.put(memoryLocation, (CType) leftHandSide.getExpressionType());
@@ -401,33 +352,18 @@ public class EdgeAnalyzer {
 
     @Override
     public Iterable<ALeftHandSide> visit(CBinaryExpression pIastBinaryExpression) {
-      CExpression operand1 = pIastBinaryExpression.getOperand1();
-      CExpression operand2 = pIastBinaryExpression.getOperand2();
-      operand1 =
-          ExpressionToFormulaVisitor.makeCastFromArrayToPointerIfNecessary(
-              operand1, pIastBinaryExpression.getCalculationType());
-      operand2 =
-          ExpressionToFormulaVisitor.makeCastFromArrayToPointerIfNecessary(
-              operand2, pIastBinaryExpression.getCalculationType());
-      return Iterables.concat(operand1.accept(this), operand2.accept(this));
+      return Iterables.concat(pIastBinaryExpression.getOperand1().accept(this), pIastBinaryExpression.getOperand2()
+          .accept(this));
     }
 
     @Override
     public Iterable<ALeftHandSide> visit(CCastExpression pIastCastExpression) {
-      return ExpressionToFormulaVisitor.makeCastFromArrayToPointerIfNecessary(
-              pIastCastExpression.getOperand(), pIastCastExpression.getCastType())
-          .accept(this);
+      return pIastCastExpression.getOperand().accept(this);
     }
 
     @Override
     public Iterable<ALeftHandSide> visit(CUnaryExpression pIastUnaryExpression) {
-      CExpression operand = pIastUnaryExpression.getOperand();
-      if (pIastUnaryExpression.getOperator() != UnaryOperator.AMPER) {
-        operand =
-            ExpressionToFormulaVisitor.makeCastFromArrayToPointerIfNecessary(
-                operand, pIastUnaryExpression.getExpressionType());
-      }
-      return operand.accept(this);
+      return pIastUnaryExpression.getOperand().accept(this);
     }
   }
 }

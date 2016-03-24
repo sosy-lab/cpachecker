@@ -54,15 +54,9 @@ public class ToFormulaVisitor
 
   private final PathFormulaManager pathFormulaManager;
 
-  private final PathFormula context;
-
-  public ToFormulaVisitor(
-      FormulaManagerView pFormulaManagerView,
-      PathFormulaManager pPathFormulaManager,
-      PathFormula pClearContext) {
-    formulaManagerView = Objects.requireNonNull(pFormulaManagerView);
-    pathFormulaManager = Objects.requireNonNull(pPathFormulaManager);
-    context = pClearContext;
+  public ToFormulaVisitor(FormulaManagerView pFormulaManagerView, PathFormulaManager pPathFormulaManager) {
+    formulaManagerView = pFormulaManagerView;
+    pathFormulaManager = pPathFormulaManager;
   }
 
   @Override
@@ -97,13 +91,7 @@ public class ToFormulaVisitor
     }
     PathFormula invariantPathFormula;
     try {
-      if (context == null) {
-        invariantPathFormula =
-            pathFormulaManager.makeFormulaForPath(Collections.<CFAEdge>singletonList(edge));
-      } else {
-        PathFormula clearContext = pathFormulaManager.makeEmptyPathFormula(context);
-        invariantPathFormula = pathFormulaManager.makeAnd(clearContext, edge);
-      }
+      invariantPathFormula = pathFormulaManager.makeFormulaForPath(Collections.<CFAEdge>singletonList(edge));
     } catch (CPATransferException e) {
       throw new ToFormulaException(e);
     } catch (InterruptedException e) {

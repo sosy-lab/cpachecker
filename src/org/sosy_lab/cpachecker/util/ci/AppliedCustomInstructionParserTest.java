@@ -36,10 +36,11 @@ import java.util.Map.Entry;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
-import org.sosy_lab.common.log.TestLogManager;
+import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -63,7 +64,7 @@ public class AppliedCustomInstructionParserTest {
   private List<CLabelNode> labelNodes;
 
   @Before
-  public void init() throws IOException, ParserException, InterruptedException {
+  public void init() throws IOException, ParserException, InterruptedException, InvalidConfigurationException {
     String testProgram = ""
           + "extern int test3(int);"
           + "int test(int p) {"
@@ -106,7 +107,7 @@ public class AppliedCustomInstructionParserTest {
     aciParser =
         new AppliedCustomInstructionParser(
             ShutdownNotifier.createDummy(),
-            TestLogManager.getInstance(),
+            new BasicLogManager(TestDataTools.configurationForTest().build()),
             cfa);
     GlobalInfo.getInstance().storeCFA(cfa);
     cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
@@ -217,7 +218,7 @@ public class AppliedCustomInstructionParserTest {
   }
 
   @Test
-  public void testParse() throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException, SecurityException, ParserException {
+  public void testParse() throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException, SecurityException, ParserException, InvalidConfigurationException {
     String testProgram = ""
         + "void main() {"
           + "int x;"
@@ -234,7 +235,7 @@ public class AppliedCustomInstructionParserTest {
     aciParser =
         new AppliedCustomInstructionParser(
             ShutdownNotifier.createDummy(),
-            TestLogManager.getInstance(),
+            new BasicLogManager(TestDataTools.configurationForTest().build()),
             cfa);
     Path p = Paths.createTempPath("test_acis", null);
     try (Writer file = Files.openOutputFile(p)) {
@@ -263,7 +264,7 @@ public class AppliedCustomInstructionParserTest {
     }
     int startNodeNr = expectedStart.getNodeNumber();
 
-    CustomInstructionApplications cia = aciParser.parse(p, Paths.createTempPath("ci_spec", "txt"));
+    CustomInstructionApplications cia = aciParser.parse(p);
     Map<CFANode, AppliedCustomInstruction> cis = cia.getMapping();
     Truth.assertThat(cis.size()).isEqualTo(4);
     List<CFANode> aciNodes = new ArrayList<>(2);

@@ -40,14 +40,11 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 
 
 public class TargetLocationProviderImpl implements TargetLocationProvider {
@@ -71,13 +68,15 @@ public class TargetLocationProviderImpl implements TargetLocationProvider {
     allNodes = ImmutableSet.copyOf(cfa.getAllNodes());
   }
 
+  /* (non-Javadoc)
+   * @see org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider#tryGetAutomatonTargetLocations(org.sosy_lab.cpachecker.cfa.model.CFANode)
+   */
   @Override
-  public ImmutableSet<CFANode> tryGetAutomatonTargetLocations(
-      CFANode pRootNode, Optional<Automaton> pAutomaton) {
+  public ImmutableSet<CFANode> tryGetAutomatonTargetLocations(CFANode pRootNode) {
     try {
       // Create new configuration with default set of CPAs
       ConfigurationBuilder configurationBuilder = Configuration.builder();
-      if (!pAutomaton.isPresent() && config.hasProperty(specificationPropertyName)) {
+      if (config.hasProperty(specificationPropertyName)) {
         configurationBuilder.copyOptionFrom(config, specificationPropertyName);
       }
       configurationBuilder.setOption("output.disable", "true");
@@ -86,14 +85,7 @@ public class TargetLocationProviderImpl implements TargetLocationProvider {
 
       Configuration configuration = configurationBuilder.build();
       CPABuilder cpaBuilder = new CPABuilder(configuration, logManager, shutdownNotifier, reachedSetFactory);
-      final ConfigurableProgramAnalysis cpa;
-      if (pAutomaton.isPresent()) {
-        cpa =
-            cpaBuilder.buildsCPAWithWitnessAutomataAndSpecification(
-                cfa, Lists.newArrayList(pAutomaton.get()));
-      } else {
-        cpa = cpaBuilder.buildCPAWithSpecAutomatas(cfa);
-      }
+      ConfigurableProgramAnalysis cpa = cpaBuilder.buildCPAWithSpecAutomatas(cfa);
 
       ReachedSet reached = reachedSetFactory.create();
       reached.add(
@@ -137,13 +129,5 @@ public class TargetLocationProviderImpl implements TargetLocationProvider {
       }
       return allNodes;
     }
-  }
-
-  /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider#tryGetAutomatonTargetLocations(org.sosy_lab.cpachecker.cfa.model.CFANode)
-   */
-  @Override
-  public ImmutableSet<CFANode> tryGetAutomatonTargetLocations(CFANode pRootNode) {
-    return tryGetAutomatonTargetLocations(pRootNode, Optional.<Automaton>absent());
   }
 }

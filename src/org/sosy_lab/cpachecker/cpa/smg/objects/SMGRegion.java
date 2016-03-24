@@ -82,7 +82,7 @@ public final class SMGRegion extends SMGObject implements SMGObjectTemplate {
       // know how to join with me
       return pOther.join(this);
     } else if (getSize() == pOther.getSize()) {
-      return this;
+      return new SMGRegion(this);
     }
     throw new UnsupportedOperationException("join() called on incompatible SMGObjects");
   }

@@ -577,9 +577,7 @@ class WebInterface:
 
                     if option == "-heap":
                         params['heap'] = next(i)
-                    elif option == "-stack":
-                        params['stack'] = next(i)
-                        
+
                     elif option == "-noout":
                         options.append("output.disable=true")
                     elif option == "-outputpath":

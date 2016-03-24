@@ -1,14 +1,9 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -19,7 +14,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.cpa.formulaslicing.CEXWeakeningManager.SELECTION_STRATEGY;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -28,11 +22,13 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.FunctionDeclaration;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
+import org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -83,7 +79,12 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     /**
      * Select literals to abstract based on the counterexamples-to-induction.
      */
-    CEX
+    CEX,
+
+    /**
+     * Convert the input to semi-CNF and use the CEX-based strategy afterwards.
+     */
+    FACTORIZATION
   }
 
   private final FormulaManagerView fmgr;
@@ -93,71 +94,27 @@ public class InductiveWeakeningManager implements StatisticsProvider {
   private final SyntacticWeakeningManager syntacticWeakeningManager;
   private final DestructiveWeakeningManager destructiveWeakeningManager;
   private final CEXWeakeningManager cexWeakeningManager;
-  private final ShutdownNotifier shutdownNotifier;
-
-  private static final String SELECTOR_VAR_TEMPLATE = "_FS_SEL_VAR_";
+  private final SemiCNFManager semiCNFManager;
 
   public InductiveWeakeningManager(
       Configuration config,
+      FormulaManagerView pFmgr,
       Solver pSolver,
-      LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
-    shutdownNotifier = pShutdownNotifier;
+      LogManager pLogger
+  ) throws InvalidConfigurationException {
     config.inject(this);
 
     statistics = new InductiveWeakeningStatistics();
-    fmgr = pSolver.getFormulaManager();
+    fmgr = pFmgr;
     logger = pLogger;
     bfmgr = fmgr.getBooleanFormulaManager();
     syntacticWeakeningManager = new SyntacticWeakeningManager(fmgr);
     destructiveWeakeningManager = new DestructiveWeakeningManager(statistics, pSolver, fmgr,
         logger, config);
-    cexWeakeningManager = new CEXWeakeningManager(
-        fmgr, pSolver, logger, statistics, config, shutdownNotifier);
+    cexWeakeningManager = new CEXWeakeningManager(fmgr, pSolver, logger, statistics, config);
+    semiCNFManager = new SemiCNFManager(fmgr);
   }
 
-
-  /**
-   * @return Set of semi-clauses which remain inductive under the transition.
-   */
-  public Set<BooleanFormula> findInductiveWeakeningForSemiCNF(
-      final SSAMap startingSSA,
-      Set<BooleanFormula> uninstantiatedClauses,
-      PathFormula transition,
-      BooleanFormula strengthening
-      )
-      throws SolverException, InterruptedException {
-    Preconditions.checkState(weakeningStrategy != WEAKENING_STRATEGY.DESTRUCTIVE,
-        "Destructive weakening is not supported for semiCNF mode, use CEX-based one instead");
-
-    // Mapping from selectors to the items they annotate.
-    final BiMap<BooleanFormula, BooleanFormula> selectionInfo = HashBiMap.create();
-
-    BooleanFormula input = annotateConjunctions(
-        fmgr.instantiate(new ArrayList<>(uninstantiatedClauses), startingSSA),
-        selectionInfo
-    );
-
-    BooleanFormula primed = fmgr.instantiate(input, transition.getSsa());
-    BooleanFormula query = bfmgr.and(
-        ImmutableList.of(input, transition.getFormula(), bfmgr.not(primed), strengthening));
-
-    cexWeakeningManager.setRemovalSelectionStrategy(SELECTION_STRATEGY.ALL);
-    Set<BooleanFormula> toAbstract = findSelectorsToAbstract(
-        selectionInfo, transition, primed, query, ImmutableSet.<BooleanFormula>of());
-
-    HashSet<BooleanFormula> out = new HashSet<>();
-    for (BooleanFormula o : uninstantiatedClauses) {
-      if (!toAbstract.contains(selectionInfo.inverse().get(
-          fmgr.instantiate(o, startingSSA)
-      ))) {
-        out.add(o);
-      } else {
-        logger.log(Level.INFO, "Dropping clause", o);
-      }
-    }
-    return out;
-  }
 
   /**
    * Find the inductive weakening of {@code input} subject to the loop
@@ -175,10 +132,24 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     logger.log(Level.FINE, "Input = " + input.getFormula());
 
 
-    // Convert to NNF
-    input = input.updateFormula(
-        fmgr.applyTactic(input.getFormula(), Tactic.NNF)
-    );
+    if (weakeningStrategy == WEAKENING_STRATEGY.FACTORIZATION) {
+      logger.log(Level.INFO, "Semi-CNF conversion is on, "
+          + "enabling disjunction-level annotation, CEX-refinement and "
+          + "cheap removal strategy");
+      selectorAnnotationMode = ANNOTATION_MODE.CONJUNCTIONS;
+      weakeningStrategy = WEAKENING_STRATEGY.CEX;
+      cexWeakeningManager.setRemovalSelectionStrategy(SELECTION_STRATEGY.FIRST);
+
+      input = input.updateFormula(
+          semiCNFManager.convert(input.getFormula())
+      );
+    } else {
+
+      // Convert to NNF
+      input = input.updateFormula(
+          fmgr.applyTactic(input.getFormula(), Tactic.NNF)
+      );
+    }
 
 
     if (input.getFormula().equals(bfmgr.makeBoolean(true))) {
@@ -191,28 +162,34 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     final ImmutableMap<BooleanFormula, BooleanFormula> selectionVarsInfo;
     Set<BooleanFormula> selectorsWithIntermediate;
     final BooleanFormula query, annotated, primed;
+    try {
+      statistics.annotationTime.start();
 
-    // Annotate conjunctions.
-    Map<BooleanFormula, BooleanFormula> varsInfoBuilder = new HashMap<>();
-    annotated = annotateWithSelectors(input.getFormula(), varsInfoBuilder);
-    logger.log(Level.FINE, "Annotated formula = " + annotated);
-    selectionVarsInfo = ImmutableMap.copyOf(varsInfoBuilder);
-    assert !selectionVarsInfo.isEmpty();
 
-    selectorsWithIntermediate = markIntermediate(selectionVarsInfo, input);
+      // Annotate conjunctions.
+      Map<BooleanFormula, BooleanFormula> varsInfoBuilder = new HashMap<>();
+      annotated = annotateWithSelectors(input.getFormula(), varsInfoBuilder);
+      logger.log(Level.FINE, "Annotated formula = " + annotated);
+      selectionVarsInfo = ImmutableMap.copyOf(varsInfoBuilder);
+      assert !selectionVarsInfo.isEmpty();
 
-    // This is possible since the formula does not have any intermediate
-    // variables.
-    primed = fmgr.instantiate(annotated, transition.getSsa());
-    BooleanFormula negated = bfmgr.not(primed);
+      selectorsWithIntermediate = markIntermediate(selectionVarsInfo, input);
 
-    // Inductiveness checking formula, injecting the known invariant "strengthening".
-    query = bfmgr.and(ImmutableList.of(
-        annotated,
-        transition.getFormula(),
-        negated,
-        strengthening
-    ));
+      // This is possible since the formula does not have any intermediate
+      // variables.
+      primed = fmgr.instantiate(fmgr.uninstantiate(annotated), transition.getSsa());
+      BooleanFormula negated = bfmgr.not(primed);
+
+      // Inductiveness checking formula, injecting the known invariant "strengthening".
+      query = bfmgr.and(ImmutableList.of(
+          annotated,
+          transition.getFormula(),
+          negated,
+          strengthening
+      ));
+    } finally {
+      statistics.annotationTime.stop();
+    }
 
     Set<BooleanFormula> selectorsToAbstract = findSelectorsToAbstract(
         selectionVarsInfo, transition, primed, query, selectorsWithIntermediate
@@ -245,6 +222,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
             query,
             selectorsWithIntermediate);
       case CEX:
+      case FACTORIZATION:
         return cexWeakeningManager.performWeakening(
             selectionVarsInfo,
             query,
@@ -293,26 +271,47 @@ public class InductiveWeakeningManager implements StatisticsProvider {
       return annotateLiterals(input, selectionVarsInfoToFill);
     } else {
       assert selectorAnnotationMode == ANNOTATION_MODE.CONJUNCTIONS;
-      return annotateConjunctions(bfmgr.toConjunctionArgs(input, true),
-          selectionVarsInfoToFill);
+      return annotateConjunctions(input, selectionVarsInfoToFill);
     }
   }
 
   private BooleanFormula annotateConjunctions(
-      Collection<BooleanFormula> pInput,
+      BooleanFormula pInput,
       final Map<BooleanFormula, BooleanFormula> pSelectionVarsInfoToFill) {
+    Optional<BooleanFormula> out =  bfmgr.visit(
+        new DefaultBooleanFormulaVisitor<Optional<BooleanFormula>>() {
+          @Override
+          protected Optional<BooleanFormula> visitDefault() {
+            return Optional.absent();
+          }
 
-    Set<BooleanFormula> annotated = new HashSet<>(pInput.size());
-    int i = -1;
-    for (BooleanFormula f : pInput) {
-      annotated.add(
-          bfmgr.or(
-              makeSelector(pSelectionVarsInfoToFill, f, ++i),
-              f
-          )
+          @Override
+          public Optional<BooleanFormula> visitAnd(List<BooleanFormula> operands) {
+            List<BooleanFormula> annotatedArgs = new ArrayList<>(operands.size());
+            int i = -1;
+            for (BooleanFormula argument : operands) {
+              annotatedArgs.add(
+                  bfmgr.or(
+                      makeSelector(pSelectionVarsInfoToFill, argument, ++i),
+                      argument
+                  )
+              );
+            }
+            return Optional.of(bfmgr.and(annotatedArgs));
+          }
+        },
+        pInput
+    );
+    if (out.isPresent()) {
+      return out.get();
+    } else {
+
+      // Annotate the single argument.
+      return bfmgr.or(
+          pInput,
+          makeSelector(pSelectionVarsInfoToFill, pInput, 0)
       );
     }
-    return bfmgr.and(annotated);
   }
 
   private BooleanFormula annotateLiterals(
@@ -320,15 +319,14 @@ public class InductiveWeakeningManager implements StatisticsProvider {
       final Map<BooleanFormula, BooleanFormula> pSelectionVarsInfoToFill) {
 
     final UniqueIdGenerator selectorId = new UniqueIdGenerator();
-
-    return bfmgr.transformRecursively(new BooleanFormulaTransformationVisitor(fmgr) {
+    return bfmgr.visit(new BooleanFormulaTransformationVisitor(fmgr) {
       @Override
       public BooleanFormula visitNot(BooleanFormula negated) {
         return annotate(bfmgr.not(negated));
       }
 
       @Override
-      public BooleanFormula visitAtom(BooleanFormula atom, FunctionDeclaration<BooleanFormula> decl) {
+      public BooleanFormula visitAtom(BooleanFormula atom, FunctionDeclaration decl) {
         return annotate(atom);
       }
 
@@ -339,17 +337,24 @@ public class InductiveWeakeningManager implements StatisticsProvider {
   }
 
   private BooleanFormula makeSelector(
-      Map<BooleanFormula, BooleanFormula> selectionInfo, BooleanFormula toAnnotate, int counter) {
-    BooleanFormula selector = bfmgr.makeVariable(SELECTOR_VAR_TEMPLATE + counter);
+      Map<BooleanFormula, BooleanFormula> selectionInfo,
+      BooleanFormula toAnnotate,
+      int counter
+  ) {
+    final String selectorVar = "_FS_SEL_VAR_";
+    BooleanFormula selector = bfmgr.makeVariable(selectorVar + counter);
     selectionInfo.put(selector, toAnnotate);
     return selector;
+
   }
 
   /**
    * Return a subset of selectors which map to formulas containing intermediate variables.
    */
   private Set<BooleanFormula> markIntermediate(
-      Map<BooleanFormula, BooleanFormula> selectionVarsInfo, final PathFormula phi) {
+      Map<BooleanFormula, BooleanFormula> selectionVarsInfo,
+      final PathFormula phi
+  ) throws InterruptedException {
 
     Set<BooleanFormula> hasIntermediate = new HashSet<>();
     for (Entry<BooleanFormula, BooleanFormula> e : selectionVarsInfo.entrySet()) {

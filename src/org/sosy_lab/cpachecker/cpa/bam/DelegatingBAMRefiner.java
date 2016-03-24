@@ -21,21 +21,22 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.refinement;
+package org.sosy_lab.cpachecker.cpa.bam;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -45,24 +46,22 @@ import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 
-/**
- * This is a {@link ARGBasedRefiner} that delegates each refinement
- * to a list of given {@link ARGBasedRefiner}s (in the given order)
- * until one succeeds.
- */
-public final class DelegatingARGBasedRefiner implements ARGBasedRefiner, StatisticsProvider {
+public class DelegatingBAMRefiner extends AbstractBAMBasedRefiner {
 
-  private final List<ARGBasedRefiner> refiners;
+  private final List<AbstractBAMBasedRefiner> refiners;
 
   private final List<StatCounter> totalRefinementsSelected;
   private final List<StatCounter> totalRefinementsFinished;
   private final LogManager logger;
 
-  public DelegatingARGBasedRefiner(final LogManager pLogger, final ARGBasedRefiner... pRefiners) {
-    logger = pLogger;
-    refiners = ImmutableList.copyOf(pRefiners);
+  public DelegatingBAMRefiner(
+      final ConfigurableProgramAnalysis pCpa, final AbstractBAMBasedRefiner... pRefiners)
+      throws InvalidConfigurationException {
+    super(pCpa);
+
+    logger = ((BAMCPA) pCpa).getLogger();
+    refiners = Arrays.asList(pRefiners);
 
     totalRefinementsSelected = new ArrayList<>();
     totalRefinementsFinished = new ArrayList<>();
@@ -78,7 +77,7 @@ public final class DelegatingARGBasedRefiner implements ARGBasedRefiner, Statist
   }
 
   @Override
-  public CounterexampleInfo performRefinementForPath(final ARGReachedSet reached, ARGPath pErrorPath)
+  protected CounterexampleInfo performRefinement0(final ARGReachedSet reached, ARGPath pErrorPath)
       throws CPAException, InterruptedException {
 
     CounterexampleInfo cex = null;
@@ -94,7 +93,7 @@ public final class DelegatingARGBasedRefiner implements ARGBasedRefiner, Statist
 
         logger.logf(Level.FINE, "starting refinement %d of %d with %s", i + 1, refiners.size(),
             refiners.get(i).getClass().getSimpleName());
-        cex = refiners.get(i).performRefinementForPath(reached, pErrorPath);
+        cex = refiners.get(i).performRefinement(reached, pErrorPath);
 
         if (cex.isSpurious()) {
           logger.logf(Level.FINE, "refinement %d of %d was successful", i + 1, refiners.size());
@@ -129,7 +128,7 @@ public final class DelegatingARGBasedRefiner implements ARGBasedRefiner, Statist
 
       @Override
       public String getName() {
-        return DelegatingARGBasedRefiner.class.getSimpleName();
+        return DelegatingBAMRefiner.class.getSimpleName();
       }
 
       @Override
@@ -145,10 +144,8 @@ public final class DelegatingARGBasedRefiner implements ARGBasedRefiner, Statist
       }
     });
 
-    for (ARGBasedRefiner refiner : refiners) {
-      if (refiner instanceof StatisticsProvider) {
-        ((StatisticsProvider) refiner).collectStatistics(pStatsCollection);
-      }
+    for (AbstractBAMBasedRefiner refiner : refiners) {
+      refiner.collectStatistics(pStatsCollection);
     }
   }
 }

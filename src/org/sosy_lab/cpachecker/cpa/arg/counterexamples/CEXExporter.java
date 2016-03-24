@@ -103,10 +103,6 @@ public class CEXExporter {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathAutomatonFile = PathTemplate.ofFormatString("ErrorPath.%d.spc");
 
-  @Option(secure=true, name="exportWitness",
-      description="export error path as witness/graphml file")
-  private boolean exportWitness = true;
-
   @Option(secure=true, name="graphml",
       description="export error path to file as GraphML automaton")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -127,9 +123,6 @@ public class CEXExporter {
 
     if (!exportSource) {
       errorPathSourceFile = null;
-    }
-    if (!exportWitness) {
-      errorPathAutomatonGraphmlFile = null;
     }
     if (errorPathCoreFile == null && errorPathFile == null
         && errorPathGraphFile == null && errorPathJson == null && errorPathSourceFile == null

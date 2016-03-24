@@ -308,16 +308,13 @@ public class SMGExpressionEvaluator {
 
     for (CCompositeTypeMemberDeclaration typeMember : membersOfType) {
       String memberName = typeMember.getName();
-      int padding = machineModel.getPadding(offset, typeMember.getType());
-
       if (memberName.equals(fieldName)) {
-        offset += padding;
-        return new SMGField(SMGKnownExpValue.valueOf(offset),
+
+      return new SMGField(SMGKnownExpValue.valueOf(offset),
           getRealExpressionType(typeMember.getType())); }
 
       if (!(ownerType.getKind() == ComplexTypeKind.UNION)) {
-        offset = offset + padding + getSizeof(pEdge, getRealExpressionType(typeMember.getType()),
-            pState, expression);
+        offset = offset + getSizeof(pEdge, getRealExpressionType(typeMember.getType()), pState, expression);
       }
     }
 

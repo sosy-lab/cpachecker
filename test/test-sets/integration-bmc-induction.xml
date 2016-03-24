@@ -20,35 +20,14 @@
       <includesfile>../programs/benchmarks/HeapReach.set</includesfile>
       <includesfile>../programs/benchmarks/Loops.set</includesfile>
       <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
-
-      <!--
-           The following three tasks need to be removed from the test set,
-           because they nondeterministically change between false (correct)
-           and true (wrong),
-           due to conflicts between the linear-arithmetic SMT solver
-           and the bit-precise invariant generator.
-       -->
-      <exclude>../programs/benchmarks/loop-acceleration/const_false-unreach-call1.i</exclude>
-      <exclude>../programs/benchmarks/loop-acceleration/underapprox_false-unreach-call2.i</exclude>
-      <exclude>../programs/benchmarks/loops/sum03_false-unreach-call_true-termination.i</exclude>
-
       <exclude>../programs/loop-lit/afnp2014_true-unreach-call.c.i</exclude>
       <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
       <exclude>../programs/benchmarks/seq-pthread/*</exclude>
       <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_3_true-unreach-call.cil.c</exclude>
       <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_4_true-unreach-call.cil.c</exclude>
-      <exclude>../programs/benchmarks/ssh/s3_srvr.blast.08_true-unreach-call.i.cil.c</exclude>
-      <exclude>../programs/benchmarks/ssh/s3_srvr.blast.13_true-unreach-call.i.cil.c</exclude>
-      <exclude>../programs/benchmarks/ssh/s3_srvr.blast.15_true-unreach-call.i.cil.c</exclude>
-      <exclude>../programs/benchmarks/systemc/kundu1_false-unreach-call_false-termination.cil.c</exclude>
       <exclude>../programs/benchmarks/systemc/kundu2_false-unreach-call_false-termination.cil.c</exclude>
-      <exclude>../programs/benchmarks/systemc/toy2_false-unreach-call_false-termination.cil.c</exclude>
-      <exclude>../programs/benchmarks/systemc/token_ring.02_true-unreach-call_false-termination.cil.c</exclude>
       <exclude>../programs/benchmarks/systemc/token_ring.04_false-unreach-call_false-termination.cil.c</exclude>
-      <exclude>../programs/benchmarks/systemc/token_ring.06_false-unreach-call_false-termination.cil.c</exclude>
-      <exclude>../programs/benchmarks/systemc/token_ring.07_false-unreach-call_false-termination.cil.c</exclude>
-      <exclude>../programs/benchmarks/systemc/transmitter.09_false-unreach-call_false-termination.cil.c</exclude>
-      <exclude>../programs/benchmarks/systemc/transmitter.11_false-unreach-call_false-termination.cil.c</exclude>
+      <exclude>../programs/benchmarks/systemc/toy2_false-unreach-call_false-termination.cil.c</exclude>
     </tasks>
     <tasks>
       <includesfile>integration-DeviceDriversLinux64.set</includesfile>

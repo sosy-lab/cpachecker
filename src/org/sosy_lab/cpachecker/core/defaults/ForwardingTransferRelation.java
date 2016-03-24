@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -661,21 +660,12 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     if (isBooleanExpression(pExpression)) {
       if (pExpression instanceof CBinaryExpression) {
         CBinaryExpression binExp = (CBinaryExpression) pExpression;
-        BinaryOperator operator = binExp.getOperator();
         if (isBooleanExpression(binExp.getOperand1())
             && binExp.getOperand2().equals(CIntegerLiteralExpression.ZERO)) {
-          if (operator == BinaryOperator.EQUALS) {
-            return simplifyAssumption(binExp.getOperand1(), !pAssumeTruth);
-          } else if (operator == BinaryOperator.NOT_EQUALS) {
-            return simplifyAssumption(binExp.getOperand1(), pAssumeTruth);
-          } //TODO what else?
+          return simplifyAssumption(binExp.getOperand1(), !pAssumeTruth);
         } else if (isBooleanExpression(binExp.getOperand2())
             && binExp.getOperand1().equals(CIntegerLiteralExpression.ZERO)) {
-          if (operator == BinaryOperator.EQUALS) {
-            return simplifyAssumption(binExp.getOperand2(), !pAssumeTruth);
-          } else if (operator == BinaryOperator.NOT_EQUALS) {
-            return simplifyAssumption(binExp.getOperand2(), pAssumeTruth);
-          } //TODO what else?
+          return simplifyAssumption(binExp.getOperand2(), !pAssumeTruth);
         }
       }
     }

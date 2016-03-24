@@ -84,7 +84,6 @@ import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.Or;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -481,11 +480,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     }
 
     @Override
-    public BooleanFormula getInvariantFor(
-        CFANode pLocation,
-        FormulaManagerView fmgr,
-        PathFormulaManager pfmgr,
-        PathFormula pContext) {
+    public BooleanFormula getInvariantFor(CFANode pLocation, FormulaManagerView fmgr, PathFormulaManager pfmgr) {
       BooleanFormulaManager bfmgr = fmgr.getBooleanFormulaManager();
       BooleanFormula invariant = bfmgr.makeBoolean(false);
 
@@ -514,7 +509,6 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
       ExpressionTree<Object> locationInvariant = ExpressionTrees.getFalse();
 
       Set<InvariantsState> invStates = Sets.newHashSet();
-      boolean otherReportingStates = false;
 
       for (AbstractState locState : lazyLocationMapping.get(pLocation)) {
         ExpressionTree<Object> stateInvariant = ExpressionTrees.getTrue();
@@ -531,12 +525,9 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
               }
             }
             if (skip) {
-              stateInvariant = ExpressionTrees.getFalse();
               continue;
             }
             invStates.add(invState);
-          } else {
-            otherReportingStates = true;
           }
           stateInvariant =
               And.of(
@@ -547,33 +538,6 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
 
         locationInvariant = Or.of(locationInvariant, stateInvariant);
       }
-
-      if (!otherReportingStates && invStates.size() > 1) {
-        Set<InvariantsState> newInvStates = Sets.newHashSet();
-        for (InvariantsState a : invStates) {
-          boolean skip = false;
-          for (InvariantsState b : invStates) {
-            if (a != b && a.isLessOrEqual(b)) {
-              skip = true;
-              break;
-            }
-          }
-          if (!skip) {
-            newInvStates.add(a);
-          }
-        }
-        if (newInvStates.size() < invStates.size()) {
-          locationInvariant = ExpressionTrees.getFalse();
-          for (InvariantsState state : newInvStates) {
-            locationInvariant =
-                Or.of(
-                    locationInvariant,
-                    state.getFormulaApproximation(
-                        cfa.getFunctionHead(pLocation.getFunctionName()), pLocation));
-          }
-        }
-      }
-
       return locationInvariant;
     }
   }

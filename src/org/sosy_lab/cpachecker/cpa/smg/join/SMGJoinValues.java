@@ -25,10 +25,10 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import java.util.List;
 
+import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
-import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGGenericAbstractionCandidate;
 
 import com.google.common.collect.ImmutableList;
 
@@ -42,17 +42,17 @@ final class SMGJoinValues {
   private SMGNodeMapping mapping2;
   private boolean defined = false;
 
-  private List<SMGGenericAbstractionCandidate> abstractionCandidates;
+  private List<SMGAbstractionCandidate> abstractionCandidates;
   private final boolean recoverable;
 
+  @SuppressWarnings("unused")
   private static boolean joinValuesIdentical(SMGJoinValues pJV, Integer pV1, Integer pV2) {
-    if (pV1.equals(pV2) ) {
+    if (pV1 == pV2) {
       pJV.value = pV1;
       pJV.defined = true;
-      return true;
     }
 
-    return false;
+    return pV1.equals(pV2);
   }
 
   private static boolean joinValuesAlreadyJoined(SMGJoinValues pJV, Integer pV1, Integer pV2) {
@@ -71,6 +71,8 @@ final class SMGJoinValues {
       if (pJV.mapping1.containsKey(pV1) || pJV.mapping2.containsKey(pV2)) {
         return true;
       }
+
+      // TODO can be deleted when equality check of value is resolved in main function
 
       Integer newValue;
 
@@ -95,11 +97,11 @@ final class SMGJoinValues {
     return ((! pJV.inputSMG1.isPointer(pV1)) || (! pJV.inputSMG2.isPointer(pV2)));
   }
 
-  private static boolean joinValuesPointers(SMGJoinValues pJV, Integer pV1, Integer pV2, boolean identicalInputSmg) throws SMGInconsistentException {
+  private static boolean joinValuesPointers(SMGJoinValues pJV, Integer pV1, Integer pV2) throws SMGInconsistentException {
     SMGJoinTargetObjects jto = new SMGJoinTargetObjects(pJV.status,
                                                         pJV.inputSMG1, pJV.inputSMG2, pJV.destSMG,
                                                         pJV.mapping1, pJV.mapping2,
-                                                        pV1, pV2, identicalInputSmg);
+                                                        pV1, pV2);
     if (jto.isDefined()) {
       pJV.status = jto.getStatus();
       pJV.inputSMG1 = jto.getInputSMG1();
@@ -125,7 +127,7 @@ final class SMGJoinValues {
   public SMGJoinValues(SMGJoinStatus pStatus,
                         SMG pSMG1, SMG pSMG2, SMG pDestSMG,
                         SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
-                        Integer pValue1, Integer pValue2, int pLDiff, boolean pIncreaseLevelAndRelabelTargetSpc, boolean identicalInputSmg) throws SMGInconsistentException {
+                        Integer pValue1, Integer pValue2) throws SMGInconsistentException {
     mapping1 = pMapping1;
     mapping2 = pMapping2;
     status = pStatus;
@@ -133,11 +135,12 @@ final class SMGJoinValues {
     inputSMG2 = pSMG2;
     destSMG = pDestSMG;
 
-    if ( identicalInputSmg && SMGJoinValues.joinValuesIdentical(this, pValue1, pValue2)) {
-      abstractionCandidates = ImmutableList.of();
-      recoverable = defined;
-      return;
-    }
+//    TODO: Currently, this happens even when we join different SMGs, which have identical sbymbolic values,
+//          but are not really identical. We might need to relabel the values before the full join
+//          to ensure the values are disjunct
+//    if (SMGJoinValues.joinValuesIdentical(this, pValue1, pValue2)) {
+//      return;
+//    }
 
     if (SMGJoinValues.joinValuesAlreadyJoined(this, pValue1, pValue2)) {
       abstractionCandidates = ImmutableList.of();
@@ -157,7 +160,7 @@ final class SMGJoinValues {
       return;
     }
 
-    if (SMGJoinValues.joinValuesPointers(this, pValue1, pValue2, identicalInputSmg)) {
+    if (SMGJoinValues.joinValuesPointers(this, pValue1, pValue2)) {
       recoverable = defined;
       return;
     }
@@ -214,7 +217,7 @@ final class SMGJoinValues {
     return false;
   }
 
-  public List<SMGGenericAbstractionCandidate> getAbstractionCandidates() {
+  public List<SMGAbstractionCandidate> getAbstractionCandidates() {
     return abstractionCandidates;
   }
 }

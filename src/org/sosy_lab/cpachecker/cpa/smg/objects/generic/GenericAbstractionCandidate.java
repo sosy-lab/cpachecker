@@ -28,12 +28,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
-public class GenericAbstractionCandidate implements SMGGenericAbstractionCandidate {
+public class GenericAbstractionCandidate implements SMGAbstractionCandidate {
 
   private final Set<SMGObject> objectsToBeRemoved;
   private final Map<Integer, Integer> abstractToConcretePointerMap;
@@ -66,13 +68,18 @@ public class GenericAbstractionCandidate implements SMGGenericAbstractionCandida
   }
 
   @Override
-  public int compareTo(SMGGenericAbstractionCandidate other) {
+  public int compareTo(SMGAbstractionCandidate other) {
     return getScore() - other.getScore();
   }
 
   @Override
   public int getScore() {
     return score;
+  }
+
+  @Override
+  public CLangSMG execute(CLangSMG pSMG) {
+    throw new UnsupportedOperationException("Not yet Implemented");
   }
 
   @Override

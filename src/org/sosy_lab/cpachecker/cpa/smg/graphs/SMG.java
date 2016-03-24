@@ -42,25 +42,24 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import com.google.common.annotations.VisibleForTesting;
 
 public class SMG {
-  private Set<SMGObject> objects = new HashSet<>();
-  private Set<Integer> values = new HashSet<>();
-  private Set<SMGEdgeHasValue> hv_edges = new HashSet<>();
-  private Map<Integer, SMGEdgePointsTo> pt_edges = new HashMap<>();
-  private Map<SMGObject, Boolean> object_validity = new HashMap<>();
-  private Map<SMGObject, SMG.ExternalObjectFlag> objectAllocationIdentity = new HashMap<>();
-  private NeqRelation neq = new NeqRelation();
+  final private Set<SMGObject> objects = new HashSet<>();
+  final private Set<Integer> values = new HashSet<>();
+  final private Set<SMGEdgeHasValue> hv_edges = new HashSet<>();
+  final private Map<Integer, SMGEdgePointsTo> pt_edges = new HashMap<>();
+  final private Map<SMGObject, Boolean> object_validity = new HashMap<>();
+  final private NeqRelation neq = new NeqRelation();
 
-  private final MachineModel machine_model;
+  final private MachineModel machine_model;
 
   /**
    * A special object representing NULL
    */
-  private final static SMGObject nullObject = SMGObject.getNullObject();
+  final private static SMGObject nullObject = SMGObject.getNullObject();
 
   /**
    * An address of the special object representing null
    */
-  private final static int nullAddress = 0;
+  final private static int nullAddress = 0;
 
   /**
    * Constructor.
@@ -94,7 +93,6 @@ public class SMG {
     hv_edges.addAll(pHeap.hv_edges);
     neq.putAll(pHeap.neq);
     object_validity.putAll(pHeap.object_validity);
-    objectAllocationIdentity.putAll(pHeap.objectAllocationIdentity);
     objects.addAll(pHeap.objects);
     pt_edges.putAll(pHeap.pt_edges);
     values.addAll(pHeap.values);
@@ -142,7 +140,7 @@ public class SMG {
    *
    */
   final public void addObject(final SMGObject pObj) {
-    addObject(pObj, true, false);
+    addObject(pObj, true);
   }
 
   /**
@@ -169,7 +167,6 @@ public class SMG {
   final public void removeObject(final SMGObject pObj) {
     objects.remove(pObj);
     object_validity.remove(pObj);
-    objectAllocationIdentity.remove(pObj);
   }
 
   /**
@@ -205,10 +202,9 @@ public class SMG {
    * @param pValidity Validity of the newly added object.
    *
    */
-  final public void addObject(final SMGObject pObj, final boolean pValidity, final boolean pExternal) {
+  final public void addObject(final SMGObject pObj, final boolean pValidity) {
     objects.add(pObj);
     object_validity.put(pObj, pValidity);
-    objectAllocationIdentity.put(pObj, new ExternalObjectFlag(pExternal));
   }
 
   /**
@@ -282,24 +278,6 @@ public class SMG {
     }
 
     object_validity.put(pObject, pValidity);
-  }
-
-  /**
-   * Sets the ExternallyAllocatedFlag of the object pObject to pExternal.
-   * Throws {@link IllegalArgumentException} if pObject is
-   * not present in SMG.
-   *
-   * Keeps consistency: no
-   *
-   * @param pObject An object.
-   * @param pExternal Validity to set.
-   */
-  public void setExternallyAllocatedFlag(SMGObject pObject, boolean pExternal) {
-    if (! objects.contains(pObject)) {
-      throw new IllegalArgumentException("Object [" + pObject + "] not in SMG");
-    }
-
-    objectAllocationIdentity.put(pObject, new ExternalObjectFlag(pExternal));
   }
 
   /**
@@ -450,18 +428,6 @@ public class SMG {
   }
 
   /**
-   * Getter for determing if the object pObject is externally allocated
-   * Throws {@link IllegalAccessException} if pObject is not present is the SMG
-   */
-  final public Boolean isObjectExternallyAllocated(SMGObject pObject) {
-    if ( ! objects.contains(pObject)) {
-      throw new IllegalArgumentException("Object [" + pObject + "] not in SMG");
-    }
-
-    return objectAllocationIdentity.get(pObject).isExternal();
-  }
-
-  /**
    * Getter for obtaining SMG machine model. Constant.
    * @return SMG machine model
    */
@@ -562,21 +528,5 @@ public class SMG {
 
   public Set<Integer> getNeqsForValue(Integer pV) {
     return neq.getNeqsForValue(pV);
-  }
-
-  private static class ExternalObjectFlag {
-    boolean external;
-
-    public ExternalObjectFlag(boolean pExternal) {
-      external = pExternal;
-    }
-
-    public boolean isExternal() {
-      return external;
-    }
-
-    public void setExternal(boolean pExternal) {
-      external = pExternal;
-    }
   }
 }

@@ -64,8 +64,6 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     public void printStatistics(PrintStream out, Result pResult,
         ReachedSet pReached) {
       out.println();
-      out.println("Proof Checking statistics");
-      out.println("-------------------------------------");
       out.println("Total time for proof check algorithm:     " + totalTimer);
       out.println("  Time for reading in proof (not complete time in interleaved modes):  " + readTimer);
     }

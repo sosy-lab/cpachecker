@@ -23,14 +23,22 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import java.util.Collection;
-import java.util.Set;
+import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor;
 import org.sosy_lab.solver.visitors.TraversalProcess;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 
 public class BooleanFormulaManagerView extends BaseManagerView implements BooleanFormulaManager {
@@ -63,11 +71,6 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   }
 
   @Override
-  public BooleanFormula and(BooleanFormula... bits) {
-    return manager.and(bits);
-  }
-
-  @Override
   public BooleanFormula or(BooleanFormula pBits1, BooleanFormula pBits2) {
     return manager.or(pBits1, pBits2);
   }
@@ -75,11 +78,6 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   @Override
   public BooleanFormula or(Collection<BooleanFormula> pBits) {
     return manager.or(pBits);
-  }
-
-  @Override
-  public BooleanFormula or(BooleanFormula... bits) {
-    return manager.or(bits);
   }
 
   @Override
@@ -99,22 +97,6 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
       org.sosy_lab.solver.visitors.BooleanFormulaVisitor<TraversalProcess> rFormulaVisitor,
       BooleanFormula f) {
     manager.visitRecursively(rFormulaVisitor, f);
-  }
-
-  @Override
-  public BooleanFormula transformRecursively(
-      org.sosy_lab.solver.visitors.BooleanFormulaTransformationVisitor pVisitor, BooleanFormula f) {
-    return manager.transformRecursively(pVisitor, f);
-  }
-
-  @Override
-  public Set<BooleanFormula> toConjunctionArgs(BooleanFormula f, boolean flatten) {
-    return manager.toConjunctionArgs(f, flatten);
-  }
-
-  @Override
-  public Set<BooleanFormula> toDisjunctionArgs(BooleanFormula f, boolean flatten) {
-    return manager.toDisjunctionArgs(f, flatten);
   }
 
   @Override
@@ -161,6 +143,8 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
    * through the formula and somehow transform it (i.e., return a boolean formula).
    * This class ensures that each identical subtree of the formula
    * is visited only once to avoid the exponential explosion.
+   * When a subclass wants to traverse into a subtree of the formula,
+   * it needs to call {@link #visitIfNotSeen(BooleanFormula)} to ensure this.
    *
    * By default this class implements the identity function.
    *
@@ -169,8 +153,51 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   public static abstract class BooleanFormulaTransformationVisitor
       extends org.sosy_lab.solver.visitors.BooleanFormulaTransformationVisitor {
 
+    protected BooleanFormulaTransformationVisitor(FormulaManagerView pFmgr,
+        Map<BooleanFormula, BooleanFormula> pCache) {
+      super(pFmgr.getRawFormulaManager(), pCache);
+    }
+
     protected BooleanFormulaTransformationVisitor(FormulaManagerView pFmgr) {
-      super(pFmgr.getRawFormulaManager().getBooleanFormulaManager());
+      super(pFmgr.getRawFormulaManager(), new HashMap<BooleanFormula, BooleanFormula>());
+    }
+  }
+
+  /**
+   * This visitor visits a formula and splits it (recursively) in case of a
+   * conjunction.
+   *
+   * Example: AND(x,AND(y,z)) -> [x,y,z], NOT(x) -> [NOT(x)]
+   */
+  @SuppressFBWarnings(
+    value = "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE",
+    justification = "visitor actually returns null"
+  )
+  public List<BooleanFormula> splitConjunctions(BooleanFormula f) {
+    List<BooleanFormula> result = visit(conjunctionSplitter, f);
+    if (result == null) {
+      return ImmutableList.of(f);
+    } else {
+      return result;
+    }
+  }
+
+  private final ConjunctionSplitter conjunctionSplitter = new ConjunctionSplitter();
+
+  private class ConjunctionSplitter extends DefaultBooleanFormulaVisitor<List<BooleanFormula>> {
+
+    @Override
+    protected List<BooleanFormula> visitDefault() {
+      return null;
+    }
+
+    @Override
+    public List<BooleanFormula> visitAnd(List<BooleanFormula> conjunction) {
+      final List<BooleanFormula> result = new ArrayList<>();
+      for (BooleanFormula f : conjunction) {
+        result.addAll(splitConjunctions(f));
+      }
+      return result;
     }
   }
 }

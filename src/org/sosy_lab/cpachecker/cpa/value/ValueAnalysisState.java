@@ -89,6 +89,12 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    * the map that keeps the name of variables and their constant values (concrete and symbolic ones)
    */
   private PersistentMap<MemoryLocation, Value> constantsMap;
+  /**
+   * the set that contains only those MemoryLocations from the constantsMap,
+   * that were modified (e.g. assigned) and consequently those values
+   * can no more be used in predicate analysis
+   */
+  private Set<MemoryLocation> irrelevantMemLocs = new HashSet<>();
 
   private final Optional<MachineModel> machineModel;
 
@@ -784,8 +790,8 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
 
       } else if (functionExit.getEntryNode().getReturnVariable().isPresent() &&
           functionExit.getEntryNode().getReturnVariable().get().getQualifiedName().equals(trackedVar.getAsSimpleString())) {
-        /*assert (!rebuildState.contains(trackedVar)) :
-                "calling function should not contain return-variable of called function: " + trackedVar;*/
+        assert (!rebuildState.contains(trackedVar)) :
+                "calling function should not contain return-variable of called function: " + trackedVar;
         if (this.contains(trackedVar)) {
           rebuildState.assignConstant(trackedVar, this.getValueFor(trackedVar), this.getTypeForMemoryLocation(trackedVar));
         }
@@ -802,5 +808,15 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
       throw new IOException("",e);
     }
     memLocToType = PathCopyingPersistentTreeMap.of();
+  }
+
+  public void markMemLocIrrelevant(MemoryLocation memloc) {
+    if (constantsMap.containsKey(memloc)) {
+      irrelevantMemLocs.add(memloc);
+    }
+  }
+
+  public boolean isMemLocRelevant(MemoryLocation memloc) {
+    return !irrelevantMemLocs.contains(memloc);
   }
 }

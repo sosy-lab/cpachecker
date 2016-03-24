@@ -98,6 +98,9 @@ public class FormulaEncodingOptions {
       + "which returns either the normal value or an UF representing the overflow.")
   private boolean encodeOverflowsWithUFs = false;
 
+  @Option(secure=true, description = "Use explicit state in predicate analysis")
+  private boolean useExplicitStateInPredicateAnalysis = false;
+
   public FormulaEncodingOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this, FormulaEncodingOptions.class);
   }
@@ -149,5 +152,9 @@ public class FormulaEncodingOptions {
 
   public boolean encodeOverflowsWithUFs() {
     return encodeOverflowsWithUFs;
+  }
+
+  public boolean useExplicitStateInPredicateAnalysis() {
+    return useExplicitStateInPredicateAnalysis;
   }
 }

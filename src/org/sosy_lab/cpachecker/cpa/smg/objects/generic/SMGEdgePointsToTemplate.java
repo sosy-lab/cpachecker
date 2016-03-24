@@ -31,9 +31,4 @@ public class SMGEdgePointsToTemplate extends SMGEdgeTemplate {
       int pOffset) {
     super(pAbstractObject, pAbstractPointerValue, pOffset);
   }
-
-  @Override
-  public String toString() {
-    return getAbstractValue() + "->" + " O" + getOffset() + "B " + getObjectTemplate().toString();
-  }
 }

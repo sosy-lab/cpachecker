@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor.ToFormulaException;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -71,18 +70,16 @@ public class ExpressionTreeLocationInvariant extends AbstractLocationFormulaInva
   }
 
   @Override
-  public BooleanFormula getFormula(
-      FormulaManagerView pFMGR, PathFormulaManager pPFMGR, PathFormula pContext)
+  public BooleanFormula getFormula(FormulaManagerView pFMGR, PathFormulaManager pPFMGR)
       throws CPATransferException, InterruptedException {
     ManagerKey key = null;
-    PathFormula clearContext = pContext == null ? null : pPFMGR.makeEmptyPathFormula(pContext);
     ToFormulaVisitor toFormulaVisitor = null;
     if (visitorCache != null) {
-      key = new ManagerKey(pFMGR, pPFMGR, clearContext);
+      key = new ManagerKey(pFMGR, pPFMGR);
       toFormulaVisitor = visitorCache.get(key);
     }
     if (toFormulaVisitor == null) {
-      toFormulaVisitor = new ToFormulaVisitor(pFMGR, pPFMGR, clearContext);
+      toFormulaVisitor = new ToFormulaVisitor(pFMGR, pPFMGR);
       if (visitorCache != null) {
         visitorCache.put(key, toFormulaVisitor);
       }
@@ -148,15 +145,9 @@ public class ExpressionTreeLocationInvariant extends AbstractLocationFormulaInva
 
     private final PathFormulaManager pathFormulaManager;
 
-    private final PathFormula clearContext;
-
-    public ManagerKey(
-        FormulaManagerView pFormulaManagerView,
-        PathFormulaManager pPathFormulaManager,
-        PathFormula pClearContext) {
+    public ManagerKey(FormulaManagerView pFormulaManagerView, PathFormulaManager pPathFormulaManager) {
       formulaManagerView = Objects.requireNonNull(pFormulaManagerView);
       pathFormulaManager = Objects.requireNonNull(pPathFormulaManager);
-      clearContext = pClearContext;
     }
 
     @Override
@@ -172,8 +163,7 @@ public class ExpressionTreeLocationInvariant extends AbstractLocationFormulaInva
       if (pObj instanceof ManagerKey) {
         ManagerKey other = (ManagerKey) pObj;
         return formulaManagerView == other.formulaManagerView
-            && pathFormulaManager == other.pathFormulaManager
-            && Objects.equals(clearContext, other.clearContext);
+            && pathFormulaManager == other.pathFormulaManager;
       }
       return false;
     }

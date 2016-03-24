@@ -31,12 +31,6 @@
     <option name="-sv-comp16--memorysafety"/>
     <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
   </tasks>
-
-  <tasks name="ExtAllocMemSafety">
-    <includesfile>../programs/smg_External_Allocation_Test/ExtAlloc.set</includesfile>
-    <option name="-sv-comp16--memorysafety"/>
-    <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
-  </tasks>
-
+  
   <rundefinition/>
 </benchmark>

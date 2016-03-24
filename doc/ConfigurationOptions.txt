@@ -374,9 +374,6 @@ bmc.induction = false
 # Export auxiliary invariants used for induction.
 bmc.invariantsExport = "invariants.graphml"
 
-# Propagates the interrupts of the invariant generator.
-bmc.propagateInvGenInterrupts = false
-
 # File name where to put the path program that is generated as input for
 # CBMC. A temporary file is used if this is unspecified. If specified, the
 # file name should end with '.i' because otherwise CBMC runs the
@@ -414,6 +411,11 @@ cegar.globalRefinement = false
 # the package name starts with 'org.sosy_lab.cpachecker.', this prefix can be
 # omitted.
 cegar.refiner = no default value
+
+# whether or not to let auxiliary refiner score and refine a path that is
+# feasible for the primary refiner, this allows to only extract prefixes that
+# are exclusive to the auxiliary refiner
+cegar.useFeasiblePathForAuxRefiner = false
 
 # whether or not to use refinement selection to decide which domain to refine
 cegar.useRefinementSelection = false
@@ -682,9 +684,6 @@ cpa.arg.errorPath.exportAsSource = true
 # export error paths to files immediately after they were found
 cpa.arg.errorPath.exportImmediately = false
 
-# export error path as witness/graphml file
-cpa.arg.errorPath.exportWitness = true
-
 # export error path as text file
 cpa.arg.errorPath.file = "ErrorPath.%d.txt"
 
@@ -823,9 +822,6 @@ cpa.bam.maximalDepthForExplicitRecursion = -1
 # export used parts of blocked ARG as .dot file
 cpa.bam.simplifiedArgFile = "BlockedARGSimplified.dot"
 
-# Use more fast partitioning builder, which can not handle loops
-cpa.bam.useExtendedPartitioningBuilder = false
-
 # max bitsize for values and vars, initial value
 cpa.bdd.bitsize = 64
 
@@ -915,7 +911,7 @@ cpa.chc.merge = "SEP"
   allowed values: [SEP, JOIN]
 
 # inform Composite CPA if it is run in a CPA enabled analysis because then it
-# must behave differently during merge.
+# must behave differntly during merge.
 cpa.composite.inCPAEnabledAnalysis = false
 
 # which composite merge operator to use (plain or agree)
@@ -1172,6 +1168,9 @@ cpa.predicate.abs.predicateOrdering.partitions = false
 # use caching of region to formula conversions
 cpa.predicate.abs.useCache = true
 
+# configuration file for checking pathformulas with bmc on inductivity
+cpa.predicate.abstraction.bmcConfig = "config/bmc-invgen.properties"
+
 # DEPRECATED: whether to use Boolean (false) or Cartesian (true) abstraction
 cpa.predicate.abstraction.cartesian = false
 
@@ -1181,6 +1180,13 @@ cpa.predicate.abstraction.computation = BOOLEAN
 
 # dump the abstraction formulas if they took to long
 cpa.predicate.abstraction.dumpHardQueries = false
+
+# Identify the inductive predicates in the path formula and omit them
+cpa.predicate.abstraction.identifyInductivePredicates = false
+
+# How should the inductive part of the abstractionformula be computed?
+cpa.predicate.abstraction.identifyPredicateStrategy = WEAKENING
+  enum:     [WEAKENING, CNF_BMC]
 
 # Identify those predicates where the result is trivially known before
 # abstraction computation and omit them.
@@ -1369,13 +1375,6 @@ cpa.predicate.ignoreIrrelevantVariables = true
 # do not include assumptions of states into path formula during strengthening
 cpa.predicate.ignoreStateAssumptions = false
 
-# Should the automata used for invariant generation be dumped to files?
-cpa.predicate.invariants.dumpInvariantGenerationAutomata = false
-
-# Where to dump the automata that are used to narrow the analysis used for
-# invariant generation.
-cpa.predicate.invariants.dumpInvariantGenerationAutomataFile = "invgen.%d.spc"
-
 # export final loop invariants
 cpa.predicate.invariants.export = true
 
@@ -1385,37 +1384,8 @@ cpa.predicate.invariants.exportAsPrecision = true
 # file for exporting final loop invariants
 cpa.predicate.invariants.file = "invariants.txt"
 
-# Which strategy should be used for generating invariants, a comma separated
-# list can be specified. Usually later specified strategies serve as fallback
-# for earlier ones.
-cpa.predicate.invariants.generationStrategy = Lists.newArrayList(InvariantGenerationStrategy.RF_INVARIANT_GENERATION)
-
-# How often should generating invariants from sliced prefixes with
-# k-induction be tried?
-cpa.predicate.invariants.kInductionTries = 3
-
 # file for precision that consists of invariants.
 cpa.predicate.invariants.precisionFile = "invariantPrecs.txt"
-
-# Timelimit for invariant generation which may be used during refinement.
-# (Use seconds or specify a unit; 0 for infinite)
-cpa.predicate.invariants.timeForInvariantGeneration = 10s
-
-# Where should the generated invariants (if there are some) be used?
-cpa.predicate.invariants.usageStrategy = NONE
-  enum:     [REFINEMENT, ABSTRACTION_FORMULA, COMBINATION, NONE]
-
-# Should the strategies be used all-together or only as fallback. If all
-# together, the computation is done until the timeout is hit and the results
-# up to this point are taken.
-cpa.predicate.invariants.useAllStrategies = false
-
-# Invariants that are not strong enough to refute the counterexample can be
-# ignored with this option. (Weak invariants will lead to repeated
-# counterexamples, thus taking time which could be used for the rest of the
-# analysis, however, the found invariants may also be better for loops as
-# interpolation.)
-cpa.predicate.invariants.useStrongInvariantsOnly = true
 
 # Max. number of edge of the abstraction tree to prescan for reuse
 cpa.predicate.maxAbstractionReusePrescan = 1
@@ -1502,12 +1472,23 @@ cpa.predicate.refinement.atomicInterpolants = true
 # invariant
 cpa.predicate.refinement.atomicInvariants = false
 
+# configuration file for bmc generation
+cpa.predicate.refinement.bmcConfig = "config/bmc-invgen.properties"
+
 # Direction for doing counterexample analysis: from start of trace, from end
 # of trace, or alternatingly from start and end of the trace towards the
 # middle
 cpa.predicate.refinement.cexTraceCheckDirection = FORWARDS
   enum:     [FORWARDS, BACKWARDS, ZIGZAG, LOOP_FREE_FIRST, RANDOM, LOWEST_AVG_SCORE,
              HIGHEST_AVG_SCORE, LOOP_FREE_FIRST_BACKWARDS]
+
+# Call buildCounterexampleTrace() n times to produce different interpolants
+# with the solver
+cpa.predicate.refinement.checkCounterexampleNTimes = 1
+
+# Conjunct the formulas that were computed as preconditions to get
+# (infeasible) interpolation problems!
+cpa.predicate.refinement.conjunctPreconditionFormulas = false
 
 # Actually compute an abstraction, otherwise just convert the interpolants to
 # BDDs as they are.
@@ -1516,11 +1497,23 @@ cpa.predicate.refinement.doAbstractionComputation = false
 # dump all interpolation problems
 cpa.predicate.refinement.dumpInterpolationProblems = false
 
+# Should the automata used for invariant generation be dumped to files?
+cpa.predicate.refinement.dumpInvariantGenerationAutomata = false
+
+# Where to dump the automata that are used to narrow the analysis used for
+# invariant generation.
+cpa.predicate.refinement.dumpInvariantGenerationAutomataFile = "invgen.%d.spc"
+
 # After each refinement, dump the newly found predicates.
 cpa.predicate.refinement.dumpPredicates = false
 
 # File name for the predicates dumped after refinements.
 cpa.predicate.refinement.dumpPredicatesFile = "refinement%04d-predicates.prec"
+
+# If k-induction fails to generate invariants we fall back to the usual
+# invariant generation with this option toggled, otherwise interpolation is
+# used
+cpa.predicate.refinement.fallbackToInvGen = true
 
 # apply deletion-filter to the abstract counterexample, to get a minimal set
 # of blocks, before applying interpolation-based refinement
@@ -1529,6 +1522,10 @@ cpa.predicate.refinement.getUsefulBlocks = false
 # use incremental search in counterexample analysis, to find the minimal
 # infeasible prefix
 cpa.predicate.refinement.incrementalCexTraceCheck = false
+
+# How often should generating invariants from sliced prefixes with
+# k-induction be tried?
+cpa.predicate.refinement.kInductionTries = 3
 
 # For differing errorpaths, the loop for which invariants should be generated
 # may still be the same, with this option you can set the maximal amount of
@@ -1597,12 +1594,34 @@ cpa.predicate.refinement.splitItpAtoms = false
 cpa.predicate.refinement.strategy = SEQ_CPACHECKER
   enum:     [SEQ, SEQ_CPACHECKER, TREE, TREE_WELLSCOPED, TREE_NESTED, TREE_CPACHECKER]
 
+# Timelimit for invariant generation which may be used during refinement.
+# (Use seconds or specify a unit; 0 for infinite)
+cpa.predicate.refinement.timeForInvariantGeneration = 0ns
+
 # time limit for refinement (use milliseconds or specify a unit; 0 for
 # infinite)
 cpa.predicate.refinement.timelimit = 0ms
 
 # Use BDDs to simplify interpolants (removing irrelevant predicates)
 cpa.predicate.refinement.useBddInterpolantSimplification = false
+
+# Should the refinement be done with invariants instead of interpolation?
+# This is currently a heuristic as we cannot be sure that all invariants are
+# good enough to refute a counterexample therefore the fallback is still
+# interpolation.
+cpa.predicate.refinement.useInvariantRefinement = false
+
+# Try to generate inductive invariants, by using sliced prefixs and check if
+# they are invariants. If this failes invariant generation via other CPAs
+# will be done or interpolation, depending on the option 'fallbackToInvGen'.
+cpa.predicate.refinement.useKInduction = true
+
+# Invariants that are not strong enough to refute the counterexample can be
+# ignored with this option. (Weak invariants will lead to repeated
+# counterexamples, thus taking time which could be used for the rest of the
+# analysis, however, the found invariants may also be better for loops as
+# interpolation.)
+cpa.predicate.refinement.useStrongInvariantsOnly = true
 
 # verify if the interpolants fulfill the interpolant properties
 cpa.predicate.refinement.verifyInterpolants = false
@@ -1734,21 +1753,9 @@ cpa.slicing.checkTargetStates = true
 # -1 for no limit.
 cpa.slicing.destructiveIterationLimit = -1
 
-# Replace dead variables
-cpa.slicing.eliminateDeadVars = true
-
-# Limit for explicit CNF expansion (potentially exponential otherwise)
-cpa.slicing.expansionDepthLimit = 1
-
-# Filter clauses by liveness
-cpa.slicing.filterByLiveness = true
-
 # Instead of considering the entire SCC, ignore the function nested in the
 # loop. UNSOUND!
 cpa.slicing.ignoreFunctionCallsInLoop = false
-
-# Depth limit for the 'LEAST_REMOVALS' strategy.
-cpa.slicing.leastRemovalsDepthLimit = 2
 
 # Pre-run syntactic weakening
 cpa.slicing.preRunSyntacticWeakening = true
@@ -1759,21 +1766,17 @@ cpa.slicing.removalSelectionStrategy = FIRST
 
 # Granularity of weakening
 cpa.slicing.selectorAnnotationMode = LITERALS
-  enum:     [LITERALS, CONJUNCTIONS]
+  enum:     [LITERALS, DISJUNCTIONS]
 
 # Sort selection variables based on syntactic similarity to the transition
 # relation
 cpa.slicing.sortSelectionVariablesSyntactic = true
 
-# Time for loop generation before aborting.
-# (Use seconds or specify a unit; 0 for infinite)
-cpa.slicing.timeForLoopGeneration = 0s
+# Convert to Semi-CNF form
+cpa.slicing.toSemiCNF = false
 
 # Cache formulas produced by path formula manager
 cpa.slicing.useCachingPathFormulaManager = true
-
-# Use information from outer states to strengthen
-cpa.slicing.useOuterStrengthening = true
 
 # Inductive weakening strategy
 cpa.slicing.weakeningStrategy = CEX
@@ -1800,12 +1803,6 @@ cpa.smg.exportSMG.file = "smg/smg-%s.dot"
 # Describes when SMG graphs should be dumped.
 cpa.smg.exportSMGwhen = NEVER
   enum:     [NEVER, LEAF, INTERESTING, EVERY]
-
-# Function which indicate on external allocated memory
-cpa.smg.externalAllocationFunction = "ext_allocation"
-
-# Default size of externally allocated memory
-cpa.smg.externalAllocationSize = Integer.MAX_VALUE
 
 # Size of memory that cannot be calculated will be guessed.
 cpa.smg.guessSizeOfUnknownMemorySize = false
@@ -1921,10 +1918,6 @@ cpa.statistics.statisticsCPAFile = no default value
 # evenness)
 cpa.stator.congruence.trackCongruenceSum = false
 
-# Where to perform abstraction
-cpa.stator.policy.abstractionLocations = LOOPHEAD
-  enum:     [ALL, LOOPHEAD, MERGE]
-
 # Check whether the policy depends on the initial value
 cpa.stator.policy.checkPolicyInitialCondition = true
 
@@ -1966,11 +1959,16 @@ cpa.stator.policy.generateTemplatesUsingConvexHull = false
 cpa.stator.policy.generateUpperBound = true
 
 # Any intermediate state with formula length bigger than specified will be
+
 # checked for reachability. Set to -1 for no limit.
+
 cpa.stator.policy.lengthLimitForSATCheck = 300
 
 # Remove UFs and ITEs from policies.
 cpa.stator.policy.linearizePolicy = true
+
+# Perform abstraction only at the nodes from the cut-set.
+cpa.stator.policy.pathFocusing = true
 
 # Run simple congruence analysis
 cpa.stator.policy.runCongruence = true
@@ -1989,19 +1987,29 @@ cpa.stator.policy.templateConstantThreshold = 100
 # template space.
 cpa.stator.policy.unguidedTemplateRefinement = true
 
+# Use unguided template refinement, progressively brute-forcing the possible
+# template space.
+cpa.stator.policy.unguidedTemplateRefinement = true
+
 # Number of refinements after which the unrolling depth is increased
 cpa.stator.policy.unrollingRefinementThreshold = 2
 
 # Cache formulas produced by path formula manager
 cpa.stator.policy.useCachingPathFormulaManager = true
 
+# Use extra invariant during abstraction
+cpa.stator.policy.useExtraPredicateDuringAbstraction = true
+
 # Generate invariants and strengthen the formulas during abstraction with
 # them.
 cpa.stator.policy.useInvariantsForAbstraction = false
 
+# Use latest version of abstracted states
+cpa.stator.policy.useLatestVersion = true
+
 # Use the optimized abstraction, which takes into the account the previously
-# obtained bound at the location. Interferes withobtaining templates using
-# convex hull.
+# obtained bound at the location. Interferes with:obtaining templates using
+# convex hull and split-sep merge configuration.
 cpa.stator.policy.usePreviousBounds = true
 
 # Strategy for filtering variables out of templates
@@ -2011,10 +2019,6 @@ cpa.stator.policy.varFiltering = ALL_LIVE
 # Number of value determination steps allowed before widening is run. Value
 # of '-1' runs value determination until convergence.
 cpa.stator.policy.wideningThreshold = -1
-
-# allow assignments of a new thread to the same left-hand-side as an existing
-# thread.
-cpa.threading.allowMultipleLHS = false
 
 # the maximal number of parallel threads, -1 for infinite. When combined with
 # 'useClonedFunctions=true', we need at least N cloned functions. The option
@@ -2048,29 +2052,6 @@ cpa.uninitvars.stop = "sep"
 cpa.validVars.merge = "JOIN"
   allowed values: [SEP, JOIN]
 
-# restrict abstraction computations to branching points
-cpa.value.abstraction.alwaysAtBranch = false
-
-# restrict abstraction computations to function calls/returns
-cpa.value.abstraction.alwaysAtFunction = false
-
-# restrict abstraction computations to join points
-cpa.value.abstraction.alwaysAtJoin = false
-
-# restrict abstraction computations to loop heads
-cpa.value.abstraction.alwaysAtLoop = false
-
-# toggle liveness abstraction
-cpa.value.abstraction.doLivenessAbstraction = false
-
-# restrict liveness abstractions to nodes with more than one entering and/or
-# leaving edge
-cpa.value.abstraction.onlyAtNonLinearCFA = false
-
-# skip abstraction computations until the given number of abstraction calls
-# is reached
-cpa.value.abstraction.threshold = -1
-
 # Whether to replace symbolic values with a concrete value when only one
 # value is possible for an assumption to be true (e.g. for (x == 1) set x to
 # 1, even if x is a symbolic expression).
@@ -2079,6 +2060,25 @@ cpa.value.assignSymbolicAssumptionVars = false
 # Process the Automaton ASSUMEs as if they were statements, not as if they
 # were assumptions.
 cpa.value.automatonAssumesAsStatements = false
+
+# restrict abstractions to branching points
+cpa.value.blk.alwaysAtBranch = false
+
+# restrict abstractions to function calls/returns
+cpa.value.blk.alwaysAtFunction = false
+
+# restrict abstractions to join points
+cpa.value.blk.alwaysAtJoin = false
+
+# restrict abstractions to loop heads
+cpa.value.blk.alwaysAtLoop = false
+
+# toggle liveness abstraction
+cpa.value.blk.doLivenessAbstraction = false
+
+# restrict liveness abstractions to nodes with more than one entering and/or
+# leaving edge
+cpa.value.blk.onlyAtNonLinearCFA = false
 
 # if there is an assumption like (x!=0), this option sets unknown
 # (uninitialized) variables to 1L, when the true-branch is handled.
@@ -2150,10 +2150,7 @@ cpa.value.refinement.restart = PIVOT
 
 # instead of reporting a repeated counter-example, search and refine another
 # error-path for the same target-state.
-cpa.value.refinement.searchForFurtherErrorPaths = false
-
-# store all refined paths
-cpa.value.refinement.storeAllRefinedPaths = false
+cpa.value.refinement.searchForFurtherErrorPaths = true
 
 # whether to use the top-down interpolation strategy or the bottom-up
 # interpolation strategy
@@ -2208,16 +2205,11 @@ cpa.value.trackJavaArrayValues = true
 custominstructions.binaryOperatorForSimpleCustomInstruction = ""
   allowed values: [MULTIPLY, DIVIDE, MODULO, PLUS, MINUS, SHIFT_LEFT, SHIFT_RIGHT, LESS_THAN, GREATER_THAN, LESS_EQUAL, GREATER_EQUAL, BINARY_AND, BINARY_XOR, BINARY_OR, EQUALS, NOT_EQUALS, ]
 
-# Signature for custom instruction, describes names and order of input and
-# output variables of a custom instruction
-custominstructions.ciSignature = "ci_spec.txt"
+# Prefix for files containing the custom instruction requirements.
+custominstructions.ciFilePrefix = "ci"
 
 # File to be parsed
 custominstructions.definitionFile = no default value
-
-# Where to dump the requirements on custom instruction extracted from
-# analysis
-custominstructions.dumpCIRequirements = "ci%d.smt"
 
 # Try to remove informations from requirements which is irrelevant for custom
 # instruction behavior
@@ -2245,14 +2237,6 @@ enabledanalysis.enablerCPA = PREDICATE
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
-
-# Configuration file for the K-Induction algorithm for checking candidates on
-# invariance.
-invariantChecker.kInductionConfig = "config/bmc-invgen.properties"
-
-# Timelimit for invariant generation which may be used during refinement.
-# (Use seconds or specify a unit; 0 for infinite)
-invariantChecker.timeForInvariantCheck = 0ns
 
 # adjust invariant generation conditions if supported by the analysis
 invariantGeneration.adjustConditions = false
@@ -2413,12 +2397,9 @@ pcc.partial.enableLoadDistribution = false
 # false.
 pcc.partial.stopAddingAtReachedSetSize = false
 
-# [Best-first] Balance criterion for pairwise optimization of partitions
-pcc.partitioning.bestfirst.balancePrecision = 1.0d
-
 # Evaluation function to determine exploration order of best-first-search
-pcc.partitioning.bestfirst.chosenFunction = BEST_IMPROVEMENT_FIRST
-  enum:     [BREADTH_FIRST, DEPTH_FIRST, BEST_IMPROVEMENT_FIRST]
+pcc.partitioning.bestfirst.evaluationFunction = BEST_IMPROVEMENT_FIRST
+  enum:     [BEST_IMPROVEMENT_FIRST, BREADTH_FIRST, DEPTH_FIRST]
 
 # Balance criterion for pairwise optimization of partitions
 pcc.partitioning.fm.balanceCriterion = 1.5d
@@ -2427,15 +2408,15 @@ pcc.partitioning.fm.balanceCriterion = 1.5d
 pcc.partitioning.fm.initialPartitioningStrategy = RANDOM
   enum:     [RANDOM]
 
-# [FM-k-way] Balance criterion for pairwise optimization of partitions
-pcc.partitioning.kwayfm.balancePrecision = 1.3d
+# Balance criterion for pairwise optimization of partitions
+pcc.partitioning.kwayfm.balancePrecision = 1.5d
 
-# [FM-k-way] Partitioning method to compute initial partitioning.
-pcc.partitioning.kwayfm.globalHeuristic = BEST_IMPROVEMENT_FIRST
-  enum:     [RANDOM, DFS, BFS, BEST_IMPROVEMENT_FIRST]
+# Heuristic for computing an initial partitioning of arg
+pcc.partitioning.kwayfm.initialPartitioningStrategy = BEST_FIRST
+  enum:     [RANDOM, BEST_FIRST]
 
-# [FM-k-way] Local optimization criterion to be minimized druing
-# Fiduccia/Mattheyses refinment
+# Local optimization criterion. Minimize the NodeCut of partitions or an
+# approximation of the frameworkspecific overhead
 pcc.partitioning.kwayfm.optimizationCriterion = NODECUT
   enum:     [EDGECUT, NODECUT]
 
@@ -2444,22 +2425,9 @@ pcc.partitioning.kwayfm.optimizationCriterion = NODECUT
 # Default value 0 means always a single partition.
 pcc.partitioning.maxNumElemsPerPartition = 0
 
-# Partitioning method applied in multilevel heuristic to compute initial
-# partitioning.
-pcc.partitioning.multilevel.globalHeuristic = BEST_IMPROVEMENT_FIRST
-  enum:     [RANDOM, DFS, BFS, BEST_IMPROVEMENT_FIRST]
-
-# Matching method applied to coarsen graph down in multilevel heuristic.
-pcc.partitioning.multilevel.matchingGenerator = HEAVY_EDGE
-  enum:     [RANDOM, HEAVY_EDGE]
-
-# Refinement method applied in multilevel heuristic's uncoarsening phase.
-pcc.partitioning.multilevel.refinementHeuristic = FM_NODECUT
-  enum:     [FM_NODECUT, FM_EDGECUT]
-
 # Heuristic for computing partitioning of proof (partial reached set).
 pcc.partitioning.partitioningStrategy = RANDOM
-  enum:     [RANDOM, DFS, BFS, OPTIMAL, BEST_FIRST, FM, FM_K_WAY, MULTILEVEL]
+  enum:     [RANDOM, DFS, BFS, OPTIMAL, BEST_FIRST, FM, FM_K_WAY]
 
 # If enabled uses the number of nodes saved in certificate to compute
 # partition number otherwise the number of states explored during analysis
@@ -2470,13 +2438,6 @@ pcc.proofFile = "arg.obj"
 
 # Generate and dump a proof
 pcc.proofgen.doPCC = false
-
-# Configuration for proof checking if differs from analysis configuration
-pcc.resultcheck.checkerConfig = no default value
-
-# Enable to write proof and read it again for validation instead of using the
-# in memory solution
-pcc.resultcheck.writeProof = false
 
 # Make proof more abstract, remove some of the information not needed to
 # prove the property.
@@ -2617,9 +2578,6 @@ staticRefiner.applyScoped = true
 
 # Dump CFA assume edges as SMTLIB2 formulas to a file.
 staticRefiner.assumePredicatesFile = no default value
-
-# split generated heuristic predicates into atoms
-staticRefiner.atomicPredicates = true
 
 # collect at most this number of assumes along a path, backwards from each
 # target (= error) location

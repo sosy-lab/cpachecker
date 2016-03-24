@@ -172,8 +172,6 @@ public class ARGReachedSet {
    * @param rootOfInfeasiblePart The root of the subtree to remove.
    */
   public void removeInfeasiblePartofARG(ARGState rootOfInfeasiblePart) {
-    dumpSubgraph(rootOfInfeasiblePart);
-
     Set<ARGState> infeasibleSubtree = rootOfInfeasiblePart.getSubgraph();
 
     for (ARGState removedNode : infeasibleSubtree) {

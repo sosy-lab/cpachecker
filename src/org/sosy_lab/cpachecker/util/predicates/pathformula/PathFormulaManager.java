@@ -39,6 +39,8 @@ import org.sosy_lab.solver.api.Model.ValueAssignment;
 
 public interface PathFormulaManager {
 
+  PathFormula makeEmptyFakePathFormula();
+
   PathFormula makeEmptyPathFormula();
 
   PathFormula makeEmptyPathFormula(PathFormula oldFormula);

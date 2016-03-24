@@ -1,17 +1,16 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration.tests;
 
-import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Map;
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Integration testing for policy iteration.
@@ -68,32 +67,34 @@ public class PolicyIterationTest {
     check("loop_nested_false_assert.c");
   }
 
-  @Test
-  public void pointer_past_abstraction_true_assert() throws Exception {
+  @Test public void pointer_past_abstraction_true_assert() throws Exception {
     check("pointers/pointer_past_abstraction_true_assert.c", ImmutableMap.of(
             "CompositeCPA.cpas", CPAS_W_SLICING,
             "cpa.stator.policy.generateOctagons", "true"
+//            "cpa.slicing.useCounterexampleBasedSlicing", "true"
         )
     );
   }
 
-  @Test
-  public void pointer_past_abstraction_false_assert() throws Exception {
-    check("pointers/pointer_past_abstraction_false_assert.c",
-        ImmutableMap.of(
+  @Test public void pointer_past_abstraction_false_assert() throws Exception {
+    check("pointers/pointer_past_abstraction_false_assert.c"
+        , ImmutableMap.of(
             "CompositeCPA.cpas", CPAS_W_SLICING,
-            "cpa.stator.policy.runCongruence", "false"
+            "cpa.stator.policy.runCongruence", "false",
+            "cpa.slicing.useCounterexampleBasedSlicing", "true"
         )
     );
   }
 
-  @Test
-  @Ignore("seems to require some kind of strengthening after the precision adjustment to work")
-  public void pointers_loop_true_assert() throws Exception {
+  @Test public void pointers_loop_true_assert() throws Exception {
     check("pointers/pointers_loop_true_assert.c",
         ImmutableMap.of(
             "CompositeCPA.cpas", CPAS_W_SLICING,
             "cpa.stator.policy.generateOctagons", "true",
+            "cpa.slicing.useSyntacticFormulaSlicing", "true",
+            "cpa.slicing.runCounterexampleBasedSlicing", "true",
+
+            // TODO: temporary fix.
             "cpa.stator.policy.linearizePolicy", "false"
         ));
   }
@@ -150,12 +151,13 @@ public class PolicyIterationTest {
     check("formula_fail_true_assert.c",
         ImmutableMap.of("cpa.stator.policy.generateLowerBound", "false",
                         "cpa.stator.policy.generateFromAsserts", "false",
-                        "cpa.stator.policy.abstractionLocations", "all"));
+                        "cpa.stator.policy.pathFocusing", "false"));
   }
 
   @Test public void unrolling_true_assert() throws Exception {
     check("unrolling_true_assert.c",
-        ImmutableMap.of("cpa.loopstack.loopIterationsBeforeAbstraction", "2"));
+        ImmutableMap.of("cpa.loopstack.loopIterationsBeforeAbstraction",
+            "2"));
   }
 
   @Test public void timeout_true_assert() throws Exception {

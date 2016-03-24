@@ -99,6 +99,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Option(secure=true, description = "Handle arrays using the theory of arrays.")
   private boolean handleArrays = false;
 
+  @Option(secure=true, description = "Use explicit state in predicate analysis")
+  private boolean useExplicitStateInPredicateAnalysis = false;
+
   @Option(secure=true, description="Call 'simplify' on generated formulas.")
   private boolean simplifyGeneratedPathFormulas = false;
 
@@ -289,11 +292,24 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final PointerTargetSet newPTS = mergePtsResult.getResult();
     final int newLength = Math.max(pathFormula1.getLength(), pathFormula2.getLength());
 
-    PathFormula out = new PathFormula(newFormula, newSSA.build(), newPTS, newLength);
-    if (simplifyGeneratedPathFormulas) {
-      out = out.updateFormula(fmgr.simplify(out.getFormula()));
+    PathFormula ret = new PathFormula(newFormula, newSSA.build(), newPTS, newLength);
+
+    if (useExplicitStateInPredicateAnalysis) {
+      if (pathFormula1.getValueAnalysisState() != null &&
+          pathFormula2.getValueAnalysisState() != null) {
+        ret.setValueAnalysisState(pathFormula1.getValueAnalysisState()
+              .join(pathFormula2.getValueAnalysisState()));
+      }/* else if (pathFormula1.getValueAnalysisState() != null) {
+        ret.setValueAnalysisState(pathFormula1.getValueAnalysisState());
+      } else if (pathFormula2.getValueAnalysisState() != null) {
+        ret.setValueAnalysisState(pathFormula2.getValueAnalysisState());
+      }*/
     }
-    return out;
+
+    if (simplifyGeneratedPathFormulas) {
+      ret = ret.updateFormula(fmgr.simplify(ret.getFormula()));
+    }
+    return ret;
   }
 
   @Override
@@ -607,7 +623,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           return bfmgr.makeBoolean(true);
         }
 
-        BooleanFormula pred = bfmgr.makeVariable(BRANCHING_PREDICATE_NAME + pathElement.getStateId());
+        BooleanFormula pred = bfmgr.makeVariable(BRANCHING_PREDICATE_NAME + pathElement.getStateId(), 0);
 
         // create formula by edge, be sure to use the correct SSA indices!
         // TODO the class PathFormulaManagerImpl should not depend on PredicateAbstractState,
@@ -649,7 +665,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
     Map<Integer, Boolean> preds = Maps.newHashMap();
     for (ValueAssignment entry : model) {
-      String canonicalName = entry.getName();
+      String canonicalName =
+          FormulaManagerView.parseName(entry.getName()).getFirstNotNull();
 
       if (fmgr.getFormulaType(entry.getKey()).isBooleanType()) {
         String name = BRANCHING_PREDICATE_NAME_PATTERN.matcher(canonicalName).replaceFirst("");
@@ -682,6 +699,13 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     bF = bfmgr.and(addMergeAssumptions(pF1.getFormula(), pF1.getSsa(), pF1.getPointerTargetSet(), pF2.getSsa()), bF);
 
     return bF;
+  }
+
+  @Override
+  public PathFormula makeEmptyFakePathFormula() {
+    PathFormula ret = makeEmptyPathFormula();
+    ret.setFakeTrue(true);
+    return ret;
   }
 
 }

@@ -81,17 +81,35 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
-/**
- * Implementation of {@link BlockFormulaStrategy} that slices the formulas
- * (i.e., it removes irrelevant parts based on variable usage).
- */
-class BlockFormulaSlicer extends BlockFormulaStrategy {
+
+public class BlockFormulaSlicer {
 
   /** if important or not, this does not matter, because it will be ignored later,
    * so it can be used for optimization. */
   private static final boolean IS_BLANK_EDGE_IMPORTANT = false;
 
-  private final PathFormulaManager pfmgr;
+  final private PathFormulaManager pfmgr;
+  final private boolean sliceBlockFormulas;
+
+  //  TODO future work:
+  //  We could not store the important edges, because they are much more.
+  //  It is more efficient, to store the complement.
+
+  /** This set contains all edges, that are important.
+   * We store the parent- and the child-ARGState, because they are unique,
+   * the edge itself can be used several times (for example in a loop). */
+  final private Multimap<ARGState, ARGState> importantEdges = ArrayListMultimap.create();
+
+  @SuppressWarnings("unused")
+  private static final Function<PredicateAbstractState, BooleanFormula> GET_BLOCK_FORMULA =
+      new Function<PredicateAbstractState, BooleanFormula>() {
+
+        @Override
+        public BooleanFormula apply(PredicateAbstractState e) {
+          assert e.isAbstractionState();
+          return e.getAbstractionFormula().getBlockFormula().getFormula();
+        }
+      };
 
   private static final Function<PathFormula, BooleanFormula> GET_BOOLEAN_FORMULA =
       new Function<PathFormula, BooleanFormula>() {
@@ -102,20 +120,13 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
         }
       };
 
-  BlockFormulaSlicer(PathFormulaManager pPfmgr) {
+  public BlockFormulaSlicer(PathFormulaManager pPfmgr) {
     this.pfmgr = pPfmgr;
+    this.sliceBlockFormulas = true;
   }
 
-  @Override
-  List<BooleanFormula> getFormulasForPath(ARGState initialState, List<ARGState> path)
+  public List<BooleanFormula> sliceFormulasForPath(List<ARGState> path, ARGState initialState)
       throws CPATransferException, InterruptedException {
-    // This map contains all edges that are important.
-    // We store the parent- and the child-ARGState, because they are unique,
-    // the CFAEdge itself can be used several times (for example in a loop).
-    // TODO future work:
-    // We could store not the important edges, because they are many.
-    // It is more efficient, to store the complement.
-    final Multimap<ARGState, ARGState> importantEdges = ArrayListMultimap.create();
 
     // first find all ARGStates for each block,
     // a block is a set of states with one start- and one end-state,
@@ -139,7 +150,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
       final ARGState end = path.get(i);
       final Set<ARGState> block = blocks.get(i);
 
-      importantVars = sliceBlock(start, end, block, importantVars, importantEdges);
+      importantVars = sliceBlock(start, end, block, importantVars);
     }
 
     // build new pathformulas, forwards
@@ -154,7 +165,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
       final Set<ARGState> block = blocks.remove(0);
 
       final PathFormula oldPf = pfmgr.makeEmptyPathFormula(pf);
-      pf = buildFormula(start, end, block, oldPf, importantEdges);
+      pf = buildFormula(start, end, block, oldPf);
       pfs.add(pf);
     }
 
@@ -189,8 +200,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
 
 
   private Collection<String> sliceBlock(ARGState start, ARGState end,
-      Set<ARGState> block, Collection<String> importantVars,
-      final Multimap<ARGState, ARGState> importantEdges) {
+      Set<ARGState> block, Collection<String> importantVars) {
 
     // this map contains all done states with their vars (if not removed through cleanup)
     final Map<ARGState, Collection<String>> s2v = Maps.newHashMapWithExpectedSize(block.size());
@@ -236,7 +246,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
       }
 
       // handle state
-      final Collection<String> vars = handleEdgesForState(current, s2v, s2s, block, importantEdges);
+      final Collection<String> vars = handleEdgesForState(current, s2v, s2s, block);
       s2v.put(current, vars);
 
       // cleanup, remove states, that will not be used in future
@@ -256,8 +266,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
   private Collection<String> handleEdgesForState(ARGState current,
       Map<ARGState, Collection<String>> s2v,
       Multimap<ARGState, ARGState> s2s,
-      Set<ARGState> block,
-      final Multimap<ARGState, ARGState> importantEdges) {
+      Set<ARGState> block) {
 
     final List<ARGState> usedChildren = from(current.getChildren()).filter(in(block)).toList();
     assert usedChildren.size() > 0 : "no child for " + current.getStateId();
@@ -641,9 +650,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
    * The SSA-indices of the new formula are based on the old formula.
    */
   private PathFormula buildFormula(ARGState start, ARGState end,
-      Collection<ARGState> block, PathFormula oldPf,
-      final Multimap<ARGState, ARGState> importantEdges)
-          throws CPATransferException, InterruptedException {
+      Collection<ARGState> block, PathFormula oldPf) throws CPATransferException, InterruptedException {
 
     // this map contains all done states with their formulas
     final Map<ARGState, PathFormula> s2f = Maps.newHashMapWithExpectedSize(block.size());
@@ -684,7 +691,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
       }
 
       // handle state
-      final PathFormula pf = makeFormulaForState(current, s2f, importantEdges);
+      final PathFormula pf = makeFormulaForState(current, s2f);
       s2f.put(current, pf);
 
       // cleanup, remove states, that will not be used in future
@@ -698,8 +705,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
   }
 
 
-  private PathFormula makeFormulaForState(ARGState current, Map<ARGState, PathFormula> s2f,
-      final Multimap<ARGState, ARGState> importantEdges)
+  private PathFormula makeFormulaForState(ARGState current, Map<ARGState, PathFormula> s2f)
       throws CPATransferException, InterruptedException {
 
     assert current.getParents().size() > 0 : "no parent for " + current.getStateId();
@@ -708,7 +714,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     final List<PathFormula> pfs = new ArrayList<>(current.getParents().size());
     for (ARGState parent : current.getParents()) {
       final PathFormula oldPf = s2f.get(parent);
-      pfs.add(buildFormulaForEdge(parent, current, oldPf, importantEdges));
+      pfs.add(buildFormulaForEdge(parent, current, oldPf));
     }
 
     PathFormula joined = pfs.get(0);
@@ -719,10 +725,9 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     return joined;
   }
 
-  private PathFormula buildFormulaForEdge(ARGState parent, ARGState child, PathFormula oldFormula,
-      final Multimap<ARGState, ARGState> importantEdges)
+  private PathFormula buildFormulaForEdge(ARGState parent, ARGState child, PathFormula oldFormula)
       throws CPATransferException, InterruptedException {
-    if (!importantEdges.containsEntry(parent, child)) {
+    if (sliceBlockFormulas && !importantEdges.containsEntry(parent, child)) {
       return oldFormula;
     } else {
       return pfmgr.makeAnd(oldFormula, parent.getEdgeToChild(child));

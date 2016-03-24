@@ -52,8 +52,7 @@ public class InductiveWeakeningManagerTest {
     Solver solver = Solver.create(config, logger, notifier);
     fmgr = solver.getFormulaManager();
 
-    inductiveWeakeningManager = new InductiveWeakeningManager(config, solver, logger,
-        ShutdownNotifier.createDummy());
+    inductiveWeakeningManager = new InductiveWeakeningManager(config, fmgr, solver, logger);
   }
 
   @After public void tearDown() throws Exception {
