@@ -371,20 +371,23 @@ public class ARGUtils {
    * @return A path through the ARG from root to target.
    * @throws IllegalArgumentException If the direction information doesn't match the ARG or the ARG is inconsistent.
    */
-  public static ARGPath getPathFromBranchingInformation(
-      ARGState pRoot, Set<? extends AbstractState> pArg,
+  public static ARGPath getPathToFromBranchingInformation(
+      ARGState pRoot, ARGState pTarget, Set<? extends AbstractState> pArg,
       Map<Integer, Integer> pTakenBranches) throws IllegalArgumentException {
 
     checkArgument(pArg.contains(pRoot));
 
     List<ARGState> states = new ArrayList<>();
     List<CFAEdge> edges = new ArrayList<>();
+
     ARGState currentElement = pRoot;
+
     while (!currentElement.isTarget()) {
       Collection<ARGState> children = currentElement.getChildren();
 
       ARGState child;
       CFAEdge edge;
+
       switch (children.size()) {
 
       case 0:
@@ -414,23 +417,41 @@ public class ARGUtils {
         edge = null;
         child = null;
 
+        ARGState deadEndChild = null;
+        ARGState noDeadEndChild = null;
+
         for (ARGState currentChild : children) {
           Integer childStateId = currentChild.getStateId();
           CFAEdge currentEdge = currentElement.getEdgeToChild(currentChild);
+
           stateIdToState.put(childStateId, currentChild);
           childStateIdToEdge.put(childStateId, currentEdge);
 
-          Integer onPath = pTakenBranches.get(currentElement.getStateId());
-          if (onPath != null) {
-            if (onPath.equals(childStateId)) {
+          if (currentChild == pTarget) {
+            child = currentChild;
+            edge = currentEdge;
+          }
+
+          Integer takenBranch = pTakenBranches.get(currentElement.getStateId());
+          if (takenBranch != null) {
+            if (takenBranch.equals(childStateId)) {
               child = currentChild;
               edge = currentEdge;
               break;
             }
           }
+
+          if (currentChild.getChildren().size() > 0) {
+            noDeadEndChild = currentChild;
+          } else {
+            deadEndChild = currentChild;
+          }
         }
 
-        if (edge == null || child == null) {
+        if (deadEndChild != null && noDeadEndChild != null) {
+          child = noDeadEndChild;
+          edge = currentElement.getEdgeToChild(noDeadEndChild);
+        } else if (edge == null || child == null) {
           throw new IllegalArgumentException("ARG branches without direction information!");
         }
 
@@ -481,7 +502,7 @@ public class ARGUtils {
     checkArgument(arg.contains(target));
     checkArgument(target.isTarget());
 
-    ARGPath result = getPathFromBranchingInformation(root, arg, branchingInformation);
+    ARGPath result = getPathToFromBranchingInformation(root, target, arg, branchingInformation);
 
     if (result.getLastState() != target) {
       throw new IllegalArgumentException("ARG target path reached the wrong target state!");

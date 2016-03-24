@@ -616,8 +616,10 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           isValidBranching = true;
         }
 
-        final BooleanFormula equiv = bfmgr.equivalence(pred, pf.getFormula());
-        branchingFormula = bfmgr.and(branchingFormula, equiv);
+        if (!child.getChildren().isEmpty()) { // Path will not merge later --> not relevant for choosing the branching
+          final BooleanFormula equiv = bfmgr.equivalence(pred, pf.getFormula());
+          branchingFormula = bfmgr.and(branchingFormula, equiv);
+        }
       }
 
       if (!isValidBranching) {

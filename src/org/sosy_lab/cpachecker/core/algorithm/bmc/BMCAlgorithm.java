@@ -232,7 +232,10 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
       ARGPath targetPath;
       try {
-        targetPath = ARGUtils.getPathFromBranchingInformation(root, pReachedSet.asCollection(), branchingInformation);
+        if (targetStates.size() > 1) {
+          throw new RuntimeException("Fix me! Only one target location supported!");
+        }
+        targetPath = ARGUtils.getPathFromBranchingInformation(root, targetStates.iterator().next(), pReachedSet.asCollection(), branchingInformation);
       } catch (IllegalArgumentException e) {
         logger.logUserException(Level.WARNING, e, "Could not create error path");
         return;

@@ -75,12 +75,6 @@ public class FormulaEncodingOptions {
   @Option(secure=true, description = "Ignore variables that are not relevant for reachability properties.")
   private boolean ignoreIrrelevantVariables = true;
 
-  @Option(secure=true, description = "Ignore feature variables? They should be tracked with a more efficient CPA.")
-  private boolean ignoreFeatureVariables = false;
-
-  @Option(secure=true, description="Regexp pattern for feature variables.")
-  private Pattern featureVariablePattern = Pattern.compile("(\\w)*__SELECTED_FEATURE_(\\w)");
-
   @Option(secure=true, description = "Ignore fields that are not relevant for reachability properties. This is unsound in case fields are accessed by pointer arithmetic with hard-coded field offsets. Only relvant if ignoreIrrelevantVariables is enabled.")
   private boolean ignoreIrrelevantFields = true;
 
@@ -155,14 +149,6 @@ public class FormulaEncodingOptions {
 
   public boolean encodeOverflowsWithUFs() {
     return encodeOverflowsWithUFs;
-  }
-
-  public Pattern featureVariablePattern() {
-    return featureVariablePattern;
-  }
-
-  public boolean ignoreFeatureVariables() {
-    return ignoreFeatureVariables;
   }
 
 }

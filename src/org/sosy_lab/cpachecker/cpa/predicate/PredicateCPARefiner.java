@@ -506,8 +506,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
         ARGState target = pPath.getLastState();
         Set<ARGState> pathElements = ARGUtils.getAllStatesOnPathsTo(target);
 
-        targetPath = ARGUtils.getPathFromBranchingInformation(root, target,
-            pathElements, directions);
+        targetPath = ARGUtils.getPathFromBranchingInformation(root, target, pathElements, directions);
 
       } catch (IllegalArgumentException e) {
         logger.logUserException(Level.WARNING, e, null);
