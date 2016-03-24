@@ -207,7 +207,6 @@ public class SignState implements Serializable, LatticeAbstractState<SignState>,
 
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
-    // TODO Auto-generated method stub
     List<String> parts = propertySplitter.splitToList(pProperty);
 
     if (parts.size() == 2) {
