@@ -123,7 +123,6 @@ import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.cpa.automaton.PowersetAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.ReducedAutomatonProduct;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDCPA;
-import org.sosy_lab.cpachecker.cpa.bdd.BDDTransferRelation;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionRefinementStrategy;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -587,8 +586,7 @@ public class TigerAlgorithm
         if (useTigerAlgorithm_with_pc) {
           Region remainingPresenceCondition =
               BDDUtils.composeRemainingPresenceConditions(goalsToBeProcessed, testsuite, bddCpaNamedRegionManager);
-          logger.logf(Level.INFO, "%s of %d for PC %s.", logString, numberOfTestGoals,
-              bddCpaNamedRegionManager.dumpRegion(remainingPresenceCondition));
+          logger.logf(Level.INFO, "%s of %d for a PC.", logString, numberOfTestGoals);
         } else {
           logger.logf(Level.INFO, "%s of %d.", logString, numberOfTestGoals);
         }
@@ -743,11 +741,8 @@ public class TigerAlgorithm
 
           testsuite.addTestCase(pTestcase, goal, statePresenceCondition);
 
-          logger.logf(Level.WARNING, "Covered some PCs for Goal %d (%s) for PC %s by test case %d!",
-              goal.getIndex(), testsuite.getTestGoalLabel(goal),
-              bddCpaNamedRegionManager.dumpRegion(statePresenceCondition), pTestcase.getId());
-          logger.logf(Level.WARNING, "Remaining PC %s!",
-              bddCpaNamedRegionManager.dumpRegion(testsuite.getRemainingPresenceCondition(goal)));
+          logger.logf(Level.WARNING, "Covered some PCs for Goal %d (%s) for a PC by test case %d!",
+              goal.getIndex(), testsuite.getTestGoalLabel(goal), pTestcase.getId());
 
           if (testsuite.getRemainingPresenceCondition(goal).isFalse()) {
             coveredGoals.add(goal);
@@ -1027,11 +1022,11 @@ public class TigerAlgorithm
     } else if (cpa instanceof BDDCPA) {
       bddcpa = (BDDCPA) cpa;
     }
-    if (bddcpa.getTransferRelation() instanceof BDDTransferRelation) {
-      ((BDDTransferRelation) bddcpa.getTransferRelation()).setGlobalConstraint(pRemainingPresenceCondition);
-      logger.logf(Level.INFO, "Restrict BDD to %s.",
-          bddCpaNamedRegionManager.dumpRegion(pRemainingPresenceCondition));
-    }
+//    if (bddcpa.getTransferRelation() instanceof BDDTransferRelation) {
+//      ((BDDTransferRelation) bddcpa.getTransferRelation()).setGlobalConstraint(pRemainingPresenceCondition);
+//      logger.logf(Level.INFO, "Restrict BDD to %s.",
+//          bddCpaNamedRegionManager.dumpRegion(pRemainingPresenceCondition));
+//    }
   }
 
   private Algorithm initializeAlgorithm(Region pRemainingPresenceCondition, ARGCPA lARTCPA,
@@ -1181,8 +1176,7 @@ public class TigerAlgorithm
         inputsAndOutputs);
 
     if (useTigerAlgorithm_with_pc) {
-      logger.logf(Level.INFO, "Generated new test case %d with PC %s in the last state.", testcase.getId(),
-          bddCpaNamedRegionManager.dumpRegion(testcase.getPresenceCondition()));
+      logger.logf(Level.INFO, "Generated new test case %d with a PC in the last state.", testcase.getId());
     } else {
       logger.logf(Level.INFO, "Generated new test case %d.", testcase.getId());
     }
@@ -1238,8 +1232,7 @@ public class TigerAlgorithm
       testsuite.addInfeasibleGoal(pGoal, testsuite.getRemainingPresenceCondition(pGoal), lGoalPrediction);
       testsuite.setInfeasiblePresenceCondition(pGoal, testsuite.getRemainingPresenceCondition(pGoal));
       testsuite.setRemainingPresenceCondition(pGoal, bddCpaNamedRegionManager.makeFalse());
-      logger.logf(Level.WARNING, "Goal %d is infeasible for remaining PC %s!", pGoal.getIndex(),
-          bddCpaNamedRegionManager.dumpRegion(testsuite.getInfeasiblePresenceCondition(pGoal)));
+      logger.logf(Level.WARNING, "Goal %d is infeasible for remaining PC!", pGoal.getIndex());
     } else {
       logger.logf(Level.WARNING, "Goal %d is infeasible!", pGoal.getIndex());
       testsuite.addInfeasibleGoal(pGoal, null, lGoalPrediction);
