@@ -215,7 +215,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
             "Cannot find PredicateCPA in CPA configuration but it is required to set abstraction nodes");
         return AlgorithmStatus.UNSOUND_AND_PRECISE;
       }
-      predCPA.getTransferRelation().changeExplicitAbstractionNodes(extractAdditionalAbstractionLocations(cia));
+      predCPA.changeExplicitAbstractionNodes(extractAdditionalAbstractionLocations(cia));
     }
 
     shutdownNotifier.shutdownIfNecessary();

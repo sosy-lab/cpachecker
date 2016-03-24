@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import org.sosy_lab.solver.SolverException;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * CPA that defines symbolic predicate abstraction.
@@ -129,9 +130,10 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final InvariantGenerator invariantGenerator;
   private final PrefixProvider prefixProvider;
   private final InvariantsManager invariantsManager;
+  private final BlockOperator blk;
 
   protected PredicateCPA(Configuration config, LogManager logger,
-      BlockOperator blk, CFA pCfa, ShutdownNotifier pShutdownNotifier)
+      BlockOperator pBlk, CFA pCfa, ShutdownNotifier pShutdownNotifier)
           throws InvalidConfigurationException, CPAException {
     config.inject(this, PredicateCPA.class);
 
@@ -140,6 +142,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     this.shutdownNotifier = pShutdownNotifier;
 
     cfa = pCfa;
+    blk = pBlk;
 
     if (enableBlockreducer) {
       BlockComputer blockComputer = new BlockedCFAReducer(config, logger);
@@ -378,5 +381,9 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   public InvariantsManager getInvariantsManager() {
     return invariantsManager;
+  }
+
+  public void changeExplicitAbstractionNodes(final ImmutableSet<CFANode> explicitlyAbstractAt) {
+    blk.setExplicitAbstractionNodes(explicitlyAbstractAt);
   }
 }

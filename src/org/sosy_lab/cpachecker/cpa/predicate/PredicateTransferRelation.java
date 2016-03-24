@@ -66,8 +66,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import com.google.common.collect.ImmutableSet;
-
 /**
  * Transfer relation for symbolic predicate abstraction. First it computes
  * the strongest post for the given CFA edge. Afterwards it optionally
@@ -514,9 +512,5 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       }
     }
     return false;
-  }
-
-  public void changeExplicitAbstractionNodes(final ImmutableSet<CFANode> explicitlyAbstractAt) {
-    blk.setExplicitAbstractionNodes(explicitlyAbstractAt);
   }
 }
