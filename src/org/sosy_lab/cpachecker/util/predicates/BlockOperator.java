@@ -25,21 +25,18 @@ package org.sosy_lab.cpachecker.util.predicates;
 
 import static com.google.common.base.Preconditions.checkState;
 
-import java.util.Collection;
-
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 
 /**
  * This class implements the blk operator from the paper
@@ -149,12 +146,9 @@ public class BlockOperator {
       return true;
     }
 
-    if (alwaysAtEntryFunctionHead && isFirstLocationInFunctionBody(succLoc)) {
-      Preconditions.checkNotNull(cfa);
-      if (cfa.getMainFunction().getFunctionName().equals(edge.getPredecessor().getFunctionName())) {
-        numBlkEntryFunctionHeads++;
-        return true;
-      }
+    if (alwaysAtEntryFunctionHead && isFirstLocationInMainFunctionBody(succLoc)) {
+      numBlkEntryFunctionHeads++;
+      return true;
     }
 
     if (alwaysAtFunctionHeads && isFunctionHead(edge)) {
@@ -298,13 +292,10 @@ public class BlockOperator {
     return succLoc.getLeavingSummaryEdge() != null;
   }
 
-  private static boolean isFirstLocationInFunctionBody(CFANode pLoc) {
-    Collection<CFAEdge> edges = Lists.newArrayList(CFAUtils.enteringEdges(pLoc));
-
-    for (CFAEdge edge: edges) {
-      if (edge instanceof CDeclarationEdge )  {
-        CDeclarationEdge e = (CDeclarationEdge) edge;
-        if (e.getDeclaration() instanceof CFunctionDeclaration) {
+  private static boolean isFirstLocationInMainFunctionBody(CFANode pLoc) {
+    for (CFAEdge edge: CFAUtils.leavingEdges(pLoc)) {
+      if (edge instanceof BlankEdge)  {
+        if (edge.getDescription().equals("Function start dummy edge")) {
           return true;
         }
       }
