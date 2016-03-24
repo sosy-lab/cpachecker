@@ -28,12 +28,10 @@ import static com.google.common.base.Preconditions.checkState;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 import com.google.common.collect.ImmutableSet;
@@ -151,7 +149,7 @@ public class BlockOperator {
       return true;
     }
 
-    if (alwaysAtFunctionHeads && isFunctionHead(edge)) {
+    if (alwaysAtFunctionHeads && isFunctionHead(succLoc)) {
       numBlkFunctionHeads++;
       return true;
     }
@@ -230,7 +228,6 @@ public class BlockOperator {
     }
     return !alwaysAtFunctions
         && !alwaysAtEntryFunctionHead
-        && !alwaysAtFunctionHeads
         && !alwaysAtFunctionCallNodes
         && !alwaysAtLoops
         && !alwaysAtJoin
@@ -257,7 +254,7 @@ public class BlockOperator {
   }
 
   protected boolean isFunctionCall(CFANode succLoc) {
-    return (succLoc instanceof FunctionEntryNode) // function call edge
+    return isFunctionHead(succLoc)
         || (succLoc.getEnteringSummaryEdge() != null); // function return edge
   }
 
@@ -278,14 +275,8 @@ public class BlockOperator {
     return pLoc.getNumLeavingEdges() > 1;
   }
 
-  protected boolean isFunctionHead(CFAEdge edge) {
-    if (edge instanceof CDeclarationEdge )  {
-      CDeclarationEdge e = (CDeclarationEdge) edge;
-      if (e.getDeclaration() instanceof CFunctionDeclaration) {
-        return true;
-      }
-    }
-    return false;
+  protected boolean isFunctionHead(CFANode succLoc) {
+    return succLoc instanceof FunctionEntryNode;
   }
 
   private boolean isBeforeFunctionCall(CFANode succLoc) {
