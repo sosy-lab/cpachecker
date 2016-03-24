@@ -146,9 +146,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
     postTimer.start();
     try {
-
       PredicateAbstractState element = (PredicateAbstractState) pElement;
-      CFANode loc = getAnalysisSuccesor(edge);
 
       // Check whether abstraction is false.
       // Such elements might get created when precision adjustment computes an abstraction.
@@ -158,20 +156,38 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       PathFormula pathFormula = convertEdgeToPathFormula(element.getPathFormula(), edge);
       logger.log(Level.ALL, "New path formula is", pathFormula);
 
-      // check whether to do abstraction
-      if (satCheckAtAbstraction && blk.isBlockEnd(loc, pathFormula.getLength())) {
-        if (unsatCheck(element.getAbstractionFormula(), pathFormula)) {
+      // Check whether we should do a SAT check.s
+      boolean satCheck = shouldDoSatCheck(edge, pathFormula);
+      logger.log(Level.FINEST, "Handling non-abstraction location",
+          (satCheck ? "with satisfiability check" : ""));
+
+      try {
+        if (satCheck && unsatCheck(element.getAbstractionFormula(), pathFormula)) {
           return Collections.emptySet();
         }
+      } catch (SolverException e) {
+        throw new CPATransferException("Solver failed during successor generation", e);
       }
-      return handleNonAbstractionFormulaLocation(pathFormula, element);
 
-    } catch (SolverException e) {
-      throw new CPATransferException("Solver failed during successor generation", e);
+      return Collections.singleton(
+          mkNonAbstractionStateWithNewPathFormula(pathFormula, element));
 
     } finally {
       postTimer.stop();
     }
+  }
+
+  private boolean shouldDoSatCheck(CFAEdge edge, PathFormula pathFormula) {
+    if ((satCheckBlockSize > 0) && (pathFormula.getLength() >= satCheckBlockSize)) {
+      return true;
+    }
+    if (satCheckAtAbstraction) {
+      CFANode loc = getAnalysisSuccesor(edge);
+      if (blk.isBlockEnd(loc, pathFormula.getLength())) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private CFANode getAnalysisSuccesor(CFAEdge pEdge) {
@@ -180,29 +196,6 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     } else {
       return pEdge.getSuccessor();
     }
-  }
-
-  /**
-   * Does special things when we do not compute an abstraction for the
-   * successor. This currently only envolves an optional sat check.
-   */
-  private Collection<PredicateAbstractState> handleNonAbstractionFormulaLocation(
-      PathFormula pathFormula, PredicateAbstractState oldState)
-          throws SolverException, InterruptedException {
-    boolean satCheck = (satCheckBlockSize > 0) && (pathFormula.getLength() >= satCheckBlockSize);
-
-    logger.log(Level.FINEST, "Handling non-abstraction location",
-        (satCheck ? "with satisfiability check" : ""));
-
-    if (satCheck) {
-      if (unsatCheck(oldState.getAbstractionFormula(), pathFormula)) {
-        return Collections.emptySet();
-      }
-    }
-
-    // create the new abstract state for non-abstraction location
-    return Collections.singleton(
-        mkNonAbstractionStateWithNewPathFormula(pathFormula, oldState));
   }
 
   /**
@@ -469,18 +462,11 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     boolean result = true;
 
     if (pSuccessors.isEmpty()) {
-      satCheckTimer.start();
+      // if pSuccessors is empty than successor formula needs to be unsat
       PathFormula pFormula = convertEdgeToPathFormula(pathFormula, pCfaEdge);
-      Collection<? extends AbstractState> foundSuccessors =
-          handleNonAbstractionFormulaLocation(pFormula, predicateElement);
-      //if we found successors, they all have to be unsat
-      for (AbstractState e : foundSuccessors) {
-        PredicateAbstractState successor = (PredicateAbstractState) e;
-        if (!formulaManager.unsat(successor.getAbstractionFormula(), successor.getPathFormula())) {
-          result = false;
-        }
+      if (!unsatCheck(predicateElement.getAbstractionFormula(), pFormula)) {
+        result = false;
       }
-      satCheckTimer.stop();
       return result;
     }
 
