@@ -350,7 +350,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
       final ARGPath pErrorPathPrefix,
       final Map<ARGState, I> pInterpolants
   ) {
-    if(errorPath != pErrorPathPrefix) {
+    if (pErrorPathPrefix.size() < errorPath.size()) {
       PathIterator it = errorPath.pathIterator();
       for (int i = 0; i < pErrorPathPrefix.size(); i++) {
         it.advance();
