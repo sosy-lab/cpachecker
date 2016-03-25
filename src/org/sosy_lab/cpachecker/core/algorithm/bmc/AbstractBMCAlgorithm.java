@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.FILTER_ABSTRACTION_STATES;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
@@ -270,6 +271,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
           status = BMCHelper.unroll(logger, reachedSet, algorithm, cpa);
           if (from(reachedSet)
               .skip(1) // first state of reached is always an abstraction state, so skip it
+              .filter(not(IS_TARGET_STATE)) // target states may be abstraction states
               .transform(toState(PredicateAbstractState.class))
               .anyMatch(FILTER_ABSTRACTION_STATES)) {
 
