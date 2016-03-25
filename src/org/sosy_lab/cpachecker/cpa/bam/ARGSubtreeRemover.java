@@ -53,10 +53,12 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMCEXSubgraphComputer.BackwardARGState;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 
@@ -275,15 +277,11 @@ public class ARGSubtreeRemover {
     Map<ARGState, UnmodifiableReachedSet> pathElementToOuterReachedSet = getReachedSetMapping(
         pPath, mainReachedSet.asReachedSet());
 
-
-
     // we start at the cutState, because until then the precision seems to be sufficient.
     Iterator<ARGState> remainingPathElements = pPath.asStatesList().iterator();
-    ARGState currentElement;
-    do {
-      currentElement = remainingPathElements.next();
-    } while (currentElement != pElement);
-    assert remainingPathElements.hasNext() : "cutState not found in path";
+    Optional<ARGState> e = Iterators.tryFind(remainingPathElements, Predicates.equalTo(pElement));
+    assert e.isPresent() : "cutState not found in path";
+    ARGState currentElement = e.get();
 
     // we start with the cutState and iterate over the rest of the path
     while (remainingPathElements.hasNext()) {
