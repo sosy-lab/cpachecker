@@ -23,8 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import java.util.Collections;
-import java.util.List;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -33,9 +34,8 @@ import org.sosy_lab.solver.api.IntegerFormulaManager;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.QuantifiedFormulaManager;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
+import java.util.Collections;
+import java.util.List;
 
 public class QuantifiedFormulaManagerView
   extends BaseManagerView
@@ -68,6 +68,18 @@ public class QuantifiedFormulaManagerView
   @Override
   public BooleanFormula forall(List<? extends Formula> pVariables, BooleanFormula pBody) {
     return manager.forall(unwrap(pVariables), pBody);
+  }
+
+  @Override
+  public BooleanFormula forall(
+      BooleanFormula pBody, Formula... quantifiedArgs) {
+    return forall(Lists.newArrayList(quantifiedArgs), pBody);
+  }
+
+  @Override
+  public BooleanFormula exists(
+      BooleanFormula pBody, Formula... quantifiedArgs) {
+    return exists(Lists.newArrayList(quantifiedArgs), pBody);
   }
 
   @Override
