@@ -109,11 +109,9 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     totalPrecTime.start();
     try {
       PredicateAbstractState element = (PredicateAbstractState)pElement;
-
       CFANode location = AbstractStates.extractLocation(fullState);
-      PathFormula pathFormula = element.getPathFormula();
 
-      if (!element.isAbstractionState() && blk.isBlockEnd(location, pathFormula.getLength())) {
+      if (shouldComputeAbstraction(fullState, location, element)) {
         PredicatePrecision precision = (PredicatePrecision)pPrecision;
 
         return computeAbstraction(element, precision, location, fullState);
@@ -122,12 +120,20 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
             element, pPrecision, PrecisionAdjustmentResult.Action.CONTINUE));
       }
 
-
     } catch (SolverException e) {
       throw new CPAException("Solver Failure", e);
     } finally {
       totalPrecTime.stop();
     }
+  }
+
+  private boolean shouldComputeAbstraction(
+      AbstractState fullState, CFANode location, PredicateAbstractState predicateState) {
+    if (predicateState.isAbstractionState()) {
+      return false;
+    }
+    return blk.isBlockEnd(location, predicateState.getPathFormula().getLength())
+        || AbstractStates.isTargetState(fullState);
   }
 
   /**
