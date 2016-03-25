@@ -90,7 +90,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 import org.sosy_lab.cpachecker.cpa.formulaslicing.InductiveWeakeningManager;
 import org.sosy_lab.cpachecker.cpa.formulaslicing.LoopTransitionFinder;
-import org.sosy_lab.cpachecker.cpa.formulaslicing.SemiCNFManager;
+import org.sosy_lab.cpachecker.cpa.formulaslicing.RCNFManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -263,7 +263,7 @@ class InvariantsManager implements StatisticsProvider {
   private final InterpolationManager imgr;
 
   private final InductiveWeakeningManager inductiveWeakeningMgr;
-  private final SemiCNFManager semiCNFConverter;
+  private final RCNFManager semiCNFConverter;
   private final CFA cfa;
   private final PrefixProvider prefixProvider;
 
@@ -300,7 +300,7 @@ class InvariantsManager implements StatisticsProvider {
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     pfmgr = pPfmgr;
-    semiCNFConverter = new SemiCNFManager(fmgr, pConfig);
+    semiCNFConverter = new RCNFManager(fmgr, pConfig);
     amgr = pAbsManager;
     rmgr = amgr.getRegionCreator();
 

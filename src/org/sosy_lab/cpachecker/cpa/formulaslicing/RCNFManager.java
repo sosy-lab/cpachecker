@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * explosion and without introducing extra existential quantifiers.
  */
 @Options(prefix="cpa.slicing")
-public class SemiCNFManager {
+public class RCNFManager {
 
   @Option(description="Limit for explicit CNF expansion (potentially exponential otherwise)",
       secure=true)
@@ -35,7 +35,7 @@ public class SemiCNFManager {
 
   private final HashMap<BooleanFormula, BooleanFormula> conversionCache;
 
-  public SemiCNFManager(FormulaManagerView pFmgr, Configuration options)
+  public RCNFManager(FormulaManagerView pFmgr, Configuration options)
       throws InvalidConfigurationException{
     options.inject(this);
     bfmgr = pFmgr.getBooleanFormulaManager();
@@ -43,7 +43,7 @@ public class SemiCNFManager {
     conversionCache = new HashMap<>();
   }
 
-  public Set<BooleanFormula> toClauses(BooleanFormula input) throws InterruptedException {
+  public Set<BooleanFormula> toLemmas(BooleanFormula input) throws InterruptedException {
     Set<BooleanFormula> conjunctionArgs = bfmgr.toConjunctionArgs(convert(fmgr.simplify(input)), true);
     return Sets.filter(
         conjunctionArgs,
