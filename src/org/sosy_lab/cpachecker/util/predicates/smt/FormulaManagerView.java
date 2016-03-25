@@ -50,6 +50,8 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -1639,7 +1641,8 @@ public class FormulaManagerView {
           // First occurrence is larger than the index in the SSA map.
           int freshIdx = ssaBuilder.getFreshIndex(var);
           newIdx = freshIdx;
-          ssaBuilder = ssaBuilder.setIndex(var, finalSSA.getType(var), freshIdx);
+          CType type = finalSSA.getType(var) != null ? finalSSA.getType(var) : CNumericTypes.INT;
+          ssaBuilder = ssaBuilder.setIndex(var, type, freshIdx);
         } else {
           newIdx = ssaBuilder.getIndex(var);
         }
