@@ -2070,16 +2070,21 @@ cpa.value.abstraction.alwaysAtJoin = false
 # restrict abstraction computations to loop heads
 cpa.value.abstraction.alwaysAtLoop = false
 
+# threshold for level of determinism, in percent, up-to which abstraction
+# computations are performed (and iteration threshold was reached)
+cpa.value.abstraction.determinismThreshold = 85
+
 # toggle liveness abstraction
 cpa.value.abstraction.doLivenessAbstraction = false
+
+# skip abstraction computations until the given number of iterations are
+# reached, after that decision is based on then current level of determinism,
+# setting the option to -1 always performs abstraction computations
+cpa.value.abstraction.iterationThreshold = -1
 
 # restrict liveness abstractions to nodes with more than one entering and/or
 # leaving edge
 cpa.value.abstraction.onlyAtNonLinearCFA = false
-
-# skip abstraction computations until the given number of abstraction calls
-# is reached
-cpa.value.abstraction.threshold = -1
 
 # Whether to replace symbolic values with a concrete value when only one
 # value is possible for an assumption to be true (e.g. for (x == 1) set x to

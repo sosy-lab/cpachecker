@@ -155,7 +155,6 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
-import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 import com.google.common.base.Optional;
@@ -233,6 +232,8 @@ public class ValueAnalysisTransferRelation
   private final Collection<String> addressedVariables;
   private final Collection<String> booleanVariables;
 
+  private int currentNumberOfIterations = 0;
+
   private StatCounter totalAssumptions = new StatCounter("Number of Assumptions");
   private StatCounter deterministicAssumptions = new StatCounter("Number of deterministic Assumptions");
 
@@ -244,8 +245,7 @@ public class ValueAnalysisTransferRelation
 
       writer.put(totalAssumptions)
             .put(deterministicAssumptions)
-            .put("Level of Determinism", StatisticsUtils.toPercent(deterministicAssumptions.getValue(),
-                                                                        totalAssumptions.getValue()));
+            .put("Level of Determinism", getCurrentLevelOfDeterminism() + "%");
     }
 
     @Override
@@ -271,6 +271,18 @@ public class ValueAnalysisTransferRelation
     constraintsStrengthenOperator = new ConstraintsStrengthenOperator(config);
   }
 
+  int getCurrentNumberOfIterations() {
+    return currentNumberOfIterations;
+  }
+
+  int getCurrentLevelOfDeterminism() {
+    if (totalAssumptions.getValue() == 0) {
+      return 100;
+    } else {
+      return (int) Math.round((deterministicAssumptions.getValue() * 100) / (double)totalAssumptions.getValue());
+    }
+  }
+
   @Override
   protected Collection<ValueAnalysisState> postProcessing(ValueAnalysisState successor) {
     // always return a new state (requirement for strengthening states with interpolants)
@@ -293,6 +305,7 @@ public class ValueAnalysisTransferRelation
     // it is more secure.
     missingInformationList = new ArrayList<>(5);
     oldState = (ValueAnalysisState)pAbstractState;
+    currentNumberOfIterations++;
   }
 
   @Override
