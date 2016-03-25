@@ -1307,6 +1307,8 @@ public class SMGExpressionEvaluator {
             SMGSymbolicValue resultValue = evaluateBinaryAssumption(newState,
                 binaryOperator, leftSideVal, rightSideVal);
 
+            //TODO: separate modifieble visitor and nonmodifialbe
+            newState.addPredicateRelation(leftSideVal, rightSideVal, binaryOperator, cfaEdge);
             result.add(SMGValueAndState.of(newState, resultValue));
           }
         }

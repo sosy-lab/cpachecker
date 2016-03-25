@@ -32,11 +32,15 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -49,6 +53,9 @@ public class SMG {
   private Map<SMGObject, Boolean> object_validity = new HashMap<>();
   private Map<SMGObject, SMG.ExternalObjectFlag> objectAllocationIdentity = new HashMap<>();
   private NeqRelation neq = new NeqRelation();
+
+  private final boolean trackPredicates = false;
+  private PredRelation pred = new PredRelation();
 
   private final MachineModel machine_model;
 
@@ -93,6 +100,7 @@ public class SMG {
     machine_model = pHeap.machine_model;
     hv_edges.addAll(pHeap.hv_edges);
     neq.putAll(pHeap.neq);
+    pred.putAll(pHeap.pred);
     object_validity.putAll(pHeap.object_validity);
     objectAllocationIdentity.putAll(pHeap.objectAllocationIdentity);
     objects.addAll(pHeap.objects);
@@ -156,6 +164,9 @@ public class SMG {
   final public void removeValue(final Integer pValue) {
     values.remove(pValue);
     neq.removeValue(pValue);
+    if (trackPredicates) {
+      pred.removeValue(pValue);
+    }
   }
   /**
    * Remove pObj from the SMG. This method does not remove
@@ -320,6 +331,44 @@ public class SMG {
   public void addNeqRelation(Integer pV1, Integer pV2) {
     neq.add_relation(pV1, pV2);
   }
+
+  /**
+   * Adds a predicate relation between two values to the SMG
+   * Keeps consistency: no
+   */
+  public void addPredicateRelation(SMGSymbolicValue pV1, SMGSymbolicValue pV2, BinaryOperator
+      pOp, CFAEdge pEdge) {
+    if (trackPredicates && pEdge instanceof CAssumeEdge) {
+      CAssumeEdge assumeEdge = (CAssumeEdge) pEdge;
+      if (assumeEdge.getTruthAssumption()) {
+        pred.addRelation(pV1, pV2, pOp);
+      } else {
+        pred.addRelation(pV1, pV2, getOpositBinaryOperator(pOp));
+      }
+    }
+
+  }
+
+  private BinaryOperator getOpositBinaryOperator(BinaryOperator pOperator) {
+    assert pOperator.isLogicalOperator();
+    switch (pOperator) {
+      case LESS_EQUAL:
+        return BinaryOperator.GREATER_THAN;
+      case LESS_THAN:
+        return BinaryOperator.GREATER_EQUAL;
+      case GREATER_EQUAL:
+        return BinaryOperator.LESS_THAN;
+      case GREATER_THAN:
+        return BinaryOperator.LESS_EQUAL;
+      case EQUALS:
+        return BinaryOperator.NOT_EQUALS;
+      case NOT_EQUALS:
+        return BinaryOperator.EQUALS;
+      default:
+        throw new AssertionError("Unhandled case statement");
+    }
+  }
+
 
   /* ********************************************* */
   /* Non-modifying functions: getters and the like */
@@ -542,6 +591,9 @@ public class SMG {
     }
 
     neq.mergeValues(pV1, pV2);
+    if (trackPredicates) {
+      pred.mergeValues(pV1, pV2);
+    }
     removeValue(pV2);
     Set<SMGEdgeHasValue> new_hv_edges = new HashSet<>();
     for (SMGEdgeHasValue hv : hv_edges) {

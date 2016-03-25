@@ -1110,7 +1110,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   private List<SMGState> handleAssumption(SMGState pSmgState, CExpression expression, CFAEdge cfaEdge,
       boolean truthValue, boolean createNewStateIfNecessary) throws CPATransferException {
 
-    SMGState smgState = pSmgState;
+    SMGState smgState = new SMGState(pSmgState);
 
     // FIXME Quickfix, simplify expressions for sv-comp, later assumption handling has to be refactored to be able to handle complex expressions
     expression = eliminateOuterEquals(expression);

@@ -39,6 +39,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -1168,6 +1169,10 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     heap.addNeqRelation(pKnownVal1.getAsInt(), pKnownVal2.getAsInt());
   }
 
+  public void addPredicateRelation(SMGSymbolicValue pV1, SMGSymbolicValue pV2, BinaryOperator pOp,
+      CFAEdge pEdge) {
+      heap.addPredicateRelation(pV1, pV2, pOp, pEdge);
+  }
   public void putExplicit(SMGKnownSymValue pKey, SMGKnownExpValue pValue) {
 
     if (explicitValues.inverse().containsKey(pValue)) {
