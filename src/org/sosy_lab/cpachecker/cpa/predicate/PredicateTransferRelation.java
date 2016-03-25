@@ -84,8 +84,8 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
           + "Infeasible paths are already excluded by transfer relation and not later by precision adjustment. This property is required in proof checking.")
   private boolean satCheckAtAbstraction = false;
 
-  @Option(secure=true, description = "check satisfiability when a target state has been found (should be true)")
-  private boolean targetStateSatCheck = true;
+  @Option(secure=true, description = "check satisfiability when a target state has been found")
+  private boolean targetStateSatCheck = false;
 
   @Option(secure=true, description = "do not include assumptions of states into path formula during strengthening")
   private boolean ignoreStateAssumptions = false;
