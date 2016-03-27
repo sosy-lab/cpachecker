@@ -42,16 +42,13 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.solver.SolverContextFactory.Solvers;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BitvectorFormulaManager;
 import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.FormulaType.NumeralType;
 import org.sosy_lab.solver.api.NumeralFormula;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
@@ -79,7 +76,6 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
   private FormulaManagerView mgrv;
   private BooleanFormulaManagerView bmgrv;
   private IntegerFormulaManagerView imgrv;
-  private FunctionFormulaManagerView fmgrv;
 
   @Before
   public void setUp() throws InvalidConfigurationException {
@@ -93,7 +89,6 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
         viewConfig, TestLogManager.getInstance());
     bmgrv = mgrv.getBooleanFormulaManager();
     imgrv = mgrv.getIntegerFormulaManager();
-    fmgrv = mgrv.getFunctionFormulaManager();
   }
 
   /**
@@ -353,78 +348,5 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
     BooleanFormula r2 = mgrv.uninstantiate(pInstantiated);
     assertThatFormula(r2).isEquivalentTo(pUninstantiated);
     assertThat(r2.toString()).isEqualTo(pUninstantiated.toString());
-  }
-
-  @Test
-  public void testCanonicalForm() {
-    BooleanFormula input = bmgr.and(
-        imgrv.equal(
-            imgr.makeVariable("x@5"),
-            imgrv.makeNumber(1)
-        ),
-        imgrv.equal(
-            imgr.makeVariable("x@6"),
-            imgr.makeVariable("x@7")
-        ),
-        imgrv.equal(
-            imgr.makeVariable("y@1"),
-            imgr.makeVariable("y@2")
-        ),
-        imgrv.equal(
-            imgr.makeVariable("y@3"),
-            imgr.makeVariable("y@4")
-        ),
-        imgrv.equal(
-            imgrv.makeNumber(2),
-            fmgrv.declareAndCallUF(
-                "uf@10",
-                FormulaType.IntegerType,
-                imgr.makeVariable("x@4")
-            )
-        ),
-        bmgrv.makeVariable("NOIDX")
-    );
-
-    BooleanFormula expectedCanonical = bmgr.and(
-        imgrv.equal(
-            imgr.makeVariable("x@2"),
-            imgrv.makeNumber(1)
-        ),
-        imgrv.equal(
-            imgr.makeVariable("x@3"),
-            imgr.makeVariable("x@4")
-        ),
-        imgrv.equal(
-            imgr.makeVariable("y@0"),
-            imgr.makeVariable("y@1")
-        ),
-        imgrv.equal(
-            imgr.makeVariable("y@2"),
-            imgr.makeVariable("y@3")
-        ),
-        imgrv.equal(
-            imgrv.makeNumber(2),
-            fmgrv.declareAndCallUF(
-                "uf@1",
-                FormulaType.IntegerType,
-                imgr.makeVariable("x@1")
-            )
-        ),
-        bmgrv.makeVariable("NOIDX")
-    );
-    BooleanFormula canonical = mgrv.newStartSSA(
-        SSAMap.emptySSAMap().withDefault(1),
-        new PathFormula(
-            input,
-            SSAMap.emptySSAMap().builder()
-                .setIndex("x", CNumericTypes.INT, 4)
-                .setIndex("y", CNumericTypes.INT, 3)
-                .setIndex("uf", CNumericTypes.INT, 1)
-                .build(),
-            PointerTargetSet.emptyPointerTargetSet(),
-            0),
-        SSAMap.emptySSAMap().withDefault(0)
-    ).getFormula();
-    assertThat(canonical).isEqualTo(expectedCanonical);
   }
 }
