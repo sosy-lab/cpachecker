@@ -55,7 +55,7 @@ public class RCNFManagerTest extends SolverBasedTest0{
     );
     BooleanFormula c = bfmgr.or(a, b);
 
-    BooleanFormula converted = RCNFManager.convert(c);
+    BooleanFormula converted = bfmgr.and(RCNFManager.toLemmas(c));
     assertThatFormula(converted).isEquivalentTo(c);
     assertThatFormula(converted).isEqualTo(
         bfmgr.and(
@@ -80,7 +80,7 @@ public class RCNFManagerTest extends SolverBasedTest0{
             )
         )
     );
-    BooleanFormula converted = RCNFManager.convert(input);
+    BooleanFormula converted = bfmgr.and(RCNFManager.toLemmas(input));
     assertThatFormula(converted).isEquivalentTo(input);
     BooleanFormula expected =
         bfmgr.and(
@@ -100,7 +100,7 @@ public class RCNFManagerTest extends SolverBasedTest0{
         bfmgr.and(ImmutableList.of(v("a"), v("b"), v("c"))),
         bfmgr.and(ImmutableList.of(v("d"), v("e"), v("f")))
     );
-    BooleanFormula converted = RCNFManager.convert(input);
+    BooleanFormula converted = bfmgr.and(RCNFManager.toLemmas(input));
     assertThatFormula(converted).isEquivalentTo(input);
     BooleanFormula expected =
         bfmgr.and(
