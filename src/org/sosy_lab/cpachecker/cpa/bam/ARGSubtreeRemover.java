@@ -337,13 +337,7 @@ public class ARGSubtreeRemover {
                                                     Iterator<ARGState> remainingPathElements,
                                                     Map<ARGState, UnmodifiableReachedSet> pathElementToOuterReachedSet,
                                                     Multimap<ARGState, ARGState> neededRemoveCachedSubtreeCalls) {
-    CFANode node = extractLocation(rootState);
-    Block currentBlock = partitioning.getBlockForCallNode(node);
-    AbstractState reducedState = wrappedReducer.getVariableReducedState(getReachedState(rootState), currentBlock, node);
-    UnmodifiableReachedSet outerReachedSet = Preconditions.checkNotNull(pathElementToOuterReachedSet.get(rootState));
-    boolean isNewPrecisionEntry = createNewPreciseEntry(
-        (ARGState) rootState.getWrappedState(),
-        reducedState, pNewPrecisions, currentBlock, outerReachedSet);
+    boolean isNewPrecisionEntry = createNewPreciseEntry(rootState, pNewPrecisions, pathElementToOuterReachedSet);
 
     //fine, this block will not lead to any problems anymore, but maybe inner blocks will?
     //-> check other (inner) blocks on path
@@ -375,8 +369,13 @@ public class ARGSubtreeRemover {
   }
 
   /** This method creates a new precise entry if necessary, and returns whether the used entry needs a new precision. */
-  private boolean createNewPreciseEntry(final ARGState initialState, final AbstractState reducedRootState,
-      final List<Precision> pNewPrecisions, final Block context, final UnmodifiableReachedSet outerReachedSet) {
+  private boolean createNewPreciseEntry(ARGState rootState, List<Precision> pNewPrecisions,
+      Map<ARGState, UnmodifiableReachedSet> pathElementToOuterReachedSet) {
+    final CFANode node = extractLocation(rootState);
+    final Block context = partitioning.getBlockForCallNode(node);
+    final AbstractState reducedRootState = wrappedReducer.getVariableReducedState(getReachedState(rootState), context, node);
+    final UnmodifiableReachedSet outerReachedSet = Preconditions.checkNotNull(pathElementToOuterReachedSet.get(rootState));
+    final ARGState initialState = (ARGState) rootState.getWrappedState();
 
     // create updated precision
     Precision rootPrecision = outerReachedSet.getPrecision(initialState);
