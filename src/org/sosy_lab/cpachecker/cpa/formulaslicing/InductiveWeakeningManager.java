@@ -1,12 +1,15 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
 
+import static org.sosy_lab.cpachecker.cpa.formulaslicing.InductiveWeakeningManager.WEAKENING_STRATEGY.CEX;
+
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.UniqueIdGenerator;
@@ -29,10 +32,11 @@ import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.FunctionDeclaration;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -47,7 +51,7 @@ import java.util.logging.Level;
 public class InductiveWeakeningManager implements StatisticsProvider {
 
   @Option(description="Inductive weakening strategy", secure=true)
-  private WEAKENING_STRATEGY weakeningStrategy = WEAKENING_STRATEGY.CEX;
+  private WEAKENING_STRATEGY weakeningStrategy = CEX;
 
   @Option(description="Granularity of weakening", secure=true)
   private ANNOTATION_MODE selectorAnnotationMode = ANNOTATION_MODE.LITERALS;
@@ -116,64 +120,112 @@ public class InductiveWeakeningManager implements StatisticsProvider {
         fmgr, pSolver, logger, statistics, config, shutdownNotifier);
   }
 
-
   /**
-   * @return Set of semi-clauses which remain inductive under the transition.
+   * This method supports different states of <i>from</i> and <i>to</i> state
+   * lemmas. Only the lemmas associated with the <i>to</i> state can be dropped.
+   *
+   * @param fromStateLemmas Uninstantiated lemmas associated with the
+   *                        <i>from</i> state.
+   * @param transition Transition from <i>fromState</i> to <i>toState</i>.
+   *                   Has to start at {@code startingSSA}.
+   * @param toStateLemmas Uninstantiated lemmas associated with the
+   *                        <i>to</i> state.
+   *
+   * @return Subset of {@code toStateLemmas} to which everything in
+   * {@code fromStateLemmas} maps.
    */
-  public Set<BooleanFormula> findInductiveWeakeningForSemiCNF(
-      final SSAMap startingSSA,
-      Set<BooleanFormula> uninstantiatedClauses,
-      PathFormula transition,
-      BooleanFormula strengthening
-      )
+  public Set<BooleanFormula> findInductiveWeakeningForRCNF(
+      SSAMap startingSSA,
+      Set<BooleanFormula> fromStateLemmas,
+      final PathFormula transition,
+      Set<BooleanFormula> toStateLemmas
+     )
       throws SolverException, InterruptedException {
-    Preconditions.checkState(weakeningStrategy != WEAKENING_STRATEGY.DESTRUCTIVE,
-        "Destructive weakening is not supported for semiCNF mode, use CEX-based one instead");
+    Preconditions.checkState(
+        weakeningStrategy != WEAKENING_STRATEGY.DESTRUCTIVE
+        && cexWeakeningManager.getRemovalSelectionStrategy() == SELECTION_STRATEGY.ALL);
 
     // Mapping from selectors to the items they annotate.
     final BiMap<BooleanFormula, BooleanFormula> selectionInfo = HashBiMap.create();
 
-    BooleanFormula input = annotateConjunctions(
-        fmgr.instantiate(new ArrayList<>(uninstantiatedClauses), startingSSA),
-        selectionInfo
+    List<BooleanFormula> fromStateLemmasInstantiated = fmgr.instantiate(
+        Lists.newArrayList(fromStateLemmas), startingSSA);
+
+    List<BooleanFormula> toStateLemmasInstantiated = fmgr.instantiate(
+        Lists.newArrayList(toStateLemmas), transition.getSsa());
+    BooleanFormula toStateLemmasAnnotated = annotateConjunctions(
+        toStateLemmasInstantiated, selectionInfo
     );
 
-    BooleanFormula primed = fmgr.instantiate(input, transition.getSsa());
-    BooleanFormula query = bfmgr.and(
-        ImmutableList.of(input, transition.getFormula(), bfmgr.not(primed), strengthening));
+    final Set<BooleanFormula> toAbstract = findSelectorsToAbstract(
+        selectionInfo,
+        bfmgr.and(fromStateLemmasInstantiated),
+        transition,
+        toStateLemmasAnnotated,
+        Collections.<BooleanFormula>emptySet());
 
-    cexWeakeningManager.setRemovalSelectionStrategy(SELECTION_STRATEGY.ALL);
-    Set<BooleanFormula> toAbstract = findSelectorsToAbstract(
-        selectionInfo, transition, primed, query, ImmutableSet.<BooleanFormula>of());
-
-    HashSet<BooleanFormula> out = new HashSet<>();
-    for (BooleanFormula o : uninstantiatedClauses) {
-      if (!toAbstract.contains(selectionInfo.inverse().get(
-          fmgr.instantiate(o, startingSSA)
-      ))) {
-        out.add(o);
-      } else {
-        logger.log(Level.INFO, "Dropping clause", o);
+    return Sets.filter(toStateLemmas, new Predicate<BooleanFormula>() {
+      @Override
+      public boolean apply(BooleanFormula lemma) {
+        return (!toAbstract.contains(selectionInfo.inverse().get(
+            fmgr.instantiate(lemma, transition.getSsa())
+        )));
       }
-    }
-    return out;
+    });
+  }
+
+  /**
+   * Find weakening of {@code lemmas} with respect to {@code transition}.
+   * This method assumes to- and from- lemmas are the same, and drops both at
+   * the same time.
+   *
+   * @param lemmas Set of uninstantiated lemmas.
+   */
+  public Set<BooleanFormula> findInductiveWeakeningForRCNF(
+      final SSAMap startingSSA,
+      final PathFormula transition,
+      Set<BooleanFormula> lemmas
+  )
+      throws SolverException, InterruptedException {
+    Preconditions.checkState(
+        weakeningStrategy != WEAKENING_STRATEGY.DESTRUCTIVE
+        && cexWeakeningManager.getRemovalSelectionStrategy() == SELECTION_STRATEGY.ALL);
+
+    // Mapping from selectors to the items they annotate.
+    final BiMap<BooleanFormula, BooleanFormula> selectionInfo = HashBiMap.create();
+
+    List<BooleanFormula> fromStateLemmasInstantiated = fmgr.instantiate(
+        Lists.newArrayList(lemmas), startingSSA);
+    BooleanFormula fromStateLemmasAnnotated = annotateConjunctions(
+        fromStateLemmasInstantiated, selectionInfo
+    );
+    BooleanFormula toStateInstantiated = fmgr.instantiate(
+        fromStateLemmasAnnotated, transition.getSsa());
+
+    final Set<BooleanFormula> toAbstract = findSelectorsToAbstract(
+        selectionInfo,
+        fromStateLemmasAnnotated,
+        transition,
+        toStateInstantiated,
+        Collections.<BooleanFormula>emptySet());
+
+    return Sets.filter(lemmas, new Predicate<BooleanFormula>() {
+      @Override
+      public boolean apply(BooleanFormula lemma) {
+        return (!toAbstract.contains(selectionInfo.inverse().get(
+            fmgr.instantiate(lemma, startingSSA)
+        )));
+      }
+    });
   }
 
   /**
    * Find the inductive weakening of {@code input} subject to the loop
    * transition over-approximation shown in {@code transition}.
-   *
-   * @param strengthening Strengthening which is guaranteed to be universally
-   * true (under the given path) at the given point.
    */
   public BooleanFormula findInductiveWeakening(
-      PathFormula input, PathFormula transition,
-      BooleanFormula strengthening
+      PathFormula input, PathFormula transition
   ) throws SolverException, InterruptedException {
-
-    logger.log(Level.FINE, "Transition = " + transition.getFormula());
-    logger.log(Level.FINE, "Input = " + input.getFormula());
-
 
     // Convert to NNF
     input = input.updateFormula(
@@ -190,7 +242,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     // ...remove atoms containing intermediate variables.
     final ImmutableMap<BooleanFormula, BooleanFormula> selectionVarsInfo;
     Set<BooleanFormula> selectorsWithIntermediate;
-    final BooleanFormula query, annotated, primed;
+    final BooleanFormula annotated, primed;
 
     // Annotate conjunctions.
     Map<BooleanFormula, BooleanFormula> varsInfoBuilder = new HashMap<>();
@@ -204,18 +256,9 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     // This is possible since the formula does not have any intermediate
     // variables.
     primed = fmgr.instantiate(annotated, transition.getSsa());
-    BooleanFormula negated = bfmgr.not(primed);
-
-    // Inductiveness checking formula, injecting the known invariant "strengthening".
-    query = bfmgr.and(ImmutableList.of(
-        annotated,
-        transition.getFormula(),
-        negated,
-        strengthening
-    ));
 
     Set<BooleanFormula> selectorsToAbstract = findSelectorsToAbstract(
-        selectionVarsInfo, transition, primed, query, selectorsWithIntermediate
+        selectionVarsInfo, annotated, transition, primed, selectorsWithIntermediate
     );
 
     BooleanFormula out = abstractSelectors(
@@ -227,28 +270,46 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     return fmgr.uninstantiate(out);
   }
 
+  /**
+   *
+   * @param selectionVarsInfo Mapping from the selectors to the formulas they
+   *                          annotate.
+   * @param fromState Instantiated formula representing the state before the
+   *                  transition.
+   * @param transition Transition under which inductiveness should hold.
+   * @param toState Instantiated formula representing the state after the
+   *                transition.
+   * @param selectorsWithIntermediate Selectors which should be abstracted
+   *                                  from the start.
+   * @return Set of selectors, subset of {@code selectionVarsInfo} which
+   * should be abstracted.
+   */
   private Set<BooleanFormula> findSelectorsToAbstract(
       Map<BooleanFormula, BooleanFormula> selectionVarsInfo,
+      BooleanFormula fromState,
       PathFormula transition,
-      BooleanFormula primed,
-      BooleanFormula query,
+      BooleanFormula toState,
       Set<BooleanFormula> selectorsWithIntermediate
   ) throws SolverException, InterruptedException {
     switch (weakeningStrategy) {
       case SYNTACTIC:
         // Intermediate variables don't matter.
-        return syntacticWeakeningManager.performWeakening(selectionVarsInfo, transition);
+        return syntacticWeakeningManager.performWeakening(
+            selectionVarsInfo,
+            transition);
       case DESTRUCTIVE:
         return destructiveWeakeningManager.performWeakening(
             selectionVarsInfo,
+            fromState,
             transition,
-            query,
+            toState,
             selectorsWithIntermediate);
       case CEX:
         return cexWeakeningManager.performWeakening(
             selectionVarsInfo,
-            query,
-            primed,
+            fromState,
+            transition,
+            toState,
             selectorsWithIntermediate);
       default:
         throw new UnsupportedOperationException("Unexpected enum value");
