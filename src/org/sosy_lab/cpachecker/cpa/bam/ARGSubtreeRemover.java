@@ -349,19 +349,18 @@ public class ARGSubtreeRemover {
         boolean removedUnpreciseInnerBlock =
                 removeUnpreciseCacheEntriesOnPath(currentElement, pNewPrecisions,
                         remainingPathElements, pathElementToOuterReachedSet, neededRemoveCachedSubtreeCalls);
-        if (removedUnpreciseInnerBlock) {
-          //ok we indeed found an inner block that was unprecise
-          if (isNewPrecisionEntry && !foundInnerUnpreciseEntries) {
-            //if we are in a reached set that already uses the new precision and this is the first such entry we have to remove the subtree starting from currentElement in the rootReachedSet
-            neededRemoveCachedSubtreeCalls.put(getReachedState(rootState), getReachedState(currentElement));
-            foundInnerUnpreciseEntries = true;
-          }
+        if (removedUnpreciseInnerBlock && isNewPrecisionEntry && !foundInnerUnpreciseEntries) {
+          // we indeed found an inner block that was unprecise,
+          // if we are in a reached set that already uses the new precision and this is the first such entry
+          // we have to remove the subtree starting from currentElement in the rootReachedSet
+          neededRemoveCachedSubtreeCalls.put(getReachedState(rootState), getReachedState(currentElement));
+          foundInnerUnpreciseEntries = true;
         }
       }
 
       if (data.expandedStateToReducedState.containsKey(currentElement.getWrappedState())) {
         //our block ended. Leave..
-        return foundInnerUnpreciseEntries || !isNewPrecisionEntry;
+        break;
       }
     }
 
