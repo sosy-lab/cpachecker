@@ -33,9 +33,6 @@ public class SyntacticWeakeningManager {
    *         be abstracted.
    */
   public Set<BooleanFormula> performWeakening(
-
-      // todo: allow to only operate on those lemmas which occur both in the
-      // {@code fromState} and in the {@code toState}.
       Map<BooleanFormula, BooleanFormula> selectionInfo,
       PathFormula transition
   ) {

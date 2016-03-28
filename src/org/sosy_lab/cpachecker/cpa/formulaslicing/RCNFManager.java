@@ -105,14 +105,16 @@ public class RCNFManager implements StatisticsProvider {
    */
   public Set<BooleanFormula> toLemmasRemoveExistentials(PathFormula input)
       throws InterruptedException {
+
+    // TODO: convert to a single entry point, entry should be already
+    // quantified -> would simplify the codebase.
     Set<BooleanFormula> out = conversionQeCache.get(input);
     if (out != null) {
       return out;
     }
     BooleanFormula quantified = fmgr.quantifyDeadVariables(
         input.getFormula(), input.getSsa());
-    // OK so if we keep a timer on this thing, how do we return the value
-    // for it?
+
     BooleanFormula qeLightResult;
     try {
       statistics.lightQuantifierElimination.start();
@@ -120,12 +122,15 @@ public class RCNFManager implements StatisticsProvider {
     } finally {
       statistics.lightQuantifierElimination.stop();
     }
-    out = dropExistentials(qeLightResult);
+    out = toLemmasDropExistentials(qeLightResult);
     conversionQeCache.put(input, out);
     return out;
   }
 
-  private Set<BooleanFormula> dropExistentials(BooleanFormula input)
+  /**
+   * Converts input to RCNF and drops the lemmas with existentials.
+   */
+  private Set<BooleanFormula> toLemmasDropExistentials(BooleanFormula input)
       throws InterruptedException {
     Optional<BooleanFormula> body = fmgr.visit(quantifiedBodyExtractor, input);
     if (body.isPresent()) {
