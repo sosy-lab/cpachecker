@@ -9,6 +9,7 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.ShutdownNotifier;
@@ -97,7 +98,6 @@ public class InductiveWeakeningManager implements StatisticsProvider {
   private final SyntacticWeakeningManager syntacticWeakeningManager;
   private final DestructiveWeakeningManager destructiveWeakeningManager;
   private final CEXWeakeningManager cexWeakeningManager;
-  private final ShutdownNotifier shutdownNotifier;
 
   private static final String SELECTOR_VAR_TEMPLATE = "_FS_SEL_VAR_";
 
@@ -106,7 +106,6 @@ public class InductiveWeakeningManager implements StatisticsProvider {
       Solver pSolver,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
-    shutdownNotifier = pShutdownNotifier;
     config.inject(this);
 
     statistics = new InductiveWeakeningStatistics();
@@ -117,7 +116,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     destructiveWeakeningManager = new DestructiveWeakeningManager(statistics, pSolver, fmgr,
         logger, config);
     cexWeakeningManager = new CEXWeakeningManager(
-        fmgr, pSolver, logger, statistics, config, shutdownNotifier);
+        fmgr, pSolver, logger, statistics, config, pShutdownNotifier);
   }
 
   /**
@@ -162,7 +161,8 @@ public class InductiveWeakeningManager implements StatisticsProvider {
         bfmgr.and(fromStateLemmasInstantiated),
         transition,
         toStateLemmasAnnotated,
-        Collections.<BooleanFormula>emptySet());
+        Collections.<BooleanFormula>emptySet(),
+        true);
 
     return Sets.filter(toStateLemmas, new Predicate<BooleanFormula>() {
       @Override
@@ -180,6 +180,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
    * the same time.
    *
    * @param lemmas Set of uninstantiated lemmas.
+   * @return inductive subset of {@code lemmas}
    */
   public Set<BooleanFormula> findInductiveWeakeningForRCNF(
       final SSAMap startingSSA,
@@ -187,9 +188,6 @@ public class InductiveWeakeningManager implements StatisticsProvider {
       Set<BooleanFormula> lemmas
   )
       throws SolverException, InterruptedException {
-    Preconditions.checkState(
-        weakeningStrategy != WEAKENING_STRATEGY.DESTRUCTIVE
-        && cexWeakeningManager.getRemovalSelectionStrategy() == SELECTION_STRATEGY.ALL);
 
     // Mapping from selectors to the items they annotate.
     final BiMap<BooleanFormula, BooleanFormula> selectionInfo = HashBiMap.create();
@@ -207,7 +205,8 @@ public class InductiveWeakeningManager implements StatisticsProvider {
         fromStateLemmasAnnotated,
         transition,
         toStateInstantiated,
-        Collections.<BooleanFormula>emptySet());
+        Collections.<BooleanFormula>emptySet(),
+        false);
 
     return Sets.filter(lemmas, new Predicate<BooleanFormula>() {
       @Override
@@ -222,7 +221,10 @@ public class InductiveWeakeningManager implements StatisticsProvider {
   /**
    * Find the inductive weakening of {@code input} subject to the loop
    * transition over-approximation shown in {@code transition}.
+   *
+   * Searches through the space of all literals present in {@code input}.
    */
+  @Deprecated
   public BooleanFormula findInductiveWeakening(
       PathFormula input, PathFormula transition
   ) throws SolverException, InterruptedException {
@@ -258,7 +260,12 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     primed = fmgr.instantiate(annotated, transition.getSsa());
 
     Set<BooleanFormula> selectorsToAbstract = findSelectorsToAbstract(
-        selectionVarsInfo, annotated, transition, primed, selectorsWithIntermediate
+        selectionVarsInfo,
+        annotated,
+        transition,
+        primed,
+        selectorsWithIntermediate,
+        false
     );
 
     BooleanFormula out = abstractSelectors(
@@ -272,8 +279,8 @@ public class InductiveWeakeningManager implements StatisticsProvider {
 
   /**
    *
-   * @param selectionVarsInfo Mapping from the selectors to the formulas they
-   *                          annotate.
+   * @param selectionVarsInfo Mapping from the selectors to the already
+   *                          instantiated formulas they annotate.
    * @param fromState Instantiated formula representing the state before the
    *                  transition.
    * @param transition Transition under which inductiveness should hold.
@@ -281,6 +288,8 @@ public class InductiveWeakeningManager implements StatisticsProvider {
    *                transition.
    * @param selectorsWithIntermediate Selectors which should be abstracted
    *                                  from the start.
+   * @param toAndFromDiffer Whether lemmas associated with the from-
+   *                        and to-states differ.
    * @return Set of selectors, subset of {@code selectionVarsInfo} which
    * should be abstracted.
    */
@@ -289,14 +298,33 @@ public class InductiveWeakeningManager implements StatisticsProvider {
       BooleanFormula fromState,
       PathFormula transition,
       BooleanFormula toState,
-      Set<BooleanFormula> selectorsWithIntermediate
+      Set<BooleanFormula> selectorsWithIntermediate,
+      boolean toAndFromDiffer
   ) throws SolverException, InterruptedException {
     switch (weakeningStrategy) {
       case SYNTACTIC:
         // Intermediate variables don't matter.
+        if (toAndFromDiffer) {
+          final Set<BooleanFormula> fromStateUninstantiatedLemmas =
+              bfmgr.toConjunctionArgs(
+                  fmgr.uninstantiate(fromState), false
+              );
+          selectionVarsInfo =
+              Maps.filterEntries(selectionVarsInfo,
+                  new Predicate<Entry<BooleanFormula, BooleanFormula>>() {
+                    @Override
+                    public boolean apply(Entry<BooleanFormula, BooleanFormula> e) {
+                      BooleanFormula value = e.getValue();
+                      return fromStateUninstantiatedLemmas.contains(
+                          value
+                      );
+                    }
+                  });
+        }
         return syntacticWeakeningManager.performWeakening(
             selectionVarsInfo,
             transition);
+
       case DESTRUCTIVE:
         return destructiveWeakeningManager.performWeakening(
             selectionVarsInfo,
@@ -304,6 +332,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
             transition,
             toState,
             selectorsWithIntermediate);
+
       case CEX:
         return cexWeakeningManager.performWeakening(
             selectionVarsInfo,
