@@ -153,6 +153,26 @@ public class PolicyCPA extends SingleEdgeTransferRelation
   }
 
   @Override
+  public Optional<PrecisionAdjustmentResult> postAdjustmentStrengthen(
+      AbstractState result,
+      Precision precision,
+      Iterable<AbstractState> otherStates,
+      Iterable<Precision> otherPrecisions,
+      UnmodifiableReachedSet states,
+      Function<AbstractState, AbstractState> stateProjection,
+      AbstractState resultFullState) throws CPAException, InterruptedException {
+    return policyIterationManager.postAdjustmentStrengthen(
+        (PolicyState) result,
+        (PolicyPrecision) precision,
+        otherStates,
+        otherPrecisions,
+        states,
+        stateProjection,
+        resultFullState
+    );
+  }
+
+  @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition pPartition) {
     return policyIterationManager.getInitialState(node);
   }

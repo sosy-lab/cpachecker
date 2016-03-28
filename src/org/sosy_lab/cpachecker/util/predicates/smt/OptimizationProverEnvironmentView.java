@@ -109,4 +109,9 @@ public class OptimizationProverEnvironmentView implements OptimizationProverEnvi
   public void close() {
     delegate.close();
   }
+
+  @Override
+  public String toString() {
+    return delegate.toString();
+  }
 }

@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -24,6 +25,7 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -60,6 +62,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   private final IFormulaSlicingManager manager;
   private final MergeOperator mergeOperator;
   private final InductiveWeakeningManager inductiveWeakeningManager;
+  private final RCNFManager rcnfManager;
 
   private FormulaSlicingCPA(
       Configuration pConfiguration,
@@ -81,12 +84,30 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
 
     inductiveWeakeningManager = new InductiveWeakeningManager(pConfiguration, solver, pLogger,
         pShutdownNotifier);
+    rcnfManager = new RCNFManager(formulaManager, pConfiguration);
     manager = new FormulaSlicingManager(
         pConfiguration,
-        pathFormulaManager, formulaManager, cfa,
-        inductiveWeakeningManager, solver, pShutdownNotifier);
+        pathFormulaManager,
+        formulaManager,
+        cfa,
+        inductiveWeakeningManager,
+        rcnfManager,
+        solver,
+        pLogger);
     stopOperator = new StopSepOperator(this);
     mergeOperator = this;
+  }
+
+  @Override
+  public Optional<PrecisionAdjustmentResult> postAdjustmentStrengthen(
+      AbstractState result,
+      Precision precision,
+      Iterable<AbstractState> otherStates,
+      Iterable<Precision> otherPrecisions,
+      UnmodifiableReachedSet states,
+      Function<AbstractState, AbstractState> stateProjection,
+      AbstractState resultFullState) throws CPAException, InterruptedException {
+    return Optional.of(PrecisionAdjustmentResult.create(result, precision, Action.CONTINUE));
   }
 
   public static CPAFactory factory() {
@@ -156,7 +177,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   public Precision getInitialPrecision(CFANode node,
       StateSpacePartition partition) {
     // At the moment, precision is not used for formula slicing.
-    return new Precision() {};
+    return SingletonPrecision.getInstance();
   }
 
   @Override
@@ -171,6 +192,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   public void collectStatistics(Collection<Statistics> statsCollection) {
     manager.collectStatistics(statsCollection);
     inductiveWeakeningManager.collectStatistics(statsCollection);
+    rcnfManager.collectStatistics(statsCollection);
   }
 
   @Override

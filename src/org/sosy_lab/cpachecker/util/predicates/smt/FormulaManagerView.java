@@ -50,7 +50,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.ReplaceBitvectorWithNumeralAndFunctionTheory.ReplaceBitvectorEncodingOptions;
 import org.sosy_lab.solver.SolverException;
@@ -1562,30 +1561,5 @@ public class FormulaManagerView {
       FormulaVisitor<TraversalProcess> rFormulaVisitor,
       Formula f) {
     manager.visitRecursively(rFormulaVisitor, unwrap(f));
-  }
-
-  /**
-   * Eliminates dead variables in a fixpoint.
-   *
-   * @see #eliminateDeadVarsBestEffort(PathFormula)
-   */
-  public PathFormula eliminateDeadVarsFixpoint(PathFormula input) {
-    DeadVariablesEliminationManager eliminationManager =
-        new DeadVariablesEliminationManager(this, logger);
-    return eliminationManager.eliminateDeadVarsFixpoint(input);
-  }
-
-
-  /**
-   * Does "best-effort" for replacing dead variables: eliminate what it can eliminate,
-   * keep the rest.
-   *
-   * <p>Based on pattern matching formulas "x@n = x@i" for some {@code i < n},
-   * and replacing all occurrences of "x@i" with "x@n" if "x@n" does not occur anywhere else.
-   */
-  public PathFormula eliminateDeadVarsBestEffort(PathFormula input) {
-    DeadVariablesEliminationManager eliminationManager =
-        new DeadVariablesEliminationManager(this, logger);
-    return eliminationManager.eliminateDeadVarsBestEffort(input);
   }
 }

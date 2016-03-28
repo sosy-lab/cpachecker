@@ -26,30 +26,25 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.equalTo;
 import static com.google.common.collect.FluentIterable.from;
-import static com.google.common.collect.Iterables.*;
+import static com.google.common.collect.Iterables.concat;
+import static com.google.common.collect.Iterables.getOnlyElement;
 import static com.google.common.collect.Lists.newArrayList;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.AbstractLocationFormulaInvariant.makeLocationInvariant;
 import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getAllStatesOnPathsTo;
-import static org.sosy_lab.cpachecker.util.AbstractStates.*;
+import static org.sosy_lab.cpachecker.util.AbstractStates.EXTRACT_LOCATION;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.StringReader;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+import com.google.common.base.Predicate;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Lists;
+import com.google.common.io.CharSink;
+import com.google.common.io.FileWriteMode;
 
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -90,7 +85,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 import org.sosy_lab.cpachecker.cpa.formulaslicing.InductiveWeakeningManager;
 import org.sosy_lab.cpachecker.cpa.formulaslicing.LoopTransitionFinder;
-import org.sosy_lab.cpachecker.cpa.formulaslicing.SemiCNFManager;
+import org.sosy_lab.cpachecker.cpa.formulaslicing.RCNFManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -122,15 +117,23 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.google.common.base.Predicate;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Lists;
-import com.google.common.io.CharSink;
-import com.google.common.io.FileWriteMode;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.StringReader;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 @Options(prefix = "cpa.predicate.invariants")
 class InvariantsManager implements StatisticsProvider {
@@ -263,7 +266,7 @@ class InvariantsManager implements StatisticsProvider {
   private final InterpolationManager imgr;
 
   private final InductiveWeakeningManager inductiveWeakeningMgr;
-  private final SemiCNFManager semiCNFConverter;
+  private final RCNFManager semiCNFConverter;
   private final CFA cfa;
   private final PrefixProvider prefixProvider;
 
@@ -300,7 +303,7 @@ class InvariantsManager implements StatisticsProvider {
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     pfmgr = pPfmgr;
-    semiCNFConverter = new SemiCNFManager(fmgr, pConfig);
+    semiCNFConverter = new RCNFManager(fmgr, pConfig);
     amgr = pAbsManager;
     rmgr = amgr.getRegionCreator();
 
@@ -610,9 +613,10 @@ class InvariantsManager implements StatisticsProvider {
 
       BooleanFormula invariant =
           inductiveWeakeningMgr.findInductiveWeakening(
-              pBlockFormula.updateFormula(semiCNFConverter.convert(pBlockFormula.getFormula())),
-              loopFormula,
-              bfmgr.makeBoolean(true));
+              pBlockFormula.updateFormula(bfmgr.and(semiCNFConverter.toLemmas
+                  (pBlockFormula
+                  .getFormula()))),
+              loopFormula);
 
       if (bfmgr.isTrue(invariant)) {
         logger.log(Level.FINER, "Invariant for location", pLocation, "is true, ignoring it");
@@ -633,7 +637,10 @@ class InvariantsManager implements StatisticsProvider {
     try {
       stats.pfKindTime.start();
 
-      BooleanFormula cnfFormula = semiCNFConverter.convert(pPathFormula.getFormula());
+      BooleanFormula cnfFormula = bfmgr.and(semiCNFConverter.toLemmas
+          (pPathFormula
+          .getFormula
+          ()));
       Collection<BooleanFormula> conjuncts =
           bfmgr.visit(
               new DefaultBooleanFormulaVisitor<List<BooleanFormula>>() {

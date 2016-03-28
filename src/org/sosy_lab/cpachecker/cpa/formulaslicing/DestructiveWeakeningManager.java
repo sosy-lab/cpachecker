@@ -72,18 +72,26 @@ public class DestructiveWeakeningManager {
    */
   public Set<BooleanFormula> performWeakening(
       Map<BooleanFormula, BooleanFormula> selectionsVarsInfo,
+      BooleanFormula fromState,
       PathFormula transition,
-      BooleanFormula query,
+      BooleanFormula toState,
       Set<BooleanFormula> selectorsWithIntermediate
   ) throws SolverException, InterruptedException {
     Set<BooleanFormula> selectorsToAbstractOverApproximation;
     if (preRunSyntacticWeakening) {
-      selectorsToAbstractOverApproximation = swmgr.performWeakening(selectionsVarsInfo, transition);
+      selectorsToAbstractOverApproximation = swmgr.performWeakening(
+          selectionsVarsInfo, transition);
     } else {
       selectorsToAbstractOverApproximation = selectionsVarsInfo.keySet();
     }
+    BooleanFormula query = bfmgr.and(
+        fromState, transition.getFormula(), bfmgr.not(toState)
+    );
     return destructiveWeakening(
-        selectionsVarsInfo, selectorsToAbstractOverApproximation, transition.getFormula(), query,
+        selectionsVarsInfo,
+        selectorsToAbstractOverApproximation,
+        transition.getFormula(),
+        query,
         selectorsWithIntermediate
     );
   }

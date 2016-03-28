@@ -23,7 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.conditions.global;
 
-import java.util.logging.Level;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -34,8 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
+import java.util.logging.Level;
 
 
 class GlobalConditionsPrecisionAdjustment implements PrecisionAdjustment {
@@ -65,6 +65,18 @@ class GlobalConditionsPrecisionAdjustment implements PrecisionAdjustment {
     }
 
     return Optional.of(PrecisionAdjustmentResult.create(pElement, pPrecision, delegate.prec(pElement, pPrecision)));
+  }
+
+  @Override
+  public Optional<PrecisionAdjustmentResult> postAdjustmentStrengthen(
+      AbstractState result,
+      Precision precision,
+      Iterable<AbstractState> otherStates,
+      Iterable<Precision> otherPrecisions,
+      UnmodifiableReachedSet states,
+      Function<AbstractState, AbstractState> stateProjection,
+      AbstractState resultFullState) throws CPAException, InterruptedException {
+    return Optional.of(PrecisionAdjustmentResult.create(result, precision, Action.CONTINUE));
   }
 
 

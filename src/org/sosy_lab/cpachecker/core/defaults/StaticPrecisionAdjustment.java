@@ -24,10 +24,15 @@
 package org.sosy_lab.cpachecker.core.defaults;
 
 
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
@@ -42,6 +47,18 @@ public class StaticPrecisionAdjustment extends SimplePrecisionAdjustment {
   @Override
   public Action prec(AbstractState pState, Precision pPrecision) throws CPAException {
     return Action.CONTINUE;
+  }
+
+  @Override
+  public Optional<PrecisionAdjustmentResult> postAdjustmentStrengthen(
+      AbstractState result,
+      Precision precision,
+      Iterable<AbstractState> otherStates,
+      Iterable<Precision> otherPrecisions,
+      UnmodifiableReachedSet states,
+      Function<AbstractState, AbstractState> stateProjection,
+      AbstractState resultFullState) throws CPAException, InterruptedException {
+    return Optional.of(PrecisionAdjustmentResult.create(result, precision, Action.CONTINUE));
   }
 
   private static final PrecisionAdjustment instance = new StaticPrecisionAdjustment();

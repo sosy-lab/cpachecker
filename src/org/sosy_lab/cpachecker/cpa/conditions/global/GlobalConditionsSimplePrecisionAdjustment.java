@@ -23,6 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.conditions.global;
 
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.defaults.SimplePrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
+
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.util.logging.Level;
@@ -31,14 +44,6 @@ import javax.management.JMException;
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
-
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.defaults.SimplePrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 
 
 class GlobalConditionsSimplePrecisionAdjustment extends SimplePrecisionAdjustment {
@@ -167,5 +172,17 @@ class GlobalConditionsSimplePrecisionAdjustment extends SimplePrecisionAdjustmen
     long memUsed = ((Long)memUsedObject) / (1000*1000);
 
     return (memUsed > threshold);
+  }
+
+  @Override
+  public Optional<PrecisionAdjustmentResult> postAdjustmentStrengthen(
+      AbstractState result,
+      Precision precision,
+      Iterable<AbstractState> otherStates,
+      Iterable<Precision> otherPrecisions,
+      UnmodifiableReachedSet states,
+      Function<AbstractState, AbstractState> stateProjection,
+      AbstractState resultFullState) throws CPAException, InterruptedException {
+    return Optional.of(PrecisionAdjustmentResult.create(result, precision, Action.CONTINUE));
   }
 }

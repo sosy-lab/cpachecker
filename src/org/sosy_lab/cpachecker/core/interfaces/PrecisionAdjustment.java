@@ -24,12 +24,12 @@
 package org.sosy_lab.cpachecker.core.interfaces;
 
 
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
 
 /**
  * Interface for the precision adjustment operator.
@@ -64,5 +64,27 @@ public interface PrecisionAdjustment {
       UnmodifiableReachedSet states,
       Function<AbstractState, AbstractState> stateProjection,
       AbstractState fullState
+  ) throws CPAException, InterruptedException;
+
+  /**
+   * Run the strengthening after the precision adjustment.
+   * This method is called only from the CompositeCPA.
+   *
+   * @param result Result of the precision adjustment
+   * @param otherStates Other computed results.
+   *
+   *
+   * TODO: here well we have a problem that strengthening is specific to the
+   * CompositeCPA.
+   * But hey, the same problem applies to {@code TransferRelation}.
+   */
+  Optional<PrecisionAdjustmentResult> postAdjustmentStrengthen(
+      AbstractState result,
+      Precision precision,
+      Iterable<AbstractState> otherStates,
+      Iterable<Precision> otherPrecisions,
+      UnmodifiableReachedSet states,
+      Function<AbstractState, AbstractState> stateProjection,
+      AbstractState resultFullState
   ) throws CPAException, InterruptedException;
 }

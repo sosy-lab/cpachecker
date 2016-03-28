@@ -23,12 +23,12 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+
 import java.io.PrintStream;
 
 import javax.annotation.Nullable;
-
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
 /**
  * A class to output statistics and results of an analysis.
@@ -45,8 +45,8 @@ public interface Statistics {
      * to the disk. Please add a configuration option of the following form
      * in order to determine the file name for output files:
      * <code>
-     * @Option(secure=true, description="...", name="...)
-     * @FileOption(FileOption.Type.OUTPUT_FILE)
+     * {@literal @}Option(secure=true, description="...", name="...)
+     * {@literal @}FileOption(FileOption.Type.OUTPUT_FILE)
      * private File outputFile = new File("Default Filename.txt");
      * </code>
      * Note that <code>outputFile</code> may be null because the user disabled

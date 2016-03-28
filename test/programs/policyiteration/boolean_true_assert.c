@@ -7,7 +7,12 @@ extern void __VERIFIER_assume(int);
 #define BOUND 1000
 
 int main () {
-    bool test = __VERIFIER_nondet_int();
+    int test;
+    if (__VERIFIER_nondet_int()) {
+        test = 0;
+    } else {
+        test = 1;
+    }
     int sum = 0;
     for (int i=0; i<BOUND; i++) {
         if (test) {

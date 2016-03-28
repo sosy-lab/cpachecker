@@ -38,8 +38,6 @@ class FormulaSlicingStatistics implements Statistics {
   final Timer propagation = new Timer();
   final Timer reachability = new Timer();
   final Timer inductiveWeakening = new Timer();
-  final Timer deadVarElimination = new Timer();
-  final Timer semiCnfConversion = new Timer();
 
   @Override
   public void printStatistics(PrintStream out,
@@ -48,8 +46,6 @@ class FormulaSlicingStatistics implements Statistics {
     printTimer(out, propagation, "propagating formulas");
     printTimer(out, reachability, "checking reachability");
     printTimer(out, inductiveWeakening, "inductive weakening");
-    printTimer(out, deadVarElimination, "eliminating dead variables");
-    printTimer(out, semiCnfConversion, "converting to SemiCNF");
   }
 
   @Override

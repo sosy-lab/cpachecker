@@ -23,7 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
-import java.util.logging.Level;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -35,8 +36,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
+import java.util.logging.Level;
 
 public class BAMPrecisionAdjustment implements PrecisionAdjustment {
 
@@ -93,5 +93,17 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
     }
 
     return Optional.of(updatedResult);
+  }
+
+  @Override
+  public Optional<PrecisionAdjustmentResult> postAdjustmentStrengthen(
+      AbstractState result,
+      Precision precision,
+      Iterable<AbstractState> otherStates,
+      Iterable<Precision> otherPrecisions,
+      UnmodifiableReachedSet states,
+      Function<AbstractState, AbstractState> stateProjection,
+      AbstractState resultFullState) throws CPAException, InterruptedException {
+    return Optional.of(PrecisionAdjustmentResult.create(result, precision, Action.CONTINUE));
   }
 }

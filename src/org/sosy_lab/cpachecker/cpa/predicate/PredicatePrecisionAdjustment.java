@@ -26,10 +26,9 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
@@ -53,9 +52,10 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.google.common.collect.Sets;
+import java.util.Set;
+import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
@@ -117,6 +117,48 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
         PredicatePrecision precision = (PredicatePrecision)pPrecision;
 
         return computeAbstraction(element, precision, location, fullState);
+      } else {
+        return Optional.of(PrecisionAdjustmentResult.create(
+            element, pPrecision, PrecisionAdjustmentResult.Action.CONTINUE));
+      }
+
+
+    } catch (SolverException e) {
+      throw new CPAException("Solver Failure", e);
+    } finally {
+      totalPrecTime.stop();
+    }
+  }
+
+  @Override
+  public Optional<PrecisionAdjustmentResult> postAdjustmentStrengthen(
+      AbstractState result,
+      Precision pPrecision,
+      Iterable<AbstractState> otherStates,
+      Iterable<Precision> otherPrecisions,
+      UnmodifiableReachedSet states,
+      Function<AbstractState, AbstractState> stateProjection,
+      AbstractState fullState) throws CPAException, InterruptedException {
+    totalPrecTime.start();
+    try {
+      PredicateAbstractState element = (PredicateAbstractState)result;
+
+      BooleanFormula extraInvariant = AbstractStates.extractReportedFormulas(fmgr,
+          otherStates, pathFormulaManager);
+
+      if (element instanceof ComputeAbstractionState) {
+        ComputeAbstractionState computeState = (ComputeAbstractionState) element;
+        PredicatePrecision precision = (PredicatePrecision)pPrecision;
+        CFANode location = AbstractStates.extractLocation(fullState);
+
+        PathFormula newPathFormula = pathFormulaManager.makeAnd(
+            computeState.getPathFormula(), extraInvariant);
+        computeState = new ComputeAbstractionState(
+            newPathFormula, computeState.getAbstractionFormula(),
+            computeState.getAbstractionLocationsOnPath()
+        );
+
+        return computeAbstraction(computeState, precision, location);
       } else {
         return Optional.of(PrecisionAdjustmentResult.create(
             element, pPrecision, PrecisionAdjustmentResult.Action.CONTINUE));

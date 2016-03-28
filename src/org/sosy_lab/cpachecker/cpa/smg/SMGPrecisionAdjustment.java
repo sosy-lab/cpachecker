@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import java.io.PrintStream;
-import java.util.Collection;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -46,8 +46,8 @@ import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
+import java.io.PrintStream;
+import java.util.Collection;
 
 
 public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsProvider {
@@ -113,6 +113,18 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
     totalAbstraction.stop();
     abstractions.inc();
     return Optional.of(PrecisionAdjustmentResult.create(resultState, pPrecision, Action.CONTINUE));
+  }
+
+  @Override
+  public Optional<PrecisionAdjustmentResult> postAdjustmentStrengthen(
+      AbstractState result,
+      Precision precision,
+      Iterable<AbstractState> otherStates,
+      Iterable<Precision> otherPrecisions,
+      UnmodifiableReachedSet states,
+      Function<AbstractState, AbstractState> stateProjection,
+      AbstractState resultFullState) throws CPAException, InterruptedException {
+    return Optional.of(PrecisionAdjustmentResult.create(result, precision, Action.CONTINUE));
   }
 
   @Override

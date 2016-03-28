@@ -10,6 +10,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.NullLogManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.SolverException;
@@ -37,7 +38,7 @@ import java.util.logging.Level;
 @Options(prefix="cpa.slicing")
 public class CEXWeakeningManager {
   @Option(description="Strategy for abstracting children during CEX weakening", secure=true)
-  private SELECTION_STRATEGY removalSelectionStrategy = SELECTION_STRATEGY.FIRST;
+  private SELECTION_STRATEGY removalSelectionStrategy = SELECTION_STRATEGY.ALL;
 
   @Option(description="Depth limit for the 'LEAST_REMOVALS' strategy.")
   private int leastRemovalsDepthLimit = 2;
@@ -88,8 +89,8 @@ public class CEXWeakeningManager {
     shutdownNotifier = pShutdownNotifier;
   }
 
-  public void setRemovalSelectionStrategy(SELECTION_STRATEGY strategy) {
-    removalSelectionStrategy = strategy;
+  public SELECTION_STRATEGY getRemovalSelectionStrategy() {
+    return removalSelectionStrategy;
   }
 
   /**
@@ -97,12 +98,18 @@ public class CEXWeakeningManager {
   */
   public Set<BooleanFormula> performWeakening(
       Map<BooleanFormula, BooleanFormula> selectionInfo,
-      BooleanFormula query,
-      BooleanFormula primed,
+      BooleanFormula fromState,
+      PathFormula transition,
+      BooleanFormula toState,
       Set<BooleanFormula> pSelectorsWithIntermediate) throws SolverException, InterruptedException {
     try {
       statistics.cexWeakeningTime.start();
-      return counterexampleBasedWeakening0(selectionInfo, query, primed, pSelectorsWithIntermediate);
+      return counterexampleBasedWeakening0(
+          selectionInfo,
+          fromState,
+          transition,
+          toState,
+          pSelectorsWithIntermediate);
     } finally {
       statistics.cexWeakeningTime.stop();
     }
@@ -111,15 +118,14 @@ public class CEXWeakeningManager {
    * Apply a weakening based on counterexamples derived from solver models.
    *
    * @param selectionInfo Mapping from selectors to literals which they annotate.
-   * @param query Inductiveness checking query
-   * @param primed \phi'
    *
    * @return A subset of selectors after abstracting which the query becomes inductive.
    */
   private Set<BooleanFormula> counterexampleBasedWeakening0(
       final Map<BooleanFormula, BooleanFormula> selectionInfo,
-      BooleanFormula query,
-      BooleanFormula primed,
+      BooleanFormula fromState,
+      PathFormula transition,
+      BooleanFormula toState,
       Set<BooleanFormula> pSelectorsWithIntermediate) throws SolverException, InterruptedException {
 
     final Set<BooleanFormula> toAbstract = new HashSet<>(pSelectorsWithIntermediate);
@@ -127,6 +133,8 @@ public class CEXWeakeningManager {
     for (BooleanFormula selector : selectionInfo.keySet()) {
       selectorConstraints.add(bfmgr.not(selector));
     }
+    BooleanFormula query = bfmgr.and(
+        fromState, transition.getFormula(), bfmgr.not(toState));
 
     int noIterations = 0;
     try (ProverEnvironment env = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
@@ -141,7 +149,7 @@ public class CEXWeakeningManager {
             ImmutableSet.copyOf(toAbstract),
             m,
             selectionInfo,
-            primed,
+            toState,
             logger,
             0
         ));
