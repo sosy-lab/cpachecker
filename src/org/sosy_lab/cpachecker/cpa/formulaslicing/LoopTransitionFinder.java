@@ -152,7 +152,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
       limits.cancel();
     }
 
-    return out.updateFormula(fmgr.simplify(out.getFormula()));
+    return out;
   }
 
 
