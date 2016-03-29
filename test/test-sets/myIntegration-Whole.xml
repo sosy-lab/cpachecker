@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="120" hardtimelimit="120" memlimit="3000" cpuCores="4">
+  <option name="-setprop">log.consoleLevel=ALL</option>
+  <option name="-heap">2000M</option>
+  <option name="-setprop">cpa.predicate.useExplicitStateInPredicateAnalysis=TRUE</option>
+<!--  <option name="-setprop">cpa.value.initialPrecisionFile = mymy</option>-->
+
+  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
+
+  <rundefinition>
+    <tasks>
+      <includesfile>myIntegration-Whole.set</includesfile>
+      <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-isdn-mISDN-mISDN_core.ko_false-unreach-call.cil.out.i.pp.cil.c</exclude>
+      <option name="-skipRecursion"/>
+      <option name="-64"/>
+      <!-- SV-Comp files assume that malloc always succeeds -->
+      <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+    </tasks>
+    <option name="-ldv"/>
+  </rundefinition>
+
+   <columns>
+    <column title="total">time for CPAchecker</column>
+    <column title="cpa time">time for CPA algorithm</column>
+<!--    <column title="reached">reached set</column>
+    <column title="Model enumeration">Model enumeration time</column>
+    <column title="Solving time">Solving time</column>
+    <column title="Prec operator">prec operator</column>-->
+    <column title="Post operator">Time for post operator</column>
+    <column title="PathFormula cr.">Time for path formula creation</column>
+    <column title="Number of preds">Number of predicates discovered</column>
+<!--    <column title="Number of models">Total number of models for allsat</column>-->
+
+  </columns>
+</benchmark>
