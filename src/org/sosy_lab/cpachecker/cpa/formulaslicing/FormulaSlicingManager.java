@@ -44,6 +44,7 @@ import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
 import org.sosy_lab.solver.visitors.TraversalProcess;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -465,8 +466,38 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
   private BooleanFormula removeLiteralsWithDeadUFs(
       BooleanFormula input, final SSAMap ssa) throws InterruptedException {
     input = fmgr.applyTactic(input, Tactic.NNF);
-    BooleanFormula out = bfmgr.transformRecursively(
+    return bfmgr.transformRecursively(
         new BooleanFormulaTransformationVisitor(fmgr) {
+
+          @Override
+          public BooleanFormula visitAnd(List<BooleanFormula> pOperands) {
+
+            // TODO: extract common code for such operations.
+            List<BooleanFormula> newOperands = new ArrayList<>();
+            for (BooleanFormula op : pOperands) {
+              if (!bfmgr.isTrue(op)) {
+                newOperands.add(op);
+              }
+            }
+            if (newOperands.size() == 0) {
+              return bfmgr.makeBoolean(true);
+            }
+            return bfmgr.and(newOperands);
+          }
+
+          @Override
+          public BooleanFormula visitOr(List<BooleanFormula> pOperands) {
+            for (BooleanFormula op : pOperands) {
+              if (bfmgr.isTrue(op)) {
+                return bfmgr.makeBoolean(true);
+              }
+            }
+            if (pOperands.size() == 0) {
+              return bfmgr.makeBoolean(false);
+            }
+            return bfmgr.or(pOperands);
+          }
+
           @Override
           public BooleanFormula visitAtom(
               BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> decl) {
@@ -478,13 +509,17 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
           @Override
           public BooleanFormula visitNot(BooleanFormula pOperand) {
-            if (hasDeadUf(pOperand, ssa)) {
-              return bfmgr.makeBoolean(true);
+            if (bfmgr.isTrue(pOperand)) {
+              // TODO: temporary hacky bugfix.
+              // pOperand is already _processed_ and we have no way of
+              // knowing what it was before the processing.
+              // TODO: change JavaSMT interface to return the formula both
+              // before and after the processing.
+              return pOperand;
             }
             return super.visitNot(pOperand);
           }
         }, input);
-    return out;
   }
 
   private boolean hasDeadUf(BooleanFormula atom, final SSAMap pSSAMap) {
