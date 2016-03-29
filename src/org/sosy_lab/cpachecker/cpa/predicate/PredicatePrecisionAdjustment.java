@@ -24,18 +24,14 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Set;
 import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -73,7 +69,6 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   private final PathFormulaManager pathFormulaManager;
   private final FormulaManagerView fmgr;
 
-  private @Nullable InvariantGenerator invariantGenerator;
   private InvariantSupplier invariants;
   private final PredicateProvider predicateProvider;
 
@@ -83,7 +78,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       PathFormulaManager pPfmgr,
       BlockOperator pBlk,
       PredicateAbstractionManager pPredAbsManager,
-      InvariantGenerator pInvariantGenerator,
+      InvariantSupplier pInvariantSupplier,
       PredicateProvider pPredicateProvider) {
 
     logger = pLogger;
@@ -92,9 +87,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     blk = pBlk;
     formulaManager = pPredAbsManager;
 
-    invariantGenerator = checkNotNull(pInvariantGenerator);
-    invariants = InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
-
+    invariants = pInvariantSupplier;
     predicateProvider = pPredicateProvider;
   }
 
@@ -151,7 +144,6 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     maxBlockSize = Math.max(maxBlockSize, pathFormula.getLength());
 
     // get invariants and add them
-    extractInvariants();
     BooleanFormula invariant =
         invariants.getInvariantFor(loc, fmgr, pathFormulaManager, pathFormula);
     if (invariant != null) {
@@ -199,26 +191,5 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
             newAbstractionFormula, abstractionLocations);
     return Optional.of(PrecisionAdjustmentResult.create(
         state, precision, PrecisionAdjustmentResult.Action.CONTINUE));
-  }
-
-  private void extractInvariants() throws CPAException, InterruptedException {
-    if (invariantGenerator == null) {
-      return; // already done
-    }
-
-    try {
-      invariants = invariantGenerator.get();
-
-    } catch (InterruptedException e) {
-      invariantGenerator.cancel();
-      throw e;
-
-    } finally {
-      invariantGenerator = null; // to allow GC'ing it and the ReachedSet
-    }
-  }
-
-  void setInitialLocation(CFANode initialLocation) {
-    invariantGenerator.start(initialLocation);
   }
 }

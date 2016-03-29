@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import java.util.Collection;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.configuration.Configuration;
@@ -38,9 +37,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.DoNothingInvariantGenerator;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
@@ -72,7 +69,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import org.sosy_lab.solver.SolverException;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 
 /**
@@ -127,7 +123,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicatePrecisionBootstrapper precisionBootstraper;
   private final CFA cfa;
   private final AbstractionManager abstractionManager;
-  private final InvariantGenerator invariantGenerator;
   private final PrefixProvider prefixProvider;
   private final InvariantsManager invariantsManager;
   private final BlockOperator blk;
@@ -217,13 +212,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
       throw new InternalError("Update list of allowed merge operators");
     }
 
-    if (useInvariantsForAbstraction) {
-      ShutdownManager invariantShutdown = ShutdownManager.createWithParent(pShutdownNotifier);
-      invariantGenerator = CPAInvariantGenerator.create(config, logger, invariantShutdown, Optional.<ShutdownManager>absent(), cfa);
-    } else {
-      invariantGenerator = new DoNothingInvariantGenerator();
-    }
-
     precisionBootstraper = new PredicatePrecisionBootstrapper(config, logger, cfa, abstractionManager, formulaManager);
     initialPrecision = precisionBootstraper.prepareInitialPredicates();
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
@@ -237,7 +225,9 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
             pfMgr,
             blk,
             predicateManager,
-            invariantGenerator,
+            useInvariantsForAbstraction
+                ? invariantsManager.asAsyncInvariantsSupplier()
+                : InvariantSupplier.TrivialInvariantSupplier.INSTANCE,
             predicateProvider);
 
     if (stopType.equals("SEP")) {
@@ -315,7 +305,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition pPartition) {
-    prec.setInitialLocation(node);
     invariantsManager.setInitialLocation(node);
     return topState;
   }
@@ -334,9 +323,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
     precisionBootstraper.collectStatistics(pStatsCollection);
-    if (invariantGenerator instanceof StatisticsProvider) {
-      ((StatisticsProvider)invariantGenerator).collectStatistics(pStatsCollection);
-    }
     invariantsManager.collectStatistics(pStatsCollection);
   }
 

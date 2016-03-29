@@ -168,7 +168,8 @@ class InvariantsManager implements StatisticsProvider {
      * Runs an additional analysis concurrent to the main analysis and asks
      * for invariants when needed. The generated invariants will be added everywhere
      * they are need (e.g. refinement + abstraction formula) additionally they
-     * can be retrieved by calling {@link AsyncInvariantsSupplier#getInvariantFor(CFANode, PathFormula)}
+     * can be retrieved by calling {@link AsyncInvariantsSupplier#getInvariantFor(CFANode,
+     * FormulaManagerView, PathFormulaManager, PathFormula)}
      *
      * This option interferes with {@link InvariantGenerationStrategy#RF_INVARIANT_GENERATION}
      * as both use the configuration set with <code>invariantGeneration.config</code>.
@@ -200,7 +201,8 @@ class InvariantsManager implements StatisticsProvider {
      * No invariants should be used. This means that every approach besides
      * the concurrent invariant generation will not be executed at all. The invariants
      * computed by the concurrent approach (if selected) can still be retrieved
-     * by calling {@link AsyncInvariantsSupplier#getInvariantFor(CFANode, PathFormula)}
+     * by calling {@link AsyncInvariantsSupplier#getInvariantFor(CFANode,
+     * FormulaManagerView, PathFormulaManager, PathFormula)}
      */
     NONE;
   }
@@ -524,7 +526,7 @@ class InvariantsManager implements StatisticsProvider {
                 wasSuccessful = true;
                 addResultToCache(
                     asyncInvariantSupplierSingleton.getInvariantFor(
-                        pair.getSecond(), pair.getFirst()),
+                        pair.getSecond(), fmgr, pfmgr, pair.getFirst()),
                     pair.getSecond());
               } else {
                 addResultToCache(bfmgr.makeBoolean(true), pair.getSecond());
@@ -1055,7 +1057,7 @@ class InvariantsManager implements StatisticsProvider {
     }
   }
 
-  public class AsyncInvariantsSupplier {
+  public class AsyncInvariantsSupplier implements InvariantSupplier {
 
     private InvariantGenerator invGen;
     private InvariantSupplier invSup;
@@ -1088,8 +1090,6 @@ class InvariantsManager implements StatisticsProvider {
         // such that the analysis cane move on without invariants
         logger.logException(Level.SEVERE, e, "Asynchronous invariant generation skipped.");
 
-      } finally {
-        invGen = null; // allow garbage collection
       }
     }
 
@@ -1099,9 +1099,14 @@ class InvariantsManager implements StatisticsProvider {
      * @param pLocation the location for which invariants are needed
      * @return the invariants for the given location, or null if not available
      */
-    public BooleanFormula getInvariantFor(CFANode pLocation, PathFormula pContext) {
+    @Override
+    public BooleanFormula getInvariantFor(
+        CFANode pLocation,
+        FormulaManagerView pFmgr,
+        PathFormulaManager pPfmgr,
+        PathFormula pContext) {
       checkState(invSup != null, "Before getting invariants an initial location has to be set.");
-      return invSup.getInvariantFor(pLocation, fmgr, pfmgr, pContext);
+      return invSup.getInvariantFor(pLocation, pFmgr, pPfmgr, pContext);
     }
   }
 
@@ -1250,12 +1255,17 @@ class InvariantsManager implements StatisticsProvider {
 
     @Override
     public String getName() {
-      return "Invariant Generation Statistics";
+      return "Invariant Generation";
     }
   }
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
+    if (asyncInvariantSupplierSingleton != null
+        && asyncInvariantSupplierSingleton.invGen instanceof StatisticsProvider) {
+      ((StatisticsProvider) asyncInvariantSupplierSingleton.invGen)
+          .collectStatistics(pStatsCollection);
+    }
   }
 }
