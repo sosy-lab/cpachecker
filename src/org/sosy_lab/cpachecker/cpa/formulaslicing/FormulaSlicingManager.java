@@ -87,7 +87,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     solver = pSolver;
     bfmgr = pFmgr.getBooleanFormulaManager();
     rcnfManager = pRcnfManager;
-    statistics = new FormulaSlicingStatistics();
+    statistics = new FormulaSlicingStatistics(pSolver);
     Preconditions.checkState(pCfa.getLiveVariables().isPresent() &&
       pCfa.getLoopStructure().isPresent());
     liveVariables = pCfa.getLiveVariables().get();
@@ -304,12 +304,9 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     BooleanFormula reachabilityQuery = bfmgr.and(
         iState.getPathFormula().getFormula(), instantiatedFormula);
     try {
-      statistics.reachability.start();
       return solver.isUnsat(reachabilityQuery);
     } catch (SolverException pE) {
       throw new CPAException("Solver exception suppressed: ", pE);
-    } finally {
-      statistics.reachability.stop();
     }
   }
 
