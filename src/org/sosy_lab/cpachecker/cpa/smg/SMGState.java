@@ -1173,6 +1173,12 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       CFAEdge pEdge) {
       heap.addPredicateRelation(pV1, pV2, pOp, pEdge);
   }
+
+  public void addPredicateRelation(SMGSymbolicValue pV1, SMGExplicitValue pV2, BinaryOperator pOp,
+                                   CFAEdge pEdge) {
+    heap.addPredicateRelation(pV1, pV2, pOp, pEdge);
+  }
+
   public void putExplicit(SMGKnownSymValue pKey, SMGKnownExpValue pValue) {
 
     if (explicitValues.inverse().containsKey(pValue)) {

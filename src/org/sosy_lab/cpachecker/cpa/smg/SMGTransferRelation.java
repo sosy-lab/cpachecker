@@ -2028,7 +2028,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         }
 
         if (operand2 instanceof CLeftHandSide) {
-          deriveFurtherInformation((CLeftHandSide) operand2, operand1, op);
+          deriveFurtherInformation((CLeftHandSide) operand2, operand1, op.getOppositLogicalOperator());
         }
 
         return null;
@@ -2077,6 +2077,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
             //TODO more precise
           }
         }
+        assignableState.addPredicateRelation(rSymValue, rValue, op, edge);
       }
 
       @Override
