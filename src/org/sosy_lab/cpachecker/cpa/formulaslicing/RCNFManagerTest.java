@@ -36,7 +36,9 @@ public class RCNFManagerTest extends SolverBasedTest0{
 
   @Before
   public void setUp() throws InvalidConfigurationException {
-    Configuration d = Configuration.defaultConfiguration();
+    Configuration d = Configuration.builder().setOption(
+        "cpa.slicing.quantifiedHandling", "drop"
+    ).build();
     FormulaManagerView mgrView = new FormulaManagerView(
         mgr, d, TestLogManager.getInstance());
     RCNFManager = new RCNFManager(mgrView, d);
