@@ -1396,6 +1396,25 @@ public class FormulaManagerView {
     return manager.substitute(f, m);
   }
 
+  /**
+   * Return true iff the variable name is non-final with respect to the given
+   * SSA map.
+   */
+  public boolean isIntermediate(String varName, SSAMap ssa) {
+    Pair<String, Integer> p = parseName(varName);
+    Integer idx = p.getSecond();
+    if (idx == null) {
+      if (ssa.containsVariable(varName)) {
+        return true;
+      }
+    } else {
+      if (idx != ssa.getIndex(varName)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   public Set<String> getDeadFunctionNames(BooleanFormula pFormula, SSAMap pSsa) {
     return getDeadFunctionNames(pFormula, pSsa, true);
   }
@@ -1409,7 +1428,9 @@ public class FormulaManagerView {
    * Do not make this method public, because the returned formulas have incorrect
    * types (they are not appropriately wrapped).
    */
-  private Map<String, Formula> myGetDeadVariables(BooleanFormula pFormula, SSAMap pSsa,
+  private Map<String, Formula> myGetDeadVariables(
+      BooleanFormula pFormula,
+      SSAMap pSsa,
       boolean extractUF) {
     Map<String, Formula> result = new HashMap<>();
 
@@ -1424,20 +1445,8 @@ public class FormulaManagerView {
 
       String name = entry.getKey();
       Formula varFormula = entry.getValue();
-      Pair<String, Integer> fullName = parseName(name);
-      String varName = fullName.getFirst();
-      Integer varSsaIndex = fullName.getSecond();
-
-      if (varSsaIndex == null) {
-        if (pSsa.containsVariable(varName)) {
-          result.put(name, varFormula);
-        }
-
-      } else {
-
-        if (varSsaIndex != pSsa.getIndex(varName)) {
-          result.put(name, varFormula);
-        }
+      if (isIntermediate(name, pSsa)) {
+        result.put(name, varFormula);
       }
     }
 
