@@ -16,7 +16,7 @@
       <!-- <option name="-setprop">cpa.predicate.useExplicitStateInPredicateAnalysis=true</option>-->
       <!-- <option name="-setprop">cpa.predicate.useExplicitStateInPredicateAnalysis2=true</option>-->
     </tasks>
-    <option name="-ldv"/> <!-- standard ldv configuration -->
+    <option name="-ldv-sequential"/> <!-- standard ldv configuration -->
   </rundefinition>
 
    <columns>
