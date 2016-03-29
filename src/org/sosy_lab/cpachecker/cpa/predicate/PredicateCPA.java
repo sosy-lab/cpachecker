@@ -132,9 +132,13 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final InvariantsManager invariantsManager;
   private final BlockOperator blk;
 
-  protected PredicateCPA(Configuration config, LogManager logger,
-      BlockOperator pBlk, CFA pCfa, ShutdownNotifier pShutdownNotifier)
-          throws InvalidConfigurationException, CPAException {
+  protected PredicateCPA(
+      Configuration config,
+      LogManager logger,
+      BlockOperator pBlk,
+      CFA pCfa,
+      ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException, CPAException {
     config.inject(this, PredicateCPA.class);
 
     this.config = config;
@@ -312,6 +316,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition pPartition) {
     prec.setInitialLocation(node);
+    invariantsManager.setInitialLocation(node);
     return topState;
   }
 
