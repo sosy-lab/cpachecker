@@ -2,7 +2,6 @@ package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -14,12 +13,12 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FunctionDeclaration;
 import org.sosy_lab.solver.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
@@ -53,12 +52,37 @@ public class RCNFManager implements StatisticsProvider {
       + "CNF expansion", secure=true)
   private int expansionResultSizeLimit = 1000;
 
+  @Option(secure=true, description="Quantifier elimination strategy",
+      toUppercase=true)
+  private QUANTIFIER_HANDLING quantifiedHandling =
+      QUANTIFIER_HANDLING.QE_LIGHT_THEN_DROP;
+
+  enum QUANTIFIER_HANDLING {
+
+    /**
+     * Run best-effort quantifier elimination and then over-approximate lemmas
+     * which still have quantifiers.
+     */
+    QE_LIGHT_THEN_DROP,
+
+    /**
+     * Run proper quantifier elimination.
+     */
+    QE,
+
+    /**
+     * Over-approximate all lemmas with quantifiers.
+      */
+    DROP
+  }
+
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bfmgr;
   private final RCNFConversionStatistics statistics;
+  private final BooleanFormulaTransformationVisitor
+        dropQuantifiedLiteralsVisitor;
 
   private final HashMap<BooleanFormula, Set<BooleanFormula>> conversionCache;
-  private final HashMap<PathFormula, Set<BooleanFormula>> conversionQeCache;
 
   public RCNFManager(FormulaManagerView pFmgr, Configuration options)
       throws InvalidConfigurationException{
@@ -67,81 +91,87 @@ public class RCNFManager implements StatisticsProvider {
     fmgr = pFmgr;
     statistics = new RCNFConversionStatistics();
     conversionCache = new HashMap<>();
-    conversionQeCache = new HashMap<>();
+    dropQuantifiedLiteralsVisitor = new BooleanFormulaTransformationVisitor(fmgr) {
+      @Override
+      public BooleanFormula visitAtom(
+          BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> decl) {
+        if (hasBoundVariables.apply(pAtom)) {
+          return bfmgr.makeBoolean(true);
+        }
+        return super.visitAtom(pAtom, decl);
+      }
+
+      @Override
+      public BooleanFormula visitNot(BooleanFormula pOperand) {
+        if (hasBoundVariables.apply(pOperand)) {
+          return bfmgr.makeBoolean(true);
+        }
+        return super.visitNot(pOperand);
+      }
+    };
   }
 
+  /**
+   * @param input Input formula with at most one parent-level existential
+   *              quantifier.
+   */
   public Set<BooleanFormula> toLemmas(BooleanFormula input) throws InterruptedException {
     Set<BooleanFormula> out = conversionCache.get(input);
     if (out != null) {
       return out;
     }
-    Set<BooleanFormula> conjunctionArgs;
+
+    BooleanFormula result;
+    switch (quantifiedHandling) {
+      case QE_LIGHT_THEN_DROP:
+        try {
+          statistics.lightQuantifierElimination.start();
+          result = fmgr.applyTactic(input, Tactic.QE_LIGHT);
+        } finally {
+          statistics.lightQuantifierElimination.stop();
+        }
+        break;
+      case QE:
+        try {
+          statistics.quantifierElimination.start();
+          result = fmgr.applyTactic(input, Tactic.QE);
+        } finally {
+          statistics.quantifierElimination.stop();
+        }
+        break;
+      case DROP:
+        result = input;
+        break;
+      default:
+        throw new UnsupportedOperationException("Unexpected state");
+    }
+
+    BooleanFormula nnf = fmgr.applyTactic(result, Tactic.NNF);
+    BooleanFormula noBoundVars = dropBoundVariables(nnf);
+
     try {
       statistics.conversion.start();
-      conjunctionArgs = bfmgr.toConjunctionArgs(
-          convert(fmgr.simplify(input)), true);
+      out = bfmgr.toConjunctionArgs(convert(noBoundVars), true);
     } finally {
       statistics.conversion.stop();
     }
-    out = Sets.filter(
-        conjunctionArgs,
-        new Predicate<BooleanFormula>() {
-          @Override
-          public boolean apply(BooleanFormula input) {
-            // Remove redundant constraints.
-            assert bfmgr.toConjunctionArgs(input, true).size() == 1;
-            return !bfmgr.isTrue(fmgr.simplify(input));
-          }
-        }
-    );
     conversionCache.put(input, out);
     return out;
   }
 
   /**
-   * Convert the input to RCNF, apply best-effort QE elimination to
-   * (implicitly) quantified variables, over-approximate the lemmas which
-   * still contain existentials.
+   * @param input Formula with at most one outer-level existential
+   *              quantifier, in NNF.
    */
-  public Set<BooleanFormula> toLemmasRemoveExistentials(PathFormula input)
-      throws InterruptedException {
+  private BooleanFormula dropBoundVariables(BooleanFormula input) {
 
-    // TODO: convert to a single entry point, entry should be already
-    // quantified -> would simplify the codebase.
-    Set<BooleanFormula> out = conversionQeCache.get(input);
-    if (out != null) {
-      return out;
-    }
-    BooleanFormula quantified = fmgr.quantifyDeadVariables(
-        input.getFormula(), input.getSsa());
-
-    BooleanFormula qeLightResult;
-    try {
-      statistics.lightQuantifierElimination.start();
-      qeLightResult = fmgr.applyTactic(quantified, Tactic.QE_LIGHT);
-    } finally {
-      statistics.lightQuantifierElimination.stop();
-    }
-    out = toLemmasDropExistentials(qeLightResult);
-    conversionQeCache.put(input, out);
-    return out;
-  }
-
-  /**
-   * Converts input to RCNF and drops the lemmas with existentials.
-   */
-  private Set<BooleanFormula> toLemmasDropExistentials(BooleanFormula input)
-      throws InterruptedException {
     Optional<BooleanFormula> body = fmgr.visit(quantifiedBodyExtractor, input);
     if (body.isPresent()) {
-
-      // Has quantified variables.
-      Set<BooleanFormula> lemmas = toLemmas(body.get());
-      return Sets.filter(lemmas, Predicates.not(hasBoundVariables));
+      return bfmgr.transformRecursively(dropQuantifiedLiteralsVisitor, body.get());
     } else {
 
       // Does not have quantified variables.
-      return toLemmas(input);
+      return input;
     }
   }
 
@@ -228,6 +258,7 @@ public class RCNFManager implements StatisticsProvider {
     );
   }
 
+
   private final Predicate<BooleanFormula> hasBoundVariables = new Predicate<BooleanFormula>() {
     @Override
     public boolean apply(BooleanFormula input) {
@@ -273,13 +304,16 @@ public class RCNFManager implements StatisticsProvider {
 
   private static class RCNFConversionStatistics implements Statistics {
     Timer lightQuantifierElimination = new Timer();
+    Timer quantifierElimination = new Timer();
     Timer conversion = new Timer();
 
     @Override
     public void printStatistics(
         PrintStream out, Result result, ReachedSet reached) {
       printTimer(out, conversion, "RCNF conversion");
-      printTimer(out, lightQuantifierElimination, "quantifier elimination");
+      printTimer(out, lightQuantifierElimination, "light quantifier "
+          + "elimination");
+      printTimer(out, quantifierElimination, "quantifier elimination");
 
     }
 
