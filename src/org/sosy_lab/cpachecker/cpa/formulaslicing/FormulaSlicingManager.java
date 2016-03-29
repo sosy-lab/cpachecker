@@ -160,7 +160,14 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
         // Perform slicing, there is a relevant "to-merge" element.
         out = performSlicing(iState, oldState.get());
       } else {
-        out = toRcnf(iState);
+        out = SlicingAbstractedState.ofClauses(
+            toRcnf(iState),
+            iState.getPathFormula().getSsa(),
+            iState.getPathFormula().getPointerTargetSet(),
+            fmgr,
+            iState.getNode(),
+            Optional.of(iState)
+        );
       }
 
       return Optional.of(
@@ -176,7 +183,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
   /**
    * Convert the input state to the set of instantiated lemmas in RCNF.
    */
-  private SlicingAbstractedState toRcnf(SlicingIntermediateState iState)
+  private Set<BooleanFormula> toRcnf(SlicingIntermediateState iState)
       throws InterruptedException {
     PathFormula pf = iState.getPathFormula();
     SSAMap ssa = pf.getSsa();
@@ -189,10 +196,9 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     );
 
     // Special handling for UFs as they can't be quantified.
-    BooleanFormula transitionUFsDropped =
-        removeLiteralsWithDeadUFs(transition, ssa);
+    transition = removeLiteralsWithDeadUFs(transition, ssa);
     BooleanFormula quantified = fmgr.quantifyDeadVariables(
-        transitionUFsDropped, ssa);
+        transition, ssa);
 
     Set<BooleanFormula> lemmas = rcnfManager.toLemmas(quantified);
 
@@ -210,15 +216,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
       }
       finalLemmas.add(fmgr.uninstantiate(lemma));
     }
-
-    return SlicingAbstractedState.ofClauses(
-        finalLemmas,
-        ssa,
-        iState.getPathFormula().getPointerTargetSet(),
-        fmgr,
-        iState.getNode(),
-        Optional.of(iState)
-    );
+    return finalLemmas;
   }
 
 
@@ -467,7 +465,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
   private BooleanFormula removeLiteralsWithDeadUFs(
       BooleanFormula input, final SSAMap ssa) throws InterruptedException {
     input = fmgr.applyTactic(input, Tactic.NNF);
-    return bfmgr.transformRecursively(
+    BooleanFormula out = bfmgr.transformRecursively(
         new BooleanFormulaTransformationVisitor(fmgr) {
           @Override
           public BooleanFormula visitAtom(
@@ -486,6 +484,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
             return super.visitNot(pOperand);
           }
         }, input);
+    return out;
   }
 
   private boolean hasDeadUf(BooleanFormula atom, final SSAMap pSSAMap) {
