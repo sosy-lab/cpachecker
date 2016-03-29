@@ -230,7 +230,7 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
         return this.locationNode.getFunctionName().equals(parts[1]);
       } else if (parts[0].toLowerCase().equals("label")) {
         return this.locationNode instanceof CLabelNode ?
-            ((CLabelNode) this.locationNode).getLabel().equals(parts[2]) : false;
+            ((CLabelNode) this.locationNode).getLabel().equals(parts[1]) : false;
       } else {
         throw new InvalidQueryException("The Query \"" + pProperty
             + "\" is invalid. \"" + parts[0] + "\" is no valid keyword");
