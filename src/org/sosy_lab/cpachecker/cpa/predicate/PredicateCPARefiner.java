@@ -135,6 +135,8 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   private final InvariantsManager invariantsManager;
   private final Optional<LoopStructure> loopStructure;
   private final Map<Loop, Integer> loopOccurrences = new HashMap<>();
+  private boolean wereInvariantsUsedInLastRefinement = false;
+  private boolean wereInvariantsusedInCurrentRefinement = false;
 
   // TODO Configuration should not be used at runtime, only during constructor
   private final Configuration config;
@@ -265,7 +267,14 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
             pReached,
             abstractionStatesTrace,
             counterexample.getInterpolants(),
-            repeatedCounterexample);
+            repeatedCounterexample && wereInvariantsUsedInLastRefinement);
+
+        // set some invariants flags, they are necessary to make sure we
+        // call performRefinement in a way that it doesn't think it is a repeated
+        // counterexample due to weak invariants
+        wereInvariantsUsedInLastRefinement = wereInvariantsusedInCurrentRefinement;
+        wereInvariantsusedInCurrentRefinement = false;
+
         return CounterexampleInfo.spurious();
 
       } else {
@@ -348,6 +357,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
             ((PredicateAbstractionRefinementStrategy) strategy)
                 .setUseAtomicPredicates(atomicInvariants);
           }
+          wereInvariantsusedInCurrentRefinement = true;
           return CounterexampleTraceInfo.infeasible(precisionIncrement);
         }
 
