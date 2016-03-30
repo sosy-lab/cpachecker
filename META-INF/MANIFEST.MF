@@ -14,6 +14,12 @@ Export-Package: com.google.common.io,
  org.sosy_lab.common,
  org.sosy_lab.common.configuration,
  org.sosy_lab.common.configuration.converters,
- org.sosy_lab.cpachecker.core
+ org.sosy_lab.common.log,
+ org.sosy_lab.cpachecker.cfa,
+ org.sosy_lab.cpachecker.cfa.model,
+ org.sosy_lab.cpachecker.cfa.types,
+ org.sosy_lab.cpachecker.core,
+ org.sosy_lab.cpachecker.exceptions,
+ org.sosy_lab.cpachecker.util.test
 Require-Bundle: org.eclipse.core.runtime;resolution:=optional,
  org.eclipse.cdt.core;bundle-version="[5.2.0,5.4.0)";resolution:=optional
