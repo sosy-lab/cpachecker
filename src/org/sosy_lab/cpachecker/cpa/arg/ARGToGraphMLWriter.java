@@ -327,7 +327,14 @@ class ARGToGraphMLWriter {
           .append("fontFamily=\"Dialog\" fontSize=\"12\" fontStyle=\"plain\" ")
           .append("hasBackgroundColor=\"false\" hasLineColor=\"false\" modelName=\"internal\" ")
           .append("modelPosition=\"c\" textColor=\"#000000\" visible=\"true\">")
-          .append(labelBuilder.toString())
+          .append(
+              labelBuilder
+                  .toString()
+                  .replaceAll("\n", " ")
+                  .replace('"', '\'')
+                  .replaceAll("&", "&amp;")
+                  .replaceAll("<", "&lt;")
+                  .replaceAll(">", "&gt;"))
           .append("</y:NodeLabel>\n");
       builder.append("          <y:Shape type=\"rectangle\"/>\n");
       builder.append("        </y:ShapeNode>\n");
