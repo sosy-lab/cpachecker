@@ -32,6 +32,7 @@ public abstract class SMGObject {
 
 
   static private final SMGObject nullObject = new SMGObject(0, "NULL") {
+
     @Override
     public String toString() {
       return "NULL";
@@ -39,6 +40,12 @@ public abstract class SMGObject {
 
     @Override
     public SMGObject copy() {
+      // fancy way of referencing itself
+      return SMGObject.getNullObject();
+    }
+
+    @Override
+    public SMGObject copy(int level) {
       // fancy way of referencing itself
       return SMGObject.getNullObject();
     }
@@ -67,6 +74,8 @@ public abstract class SMGObject {
   }
 
   public abstract SMGObject copy();
+
+  public abstract SMGObject copy(int pNewLevel);
 
   public String getLabel() {
     return label;

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg.objects.dls;
 
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGAbstractObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectVisitor;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
 
@@ -96,6 +97,11 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
 
   public int getMinimumLength() {
     return minimumLength;
+  }
+
+  @Override
+  public void accept(SMGObjectVisitor visitor) {
+    visitor.visit(this);
   }
 
   @Override
@@ -174,7 +180,17 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
   }
 
   @Override
+  public String toString() {
+    return "DLL(size=" + getSize() + ", hfo=" + hfo + ", nfo=" + nfo + ", pfo=" + pfo + ", len=" + minimumLength + ", level=" + getLevel() +")";
+  }
+
+  @Override
   public SMGObject copy() {
-    return null;
+    return new SMGDoublyLinkedList(this);
+  }
+
+  @Override
+  public SMGObject copy(int level) {
+    return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), getMinimumLength(), level);
   }
 }
