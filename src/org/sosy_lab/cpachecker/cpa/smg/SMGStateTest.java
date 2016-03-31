@@ -70,8 +70,110 @@ public class SMGStateTest {
   private CType pointerType = new CPointerType(false, false, unspecifiedType);
 
   @Test
+  public void abstractionTest() throws SMGInconsistentException {
+
+    CLangSMG smg1 = new CLangSMG(MachineModel.LINUX32);
+
+    smg1.addStackFrame(functionDeclaration3);
+
+    SMGValueFactory.prepareForTest();
+    SMGValueFactory.getNewValue();
+    SMGValueFactory.getNewValue();
+    SMGValueFactory.getNewValue();
+    SMGValueFactory.getNewValue();
+    SMGValueFactory.getNewValue();
+    SMGValueFactory.getNewValue();
+    SMGValueFactory.getNewValue();
+    SMGValueFactory.getNewValue();
+    SMGValueFactory.getNewValue();
+    SMGValueFactory.getNewValue();
+    SMGValueFactory.getNewValue();
+    SMGValueFactory.getNewValue();
+    SMGValueFactory.getNewValue();
+    SMGValueFactory.getNewValue();
+    SMGValueFactory.getNewValue();
+
+    SMGRegion l1 = new SMGRegion(12, "l1");
+    SMGRegion l2 = new SMGRegion(12, "l2");
+    SMGRegion l3 = new SMGRegion(12, "l3");
+    SMGRegion l4 = new SMGRegion(12, "l4");
+    SMGRegion l5 = new SMGRegion(12, "l5");
+
+    SMGEdgeHasValue l1fn = new SMGEdgeHasValue(pointerType, 0, l1, 7);
+    SMGEdgeHasValue l2fn = new SMGEdgeHasValue(pointerType, 0, l2, 8);
+    SMGEdgeHasValue l3fn = new SMGEdgeHasValue(pointerType, 0, l3, 9);
+    SMGEdgeHasValue l4fn = new SMGEdgeHasValue(pointerType, 0, l4, 10);
+    SMGEdgeHasValue l5fn = new SMGEdgeHasValue(pointerType, 0, l5, 5);
+
+    SMGEdgeHasValue l1fp = new SMGEdgeHasValue(pointerType, 4, l1, 5);
+    SMGEdgeHasValue l2fp = new SMGEdgeHasValue(pointerType, 4, l2, 6);
+    SMGEdgeHasValue l3fp = new SMGEdgeHasValue(pointerType, 4, l3, 7);
+    SMGEdgeHasValue l4fp = new SMGEdgeHasValue(pointerType, 4, l4, 8);
+    SMGEdgeHasValue l5fp = new SMGEdgeHasValue(pointerType, 4, l5, 9);
+
+    SMGEdgePointsTo l1t = new SMGEdgePointsTo(6, l1, 0);
+    SMGEdgePointsTo l2t = new SMGEdgePointsTo(7, l2, 0);
+    SMGEdgePointsTo l3t = new SMGEdgePointsTo(8, l3, 0);
+    SMGEdgePointsTo l4t = new SMGEdgePointsTo(9, l4, 0);
+    SMGEdgePointsTo l5t = new SMGEdgePointsTo(10, l5, 0);
+
+    smg1.addHeapObject(l1);
+    smg1.addHeapObject(l2);
+    smg1.addHeapObject(l3);
+    smg1.addHeapObject(l4);
+    smg1.addHeapObject(l5);
+
+    smg1.addValue(5);
+    smg1.addValue(6);
+    smg1.addValue(7);
+    smg1.addValue(8);
+    smg1.addValue(9);
+    smg1.addValue(10);
+
+    smg1.addHasValueEdge(l1fn);
+    smg1.addHasValueEdge(l2fn);
+    smg1.addHasValueEdge(l3fn);
+    smg1.addHasValueEdge(l4fn);
+    smg1.addHasValueEdge(l5fn);
+
+    smg1.addHasValueEdge(l1fp);
+    smg1.addHasValueEdge(l2fp);
+    smg1.addHasValueEdge(l3fp);
+    smg1.addHasValueEdge(l4fp);
+    smg1.addHasValueEdge(l5fp);
+
+    smg1.addPointsToEdge(l1t);
+    smg1.addPointsToEdge(l2t);
+    smg1.addPointsToEdge(l3t);
+    smg1.addPointsToEdge(l4t);
+    smg1.addPointsToEdge(l5t);
+
+    smg1.setValidity(l1, true);
+    smg1.setValidity(l2, true);
+    smg1.setValidity(l3, true);
+    smg1.setValidity(l4, true);
+    smg1.setValidity(l5, true);
+
+    Map<SMGKnownSymValue, SMGKnownExpValue> empty = new java.util.HashMap<>();
+    SMGState smg1State = new SMGState(logger, true,
+        true, SMGRuntimeCheck.NONE, smg1,
+        new AtomicInteger(1), 0, empty, 4, false);
+
+    smg1State.addStackFrame(functionDeclaration3);
+    SMGObject head = smg1State.addGlobalVariable(8, "head");
+    smg1State.addPointsToEdge(head, 0, 5);
+
+    smg1State.writeValue(head, 0, pointerType, SMGKnownSymValue.valueOf(6));
+    smg1State.writeValue(head, 4, pointerType, SMGKnownSymValue.valueOf(7));
+
+    smg1State.performConsistencyCheck(SMGRuntimeCheck.NONE);
+
+  }
+
+  @Test
   public void materialiseTest() throws SMGInconsistentException {
 
+    SMGValueFactory.prepareForTest();
     SMGValueFactory.getNewValue();
     SMGValueFactory.getNewValue();
     SMGValueFactory.getNewValue();
