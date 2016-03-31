@@ -81,6 +81,15 @@ public class ARGStatistics implements IterationStatistics {
   )
   private boolean exportARG = true;
 
+  private enum ExportType {
+    DOT, // only export dot files
+    GRAPHML, // only export graphml files
+    BOTH // export in both dot and graphml format
+  }
+
+  @Option(secure = true, description = "File type of the ARG export")
+  private ExportType exportType = ExportType.BOTH;
+
   @Option(secure=true, name="file",
       description="export final ARG as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -254,7 +263,7 @@ public class ARGStatistics implements IterationStatistics {
     SetMultimap<ARGState, ARGState> relevantSuccessorRelation = ARGUtils.projectARG(rootState, ARGUtils.CHILDREN_OF_STATE, ARGUtils.RELEVANT_STATE);
     Function<ARGState, Collection<ARGState>> relevantSuccessorFunction = Functions.forMap(relevantSuccessorRelation.asMap(), ImmutableSet.<ARGState>of());
 
-    if (argFile != null) {
+    if (argFile != null && (exportType == ExportType.DOT || exportType == ExportType.BOTH)) {
       try (Writer w = Files.openOutputFile(adjustPathNameForPartitioning(rootState, argFile))) {
         ARGToDotWriter.write(w, rootState,
             ARGUtils.CHILDREN_OF_STATE,
@@ -265,7 +274,8 @@ public class ARGStatistics implements IterationStatistics {
       }
     }
 
-    if (graphMLFile != null) {
+    if (graphMLFile != null
+        && (exportType == ExportType.GRAPHML || exportType == ExportType.BOTH)) {
       try (Writer w = Files.openOutputFile(adjustPathNameForPartitioning(rootState, graphMLFile))) {
         ARGToGraphMLWriter.write(
             w, rootState, ARGUtils.CHILDREN_OF_STATE, Predicates.alwaysTrue(), isTargetPathEdge);
@@ -274,7 +284,8 @@ public class ARGStatistics implements IterationStatistics {
       }
     }
 
-    if (simplifiedArgFile != null) {
+    if (simplifiedArgFile != null
+        && (exportType == ExportType.DOT || exportType == ExportType.BOTH)) {
       try (Writer w = Files.openOutputFile(adjustPathNameForPartitioning(rootState, simplifiedArgFile))) {
         ARGToDotWriter.write(w, rootState,
             relevantSuccessorFunction,
@@ -285,7 +296,8 @@ public class ARGStatistics implements IterationStatistics {
       }
     }
 
-    if (simplifiedGraphMLFile != null) {
+    if (simplifiedGraphMLFile != null
+        && (exportType == ExportType.GRAPHML || exportType == ExportType.BOTH)) {
       try (Writer w =
               Files.openOutputFile(
                   adjustPathNameForPartitioning(rootState, simplifiedGraphMLFile))) {

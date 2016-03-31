@@ -161,13 +161,25 @@ public class CFACreator {
       description="remove paths from CFA that cannot lead to a specification violation")
   private boolean removeIrrelevantForSpecification = false;
 
-  @Option(secure=true, name="cfa.export",
-      description="export CFA as .dot file")
+  @Option(
+    secure = true,
+    name = "cfa.export",
+    description = "export CFA as .dot and/or .graphml file"
+  )
   private boolean exportCfa = true;
 
   @Option(secure=true, name="cfa.exportPerFunction",
       description="export individual CFAs for function as .dot files")
   private boolean exportCfaPerFunction = true;
+
+  private enum ExportType {
+    DOT, // export CFAs only as DOT files
+    GRAPHML, // export CFAs only as GraphML files
+    BOTH // export CFAs as DOT and GraphML files
+  }
+
+  @Option(secure = true, name = "cfa.exportType", description = "File type of the CFA export")
+  private ExportType exportType = ExportType.BOTH;
 
   @Option(secure=true, name="cfa.callgraph.export",
       description="dump a simple call graph")
@@ -1036,7 +1048,9 @@ v.addInitializer(initializer);
     stats.exportTime.start();
 
     // write CFA to file
-    if (exportCfa && exportCfaFile != null) {
+    if (exportCfa
+        && exportCfaFile != null
+        && (exportType == ExportType.DOT || exportType == ExportType.BOTH)) {
       try (Writer w = Files.openOutputFile(exportCfaFile)) {
         DOTBuilder.generateDOT(w, cfa);
       } catch (IOException e) {
@@ -1047,7 +1061,9 @@ v.addInitializer(initializer);
     }
 
     // write CFA to GraphML file
-    if (exportCfa && exportCfaGraphMLFile != null) {
+    if (exportCfa
+        && exportCfaGraphMLFile != null
+        && (exportType == ExportType.GRAPHML || exportType == ExportType.BOTH)) {
       try (Writer w = Files.openOutputFile(exportCfaGraphMLFile)) {
         GraphMLBuilder.generateGraphML(w, cfa);
       } catch (IOException e) {
@@ -1056,7 +1072,9 @@ v.addInitializer(initializer);
     }
 
     // write the CFA to files (one file per function + some metainfo)
-    if (exportCfaPerFunction && exportCfaFile != null) {
+    if (exportCfaPerFunction
+        && exportCfaFile != null
+        && (exportType == ExportType.DOT || exportType == ExportType.BOTH)) {
       try {
         Path outdir = exportCfaFile.getParent();
         DOTBuilder2.writeReport(cfa, outdir);
@@ -1067,7 +1085,9 @@ v.addInitializer(initializer);
       }
     }
 
-    if (exportCfaPerFunction && exportCfaGraphMLFile != null) {
+    if (exportCfaPerFunction
+        && exportCfaGraphMLFile != null
+        && (exportType == ExportType.GRAPHML || exportType == ExportType.BOTH)) {
       try {
         Path outDir = exportCfaGraphMLFile.getParent();
         GraphMLBuilder2.writeReport(cfa, outDir);
