@@ -200,7 +200,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
     SMGDoublyLinkedListCandidate candidate = objectCandidates.get(Pair.of(nfo, pfo));
 
     // Second, find out if the subsmgs are mergeable
-    SMGJoinSubSMGsForAbstraction join = new SMGJoinSubSMGsForAbstraction(smg, startObject, nextObject, candidate);
+    SMGJoinSubSMGsForAbstraction join = new SMGJoinSubSMGsForAbstraction(new CLangSMG(smg), startObject, nextObject, candidate);
 
     if(!join.isDefined()) {
       return;
