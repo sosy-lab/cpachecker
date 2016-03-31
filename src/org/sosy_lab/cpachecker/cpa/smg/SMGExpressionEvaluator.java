@@ -1133,8 +1133,11 @@ public class SMGExpressionEvaluator {
 
     if(pTarget instanceof SMGRegion) {
       regionTarget = (SMGRegion) pTarget;
+    } else if(pTarget == SMGObject.getNullObject()) {
+      SMGAddressValueAndState result = SMGAddressValueAndState.of(pSmgState, SMGKnownAddVal.valueOf(0, pTarget, pOffset.getAsInt()));
+      return SMGAddressValueAndStateList.of(result);
     } else {
-      throw new AssertionError("Abstraction " + pTarget.toString() + "was not materialised");
+      throw new AssertionError("Abstraction " + pTarget.toString() + " was not materialised.");
     }
 
     Integer address = pSmgState.getAddress(regionTarget, pOffset.getAsInt());
