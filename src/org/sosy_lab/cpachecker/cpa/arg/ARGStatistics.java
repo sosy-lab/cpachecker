@@ -47,7 +47,6 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.IterationStatistics;
@@ -68,8 +67,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 
-@Options(prefix="cpa.arg")
-public class ARGStatistics implements IterationStatistics {
+@Options(prefix = "cpa.arg")
+class ARGStatistics implements IterationStatistics {
 
   @Option(secure=true, name="dumpAfterIteration", description="Dump all ARG related statistics files after each iteration of the CPA algorithm? (for debugging and demonstration)")
   private boolean dumpArgInEachCpaIteration = false;
@@ -131,21 +130,20 @@ public class ARGStatistics implements IterationStatistics {
   private ARGToDotWriter refinementGraphWriter = null;
 
   private final @Nullable CEXExporter cexExporter;
-  private final ARGPathExporter argPathExporter;
   private final CounterexamplesSummary cexSummary;
 
-  public ARGStatistics(Configuration config, LogManager pLogger, ARGCPA pCpa,
-      MachineModel pMachineModel, @Nullable CEXExporter pCexExporter,
-      ARGPathExporter pARGPathExporter,
-      CounterexamplesSummary pCexSummary)
-          throws InvalidConfigurationException {
+  ARGStatistics(
+      final Configuration config,
+      final LogManager pLogger,
+      final @Nullable CEXExporter pCexExporter,
+      final CounterexamplesSummary pCexSummary)
+      throws InvalidConfigurationException {
 
     config.inject(this);
 
     logger = pLogger;
     cexSummary = pCexSummary;
     cexExporter = pCexExporter;
-    argPathExporter = pARGPathExporter;
 
     if (argFile == null
         && simplifiedArgFile == null
@@ -343,7 +341,7 @@ public class ARGStatistics implements IterationStatistics {
    * @param pReached  The set of reached states.
    * @param pTarget   Where to write the CSV
    */
-  void writeLevelStatisticsCsv(ReachedSet pReached, Appendable pTarget) {
+  private void writeLevelStatisticsCsv(ReachedSet pReached, Appendable pTarget) {
     Preconditions.checkNotNull(pReached);
     Preconditions.checkNotNull(pTarget);
 
@@ -368,7 +366,7 @@ public class ARGStatistics implements IterationStatistics {
   /**
    * Compute statistics on the number of states per level of the ARG.
    *
-   * @param pReached
+   * @param pReached The set of reached states.
    *
    * @return  List where the index is the level, and the value is the number of states in this level.
    */
@@ -393,7 +391,7 @@ public class ARGStatistics implements IterationStatistics {
       int level = e.getStateLevel();
 
       while (statesPerLevel.size() <= level) {
-        statesPerLevel.add(Integer.valueOf(0));
+        statesPerLevel.add(0);
       }
 
       int statesAtLevel = statesPerLevel.get(level);
