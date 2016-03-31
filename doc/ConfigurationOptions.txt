@@ -828,6 +828,10 @@ cpa.arg.refinements.file = "ARGRefinements.dot"
 # entries/exits
 cpa.arg.simplifiedARG.file = "ARGSimplified.dot"
 
+# export final ARG as .graphml file, showing only loop heads and function
+# entries/exists
+cpa.arg.simplifiedARG.graphml = "ARGSimplified.graphml"
+
 # Verification witness: Include the considered case of an assume?
 cpa.arg.witness.exportAssumeCaseInfo = true
 

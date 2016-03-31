@@ -39,6 +39,7 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -73,7 +74,11 @@ public class ARGStatistics implements IterationStatistics {
   @Option(secure=true, name="dumpAfterIteration", description="Dump all ARG related statistics files after each iteration of the CPA algorithm? (for debugging and demonstration)")
   private boolean dumpArgInEachCpaIteration = false;
 
-  @Option(secure=true, name="export", description="export final ARG as .dot file")
+  @Option(
+    secure = true,
+    name = "export",
+    description = "export final ARG as .dot and/or .graphml file"
+  )
   private boolean exportARG = true;
 
   @Option(secure=true, name="file",
@@ -90,6 +95,16 @@ public class ARGStatistics implements IterationStatistics {
       description="export final ARG as .dot file, showing only loop heads and function entries/exits")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path simplifiedArgFile = Paths.get("ARGSimplified.dot");
+
+  @Option(
+    secure = true,
+    name = "simplifiedARG.graphml",
+    description =
+        "export final ARG as "
+            + ".graphml file, showing only loop heads and function entries/exists"
+  )
+  @FileOption(Type.OUTPUT_FILE)
+  private Path simplifiedGraphMLFile = Paths.get("ARGSimplified.graphml");
 
   @Option(secure=true, name="refinements.file",
       description="export simplified ARG that shows all refinements to .dot file")
@@ -126,7 +141,8 @@ public class ARGStatistics implements IterationStatistics {
     if (argFile == null
         && simplifiedArgFile == null
         && refinementGraphFile == null
-        && graphMLFile == null) {
+        && graphMLFile == null
+        && simplifiedGraphMLFile == null) {
       exportARG = false;
     }
   }
@@ -261,6 +277,21 @@ public class ARGStatistics implements IterationStatistics {
     if (simplifiedArgFile != null) {
       try (Writer w = Files.openOutputFile(adjustPathNameForPartitioning(rootState, simplifiedArgFile))) {
         ARGToDotWriter.write(w, rootState,
+            relevantSuccessorFunction,
+            Predicates.alwaysTrue(),
+            Predicates.alwaysFalse());
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
+      }
+    }
+
+    if (simplifiedGraphMLFile != null) {
+      try (Writer w =
+              Files.openOutputFile(
+                  adjustPathNameForPartitioning(rootState, simplifiedGraphMLFile))) {
+        ARGToGraphMLWriter.write(
+            w,
+            rootState,
             relevantSuccessorFunction,
             Predicates.alwaysTrue(),
             Predicates.alwaysFalse());
