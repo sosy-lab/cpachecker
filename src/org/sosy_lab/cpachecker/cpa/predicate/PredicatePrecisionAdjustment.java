@@ -64,6 +64,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   final Timer computingAbstractionTime = new Timer();
 
   int numAbstractions = 0;
+  int numTargetAbstractions = 0;
   int numAbstractionsFalse = 0;
   int maxBlockSize = 0;
 
@@ -132,8 +133,14 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     if (predicateState.isAbstractionState()) {
       return false;
     }
-    return blk.isBlockEnd(location, predicateState.getPathFormula().getLength())
-        || AbstractStates.isTargetState(fullState);
+    if (blk.isBlockEnd(location, predicateState.getPathFormula().getLength())) {
+      return true;
+    }
+    if (AbstractStates.isTargetState(fullState)) {
+      numTargetAbstractions++;
+      return true;
+    }
+    return false;
   }
 
   /**
