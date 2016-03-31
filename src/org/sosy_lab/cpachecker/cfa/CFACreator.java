@@ -41,6 +41,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -64,6 +65,8 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder2;
 import org.sosy_lab.cpachecker.cfa.export.FunctionCallDumper;
+import org.sosy_lab.cpachecker.cfa.export.GraphMLBuilder;
+import org.sosy_lab.cpachecker.cfa.export.GraphMLBuilder2;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -179,6 +182,14 @@ public class CFACreator {
       description="export CFA as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportCfaFile = Paths.get("cfa.dot");
+
+  @Option(
+    secure = true,
+    name = "cfa.graphml.file",
+    description = "export CFA as .graphml file in" + " the format of the tool yEd"
+  )
+  @FileOption(Type.OUTPUT_FILE)
+  private Path exportCfaGraphMLFile = Paths.get("cfa.graphml");
 
   @Option(secure=true, name="cfa.checkNullPointers",
       description="while this option is activated, before each use of a "
@@ -1035,6 +1046,15 @@ v.addInitializer(initializer);
       }
     }
 
+    // write CFA to GraphML file
+    if (exportCfa && exportCfaGraphMLFile != null) {
+      try (Writer w = Files.openOutputFile(exportCfaGraphMLFile)) {
+        GraphMLBuilder.generateGraphML(w, cfa);
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write CFA to GraphML file");
+      }
+    }
+
     // write the CFA to files (one file per function + some metainfo)
     if (exportCfaPerFunction && exportCfaFile != null) {
       try {
@@ -1044,6 +1064,15 @@ v.addInitializer(initializer);
         logger.logUserException(Level.WARNING, e,
           "Could not write CFA to dot and json file");
         // continue with analysis
+      }
+    }
+
+    if (exportCfaPerFunction && exportCfaGraphMLFile != null) {
+      try {
+        Path outDir = exportCfaGraphMLFile.getParent();
+        GraphMLBuilder2.writeReport(cfa, outDir);
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write CFA to GraphML file");
       }
     }
 

@@ -55,6 +55,7 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
+import org.sosy_lab.cpachecker.cfa.export.GraphMLBuilder;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -330,6 +331,7 @@ public class MainCPAStatistics implements Statistics, AlgorithmIterationListener
       }
     };
     DOTBuilder.generateDOT(sb, cfa, nodeLabelFormatter);
+    GraphMLBuilder.generateGraphML(sb, cfa, nodeLabelFormatter);
   }
 
   private void printSubStatistics(PrintStream out, Result result, ReachedSet reached) {
