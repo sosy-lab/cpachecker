@@ -30,7 +30,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGAbstractObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
@@ -43,7 +43,7 @@ import com.google.common.collect.Iterables;
 final public class SMGJoinSubSMGsForAbstraction {
 
   private SMGJoinStatus status = null;
-  private SMG resultSMG = null;
+  private CLangSMG resultSMG = null;
   private SMGObject newAbstractObject = null;
   private Set<Integer> nonSharedValuesFromSMG1 = null;
   private Set<Integer> nonSharedValuesFromSMG2 = null;
@@ -51,9 +51,9 @@ final public class SMGJoinSubSMGsForAbstraction {
   private Set<SMGObject> nonSharedObjectsFromSMG2 = null;
   private boolean defined = false;
 
-  public SMGJoinSubSMGsForAbstraction(SMG inputSMG, SMGObject obj1, SMGObject obj2, SMGDoublyLinkedListCandidate dlsc) throws SMGInconsistentException {
+  public SMGJoinSubSMGsForAbstraction(CLangSMG inputSMG, SMGObject obj1, SMGObject obj2, SMGDoublyLinkedListCandidate dlsc) throws SMGInconsistentException {
 
-    SMG smg = new SMG(inputSMG);
+    CLangSMG smg = inputSMG;
 
     SMGEdgeHasValue prevObj1hve = Iterables.getOnlyElement(smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj1).filterAtOffset(dlsc.getPfo())));
     SMGEdgeHasValue nextObj1hve = Iterables.getOnlyElement(smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj1).filterAtOffset(dlsc.getNfo())));
@@ -79,7 +79,7 @@ final public class SMGJoinSubSMGsForAbstraction {
     int lengthObj2 = obj2 instanceof SMGDoublyLinkedList ? ((SMGDoublyLinkedList)obj2).getMinimumLength() : 0;
 
     SMGDoublyLinkedList dls = new SMGDoublyLinkedList(obj1.getSize(), dlsc.getHfo(), dlsc.getNfo(), dlsc.getPfo(), lengthObj1 + lengthObj2, obj1.getLevel());
-    inputSMG.addObject(dls);
+    smg.addObject(dls);
 
     int lDiff;
 
@@ -104,7 +104,6 @@ final public class SMGJoinSubSMGsForAbstraction {
       return;
     }
 
-    smg = jss.getDestSMG();
     SMGJoinStatus s = jss.getStatus();
     mapping1 = jss.getMapping1();
     mapping2 = jss.getMapping2();
@@ -165,7 +164,7 @@ final public class SMGJoinSubSMGsForAbstraction {
     return status;
   }
 
-  public SMG getResultSMG() {
+  public CLangSMG getResultSMG() {
     return resultSMG;
   }
 

@@ -48,7 +48,7 @@ public class SMGSingleLinkedListCandidate implements SMGAbstractionCandidate {
 
   @Override
   public CLangSMG execute(CLangSMG pSMG) {
-    CLangSMG newSMG = new CLangSMG(pSMG);
+    CLangSMG newSMG = pSMG;
     SMGSingleLinkedList sll = new SMGSingleLinkedList((SMGRegion)start, offset, length);
     newSMG.addHeapObject(sll);
 
@@ -116,5 +116,10 @@ public class SMGSingleLinkedListCandidate implements SMGAbstractionCandidate {
   @Override
   public String toString() {
     return "SLL CANDIDATE(start=" + start + ", offset=" + offset + ", length=" + length + ")";
+  }
+
+  @Override
+  public int getScore() {
+    return length;
   }
 }

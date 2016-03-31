@@ -42,7 +42,7 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
 
   public SMGDoublyLinkedList(int pSize, int pHfo, int pNfo, int pPfo,
       int pMinLength, int level) {
-    super(pSize, "__dls +" + pMinLength, level);
+    super(pSize, "dls", level);
 
     hfo = pHfo;
     nfo = pNfo;

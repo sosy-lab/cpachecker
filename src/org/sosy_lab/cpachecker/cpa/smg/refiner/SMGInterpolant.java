@@ -72,7 +72,7 @@ public class SMGInterpolant implements Interpolant<SMGState> {
     } else {
       // TODO Copy necessary?
       return new SMGState(new HashMap<>(explicitValues), new CLangSMG(heap), logger,
-          externalAllocationSize);
+          externalAllocationSize, false);
     }
   }
 

@@ -153,6 +153,18 @@ public class CLangSMG extends SMG {
     addObject(pObject);
   }
 
+  public Set<SMGEdgePointsTo> getPointerToObject(SMGObject obj) {
+    Set<SMGEdgePointsTo> result = new HashSet<>();
+
+    for (SMGEdgePointsTo pt : getPTEdges().values()) {
+      if (pt.getObject() == obj) {
+        result.add(pt);
+      }
+    }
+
+    return result;
+  }
+
   /**
    * Add a global object to the SMG
    *

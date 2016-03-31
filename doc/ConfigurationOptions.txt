@@ -1801,6 +1801,9 @@ cpa.smg.checkForMemLeaksAtEveryFrameDrop = true
 cpa.smg.deallocationFunctions = {
       "free"}
 
+# with this option enabled, heap abstraction will be enabled.
+cpa.smg.enableHeapAbstraction = false
+
 # If this Option is enabled, failure of mallocis simulated
 cpa.smg.enableMallocFail = true
 

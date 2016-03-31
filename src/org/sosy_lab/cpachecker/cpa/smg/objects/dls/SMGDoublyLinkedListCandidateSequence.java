@@ -24,7 +24,14 @@
 package org.sosy_lab.cpachecker.cpa.smg.objects.dls;
 
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
+import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinSubSMGsForAbstraction;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+
+import com.google.common.collect.Iterables;
 
 public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandidate {
 
@@ -46,14 +53,41 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
   }
 
   @Override
-  public CLangSMG execute(CLangSMG pSMG) {
+  public CLangSMG execute(CLangSMG pSMG) throws SMGInconsistentException {
 
-    return null;
+    SMGObject prevObject = candidate.getObject();
+    int nfo = candidate.getNfo();
+
+    for (int i = 0; i < length; i++) {
+      SMGEdgeHasValue nextEdge = Iterables.getOnlyElement(pSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(prevObject).filterAtOffset(nfo)));
+      SMGObject nextObject = pSMG.getPointer(nextEdge.getValue()).getObject();
+      SMGJoinSubSMGsForAbstraction join =
+          new SMGJoinSubSMGsForAbstraction(pSMG, prevObject, nextObject, candidate);
+
+      for (SMGObject obj : join.getNonSharedObjectsFromSMG1()) {
+        pSMG.removeHeapObjectAndEdges(obj);
+      }
+
+      for (SMGObject obj : join.getNonSharedObjectsFromSMG2()) {
+        pSMG.removeHeapObjectAndEdges(obj);
+      }
+
+      pSMG.removeHeapObjectAndEdges(nextObject);
+      pSMG.removeHeapObjectAndEdges(prevObject);
+      prevObject = join.getNewAbstractObject();
+    }
+
+    return pSMG;
   }
 
   @Override
   public String toString() {
     return "SMGDoublyLinkedListCandidateSequence [candidate=" + candidate + ", length=" + length
         + "]";
+  }
+
+  @Override
+  public int getScore() {
+    return getLength();
   }
 }

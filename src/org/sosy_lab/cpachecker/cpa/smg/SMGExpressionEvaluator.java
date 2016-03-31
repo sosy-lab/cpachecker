@@ -82,6 +82,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -1128,7 +1129,15 @@ public class SMGExpressionEvaluator {
       return SMGAddressValueAndStateList.of(pSmgState);
     }
 
-    Integer address = pSmgState.getAddress(pTarget, pOffset.getAsInt());
+    SMGRegion regionTarget;
+
+    if(pTarget instanceof SMGRegion) {
+      regionTarget = (SMGRegion) pTarget;
+    } else {
+      throw new AssertionError("Abstraction " + pTarget.toString() + "was not materialised");
+    }
+
+    Integer address = pSmgState.getAddress(regionTarget, pOffset.getAsInt());
 
     if (address == null) {
       return SMGAddressValueAndStateList.of(pSmgState);
