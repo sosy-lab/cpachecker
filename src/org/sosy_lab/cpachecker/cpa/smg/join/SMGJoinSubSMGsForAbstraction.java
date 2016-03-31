@@ -63,26 +63,28 @@ final public class SMGJoinSubSMGsForAbstraction {
     SMGEdgeHasValue prevObj2hve = Iterables.getOnlyElement(smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2).filterAtOffset(dlsc.getPfo())));
     SMGEdgeHasValue nextObj2hve = Iterables.getOnlyElement(smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2).filterAtOffset(dlsc.getNfo())));
 
-    SMGEdgeHasValue prevObj1hveT = new SMGEdgeHasValue(prevObj1hve.getType(), prevObj1hve.getOffset(), prevObj1hve.getObject(), 0);
+    //TODO Why are temp edges necessary? They interfere in the join
+/*
+ *     SMGEdgeHasValue prevObj1hveT = new SMGEdgeHasValue(prevObj1hve.getType(), prevObj1hve.getOffset(), prevObj1hve.getObject(), 0);
     SMGEdgeHasValue nextObj1hveT = new SMGEdgeHasValue(nextObj1hve.getType(), nextObj1hve.getOffset(), nextObj1hve.getObject(), 0);
     SMGEdgeHasValue prevObj2hveT = new SMGEdgeHasValue(prevObj2hve.getType(), prevObj2hve.getOffset(), prevObj2hve.getObject(), 0);
     SMGEdgeHasValue nextObj2hveT = new SMGEdgeHasValue(nextObj2hve.getType(), nextObj2hve.getOffset(), nextObj2hve.getObject(), 0);
-
+*/
     smg.removeHasValueEdge(prevObj1hve);
     smg.removeHasValueEdge(nextObj1hve);
     smg.removeHasValueEdge(prevObj2hve);
     smg.removeHasValueEdge(nextObj2hve);
 
-    smg.addHasValueEdge(prevObj1hveT);
+/*    smg.addHasValueEdge(prevObj1hveT);
     smg.addHasValueEdge(nextObj1hveT);
     smg.addHasValueEdge(prevObj2hveT);
     smg.addHasValueEdge(nextObj2hveT);
-
-    int lengthObj1 = obj1 instanceof SMGDoublyLinkedList ? ((SMGDoublyLinkedList)obj1).getMinimumLength() : 0;
-    int lengthObj2 = obj2 instanceof SMGDoublyLinkedList ? ((SMGDoublyLinkedList)obj2).getMinimumLength() : 0;
+*/
+    int lengthObj1 = obj1 instanceof SMGDoublyLinkedList ? ((SMGDoublyLinkedList)obj1).getMinimumLength() : 1;
+    int lengthObj2 = obj2 instanceof SMGDoublyLinkedList ? ((SMGDoublyLinkedList)obj2).getMinimumLength() : 1;
 
     SMGDoublyLinkedList dls = new SMGDoublyLinkedList(obj1.getSize(), dlsc.getHfo(), dlsc.getNfo(), dlsc.getPfo(), lengthObj1 + lengthObj2, obj1.getLevel());
-    smg.addObject(dls);
+    smg.addHeapObject(dls);
 
     int lDiff;
 
@@ -113,11 +115,11 @@ final public class SMGJoinSubSMGsForAbstraction {
 
     //TODO Contains dls0Cycle?
 
-    smg.removeHasValueEdge(prevObj1hveT);
+/*    smg.removeHasValueEdge(prevObj1hveT);
     smg.removeHasValueEdge(nextObj1hveT);
     smg.removeHasValueEdge(prevObj2hveT);
     smg.removeHasValueEdge(nextObj2hveT);
-
+*/
     smg.addHasValueEdge(prevObj1hve);
     smg.addHasValueEdge(nextObj1hve);
     smg.addHasValueEdge(prevObj2hve);

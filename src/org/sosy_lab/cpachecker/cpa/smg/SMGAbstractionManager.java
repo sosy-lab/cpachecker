@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedListCandidateFinder;
@@ -41,7 +42,9 @@ public class SMGAbstractionManager {
   private boolean hasCandidates() throws SMGInconsistentException {
     SMGDoublyLinkedListCandidateFinder dllCandidateFinder =
         new SMGDoublyLinkedListCandidateFinder();
-    abstractionCandidates.addAll(dllCandidateFinder.traverse(smg));
+
+    Set<SMGAbstractionCandidate> candidates = dllCandidateFinder.traverse(smg);
+    abstractionCandidates.addAll(candidates);
 
     SMGSingleLinkedListFinder sllCandidateFinder =
         new SMGSingleLinkedListFinder();

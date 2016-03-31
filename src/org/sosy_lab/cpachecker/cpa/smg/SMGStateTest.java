@@ -159,15 +159,17 @@ public class SMGStateTest {
         true, SMGRuntimeCheck.NONE, smg1,
         new AtomicInteger(1), 0, empty, 4, false);
 
-    smg1State.addStackFrame(functionDeclaration3);
     SMGObject head = smg1State.addGlobalVariable(8, "head");
     smg1State.addPointsToEdge(head, 0, 5);
 
     smg1State.writeValue(head, 0, pointerType, SMGKnownSymValue.valueOf(6));
-    smg1State.writeValue(head, 4, pointerType, SMGKnownSymValue.valueOf(7));
+    smg1State.writeValue(head, 4, pointerType, SMGKnownSymValue.valueOf(10));
 
     smg1State.performConsistencyCheck(SMGRuntimeCheck.NONE);
 
+    smg1State.executeHeapAbstraction();
+
+    smg1State.performConsistencyCheck(SMGRuntimeCheck.NONE);
   }
 
   @Test
@@ -278,7 +280,7 @@ public class SMGStateTest {
     smg1State.addPointsToEdge(head, 0, 5);
 
     smg1State.writeValue(head, 0, pointerType, SMGKnownSymValue.valueOf(6));
-    smg1State.writeValue(head, 4, pointerType, SMGKnownSymValue.valueOf(7));
+    smg1State.writeValue(head, 4, pointerType, SMGKnownSymValue.valueOf(10));
 
     smg1State.performConsistencyCheck(SMGRuntimeCheck.NONE);
 

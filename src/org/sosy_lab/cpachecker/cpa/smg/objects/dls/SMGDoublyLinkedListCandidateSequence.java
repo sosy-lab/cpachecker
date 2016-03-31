@@ -23,10 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects.dls;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
+import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinSubSMGsForAbstraction;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
@@ -57,12 +63,65 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
 
     SMGObject prevObject = candidate.getObject();
     int nfo = candidate.getNfo();
+    int pfo = candidate.getPfo();
 
     for (int i = 0; i < length; i++) {
+
       SMGEdgeHasValue nextEdge = Iterables.getOnlyElement(pSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(prevObject).filterAtOffset(nfo)));
       SMGObject nextObject = pSMG.getPointer(nextEdge.getValue()).getObject();
       SMGJoinSubSMGsForAbstraction join =
           new SMGJoinSubSMGsForAbstraction(pSMG, prevObject, nextObject, candidate);
+
+      SMGObject newAbsObj = join.getNewAbstractObject();
+
+      Map<Integer, Integer> reached = new HashMap<>();
+
+      for (SMGEdgePointsTo pte : SMGUtils.getPointerToThisObject(nextObject, pSMG)) {
+        pSMG.removePointsToEdge(pte.getValue());
+
+        if (pte.getTargetSpecifier() == SMGTargetSpecifier.ALL) {
+          SMGEdgePointsTo newPte = new SMGEdgePointsTo(pte.getValue(), newAbsObj, pte.getOffset(),
+              SMGTargetSpecifier.ALL);
+          pSMG.addPointsToEdge(newPte);
+        } else {
+
+          if (reached.containsKey(pte.getOffset())) {
+            int val = reached.get(pte.getOffset());
+            pSMG.mergeValues(val, pte.getValue());
+          } else {
+            SMGEdgePointsTo newPte = new SMGEdgePointsTo(pte.getValue(), newAbsObj, pte.getOffset(),
+                SMGTargetSpecifier.LAST);
+            pSMG.addPointsToEdge(newPte);
+            reached.put(newPte.getOffset(), newPte.getValue());
+          }
+        }
+      }
+
+      reached.clear();
+
+      for (SMGEdgePointsTo pte : SMGUtils.getPointerToThisObject(prevObject, pSMG)) {
+        pSMG.removePointsToEdge(pte.getValue());
+
+        if (pte.getTargetSpecifier() == SMGTargetSpecifier.ALL) {
+          SMGEdgePointsTo newPte = new SMGEdgePointsTo(pte.getValue(), newAbsObj, pte.getOffset(),
+              SMGTargetSpecifier.ALL);
+          pSMG.addPointsToEdge(newPte);
+        } else {
+
+          if (reached.containsKey(pte.getOffset())) {
+            int val = reached.get(pte.getOffset());
+            pSMG.mergeValues(val, pte.getValue());
+          } else {
+            SMGEdgePointsTo newPte = new SMGEdgePointsTo(pte.getValue(), newAbsObj, pte.getOffset(),
+                SMGTargetSpecifier.FIRST);
+            pSMG.addPointsToEdge(newPte);
+            reached.put(newPte.getOffset(), newPte.getValue());
+          }
+        }
+      }
+
+      SMGEdgeHasValue prevObj1hve = Iterables.getOnlyElement(pSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(prevObject).filterAtOffset(pfo)));
+      SMGEdgeHasValue nextObj2hve = Iterables.getOnlyElement(pSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(nfo)));
 
       for (SMGObject obj : join.getNonSharedObjectsFromSMG1()) {
         pSMG.removeHeapObjectAndEdges(obj);
@@ -74,7 +133,10 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
 
       pSMG.removeHeapObjectAndEdges(nextObject);
       pSMG.removeHeapObjectAndEdges(prevObject);
-      prevObject = join.getNewAbstractObject();
+      prevObject = newAbsObj;
+
+      pSMG.addHasValueEdge(new SMGEdgeHasValue(nextObj2hve.getType(), nextObj2hve.getOffset(), newAbsObj, nextObj2hve.getValue()));
+      pSMG.addHasValueEdge(new SMGEdgeHasValue(prevObj1hve.getType(), prevObj1hve.getOffset(), newAbsObj, prevObj1hve.getValue()));
     }
 
     return pSMG;
