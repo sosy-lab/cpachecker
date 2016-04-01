@@ -27,8 +27,6 @@
           <value>
             <package name="" withSubpackages="true" static="true" />
             <emptyLine />
-            <package name="com.google" withSubpackages="true" static="false" />
-            <emptyLine />
             <package name="android" withSubpackages="true" static="false" />
             <emptyLine />
             <package name="antenna" withSubpackages="true" static="false" />
