@@ -47,6 +47,12 @@ public final class SMGSingleLinkedList extends SMGObject implements SMGAbstractO
     length = pOriginal.length;
   }
 
+  public SMGSingleLinkedList(SMGSingleLinkedList pSmgSingleLinkedList, int pNewLevel) {
+    super(pSmgSingleLinkedList.getSize(), pSmgSingleLinkedList.getLabel(), pNewLevel);
+    length = pSmgSingleLinkedList.getLength();
+    bindingOffset = pSmgSingleLinkedList.getOffset();
+  }
+
   //TODO: Abstract interface???
   public int getLength() {
     return length;
@@ -117,5 +123,10 @@ public final class SMGSingleLinkedList extends SMGObject implements SMGAbstractO
   @Override
   public SMGObject copy() {
     return new SMGSingleLinkedList(this);
+  }
+
+  @Override
+  public SMGObject copy(int pNewLevel) {
+    return new SMGSingleLinkedList(this, pNewLevel);
   }
 }

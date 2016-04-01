@@ -189,10 +189,10 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
 
   private ReachedSet initializeReachedSetForChecking(Configuration pConfig,
       ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
-    CoreComponentsFactory factory = new CoreComponentsFactory(pConfig, logger, shutdownNotifier);
+   CoreComponentsFactory factory = new CoreComponentsFactory(pConfig, logger, shutdownNotifier);
    ReachedSet reached = factory.createReachedSet();
 
-    reached.add(pCpa.getInitialState(analyzedProgram.getMainFunction(),
+   reached.add(pCpa.getInitialState(analyzedProgram.getMainFunction(),
             StateSpacePartition.getDefaultPartition()),
         pCpa.getInitialPrecision(analyzedProgram.getMainFunction(),
             StateSpacePartition.getDefaultPartition()));

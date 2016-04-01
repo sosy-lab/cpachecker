@@ -61,6 +61,14 @@ public class GenericAbstraction extends SMGObject implements SMGAbstractObject {
     materlisationStepMap = ImmutableMap.copyOf(pMaterlisationSteps);
   }
 
+  public GenericAbstraction(int pSize, String pLabel,
+      Map<Integer, List<MaterlisationStep>> pMaterlisationStepMap,
+      Map<Integer, Integer> pAbstractToConcretePointerMap, int pNewLevel) {
+    super(pSize, pLabel, pNewLevel);
+    abstractToConcretePointerMap = ImmutableMap.copyOf(pAbstractToConcretePointerMap);
+    materlisationStepMap = ImmutableMap.copyOf(pMaterlisationStepMap);
+  }
+
   @Override
   public boolean matchGenericShape(SMGAbstractObject pOther) {
     return false;
@@ -123,5 +131,10 @@ public class GenericAbstraction extends SMGObject implements SMGAbstractObject {
   @Override
   public SMGObject copy() {
     return new GenericAbstraction(getSize(), getLabel(), materlisationStepMap, abstractToConcretePointerMap);
+  }
+
+  @Override
+  public SMGObject copy(int pNewLevel) {
+    return new GenericAbstraction(getSize(), getLabel(), materlisationStepMap, abstractToConcretePointerMap, pNewLevel);
   }
 }

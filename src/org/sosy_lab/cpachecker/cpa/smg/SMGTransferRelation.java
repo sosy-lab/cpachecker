@@ -84,6 +84,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -204,6 +205,11 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
    * in a failure of the malloc function.
    */
   private boolean possibleMallocFail;
+
+  /**
+   * If try to meaningfully abstract heap segments.
+   */
+  private final boolean enableHeapAbstraction;
 
   /**
    * This List is used to communicate the missing
@@ -784,17 +790,19 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   }
 
   public SMGTransferRelation(Configuration config, LogManager pLogger,
-      MachineModel pMachineModel) throws InvalidConfigurationException {
+      MachineModel pMachineModel, boolean pEnableHeapAbstraction)
+          throws InvalidConfigurationException {
     config.inject(this);
     logger = new LogManagerWithoutDuplicates(pLogger);
     machineModel = pMachineModel;
     expressionEvaluator = new SMGRightHandSideEvaluator(logger, machineModel);
     id_counter = new AtomicInteger(0);
+    enableHeapAbstraction = pEnableHeapAbstraction;
   }
 
   public static SMGTransferRelation createTransferRelationForRefinement(Configuration config, LogManager pLogger,
       MachineModel pMachineModel) throws InvalidConfigurationException {
-    SMGTransferRelation result = new SMGTransferRelation(config, pLogger, pMachineModel);
+    SMGTransferRelation result = new SMGTransferRelation(config, pLogger, pMachineModel, false);
     result.exportSMG = SMGExportLevel.NEVER;
     return result;
   }
@@ -882,6 +890,12 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     for (SMGState smg : successors) {
       plotWhenConfigured(SMGExportLevel.EVERY, null, smg, cfaEdge.getDescription());
+    }
+
+    if(enableHeapAbstraction && cfaEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
+      for(SMGState successor : successors) {
+        successor.executeHeapAbstraction();
+      }
     }
 
     return successors;
@@ -1110,7 +1124,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   private List<SMGState> handleAssumption(SMGState pSmgState, CExpression expression, CFAEdge cfaEdge,
       boolean truthValue, boolean createNewStateIfNecessary) throws CPATransferException {
 
-    SMGState smgState = pSmgState;
+    SMGState smgState = new SMGState(pSmgState);
 
     // FIXME Quickfix, simplify expressions for sv-comp, later assumption handling has to be refactored to be able to handle complex expressions
     expression = eliminateOuterEquals(expression);
@@ -2028,7 +2042,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         }
 
         if (operand2 instanceof CLeftHandSide) {
-          deriveFurtherInformation((CLeftHandSide) operand2, operand1, op);
+          deriveFurtherInformation((CLeftHandSide) operand2, operand1, op.getOppositLogicalOperator());
         }
 
         return null;
@@ -2077,6 +2091,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
             //TODO more precise
           }
         }
+        assignableState.addPredicateRelation(rSymValue, rValue, op, edge);
       }
 
       @Override

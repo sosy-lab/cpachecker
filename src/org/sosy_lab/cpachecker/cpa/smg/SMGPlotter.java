@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectVisitor;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedList;
 
 import com.google.common.base.Joiner;
@@ -128,6 +129,20 @@ public final class SMGPlotter {
 
     public SMGObjectNode getNode() {
       return node;
+    }
+
+    @Override
+    public void visit(SMGDoublyLinkedList dll) {
+      String shape = "rectangle";
+      String color = "blue";
+
+      if (! smg.isObjectValid(dll)) {
+        color="red";
+      }
+
+      String style = "dashed";
+      node = new SMGObjectNode("dll", defaultDefinition(color, shape, style, dll));
+
     }
   }
 
@@ -290,7 +305,7 @@ public final class SMGPlotter {
   }
 
   private String smgPTEdgeAsDot(SMGEdgePointsTo pEdge) {
-    return "value_" + pEdge.getValue() + " -> " + objectIndex.get(pEdge.getObject()).getName() + "[label=\"+" + pEdge.getOffset() + "B\"];";
+    return "value_" + pEdge.getValue() + " -> " + objectIndex.get(pEdge.getObject()).getName() + "[label=\"+" + pEdge.getOffset() + "B, " + pEdge.getTargetSpecifier() + "\"];";
   }
 
   private static String smgValueAsDot(int value, Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues) {

@@ -44,7 +44,7 @@ public final class SMGRegion extends SMGObject implements SMGObjectTemplate {
 
   @Override
   public String toString() {
-    return "REGION( "+ getLabel() + ", " + getSize() + "b)";
+    return "REGION("+ getLabel() + ", " + getSize() + "B)\n" + "level=" + getLevel();
   }
 
   public boolean propertiesEqual(SMGRegion pOther) {
@@ -103,5 +103,10 @@ public final class SMGRegion extends SMGObject implements SMGObjectTemplate {
   @Override
   public SMGObject copy() {
     return new SMGRegion(this);
+  }
+
+  @Override
+  public SMGObject copy(int pNewLevel) {
+    return new SMGRegion(getSize(), getLabel(), pNewLevel);
   }
 }

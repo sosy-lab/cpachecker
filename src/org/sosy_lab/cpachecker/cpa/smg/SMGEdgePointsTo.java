@@ -68,11 +68,14 @@ public class SMGEdgePointsTo extends SMGEdge {
     }
 
     if (value != other.value) {
-      if (offset == ((SMGEdgePointsTo)other).offset && object == other.object) {
+      if (offset == ((SMGEdgePointsTo) other).offset
+          && object == other.object
+          && (tg == SMGTargetSpecifier.UNKNOWN || ((SMGEdgePointsTo) other).tg == SMGTargetSpecifier.UNKNOWN || tg == ((SMGEdgePointsTo) other).tg)) {
         return false;
       }
     } else
-      if (offset != ((SMGEdgePointsTo)other).offset || object != other.object) {
+      if (offset != ((SMGEdgePointsTo) other).offset || object != other.object
+          || tg != ((SMGEdgePointsTo) other).tg) {
         return false;
       }
 

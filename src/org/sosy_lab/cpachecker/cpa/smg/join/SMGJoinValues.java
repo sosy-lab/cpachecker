@@ -373,6 +373,7 @@ final class SMGJoinValues {
           if (!reached.contains(reachedObject)) {
             SMGObject newReachedObj = reachedObject.copy();
             pMapping1.map(reachedObject, newReachedObj);
+            pDestSMG.addObject(newReachedObj);
             toBeChecked.add(reachedObject);
             reached.add(reachedObject);
           }
@@ -414,6 +415,7 @@ final class SMGJoinValues {
           if (!pReached.contains(reachedObject)) {
             SMGObject newReachedObj = reachedObject.copy();
             pMapping1.map(reachedObject, newReachedObj);
+            pDestSMG.addObject(newReachedObj);
             pToBeChecked.add(reachedObject);
             pReached.add(reachedObject);
           }
