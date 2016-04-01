@@ -30,6 +30,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGAbstractObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
@@ -52,7 +53,7 @@ final public class SMGJoinSubSMGsForAbstraction {
   private Set<SMGObject> nonSharedObjectsFromSMG2 = null;
   private boolean defined = false;
 
-  public SMGJoinSubSMGsForAbstraction(CLangSMG inputSMG, SMGObject obj1, SMGObject obj2, SMGDoublyLinkedListCandidate dlsc) throws SMGInconsistentException {
+  public SMGJoinSubSMGsForAbstraction(CLangSMG inputSMG, SMGObject obj1, SMGObject obj2, SMGDoublyLinkedListCandidate dlsc, SMGState pStateOfSmg) throws SMGInconsistentException {
 
     CLangSMG smg = inputSMG;
     Set<SMGObject> origObjects = ImmutableSet.copyOf(smg.getObjects());
@@ -103,7 +104,7 @@ final public class SMGJoinSubSMGsForAbstraction {
     boolean increaseLevelAndRelabelTargetSpc =
         obj1 instanceof SMGRegion && obj2 instanceof SMGRegion;
 
-    SMGJoinSubSMGs jss = new SMGJoinSubSMGs(SMGJoinStatus.EQUAL, smg, smg, smg, mapping1, mapping2, obj1, obj2, dls, lDiff, increaseLevelAndRelabelTargetSpc, true);
+    SMGJoinSubSMGs jss = new SMGJoinSubSMGs(SMGJoinStatus.EQUAL, smg, smg, smg, mapping1, mapping2, obj1, obj2, dls, lDiff, increaseLevelAndRelabelTargetSpc, true, pStateOfSmg, pStateOfSmg);
 
     if(!jss.isDefined()) {
       return;

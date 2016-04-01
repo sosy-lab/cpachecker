@@ -1162,7 +1162,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   public SMGState joinSMG(SMGState reachedState) throws SMGInconsistentException {
     // Not necessary if merge_SEP and stop_SEP is used.
 
-    SMGJoin join = new SMGJoin(this.heap, reachedState.heap);
+    SMGJoin join = new SMGJoin(this.heap, reachedState.heap, this, reachedState);
 
     if (join.isDefined() && join.getStatus() != SMGJoinStatus.INCOMPARABLE
         && join.getStatus() != SMGJoinStatus.INCOMPLETE) {
@@ -1203,7 +1203,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     if(morePreciseIsLessOrEqual) {
 
-      SMGJoin join = new SMGJoin(heap, reachedState.heap);
+      SMGJoin join = new SMGJoin(heap, reachedState.heap, this, reachedState);
 
       if(join.isDefined()) {
         SMGJoinStatus jss = join.getStatus();
@@ -1822,7 +1822,59 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * @throws SMGInconsistentException Join lead to inconsistent smg.
    */
   public void executeHeapAbstraction() throws SMGInconsistentException {
-    SMGAbstractionManager manager = new SMGAbstractionManager(heap, true);
+    SMGAbstractionManager manager = new SMGAbstractionManager(heap, true, this);
     manager.execute();
+  }
+
+  /**
+   * Check if symbolic value1 of this smgState is less or equal to value2
+   * of smgsState2.
+   *
+   * A value is less or equal if every concrete value represented by value1 is also
+   * represented by value2.
+   *
+   * This check may be imprecise, but only insofar that equal symbolic values or
+   * symbolic values that entail each other may be identified as incomparable, never the other way around.
+   *
+   * @param value1 Value of this smgState.
+   * @param value2 Value of smgState2.
+   * @param smgState2 Another SMG State.
+   * @return SMGJoinStatus.RIGHT_ENTAIL iff all values represented by value1 are also represented by value2.
+   * SMGJoinStatus.EQUAL iff values represented by value1 and value2 are equal.
+   * SMGJoinStatus.INCOMPARABLE otherwise.
+   */
+  public SMGJoinStatus valueIsLessOrEqual(SMGKnownSymValue value1, SMGKnownSymValue value2,
+      SMGState smgState2) {
+
+    if (value1.equals(value2)) {
+      return SMGJoinStatus.EQUAL;
+    }
+
+    if (smgState2.explicitValues.containsKey(value2)) {
+      if (!explicitValues.containsKey(value1)) {
+        return SMGJoinStatus.INCOMPARABLE;
+      }
+
+      if (!smgState2.explicitValues.get(value2).equals(explicitValues.get(value1))) {
+        return SMGJoinStatus.INCOMPARABLE;
+      } else {
+        // Same explicit values
+        return SMGJoinStatus.EQUAL;
+      }
+    }
+
+    for (Integer neqToVal2 : smgState2.heap.getNeqsForValue(value2.getAsInt())) {
+      if (!heap.haveNeqRelation(value1.getAsInt(),
+          neqToVal2)) {
+        return SMGJoinStatus.INCOMPARABLE;
+      }
+    }
+
+    if (explicitValues.containsKey(value1) || heap.getNeqsForValue(value1.getAsInt()).size() > 0) {
+      return SMGJoinStatus.RIGHT_ENTAIL;
+    }
+
+    // Both values represent top
+    return SMGJoinStatus.EQUAL;
   }
 }

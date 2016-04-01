@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGGenericAbstractionCandidate;
@@ -93,7 +94,7 @@ final class SMGJoinTargetObjects {
   public SMGJoinTargetObjects(SMGJoinStatus pStatus,
                               SMG pSMG1, SMG pSMG2, SMG pDestSMG,
                               SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
-                              Integer pAddress1, Integer pAddress2, int pLevel1, int pLevel2, int ldiff, boolean identicalInputSmgs, boolean pIncreaseLevelAndRelabel) throws SMGInconsistentException {
+                              Integer pAddress1, Integer pAddress2, int pLevel1, int pLevel2, int ldiff, boolean identicalInputSmgs, boolean pIncreaseLevelAndRelabel, SMGState pSmgState1, SMGState pSmgState2) throws SMGInconsistentException {
 
     inputSMG1 = pSMG1;
     inputSMG2 = pSMG2;
@@ -164,7 +165,7 @@ final class SMGJoinTargetObjects {
 
     SMGJoinSubSMGs jss = new SMGJoinSubSMGs(status, inputSMG1, inputSMG2, destSMG,
                                             mapping1, mapping2,
-                                            target1, target2, newObject, 0, false, identicalInputSmgs);
+                                            target1, target2, newObject, 0, false, identicalInputSmgs, pSmgState1, pSmgState2);
     if (jss.isDefined()) {
       defined = true;
       status = jss.getStatus();

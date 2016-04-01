@@ -74,7 +74,7 @@ public class SMGAbstractionManagerTest {
 
   @Test
   public void testExecute() throws SMGInconsistentException {
-    SMGAbstractionManager manager = new SMGAbstractionManager(smg);
+    SMGAbstractionManager manager = new SMGAbstractionManager(smg, null);
     manager.execute();
 
     SMGRegion globalVar = smg.getObjectForVisibleVariable("pointer");

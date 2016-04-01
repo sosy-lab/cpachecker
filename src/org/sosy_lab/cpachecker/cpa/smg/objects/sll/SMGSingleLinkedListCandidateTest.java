@@ -87,7 +87,7 @@ public class SMGSingleLinkedListCandidateTest {
     SMGObject startObject = smg.getPointer(value).getObject();
     SMGSingleLinkedListCandidate candidate = new SMGSingleLinkedListCandidate(startObject, OFFSET, SEGMENT_LENGTH);
 
-    CLangSMG abstractedSmg = candidate.execute(smg);
+    CLangSMG abstractedSmg = candidate.execute(smg, null);
     Set<SMGObject> heap = abstractedSmg.getHeapObjects();
     Assert.assertEquals(3, heap.size());
     SMGObject pointedObject = abstractedSmg.getPointer(value).getObject();
@@ -123,7 +123,7 @@ public class SMGSingleLinkedListCandidateTest {
     Integer value = root.getValue();
     SMGObject startObject = smg.getPointer(value).getObject();
     SMGSingleLinkedListCandidate candidate = new SMGSingleLinkedListCandidate(startObject, 8, 2);
-    CLangSMG abstractedSmg = candidate.execute(smg);
+    CLangSMG abstractedSmg = candidate.execute(smg, null);
     Set<SMGObject> heap = abstractedSmg.getHeapObjects();
     Assert.assertEquals(2, heap.size());
 

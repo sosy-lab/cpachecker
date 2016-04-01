@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
@@ -64,14 +65,14 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
   }
 
   @Override
-  public Set<SMGAbstractionCandidate> traverse(CLangSMG pSmg) throws SMGInconsistentException {
+  public Set<SMGAbstractionCandidate> traverse(CLangSMG pSmg, SMGState pSMGState) throws SMGInconsistentException {
     smg = pSmg;
 
     candidateLength.clear();
     candidates.clear();
 
     for (SMGObject object : smg.getHeapObjects()) {
-      startTraversal(object);
+      startTraversal(object, pSMGState);
     }
 
     Set<SMGAbstractionCandidate> returnSet = new HashSet<>();
@@ -86,16 +87,16 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
     return Collections.unmodifiableSet(returnSet);
   }
 
-  private void startTraversal(SMGObject pObject) throws SMGInconsistentException {
+  private void startTraversal(SMGObject pObject, SMGState pSmgState) throws SMGInconsistentException {
     if (candidates.containsKey(pObject)) {
       // Processed already in continueTraversal
       return;
     }
     candidates.put(pObject, new HashMap<Pair<Integer, Integer>, SMGDoublyLinkedListCandidate>());
-    createCandidatesOfObject(pObject);
+    createCandidatesOfObject(pObject, pSmgState);
   }
 
-  private void createCandidatesOfObject(SMGObject pObject) throws SMGInconsistentException {
+  private void createCandidatesOfObject(SMGObject pObject, SMGState pSMGState) throws SMGInconsistentException {
 
     if (!smg.isObjectValid(pObject) || !(pObject.getLevel() == 0)) {
       return;
@@ -167,13 +168,13 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
             new SMGDoublyLinkedListCandidate(pObject, hfo, pfo, nfo);
         candidates.get(pObject).put(Pair.of(nfo, pfo), candidate);
         candidateLength.put(candidate, 0);
-        continueTraversal(nextPointer, candidate);
+        continueTraversal(nextPointer, candidate, pSMGState);
       }
     }
   }
 
 
-  private void continueTraversal(int pValue, SMGDoublyLinkedListCandidate pPrevCandidate) throws SMGInconsistentException {
+  private void continueTraversal(int pValue, SMGDoublyLinkedListCandidate pPrevCandidate, SMGState pSmgState) throws SMGInconsistentException {
 
     // the next object is doubly linked with the prev object, which was checked in start traversel.
     SMGEdgePointsTo pt = smg.getPointer(pValue);
@@ -186,7 +187,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
     }
 
     if (! candidates.containsKey(nextObject)) {
-      startTraversal(nextObject);
+      startTraversal(nextObject, pSmgState);
     }
 
     Map<Pair<Integer, Integer>, SMGDoublyLinkedListCandidate> objectCandidates = candidates.get(nextObject);
@@ -200,7 +201,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
     SMGDoublyLinkedListCandidate candidate = objectCandidates.get(Pair.of(nfo, pfo));
 
     // Second, find out if the subsmgs are mergeable
-    SMGJoinSubSMGsForAbstraction join = new SMGJoinSubSMGsForAbstraction(new CLangSMG(smg), startObject, nextObject, candidate);
+    SMGJoinSubSMGsForAbstraction join = new SMGJoinSubSMGsForAbstraction(new CLangSMG(smg), startObject, nextObject, candidate, pSmgState);
 
     if(!join.isDefined()) {
       return;

@@ -34,6 +34,8 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
@@ -53,6 +55,9 @@ final class SMGJoinValues {
   private SMGNodeMapping mapping1;
   private SMGNodeMapping mapping2;
   private boolean defined = false;
+
+  private final SMGState smgState1;
+  private final SMGState smgState2;
 
   private List<SMGGenericAbstractionCandidate> abstractionCandidates;
   private boolean recoverable;
@@ -88,11 +93,28 @@ final class SMGJoinValues {
 
       Integer newValue;
 
-      // TODO Investigate for joinSubSMGForAbstraction
       if(pV1.equals(pV2)) {
         newValue = pV1;
       } else {
         newValue = SMGValueFactory.getNewValue();
+
+        if (pJV.smgState1 == null || pJV.smgState2 == null) {
+          pJV.status = SMGJoinStatus.updateStatus(pJV.status, SMGJoinStatus.INCOMPARABLE);
+        } else {
+          SMGJoinStatus v1isLessOrEqualV2 = pJV.smgState1.valueIsLessOrEqual(
+              SMGKnownSymValue.valueOf(pV1), SMGKnownSymValue.valueOf(pV2), pJV.smgState2);
+          SMGJoinStatus v2isLessOrEqualV1 = pJV.smgState2.valueIsLessOrEqual(
+              SMGKnownSymValue.valueOf(pV2), SMGKnownSymValue.valueOf(pV1), pJV.smgState1);
+
+          if (v1isLessOrEqualV2 != SMGJoinStatus.INCOMPARABLE) {
+            pJV.status = SMGJoinStatus.updateStatus(pJV.status, v1isLessOrEqualV2);
+          } else if (v1isLessOrEqualV2 == SMGJoinStatus.RIGHT_ENTAIL) {
+            pJV.status = SMGJoinStatus.updateStatus(pJV.status, SMGJoinStatus.LEFT_ENTAIL);
+          } else {
+            pJV.status = SMGJoinStatus.updateStatus(pJV.status, v2isLessOrEqualV1);
+          }
+        }
+
       }
 
       if (pLevelV1 - pLevelV2 < lDiff) {
@@ -119,7 +141,7 @@ final class SMGJoinValues {
     SMGJoinTargetObjects jto = new SMGJoinTargetObjects(pJV.status,
                                                         pJV.inputSMG1, pJV.inputSMG2, pJV.destSMG,
                                                         pJV.mapping1, pJV.mapping2,
-                                                        pV1, pV2,pLevel1, pLevel2, ldiff, identicalInputSmg, increaseLevelAndRelabel);
+                                                        pV1, pV2,pLevel1, pLevel2, ldiff, identicalInputSmg, increaseLevelAndRelabel, pJV.smgState1, pJV.smgState2);
     if (jto.isDefined()) {
       pJV.status = jto.getStatus();
       pJV.inputSMG1 = jto.getInputSMG1();
@@ -146,13 +168,16 @@ final class SMGJoinValues {
   public SMGJoinValues(SMGJoinStatus pStatus,
                         SMG pSMG1, SMG pSMG2, SMG pDestSMG,
                         SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
-                        Integer pValue1, Integer pValue2, int pLDiff, boolean pIncreaseLevelAndRelabelTargetSpc, boolean identicalInputSmg, int levelV1, int levelV2) throws SMGInconsistentException {
+                        Integer pValue1, Integer pValue2, int pLDiff, boolean pIncreaseLevelAndRelabelTargetSpc, boolean identicalInputSmg, int levelV1, int levelV2, SMGState pStateOfSmg1, SMGState pStateOfSmg2) throws SMGInconsistentException {
     mapping1 = pMapping1;
     mapping2 = pMapping2;
     status = pStatus;
     inputSMG1 = pSMG1;
     inputSMG2 = pSMG2;
     destSMG = pDestSMG;
+    smgState1 = pStateOfSmg1;
+    smgState2 = pStateOfSmg2;
+
 
     if ( identicalInputSmg && SMGJoinValues.joinValuesIdentical(this, pValue1, pValue2)) {
       abstractionCandidates = ImmutableList.of();
@@ -275,7 +300,7 @@ final class SMGJoinValues {
         return Pair.of(true, true);
       }
 
-      SMGJoinValues jv = new SMGJoinValues(status, inputSMG1, inputSMG2, destSMG, mapping1, mapping2, ptEdge.getValue(), pointer2, ldiff, pIncreaseLevelAndRelabelTargetSpc, identicalInputSmg, level1, level2);
+      SMGJoinValues jv = new SMGJoinValues(status, inputSMG1, inputSMG2, destSMG, mapping1, mapping2, ptEdge.getValue(), pointer2, ldiff, pIncreaseLevelAndRelabelTargetSpc, identicalInputSmg, level1, level2, smgState1, smgState2);
 
       if(jv.isDefined()) {
 
@@ -320,7 +345,7 @@ final class SMGJoinValues {
 
     }
 
-    SMGJoinValues jv = new SMGJoinValues(status, inputSMG1, inputSMG2, destSMG, mapping1, mapping2, ptEdge.getValue(), pointer2, ldiff, pIncreaseLevelAndRelabelTargetSpc, identicalInputSmg, level1, level2);
+    SMGJoinValues jv = new SMGJoinValues(status, inputSMG1, inputSMG2, destSMG, mapping1, mapping2, ptEdge.getValue(), pointer2, ldiff, pIncreaseLevelAndRelabelTargetSpc, identicalInputSmg, level1, level2, smgState1, smgState2);
 
     Integer newAdressToDLS;
 

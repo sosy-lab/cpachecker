@@ -73,7 +73,7 @@ public class SMGJoinTargetObjectsTest {
     smg2.addValue(value2);
     smg2.addPointsToEdge(pt2);
 
-    SMGJoinTargetObjects jto = new SMGJoinTargetObjects(SMGJoinStatus.EQUAL, smg1, smg2, destSMG, mapping1, mapping2, value1, value2, 0,0, 0, false, false);
+    SMGJoinTargetObjects jto = new SMGJoinTargetObjects(SMGJoinStatus.EQUAL, smg1, smg2, destSMG, mapping1, mapping2, value1, value2, 0,0, 0, false, false, null, null);
     Assert.assertSame(jto.getMapping1().get(obj1), jto.getMapping2().get(obj2));
     //TODO investigate why they should not be the same, regions are immutable
     //Assert.assertNotSame(jto.getMapping1().get(obj1), obj1);
@@ -96,7 +96,7 @@ public class SMGJoinTargetObjectsTest {
     SMGJoinMatchObjects mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, obj1, obj2);
     Assert.assertTrue(mo.isDefined());
 
-    new SMGJoinTargetObjects(mo.getStatus(), smg1, smg2, destSMG, mapping1, mapping2, value1, value2, 0, 0, 0, false, false);
+    new SMGJoinTargetObjects(mo.getStatus(), smg1, smg2, destSMG, mapping1, mapping2, value1, value2, 0, 0, 0, false, false, null, null);
   }
 
   @Test
@@ -107,7 +107,7 @@ public class SMGJoinTargetObjectsTest {
 
     SMGJoinMatchObjects mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, obj1, smg2.getNullObject());
     Assert.assertFalse(mo.isDefined());
-    SMGJoinTargetObjects jto = new SMGJoinTargetObjects(SMGJoinStatus.EQUAL, smg1, smg2, destSMG, mapping1, mapping2, value1, smg2.getNullValue(), 0, 0, 0, false, false);
+    SMGJoinTargetObjects jto = new SMGJoinTargetObjects(SMGJoinStatus.EQUAL, smg1, smg2, destSMG, mapping1, mapping2, value1, smg2.getNullValue(), 0, 0, 0, false, false, null, null);
     Assert.assertFalse(jto.isDefined());
     Assert.assertTrue(jto.isRecoverable());
   }
@@ -126,7 +126,7 @@ public class SMGJoinTargetObjectsTest {
     smg2.addPointsToEdge(pt2null);
 
     SMGJoinTargetObjects jto = new SMGJoinTargetObjects(SMGJoinStatus.EQUAL, smg1, smg2, null, null,
-        null, value1, value2, 0, 0, 0, false, false);
+        null, value1, value2, 0, 0, 0, false, false, null, null);
 
     Assert.assertFalse(jto.isDefined());
     Assert.assertTrue(jto.isRecoverable());
@@ -146,7 +146,7 @@ public class SMGJoinTargetObjectsTest {
     SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(new SMG(smg1), new SMG(destSMG), new SMGNodeMapping(mapping1),
                                                       new SMGNodeMapping(mapping2), value1,
                                                       value2, false);
-    SMGJoinTargetObjects jto = new SMGJoinTargetObjects(SMGJoinStatus.EQUAL, smg1, smg2, destSMG, mapping1, mapping2, value1, value2, 0, 0, 0, false, false);
+    SMGJoinTargetObjects jto = new SMGJoinTargetObjects(SMGJoinStatus.EQUAL, smg1, smg2, destSMG, mapping1, mapping2, value1, value2, 0, 0, 0, false, false, null, null);
     Assert.assertTrue(jto.isDefined());
     Assert.assertEquals(SMGJoinStatus.EQUAL, jto.getStatus());
     Assert.assertSame(smg1, jto.getInputSMG1());
@@ -176,7 +176,7 @@ public class SMGJoinTargetObjectsTest {
     // SMGMapTargetAddress mta = new SMGMapTargetAddress(new SMG(smg1), new SMG(smg2), new SMG(destSMG),
     //                                                  new SMGNodeMapping(mapping1), new SMGNodeMapping(mapping2),
     //                                                  value1, value2);
-    SMGJoinTargetObjects jto = new SMGJoinTargetObjects(SMGJoinStatus.EQUAL, smg1, smg2, destSMG, mapping1, mapping2, value1, value2, 0, 0, 0, false, false);
+    SMGJoinTargetObjects jto = new SMGJoinTargetObjects(SMGJoinStatus.EQUAL, smg1, smg2, destSMG, mapping1, mapping2, value1, value2, 0, 0, 0, false, false, null, null);
     Assert.assertTrue(jto.isDefined());
     Assert.assertEquals(SMGJoinStatus.EQUAL, jto.getStatus());
     Assert.assertSame(smg1, jto.getInputSMG1());

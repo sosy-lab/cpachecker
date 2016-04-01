@@ -205,7 +205,7 @@ public class SMGJoinTest {
   public void simpleGlobalVarJoinTest() throws SMGInconsistentException {
     String varName = "variableName";
     addGlobalWithoutValueToBoth(varName);
-    SMGJoin join = new SMGJoin(smg1, smg2);
+    SMGJoin join = new SMGJoin(smg1, smg2, null, null);
     Assert.assertTrue(join.isDefined());
     Assert.assertEquals(join.getStatus(), SMGJoinStatus.EQUAL);
 
@@ -221,7 +221,7 @@ public class SMGJoinTest {
     smg2.addStackFrame(functionDeclaration);
     addLocalWithoutValueToBoth(varName);
 
-    SMGJoin join = new SMGJoin(smg1, smg2);
+    SMGJoin join = new SMGJoin(smg1, smg2, null, null);
     Assert.assertTrue(join.isDefined());
     Assert.assertEquals(join.getStatus(), SMGJoinStatus.EQUAL);
 
@@ -234,7 +234,7 @@ public class SMGJoinTest {
   public void globalVarWithValueJoinTest() throws SMGInconsistentException {
     String varName = "variableName";
     addGlobalWithValueToBoth(varName);
-    SMGJoin join = new SMGJoin(smg1, smg2);
+    SMGJoin join = new SMGJoin(smg1, smg2, null, null);
     Assert.assertTrue(join.isDefined());
     Assert.assertEquals(join.getStatus(), SMGJoinStatus.EQUAL);
 
@@ -255,7 +255,7 @@ public class SMGJoinTest {
     smg1.addStackFrame(functionDeclaration);
     smg2.addStackFrame(functionDeclaration);
     addLocalWithValueToBoth(varName);
-    SMGJoin join = new SMGJoin(smg1, smg2);
+    SMGJoin join = new SMGJoin(smg1, smg2, null, null);
     Assert.assertTrue(join.isDefined());
     Assert.assertEquals(join.getStatus(), SMGJoinStatus.EQUAL);
 
@@ -311,7 +311,7 @@ public class SMGJoinTest {
     Pair<SMGRegion, SMGRegion> c3 = addLocalWithoutValueToBoth("c", 4);
     addValueToBoth(c3, 0, 104, 4);
 
-    SMGJoin join = new SMGJoin(smg1, smg2);
+    SMGJoin join = new SMGJoin(smg1, smg2, null, null);
     Assert.assertTrue(join.isDefined());
     Assert.assertEquals(join.getStatus(), SMGJoinStatus.EQUAL);
   }
