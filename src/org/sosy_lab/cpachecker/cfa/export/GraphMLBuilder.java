@@ -35,12 +35,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -81,9 +81,15 @@ public final class GraphMLBuilder {
 
     appendDocHeader(pSB);
 
-    JOINER_ON_NEWLINE.appendTo(pSB, graphMLGenerator.nodes);
+    appendGroupHeader(pSB, MAIN_GRAPH);
+    JOINER_ON_NEWLINE.appendTo(pSB, graphMLGenerator.nodes.get(MAIN_GRAPH));
+    appendGroupFooter(pSB);
 
     for (FunctionEntryNode node : pCFA.getAllFunctionHeads()) {
+      appendGroupHeader(pSB, node.getFunctionName());
+      JOINER_ON_NEWLINE.appendTo(pSB, graphMLGenerator.nodes.get(node.getFunctionName()));
+      appendGroupFooter(pSB);
+
       JOINER_ON_NEWLINE.appendTo(pSB, graphMLGenerator.edges.get(node.getFunctionName()));
     }
 
@@ -104,6 +110,9 @@ public final class GraphMLBuilder {
     pSB.append("  <key attr.name=\"description\" attr.type=\"string\" for=\"node\" id=\"d1\"/>\n");
     pSB.append("  <key for=\"edge\" id=\"d2\" yfiles.type=\"edgegraphics\"/>\n");
     pSB.append("  <key attr.name=\"description\" attr.type=\"string\" for=\"edge\" id=\"d3\"/>\n");
+    pSB.append("  <key attr.name=\"url\" attr.type=\"string\" for=\"node\" id=\"d4\"/>\n");
+    pSB.append("  <key attr.name=\"description\" attr.type=\"string\" for=\"node\" id=\"d5\"/>\n");
+    pSB.append("  <key for=\"node\" id=\"d6\" yfiles.type=\"nodegraphics\"/>\n");
     pSB.append("  <key for=\"graphml\" id=\"d4\" yfiles.type=\"resources\"/>\n\n");
 
     pSB.append("  <graph edgedefault=\"directed\" id=\"G\">\n");
@@ -117,9 +126,54 @@ public final class GraphMLBuilder {
     pSB.append("</graphml>\n");
   }
 
+  private static void appendGroupHeader(final Appendable pSB, final String pFunctionName)
+      throws IOException {
+    pSB.append("    <node id=\"")
+        .append(pFunctionName)
+        .append(":\" yfiles.foldertype=\"group\">\n");
+    pSB.append("       <data key=\"d4\"/>\n");
+    pSB.append("       <data key=\"d5\"/>\n");
+    pSB.append("       <data key=\"d6\">\n");
+    pSB.append("         <y:ProxyAutoBoundsNode>\n");
+    pSB.append("           <y:Realizers active=\"0\">\n");
+    pSB.append("             <y:GroupNode>\n");
+    pSB.append("               <y:Fill color=\"#CDCDCD\" transparent=\"false\"/>\n");
+    pSB.append("               <y:BorderStyle color=\"#000000\" type=\"dashed\" width=\"1.0\"/>\n");
+    pSB.append(
+            "               <y:NodeLabel alignment=\"right\" autoSizePolicy=\"node_width\" "
+                + "backgroundColor=\"#EBEBEB\" borderDistance=\"0.0\" height=\"20.0\" "
+                + "modelName=\"internal\" width=\"150\" "
+                + "fontFamily=\"Dialog\" fontSize=\"15\" fontStyle=\"plain\" hasLineColor=\"false\" "
+                + "modelPosition=\"t\" textColor=\"#000000\" visible=\"true\" x=\"0.0\" y=\"0.0\">")
+        .append(pFunctionName)
+        .append("</y:NodeLabel>\n");
+    pSB.append("                <y:Shape type=\"roundrectangle\"/>\n");
+    pSB.append("                <y:State closed=\"false\"/>\n");
+    pSB.append("                <y:NodeBounds considerNodeLabelSize=\"true\"/>\n");
+    pSB.append(
+        "                <y:Insets bottom=\"15\" bottomF=\"15.0\" left=\"15\" leftF=\"15"
+            + ".0\" right=\"15\" rightF=\"15.0\" top=\"15\" topF=\"15.0\"/>\n");
+    pSB.append(
+        "                <y:BorderInsets bottom=\"0\" bottomF=\"0.0\" left=\"0\" leftF=\"0"
+            + ".0\" right=\"0\" rightF=\"0.0\" top=\"0\" topF=\"0.0\"/>\n");
+    pSB.append("             </y:GroupNode>\n");
+    pSB.append("           </y:Realizers>\n");
+    pSB.append("         </y:ProxyAutoBoundsNode>\n");
+    pSB.append("       </data>\n");
+    pSB.append("       <graph edgedefault=\"directed\" id=\"")
+        .append(pFunctionName)
+        .append("\">\n");
+  }
+
+  private static void appendGroupFooter(final Appendable pSB) throws IOException {
+    pSB.append("       </graph>\n");
+    pSB.append("     </node>\n\n");
+  }
+
   private static class GraphMLGenerator implements CFATraversal.CFAVisitor {
 
-    private final List<String> nodes = new ArrayList<>();
+    // nodes for each function
+    private final ListMultimap<String, String> nodes = ArrayListMultimap.create();
 
     // edges for each function
     private final ListMultimap<String, String> edges = ArrayListMultimap.create();
@@ -149,7 +203,13 @@ public final class GraphMLBuilder {
 
     @Override
     public TraversalProcess visitNode(final CFANode pNode) {
-      nodes.add(formatNode(pNode, loopHeads, formatNodeLabel));
+      List<String> graph;
+      if (pNode instanceof FunctionEntryNode || pNode instanceof FunctionExitNode) {
+        graph = nodes.get(MAIN_GRAPH);
+      } else {
+        graph = nodes.get(pNode.getFunctionName());
+      }
+      graph.add(formatNode(pNode, loopHeads, formatNodeLabel));
 
       return TraversalProcess.CONTINUE;
     }
