@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
@@ -81,6 +82,10 @@ public final class GraphMLBuilder {
     appendDocHeader(pSB);
 
     JOINER_ON_NEWLINE.appendTo(pSB, graphMLGenerator.nodes);
+
+    for (FunctionEntryNode node : pCFA.getAllFunctionHeads()) {
+      JOINER_ON_NEWLINE.appendTo(pSB, graphMLGenerator.edges.get(node.getFunctionName()));
+    }
 
     JOINER_ON_NEWLINE.appendTo(pSB, graphMLGenerator.edges.get(MAIN_GRAPH));
 
@@ -167,10 +172,10 @@ public final class GraphMLBuilder {
       if (pEdge instanceof FunctionSummaryEdge) {
         builder.append(
             "          <y:LineStyle color=\"#000000\" type=\"dotted\" width=\"1.0\"/>\n");
-        builder.append("          <y:Arrows source=\"none\" target=\"delta\"/>\n");
       } else {
         builder.append("          <y:LineStyle color=\"#000000\" type=\"line\" width=\"1.0\"/>\n");
       }
+      builder.append("          <y:Arrows source=\"none\" target=\"delta\"/>\n");
 
       builder
           .append("          <y:EdgeLabel alignment=\"center\" distance=\"2.0\" ")

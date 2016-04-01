@@ -47,9 +47,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -297,6 +295,7 @@ public class GraphMLBuilder2 {
       builder.append("      <data key=\"d2\">\n");
       builder.append("        <y:PolyLineEdge>\n");
       builder.append("          <y:LineStyle color=\"#000000\" type=\"line\" width=\"1.0\"/>\n");
+      builder.append("          <y:Arrows source=\"none\" target=\"delta\"/>\n");
       builder
           .append("          <y:EdgeLabel alignment=\"center\" distance=\"2.0\" ")
           .append("fontFamily=\"Dialog\" fontSize=\"12\" fontStyle=\"plain\" ")
