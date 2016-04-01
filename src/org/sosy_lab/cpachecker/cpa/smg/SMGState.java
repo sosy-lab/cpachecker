@@ -697,7 +697,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
           int level = reachedObjectSubSmg.getLevel();
           SMGTargetSpecifier tg = reachedObjectSubSmgPTEdge.getTargetSpecifier();
 
-          if(level != 0 || tg != SMGTargetSpecifier.ALL) {
+          if((level != 0 || tg != SMGTargetSpecifier.ALL) && newVal != 0) {
 
             SMGObject copyOfReachedObject;
 
@@ -759,7 +759,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
         int level = reachedObjectSubSmg.getLevel();
         SMGTargetSpecifier tg = reachedObjectSubSmgPTEdge.getTargetSpecifier();
 
-        if (level != 0 || tg != SMGTargetSpecifier.ALL) {
+        if ((level != 0 || tg != SMGTargetSpecifier.ALL) && newVal != 0) {
 
           SMGObject copyOfReachedObject;
 
@@ -815,7 +815,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
           SMGTargetSpecifier tg = reachedObjectSubSmgPTEdge.getTargetSpecifier();
 
           if ((!reached.contains(reachedObjectSubSmg))
-              && (level != 0 || tg != SMGTargetSpecifier.ALL)) {
+              && (level != 0 || tg != SMGTargetSpecifier.ALL) && subDlsValue != 0) {
             assert level > 0;
             reached.add(reachedObjectSubSmg);
             heap.setValidity(reachedObjectSubSmg, false);
@@ -860,7 +860,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
         SMGTargetSpecifier tg = reachedObjectSubSmgPTEdge.getTargetSpecifier();
 
         if ((!reached.contains(reachedObjectSubSmg))
-            && (level != 0 || tg != SMGTargetSpecifier.ALL)) {
+            && (level != 0 || tg != SMGTargetSpecifier.ALL) && subDlsValue != 0) {
           assert level > 0;
           reached.add(reachedObjectSubSmg);
           heap.setValidity(reachedObjectSubSmg, false);
@@ -1807,7 +1807,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * @throws SMGInconsistentException Join lead to inconsistent smg.
    */
   public void executeHeapAbstraction() throws SMGInconsistentException {
-    SMGAbstractionManager manager = new SMGAbstractionManager(heap);
+    SMGAbstractionManager manager = new SMGAbstractionManager(heap, true);
     manager.execute();
   }
 }

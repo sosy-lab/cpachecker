@@ -52,7 +52,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
   private final int seqLengthThreshold;
 
   public SMGDoublyLinkedListCandidateFinder() {
-    seqLengthThreshold = 3;
+    seqLengthThreshold = 1;
   }
 
   public SMGDoublyLinkedListCandidateFinder(int pSeqLengthThreshold) {
@@ -284,8 +284,6 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
             return;
           }
         }
-      } else {
-        return;
       }
     }
 

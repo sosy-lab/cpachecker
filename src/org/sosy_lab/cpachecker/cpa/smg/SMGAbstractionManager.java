@@ -34,9 +34,16 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedListFinder;
 public class SMGAbstractionManager {
   private CLangSMG smg;
   private List<SMGAbstractionCandidate> abstractionCandidates = new ArrayList<>();
+  private final boolean onlyDll;
 
   public SMGAbstractionManager(CLangSMG pSMG) {
     smg = pSMG;
+    onlyDll = false;
+  }
+
+  public SMGAbstractionManager(CLangSMG pSMG, boolean pOnlyDll) {
+    smg = pSMG;
+    onlyDll = pOnlyDll;
   }
 
   private boolean hasCandidates() throws SMGInconsistentException {
@@ -46,9 +53,11 @@ public class SMGAbstractionManager {
     Set<SMGAbstractionCandidate> candidates = dllCandidateFinder.traverse(smg);
     abstractionCandidates.addAll(candidates);
 
-    SMGSingleLinkedListFinder sllCandidateFinder =
-        new SMGSingleLinkedListFinder();
-    abstractionCandidates.addAll(sllCandidateFinder.traverse(smg));
+    if (!onlyDll) {
+      SMGSingleLinkedListFinder sllCandidateFinder =
+          new SMGSingleLinkedListFinder();
+      abstractionCandidates.addAll(sllCandidateFinder.traverse(smg));
+    }
 
     return (!abstractionCandidates.isEmpty());
   }

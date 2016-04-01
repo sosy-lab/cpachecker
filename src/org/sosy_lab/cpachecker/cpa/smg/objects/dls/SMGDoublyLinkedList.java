@@ -193,4 +193,9 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
   public SMGObject copy(int level) {
     return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), getMinimumLength(), level);
   }
+
+  @Override
+  public boolean isAbstract() {
+    return true;
+  }
 }

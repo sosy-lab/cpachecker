@@ -159,6 +159,10 @@ final public class SMGJoinSubSMGsForAbstraction {
         nonSharedValuesFromSMG2.add(entry.getValue());
       }
     }
+
+    // Zero is not a non shared value //TODO Investigate why it is in range of mapping
+    nonSharedValuesFromSMG1.remove(0);
+    nonSharedValuesFromSMG2.remove(0);
   }
 
   public boolean isDefined() {
