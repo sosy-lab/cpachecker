@@ -23,13 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Iterables.transform;
 
-import java.util.List;
-import java.util.Objects;
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 
-import javax.annotation.Nullable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -37,8 +38,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclarationVisitor;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
+import java.io.Serializable;
+import java.util.List;
+import java.util.Objects;
+
+import javax.annotation.Nullable;
 
 public final class CEnumType implements CComplexType {
 
@@ -123,7 +127,14 @@ public final class CEnumType implements CComplexType {
            "enum " + name;
   }
 
-  public static final class CEnumerator extends AbstractSimpleDeclaration implements CSimpleDeclaration {
+  @SuppressFBWarnings(
+    value = "SE_NO_SUITABLE_CONSTRUCTOR",
+    justification = "handled by serialization proxy"
+  )
+  public static final class CEnumerator extends AbstractSimpleDeclaration
+      implements CSimpleDeclaration, Serializable {
+
+    private static final long serialVersionUID = -2526725372840523651L;
 
     private final @Nullable Long  value;
     private CEnumType             enumType;
@@ -220,6 +231,31 @@ public final class CEnumType implements CComplexType {
       return pV.visit(this);
     }
 
+    private Object writeReplace() {
+      return new SerializationProxy(this);
+    }
+
+    private static final class SerializationProxy implements Serializable {
+
+      private static final long serialVersionUID = 3895126689420077689L;
+      private final FileLocation fileLocation;
+      private final @Nullable Long value;
+      private final CEnumType enumType;
+      private final String qualifiedName;
+
+      private SerializationProxy(CEnumerator enumerator) {
+        fileLocation = enumerator.getFileLocation();
+        value = enumerator.value;
+        enumType = enumerator.enumType;
+        qualifiedName = enumerator.qualifiedName;
+      }
+
+      private Object readResolve() {
+        CEnumerator result = new CEnumerator(fileLocation, qualifiedName, qualifiedName, value);
+        result.setEnum(enumType);
+        return result;
+      }
+    }
   }
 
   @Override

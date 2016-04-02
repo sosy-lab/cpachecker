@@ -23,14 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import static com.google.common.base.Preconditions.*;
-
-import java.util.List;
-import java.util.Objects;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.Iterables;
 
-public class FileLocation {
+import java.io.Serializable;
+import java.util.List;
+import java.util.Objects;
+
+public class FileLocation implements Serializable {
+
+  private static final long serialVersionUID = 6652099907084949014L;
 
   private final int endingLine;
   private final String fileName;
@@ -56,19 +60,25 @@ public class FileLocation {
     startingLineInOrigin = pStartingLineInOrigin;
   }
 
-  public static final FileLocation DUMMY = new FileLocation(0, "<none>", 0, 0, 0) {
-    @Override
-    public String toString() {
-      return "none";
-    }
-  };
+  public static final FileLocation DUMMY =
+      new FileLocation(0, "<none>", 0, 0, 0) {
+        private static final long serialVersionUID = -3012034075570811723L;
 
-  public static final FileLocation MULTIPLE_FILES = new FileLocation(0, "<multiple files>", 0, 0, 0) {
-    @Override
-    public String toString() {
-      return getFileName();
-    }
-  };
+        @Override
+        public String toString() {
+          return "none";
+        }
+      };
+
+  public static final FileLocation MULTIPLE_FILES =
+      new FileLocation(0, "<multiple files>", 0, 0, 0) {
+        private static final long serialVersionUID = -1725179775900132985L;
+
+        @Override
+        public String toString() {
+          return getFileName();
+        }
+      };
 
   public static FileLocation merge(List<FileLocation> locations) {
     checkArgument(!Iterables.isEmpty(locations));
