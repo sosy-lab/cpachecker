@@ -23,11 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
-import java.util.Set;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -38,20 +40,23 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
+import java.util.Set;
 
 public class SMGJoinTest {
   static private final CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG_INT);
   static private final CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(FileLocation.DUMMY, functionType, "foo", ImmutableList.<CParameterDeclaration>of());
   static private final CFunctionDeclaration functionDeclaration2 = new CFunctionDeclaration(FileLocation.DUMMY, functionType, "bar", ImmutableList.<CParameterDeclaration>of());
   static private final CFunctionDeclaration functionDeclaration3 = new CFunctionDeclaration(FileLocation.DUMMY, functionType, "main", ImmutableList.<CParameterDeclaration>of());
+
+  SMGState dummyState = new SMGState(TestLogManager.getInstance(), MachineModel.LINUX32, false, false,
+      null, 4, false);
 
   private CLangSMG smg1;
   private CLangSMG smg2;
@@ -234,7 +239,7 @@ public class SMGJoinTest {
   public void globalVarWithValueJoinTest() throws SMGInconsistentException {
     String varName = "variableName";
     addGlobalWithValueToBoth(varName);
-    SMGJoin join = new SMGJoin(smg1, smg2, null, null);
+    SMGJoin join = new SMGJoin(smg1, smg2, dummyState, dummyState);
     Assert.assertTrue(join.isDefined());
     Assert.assertEquals(join.getStatus(), SMGJoinStatus.EQUAL);
 
@@ -255,7 +260,7 @@ public class SMGJoinTest {
     smg1.addStackFrame(functionDeclaration);
     smg2.addStackFrame(functionDeclaration);
     addLocalWithValueToBoth(varName);
-    SMGJoin join = new SMGJoin(smg1, smg2, null, null);
+    SMGJoin join = new SMGJoin(smg1, smg2, dummyState, dummyState);
     Assert.assertTrue(join.isDefined());
     Assert.assertEquals(join.getStatus(), SMGJoinStatus.EQUAL);
 
