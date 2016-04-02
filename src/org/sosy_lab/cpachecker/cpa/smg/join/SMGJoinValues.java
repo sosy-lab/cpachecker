@@ -23,9 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -43,8 +42,9 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGGenericAbstractionCandidate;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 final class SMGJoinValues {
   private SMGJoinStatus status;
@@ -108,7 +108,7 @@ final class SMGJoinValues {
 
           if (v1isLessOrEqualV2 != SMGJoinStatus.INCOMPARABLE) {
             pJV.status = SMGJoinStatus.updateStatus(pJV.status, v1isLessOrEqualV2);
-          } else if (v1isLessOrEqualV2 == SMGJoinStatus.RIGHT_ENTAIL) {
+          } else if (v2isLessOrEqualV1 == SMGJoinStatus.RIGHT_ENTAIL) {
             pJV.status = SMGJoinStatus.updateStatus(pJV.status, SMGJoinStatus.LEFT_ENTAIL);
           } else {
             pJV.status = SMGJoinStatus.updateStatus(pJV.status, v2isLessOrEqualV1);
