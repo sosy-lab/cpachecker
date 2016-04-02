@@ -23,8 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.PropertyChecker;
 
-import java.util.Collection;
+import com.google.common.base.Preconditions;
 
+import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -48,21 +49,20 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.pcc.propertychecker.PropertyCheckerBuilder;
 
-import com.google.common.base.Preconditions;
+import java.util.Collection;
 
-@Options
+@Options(prefix="cpa.propertychecker")
 public class PropertyCheckerCPA extends AbstractSingleWrapperCPA implements ProofChecker {
 
   @Option(secure=true,
-      name = "cpa.propertychecker.className",
       description = "Qualified name for class which checks that the computed abstraction adheres to the desired property.")
-  private String checkerClass = "org.sosy_lab.cpachecker.pcc.propertychecker.DefaultPropertyChecker";
+  @ClassOption(packagePrefix="org.sosy_lab.cpachecker.pcc.propertychecker")
+  private Class<? extends PropertyChecker> className = org.sosy_lab.cpachecker.pcc.propertychecker.DefaultPropertyChecker.class;
   @Option(secure=true,
-      name = "cpa.propertychecker.parameters",
       description = "List of parameters for constructor of propertychecker.className. Parameter values are " +
           "specified in the order the parameters are defined in the respective constructor. Every parameter value is finished " +
           "with \",\". The empty string represents an empty parameter list.")
-  private String checkerParamList = "";
+  private String parameters = "";
 
   private final PropertyChecker propChecker;
   private final ProofChecker wrappedProofChecker;
@@ -71,7 +71,7 @@ public class PropertyCheckerCPA extends AbstractSingleWrapperCPA implements Proo
       throws InvalidConfigurationException {
     super(pCpa);
     pConfig.inject(this);
-    propChecker = PropertyCheckerBuilder.buildPropertyChecker(checkerClass, checkerParamList);
+    propChecker = PropertyCheckerBuilder.buildPropertyChecker(className, parameters);
     if (pCpa instanceof ProofChecker) {
       wrappedProofChecker = (ProofChecker) pCpa;
     } else {
