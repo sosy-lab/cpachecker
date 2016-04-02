@@ -402,7 +402,8 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
             && !compositeType2.getMembers().isEmpty()
             && compositeType2.getMembers().get(0).getName().equals(
             getUnitedFieldBaseName(0))) {
-          for (CCompositeTypeMemberDeclaration ignored : compositeType2.getMembers()) {
+          for (@SuppressWarnings("unused") CCompositeTypeMemberDeclaration ignored
+              : compositeType2.getMembers()) {
             membersBuilder.add(new CCompositeTypeMemberDeclaration(compositeType2,
                 getUnitedFieldBaseName(currentFieldIndex)));
             currentFieldIndex++;

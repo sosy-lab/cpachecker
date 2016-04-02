@@ -23,14 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
-import java.util.BitSet;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import com.google.common.annotations.VisibleForTesting;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -44,7 +37,14 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
-import com.google.common.annotations.VisibleForTesting;
+import java.util.BitSet;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 public class SMG {
   private Set<SMGObject> objects = new HashSet<>();
@@ -609,7 +609,7 @@ public class SMG {
   }
 
   private static class ExternalObjectFlag {
-    boolean external;
+    private final boolean external;
 
     public ExternalObjectFlag(boolean pExternal) {
       external = pExternal;
@@ -617,10 +617,6 @@ public class SMG {
 
     public boolean isExternal() {
       return external;
-    }
-
-    public void setExternal(boolean pExternal) {
-      external = pExternal;
     }
   }
 }

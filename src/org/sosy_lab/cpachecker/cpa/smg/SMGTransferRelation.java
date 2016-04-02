@@ -25,19 +25,14 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.IOException;
-import java.math.BigInteger;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -126,14 +121,19 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.IOException;
+import java.math.BigInteger;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
 
 
 @Options(prefix = "cpa.smg")
@@ -397,8 +397,8 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       return expressionEvaluator.evaluateAddress(pState, pCfaEdge, pRvalue);
     }
 
-    public final SMGAddressValueAndStateList evaluateExternalAllocation(CFunctionCallExpression pFunctionCall,
-        SMGState pState, CFAEdge pCFAEdge) throws SMGInconsistentException {
+    public final SMGAddressValueAndStateList evaluateExternalAllocation(
+        CFunctionCallExpression pFunctionCall, SMGState pState) throws SMGInconsistentException {
       SMGState currentState = pState;
 
       String functionName = pFunctionCall.getFunctionNameExpression().toASTString();
@@ -1298,7 +1298,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
           newStates = builtins.evaluateFree(cFCExpression, newState, pCfaEdge);
         }
         if (builtins.isExternalAllocationFunction(functionName)) {
-          newStates = builtins.evaluateExternalAllocation(cFCExpression, newState, pCfaEdge).asSMGStateList();
+          newStates = builtins.evaluateExternalAllocation(cFCExpression, newState).asSMGStateList();
         }
 
         switch (functionName) {
@@ -2239,8 +2239,8 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
             return configAllocEdge;
           }
           if (builtins.isExternalAllocationFunction(functionName)) {
-            SMGAddressValueAndStateList extAllocEdge = builtins.evaluateExternalAllocation
-                (pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
+            SMGAddressValueAndStateList extAllocEdge = builtins.evaluateExternalAllocation(
+                pIastFunctionCallExpression, getInitialSmgState());
             return extAllocEdge;
           }
           switch (functionName) {
