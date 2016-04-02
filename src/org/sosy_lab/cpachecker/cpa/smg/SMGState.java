@@ -23,17 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -72,10 +65,17 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.refinement.ForgetfulState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 public class SMGState implements AbstractQueryableState, LatticeAbstractState<SMGState>, ForgetfulState<SMGStateInformation> {
 
@@ -1219,6 +1219,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
           s1.pruneUnreachable();
           s2.pruneUnreachable();
+
           return s1.heap.hasMemoryLeaks() == s2.heap.hasMemoryLeaks();
         } else {
           return result;
