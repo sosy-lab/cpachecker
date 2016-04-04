@@ -193,12 +193,19 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
     Map<Pair<Integer, Integer>, SMGDoublyLinkedListCandidate> objectCandidates = candidates.get(nextObject);
     Integer nfo = pPrevCandidate.getNfo();
     Integer pfo = pPrevCandidate.getPfo();
+    Integer hfo = pPrevCandidate.getHfo();
 
-    if (! objectCandidates.containsKey(Pair.of(nfo, pfo))) {
-      return;
+    SMGDoublyLinkedListCandidate candidate;
+
+    if (!objectCandidates.containsKey(Pair.of(nfo, pfo))) {
+      /* candidate not doubly linked with next object,
+       * last object in sequence.
+       */
+      candidate = new SMGDoublyLinkedListCandidate(nextObject, hfo, pfo, nfo);
+      candidateLength.put(candidate, 0);
+    } else {
+      candidate = objectCandidates.get(Pair.of(nfo, pfo));
     }
-
-    SMGDoublyLinkedListCandidate candidate = objectCandidates.get(Pair.of(nfo, pfo));
 
     // Second, find out if the subsmgs are mergeable
     SMGJoinSubSMGsForAbstraction join = new SMGJoinSubSMGsForAbstraction(new CLangSMG(smg), startObject, nextObject, candidate, pSmgState);
