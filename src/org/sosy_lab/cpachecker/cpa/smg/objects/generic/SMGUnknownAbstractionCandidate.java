@@ -32,11 +32,6 @@ public class SMGUnknownAbstractionCandidate implements SMGGenericAbstractionCand
   private SMGUnknownAbstractionCandidate() {}
 
   @Override
-  public int compareTo(SMGGenericAbstractionCandidate other) {
-    return getScore() - other.getScore();
-  }
-
-  @Override
   public int getScore() {
     return 0;
   }

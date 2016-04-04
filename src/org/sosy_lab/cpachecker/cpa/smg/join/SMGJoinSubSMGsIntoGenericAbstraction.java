@@ -23,12 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
@@ -46,11 +45,12 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGEdgeHasValueTemplateWi
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGEdgePointsToTemplate;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGObjectTemplate;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 @SuppressWarnings("unused")
 public class SMGJoinSubSMGsIntoGenericAbstraction {
@@ -369,12 +369,15 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
         FluentIterable.from(pointerToRegionTemplate)
             .uniqueIndex(new MapPointerEdgeToOffsetTemplate());
 
-    for(int offset : pointerToRegionTemplateMap.keySet()) {
+    for(Entry<Integer, SMGEdgePointsToTemplate> ptEntry : pointerToRegionTemplateMap.entrySet()) {
+      int offset = ptEntry.getKey();
+      SMGEdgePointsToTemplate pointerTemplateEdge = ptEntry.getValue();
+
       if(!pointerToRegionMap.containsKey(offset)) {
         return false;
       }
 
-      int pointerTemplate = pointerToRegionTemplateMap.get(offset).getAbstractValue();
+      int pointerTemplate = pointerTemplateEdge.getAbstractValue();
       int pointer = pointerToRegionMap.get(offset).getValue();
 
       if (pTemplateToInputSmgMapping.contains(pointerTemplate)) {
@@ -383,7 +386,7 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
         }
       } else {
         pTemplateToInputSmgMapping.put(pointerTemplate, pointer);
-        if(pMatStep.getAbstractPointers().contains(pointerToRegionTemplateMap.get(offset))) {
+        if(pMatStep.getAbstractPointers().contains(pointerTemplateEdge)) {
           pToBeMatchedLater.add(new SMGNodeTemplateAndNode(pointerTemplate, pointer));
         }
       }
@@ -409,11 +412,15 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
         FluentIterable.from(fieldsOfTemplate.getFieldTemplateContainingValue())
             .uniqueIndex(new MapHasValueEdgeToOffsetTemplateCV());
 
-    for (int offset : fieldsOfRegionMap.keySet()) {
+    for (Entry<Integer, SMGEdgeHasValue> hveEntry : fieldsOfRegionMap.entrySet()) {
+
+      int offset = hveEntry.getKey();
+      SMGEdgeHasValue hve = hveEntry.getValue();
+
       if (fieldsOfRegionTemplateMap.containsKey(offset)) {
 
         int pointerTemplate = fieldsOfRegionTemplateMap.get(offset).getAbstractValue();
-        int pointer = fieldsOfRegionMap.get(offset).getValue();
+        int pointer = hve.getValue();
 
         if (pTemplateToInputSmgMapping.contains(pointerTemplate)) {
           if (pTemplateToInputSmgMapping.get(pointerTemplate) != pointer) {
@@ -428,8 +435,8 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
 
       } else if (fieldsOfRegionTemplateCVMap.containsKey(offset)) {
 
-        int value = fieldsOfRegionMap.get(offset).getValue();
-        int valueInTemplate = fieldsOfRegionMap.get(offset).getValue();
+        int value = hve.getValue();
+        int valueInTemplate = fieldsOfRegionTemplateCVMap.get(offset).getValue();
 
         if (value != valueInTemplate) {
           return false;
@@ -563,12 +570,15 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
     Map<Integer, SMGEdgeHasValueTemplate> fieldOffsetTemplateMap =
         FluentIterable.from(fieldsTemplate).uniqueIndex(new MapHasValueEdgeToOffsetTemplate());
 
-    for(int offset : fieldOffsetTemplateMap.keySet()) {
+    for(Entry<Integer, SMGEdgeHasValueTemplate> hveTmpEntry : fieldOffsetTemplateMap.entrySet()) {
+
+      int offset = hveTmpEntry.getKey();
+      SMGEdgeHasValueTemplate pointerEdgeTemplate = hveTmpEntry.getValue();
+
       if(!fieldOffsetMap.containsKey(offset)) {
         return false;
       }
 
-      SMGEdgeHasValueTemplate pointerEdgeTemplate = fieldOffsetTemplateMap.get(offset);
       SMGEdgeHasValue pointerEdge = fieldOffsetMap.get(offset);
       SMGObjectTemplate targetTemplate = pointerEdgeTemplate.getObjectTemplate();
       SMGObject target = pointerEdge.getObject();

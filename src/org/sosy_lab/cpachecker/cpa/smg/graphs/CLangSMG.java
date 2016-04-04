@@ -738,4 +738,19 @@ public class CLangSMG extends SMG {
 
     return edgesToForget.iterator().next().getType();
   }
+
+  @Override
+  public boolean equals(Object pObj) {
+    /*
+     * A Clang Smg is equal to a CLang smg
+     * iff their super classes are equal to another.
+     */
+
+    return super.equals(pObj);
+  }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
 }
