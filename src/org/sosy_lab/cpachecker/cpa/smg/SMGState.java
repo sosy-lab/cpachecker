@@ -152,7 +152,13 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     id = id_counter.getAndIncrement();
     memoryErrors = pTargetMemoryErrors;
     unknownOnUndefined = pUnknownOnUndefined;
-    this.runtimeCheckLevel = pSMGRuntimeCheck;
+
+    if(pSMGRuntimeCheck == null) {
+      runtimeCheckLevel = SMGRuntimeCheck.NONE;
+    } else {
+      this.runtimeCheckLevel = pSMGRuntimeCheck;
+    }
+
     invalidFree = false;
     invalidRead = false;
     invalidWrite = false;

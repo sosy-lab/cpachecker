@@ -23,18 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import java.util.Set;
+import com.google.common.collect.Iterables;
 
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
-import com.google.common.collect.Iterables;
+import java.util.Set;
 
 
 public class SMGAbstractionManagerTest {
@@ -74,7 +75,8 @@ public class SMGAbstractionManagerTest {
 
   @Test
   public void testExecute() throws SMGInconsistentException {
-    SMGAbstractionManager manager = new SMGAbstractionManager(smg, null);
+    SMGState dummyState = new SMGState(TestLogManager.getInstance(), MachineModel.LINUX32, false, false, null, 4, false);
+    SMGAbstractionManager manager = new SMGAbstractionManager(smg, dummyState);
     manager.execute();
 
     SMGRegion globalVar = smg.getObjectForVisibleVariable("pointer");
