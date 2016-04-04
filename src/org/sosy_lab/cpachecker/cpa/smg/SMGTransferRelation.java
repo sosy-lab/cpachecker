@@ -79,7 +79,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -892,7 +891,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       plotWhenConfigured(SMGExportLevel.EVERY, null, smg, cfaEdge.getDescription());
     }
 
-    if(enableHeapAbstraction && cfaEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
+    if(enableHeapAbstraction && cfaEdge.getPredecessor().isLoopStart()) {
       for(SMGState successor : successors) {
         successor.executeHeapAbstraction();
       }
