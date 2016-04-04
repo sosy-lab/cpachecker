@@ -23,13 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedListCandidateFinder;
 import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedListFinder;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 public class SMGAbstractionManager {
   private final CLangSMG smg;
@@ -83,6 +83,9 @@ public class SMGAbstractionManager {
       SMGAbstractionCandidate best = getBestCandidate();
       best.execute(smg, smgState);
       invalidateCandidates();
+
+      // remove garbage created by abstraction
+      smgState.pruneUnreachable();
     }
   }
 
