@@ -1083,6 +1083,9 @@ public class TigerAlgorithm
 
   private void initializeReachedSet(ARGCPA pArgCPA) {
     // Create a new set 'reached' using the responsible factory.
+    if (reachedSet != null) {
+      reachedSet.clear();
+    }
     reachedSet = reachedSetFactory.create();
 
     AbstractState initialState = pArgCPA.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
