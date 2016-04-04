@@ -553,40 +553,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     heap.mergeValues(nextEdge.getValue(), firstPointer);
     heap.mergeValues(prevEdge.getValue(), lastPointer);
 
-    /*
-
-    heap.removePointsToEdge(nextPointerEdge.getValue());
-    heap.removePointsToEdge(prevPointerEdge.getValue());
-    heap.removeValue(nextPointerEdge.getValue());
-    heap.removeValue(prevPointerEdge.getValue());
-
-    SMGEdgePointsTo newNextEdge;
-    SMGEdgePointsTo newPrevEdge;
-
-    if (prevPointerEdge.getValue() == nextPointerEdge.getValue()) {
-      newNextEdge = new SMGEdgePointsTo(firstPointer, nextPointerEdge.getObject(),
-          nextPointerEdge.getOffset(), nextPointerEdge.getTargetSpecifier());
-      newPrevEdge = newNextEdge;
-
-      for (SMGEdgeHasValue hve : heap.getHVEdges(SMGEdgeHasValueFilter.valueFilter(lastPointer))) {
-        heap.removeHasValueEdge(hve);
-        heap.addHasValueEdge(
-            new SMGEdgeHasValue(hve.getType(), hve.getOffset(), hve.getObject(), firstPointer));
-      }
-
-      heap.removeValue(lastPointer);
-    } else {
-      newNextEdge = new SMGEdgePointsTo(firstPointer, nextPointerEdge.getObject(),
-          nextPointerEdge.getOffset(), nextPointerEdge.getTargetSpecifier());
-      newPrevEdge = new SMGEdgePointsTo(lastPointer, prevPointerEdge.getObject(),
-          prevPointerEdge.getOffset(), prevPointerEdge.getTargetSpecifier());
-    }
-
-    heap.addPointsToEdge(newNextEdge);
-    heap.addPointsToEdge(newPrevEdge);
-
-    */
-
     if(firstPointer == pPointerToAbstractObject.getValue()) {
       return SMGAddressValueAndState.of(this, SMGKnownAddVal.valueOf(nextPointerEdge.getValue(), nextPointerEdge.getObject(), nextPointerEdge.getOffset()));
     } else if(lastPointer == pPointerToAbstractObject.getValue()) {
@@ -706,7 +672,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
           int level = reachedObjectSubSmg.getLevel();
           SMGTargetSpecifier tg = reachedObjectSubSmgPTEdge.getTargetSpecifier();
 
-          if((level != 0 || tg != SMGTargetSpecifier.ALL) && newVal != 0) {
+          if((level != 0 || tg == SMGTargetSpecifier.ALL) && newVal != 0) {
 
             SMGObject copyOfReachedObject;
 
@@ -726,7 +692,16 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
               newVal = SMGValueFactory.getNewValue();
               heap.addValue(newVal);
               newValueMap.put(subDlsValue, newVal);
-              SMGEdgePointsTo newPtEdge = new SMGEdgePointsTo(newVal, copyOfReachedObject, reachedObjectSubSmgPTEdge.getOffset(), reachedObjectSubSmgPTEdge.getTargetSpecifier());
+
+              SMGTargetSpecifier newTg;
+
+              if (copyOfReachedObject instanceof SMGRegion) {
+                newTg = SMGTargetSpecifier.REGION;
+              } else {
+                newTg = reachedObjectSubSmgPTEdge.getTargetSpecifier();
+              }
+
+              SMGEdgePointsTo newPtEdge = new SMGEdgePointsTo(newVal, copyOfReachedObject, reachedObjectSubSmgPTEdge.getOffset(), newTg);
               heap.addPointsToEdge(newPtEdge);
             }
           }
@@ -768,7 +743,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
         int level = reachedObjectSubSmg.getLevel();
         SMGTargetSpecifier tg = reachedObjectSubSmgPTEdge.getTargetSpecifier();
 
-        if ((level != 0 || tg != SMGTargetSpecifier.ALL) && newVal != 0) {
+        if ((level != 0 || tg == SMGTargetSpecifier.ALL) && newVal != 0) {
 
           SMGObject copyOfReachedObject;
 
@@ -788,9 +763,18 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
             newVal = SMGValueFactory.getNewValue();
             heap.addValue(newVal);
             newValueMap.put(subDlsValue, newVal);
+
+            SMGTargetSpecifier newTg;
+
+            if (copyOfReachedObject instanceof SMGRegion) {
+              newTg = SMGTargetSpecifier.REGION;
+            } else {
+              newTg = reachedObjectSubSmgPTEdge.getTargetSpecifier();
+            }
+
             SMGEdgePointsTo newPtEdge = new SMGEdgePointsTo(newVal, copyOfReachedObject,
                 reachedObjectSubSmgPTEdge.getOffset(),
-                reachedObjectSubSmgPTEdge.getTargetSpecifier());
+                newTg);
             heap.addPointsToEdge(newPtEdge);
           }
         }
@@ -824,7 +808,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
           SMGTargetSpecifier tg = reachedObjectSubSmgPTEdge.getTargetSpecifier();
 
           if ((!reached.contains(reachedObjectSubSmg))
-              && (level != 0 || tg != SMGTargetSpecifier.ALL) && subDlsValue != 0) {
+              && (level != 0 || tg == SMGTargetSpecifier.ALL) && subDlsValue != 0) {
             assert level > 0;
             reached.add(reachedObjectSubSmg);
             heap.setValidity(reachedObjectSubSmg, false);
@@ -869,7 +853,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
         SMGTargetSpecifier tg = reachedObjectSubSmgPTEdge.getTargetSpecifier();
 
         if ((!reached.contains(reachedObjectSubSmg))
-            && (level != 0 || tg != SMGTargetSpecifier.ALL) && subDlsValue != 0) {
+            && (level != 0 || tg == SMGTargetSpecifier.ALL) && subDlsValue != 0) {
           assert level > 0;
           reached.add(reachedObjectSubSmg);
           heap.setValidity(reachedObjectSubSmg, false);
