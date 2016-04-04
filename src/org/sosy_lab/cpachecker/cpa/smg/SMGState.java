@@ -1878,4 +1878,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     // Both values represent top
     return SMGJoinStatus.EQUAL;
   }
+
+  SMGEdgePointsTo getPointsToEdge(int pSymbolicValue) {
+    return heap.getPointer(pSymbolicValue);
+  }
 }

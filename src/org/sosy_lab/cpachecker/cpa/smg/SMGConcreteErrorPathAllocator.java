@@ -23,15 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Set;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -65,13 +58,19 @@ import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.core.counterexample.MemoryName;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
-import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Set;
 
 public class SMGConcreteErrorPathAllocator {
 
@@ -328,19 +327,13 @@ public class SMGConcreteErrorPathAllocator {
       int symbolicValue = hvEdge.getValue();
       BigInteger value = null;
 
-      if(symbolicValue == 0) {
+      if (symbolicValue == 0) {
         value = BigInteger.ZERO;
       } else if (pSMGState.isPointer(symbolicValue)) {
-        SMGAddressValue pointer;
-        try {
-          pointer = pSMGState.getPointerFromValue(symbolicValue).asAddressValueAndStateList().get(0).getObject();
-        } catch (SMGInconsistentException e) {
-          throw new AssertionError();
-        }
-
+        SMGEdgePointsTo pointer = pSMGState.getPointsToEdge(symbolicValue);
 
         //TODO ugly, use common representation
-        value = pAdresses.calculateAddress(pointer.getObject(), pointer.getOffset().getAsInt(), pSMGState).getAddressValue();
+        value = pAdresses.calculateAddress(pointer.getObject(), pointer.getOffset(), pSMGState).getAddressValue();
       } else if (pSMGState.isExplicit(symbolicValue)) {
         value = BigInteger.valueOf(pSMGState.getExplicit(symbolicValue).getAsLong());
       } else {
