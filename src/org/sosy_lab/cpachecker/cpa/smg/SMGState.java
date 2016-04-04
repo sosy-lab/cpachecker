@@ -486,7 +486,10 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       SMGObject obj = address.getObject();
 
       if (obj instanceof SMGAbstractObject) {
-        return handleMaterilisation(addressValue, ((SMGAbstractObject) obj));
+        SMGAddressValueAndStateList result =
+            handleMaterilisation(addressValue, ((SMGAbstractObject) obj));
+        performConsistencyCheck(SMGRuntimeCheck.HALF);
+        return result;
       }
 
       return SMGAddressValueAndStateList.of(SMGAddressValueAndState.of(this, address));
@@ -1825,6 +1828,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   public void executeHeapAbstraction() throws SMGInconsistentException {
     SMGAbstractionManager manager = new SMGAbstractionManager(heap, true, this);
     manager.execute();
+    performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
 
   /**
