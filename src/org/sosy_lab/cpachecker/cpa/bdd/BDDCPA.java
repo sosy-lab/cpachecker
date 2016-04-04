@@ -164,6 +164,8 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
         return "BDDCPA";
       }
     });
+
+    manager.collectStatistics(statsCollection);
   }
 
   @Override

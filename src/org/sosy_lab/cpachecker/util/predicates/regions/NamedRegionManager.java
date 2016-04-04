@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -35,11 +36,16 @@ import java.util.Set;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.PredicateOrderingStrategy;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
+import org.sosy_lab.cpachecker.util.statistics.StatCpuTime;
+import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.StatCpuTimer;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Function;
 import com.google.common.collect.BiMap;
@@ -49,11 +55,36 @@ import com.google.common.collect.HashBiMap;
  * This class provides a RegionManager which additionally keeps track of a name
  * for each predicate, and can provide a nice String representation of a BDD.
  */
-public class NamedRegionManager implements RegionManager {
+public class NamedRegionManager implements RegionManager, StatisticsProvider {
+
+  private class RegionManagerStatistics extends AbstractStatistics {
+
+    StatCpuTime makeAndTime = new StatCpuTime();
+    StatCpuTime makeOrTime = new StatCpuTime();
+    StatCpuTime makeNotTime = new StatCpuTime();
+    StatCpuTime makeEqualTime = new StatCpuTime();
+    StatCpuTime makeUnequalTime = new StatCpuTime();
+    StatCpuTime makeExistsTime = new StatCpuTime();
+    StatCpuTime makeIteTime = new StatCpuTime();
+
+    public RegionManagerStatistics() {
+      super();
+      addKeyValueStatistic("Time for And", makeAndTime);
+      addKeyValueStatistic("Time for Or", makeOrTime);
+      addKeyValueStatistic("Time for Not", makeNotTime);
+      addKeyValueStatistic("Time for Equal", makeEqualTime);
+      addKeyValueStatistic("Time for Unequal", makeUnequalTime);
+      addKeyValueStatistic("Time for Exists", makeExistsTime);
+      addKeyValueStatistic("Time for ITE", makeIteTime);
+    }
+
+  }
 
   private static final String ANONYMOUS_PREDICATE = "__anon_pred";
   private final RegionManager delegate;
   private final BiMap<String, Region> regionMap = HashBiMap.create();
+  private RegionManagerStatistics stats = new RegionManagerStatistics();
+
   /**
    * counter needed for nodes in dot-output
    */
@@ -214,32 +245,44 @@ public class NamedRegionManager implements RegionManager {
 
   @Override
   public Region makeNot(Region pF) {
-    return delegate.makeNot(pF);
+    try (StatCpuTimer t = stats.makeNotTime.start()){
+      return delegate.makeNot(pF);
+    }
   }
 
   @Override
   public Region makeAnd(Region pF1, Region pF2) {
-    return delegate.makeAnd(pF1, pF2);
+    try (StatCpuTimer t = stats.makeAndTime.start()){
+      return delegate.makeAnd(pF1, pF2);
+    }
   }
 
   @Override
   public Region makeOr(Region pF1, Region pF2) {
-    return delegate.makeOr(pF1, pF2);
+    try (StatCpuTimer t = stats.makeOrTime.start()){
+      return delegate.makeOr(pF1, pF2);
+    }
   }
 
   @Override
   public Region makeEqual(Region pF1, Region pF2) {
-    return delegate.makeEqual(pF1, pF2);
+    try (StatCpuTimer t = stats.makeEqualTime.start()){
+      return delegate.makeEqual(pF1, pF2);
+    }
   }
 
   @Override
   public Region makeUnequal(Region pF1, Region pF2) {
-    return delegate.makeUnequal(pF1, pF2);
+    try (StatCpuTimer t = stats.makeUnequalTime.start()){
+      return delegate.makeUnequal(pF1, pF2);
+    }
   }
 
   @Override
   public Region makeExists(Region pF1, Region... pF2) {
-    return delegate.makeExists(pF1, pF2);
+    try (StatCpuTimer t = stats.makeExistsTime.start()){
+      return delegate.makeExists(pF1, pF2);
+    }
   }
 
   @Override
@@ -288,6 +331,13 @@ public class NamedRegionManager implements RegionManager {
 
   @Override
   public Region makeIte(Region pF1, Region pF2, Region pF3) {
-    return delegate.makeIte(pF1, pF2, pF3);
+    try (StatCpuTimer t = stats.makeIteTime.start()){
+      return delegate.makeIte(pF1, pF2, pF3);
+    }
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
   }
 }
