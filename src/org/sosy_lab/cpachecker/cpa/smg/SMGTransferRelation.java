@@ -887,14 +887,14 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       successors = ImmutableList.of(smgState);
     }
 
-    for (SMGState smg : successors) {
-      plotWhenConfigured(SMGExportLevel.EVERY, null, smg, cfaEdge.getDescription());
-    }
-
     if(enableHeapAbstraction && cfaEdge.getPredecessor().isLoopStart()) {
       for(SMGState successor : successors) {
         successor.executeHeapAbstraction();
       }
+    }
+
+    for (SMGState smg : successors) {
+      plotWhenConfigured(SMGExportLevel.EVERY, null, smg, cfaEdge.getDescription());
     }
 
     return successors;
