@@ -647,12 +647,16 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
         FluentIterable.from(pointerToRegionTemplate)
             .uniqueIndex(new MapPointerEdgeToOffsetTemplate());
 
-    for(int offset : pointerToRegionTemplateMap.keySet()) {
-      if(!pointerToRegionMap.containsKey(offset)) {
+    for (Entry<Integer, SMGEdgePointsToTemplate> pteTmp : pointerToRegionTemplateMap.entrySet()) {
+
+      int offset = pteTmp.getKey();
+      SMGEdgePointsToTemplate ptTmp = pteTmp.getValue();
+
+      if (!pointerToRegionMap.containsKey(offset)) {
         return false;
       }
 
-      int pointerTemplate = pointerToRegionTemplateMap.get(offset).getAbstractValue();
+      int pointerTemplate = ptTmp.getAbstractValue();
       int pointer = pointerToRegionMap.get(offset).getValue();
 
       if (pMatStepToSubSMGMapping.contains(pointerTemplate)) {
@@ -661,7 +665,7 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
         }
       } else {
         pMatStepToSubSMGMapping.put(pointerTemplate, pointer);
-        if(matStep.getAbstractPointers().contains(pointerToRegionTemplateMap.get(offset))) {
+        if(matStep.getAbstractPointers().contains(ptTmp)) {
           pToBeMatchedLater.add(new SMGNodeTemplateAndNode(pointerTemplate, pointer));
         }
       }
@@ -687,11 +691,15 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
         FluentIterable.from(fieldsOfTemplate.getFieldTemplateContainingValue())
             .uniqueIndex(new MapHasValueEdgeToOffsetTemplateCV());
 
-    for (int offset : fieldsOfRegionMap.keySet()) {
+    for (Entry<Integer, SMGEdgeHasValue> hveEntry : fieldsOfRegionMap.entrySet()) {
+
+      int offset = hveEntry.getKey();
+      SMGEdgeHasValue hve = hveEntry.getValue();
+
       if (fieldsOfRegionTemplateMap.containsKey(offset)) {
 
         int pointerTemplate = fieldsOfRegionTemplateMap.get(offset).getAbstractValue();
-        int pointer = fieldsOfRegionMap.get(offset).getValue();
+        int pointer = hve.getValue();
 
         if (pMatStepToSubSMGMapping.contains(pointerTemplate)) {
           if (pMatStepToSubSMGMapping.get(pointerTemplate) != pointer) {
@@ -706,8 +714,8 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
 
       } else if (fieldsOfRegionTemplateCVMap.containsKey(offset)) {
 
-        int value = fieldsOfRegionMap.get(offset).getValue();
-        int valueInTemplate = fieldsOfRegionMap.get(offset).getValue();
+        int value = hve.getValue();
+        int valueInTemplate = fieldsOfRegionTemplateCVMap.get(offset).getValue();
 
         if (value != valueInTemplate) {
           return false;
