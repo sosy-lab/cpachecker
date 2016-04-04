@@ -23,9 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
-import java.util.HashSet;
-import java.util.Map.Entry;
-import java.util.Set;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
@@ -38,8 +37,9 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedListCandidate;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
+import java.util.HashSet;
+import java.util.Map.Entry;
+import java.util.Set;
 
 
 final public class SMGJoinSubSMGsForAbstraction {
@@ -138,26 +138,26 @@ final public class SMGJoinSubSMGsForAbstraction {
     nonSharedValuesFromSMG2 = new HashSet<>();
 
     for (Entry<SMGObject, SMGObject> entry : mapping1.getObject_mapEntrySet()) {
-      if(origObjects.contains(entry.getValue())) {
-        nonSharedObjectsFromSMG1.add(entry.getValue());
+      if(origObjects.contains(entry.getKey())) {
+        nonSharedObjectsFromSMG1.add(entry.getKey());
       }
     }
 
     for (Entry<SMGObject, SMGObject> entry : mapping2.getObject_mapEntrySet()) {
-      if(origObjects.contains(entry.getValue())) {
-        nonSharedObjectsFromSMG2.add(entry.getValue());
+      if(origObjects.contains(entry.getKey())) {
+        nonSharedObjectsFromSMG2.add(entry.getKey());
       }
     }
 
     for (Entry<Integer, Integer> entry : mapping1.getValue_mapEntrySet()) {
-      if (origValues.contains(entry.getValue())) {
-        nonSharedValuesFromSMG1.add(entry.getValue());
+      if (origValues.contains(entry.getKey())) {
+        nonSharedValuesFromSMG1.add(entry.getKey());
       }
     }
 
     for (Entry<Integer, Integer> entry : mapping2.getValue_mapEntrySet()) {
-      if (origValues.contains(entry.getValue())) {
-        nonSharedValuesFromSMG2.add(entry.getValue());
+      if (origValues.contains(entry.getKey())) {
+        nonSharedValuesFromSMG2.add(entry.getKey());
       }
     }
 

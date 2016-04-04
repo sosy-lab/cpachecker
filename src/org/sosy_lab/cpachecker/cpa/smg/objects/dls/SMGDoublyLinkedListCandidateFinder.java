@@ -23,12 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects.dls;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionFinder;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
@@ -43,6 +37,12 @@ import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinSubSMGsForAbstraction;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.util.Pair;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder {
 
@@ -225,12 +225,12 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
 
     // Third, calculate if the respective nfo,pfo restricted subsmgs are only reachable from their candidate objects
     if (!isSubSmgSeperate(nonSharedObject1, nonSharedValues1, smg, objectsOfSubSmg1,
-        valuesOfSubSmg1)) {
+        valuesOfSubSmg1, startObject)) {
       return;
     }
 
     if (!isSubSmgSeperate(nonSharedObject2, nonSharedValues2, smg, objectsOfSubSmg2,
-        valuesOfSubSmg2)) {
+        valuesOfSubSmg2, nextObject)) {
       return;
     }
 
@@ -292,9 +292,14 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
   }
 
   private boolean isSubSmgSeperate(Set<SMGObject> nonSharedObject, Set<Integer> nonSharedValues,
-      CLangSMG smg, Set<SMGObject> reachableObjects, Set<Integer> reachableValues) {
+      CLangSMG smg, Set<SMGObject> reachableObjects, Set<Integer> reachableValues, SMGObject rootOfSubSmg) {
 
     for (SMGObject obj : nonSharedObject) {
+
+      if(obj.equals(rootOfSubSmg)) {
+        continue;
+      }
+
       if (!smg.isHeapObject(obj)) {
         return false;
       }
