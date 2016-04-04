@@ -164,12 +164,12 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
       assert getSize() == pOther.getSize();
 
       if(pIncreaseLevel) {
-        return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), 0, maxLevel + 1);
+        return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), 1, maxLevel + 1);
       } else {
-        if (minimumLength == 0 && maxLevel == getLevel()) {
+        if (minimumLength == 1 && maxLevel == getLevel()) {
           return this;
         } else {
-          return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), 0,
+          return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), 1,
               maxLevel);
         }
       }

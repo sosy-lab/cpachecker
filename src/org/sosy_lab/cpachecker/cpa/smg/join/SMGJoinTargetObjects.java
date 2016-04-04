@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGGenericAbstractionCandidate;
 
 import java.util.HashSet;
@@ -146,16 +147,26 @@ final class SMGJoinTargetObjects {
       return;
     }
 
-    SMGObject newObject;
+    SMGObject objectToJoin1;
+    SMGObject objectToJoin2;
 
     /* If destination Smg already contains target1, it can't be used
      * as join Object, a new object has to be created.
      */
-    if (destSMG.getObjects().contains(target1)) {
-      newObject = target1.copy().join(target2, pIncreaseLevelAndRelabel);
+    if (destSMG.getObjects().contains(target1)
+        && (target1 instanceof SMGDoublyLinkedList || !(target2 instanceof SMGDoublyLinkedList))) {
+      objectToJoin1 = target1.copy();
+      objectToJoin2 = target2;
+    } else if (destSMG.getObjects().contains(target2) && target2 instanceof SMGDoublyLinkedList
+        && !(target1 instanceof SMGDoublyLinkedList)) {
+      objectToJoin2 = target2.copy();
+      objectToJoin1 = target1;
     } else {
-      newObject = target1.join(target2, pIncreaseLevelAndRelabel);
+      objectToJoin1 = target1;
+      objectToJoin2 = target2;
     }
+
+    SMGObject newObject = objectToJoin1.join(objectToJoin2, pIncreaseLevelAndRelabel);
 
     if (destSMG instanceof CLangSMG) {
       ((CLangSMG)destSMG).addHeapObject(newObject);
