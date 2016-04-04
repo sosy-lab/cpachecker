@@ -146,7 +146,16 @@ final class SMGJoinTargetObjects {
       return;
     }
 
-    SMGObject newObject = target1.join(target2, pIncreaseLevelAndRelabel);
+    SMGObject newObject;
+
+    /* If destination Smg already contains target1, it can't be used
+     * as join Object, a new object has to be created.
+     */
+    if (destSMG.getObjects().contains(target1)) {
+      newObject = target1.copy().join(target2, pIncreaseLevelAndRelabel);
+    } else {
+      newObject = target1.join(target2, pIncreaseLevelAndRelabel);
+    }
 
     if (destSMG instanceof CLangSMG) {
       ((CLangSMG)destSMG).addHeapObject(newObject);
