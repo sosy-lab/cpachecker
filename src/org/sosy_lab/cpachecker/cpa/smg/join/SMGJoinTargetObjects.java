@@ -23,20 +23,21 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGGenericAbstractionCandidate;
 
-import com.google.common.collect.ImmutableList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 final class SMGJoinTargetObjects {
   private SMGJoinStatus status;
@@ -146,7 +147,12 @@ final class SMGJoinTargetObjects {
     }
 
     SMGObject newObject = target1.join(target2, pIncreaseLevelAndRelabel);
-    destSMG.addObject(newObject);
+
+    if (destSMG instanceof CLangSMG) {
+      ((CLangSMG)destSMG).addHeapObject(newObject);
+    } else {
+      destSMG.addObject(newObject);
+    }
 
     if (mapping1.containsKey(target1)) {
       throw new UnsupportedOperationException("Delayed join not yet implemented");
