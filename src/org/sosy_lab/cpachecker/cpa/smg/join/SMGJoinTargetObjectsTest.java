@@ -145,7 +145,7 @@ public class SMGJoinTargetObjectsTest {
 
     SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(new SMG(smg1), new SMG(destSMG), new SMGNodeMapping(mapping1),
                                                       new SMGNodeMapping(mapping2), value1,
-                                                      value2, false);
+                                                      value2);
     SMGJoinTargetObjects jto = new SMGJoinTargetObjects(SMGJoinStatus.EQUAL, smg1, smg2, destSMG, mapping1, mapping2, value1, value2, 0, 0, 0, false, false, null, null);
     Assert.assertTrue(jto.isDefined());
     Assert.assertEquals(SMGJoinStatus.EQUAL, jto.getStatus());

@@ -101,10 +101,10 @@ final public class SMGJoinSubSMGsForAbstraction {
     mapping1.map(obj1, dls);
     mapping2.map(obj2, dls);
 
-    boolean increaseLevelAndRelabelTargetSpc =
+    boolean increaseLevel =
         obj1 instanceof SMGRegion && obj2 instanceof SMGRegion;
 
-    SMGJoinSubSMGs jss = new SMGJoinSubSMGs(SMGJoinStatus.EQUAL, smg, smg, smg, mapping1, mapping2, obj1, obj2, dls, lDiff, increaseLevelAndRelabelTargetSpc, true, pStateOfSmg, pStateOfSmg);
+    SMGJoinSubSMGs jss = new SMGJoinSubSMGs(SMGJoinStatus.EQUAL, smg, smg, smg, mapping1, mapping2, obj1, obj2, dls, lDiff, increaseLevel, true, pStateOfSmg, pStateOfSmg);
 
     if(!jss.isDefined()) {
       return;

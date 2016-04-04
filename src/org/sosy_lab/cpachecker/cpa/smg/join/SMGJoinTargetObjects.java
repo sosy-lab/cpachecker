@@ -64,12 +64,12 @@ final class SMGJoinTargetObjects {
   }
 
   private static boolean checkAlreadyJoined(SMGJoinTargetObjects pJto, SMGObject pObj1, SMGObject pObj2,
-                                            Integer pAddress1, Integer pAddress2, boolean pRelabel) {
+                                            Integer pAddress1, Integer pAddress2) {
     if ((! pObj1.notNull()) && (! pObj2.notNull()) ||
         (pJto.mapping1.containsKey(pObj1) && pJto.mapping2.containsKey(pObj2) && pJto.mapping1.get(pObj1) == pJto.mapping2.get(pObj2))) {
       SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(pJto.inputSMG1, pJto.destSMG, pJto.mapping1,
                                                         pJto.mapping2, pAddress1,
-                                                        pAddress2, pRelabel);
+                                                        pAddress2);
       pJto.defined = true;
       pJto.destSMG = mta.getSMG();
       pJto.mapping1 = mta.getMapping1();
@@ -96,7 +96,7 @@ final class SMGJoinTargetObjects {
   public SMGJoinTargetObjects(SMGJoinStatus pStatus,
                               SMG pSMG1, SMG pSMG2, SMG pDestSMG,
                               SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
-                              Integer pAddress1, Integer pAddress2, int pLevel1, int pLevel2, int ldiff, boolean identicalInputSmgs, boolean pIncreaseLevelAndRelabel, SMGState pSmgState1, SMGState pSmgState2) throws SMGInconsistentException {
+                              Integer pAddress1, Integer pAddress2, int pLevel1, int pLevel2, int ldiff, boolean identicalInputSmgs, boolean pIncreaseLevel, SMGState pSmgState1, SMGState pSmgState2) throws SMGInconsistentException {
 
     inputSMG1 = pSMG1;
     inputSMG2 = pSMG2;
@@ -122,7 +122,7 @@ final class SMGJoinTargetObjects {
     SMGObject target1 = pt1.getObject();
     SMGObject target2 = pt2.getObject();
 
-    if (SMGJoinTargetObjects.checkAlreadyJoined(this, target1, target2, pAddress1, pAddress2, pIncreaseLevelAndRelabel)) {
+    if (SMGJoinTargetObjects.checkAlreadyJoined(this, target1, target2, pAddress1, pAddress2)) {
       abstractionCandidates = ImmutableList.of();
       return;
     }
@@ -166,7 +166,7 @@ final class SMGJoinTargetObjects {
       objectToJoin2 = target2;
     }
 
-    SMGObject newObject = objectToJoin1.join(objectToJoin2, pIncreaseLevelAndRelabel);
+    SMGObject newObject = objectToJoin1.join(objectToJoin2, pIncreaseLevel);
 
     if (destSMG instanceof CLangSMG) {
       ((CLangSMG)destSMG).addHeapObject(newObject);
@@ -183,7 +183,7 @@ final class SMGJoinTargetObjects {
     mapping1.map(target1, newObject);
     mapping2.map(target2, newObject);
 
-    SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(inputSMG1, destSMG, mapping1, mapping2, pAddress1, pAddress2, pIncreaseLevelAndRelabel);
+    SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(inputSMG1, destSMG, mapping1, mapping2, pAddress1, pAddress2);
     destSMG = mta.getSMG();
     mapping1 = mta.getMapping1();
     mapping2 = mta.getMapping2();

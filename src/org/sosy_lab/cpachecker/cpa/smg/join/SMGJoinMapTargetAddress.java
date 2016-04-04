@@ -23,14 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
-import java.util.Collection;
-
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
+
+import java.util.Collection;
 
 final class SMGJoinMapTargetAddress {
   private SMG smg;
@@ -40,7 +40,7 @@ final class SMGJoinMapTargetAddress {
 
   public SMGJoinMapTargetAddress(SMG pSMG1, SMG destSMG, SMGNodeMapping pMapping1,
                              SMGNodeMapping pMapping2, Integer pAddress1,
-                             Integer pAddress2, boolean relabel) {
+                             Integer pAddress2) {
     smg = destSMG;
     mapping1 = pMapping1;
     mapping2 = pMapping2;
@@ -78,10 +78,6 @@ final class SMGJoinMapTargetAddress {
     }
 
     smg.addValue(value);
-
-    if (relabel && target instanceof SMGDoublyLinkedList) {
-      tg = SMGTargetSpecifier.ALL;
-    }
 
     SMGEdgePointsTo nPtEdge = new SMGEdgePointsTo(value, target, pt.getOffset(), tg);
 

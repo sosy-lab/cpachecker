@@ -137,11 +137,11 @@ final class SMGJoinValues {
     return ((! pJV.inputSMG1.isPointer(pV1)) || (! pJV.inputSMG2.isPointer(pV2)));
   }
 
-  private static boolean joinValuesPointers(SMGJoinValues pJV, Integer pV1, Integer pV2, int pLevel1, int pLevel2, int ldiff, boolean identicalInputSmg, boolean increaseLevelAndRelabel) throws SMGInconsistentException {
+  private static boolean joinValuesPointers(SMGJoinValues pJV, Integer pV1, Integer pV2, int pLevel1, int pLevel2, int ldiff, boolean identicalInputSmg, boolean increaseLevel) throws SMGInconsistentException {
     SMGJoinTargetObjects jto = new SMGJoinTargetObjects(pJV.status,
                                                         pJV.inputSMG1, pJV.inputSMG2, pJV.destSMG,
                                                         pJV.mapping1, pJV.mapping2,
-                                                        pV1, pV2,pLevel1, pLevel2, ldiff, identicalInputSmg, increaseLevelAndRelabel, pJV.smgState1, pJV.smgState2);
+                                                        pV1, pV2,pLevel1, pLevel2, ldiff, identicalInputSmg, increaseLevel, pJV.smgState1, pJV.smgState2);
     if (jto.isDefined()) {
       pJV.status = jto.getStatus();
       pJV.inputSMG1 = jto.getInputSMG1();
@@ -168,7 +168,7 @@ final class SMGJoinValues {
   public SMGJoinValues(SMGJoinStatus pStatus,
                         SMG pSMG1, SMG pSMG2, SMG pDestSMG,
                         SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
-                        Integer pValue1, Integer pValue2, int pLDiff, boolean pIncreaseLevelAndRelabelTargetSpc, boolean identicalInputSmg, int levelV1, int levelV2, SMGState pStateOfSmg1, SMGState pStateOfSmg2) throws SMGInconsistentException {
+                        Integer pValue1, Integer pValue2, int pLDiff, boolean pIncreaseLevel, boolean identicalInputSmg, int levelV1, int levelV2, SMGState pStateOfSmg1, SMGState pStateOfSmg2) throws SMGInconsistentException {
     mapping1 = pMapping1;
     mapping2 = pMapping2;
     status = pStatus;
@@ -203,7 +203,7 @@ final class SMGJoinValues {
       return;
     }
 
-    if (SMGJoinValues.joinValuesPointers(this, pValue1, pValue2, levelV1, levelV2, pLDiff, identicalInputSmg, pIncreaseLevelAndRelabelTargetSpc)) {
+    if (SMGJoinValues.joinValuesPointers(this, pValue1, pValue2, levelV1, levelV2, pLDiff, identicalInputSmg, pIncreaseLevel)) {
 
       if(recoverable) {
 
@@ -215,7 +215,7 @@ final class SMGJoinValues {
           if (target1 instanceof SMGDoublyLinkedList) {
             Pair<Boolean, Boolean> result = insertDlsAndJoin(status, inputSMG1, inputSMG2, destSMG, mapping1, mapping2, pValue1,
                 pValue2, (SMGDoublyLinkedList) target1, pLDiff, levelV1, levelV2,
-                pIncreaseLevelAndRelabelTargetSpc, identicalInputSmg);
+                pIncreaseLevel, identicalInputSmg);
 
             if(result.getSecond()) {
               if(result.getFirst()) {
@@ -230,7 +230,7 @@ final class SMGJoinValues {
           if (target2 instanceof SMGDoublyLinkedList) {
             Pair<Boolean, Boolean> result = insertDlsAndJoin(status, inputSMG2, inputSMG1, destSMG, mapping2, mapping1, pValue2,
                 pValue1, (SMGDoublyLinkedList) target2, pLDiff, levelV2, levelV1,
-                pIncreaseLevelAndRelabelTargetSpc, identicalInputSmg);
+                pIncreaseLevel, identicalInputSmg);
 
             if(result.getSecond()) {
               if(result.getFirst()) {
@@ -255,7 +255,7 @@ final class SMGJoinValues {
     recoverable = false;
   }
 
-  private Pair<Boolean, Boolean> insertDlsAndJoin(SMGJoinStatus pStatus, SMG pInputSMG1 , SMG  pInputSMG2 , SMG pDestSMG, SMGNodeMapping pMapping1 , SMGNodeMapping pMapping2 , Integer pointer1, Integer pointer2, SMGDoublyLinkedList pTarget1, int ldiff, int level1, int level2, boolean pIncreaseLevelAndRelabelTargetSpc, boolean identicalInputSmg) throws SMGInconsistentException {
+  private Pair<Boolean, Boolean> insertDlsAndJoin(SMGJoinStatus pStatus, SMG pInputSMG1 , SMG  pInputSMG2 , SMG pDestSMG, SMGNodeMapping pMapping1 , SMGNodeMapping pMapping2 , Integer pointer1, Integer pointer2, SMGDoublyLinkedList pTarget1, int ldiff, int level1, int level2, boolean pIncreaseLevel, boolean identicalInputSmg) throws SMGInconsistentException {
 
     SMGEdgePointsTo ptEdge = pInputSMG1.getPointer(pointer1);
     SMGJoinStatus status = pStatus;
@@ -300,7 +300,7 @@ final class SMGJoinValues {
         return Pair.of(true, true);
       }
 
-      SMGJoinValues jv = new SMGJoinValues(status, inputSMG1, inputSMG2, destSMG, mapping1, mapping2, ptEdge.getValue(), pointer2, ldiff, pIncreaseLevelAndRelabelTargetSpc, identicalInputSmg, level1, level2, smgState1, smgState2);
+      SMGJoinValues jv = new SMGJoinValues(status, inputSMG1, inputSMG2, destSMG, mapping1, mapping2, ptEdge.getValue(), pointer2, ldiff, pIncreaseLevel, identicalInputSmg, level1, level2, smgState1, smgState2);
 
       if(jv.isDefined()) {
 
@@ -345,7 +345,7 @@ final class SMGJoinValues {
 
     }
 
-    SMGJoinValues jv = new SMGJoinValues(status, inputSMG1, inputSMG2, destSMG, mapping1, mapping2, ptEdge.getValue(), pointer2, ldiff, pIncreaseLevelAndRelabelTargetSpc, identicalInputSmg, level1, level2, smgState1, smgState2);
+    SMGJoinValues jv = new SMGJoinValues(status, inputSMG1, inputSMG2, destSMG, mapping1, mapping2, ptEdge.getValue(), pointer2, ldiff, pIncreaseLevel, identicalInputSmg, level1, level2, smgState1, smgState2);
 
     Integer newAdressToDLS;
 
