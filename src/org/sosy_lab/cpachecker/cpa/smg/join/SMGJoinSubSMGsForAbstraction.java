@@ -28,8 +28,11 @@ import com.google.common.collect.Iterables;
 
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
+import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGAbstractObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
@@ -115,6 +118,16 @@ final public class SMGJoinSubSMGsForAbstraction {
     mapping2 = jss.getMapping2();
 
     //TODO Contains dls0Cycle?
+
+    /* increase level hold already calculated value for
+     * obj1 instanceof SMGRegion && obj2 instanceof SMGRegion
+     */
+    if (increaseLevel) {
+      for (SMGEdgePointsTo pte : SMGUtils.getPointerToThisObject(dls, smg)) {
+        smg.removePointsToEdge(pte.getValue());
+        smg.addPointsToEdge(new SMGEdgePointsTo(pte.getValue(), pte.getObject(), pte.getOffset(), SMGTargetSpecifier.ALL));
+      }
+    }
 
 /*    smg.removeHasValueEdge(prevObj1hveT);
     smg.removeHasValueEdge(nextObj1hveT);
