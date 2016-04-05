@@ -23,19 +23,13 @@
  */
 package org.sosy_lab.cpachecker.core.counterexample;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -113,13 +107,19 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 /**
  * Creates assumption along an error path based on a given {@link CFAEdge} edge
@@ -1757,14 +1757,16 @@ public class AssumptionToEdgeAllocator {
       private boolean handleArraySubscript(Address pArrayAddress,
           int pSubscript, CType pExpectedType,
           CArrayType pArrayType) {
+        if (!pArrayAddress.isConcrete()) {
+          return false;
+        }
 
         int typeSize = machineModel.getSizeof(pExpectedType);
         int subscriptOffset = pSubscript * typeSize;
-        int arraySize = machineModel.getSizeof(pArrayType);
 
-        // check if we are already out of array bound
+        // Check if we are already out of array bound, if we have an array length.
         // FIXME Imprecise due to imprecise getSizeOf method
-        if (!pArrayAddress.isConcrete() || arraySize <= subscriptOffset) {
+        if (!pArrayType.isIncomplete() && machineModel.getSizeof(pArrayType) <= subscriptOffset) {
           return false;
         }
 
