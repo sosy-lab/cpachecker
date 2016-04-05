@@ -1373,14 +1373,27 @@ class ASTConverter {
   private CTypeIdExpression convert(IASTTypeIdExpression e) {
     TypeIdOperator typeIdOperator = operatorConverter.convertTypeIdOperator(e);
     CType expressionType;
+    CType typeId = convert(e.getTypeId());
+
     if (typeIdOperator == TypeIdOperator.ALIGNOF || typeIdOperator == TypeIdOperator.SIZEOF) {
       // sizeof and _Alignof always return int, CDT sometimes provides wrong type
       expressionType = CNumericTypes.INT;
+      CType canonicalType = typeId.getCanonicalType();
+      if (canonicalType instanceof CElaboratedType
+          && ((CElaboratedType) canonicalType).getKind() != ComplexTypeKind.ENUM) {
+        // Cannot compute alignment
+        throw new CFAGenerationRuntimeException(
+            "Invalid application of "
+                + typeIdOperator.getOperator()
+                + " to incomplete type "
+                + typeId,
+            e,
+            niceFileNameFunction);
+      }
     } else {
       expressionType = typeConverter.convert(e.getExpressionType());
     }
-    return new CTypeIdExpression(
-        getLocation(e), expressionType, typeIdOperator, convert(e.getTypeId()));
+    return new CTypeIdExpression(getLocation(e), expressionType, typeIdOperator, typeId);
   }
 
   private CExpression convert(IASTTypeIdInitializerExpression e) {

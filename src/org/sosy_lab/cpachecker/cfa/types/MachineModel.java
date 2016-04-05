@@ -541,18 +541,12 @@ public enum MachineModel {
         return def.accept(this);
       }
 
-      switch (pElaboratedType.getKind()) {
-      case ENUM:
-        return model.getSizeofInt();
-      case STRUCT:
-        // TODO: UNDEFINED
-        return model.getSizeofInt();
-      case UNION:
-        // TODO: UNDEFINED
-        return model.getSizeofInt();
-      default:
+      if (pElaboratedType.getKind() == ComplexTypeKind.ENUM) {
         return model.getSizeofInt();
       }
+
+      throw new IllegalArgumentException(
+          "Cannot compute size of incomplete type " + pElaboratedType);
     }
 
     @Override
@@ -634,11 +628,17 @@ public enum MachineModel {
 
     @Override
     public Integer visit(CElaboratedType pElaboratedType) throws IllegalArgumentException {
-      if (pElaboratedType.getKind() == ComplexTypeKind.ENUM) {
-        // enums are always ints
-        return model.getAlignofInt();
+      CType def = pElaboratedType.getRealType();
+      if (def != null) {
+        return def.accept(this);
       }
-      return pElaboratedType.getRealType().accept(this);
+
+      if (pElaboratedType.getKind() == ComplexTypeKind.ENUM) {
+        return model.getSizeofInt();
+      }
+
+      throw new IllegalArgumentException(
+          "Cannot compute alignment of incomplete type " + pElaboratedType);
     }
 
     @Override
