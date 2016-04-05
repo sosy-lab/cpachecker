@@ -73,6 +73,11 @@ public final class CEnumType implements CComplexType {
     return isVolatile;
   }
 
+  @Override
+  public boolean isIncomplete() {
+    return false;
+  }
+
   public ImmutableList<CEnumerator> getEnumerators() {
     return enumerators;
   }

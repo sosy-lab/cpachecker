@@ -81,6 +81,12 @@ public final class CTypedefType implements CType, Serializable {
   public boolean isVolatile() {
     return isVolatile;
   }
+
+  @Override
+  public boolean isIncomplete() {
+    return realType.isIncomplete();
+  }
+
   @Override
   public <R, X extends Exception> R accept(CTypeVisitor<R, X> pVisitor) throws X {
     return pVisitor.visit(this);

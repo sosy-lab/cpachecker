@@ -25,11 +25,11 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * This class represents the type "void".
@@ -69,6 +69,11 @@ public final class CVoidType implements CType {
   @Override
   public boolean isVolatile() {
     return isVolatile;
+  }
+
+  @Override
+  public boolean isIncomplete() {
+    return true; // C standard § 6.2.5 (19)
   }
 
   @Override

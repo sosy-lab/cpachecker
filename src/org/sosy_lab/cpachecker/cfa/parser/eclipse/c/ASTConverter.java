@@ -1378,9 +1378,7 @@ class ASTConverter {
     if (typeIdOperator == TypeIdOperator.ALIGNOF || typeIdOperator == TypeIdOperator.SIZEOF) {
       // sizeof and _Alignof always return int, CDT sometimes provides wrong type
       expressionType = CNumericTypes.INT;
-      CType canonicalType = typeId.getCanonicalType();
-      if (canonicalType instanceof CElaboratedType
-          && ((CElaboratedType) canonicalType).getKind() != ComplexTypeKind.ENUM) {
+      if (typeId.isIncomplete()) {
         // Cannot compute alignment
         throw new CFAGenerationRuntimeException(
             "Invalid application of "

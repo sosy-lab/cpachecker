@@ -25,15 +25,15 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
-
-import com.google.common.base.Joiner;
-import com.google.common.base.Strings;
 
 public final class CSimpleType implements CType, Serializable {
 
@@ -107,6 +107,11 @@ public final class CSimpleType implements CType, Serializable {
 
   public boolean isLongLong() {
     return isLongLong;
+  }
+
+  @Override
+  public boolean isIncomplete() {
+    return false;
   }
 
   @Override

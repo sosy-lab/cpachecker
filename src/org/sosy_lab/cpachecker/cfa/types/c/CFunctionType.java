@@ -23,8 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Iterables.transform;
+
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
+import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
+
+import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -32,14 +41,6 @@ import java.util.List;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
-
-import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
-
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
-import com.google.common.base.Joiner;
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableList;
 
 public class CFunctionType extends AFunctionType implements CType {
 
@@ -147,6 +148,11 @@ public class CFunctionType extends AFunctionType implements CType {
   @Override
   public boolean isVolatile() {
     return isVolatile;
+  }
+
+  @Override
+  public boolean isIncomplete() {
+    return false;
   }
 
   @Override

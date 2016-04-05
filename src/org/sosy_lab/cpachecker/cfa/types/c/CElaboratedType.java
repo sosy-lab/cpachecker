@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 import java.util.Objects;
 
@@ -140,6 +142,15 @@ public final class CElaboratedType implements CComplexType {
   @Override
   public boolean isVolatile() {
     return isVolatile;
+  }
+
+  @Override
+  public boolean isIncomplete() {
+    if (realType == null) {
+      return kind != ComplexTypeKind.ENUM; // enums are always complete
+    } else {
+      return realType.isIncomplete();
+    }
   }
 
   @Override

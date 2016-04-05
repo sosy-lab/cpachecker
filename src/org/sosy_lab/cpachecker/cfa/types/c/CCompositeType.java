@@ -23,7 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -32,9 +36,6 @@ import java.util.List;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
-
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableList;
 
 public final class CCompositeType implements CComplexType {
 
@@ -87,6 +88,10 @@ public final class CCompositeType implements CComplexType {
     return origName;
   }
 
+  @Override
+  public boolean isIncomplete() {
+    return false;
+  }
 
   @Override
   public String toString() {
