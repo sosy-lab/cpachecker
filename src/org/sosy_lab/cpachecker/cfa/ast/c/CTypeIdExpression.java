@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import java.util.Objects;
-
 import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+
+import java.util.Objects;
 
 public final class CTypeIdExpression extends AbstractExpression implements CExpression {
 
@@ -72,7 +72,6 @@ public final class CTypeIdExpression extends AbstractExpression implements CExpr
 
   public enum TypeIdOperator {
     SIZEOF,
-    TYPEID,
     ALIGNOF,
     TYPEOF,
     ;
