@@ -71,16 +71,22 @@ public final class CTypeIdExpression extends AbstractExpression implements CExpr
   }
 
   public enum TypeIdOperator {
-    SIZEOF,
-    ALIGNOF,
-    TYPEOF,
+    SIZEOF("sizeof"),
+    ALIGNOF("_Alignof"),
+    TYPEOF("typeof"),
     ;
+
+    private final String cRepresentation;
+
+    private TypeIdOperator(String pCRepresentation) {
+      cRepresentation = pCRepresentation;
+    }
 
     /**
      * Returns the string representation of this operator
      */
     public String getOperator() {
-      return toString().toLowerCase();
+      return cRepresentation;
     }
   }
 
