@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 
 import java.math.BigInteger;
+import java.util.Iterator;
 
 /**
  * This enum stores the sizes for all the basic types that exist.
@@ -514,10 +515,24 @@ public enum MachineModel {
 
     private Integer handleSizeOfStruct(CCompositeType pCompositeType) {
       int size = 0;
-      // TODO: Take possible padding into account
-      for (CCompositeTypeMemberDeclaration decl : pCompositeType.getMembers()) {
-        size += model.getPadding(size, decl.getType());
-        size += decl.getType().accept(this);
+      Iterator<CCompositeTypeMemberDeclaration> declIt = pCompositeType.getMembers().iterator();
+      while (declIt.hasNext()) {
+        CCompositeTypeMemberDeclaration decl = declIt.next();
+        if (decl.getType().isIncomplete() && !declIt.hasNext()) {
+          // Last member of a struct can be an incomplete array.
+          // In this case we need only padding according to the element type of the array and no size.
+          CType type = decl.getType().getCanonicalType();
+          if (type instanceof CArrayType) {
+            CType elementType = ((CArrayType) type).getType();
+            size += model.getPadding(size, elementType);
+          } else {
+            throw new IllegalArgumentException(
+                "Cannot compute size of incomplete type " + decl.getType());
+          }
+        } else {
+          size += model.getPadding(size, decl.getType());
+          size += decl.getType().accept(this);
+        }
       }
       size += model.getPadding(size, pCompositeType);
       return size;
