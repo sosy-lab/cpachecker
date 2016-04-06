@@ -308,7 +308,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
           offset += getSizeof(memberType);
         }
       }
-    } else if (!(baseType instanceof CFunctionType)) {
+    } else if (!(baseType instanceof CFunctionType) && !baseType.isIncomplete()) {
       // This adds a constraint *a = a for the case where we previously tracked
       // a variable directly and now via its address (we do not want to loose
       // the value previously stored in the variable).
