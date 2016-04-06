@@ -114,6 +114,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -1652,19 +1653,21 @@ public class AssumptionToEdgeAllocator {
       }
 
       private void handleStruct(CCompositeType pCompType) {
-
         Address fieldAddress = address;
+        if (!fieldAddress.isConcrete()) {
+          return;
+        }
 
-        for (CCompositeType.CCompositeTypeMemberDeclaration memberType : pCompType
-            .getMembers()) {
-
+        Iterator<CCompositeTypeMemberDeclaration> memberIt = pCompType.getMembers().iterator();
+        while (memberIt.hasNext()) {
+          final CCompositeTypeMemberDeclaration memberType = memberIt.next();
           handleMemberField(memberType, fieldAddress);
-          int offsetToNextField = machineModel.getSizeof(memberType.getType());
 
-          if (fieldAddress.isConcrete()) {
+          if (memberIt.hasNext()) {
+            int offsetToNextField = machineModel.getSizeof(memberType.getType());
             fieldAddress = fieldAddress.addOffset(BigInteger.valueOf(offsetToNextField));
           } else {
-            return;
+            fieldAddress = null;
           }
         }
       }
