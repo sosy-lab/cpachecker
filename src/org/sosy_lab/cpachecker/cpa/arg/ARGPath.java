@@ -23,8 +23,24 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import static com.google.common.base.Preconditions.*;
-import static org.sosy_lab.cpachecker.util.AbstractStates.*;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
+
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+import org.sosy_lab.common.Appenders.AbstractAppender;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import java.io.IOException;
 import java.util.AbstractList;
@@ -35,20 +51,6 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
-
-import org.sosy_lab.common.Appenders.AbstractAppender;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.Pair;
-
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * ARGPath contains a non-empty path through the ARG
@@ -412,6 +414,11 @@ public class ARGPath extends AbstractAppender {
     public abstract boolean hasNext();
 
     /**
+     * Check whether there is at least one state before the current one in the path.
+     */
+    public abstract boolean hasPrevious();
+
+    /**
      * Get the current position of the iterator
      * (first state is at position 0).
      */
@@ -434,6 +441,12 @@ public class ARGPath extends AbstractAppender {
     public abstract void advance() throws IllegalStateException;
 
     /**
+     * Rewind the iterator by one position
+     * @throws IllegalStateException if {@link #hasPrevious()} would return false.
+     */
+    public abstract void rewind() throws IllegalStateException;
+
+    /**
      * Checks whether the iterator can be advanced and does so it it is possible.
      *
      * @return Indicates whether the iterator could be advanced or not
@@ -441,6 +454,15 @@ public class ARGPath extends AbstractAppender {
     public boolean advanceIfPossible() {
       if (hasNext()) {
         advance();
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+    public boolean rewindIfPossible() {
+      if (hasPrevious()) {
+        rewind();
         return true;
       } else {
         return false;
@@ -682,10 +704,20 @@ public class ARGPath extends AbstractAppender {
     }
 
     @Override
+    public void rewind() throws IllegalStateException {
+      checkState(hasPrevious(), "No previous state in PathIterator.");
+      pos--;
+    }
+
+    @Override
     public boolean hasNext() {
       return pos < path.states.size()-1;
     }
 
+    @Override
+    public boolean hasPrevious() {
+      return pos > 0;
+    }
   }
   /**
    * The implementation of PathIterator that iterates
@@ -708,8 +740,19 @@ public class ARGPath extends AbstractAppender {
     }
 
     @Override
+    public void rewind() throws IllegalStateException {
+      checkState(hasNext(), "No previous states in PathIterator.");
+      pos++;
+    }
+
+    @Override
     public boolean hasNext() {
       return pos > 0;
+    }
+
+    @Override
+    public boolean hasPrevious() {
+      return pos < path.states.size() - 1;
     }
   }
 
@@ -817,8 +860,31 @@ public class ARGPath extends AbstractAppender {
     }
 
     @Override
+    public void rewind() throws IllegalStateException {
+      checkState(hasPrevious(), "No more states in PathIterator.");
+
+      boolean previousPositionHasState =
+          Iterables.contains(
+              extractLocations(getPreviousAbstractState()),
+              fullPath.get(overallOffset - 1).getPredecessor());
+
+      if (currentPositionHasState) {
+        pos--; // only reduce by one if it was a real node before we are leaving it now
+      }
+
+      currentPositionHasState = previousPositionHasState;
+
+      overallOffset--;
+    }
+
+    @Override
     public boolean hasNext() {
       return pos < path.states.size()-1;
+    }
+
+    @Override
+    public boolean hasPrevious() {
+      return overallOffset > 0;
     }
 
     @Override
@@ -856,8 +922,26 @@ public class ARGPath extends AbstractAppender {
     }
 
     @Override
+    public void rewind() throws IllegalStateException {
+      checkState(hasPrevious(), "No more states in PathIterator.");
+      if (Iterables.contains(
+          extractLocations(getNextAbstractState()), fullPath.get(overallOffset).getSuccessor())) {
+        pos++;
+        currentPositionHasState = true;
+      } else {
+        currentPositionHasState = false;
+      }
+      overallOffset++;
+    }
+
+    @Override
     public boolean hasNext() {
-      return pos > 0;
+      return overallOffset > 0;
+    }
+
+    @Override
+    public boolean hasPrevious() {
+      return pos < path.states.size() - 1;
     }
   }
 }
