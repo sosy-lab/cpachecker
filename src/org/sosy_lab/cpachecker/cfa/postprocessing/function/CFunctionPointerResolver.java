@@ -26,14 +26,14 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
+import com.google.common.base.Joiner;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -41,9 +41,9 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -72,14 +72,14 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.Pair;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
-import com.google.common.base.Joiner;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * This class is responsible for replacing calls via function pointers like (*fp)()
@@ -458,34 +458,27 @@ public class CFunctionPointerResolver {
       CFunctionCallExpression functionCallExpression, CFunctionType functionType) {
     final MachineModel machine = cfa.getMachineModel();
 
-    try {
-      CType declRet = functionType.getReturnType();
-      CType actRet = functionCallExpression.getExpressionType();
-      if (machine.getSizeof(declRet) != machine.getSizeof(actRet)) {
-        logger.log(Level.FINEST, "Function call", functionCallExpression.toASTString(), "with type", actRet,
-            "does not match function", functionType, "with return type", declRet,
-            "because of return types with different sizes.");
+    CType declRet = functionType.getReturnType();
+    CType actRet = functionCallExpression.getExpressionType();
+    if (machine.getSizeof(declRet) != machine.getSizeof(actRet)) {
+      logger.log(Level.FINEST, "Function call", functionCallExpression.toASTString(), "with type", actRet,
+          "does not match function", functionType, "with return type", declRet,
+          "because of return types with different sizes.");
+      return false;
+    }
+
+    List<CType> declParams = functionType.getParameters();
+    List<CExpression> exprParams = functionCallExpression.getParameterExpressions();
+    for (int i=0; i<declParams.size(); i++) {
+      CType dt = declParams.get(i);
+      CType et = exprParams.get(i).getExpressionType();
+      if (machine.getSizeof(dt) != machine.getSizeof(et)) {
+        logger.log(Level.FINEST, "Function call", functionCallExpression.toASTString(),
+            "does not match function", functionType,
+            "because actual parameter", i, "has type", et, "instead of", dt,
+            "(differing sizes).");
         return false;
       }
-
-      List<CType> declParams = functionType.getParameters();
-      List<CExpression> exprParams = functionCallExpression.getParameterExpressions();
-      for (int i=0; i<declParams.size(); i++) {
-        CType dt = declParams.get(i);
-        CType et = exprParams.get(i).getExpressionType();
-        if (machine.getSizeof(dt) != machine.getSizeof(et)) {
-          logger.log(Level.FINEST, "Function call", functionCallExpression.toASTString(),
-              "does not match function", functionType,
-              "because actual parameter", i, "has type", et, "instead of", dt,
-              "(differing sizes).");
-          return false;
-        }
-      }
-    } catch (IllegalArgumentException e) {
-      // We can't get size of CProblemTypes, and they actually occur for valid C code.
-      // This is ugly, but we have no chance but catch this exception and return true here.
-      logger.logUserException(Level.INFO, e, functionType.toASTString("") + " " + functionCallExpression);
-      return true;
     }
 
     return true;
