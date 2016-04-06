@@ -67,6 +67,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -92,7 +94,7 @@ import com.google.common.collect.ImmutableSet.Builder;
 
 
 @Options(prefix="custominstructions")
-public class CustomInstructionRequirementsExtractingAlgorithm implements Algorithm {
+public class CustomInstructionRequirementsExtractingAlgorithm implements Algorithm, StatisticsProvider {
 
   private final Algorithm analysis;
   private final LogManager logger;
@@ -430,5 +432,12 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
       return uncover(state.getCoveringState());
     }
     return state;
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    if (analysis instanceof StatisticsProvider) {
+      ((StatisticsProvider) analysis).collectStatistics(pStatsCollection);
+    }
   }
 }
