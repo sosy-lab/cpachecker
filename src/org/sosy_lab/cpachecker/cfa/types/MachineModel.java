@@ -603,7 +603,10 @@ public enum MachineModel {
   }
 
   public int getSizeof(CType type) {
-    checkArgument(!type.isIncomplete(), "Cannot compute size of incomplete type %s", type);
+    checkArgument(
+        type instanceof CVoidType || !type.isIncomplete(),
+        "Cannot compute size of incomplete type %s",
+        type);
     return type.accept(sizeofVisitor);
   }
 
@@ -696,7 +699,6 @@ public enum MachineModel {
   }
 
   public int getAlignof(CType type) {
-    checkArgument(!type.isIncomplete(), "Cannot compute alignment of incomplete type %s", type);
     return type.accept(alignofVisitor);
   }
 
