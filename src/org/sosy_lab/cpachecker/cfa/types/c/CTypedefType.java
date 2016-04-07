@@ -126,11 +126,11 @@ public final class CTypedefType implements CType, Serializable {
 
   @Override
   public CType getCanonicalType() {
-    return getCanonicalType(isConst, isVolatile);
+    return getCanonicalType(false, false);
   }
 
   @Override
   public CType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
-    return realType.getCanonicalType(pForceConst, pForceVolatile);
+    return realType.getCanonicalType(isConst || pForceConst, isVolatile || pForceVolatile);
   }
 }
