@@ -23,15 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.delegation;
 
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
+import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.RefinableConstraintsPrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefinerFactory;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.RefinementStrategy;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
@@ -74,18 +75,15 @@ public abstract class PredicateExtractionRefiner implements Refiner {
     constraintsCpa.injectRefinablePrecision(new RefinableConstraintsPrecision(config));
 
     final LogManager logger = valueAnalysisCpa.getLogger();
-    final ShutdownNotifier shutdownNotifier = valueAnalysisCpa.getShutdownNotifier();
 
     RefinementStrategy strategy =
-        new SymbolicPrecisionRefinementStrategy(config,
+        new SymbolicPrecisionRefinementStrategy(
+            config,
             logger,
-            shutdownNotifier,
             predicateCPA.getPredicateManager(),
-            predicateCPA.getStaticRefiner(),
-            predicateCPA.getSolver(),
-            predicateCPA.getSolver().getFormulaManager()
-            );
+            predicateCPA.getSolver());
 
-    return PredicateRefiner.create(pCpa, strategy);
+    return AbstractARGBasedRefiner.forARGBasedRefiner(
+        new PredicateCPARefinerFactory(pCpa).forbidStaticRefinements().create(strategy), pCpa);
   }
 }

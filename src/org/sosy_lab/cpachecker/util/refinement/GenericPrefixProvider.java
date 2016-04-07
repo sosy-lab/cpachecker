@@ -62,7 +62,6 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
   private final LogManager logger;
   private final StrongestPostOperator<S> strongestPost;
   private final VariableTrackingPrecision precision;
-  private ARGPath feasiblePrefix;
   private final CFA cfa;
   private final S initialState;
 
@@ -147,22 +146,14 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
           feasiblePrefixBuilder.removeLast();
 
 
-          // if the loop is ending after this iteration we need to set the feasible prefix
-          if (!iterator.hasNext()) {
-            feasiblePrefix = feasiblePrefixBuilder.build(currentState);
-
-            // continue with feasible prefix
-          } else {
+          // continue with feasible prefix
+          if (iterator.hasNext()) {
             feasiblePrefixBuilder.add(currentState,
                                       BlankEdge.buildNoopEdge(outgoingEdge.getPredecessor(),
                                                               outgoingEdge.getSuccessor()));
           }
 
           successor = Optional.of(next);
-
-          // the loop is ending after this iteration, we need to set the feasible prefix
-        } else if (!iterator.hasNext()) {
-          feasiblePrefix = iterator.getPrefixInclusive();
         }
 
         // extract singleton successor state
@@ -211,11 +202,4 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
     return InfeasiblePrefix.buildForValueDomain(infeasiblePrefix,
         FluentIterable.from(interpolants).transform(Pair.<ValueAnalysisInterpolant>getProjectionToSecond()).toList());
   }
-
-  public ARGPath extractFeasilbePath(final ARGPath path)
-      throws CPAException, InterruptedException {
-    extractInfeasiblePrefixes(path);
-    return feasiblePrefix;
-  }
-
 }

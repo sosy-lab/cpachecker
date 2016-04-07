@@ -119,7 +119,7 @@ final class SMGConsistencyVerifier {
    */
   static private boolean verifyInvalidRegionsHaveNoHVEdges(LogManager pLogger, SMG pSmg) {
     for (SMGObject obj : pSmg.getObjects()) {
-      if (pSmg.isObjectValid(obj)) {
+      if (pSmg.isObjectValid(obj) && !pSmg.isObjectExternallyAllocated(obj)) {
         continue;
       }
       // Verify that the HasValue edge set for this invalid object is empty

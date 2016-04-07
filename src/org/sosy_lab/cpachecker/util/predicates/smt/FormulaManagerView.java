@@ -24,24 +24,17 @@
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
-import java.io.IOException;
-import java.math.BigInteger;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -57,6 +50,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.ReplaceBitvectorWithNumeralAndFunctionTheory.ReplaceBitvectorEncodingOptions;
 import org.sosy_lab.solver.SolverException;
@@ -78,17 +72,25 @@ import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.solver.api.NumeralFormulaManager;
 import org.sosy_lab.solver.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
+import org.sosy_lab.solver.visitors.BooleanFormulaVisitor;
 import org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor;
 import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
 import org.sosy_lab.solver.visitors.FormulaVisitor;
-import org.sosy_lab.solver.visitors.RecursiveFormulaVisitor;
 import org.sosy_lab.solver.visitors.TraversalProcess;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
+import java.io.IOException;
+import java.math.BigInteger;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
 
 /**
  * This class is the central entry point for all formula creation
@@ -161,7 +163,7 @@ public class FormulaManagerView {
     manager = checkNotNull(pFormulaManager);
     wrappingHandler = new FormulaWrappingHandler(manager, encodeBitvectorAs, encodeFloatAs);
     booleanFormulaManager = new BooleanFormulaManagerView(wrappingHandler, manager.getBooleanFormulaManager());
-    functionFormulaManager = new FunctionFormulaManagerView(wrappingHandler, manager.getFunctionFormulaManager());
+    functionFormulaManager = new FunctionFormulaManagerView(wrappingHandler, manager.getUFManager());
 
     final BitvectorFormulaManager rawBitvectorFormulaManager = getRawBitvectorFormulaManager(config);
     final FloatingPointFormulaManager rawFloatingPointFormulaManager = getRawFloatingPointFormulaManager();
@@ -169,6 +171,24 @@ public class FormulaManagerView {
     bitvectorFormulaManager = new BitvectorFormulaManagerView(wrappingHandler, rawBitvectorFormulaManager, manager.getBooleanFormulaManager());
     floatingPointFormulaManager = new FloatingPointFormulaManagerView(wrappingHandler, rawFloatingPointFormulaManager);
     integerFormulaManager = new IntegerFormulaManagerView(wrappingHandler, getIntegerFormulaManager0());
+
+    try {
+      quantifiedFormulaManager =
+          new QuantifiedFormulaManagerView(
+              wrappingHandler,
+              manager.getQuantifiedFormulaManager(),
+              booleanFormulaManager,
+              integerFormulaManager);
+    } catch (UnsupportedOperationException e) {
+      // do nothing, solver does not support quantification
+    }
+
+    try {
+      arrayFormulaManager =
+          new ArrayFormulaManagerView(wrappingHandler, manager.getArrayFormulaManager());
+    } catch (UnsupportedOperationException e) {
+      // do nothing, solver does not support arrays
+    }
   }
 
   /** Returns the BitvectorFormulaManager or a Replacement based on the Option 'encodeBitvectorAs'. */
@@ -190,7 +210,7 @@ public class FormulaManagerView {
       rawBitvectorFormulaManager = new ReplaceBitvectorWithNumeralAndFunctionTheory<>(wrappingHandler,
           manager.getBooleanFormulaManager(),
           getIntegerFormulaManager0(),
-          manager.getFunctionFormulaManager(),
+          manager.getUFManager(),
           new ReplaceBitvectorEncodingOptions(config));
       break;
     case RATIONAL:
@@ -207,7 +227,7 @@ public class FormulaManagerView {
       rawBitvectorFormulaManager = new ReplaceBitvectorWithNumeralAndFunctionTheory<>(wrappingHandler,
           manager.getBooleanFormulaManager(),
           rmgr,
-          manager.getFunctionFormulaManager(),
+          manager.getUFManager(),
           new ReplaceBitvectorEncodingOptions(config));
       break;
     case FLOAT:
@@ -237,7 +257,7 @@ public class FormulaManagerView {
       break;
     case INTEGER:
       rawFloatingPointFormulaManager = new ReplaceFloatingPointWithNumeralAndFunctionTheory<>(
-          wrappingHandler, getIntegerFormulaManager0(), manager.getFunctionFormulaManager(),
+          wrappingHandler, getIntegerFormulaManager0(), manager.getUFManager(),
           manager.getBooleanFormulaManager());
       break;
     case RATIONAL:
@@ -252,7 +272,7 @@ public class FormulaManagerView {
             e);
       }
       rawFloatingPointFormulaManager = new ReplaceFloatingPointWithNumeralAndFunctionTheory<>(
-          wrappingHandler, rmgr, manager.getFunctionFormulaManager(),
+          wrappingHandler, rmgr, manager.getUFManager(),
           manager.getBooleanFormulaManager());
       break;
     case BITVECTOR:
@@ -809,19 +829,14 @@ public class FormulaManagerView {
 
   public QuantifiedFormulaManagerView getQuantifiedFormulaManager() {
     if (quantifiedFormulaManager == null) {
-      quantifiedFormulaManager = new QuantifiedFormulaManagerView(
-          wrappingHandler,
-          manager.getQuantifiedFormulaManager(),
-          booleanFormulaManager,
-          getIntegerFormulaManager()
-      );
+      throw new UnsupportedOperationException("Solver does not support quantification");
     }
     return quantifiedFormulaManager;
   }
 
   public ArrayFormulaManagerView getArrayFormulaManager() {
     if (arrayFormulaManager == null) {
-      arrayFormulaManager = new ArrayFormulaManagerView(wrappingHandler, manager.getArrayFormulaManager());
+      throw new UnsupportedOperationException("Solver does not support arrays");
     }
     return arrayFormulaManager;
   }
@@ -1017,8 +1032,7 @@ public class FormulaManagerView {
 
       @Override
       public Void visitFunction(Formula f, List<Formula> args,
-          FunctionDeclaration decl,
-          Function<List<Formula>, Formula> newApplicationConstructor) {
+          FunctionDeclaration<?> decl) {
 
         boolean allArgumentsTransformed = true;
 
@@ -1046,14 +1060,14 @@ public class FormulaManagerView {
           Formula out;
           if (decl.getKind() == FunctionDeclarationKind.UF) {
 
-            out = functionFormulaManager.declareAndCallUninterpretedFunction(
+            out = functionFormulaManager.declareAndCallUF(
                 pRenameFunction.apply(decl.getName()),
                 getFormulaType(f),
                 newArgs
             );
 
           } else {
-            out = newApplicationConstructor.apply(newArgs);
+            out = manager.makeApplication(decl, newArgs);
           }
           pCache.put(f, out);
         }
@@ -1102,10 +1116,10 @@ public class FormulaManagerView {
   /**
    * Extract all atoms of a given boolean formula.
    */
-  public Collection<BooleanFormula> extractAtoms(
+  public ImmutableSet<BooleanFormula> extractAtoms(
       BooleanFormula pFormula,
       final boolean splitArithEqualities) {
-    final Set<BooleanFormula> result = new LinkedHashSet<>();
+    final ImmutableSet.Builder<BooleanFormula> result = ImmutableSet.builder();
     booleanFormulaManager.visitRecursively(new DefaultBooleanFormulaVisitor<TraversalProcess>(){
       @Override
       protected TraversalProcess visitDefault() {
@@ -1113,7 +1127,14 @@ public class FormulaManagerView {
       }
 
       @Override
-      public TraversalProcess visitAtom(BooleanFormula atom, FunctionDeclaration decl) {
+      public TraversalProcess visitQuantifier(Quantifier quantifier,
+          BooleanFormula quantifiedAST, List<Formula> boundVars, BooleanFormula body) {
+        result.add(quantifiedAST);
+        return TraversalProcess.SKIP;
+      }
+
+      @Override
+      public TraversalProcess visitAtom(BooleanFormula atom, FunctionDeclaration<BooleanFormula> decl) {
         if (splitArithEqualities && myIsPurelyArithmetic(atom)) {
           result.addAll(extractAtoms(splitNumeralEqualityIfPossible(atom).get(0), false));
         }
@@ -1122,7 +1143,7 @@ public class FormulaManagerView {
       }
 
     }, pFormula);
-    return result;
+    return result.build();
   }
 
   /**
@@ -1173,18 +1194,24 @@ public class FormulaManagerView {
     if (result != null) { return result; }
 
     final AtomicBoolean isPurelyAtomic = new AtomicBoolean(true);
-    new RecursiveFormulaVisitor(manager) {
+    visitRecursively(new DefaultFormulaVisitor<TraversalProcess>() {
       @Override
-      public Void visitFunction(
+      protected TraversalProcess visitDefault(Formula f) {
+        return TraversalProcess.CONTINUE;
+      }
+
+      @Override
+      public TraversalProcess visitFunction(
           Formula f,
           List<Formula> args,
-          FunctionDeclaration decl, Function<List<Formula>, Formula> constructor) {
+          FunctionDeclaration<?> decl) {
         if (decl.getKind() == FunctionDeclarationKind.UF) {
           isPurelyAtomic.set(false);
+          return TraversalProcess.ABORT;
         }
-        return null;
+        return TraversalProcess.CONTINUE;
       }
-    }.visit(f);
+    }, f);
     result = isPurelyAtomic.get();
     arithCache.put(f, result);
     return result;
@@ -1211,42 +1238,36 @@ public class FormulaManagerView {
     return manager.extractVariablesAndUFs(unwrap(f)).keySet();
   }
 
-  /**
-   * Extract pairs of <variable name, variable formula>
-   *  of all free variables in a formula.
-   *
-   * @deprecated The type of the returned Formula objects is incorrect.
-   * Thus consider using {@link #extractVariableNames(Formula)} instead.
-   * @param pF The input formula
-   * @return Map from variable names to variable formulas.
-   */
-  @Deprecated
-  public Map<String, Formula> extractFreeVariableMap(Formula pF) {
-    return manager.extractVariables(unwrap(pF));
-  }
-
   public Appender dumpFormula(BooleanFormula pT) {
     return manager.dumpFormula(pT);
   }
 
   public boolean isPurelyConjunctive(BooleanFormula t) {
-    t = applyTactic(t, Tactic.NNF);
+    final BooleanFormulaVisitor<Boolean> isAtomicVisitor =
+        new DefaultBooleanFormulaVisitor<Boolean>() {
+          @Override protected Boolean visitDefault() {
+            return false;
+          }
+          @Override public Boolean visitAtom(BooleanFormula atom,
+              FunctionDeclaration<BooleanFormula> decl) {
+            return !containsIfThenElse(atom);
+          }
+        };
+
     return booleanFormulaManager.visit(new DefaultBooleanFormulaVisitor<Boolean>() {
 
       @Override public Boolean visitDefault() {
         return false;
       }
-      @Override public Boolean visitTrue() {
+      @Override public Boolean visitConstant(boolean constantValue) {
         return true;
       }
-      @Override public Boolean visitFalse() {
-        return true;
-      }
-      @Override public Boolean visitAtom(BooleanFormula atom, FunctionDeclaration decl) {
+      @Override public Boolean visitAtom(BooleanFormula atom, FunctionDeclaration<BooleanFormula> decl) {
         return !containsIfThenElse(atom);
       }
       @Override public Boolean visitNot(BooleanFormula operand) {
-        return booleanFormulaManager.visit(this, operand);
+        // Return false unless the operand is atomic.
+        return booleanFormulaManager.visit(isAtomicVisitor, operand);
       }
       @Override public Boolean visitAnd(List<BooleanFormula> operands) {
         for (BooleanFormula operand : operands) {
@@ -1271,8 +1292,7 @@ public class FormulaManagerView {
       public TraversalProcess visitFunction(
           Formula f,
           List<Formula> args,
-          FunctionDeclaration decl,
-          Function<List<Formula>, Formula> constructor) {
+          FunctionDeclaration<?> decl) {
         if (decl.getKind() == FunctionDeclarationKind.ITE) {
           containsITE.set(true);
           return TraversalProcess.ABORT;
@@ -1315,8 +1335,7 @@ public class FormulaManagerView {
       public TraversalProcess visitFunction(
           Formula f,
           List<Formula> args,
-          FunctionDeclaration decl,
-          Function<List<Formula>, Formula> constructor) {
+          FunctionDeclaration<?> decl) {
         if (decl.getKind() == FunctionDeclarationKind.UF
             && decl.getName().equals(BitwiseAndUfName)) {
           andFound.set(true);
@@ -1375,23 +1394,9 @@ public class FormulaManagerView {
     for (Entry<? extends Formula, ? extends Formula> e : replacements.entrySet()) {
       m.put(unwrap(e.getKey()), unwrap(e.getValue()));
     }
-    return (BooleanFormula)manager.substitute(f, m);
+    return manager.substitute(f, m);
   }
 
-  /**
-   * Use a SSA map to conclude what variables of an
-   * [instantiated] formula can be considered 'dead'.
-   *
-   * A variable is considered 'dead' if its SSA index
-   * is different from the index in the SSA map.
-   */
-  public Set<String> getDeadVariableNames(BooleanFormula pFormula, SSAMap pSsa) {
-    return getDeadFunctionNames(pFormula, pSsa, false);
-  }
-
-  /**
-   * Same as {@link #getDeadVariableNames}, but returns UF's as well.
-   */
   public Set<String> getDeadFunctionNames(BooleanFormula pFormula, SSAMap pSsa) {
     return getDeadFunctionNames(pFormula, pSsa, true);
   }
@@ -1402,7 +1407,6 @@ public class FormulaManagerView {
   }
 
   /**
-   * Helper method for {@link #getDeadVariableNames(BooleanFormula, SSAMap)}.
    * Do not make this method public, because the returned formulas have incorrect
    * types (they are not appropriately wrapped).
    */
@@ -1469,11 +1473,26 @@ public class FormulaManagerView {
           Lists.newArrayList(irrelevantVariables.values()),
           pF
       );
+
       eliminationResult = qfmgr.eliminateQuantifiers(quantifiedFormula);
     }
 
     eliminationResult = simplify(eliminationResult); // TODO: Benchmark the effect!
     return eliminationResult;
+  }
+
+  /**
+   * Quantify all intermediate variables in the formula.
+   */
+  public BooleanFormula quantifyDeadVariables(BooleanFormula pF,
+      SSAMap pSSAMap) {
+    Map<String, Formula> irrelevantVariables = myGetDeadVariables(pF, pSSAMap, false);
+    if (irrelevantVariables.isEmpty()) {
+      return pF;
+    }
+    return getQuantifiedFormulaManager().exists(
+        Lists.newArrayList(irrelevantVariables.values()), pF
+    );
   }
 
   /**
@@ -1495,8 +1514,7 @@ public class FormulaManagerView {
             public Optional<Triple<BooleanFormula, T, T>> visitFunction(
                 Formula f,
                 List<Formula> args,
-                FunctionDeclaration functionDeclaration,
-                Function<List<Formula>, Formula> newApplicationConstructor) {
+                FunctionDeclaration<?> functionDeclaration) {
               if (functionDeclaration.getKind() == FunctionDeclarationKind.ITE) {
                 assert args.size() == 3;
                 BooleanFormula cond = (BooleanFormula)args.get(0);
@@ -1519,13 +1537,14 @@ public class FormulaManagerView {
    * See {@link FormulaManager#applyTactic(BooleanFormula, Tactic)} for
    * documentation.
    */
-  public BooleanFormula applyTactic(BooleanFormula input, Tactic tactic) {
+  public BooleanFormula applyTactic(BooleanFormula input, Tactic tactic) throws InterruptedException{
     return manager.applyTactic(input, tactic);
   }
 
   /**
    * Visit the formula with a given visitor.
    */
+  @CanIgnoreReturnValue
   public <R> R visit(FormulaVisitor<R> rFormulaVisitor, Formula f) {
     return manager.visit(rFormulaVisitor, unwrap(f));
   }
@@ -1543,5 +1562,30 @@ public class FormulaManagerView {
       FormulaVisitor<TraversalProcess> rFormulaVisitor,
       Formula f) {
     manager.visitRecursively(rFormulaVisitor, unwrap(f));
+  }
+
+  /**
+   * Eliminates dead variables in a fixpoint.
+   *
+   * @see #eliminateDeadVarsBestEffort(PathFormula)
+   */
+  public PathFormula eliminateDeadVarsFixpoint(PathFormula input) {
+    DeadVariablesEliminationManager eliminationManager =
+        new DeadVariablesEliminationManager(this, logger);
+    return eliminationManager.eliminateDeadVarsFixpoint(input);
+  }
+
+
+  /**
+   * Does "best-effort" for replacing dead variables: eliminate what it can eliminate,
+   * keep the rest.
+   *
+   * <p>Based on pattern matching formulas "x@n = x@i" for some {@code i < n},
+   * and replacing all occurrences of "x@i" with "x@n" if "x@n" does not occur anywhere else.
+   */
+  public PathFormula eliminateDeadVarsBestEffort(PathFormula input) {
+    DeadVariablesEliminationManager eliminationManager =
+        new DeadVariablesEliminationManager(this, logger);
+    return eliminationManager.eliminateDeadVarsBestEffort(input);
   }
 }

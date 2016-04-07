@@ -104,7 +104,7 @@ public class InterpolantPredicatesCounterexampleFilter extends AbstractNegatedPa
       Set<AbstractionPredicate> predicates = new HashSet<>();
       for (int i = 1; i < itpGroupIds.size(); i++) {
         BooleanFormula itp = itpProver.getInterpolant(itpGroupIds.subList(0, i));
-        predicates.addAll(predAbsMgr.extractPredicates(itp));
+        predicates.addAll(predAbsMgr.getPredicatesForAtomsOf(itp));
       }
       return Optional.of(ImmutableSet.copyOf(predicates));
     } catch (SolverException e) {

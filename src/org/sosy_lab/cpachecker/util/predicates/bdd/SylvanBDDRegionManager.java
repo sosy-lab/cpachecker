@@ -36,7 +36,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
 
 import javax.annotation.concurrent.GuardedBy;
@@ -299,11 +298,6 @@ class SylvanBDDRegionManager implements RegionManager {
   }
 
   @Override
-  public Set<Region> extractPredicates(Region pF) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
   public RegionBuilder builder(ShutdownNotifier pShutdownNotifier) {
     return new SylvanBDDRegionBuilder();
   }
@@ -467,13 +461,8 @@ class SylvanBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public Long visitTrue() {
-      return JSylvan.getTrue();
-    }
-
-    @Override
-    public Long visitFalse() {
-      return JSylvan.getFalse();
+    public Long visitConstant(boolean value) {
+      return value ? JSylvan.getTrue() : JSylvan.getFalse();
     }
 
     @Override
@@ -482,7 +471,7 @@ class SylvanBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public Long visitAtom(BooleanFormula pAtom, FunctionDeclaration decl) {
+    public Long visitAtom(BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> decl) {
       return unwrap(atomToRegion.apply(pAtom));
     }
 
@@ -559,7 +548,8 @@ class SylvanBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public Long visitQuantifier(Quantifier q, List<Formula> boundVars, BooleanFormula pBody) {
+    public Long visitQuantifier(Quantifier q, BooleanFormula quantifiedAST, List<Formula>
+        boundVars, BooleanFormula pBody) {
       throw new UnsupportedOperationException();
     }
   }

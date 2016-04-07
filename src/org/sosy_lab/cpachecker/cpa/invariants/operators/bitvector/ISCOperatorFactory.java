@@ -148,7 +148,8 @@ public enum ISCOperatorFactory {
   /**
    * The multiplication operator for multiplying intervals with scalar values.
    */
-  public Operator<BitVectorInterval, BigInteger, CompoundBitVectorInterval> getMuliply(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+  public Operator<BitVectorInterval, BigInteger, CompoundBitVectorInterval> getMultiply(
+      final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     return new Operator<BitVectorInterval, BigInteger, CompoundBitVectorInterval>() {
 
       @Override

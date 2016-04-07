@@ -23,18 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
-import java.io.PrintStream;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -54,7 +50,6 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisInterpolantM
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
 import org.sosy_lab.cpachecker.util.refinement.GenericRefiner;
@@ -65,20 +60,16 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
+import java.io.PrintStream;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
-@Options(prefix = "cpa.value.refinement")
 public class ValueAnalysisImpactRefiner
   extends GenericRefiner<ValueAnalysisState, ValueAnalysisInterpolant>
   implements UnsoundRefiner {
-
-  @Option(
-      secure = true,
-      description = "whether to use the top-down interpolation strategy or the bottom-up interpolation strategy")
-  private boolean useTopDownInterpolationStrategy = true;
 
   // statistics
   private int restartCounter = 0;
@@ -90,15 +81,8 @@ public class ValueAnalysisImpactRefiner
   public static ValueAnalysisImpactRefiner create(final ConfigurableProgramAnalysis pCpa)
     throws InvalidConfigurationException {
 
-    final ARGCPA argCpa = CPAs.retrieveCPA(pCpa, ARGCPA.class);
-    if (argCpa == null) {
-      throw new InvalidConfigurationException(ValueAnalysisImpactRefiner.class.getSimpleName() + " needs to be wrapped in an ARGCPA");
-    }
-
-    final ValueAnalysisCPA valueAnalysisCpa = CPAs.retrieveCPA(pCpa, ValueAnalysisCPA.class);
-    if (valueAnalysisCpa == null) {
-      throw new InvalidConfigurationException(ValueAnalysisImpactRefiner.class.getSimpleName() + " needs a ValueAnalysisCPA");
-    }
+    final ARGCPA argCpa = retrieveCPA(pCpa, ARGCPA.class);
+    final ValueAnalysisCPA valueAnalysisCpa = retrieveCPA(pCpa, ValueAnalysisCPA.class);
 
     valueAnalysisCpa.injectRefinablePrecision();
 
@@ -147,8 +131,6 @@ public class ValueAnalysisImpactRefiner
         pPathExtractor,
         pConfig,
         pLogger);
-
-    pConfig.inject(this);
   }
 
   @Override

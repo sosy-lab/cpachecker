@@ -1,9 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import java.util.Collection;
-import java.util.List;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
 
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -49,8 +47,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
+import java.util.Collection;
+import java.util.List;
+
+import javax.annotation.Nullable;
 
 /**
  * Policy iteration CPA.
@@ -123,7 +123,6 @@ public class PolicyCPA extends SingleEdgeTransferRelation
         statistics, pathFormulaManager);
     StateFormulaConversionManager stateFormulaConversionManager =
         new StateFormulaConversionManager(
-            config,
             formulaManager,
             pathFormulaManager, pCongruenceManager, templateManager,
             invariantGenerator);

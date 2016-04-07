@@ -1,0 +1,168 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="2">
+  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
+  <option name="-heap">12000M</option>
+  <option name="-stack">10M</option>
+  <option name="-noout"/>
+  <option name="-disable-java-assertions"/>
+  <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+
+  <!-- List of tasks to perform -->
+  <tasks name="ArraysReach">
+    <includesfile>../programs/benchmarks/ArraysReach.set</includesfile>
+  </tasks>
+  <!-- Begin customized array set—needs the files being available in a special
+       location -->
+  <!--<tasks name="ArraysReach10">
+    <includesfile>../programs/array-simplified-benchmarks/ArraysReach10.set</includesfile>
+  </tasks>
+  <tasks name="ArraysReach25">
+    <includesfile>../programs/array-simplified-benchmarks/ArraysReach25.set</includesfile>
+    <option name="-setprop">cpa.predicate.maxArrayLength=25</option>
+    <option name="-setprop">cpa.predicate.defaultArrayLength=25</option>
+  </tasks>
+  <tasks name="ArraysReach50">
+    <includesfile>../programs/array-simplified-benchmarks/ArraysReach50.set</includesfile>
+    <option name="-setprop">cpa.predicate.maxArrayLength=50</option>
+    <option name="-setprop">cpa.predicate.defaultArrayLength=50</option>
+  </tasks>
+  <tasks name="ArraysReach75">
+    <includesfile>../programs/array-simplified-benchmarks/ArraysReach75.set</includesfile>
+    <option name="-setprop">cpa.predicate.maxArrayLength=75</option>
+    <option name="-setprop">cpa.predicate.defaultArrayLength=75</option>
+  </tasks>
+  <tasks name="ArraysReach100">
+    <includesfile>../programs/array-simplified-benchmarks/ArraysReach100.set</includesfile>
+    <option name="-setprop">cpa.predicate.maxArrayLength=100</option>
+    <option name="-setprop">cpa.predicate.defaultArrayLength=100</option>
+  </tasks>
+  <tasks name="ArraysReach125">
+    <includesfile>../programs/array-simplified-benchmarks/ArraysReach125.set</includesfile>
+    <option name="-setprop">cpa.predicate.maxArrayLength=125</option>
+    <option name="-setprop">cpa.predicate.defaultArrayLength=125</option>
+  </tasks>
+  <tasks name="ArraysReach150">
+    <includesfile>../programs/array-simplified-benchmarks/ArraysReach150.set</includesfile>
+    <option name="-setprop">cpa.predicate.maxArrayLength=150</option>
+    <option name="-setprop">cpa.predicate.defaultArrayLength=150</option>
+  </tasks>
+  <tasks name="ArraysReach175">
+    <includesfile>../programs/array-simplified-benchmarks/ArraysReach175.set</includesfile>
+    <option name="-setprop">cpa.predicate.maxArrayLength=175</option>
+    <option name="-setprop">cpa.predicate.defaultArrayLength=175</option>
+  </tasks>
+  <tasks name="ArraysReach200">
+    <includesfile>../programs/array-simplified-benchmarks/ArraysReach200.set</includesfile>
+    <option name="-setprop">cpa.predicate.maxArrayLength=200</option>
+    <option name="-setprop">cpa.predicate.defaultArrayLength=200</option>
+  </tasks>
+  <tasks name="ArraysReach250">
+    <includesfile>../programs/array-simplified-benchmarks/ArraysReach250.set</includesfile>
+    <option name="-setprop">cpa.predicate.maxArrayLength=250</option>
+    <option name="-setprop">cpa.predicate.defaultArrayLength=250</option>
+  </tasks>-->
+  <!-- End customized array set -->
+  <!-- Begin custom additional files—needs the files being available in a
+       special location -->
+  <!--<tasks name="Custom">
+    <includesfile>../programs/array-simplified-benchmarks/Custom.set</includesfile>
+  </tasks>-->
+  <!-- End custom additional files -->
+  <tasks name="ControlFlow">
+    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+  </tasks>
+  <tasks name="DeviceDrivers64">
+    <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
+    <!-- <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option> -->
+    <option name="-64"/>
+  </tasks>
+  <tasks name="ECA">
+    <includesfile>../programs/benchmarks/ECA.set</includesfile>
+  </tasks>
+  <tasks name="HeapReach">
+    <includesfile>../programs/benchmarks/HeapReach.set</includesfile>
+  </tasks>
+  <tasks name="Loops">
+    <includesfile>../programs/benchmarks/Loops.set</includesfile>
+  </tasks>
+  <tasks name="ProductLines">
+    <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+  </tasks>
+  <tasks name="Sequentialized">
+    <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+  </tasks>
+  <tasks name="Simple">
+    <includesfile>../programs/benchmarks/Simple.set</includesfile>
+    <!-- <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option> -->
+  </tasks>
+
+  <!-- List of run definitions -->
+  <rundefinition name="MathSAT5-heaparray">
+    <option name="-predicateAnalysis-heaparray"/>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+  </rundefinition>
+  <rundefinition name="MathSAT5-uf">
+    <option name="-predicateAnalysis"/>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+  </rundefinition>
+  <rundefinition name="MathSAT5-oldarray">
+    <option name="-predicateAnalysis"/>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+    <option name="-setprop">cpa.predicate.handleArrays=true</option>
+  </rundefinition>
+  <rundefinition name="PRINCESS-heaparray">
+    <option name="-predicateAnalysis-heaparray"/>
+    <option name="-setprop">solver.solver=PRINCESS</option>
+    <option name="-setprop">cpa.predicate.encodeFloatAs=INTEGER</option>
+  </rundefinition>
+  <rundefinition name="PRINCESS-heaparray-quantifiers">
+    <option name="-predicateAnalysis-heaparray"/>
+    <option name="-setprop">solver.solver=PRINCESS</option>
+    <option name="-setprop">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="-setprop">cpa.predicate.useQuantifiersOnArrays=true</option>
+  </rundefinition>
+  <rundefinition name="PRINCESS-uf">
+    <option name="-predicateAnalysis"/>
+    <option name="-setprop">solver.solver=PRINCESS</option>
+    <option name="-setprop">cpa.predicate.encodeFloatAs=INTEGER</option>
+  </rundefinition>
+  <rundefinition name="PRINCESS-oldarray">
+    <option name="-predicateAnalysis"/>
+    <option name="-setprop">solver.solver=PRINCESS</option>
+    <option name="-setprop">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="-setprop">cpa.predicate.handleArrays=true</option>
+  </rundefinition>
+  <rundefinition name="SMTInterpol-heaparray">
+    <option name="-predicateAnalysis-heaparray"/>
+    <option name="-setprop">solver.solver=SMTINTERPOL</option>
+  </rundefinition>
+  <rundefinition name="SMTInterpol-uf">
+    <option name="-predicateAnalysis"/>
+    <option name="-setprop">solver.solver=SMTINTERPOL</option>
+  </rundefinition>
+  <rundefinition name="SMTInterpol-oldarray">
+    <option name="-predicateAnalysis"/>
+    <option name="-setprop">solver.solver=SMTINTERPOL</option>
+    <option name="-setprop">cpa.predicate.handleArrays=true</option>
+  </rundefinition>
+  <rundefinition name="Z3-heaparray">
+    <option name="-predicateAnalysis-heaparray"/>
+    <option name="-setprop">solver.solver=Z3</option>
+  </rundefinition>
+  <rundefinition name="Z3-heaparray-quantifiers">
+    <option name="-predicateAnalysis-heaparray"/>
+    <option name="-setprop">cpa.predicate.useQuantifiersOnArrays=true</option>
+    <option name="-setprop">solver.solver=Z3</option>
+  </rundefinition>
+  <rundefinition name="Z3-uf">
+    <option name="-predicateAnalysis"/>
+    <option name="-setprop">solver.solver=Z3</option>
+  </rundefinition>
+  <rundefinition name="Z3-oldarray">
+    <option name="-predicateAnalysis"/>
+    <option name="-setprop">solver.solver=Z3</option>
+    <option name="-setprop">cpa.predicate.handleArrays=true</option>
+  </rundefinition>
+
+</benchmark>

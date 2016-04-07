@@ -124,3 +124,37 @@ to work with a Java 7 compatible Eclipse version.
 4. If there are warnings about missing bundles, you don't have CDT in the correct version.
 
 5. Run the CPAclipse project as an "Eclipse Application".
+
+
+Releasing a new Version
+-----------------------
+
+1. Update NEWS.txt with notes for all important changes since the last
+   CPAchecker release (i.e., new analyses and features, important changes to
+   configuration etc.).
+
+2. Define a new version by setting "version.base" in "build.xml" to the new value.
+
+3. Build binary versions with "ant clean tar zip" and test them to ensure
+   that all necessary files are contained in them.
+
+4. Update AppEngine version of CPAchecker:
+   - Temporarily set "version" tag in "war/WEB-INF/appengine-web.xml" to "stable"
+     (do not commit this change).
+   - Deploy new version with "ant -f gae-build.xml deploy"
+     (needs OAuth setup for AppEngine permissions).
+
+5. Update homepage:
+   - Add release archives to "/html" in the repository.
+   - Put changelog of newest into "/html/NEWS-<version>.txt".
+   - Add links to "/html/download.php".
+   - Move the old download links to "/html/download-oldversions.php".
+   - Update section News on "/html/index.php".
+
+6. Add a tag in the repository with name "cpachecker-<version>".
+
+7. Send a mail with the release announcement to cpachecker-announce and
+   cpachecker-users mailing lists.
+
+8. Prepare for next development cycle by setting "version.base" in "build.xml"
+   to a new development version (ending with "-svn").

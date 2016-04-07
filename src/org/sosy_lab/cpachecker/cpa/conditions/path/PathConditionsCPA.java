@@ -45,10 +45,11 @@ import org.sosy_lab.cpachecker.core.defaults.StopAlwaysOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -61,7 +62,7 @@ import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA
  * It can be configured to work with any condition that implements this interface.
  */
 @Options(prefix="cpa.conditions.path")
-public class PathConditionsCPA implements ConfigurableProgramAnalysis, AdjustableConditionCPA, StatisticsProvider {
+public class PathConditionsCPA implements ConfigurableProgramAnalysisWithBAM, AdjustableConditionCPA, StatisticsProvider {
 
   @Option(secure=true, description="The condition", name="condition", required=true)
   @ClassOption(packagePrefix="org.sosy_lab.cpachecker.cpa.conditions.path")
@@ -145,5 +146,10 @@ public class PathConditionsCPA implements ConfigurableProgramAnalysis, Adjustabl
   @Override
   public TransferRelation getTransferRelation() {
     return transfer;
+  }
+
+  @Override
+  public Reducer getReducer() {
+    return condition.getReducer();
   }
 }

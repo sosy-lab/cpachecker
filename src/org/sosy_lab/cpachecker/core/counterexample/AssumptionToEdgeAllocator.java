@@ -23,19 +23,13 @@
  */
 package org.sosy_lab.cpachecker.core.counterexample;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -113,13 +107,20 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 /**
  * Creates assumption along an error path based on a given {@link CFAEdge} edge
@@ -1078,7 +1079,39 @@ public class AssumptionToEdgeAllocator {
       }
 
       @Override
+      public Value visit(CCastExpression cast) throws UnrecognizedCCodeException {
+
+        if (concreteState.getAnalysisConcreteExpressionEvaluation().shouldEvaluateExpressionWithThisEvaluator(cast)) {
+          Value op = cast.accept(this);
+
+          if (op.isUnknown()) {
+            return op;
+          }
+
+          return concreteState.getAnalysisConcreteExpressionEvaluation().evaluate(cast, op);
+        }
+
+        return super.visit(cast);
+      }
+
+      @Override
       public Value visit(CBinaryExpression binaryExp) throws UnrecognizedCCodeException {
+
+        if (concreteState.getAnalysisConcreteExpressionEvaluation().shouldEvaluateExpressionWithThisEvaluator(binaryExp)) {
+          Value op1 = binaryExp.getOperand1().accept(this);
+
+          if (op1.isUnknown()) {
+            return op1;
+          }
+
+          Value op2 = binaryExp.getOperand2().accept(this);
+
+          if (op2.isUnknown()) {
+            return op2;
+          }
+
+          return concreteState.getAnalysisConcreteExpressionEvaluation().evaluate(binaryExp, op1, op2);
+        }
 
         CExpression lVarInBinaryExp = binaryExp.getOperand1();
         CExpression rVarInBinaryExp = binaryExp.getOperand2();
@@ -1190,6 +1223,18 @@ public class AssumptionToEdgeAllocator {
 
       @Override
       public Value visit(CUnaryExpression pUnaryExpression) throws UnrecognizedCCodeException {
+
+        if (concreteState.getAnalysisConcreteExpressionEvaluation().shouldEvaluateExpressionWithThisEvaluator(pUnaryExpression)) {
+
+          Value operand = pUnaryExpression.getOperand().accept(this);
+
+          if (operand.isUnknown() && (pUnaryExpression.getOperator() == UnaryOperator.MINUS
+              || pUnaryExpression.getOperator() == UnaryOperator.TILDE)) {
+            return operand;
+          }
+
+          return concreteState.getAnalysisConcreteExpressionEvaluation().evaluate(pUnaryExpression, operand);
+        }
 
         if (pUnaryExpression.getOperator() == UnaryOperator.AMPER) {
 
@@ -1608,19 +1653,21 @@ public class AssumptionToEdgeAllocator {
       }
 
       private void handleStruct(CCompositeType pCompType) {
-
         Address fieldAddress = address;
+        if (!fieldAddress.isConcrete()) {
+          return;
+        }
 
-        for (CCompositeType.CCompositeTypeMemberDeclaration memberType : pCompType
-            .getMembers()) {
-
+        Iterator<CCompositeTypeMemberDeclaration> memberIt = pCompType.getMembers().iterator();
+        while (memberIt.hasNext()) {
+          final CCompositeTypeMemberDeclaration memberType = memberIt.next();
           handleMemberField(memberType, fieldAddress);
-          int offsetToNextField = machineModel.getSizeof(memberType.getType());
 
-          if (fieldAddress.isConcrete()) {
+          if (memberIt.hasNext()) {
+            int offsetToNextField = machineModel.getSizeof(memberType.getType());
             fieldAddress = fieldAddress.addOffset(BigInteger.valueOf(offsetToNextField));
           } else {
-            return;
+            fieldAddress = null;
           }
         }
       }
@@ -1713,14 +1760,19 @@ public class AssumptionToEdgeAllocator {
       private boolean handleArraySubscript(Address pArrayAddress,
           int pSubscript, CType pExpectedType,
           CArrayType pArrayType) {
+        if (!pArrayAddress.isConcrete()) {
+          return false;
+        }
 
         int typeSize = machineModel.getSizeof(pExpectedType);
         int subscriptOffset = pSubscript * typeSize;
-        int arraySize = machineModel.getSizeof(pArrayType);
 
-        // check if we are already out of array bound
+        // Check if we are already out of array bound, if we have an array length.
         // FIXME Imprecise due to imprecise getSizeOf method
-        if (!pArrayAddress.isConcrete() || arraySize <= subscriptOffset) {
+        if (!pArrayType.isIncomplete() && machineModel.getSizeof(pArrayType) <= subscriptOffset) {
+          return false;
+        }
+        if (pArrayType.getLength() == null) {
           return false;
         }
 
@@ -1955,7 +2007,7 @@ public class AssumptionToEdgeAllocator {
     }
   }
 
-  public final static class ValueLiterals {
+  private final static class ValueLiterals {
 
     /*Contains values for possible sub expressions */
     private final List<SubExpressionValueLiteral> subExpressionValueLiterals = new ArrayList<>();
@@ -1968,10 +2020,6 @@ public class AssumptionToEdgeAllocator {
 
     public ValueLiterals(ValueLiteral valueLiteral) {
       expressionValueLiteral = valueLiteral;
-    }
-
-    public ValueLiteral getExpressionValueLiteral() {
-      return expressionValueLiteral;
     }
 
     public CExpression getExpressionValueLiteralAsCExpression() {
@@ -2005,7 +2053,7 @@ public class AssumptionToEdgeAllocator {
     }
   }
 
-  public static interface ValueLiteral {
+  private static interface ValueLiteral {
 
     public CExpression getValueLiteral();
     public boolean isUnknown();
@@ -2013,7 +2061,7 @@ public class AssumptionToEdgeAllocator {
     public ValueLiteral addCast(CSimpleType pType);
   }
 
-  public static class UnknownValueLiteral implements ValueLiteral {
+  private static class UnknownValueLiteral implements ValueLiteral {
 
     private static final UnknownValueLiteral instance = new UnknownValueLiteral();
 
@@ -2044,7 +2092,7 @@ public class AssumptionToEdgeAllocator {
     }
   }
 
-  public static class ExplicitValueLiteral implements ValueLiteral {
+  private static class ExplicitValueLiteral implements ValueLiteral {
 
     private final CLiteralExpression explicitValueLiteral;
 
@@ -2090,10 +2138,6 @@ public class AssumptionToEdgeAllocator {
       return explicitValueLiteral;
     }
 
-    public CLiteralExpression getExplicitValueLiteral() {
-      return explicitValueLiteral;
-    }
-
     @Override
     public boolean isUnknown() {
       return false;
@@ -2105,7 +2149,7 @@ public class AssumptionToEdgeAllocator {
     }
   }
 
-  public static final class CastedExplicitValueLiteral extends ExplicitValueLiteral {
+  private static final class CastedExplicitValueLiteral extends ExplicitValueLiteral {
 
     private final CCastExpression castExpression;
 
@@ -2120,7 +2164,7 @@ public class AssumptionToEdgeAllocator {
     }
   }
 
-  public static final class SubExpressionValueLiteral {
+  private static final class SubExpressionValueLiteral {
 
     private final ValueLiteral valueLiteral;
     private final CLeftHandSide subExpression;
@@ -2132,10 +2176,6 @@ public class AssumptionToEdgeAllocator {
 
     public CExpression getValueLiteralAsCExpression() {
       return valueLiteral.getValueLiteral();
-    }
-
-    public ValueLiteral getValueLiteral() {
-      return valueLiteral;
     }
 
     public CLeftHandSide getSubExpression() {

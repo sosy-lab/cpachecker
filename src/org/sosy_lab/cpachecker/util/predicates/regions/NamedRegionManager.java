@@ -36,10 +36,10 @@ import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.PredicateOrderingStrategy;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Function;
 import com.google.common.collect.BiMap;
@@ -264,11 +264,6 @@ public class NamedRegionManager implements RegionManager {
   @Override
   public Triple<Region, Region, Region> getIfThenElse(Region pF) {
     return delegate.getIfThenElse(pF);
-  }
-
-  @Override
-  public Set<Region> extractPredicates(Region pF) {
-    return delegate.extractPredicates(pF);
   }
 
   @Override

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.Set;
 
 
 public interface CandidateGenerator extends Iterable<CandidateInvariant> {
@@ -54,30 +55,41 @@ public interface CandidateGenerator extends Iterable<CandidateInvariant> {
    */
   void confirmCandidates(Iterable<CandidateInvariant> pCandidates);
 
+  /**
+   * Returns the confirmed candidate invariants.
+   */
+  Set<? extends CandidateInvariant> getConfirmedCandidates();
+
   @Override
   Iterator<CandidateInvariant> iterator();
 
-  public static CandidateGenerator EMPTY_GENERATOR = new CandidateGenerator() {
+  public static CandidateGenerator EMPTY_GENERATOR =
+      new CandidateGenerator() {
 
-    @Override
-    public void confirmCandidates(Iterable<CandidateInvariant> pCandidates) {
-      // Do nothing
-    }
+        @Override
+        public void confirmCandidates(Iterable<CandidateInvariant> pCandidates) {
+          // Do nothing
+        }
 
-    @Override
-    public boolean produceMoreCandidates() {
-      return false;
-    }
+        @Override
+        public boolean produceMoreCandidates() {
+          return false;
+        }
 
-    @Override
-    public boolean hasCandidatesAvailable() {
-      return false;
-    }
+        @Override
+        public boolean hasCandidatesAvailable() {
+          return false;
+        }
 
-    @Override
-    public Iterator<CandidateInvariant> iterator() {
-      return Collections.emptyIterator();
-    }
-  };
+        @Override
+        public Iterator<CandidateInvariant> iterator() {
+          return Collections.emptyIterator();
+        }
+
+        @Override
+        public Set<CandidateInvariant> getConfirmedCandidates() {
+          return Collections.emptySet();
+        }
+      };
 
 }

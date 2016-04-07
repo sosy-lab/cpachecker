@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.w3c.dom.DOMException;
@@ -105,6 +106,7 @@ public class AutomatonGraphmlCommon {
     ISVIOLATIONNODE("violation", ElementType.NODE, "isViolationNode", "boolean"),
     ISENTRYNODE("entry", ElementType.NODE, "isEntryNode", "boolean"),
     ISSINKNODE("sink", ElementType.NODE, "isSinkNode", "boolean"),
+    ISLOOPSTART("loopHead", ElementType.NODE, "isLoopHead", "boolean"),
     VIOLATEDPROPERTY("violatedProperty", ElementType.NODE, "violatedProperty", "string"),
     SOURCECODELANGUAGE("sourcecodelang", ElementType.GRAPH, "sourcecodeLanguage", "string"),
     PROGRAMFILE("programfile", ElementType.GRAPH, "programFile", "string"),
@@ -164,7 +166,8 @@ public class AutomatonGraphmlCommon {
     ISFRONTIER(KeyDef.ISFRONTIERNODE),
     ISVIOLATION(KeyDef.ISVIOLATIONNODE),
     ISENTRY(KeyDef.ISENTRYNODE),
-    ISSINKNODE(KeyDef.ISSINKNODE);
+    ISSINKNODE(KeyDef.ISSINKNODE),
+    ISLOOPSTART(KeyDef.ISLOOPSTART);
 
     public final KeyDef key;
 
@@ -464,7 +467,7 @@ public class AutomatonGraphmlCommon {
     if (edge instanceof BlankEdge) {
       return !(edge.getSuccessor() instanceof FunctionExitNode);
     } else if (edge instanceof CFunctionReturnEdge) {
-      return true;
+      return false;
     } else if (edge instanceof CDeclarationEdge) {
       CDeclarationEdge declEdge = (CDeclarationEdge) edge;
       CDeclaration decl = declEdge.getDeclaration();
@@ -479,6 +482,8 @@ public class AutomatonGraphmlCommon {
         }
         return false;
       }
+    } else if (edge instanceof CFunctionSummaryStatementEdge) {
+      return true;
     }
 
     return false;

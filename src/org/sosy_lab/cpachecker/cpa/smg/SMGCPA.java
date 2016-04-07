@@ -63,6 +63,9 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
     return AutomaticCPAFactory.forType(SMGCPA.class);
   }
 
+  @Option(secure = true, description = "with this option enabled, heap abstraction will be enabled.")
+  private boolean enableHeapAbstraction = false;
+
   @Option(secure=true, name="runtimeCheck", description = "Sets the level of runtime checking: NONE, HALF, FULL")
   private SMGRuntimeCheck runtimeCheck = SMGRuntimeCheck.NONE;
 
@@ -75,6 +78,13 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
   @Option(secure=true, name="stop", toUppercase=true, values={"SEP", "NEVER"},
       description="which stop operator to use for the SMGCPA")
   private String stopType = "SEP";
+
+  @Option(secure = true, name = "externalAllocationSize", description = "Default size of externally allocated memory")
+  private int externalAllocationSize = Integer.MAX_VALUE;
+
+  public int getExternalAllocationSize() {
+    return externalAllocationSize;
+  }
 
   private final AbstractDomain abstractDomain;
   private final MergeOperator mergeOperator;
@@ -115,7 +125,7 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
 
     precision = initializePrecision(config, pCfa);
 
-    transferRelation = new SMGTransferRelation(config, logger, machineModel);
+    transferRelation = new SMGTransferRelation(config, logger, machineModel, enableHeapAbstraction);
   }
 
   public void injectRefinablePrecision() throws InvalidConfigurationException {
@@ -153,7 +163,8 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
   }
 
   public SMGState getInitialState(CFANode pNode) {
-    SMGState initState = new SMGState(logger, machineModel, memoryErrors, unknownOnUndefined, runtimeCheck);
+    SMGState initState = new SMGState(logger, machineModel, memoryErrors, unknownOnUndefined,
+        runtimeCheck, externalAllocationSize, enableHeapAbstraction);
 
     try {
       initState.performConsistencyCheck(SMGRuntimeCheck.FULL);

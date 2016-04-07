@@ -28,8 +28,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -42,14 +40,13 @@ import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.ConstraintsPrec
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionRefinementStrategy;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateStaticRefiner;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.ARGTreePrecisionUpdater;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -67,14 +64,11 @@ class SymbolicPrecisionRefinementStrategy extends PredicateAbstractionRefinement
   public SymbolicPrecisionRefinementStrategy(
       final Configuration config,
       final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier,
       final PredicateAbstractionManager pPredAbsMgr,
-      final PredicateStaticRefiner pStaticRefiner,
-      final Solver pSolver,
-      final FormulaManagerView pFormulaManager
-  ) throws InvalidConfigurationException {
-    super(config, pLogger, pShutdownNotifier, pPredAbsMgr, pStaticRefiner, pSolver);
-    formulaManager = pFormulaManager;
+      final Solver pSolver)
+      throws InvalidConfigurationException {
+    super(config, pLogger, pPredAbsMgr, pSolver);
+    formulaManager = pSolver.getFormulaManager();
   }
 
   @Override
@@ -94,17 +88,8 @@ class SymbolicPrecisionRefinementStrategy extends PredicateAbstractionRefinement
   }
 
   @Override
-  protected void finishRefinementOfPath(ARGState pUnreachableState,
-      List<ARGState> pAffectedStates, ARGReachedSet pReached,
-      boolean pRepeatedCounterexample
-  ) throws CPAException {
-
-    final Pair<PredicatePrecision, ARGState> newPrecAndRefinementRoot =
-        computeNewPrecision(pUnreachableState, pAffectedStates, pReached, pRepeatedCounterexample);
-
-    final PredicatePrecision newPrecision = newPrecAndRefinementRoot.getFirst();
-    final ARGState refinementRoot = newPrecAndRefinementRoot.getSecond();
-
+  protected void updateARG(PredicatePrecision newPrecision, ARGState pRefinementRoot,
+      ARGReachedSet pReached) {
     assert newPrecision.getFunctionPredicates().isEmpty()
         : "Only local predicates allowed, but function predicate exists";
     assert newPrecision.getGlobalPredicates().isEmpty()
@@ -124,8 +109,7 @@ class SymbolicPrecisionRefinementStrategy extends PredicateAbstractionRefinement
 
       for (AbstractionPredicate p : entry.getValue()) {
         for (String varName : formulaManager.extractVariableNames(p.getSymbolicAtom())) {
-          String nameWithoutIndex = FormulaManagerView.parseName(varName).getFirst();
-          locations.add(MemoryLocation.valueOf(nameWithoutIndex));
+          locations.add(MemoryLocation.valueOf(varName));
         }
       }
 
@@ -133,17 +117,7 @@ class SymbolicPrecisionRefinementStrategy extends PredicateAbstractionRefinement
       constrPrecInc.locallyTracked(currNode, (Constraint) null); // we only need the node
     }
 
-    updateARGTree(pReached, refinementRoot, valuePrecInc, constrPrecInc.build());
-  }
-
-  private void updateARGTree(
-      final ARGReachedSet pReached,
-      final ARGState pRefinementRoot,
-      final Multimap<CFANode, MemoryLocation> pValuePrecInc,
-      final Increment pConstrPrecInc
-  ) {
-
     final ARGTreePrecisionUpdater precUpdater = ARGTreePrecisionUpdater.getInstance();
-    precUpdater.updateARGTree(pReached, pRefinementRoot, pValuePrecInc, pConstrPrecInc);
+    precUpdater.updateARGTree(pReached, pRefinementRoot, valuePrecInc, constrPrecInc.build());
   }
 }

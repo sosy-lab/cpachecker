@@ -65,6 +65,11 @@ public class PathToConcreteProgramTranslator extends PathTranslator {
    * Currently when there are loops, the generated C code is invalid
    * because there is a goto to a missing label.
    *
+   * TODO: Using CFAPathWithAssumptions does not make sense for translatePaths,
+   * because CFAPathWithAssumptions encodes only a single path,
+   * and if there is only a single path, {@link #translateSinglePath(ARGPath, CFAPathWithAssumptions)}
+   * should be used.
+   *
    * @param argRoot The root of all given paths.
    * @param elementsOnErrorPath The set of states that are on all paths.
    * @param assignments The variable assignments for the path.

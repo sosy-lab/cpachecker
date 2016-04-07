@@ -23,14 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import com.google.common.base.Optional;
+
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.Model;
 import org.sosy_lab.solver.api.OptimizationProverEnvironment;
-
-import com.google.common.base.Optional;
 
 /**
  * Wrapper for {@link OptimizationProverEnvironment} which unwraps the objective formula.
@@ -108,14 +108,5 @@ public class OptimizationProverEnvironmentView implements OptimizationProverEnvi
   @Override
   public void close() {
     delegate.close();
-  }
-
-  /**
-   * @return String representation of the constraint system in the SMT-lib
-   * format.
-   */
-  @Override
-  public String dump() {
-    return delegate.dump();
   }
 }

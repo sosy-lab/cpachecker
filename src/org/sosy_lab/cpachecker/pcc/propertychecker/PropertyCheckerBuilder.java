@@ -23,34 +23,18 @@
  */
 package org.sosy_lab.cpachecker.pcc.propertychecker;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-
-import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PropertyChecker;
+
+import java.lang.reflect.Constructor;
+import java.util.Arrays;
 
 
 public class PropertyCheckerBuilder {
 
-  private static final String PROPERTYCHECKER_CLASS_PREFIX = "org.sosy_lab.cpachecker.pcc.propertychecker";
-
-  public static PropertyChecker buildPropertyChecker(String propCheckerClassName, String pCheckerParamList)
+  public static PropertyChecker buildPropertyChecker(
+      Class<? extends PropertyChecker> propertyCheckerClass, String pCheckerParamList)
       throws InvalidConfigurationException {
-    if (propCheckerClassName == null) { throw new InvalidConfigurationException(
-        "No property checker defined."); }
-
-    Class<?> propertyCheckerClass;
-    try {
-      propertyCheckerClass = Classes.forName(propCheckerClassName, PROPERTYCHECKER_CLASS_PREFIX);
-    } catch (ClassNotFoundException e) {
-      throw new InvalidConfigurationException(
-          "Class for property checker  " + propCheckerClassName + " is unknown.", e);
-    }
-
-    if (!PropertyChecker.class.isAssignableFrom(propertyCheckerClass)) { throw new InvalidConfigurationException(
-        "Option propertychecker.className must be set to a class implementing the PropertyChecker interface!"); }
-
     // get list of parameters
     String[] param;
 
@@ -63,34 +47,20 @@ public class PropertyCheckerBuilder {
         param[i] = result[i];
       }
     }
+
     // construct property checker instance
     try {
-      Constructor<?>[] cons = propertyCheckerClass.getConstructors();
+      Class<?>[] paramTypes = new Class<?>[param.length];
+      Arrays.fill(paramTypes, String.class);
+      Constructor<? extends PropertyChecker> constructor = propertyCheckerClass.getConstructor(paramTypes);
+      return constructor.newInstance((Object[]) param);
 
-      Class<?>[] paramTypes;
-      Constructor<?> constructor = null;
-      for (Constructor<?> con : cons) {
-        paramTypes = con.getParameterTypes();
-        if (paramTypes.length != param.length) {
-          continue;
-        } else {
-          for (Class<?> paramType : paramTypes) {
-            if (paramType != String.class) {
-              continue;
-            }
-          }
-        }
-        constructor = con;
-        break;
-      }
-
-      if (constructor == null) { throw new UnsupportedOperationException(
-          "Cannot create PropertyChecker " + propCheckerClassName + " if it does not provide a constructor with "
-              + param.length + " String parameters."); }
-
-      return (PropertyChecker) constructor.newInstance((Object[]) param);
-    } catch (SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException
-        | InvocationTargetException e) {
+    } catch (NoSuchMethodException e) {
+      throw new InvalidConfigurationException(String.format(
+          "Amount of %d given parameters in option cpa.propertychecker.parameters does not match any constructor of given property checker %s.",
+          param.length, propertyCheckerClass.getName()),
+          e);
+    } catch (ReflectiveOperationException | SecurityException | IllegalArgumentException e) {
       throw new UnsupportedOperationException(
           "Creation of specified PropertyChecker instance failed.", e);
     }

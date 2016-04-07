@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -432,6 +433,20 @@ public abstract class VariableTrackingPrecision implements Precision {
           trackFloatVariables,
           trackAddressedVariables
           );
+    }
+
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(ConfigurablePrecision.class)
+          .add("CPA", cpaClass.getSimpleName())
+          .add("blacklist", variableBlacklist)
+          .add("whitelist", variableWhitelist)
+          .add("trackBooleanVariables", trackBooleanVariables)
+          .add("trackIntEqualVariables", trackIntEqualVariables)
+          .add("trackIntAddVariables", trackIntAddVariables)
+          .add("trackFloatVariables", trackFloatVariables)
+          .add("trackAddressedVariables", trackAddressedVariables)
+          .toString();
     }
 
   }

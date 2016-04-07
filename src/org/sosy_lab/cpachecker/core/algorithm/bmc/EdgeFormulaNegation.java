@@ -28,11 +28,9 @@ import static com.google.common.base.Predicates.*;
 import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.getOnlyElement;
 
-import java.util.Collections;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -71,8 +69,11 @@ public class EdgeFormulaNegation extends AbstractLocationFormulaInvariant
   }
 
   @Override
-  public BooleanFormula getFormula(FormulaManagerView pFMGR, PathFormulaManager pPFMGR) throws CPATransferException, InterruptedException {
-    PathFormula invariantPathFormula = pPFMGR.makeFormulaForPath(Collections.<CFAEdge>singletonList(edge));
+  public BooleanFormula getFormula(
+      FormulaManagerView pFMGR, PathFormulaManager pPFMGR, PathFormula pContext)
+      throws CPATransferException, InterruptedException {
+    PathFormula clearContext = pPFMGR.makeEmptyPathFormula(pContext);
+    PathFormula invariantPathFormula = pPFMGR.makeAnd(clearContext, edge);
     return pFMGR.getBooleanFormulaManager().not(pFMGR.uninstantiate(invariantPathFormula.getFormula()));
   }
 

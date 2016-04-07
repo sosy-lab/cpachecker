@@ -37,7 +37,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.ShutdownNotifier;
@@ -65,7 +64,6 @@ import org.sosy_lab.solver.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.solver.visitors.BooleanFormulaVisitor;
 
 import com.google.common.base.Function;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
@@ -443,23 +441,6 @@ class JavaBDDRegionManager implements RegionManager {
   }
 
   @Override
-  public Set<Region> extractPredicates(Region pF) {
-    cleanupReferences();
-
-    BDD f = unwrap(pF);
-    int[] vars = f.scanSet();
-    if (vars == null) {
-      return ImmutableSet.of();
-    }
-
-    ImmutableSet.Builder<Region> predicateBuilder = ImmutableSet.builder();
-    for (int var : vars) {
-      predicateBuilder.add(wrap(factory.ithVar(var)));
-    }
-    return predicateBuilder.build();
-  }
-
-  @Override
   public RegionBuilder builder(ShutdownNotifier pShutdownNotifier) {
     return new BDDRegionBuilder(pShutdownNotifier);
   }
@@ -659,13 +640,8 @@ class JavaBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public BDD visitTrue() {
-      return factory.one();
-    }
-
-    @Override
-    public BDD visitFalse() {
-      return factory.zero();
+    public BDD visitConstant(boolean value) {
+      return value ? factory.one() : factory.zero();
     }
 
     @Override
@@ -674,7 +650,7 @@ class JavaBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public BDD visitAtom(BooleanFormula pAtom, FunctionDeclaration decl) {
+    public BDD visitAtom(BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> decl) {
       return ((JavaBDDRegion)atomToRegion.apply(pAtom)).getBDD().id();
     }
 
@@ -768,7 +744,8 @@ class JavaBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public BDD visitQuantifier(Quantifier q, List<Formula> args, BooleanFormula pBody) {
+    public BDD visitQuantifier(Quantifier q, BooleanFormula quantifiedAST, List<Formula> args,
+                               BooleanFormula pBody) {
       throw new UnsupportedOperationException();
     }
   }

@@ -23,10 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.PropertyChecker;
 
+import com.google.common.base.Preconditions;
+
+import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -39,30 +43,40 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PropertyChecker;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.pcc.propertychecker.PropertyCheckerBuilder;
 
-@Options
-public class PropertyCheckerCPA extends AbstractSingleWrapperCPA{
+import java.util.Collection;
+
+@Options(prefix="cpa.propertychecker")
+public class PropertyCheckerCPA extends AbstractSingleWrapperCPA implements ProofChecker {
 
   @Option(secure=true,
-      name = "cpa.propertychecker.className",
       description = "Qualified name for class which checks that the computed abstraction adheres to the desired property.")
-  private String checkerClass = "org.sosy_lab.cpachecker.pcc.propertychecker.DefaultPropertyChecker";
+  @ClassOption(packagePrefix="org.sosy_lab.cpachecker.pcc.propertychecker")
+  private Class<? extends PropertyChecker> className = org.sosy_lab.cpachecker.pcc.propertychecker.DefaultPropertyChecker.class;
   @Option(secure=true,
-      name = "cpa.propertychecker.parameters",
       description = "List of parameters for constructor of propertychecker.className. Parameter values are " +
           "specified in the order the parameters are defined in the respective constructor. Every parameter value is finished " +
           "with \",\". The empty string represents an empty parameter list.")
-  private String checkerParamList = "";
+  private String parameters = "";
 
-  private PropertyChecker propChecker;
+  private final PropertyChecker propChecker;
+  private final ProofChecker wrappedProofChecker;
 
   public PropertyCheckerCPA(ConfigurableProgramAnalysis pCpa, Configuration pConfig)
       throws InvalidConfigurationException {
     super(pCpa);
     pConfig.inject(this);
-    propChecker = PropertyCheckerBuilder.buildPropertyChecker(checkerClass, checkerParamList);
+    propChecker = PropertyCheckerBuilder.buildPropertyChecker(className, parameters);
+    if (pCpa instanceof ProofChecker) {
+      wrappedProofChecker = (ProofChecker) pCpa;
+    } else {
+      wrappedProofChecker = null;
+    }
   }
 
   public static CPAFactory factory() {
@@ -101,6 +115,21 @@ public class PropertyCheckerCPA extends AbstractSingleWrapperCPA{
 
   public PropertyChecker getPropChecker() {
     return propChecker;
+  }
+
+  @Override
+  public boolean areAbstractSuccessors(AbstractState pState, CFAEdge pCfaEdge,
+      Collection<? extends AbstractState> pSuccessors) throws CPATransferException,
+      InterruptedException {
+    Preconditions.checkNotNull(wrappedProofChecker, "Wrapped CPA must implement the ProofChecker interface");
+    return wrappedProofChecker.areAbstractSuccessors(pState, pCfaEdge, pSuccessors);
+  }
+
+  @Override
+  public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException,
+      InterruptedException {
+    Preconditions.checkNotNull(wrappedProofChecker, "Wrapped CPA must implement the ProofChecker interface");
+    return wrappedProofChecker.isCoveredBy(pState, pOtherState);
   }
 
 }

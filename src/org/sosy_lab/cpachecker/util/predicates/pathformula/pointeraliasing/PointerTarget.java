@@ -53,7 +53,7 @@ public class PointerTarget implements Serializable {
   /**
    * This constructor is for fields of nested structures and arrays
    */
-  PointerTarget(String base, CType containerType, int properOffset, int containerOffset) {
+  public PointerTarget(String base, CType containerType, int properOffset, int containerOffset) {
     this.base = base;
     this.containerType = containerType;
     this.properOffset = properOffset;

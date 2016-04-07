@@ -3,6 +3,7 @@ package org.sosy_lab.cpachecker.cpa.formulaslicing;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -11,14 +12,15 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
-import javax.annotation.Nullable;
-
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -36,6 +38,9 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
+import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
+import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashBasedTable;
@@ -55,7 +60,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
   /**
    * Statistics for formula slicing.
    */
-  class Stats implements Statistics {
+  private static class Stats implements Statistics {
     final Timer LBEencodingTimer = new Timer();
 
     @Override
@@ -67,7 +72,6 @@ public class LoopTransitionFinder implements StatisticsProvider {
           LBEencodingTimer.getAvgTime().formatAs(TimeUnit.SECONDS));
     }
 
-    @Nullable
     @Override
     public String getName() {
       return "LBE Encoding of Loops";
@@ -81,6 +85,15 @@ public class LoopTransitionFinder implements StatisticsProvider {
   @Option(secure=true, description="Instead of considering the entire SCC, "
       + "ignore the function nested in the loop. UNSOUND!")
   private boolean ignoreFunctionCallsInLoop = false;
+
+  @Option(
+      secure = true,
+      description =
+          "Time for loop generation before aborting.\n"
+              + "(Use seconds or specify a unit; 0 for infinite)"
+  )
+  @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = 0)
+   private TimeSpan timeForLoopGeneration = TimeSpan.ofSeconds(0);
 
   private final PathFormulaManager pfmgr;
   private final FormulaManagerView fmgr;
@@ -117,6 +130,15 @@ public class LoopTransitionFinder implements StatisticsProvider {
     Preconditions.checkState(loopStructure.getAllLoopHeads()
         .contains(loopHead));
 
+    ShutdownManager loopGenerationShutdown = ShutdownManager.createWithParent(shutdownNotifier);
+    ResourceLimitChecker limits = null;
+    if (!timeForLoopGeneration.isEmpty()) {
+      WalltimeLimit l = WalltimeLimit.fromNowOn(timeForLoopGeneration);
+      limits =
+          new ResourceLimitChecker(
+              loopGenerationShutdown, Collections.<ResourceLimit>singletonList(l));
+      limits.start();
+    }
 
     PathFormula out;
     statistics.LBEencodingTimer.start();
@@ -126,7 +148,11 @@ public class LoopTransitionFinder implements StatisticsProvider {
       statistics.LBEencodingTimer.stop();
     }
 
-    return out.updateFormula(fmgr.simplify(out.getFormula()));
+    if (!timeForLoopGeneration.isEmpty()) {
+      limits.cancel();
+    }
+
+    return out;
   }
 
 

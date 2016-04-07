@@ -50,10 +50,10 @@ import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithConcreteCex;
 import org.sosy_lab.cpachecker.core.interfaces.IterationStatistics;
@@ -299,8 +299,13 @@ public class ARGStatistics implements IterationStatistics {
 
           CFAPathWithAssumptions assignments = createAssignmentsForPath(path);
           // we use the imprecise version of the CounterexampleInfo, due to the possible
-          // merges which are done in the used CPAs
-          cex = CounterexampleInfo.feasible(path, assignments);
+          // merges which are done in the used CPAs, but if we can compute a path with assignments,
+          // it is probably precise
+          if (!assignments.isEmpty()) {
+            cex = CounterexampleInfo.feasiblePrecise(path, assignments);
+          } else {
+            cex = CounterexampleInfo.feasibleImprecise(path);
+          }
         }
       }
       if (cex != null) {

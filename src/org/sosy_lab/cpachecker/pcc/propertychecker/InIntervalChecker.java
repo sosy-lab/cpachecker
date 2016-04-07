@@ -37,7 +37,12 @@ public class InIntervalChecker extends PerElementPropertyChecker {
   private final String varName;
   private final Interval allowedValues;
 
-  public InIntervalChecker(final String pVariableName, final String pLabel, final String pMode, final String pMin,
+  public InIntervalChecker(final String pVariableName, final String pLabel,
+      // Necessary because called reflectively
+      // TODO Better usability would be to pass Configuration object
+      // and define all user-specified parameters as individual @Option fields in this class.
+      @SuppressWarnings("unused") final String pMode,
+      final String pMin,
       final String pMax) {
     label = pLabel;
     varName = pVariableName;

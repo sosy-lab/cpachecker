@@ -86,11 +86,11 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
     config.inject(this, FormulaEncodingWithPointerAliasingOptions.class);
   }
 
-  boolean hasSuperfluousParameters(final String name) {
+  public boolean hasSuperfluousParameters(final String name) {
     return memoryAllocationFunctionsWithSuperfluousParameters.contains(name);
   }
 
-  boolean isDynamicMemoryFunction(final String name) {
+  public boolean isDynamicMemoryFunction(final String name) {
     return isSuccessfulAllocFunctionName(name)
         || isSuccessfulZallocFunctionName(name)
         || isMemoryAllocationFunction(name)
@@ -98,63 +98,63 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
         || isMemoryFreeFunction(name);
   }
 
-  boolean isSuccessfulAllocFunctionName(final String name) {
+  public boolean isSuccessfulAllocFunctionName(final String name) {
     return successfulAllocFunctionName.equals(name);
   }
 
-  boolean isSuccessfulZallocFunctionName(final String name) {
+  public boolean isSuccessfulZallocFunctionName(final String name) {
     return successfulZallocFunctionName.equals(name);
   }
 
-  boolean isDynamicAllocVariableName(final String name) {
+  public boolean isDynamicAllocVariableName(final String name) {
     return isSuccessfulAllocFunctionName(name) || isSuccessfulZallocFunctionName(name);
   }
 
-  String getSuccessfulAllocFunctionName() {
+  public String getSuccessfulAllocFunctionName() {
     return successfulAllocFunctionName;
   }
 
-  String getSuccessfulZallocFunctionName() {
+  public String getSuccessfulZallocFunctionName() {
     return successfulZallocFunctionName;
   }
 
-  boolean makeMemoryAllocationsAlwaysSucceed() {
+  public boolean makeMemoryAllocationsAlwaysSucceed() {
     return memoryAllocationsAlwaysSucceed;
   }
 
-  boolean revealAllocationTypeFromLHS() {
+  public boolean revealAllocationTypeFromLHS() {
     return revealAllocationTypeFromLhs;
   }
 
-  boolean deferUntypedAllocations() {
+  public boolean deferUntypedAllocations() {
     return deferUntypedAllocations;
   }
 
-  int maxPreFilledAllocationSize() {
+  public int maxPreFilledAllocationSize() {
     return maxPreFilledAllocationSize;
   }
 
-  int defaultAllocationSize() {
+  public int defaultAllocationSize() {
     return defaultAllocationSize;
   }
 
-  int defaultArrayLength() {
+  public int defaultArrayLength() {
     return defaultArrayLength;
   }
 
-  int maxArrayLength() {
+  public int maxArrayLength() {
     return maxArrayLength;
   }
 
-  boolean isMemoryFreeFunction(final String name) {
+  public boolean isMemoryFreeFunction(final String name) {
     return memoryFreeFunctionName.equals(name);
   }
 
-  boolean handleStringLiteralInitializers() {
+  public boolean handleStringLiteralInitializers() {
     return handleStringLiteralInitializers;
   }
 
-  boolean handleImplicitInitialization() {
+  public boolean handleImplicitInitialization() {
     return handleImplicitInitialization;
   }
 }

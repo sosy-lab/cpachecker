@@ -71,6 +71,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.smg.SMGState.PointerComparisonResult;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGExplicitValue;
@@ -81,6 +82,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -308,13 +310,16 @@ public class SMGExpressionEvaluator {
 
     for (CCompositeTypeMemberDeclaration typeMember : membersOfType) {
       String memberName = typeMember.getName();
-      if (memberName.equals(fieldName)) {
+      int padding = machineModel.getPadding(offset, typeMember.getType());
 
-      return new SMGField(SMGKnownExpValue.valueOf(offset),
+      if (memberName.equals(fieldName)) {
+        offset += padding;
+        return new SMGField(SMGKnownExpValue.valueOf(offset),
           getRealExpressionType(typeMember.getType())); }
 
       if (!(ownerType.getKind() == ComplexTypeKind.UNION)) {
-        offset = offset + getSizeof(pEdge, getRealExpressionType(typeMember.getType()), pState, expression);
+        offset = offset + padding + getSizeof(pEdge, getRealExpressionType(typeMember.getType()),
+            pState, expression);
       }
     }
 
@@ -634,7 +639,7 @@ public class SMGExpressionEvaluator {
 
       if (c instanceof CArrayType) {
         // a == &a[0];
-        return SMGAddressValueAndStateList.of(createAddressOfVariable(exp));
+        return createAddressOfVariable(exp);
       }
 
       return getAddressFromSymbolicValues(super.visit(exp));
@@ -669,12 +674,12 @@ public class SMGExpressionEvaluator {
       if (getRealExpressionType(amperOperand) instanceof CFunctionType
           && amperOperand instanceof CIdExpression) {
         // function type &foo
-        SMGAddressValueAndState addressValueAndState = createAddressOfFunction((CIdExpression) amperOperand);
-        return SMGAddressValueAndStateList.of(addressValueAndState);
+        SMGAddressValueAndStateList addressValueAndStates = createAddressOfFunction((CIdExpression) amperOperand);
+        return addressValueAndStates;
       } else if (amperOperand instanceof CIdExpression) {
         // &a
-        SMGAddressValueAndState addressValueAndState = createAddressOfVariable((CIdExpression) amperOperand);
-        return SMGAddressValueAndStateList.of(addressValueAndState);
+        SMGAddressValueAndStateList addressValueAndState = createAddressOfVariable((CIdExpression) amperOperand);
+        return addressValueAndState;
       } else if (amperOperand instanceof CPointerExpression) {
         // &(*(a))
 
@@ -692,7 +697,7 @@ public class SMGExpressionEvaluator {
       }
     }
 
-    protected SMGAddressValueAndState createAddressOfFunction(CIdExpression idFunctionExpression)
+    protected SMGAddressValueAndStateList createAddressOfFunction(CIdExpression idFunctionExpression)
         throws SMGInconsistentException {
 
       SMGState state = getInitialSmgState();
@@ -701,7 +706,7 @@ public class SMGExpressionEvaluator {
           state.getObjectForFunction((CFunctionDeclaration) idFunctionExpression.getDeclaration());
 
       if (functionObject == null) {
-        return SMGAddressValueAndState.of(state);
+        return SMGAddressValueAndStateList.of(state);
       }
 
       return createAddress(state, functionObject, SMGKnownExpValue.ZERO);
@@ -750,8 +755,8 @@ public class SMGExpressionEvaluator {
 
           SMGExplicitValue offset = arrayOffset.add(subscriptValue).multiply(sizeOfType);
 
-          SMGAddressValueAndState resultAddressAndState = createAddress(newState, arrayAddress.getObject(), offset);
-          result.add(resultAddressAndState);
+          SMGAddressValueAndStateList resultAddressAndState = createAddress(newState, arrayAddress.getObject(), offset);
+          result.addAll(resultAddressAndState.asAddressValueAndStateList());
         }
       }
 
@@ -776,23 +781,23 @@ public class SMGExpressionEvaluator {
           continue;
         }
 
-        SMGAddressValueAndState resultAddressValueAndState = createAddress(addressOfFieldAndState.getSmgState(),
+        SMGAddressValueAndStateList resultAddressValueAndState = createAddress(addressOfFieldAndState.getSmgState(),
             addressOfField.getObject(), addressOfField.getOffset());
 
-        result.add(resultAddressValueAndState);
+        result.addAll(resultAddressValueAndState.asAddressValueAndStateList());
       }
 
       return SMGAddressValueAndStateList.copyOfAddressValueList(result);
     }
 
-    private SMGAddressValueAndState createAddressOfVariable(CIdExpression idExpression) throws SMGInconsistentException {
+    private SMGAddressValueAndStateList createAddressOfVariable(CIdExpression idExpression) throws SMGInconsistentException {
 
       SMGState state = getInitialSmgState();
 
       SMGObject variableObject = state.getObjectForVisibleVariable(idExpression.getName());
 
       if (variableObject == null) {
-        return SMGAddressValueAndState.of(state);
+        return SMGAddressValueAndStateList.of(state);
       } else {
         return createAddress(state, variableObject, SMGKnownExpValue.ZERO);
       }
@@ -907,13 +912,13 @@ public class SMGExpressionEvaluator {
 
           switch (binaryOperator) {
           case PLUS:
-            SMGAddressValueAndState resultAddressValueAndState = createAddress(newState, target, addressOffset.add(pointerOffsetValue));
-            result.add(resultAddressValueAndState);
+            SMGAddressValueAndStateList resultAddressValueAndStateList = createAddress(newState, target, addressOffset.add(pointerOffsetValue));
+            result.addAll(resultAddressValueAndStateList.asAddressValueAndStateList());
             break;
           case MINUS:
             if (lVarIsAddress) {
-              resultAddressValueAndState = createAddress(newState, target, addressOffset.subtract(pointerOffsetValue));
-              result.add(resultAddressValueAndState);
+              resultAddressValueAndStateList = createAddress(newState, target, addressOffset.subtract(pointerOffsetValue));
+              result.addAll(resultAddressValueAndStateList.asAddressValueAndStateList());
               break;
             } else {
               throw new UnrecognizedCCodeException("Expected pointer arithmetic "
@@ -1009,19 +1014,19 @@ public class SMGExpressionEvaluator {
     List<SMGAddressValueAndState> result = new ArrayList<>(pAddresses.size());
 
     for (SMGAddressAndState addressAndState : pAddresses) {
-      result.add(createAddress(addressAndState));
+      result.addAll(createAddress(addressAndState).asAddressValueAndStateList());
     }
 
     return SMGAddressValueAndStateList.copyOfAddressValueList(result);
   }
 
-  private SMGAddressValueAndState createAddress(SMGAddressAndState addressAndState) throws SMGInconsistentException {
+  private SMGAddressValueAndStateList createAddress(SMGAddressAndState addressAndState) throws SMGInconsistentException {
 
     SMGState state = addressAndState.getSmgState();
     SMGAddress address = addressAndState.getObject();
 
     if (address.isUnknown()) {
-      return SMGAddressValueAndState.of(state);
+      return SMGAddressValueAndStateList.of(state);
     }
 
     return createAddress(state, address.getObject(), address.getOffset());
@@ -1045,7 +1050,7 @@ public class SMGExpressionEvaluator {
       List<SMGAddressValueAndState> addressAndStateList = new ArrayList<>(pAddressValueAndStateList.size());
 
       for (SMGValueAndState valueAndState : pAddressValueAndStateList.getValueAndStateList()) {
-        addressAndStateList.add(getAddressFromSymbolicValue(valueAndState));
+        addressAndStateList.addAll(getAddressFromSymbolicValue(valueAndState).asAddressValueAndStateList());
       }
       return SMGAddressValueAndStateList.copyOfAddressValueList(addressAndStateList);
     }
@@ -1066,67 +1071,84 @@ public class SMGExpressionEvaluator {
    * @return The address, otherwise unknown
    * @throws SMGInconsistentException thrown if the symbolic address is misinterpreted as a pointer.
    */
-  SMGAddressValueAndState getAddressFromSymbolicValue(SMGValueAndState pAddressValueAndState) throws SMGInconsistentException {
+  SMGAddressValueAndStateList getAddressFromSymbolicValue(SMGValueAndState pAddressValueAndState) throws SMGInconsistentException {
 
     if (pAddressValueAndState instanceof SMGAddressValueAndState) {
-      return (SMGAddressValueAndState) pAddressValueAndState;
+      return SMGAddressValueAndStateList.of((SMGAddressValueAndState) pAddressValueAndState);
     }
 
     SMGSymbolicValue pAddressValue = pAddressValueAndState.getObject();
     SMGState smgState = pAddressValueAndState.getSmgState();
 
     if (pAddressValue instanceof SMGAddressValue) {
-      return SMGAddressValueAndState.of(smgState,
-          (SMGAddressValue) pAddressValue);
+      return SMGAddressValueAndStateList.of(SMGAddressValueAndState.of(smgState,
+          (SMGAddressValue) pAddressValue));
     }
 
     if (pAddressValue.isUnknown()) {
-      return SMGAddressValueAndState.of(smgState);
+      return SMGAddressValueAndStateList.of(smgState);
     }
 
     if (!smgState.isPointer(pAddressValue.getAsInt())) {
-      return SMGAddressValueAndState.of(smgState);
+      return SMGAddressValueAndStateList.of(smgState);
     }
 
-    SMGAddressValue addressValue = smgState.getPointerFromValue(pAddressValue.getAsInt());
+    SMGAddressValueAndStateList addressValues =
+        smgState.getPointerFromValue(pAddressValue.getAsInt());
 
-    return SMGAddressValueAndState.of(smgState, addressValue);
+    return addressValues;
   }
 
-  SMGAddressValueAndState createAddress(SMGState pSmgState, SMGObject pTarget,
+  SMGAddressValueAndStateList createAddress(SMGState pSmgState, SMGObject pTarget,
       SMGExplicitValue pOffset) throws SMGInconsistentException {
 
-    SMGAddressValueAndState addressValueAndState = getAddress(pSmgState, pTarget, pOffset);
+    SMGAddressValueAndStateList addressValueAndStates = getAddress(pSmgState, pTarget, pOffset);
 
-    if (addressValueAndState.getObject().isUnknown()) {
+    List<SMGAddressValueAndState> result = new ArrayList<>(addressValueAndStates.size());
 
-      SMGKnownSymValue value = SMGKnownSymValue.valueOf(SMGValueFactory
-          .getNewValue());
-      SMGKnownAddVal addressValue = SMGKnownAddVal.valueOf(pTarget,
-          (SMGKnownExpValue) pOffset, value);
-      return SMGAddressValueAndState.of(addressValueAndState.getSmgState(),
-          addressValue);
+    for (SMGAddressValueAndState addressValueAndState : addressValueAndStates.asAddressValueAndStateList()) {
+      if (addressValueAndState.getObject().isUnknown()) {
+
+        SMGKnownSymValue value = SMGKnownSymValue.valueOf(SMGValueFactory
+            .getNewValue());
+        SMGKnownAddVal addressValue = SMGKnownAddVal.valueOf(pTarget,
+            (SMGKnownExpValue) pOffset, value);
+        result.add(SMGAddressValueAndState.of(addressValueAndState.getSmgState(), addressValue));
+      } else {
+        result.add(addressValueAndState);
+      }
     }
 
-    return addressValueAndState;
+    return SMGAddressValueAndStateList.copyOfAddressValueList(result);
   }
 
-  SMGAddressValueAndState getAddress(SMGState pSmgState, SMGObject pTarget,
+  SMGAddressValueAndStateList getAddress(SMGState pSmgState, SMGObject pTarget,
       SMGExplicitValue pOffset) throws SMGInconsistentException {
 
     if (pTarget == null || pOffset.isUnknown()) {
-      return SMGAddressValueAndState.of(pSmgState);
+      return SMGAddressValueAndStateList.of(pSmgState);
     }
 
-    Integer address = pSmgState.getAddress(pTarget, pOffset.getAsInt());
+    SMGRegion regionTarget;
+
+    if(pTarget instanceof SMGRegion) {
+      regionTarget = (SMGRegion) pTarget;
+    } else if(pTarget == SMGObject.getNullObject()) {
+      SMGAddressValueAndState result = SMGAddressValueAndState.of(pSmgState, SMGKnownAddVal.valueOf(0, pTarget, pOffset.getAsInt()));
+      return SMGAddressValueAndStateList.of(result);
+    } else {
+      throw new AssertionError("Abstraction " + pTarget.toString() + " was not materialised.");
+    }
+
+    Integer address = pSmgState.getAddress(regionTarget, pOffset.getAsInt());
 
     if (address == null) {
-      return SMGAddressValueAndState.of(pSmgState);
+      return SMGAddressValueAndStateList.of(pSmgState);
     }
 
-    SMGAddressValue addressValue = pSmgState.getPointerFromValue(address);
+    SMGAddressValueAndStateList addressValues = pSmgState.getPointerFromValue(address);
 
-    return SMGAddressValueAndState.of(pSmgState, addressValue);
+    return addressValues;
   }
 
   /**
@@ -1224,9 +1246,9 @@ public class SMGExpressionEvaluator {
               readValue(newState, address.getObject(),
                   address.getOffset(), type, getCfaEdge());
 
-          SMGAddressValueAndState trueAddressAndState = getAddressFromSymbolicValue(pointerAndState);
+          SMGAddressValueAndStateList trueAddressAndState = getAddressFromSymbolicValue(pointerAndState);
 
-          result.add(trueAddressAndState.asSMGAddressAndState());
+          result.addAll(trueAddressAndState.asAddressAndStateList());
         }
 
         return result;
@@ -1297,6 +1319,8 @@ public class SMGExpressionEvaluator {
             SMGSymbolicValue resultValue = evaluateBinaryAssumption(newState,
                 binaryOperator, leftSideVal, rightSideVal);
 
+            //TODO: separate modifiable and unmodifiable visitor
+            newState.addPredicateRelation(leftSideVal, rightSideVal, binaryOperator, cfaEdge);
             result.add(SMGValueAndState.of(newState, resultValue));
           }
         }
@@ -1338,8 +1362,7 @@ public class SMGExpressionEvaluator {
        * @param pV2 the second operand
        */
       public BinaryRelationEvaluator(SMGState newState, BinaryOperator pOp,
-          SMGSymbolicValue pV1, SMGSymbolicValue pV2)
-          throws SMGInconsistentException {
+          SMGSymbolicValue pV1, SMGSymbolicValue pV2) {
 
         smgState = newState;
 
@@ -1400,40 +1423,11 @@ public class SMGExpressionEvaluator {
             throw new AssertionError("Impossible case thrown");
           }
 
-          if (isPointerOp1 && isPointerOp2) {
-            SMGAddressValue pointer1 = getAddressOfPointer(pV1);
-            SMGAddressValue pointer2 = getAddressOfPointer(pV2);
-            SMGObject object1 = pointer1.getObject();
-            SMGObject object2 = pointer2.getObject();
-
-            // there can be more precise comparsion when pointer point to the
-            // same object.
-            if (object1 == object2) {
-              int offset1 = pointer1.getOffset().getAsInt();
-              int offset2 = pointer2.getOffset().getAsInt();
-
-              switch (pOp) {
-              case GREATER_EQUAL:
-                isTrue = offset1 >= offset2;
-                isFalse = !isTrue;
-                break;
-              case GREATER_THAN:
-                isTrue = offset1 > offset2;
-                isFalse = !isTrue;
-                break;
-              case LESS_EQUAL:
-                isTrue = offset1 <= offset2;
-                isFalse = !isTrue;
-                break;
-              case LESS_THAN:
-                isTrue = offset1 < offset2;
-                isFalse = !isTrue;
-                break;
-              default:
-                throw new AssertionError("Impossible case thrown");
-              }
+            if (isPointerOp1 && isPointerOp2) {
+              PointerComparisonResult result = smgState.comparePointer(pV1, pV2, pOp);
+              isFalse = result.isFalse();
+              isTrue = result.isTrue();
             }
-          }
           break;
         default:
           throw new AssertionError(
@@ -1459,42 +1453,19 @@ public class SMGExpressionEvaluator {
       }
 
       private boolean isUnequal(SMGSymbolicValue pValue1, SMGSymbolicValue pValue2, boolean isPointerOp1,
-          boolean isPointerOp2) throws SMGInconsistentException {
+          boolean isPointerOp2) {
 
         int value1 = pValue1.getAsInt();
         int value2 = pValue2.getAsInt();
 
         if (isPointerOp1 && isPointerOp2) {
 
-          if (value1 != value2) {
-
-            SMGAddressValue pointerValue1 = getAddressOfPointer(pValue1);
-            SMGAddressValue pointerValue2 = getAddressOfPointer(pValue2);
-
-            /* This is just a safety check,
-            equal pointers should have equal symbolic values.*/
-            return pointerValue1.getObject() != pointerValue2.getObject()
-                || pointerValue1.getOffset() != pointerValue2.getOffset();
-          } else {
-            return false;
-          }
+          return value1 != value2;
         } else if (isPointerOp1 && value2 == 0 ||
             isPointerOp2 && value1 == 0) {
           return value1 != value2;
         } else {
           return smgState.isInNeq(pValue1, pValue2);
-        }
-      }
-
-      private SMGAddressValue getAddressOfPointer(SMGSymbolicValue pPointer)
-          throws SMGInconsistentException {
-
-        assert!pPointer.isUnknown();
-
-        if (pPointer instanceof SMGAddressValue) {
-          return (SMGAddressValue) pPointer;
-        } else {
-          return smgState.getPointerFromValue(pPointer.getAsInt());
         }
       }
 
@@ -1523,7 +1494,7 @@ public class SMGExpressionEvaluator {
       }
     }
 
-    public SMGSymbolicValue evaluateBinaryAssumption(SMGState newState, BinaryOperator pOp, SMGSymbolicValue v1, SMGSymbolicValue v2) throws SMGInconsistentException {
+    public SMGSymbolicValue evaluateBinaryAssumption(SMGState newState, BinaryOperator pOp, SMGSymbolicValue v1, SMGSymbolicValue v2) {
       BinaryRelationEvaluator relation = new BinaryRelationEvaluator(newState, pOp, v1, v2);
 
       if (relation.isFalse()) {
@@ -1840,8 +1811,7 @@ public class SMGExpressionEvaluator {
     }
 
 
-    private SMGValueAndState evaluateBinaryExpression(SMGSymbolicValue lVal, SMGSymbolicValue rVal, BinaryOperator binaryOperator, SMGState newState)
-        throws SMGInconsistentException {
+    private SMGValueAndState evaluateBinaryExpression(SMGSymbolicValue lVal, SMGSymbolicValue rVal, BinaryOperator binaryOperator, SMGState newState) {
 
       if (lVal.equals(SMGUnknownValue.getInstance()) || rVal.equals(SMGUnknownValue.getInstance())) {
         return SMGValueAndState.of(newState);
@@ -1952,7 +1922,7 @@ public class SMGExpressionEvaluator {
 
         // a == &a[0]
         if (derefType instanceof CArrayType) {
-          result.add(createAddress(newState, address.getObject(), address.getOffset()));
+          result.addAll(createAddress(newState, address.getObject(), address.getOffset()).asAddressValueAndStateList());
         } else {
           result.add(readValue(newState, address.getObject(), address.getOffset(), derefType, cfaEdge));
         }
@@ -1983,7 +1953,7 @@ public class SMGExpressionEvaluator {
 
         // a == &a[0]
         if (derefType instanceof CArrayType) {
-          result.add(createAddress(newState, address.getObject(), address.getOffset()));
+          result.addAll(createAddress(newState, address.getObject(), address.getOffset()).asAddressValueAndStateList());
         } else {
           result.add(readValue(newState, address.getObject(), address.getOffset(), derefType, cfaEdge));
         }

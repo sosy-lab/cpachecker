@@ -17,6 +17,8 @@
       <exclude>../programs/benchmarks/ssh/s3_srvr.blast.11_false-unreach-call.i.cil.c</exclude>
       <exclude>../programs/benchmarks/ssh/s3_srvr.blast.11_true-unreach-call.i.cil.c</exclude>
       <exclude>../programs/benchmarks/ssh/s3_srvr.blast.15_false-unreach-call.i.cil.c</exclude>
+      <exclude>../programs/benchmarks/ssh/s3_srvr.blast.15_true-unreach-call.i.cil.c</exclude>
+      <exclude>../programs/benchmarks/ssh/s3_srvr.blast.16_false-unreach-call.i.cil.c</exclude>
     </tasks>
     <tasks>
       <includesfile>../programs/simple/simple.set</includesfile>

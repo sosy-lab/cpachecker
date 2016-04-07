@@ -23,16 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
-import java.util.ArrayDeque;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
-
-import javax.annotation.Nullable;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -49,7 +40,16 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import com.google.common.collect.Sets;
+import java.util.ArrayDeque;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+
+import javax.annotation.Nullable;
 
 /**
  * Extending SMG with notions specific for programs in C language:
@@ -151,6 +151,18 @@ public class CLangSMG extends SMG {
     }
     heap_objects.add(pObject);
     addObject(pObject);
+  }
+
+  public Set<SMGEdgePointsTo> getPointerToObject(SMGObject obj) {
+    Set<SMGEdgePointsTo> result = new HashSet<>();
+
+    for (SMGEdgePointsTo pt : getPTEdges().values()) {
+      if (pt.getObject() == obj) {
+        result.add(pt);
+      }
+    }
+
+    return result;
   }
 
   /**
@@ -298,9 +310,26 @@ public class CLangSMG extends SMG {
      * TODO: Refactor into generic methods for substracting SubSMGs (see above)
      */
     Set<SMGObject> stray_objects = new HashSet<>(Sets.difference(getObjects(), seen));
+
+    // Mark all reachable from ExternallyAllocated objects as safe for remove
+    workqueue.addAll(stray_objects);
+    while ( ! workqueue.isEmpty()) {
+      SMGObject processed = workqueue.remove();
+      if (isObjectExternallyAllocated(processed)) {
+        filter.filterByObject(processed);
+        for (SMGEdgeHasValue outbound : getHVEdges(filter)) {
+          SMGObject pointedObject = getObjectPointedBy(outbound.getValue());
+          if (stray_objects.contains(pointedObject) && !isObjectExternallyAllocated(pointedObject)) {
+            setExternallyAllocatedFlag(pointedObject, true);
+            workqueue.add(pointedObject);
+          }
+        }
+      }
+    }
+
     for (SMGObject stray_object : stray_objects) {
       if (stray_object.notNull()) {
-        if (isObjectValid(stray_object)) {
+        if (isObjectValid(stray_object) && !isObjectExternallyAllocated(stray_object)) {
           setMemoryLeak();
         }
         removeObjectAndEdges(stray_object);
@@ -349,7 +378,10 @@ public class CLangSMG extends SMG {
 
     for (MemoryLocation memloc : memlocs) {
       Set<SMGEdgeHasValue> edge = getHVEdgeFromMemoryLocation(memloc);
-      result.put(memloc, edge.iterator().next().getValue());
+
+      if (!edge.isEmpty()) {
+        result.put(memloc, edge.iterator().next().getValue());
+      }
     }
 
     return result;
@@ -705,5 +737,20 @@ public class CLangSMG extends SMG {
     }
 
     return edgesToForget.iterator().next().getType();
+  }
+
+  @Override
+  public boolean equals(Object pObj) {
+    /*
+     * A Clang Smg is equal to a CLang smg
+     * iff their super classes are equal to another.
+     */
+
+    return super.equals(pObj);
+  }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode();
   }
 }

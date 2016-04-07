@@ -1,37 +1,52 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
-<benchmark tool="cpachecker" timelimit="200 s" hardtimelimit="220 s" memlimit="2 GB" cpuCores="1">
+<benchmark tool="cpachecker" timelimit="600 s" hardtimelimit="900 s" memlimit="8 GB" cpuCores="1">
     <option name="-noout" />
 
+    <option name="-heap">8000m</option>
+
+    <!-- Speed up convergence -->
     <option name="-setprop">cpa.stator.policy.wideningThreshold=0</option>
-    <option name="-setprop">cpa.stator.policy.runCongruence=false</option>
-    <option name="-setprop">cpa.stator.policy.useLatestVersion=false</option>
+
+    <!-- Disable optimizations -->
     <option name="-setprop">cpa.stator.policy.checkPolicyInitialCondition=false</option>
+
+    <!-- Disable extra precision -->
     <option name="-setprop">cpa.stator.policy.generateFromAsserts=false</option>
     <option name="-setprop">cpa.stator.policy.generateFromStatements=false</option>
-    <option name="-setprop">cpa.slicing.runSyntacticSlicing=true</option>
-    <option name="-setprop">cpa.slicing.applyLBETransformation=true</option>
+
     <option name="-setprop">cpa.slicing.checkTargetStates=true</option>
 
     <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
 
-    <tasks name="Loops">
-        <includesfile>../../programs/benchmarks/Loops.set</includesfile>
-    </tasks>
 
     <rundefinition name="intervals">
         <option name="-policy-intervals"/>
+        <tasks name="DeviceDriversHard">
+            <!-- Hard instances: everything which couldn't be solved fast w/ PAGAI -->
+            <includesfile>../programs/benchmarks/DeviceDriversHardNoRecursionLinux64.set</includesfile>
+        </tasks>
     </rundefinition>
 
-    <rundefinition name="intervals_w_cti_slicing">
+    <rundefinition name="intervals_w_slicing">
         <option name="-policy-slicing"/>
-        <option name="-setprop">cpa.slicing.runCounterexampleBasedSlicing=true</option>
-        <option name="-setprop">cpa.slicing.runDestructiveSlicing=false</option>
+        <tasks name="DeviceDriversHard">
+            <includesfile>../programs/benchmarks/DeviceDriversHardNoRecursionLinux64.set</includesfile>
+        </tasks>
     </rundefinition>
 
-    <rundefinition name="intervals_w_destructive_slicing">
+    <rundefinition name="intervals_w_syntactic_slicing">
         <option name="-policy-slicing"/>
-        <option name="-setprop">cpa.slicing.runCounterexampleBasedSlicing=false</option>
-        <option name="-setprop">cpa.slicing.runDestructiveSlicing=true</option>
+        <option name="-setprop">cpa.slicing.weakeningStrategy=syntactic</option>
+        <tasks name="DeviceDriversHard">
+            <includesfile>../programs/benchmarks/DeviceDriversHardNoRecursionLinux64.set</includesfile>
+        </tasks>
+    </rundefinition>
+
+    <rundefinition name="intervals_w_slicing_loops">
+        <option name="-policy-slicing"/>
+        <tasks name="Loops">
+            <includesfile>../programs/benchmarks/Loops.set</includesfile>
+        </tasks>
     </rundefinition>
 </benchmark>

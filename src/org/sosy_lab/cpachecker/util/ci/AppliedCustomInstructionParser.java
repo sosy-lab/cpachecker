@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.ci;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -43,7 +42,6 @@ import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
@@ -118,10 +116,11 @@ public class AppliedCustomInstructionParser {
   /**
    * Creates a CustomInstructionApplication if the file contains all required data, null if not
    * @param file Path of the file to be read
+   * @param signatureFile Path of the file into which the ci signature will be written
    * @return CustomInstructionApplication
    * @throws IOException if the file doesn't contain all required data.
    */
-  public CustomInstructionApplications parse (final Path file)
+  public CustomInstructionApplications parse(final Path file, final Path signatureFile)
       throws IOException, AppliedCustomInstructionParsingFailedException, InterruptedException {
 
     CustomInstruction ci = null;
@@ -135,14 +134,15 @@ public class AppliedCustomInstructionParser {
 
       ci = readCustomInstruction(line);
 
-      writeCustomInstructionSpecification(ci);
+      writeCustomInstructionSpecification(ci, signatureFile);
 
       return parseACIs(br, ci);
     }
   }
 
-  private void writeCustomInstructionSpecification(final CustomInstruction ci) throws IOException {
-    try (Writer br = Files.openOutputFile(Paths.get("output" + File.separator + "ci_spec.txt"))) {
+  private void writeCustomInstructionSpecification(final CustomInstruction ci,
+      final Path signatureFile) throws IOException {
+   try (Writer br = Files.openOutputFile(signatureFile)) {
       br.write(ci.getSignature() + "\n");
       String ciString = ci.getFakeSMTDescription().getSecond();
       br.write(ciString.substring(ciString.indexOf("a")-1,ciString.length()-1) + ";");

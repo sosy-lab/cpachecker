@@ -133,4 +133,9 @@ public class SMGEdgeHasValueFilter {
       }
     };
   }
+
+  public static SMGEdgeHasValueFilter valueFilter(Integer pValue) {
+
+    return new SMGEdgeHasValueFilter().filterHavingValue(pValue);
+  }
 }

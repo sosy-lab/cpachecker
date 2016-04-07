@@ -39,8 +39,6 @@ import com.google.common.collect.ImmutableSortedSet;
 public class FormulaMeasuring {
 
   public static class FormulaMeasures {
-    private int trues = 0;
-    private int falses = 0;
     private int conjunctions = 0;
     private int disjunctions = 0;
     private int negations = 0;
@@ -50,9 +48,7 @@ public class FormulaMeasuring {
     public int getAtoms() { return atoms; }
     public int getConjunctions() { return conjunctions; }
     public int getDisjunctions() { return disjunctions; }
-    public int getFalses() { return falses; }
     public int getNegations() { return negations; }
-    public int getTrues() { return trues; }
     public ImmutableSortedSet<String> getVariables() { return ImmutableSortedSet.copyOf(this.variables); }
   }
 
@@ -87,20 +83,7 @@ public class FormulaMeasuring {
     }
 
     @Override
-    public TraversalProcess visitFalse() {
-      measures.falses++;
-      return TraversalProcess.CONTINUE;
-    }
-
-
-    @Override
-    public TraversalProcess visitTrue() {
-      measures.trues++;
-      return TraversalProcess.CONTINUE;
-    }
-
-    @Override
-    public TraversalProcess visitAtom(BooleanFormula pAtom, FunctionDeclaration decl) {
+    public TraversalProcess visitAtom(BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> decl) {
       measures.atoms++;
 
       BooleanFormula atom = fmgr.uninstantiate(pAtom);

@@ -26,13 +26,28 @@ package org.sosy_lab.cpachecker.cpa.smg.objects;
 
 
 public abstract class SMGObject {
-  final private int size;
-  final private String label;
+  private final int size;
+  private final String label;
+  private final int level;
+
 
   static private final SMGObject nullObject = new SMGObject(0, "NULL") {
+
     @Override
     public String toString() {
       return "NULL";
+    }
+
+    @Override
+    public SMGObject copy() {
+      // fancy way of referencing itself
+      return SMGObject.getNullObject();
+    }
+
+    @Override
+    public SMGObject copy(int level) {
+      // fancy way of referencing itself
+      return SMGObject.getNullObject();
     }
   };
 
@@ -43,12 +58,24 @@ public abstract class SMGObject {
   protected SMGObject(int pSize, String pLabel) {
     size = pSize;
     label = pLabel;
+    level = 0;
+  }
+
+  protected SMGObject(int pSize, String pLabel, int pLevel) {
+    size = pSize;
+    label = pLabel;
+    level = pLevel;
   }
 
   protected SMGObject(SMGObject pOther) {
     size = pOther.size;
     label = pOther.label;
+    level = pOther.getLevel();
   }
+
+  public abstract SMGObject copy();
+
+  public abstract SMGObject copy(int pNewLevel);
 
   public String getLabel() {
     return label;
@@ -86,8 +113,13 @@ public abstract class SMGObject {
 
   /**
    * @param pOther object to join with
+   * @param pIncreaseLevel increase Nesting level.
    */
-  public SMGObject join(SMGObject pOther) {
+  public SMGObject join(SMGObject pOther, boolean pIncreaseLevel) {
     throw new UnsupportedOperationException("join() called on SMGObject instance, not on a subclass");
+  }
+
+  public int getLevel() {
+    return level;
   }
 }

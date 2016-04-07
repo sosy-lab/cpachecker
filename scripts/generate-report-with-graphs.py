@@ -34,6 +34,7 @@ import glob
 import os
 import argparse
 import subprocess
+import signal
 
 for egg in glob.glob(os.path.join(os.path.dirname(__file__), os.pardir, 'lib', 'python-benchmark', '*.egg')):
     sys.path.insert(0, egg)
@@ -111,7 +112,7 @@ def writeCFA(cpaoutdir, functions, outf):
 
 def writeARG(argfilepath, outf):
     start = False
-    argfile = open(argfilepath[:-4] + '.svg') 
+    argfile = open(argfilepath[:-4] + '.svg')
     for line in argfile:
         if '<svg' in line:
             start = True
@@ -121,7 +122,12 @@ def writeARG(argfilepath, outf):
             outf.write(line)
     argfile.close()
 
+def signal_handler(signal, frame):
+    print("Received a keyboard interrupt. Exiting.")
+    sys.exit(0)
+
 def main():
+    signal.signal(signal.SIGINT, signal_handler)
 
     parser = argparse.ArgumentParser(
         description="Generate a HTML report with graphs from the CPAchecker output."

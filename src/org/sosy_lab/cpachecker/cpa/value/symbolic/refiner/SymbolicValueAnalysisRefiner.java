@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolantManager;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
@@ -76,23 +75,9 @@ public class SymbolicValueAnalysisRefiner
   public static SymbolicValueAnalysisRefiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
 
-    final ARGCPA argCpa = CPAs.retrieveCPA(pCpa, ARGCPA.class);
-    final ValueAnalysisCPA valueAnalysisCpa = CPAs.retrieveCPA(pCpa, ValueAnalysisCPA.class);
-    final ConstraintsCPA constraintsCpa = CPAs.retrieveCPA(pCpa, ConstraintsCPA.class);
-
-    if (argCpa == null) {
-      throw new InvalidConfigurationException(SymbolicValueAnalysisRefiner.class.getSimpleName() + " needs to be wrapped in an ARGCPA");
-    }
-
-    if (valueAnalysisCpa == null) {
-      throw new InvalidConfigurationException(SymbolicValueAnalysisRefiner.class.getSimpleName()
-          + " needs a ValueAnalysisCPA");
-    }
-
-    if (constraintsCpa == null) {
-      throw new InvalidConfigurationException(SymbolicValueAnalysisRefiner.class.getSimpleName()
-          + " needs a ConstraintsCPA");
-    }
+    final ARGCPA argCpa = retrieveCPA(pCpa, ARGCPA.class);
+    final ValueAnalysisCPA valueAnalysisCpa = retrieveCPA(pCpa, ValueAnalysisCPA.class);
+    final ConstraintsCPA constraintsCpa = retrieveCPA(pCpa, ConstraintsCPA.class);
 
     final Configuration config = valueAnalysisCpa.getConfiguration();
 

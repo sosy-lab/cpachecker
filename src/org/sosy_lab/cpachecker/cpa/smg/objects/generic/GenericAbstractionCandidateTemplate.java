@@ -36,8 +36,6 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import com.google.common.base.Function;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -55,7 +53,6 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
 
   private GenericAbstractionCandidateTemplate(Set<SMGEdgeHasValue> sharedFields,
       Set<Pair<SMGEdgePointsTo, SMGEdgePointsTo>> sharedIPointer,
-      Set<SMGEdgePointsTo> nonSharedIPointer,
       Set<Pair<SMGEdgeHasValue, SMGEdgeHasValue>> sharedOPointer,
       Set<SMGEdgeHasValue> nonSharedOPointer,
       SMGRegion root) {
@@ -64,7 +61,7 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
 
     MaterlisationStep stopStep = createStopStep(sharedIPointer, sharedOPointer, sharedFields, root);
     MaterlisationStep continueStep =
-        prepareContinueStep(nonSharedIPointer, nonSharedOPointer, stopStep);
+        prepareContinueStep(nonSharedOPointer, stopStep);
 
     List<MaterlisationStep> matSteps = ImmutableList.of(continueStep, stopStep);
 
@@ -74,67 +71,53 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
     }
   }
 
-  private MaterlisationStep prepareContinueStep(Set<SMGEdgePointsTo> pNonSharedIPointer,
-      Set<SMGEdgeHasValue> pNonSharedOPointer,
+  private MaterlisationStep prepareContinueStep(Set<SMGEdgeHasValue> pNonSharedOPointer,
       MaterlisationStep pStopStep) {
 
-    assert pNonSharedIPointer.size() == pNonSharedOPointer.size();
-
-    Set<SMGObjectTemplate> abstractObjects = new HashSet<>(pNonSharedIPointer.size() + 1);
+    Set<SMGObjectTemplate> abstractObjects = new HashSet<>(pNonSharedOPointer.size() + 1);
 
     SMGObjectTemplate root = pStopStep.getAbstractObjects().iterator().next();
     abstractObjects.add(root);
 
-    Map<Integer, SMGEdgePointsTo> nonSharedIPointerMap = FluentIterable.from(pNonSharedIPointer)
-        .uniqueIndex(new Function<SMGEdgePointsTo, Integer>() {
+    Set<SMGEdgePointsToTemplate> targetAdressTemplateOfPointer =
+        pStopStep.getAbstractAdressesToOPointer();
 
-          int i = -1;
+    Set<SMGEdgePointsToTemplate> abstractPointer = new HashSet<>(pNonSharedOPointer.size());
+    Set<SMGEdgeHasValueTemplate> abstractFieldsToIPointer = new HashSet<>(pNonSharedOPointer.size());
 
-          @Override
-          public Integer apply(SMGEdgePointsTo edge) {
-            i++;
-            return i;
-          }
-        });
+    Map<Integer, Integer> uPointerToPointer = new HashMap<>();
 
-    ImmutableMap<Integer, SMGEdgeHasValue> nonSharedOPointerMap = FluentIterable
-        .from(pNonSharedOPointer).uniqueIndex(new Function<SMGEdgeHasValue, Integer>() {
-
-          int i = -1;
-
-          @Override
-          public Integer apply(SMGEdgeHasValue edge) {
-            i++;
-            return i;
-          }
-        });
-
-    Set<SMGEdgePointsToTemplate> abstractPointer = new HashSet<>(pNonSharedIPointer.size());
-    Set<SMGEdgeHasValueTemplate> abstractFieldsToIPointer = new HashSet<>(pNonSharedIPointer.size());
-
-    for (int i = 0; i < pNonSharedIPointer.size(); i++) {
-      GenericAbstractionCandidateTemplate abstraction = new GenericAbstractionCandidateTemplate(abstractPointerToMaterlisationSteps);
+    for (SMGEdgeHasValue oPointer : pNonSharedOPointer) {
+      GenericAbstractionCandidateTemplate abstraction =
+          new GenericAbstractionCandidateTemplate(abstractPointerToMaterlisationSteps);
 
       abstractObjects.add(abstraction);
 
-      SMGEdgeHasValue oPointer = nonSharedOPointerMap.get(i);
-      SMGEdgePointsTo iPointer = nonSharedIPointerMap.get(i);
+      for (SMGEdgePointsToTemplate iPointerTemplate : targetAdressTemplateOfPointer) {
 
-      SMGEdgeHasValueTemplate templateOEdge =
-          new SMGEdgeHasValueTemplate(root, i, oPointer.getOffset(), oPointer.getType());
-      SMGEdgePointsToTemplate templateIEdge =
-          new SMGEdgePointsToTemplate(abstraction, i, iPointer.getOffset());
+        int pointerTemplate = iPointerTemplate.getAbstractValue();
+        int uPointerTemplate = SMGValueFactory.getNewValue();
 
-      abstractPointer.add(templateIEdge);
-      abstractFieldsToIPointer.add(templateOEdge);
+        uPointerToPointer.put(uPointerTemplate, pointerTemplate);
+
+        SMGEdgeHasValueTemplate templateOEdge =
+            new SMGEdgeHasValueTemplate(root, uPointerTemplate,
+                oPointer.getOffset(), oPointer.getType());
+        SMGEdgePointsToTemplate templateIEdge =
+            new SMGEdgePointsToTemplate(abstraction, uPointerTemplate,
+                iPointerTemplate.getOffset());
+
+        abstractPointer.add(templateIEdge);
+        abstractFieldsToIPointer.add(templateOEdge);
+      }
     }
 
     Set<SMGEdgeHasValueTemplateWithConcreteValue> abstractFields = pStopStep.getAbstractFields();
-    Set<SMGEdgePointsToTemplate> abstractAdressesToOPointer = pStopStep.getAbstractAdressesToOPointer();
     Set<SMGEdgeHasValueTemplate> abstractFieldsToOPointer = pStopStep.getAbstractFieldsToOPointer();
 
     return new MaterlisationStep(abstractObjects, abstractPointer, abstractFields,
-        abstractFieldsToIPointer, abstractAdressesToOPointer, abstractFieldsToOPointer, false);
+        abstractFieldsToIPointer, targetAdressTemplateOfPointer, abstractFieldsToOPointer,
+        uPointerToPointer, false);
   }
 
   private MaterlisationStep createStopStep(
@@ -185,8 +168,11 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
       abstractPointerValue++;
     }
 
+    Map<Integer, Integer> emptyMap = new HashMap<>();
+
     return new MaterlisationStep(abstractObjects, abstractPt_edges, abstractFields,
-        abstractFieldsToIPointer, abstractAdressesToOPointer, abstractFieldsToOPointer, true);
+        abstractFieldsToIPointer, abstractAdressesToOPointer, abstractFieldsToOPointer, emptyMap,
+        true);
   }
 
   public Map<Integer, List<MaterlisationStep>> getMaterlisationStepMap() {
@@ -227,7 +213,6 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
    *
    * @param sharedFields shared Fields
    * @param sharedIPointer shared Pointer
-   * @param nonSharedIPointer non shared Pointer
    * @param sharedOPointer shared Pointer
    * @param nonSharedOPointer non shared Pointer
    * @param pRoot smg root object
@@ -235,10 +220,9 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
    */
   public static GenericAbstractionCandidateTemplate createSimpleInductiveGenericAbstractionTemplate(
       Set<SMGEdgeHasValue> sharedFields, Set<Pair<SMGEdgePointsTo, SMGEdgePointsTo>> sharedIPointer,
-      Set<SMGEdgePointsTo> nonSharedIPointer,
       Set<Pair<SMGEdgeHasValue, SMGEdgeHasValue>> sharedOPointer,
       Set<SMGEdgeHasValue> nonSharedOPointer, SMGRegion pRoot) {
-    return new GenericAbstractionCandidateTemplate(sharedFields, sharedIPointer, nonSharedIPointer, sharedOPointer, nonSharedOPointer, pRoot);
+    return new GenericAbstractionCandidateTemplate(sharedFields, sharedIPointer, sharedOPointer, nonSharedOPointer, pRoot);
   }
 
   public static GenericAbstractionCandidateTemplate valueOf(

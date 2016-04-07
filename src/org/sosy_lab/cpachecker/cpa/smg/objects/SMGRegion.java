@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects;
 
-import java.util.Map;
-
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGObjectTemplate;
+
+import java.util.Map;
 
 public final class SMGRegion extends SMGObject implements SMGObjectTemplate {
 
@@ -38,9 +38,13 @@ public final class SMGRegion extends SMGObject implements SMGObjectTemplate {
     super(pOther);
   }
 
+  public SMGRegion(int pSize, String pLabel, int pLevel) {
+    super(pSize, pLabel, pLevel);
+  }
+
   @Override
   public String toString() {
-    return "REGION( "+ getLabel() + ", " + getSize() + "b)";
+    return "REGION("+ getLabel() + ", " + getSize() + "B)\n" + "level=" + getLevel();
   }
 
   public boolean propertiesEqual(SMGRegion pOther) {
@@ -76,13 +80,17 @@ public final class SMGRegion extends SMGObject implements SMGObjectTemplate {
   }
 
   @Override
-  public SMGObject join(SMGObject pOther) {
+  public SMGObject join(SMGObject pOther, boolean increaseLevel) {
     if (pOther.isAbstract()) {
       // I am concrete, and the other is abstract: the abstraction should
       // know how to join with me
-      return pOther.join(this);
+      return pOther.join(this, increaseLevel);
     } else if (getSize() == pOther.getSize()) {
-      return new SMGRegion(this);
+      if(increaseLevel) {
+        return new SMGRegion(this.getSize(), this.getLabel(), getLevel() + 1);
+      } else {
+        return this;
+      }
     }
     throw new UnsupportedOperationException("join() called on incompatible SMGObjects");
   }
@@ -90,5 +98,15 @@ public final class SMGRegion extends SMGObject implements SMGObjectTemplate {
   @Override
   public SMGRegion createConcreteObject(Map<Integer, Integer> pAbstractToConcretePointerMap) {
     return new SMGRegion(getSize(), getLabel() + " ID " + SMGValueFactory.getNewValue());
+  }
+
+  @Override
+  public SMGObject copy() {
+    return new SMGRegion(this);
+  }
+
+  @Override
+  public SMGObject copy(int pNewLevel) {
+    return new SMGRegion(getSize(), "ID" + SMGValueFactory.getNewValue() + " Copy of : " + getLabel(), pNewLevel);
   }
 }

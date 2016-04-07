@@ -26,14 +26,12 @@ package org.sosy_lab.cpachecker.cpa.composite;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.any;
-import static org.sosy_lab.cpachecker.util.AbstractStates.*;
+import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -58,9 +56,12 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @Options(prefix="cpa.composite")
 public final class CompositeTransferRelation implements TransferRelation {
@@ -147,7 +148,7 @@ public final class CompositeTransferRelation implements TransferRelation {
 
       assert !(cfaEdge instanceof MultiEdge) : "Static and dynamic MultiEdges may not be mixed.";
 
-      CFANode startNode = cfaEdge.getPredecessor();
+      final CFANode startNode = cfaEdge.getPredecessor();
 
       // dynamic multiEdges may be used if the following conditions apply
       if (isValidMultiEdgeStart(startNode)
@@ -155,9 +156,8 @@ public final class CompositeTransferRelation implements TransferRelation {
 
         Collection<CompositeState> currentStates = new ArrayList<>(1);
         currentStates.add(compositeState);
-        CFAEdge nextEdge = cfaEdge;
 
-        while (isValidMultiEdgeComponent(nextEdge)) {
+        while (isValidMultiEdgeComponent(cfaEdge)) {
           Collection<CompositeState> successorStates = new ArrayList<>(currentStates.size());
 
           for (CompositeState currentState : currentStates) {
@@ -173,9 +173,10 @@ public final class CompositeTransferRelation implements TransferRelation {
           // make successor states the new to-be-handled states for the next edge
           currentStates = Collections.unmodifiableCollection(successorStates);
 
-          startNode = cfaEdge.getSuccessor();
-          if (startNode.getNumLeavingEdges() == 1) {
-            cfaEdge = startNode.getLeavingEdge(0);
+          // if there is more than one leaving edge we do not create a further
+          // multi edge part
+          if (cfaEdge.getSuccessor().getNumLeavingEdges() == 1) {
+            cfaEdge = cfaEdge.getSuccessor().getLeavingEdge(0);
           } else {
             break;
           }
