@@ -220,6 +220,14 @@ public final class CSimpleType implements CType, Serializable {
     if (newType == CBasicType.INT && !isSigned && !isUnsigned) {
       newIsSigned = true;
     }
+
+    if ((isConst == pForceConst)
+        && (isVolatile == pForceVolatile)
+        && (type == newType)
+        && (isSigned == newIsSigned)) {
+      return this;
+    }
+
     return new CSimpleType(isConst || pForceConst, isVolatile || pForceVolatile, newType, isLong, isShort, newIsSigned, isUnsigned, isComplex, isImaginary, isLongLong);
   }
 }

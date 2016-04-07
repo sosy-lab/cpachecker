@@ -35,8 +35,6 @@ import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 
-import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
@@ -197,12 +195,15 @@ public class CFunctionType extends AFunctionType implements CType {
 
   @Override
   public CFunctionType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
-    List<CType> newParameterTypes = new ArrayList<>();
-    Iterator<CType> it = getParameters().iterator();
-
-    while (it.hasNext()) {
-      newParameterTypes.add(it.next().getCanonicalType());
+    ImmutableList.Builder<CType> newParameterTypes = ImmutableList.builder();
+    for (CType parameter : getParameters()) {
+      newParameterTypes.add(parameter.getCanonicalType());
     }
-    return new CFunctionType(isConst || pForceConst, isVolatile || pForceVolatile, getReturnType().getCanonicalType(), newParameterTypes, takesVarArgs());
+    return new CFunctionType(
+        isConst || pForceConst,
+        isVolatile || pForceVolatile,
+        getReturnType().getCanonicalType(),
+        newParameterTypes.build(),
+        takesVarArgs());
   }
 }

@@ -27,12 +27,25 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withConst;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withVolatile;
 
+import com.google.common.collect.ImmutableList;
+
 import org.junit.Test;
 
 public class CanonicalTypeTest {
 
   private static final CType VOLATILE_CONST_INT =
       withVolatile(withConst(CNumericTypes.INT)).getCanonicalType();
+
+  @Test
+  public void simpleTypeInt() {
+    assertThat(CNumericTypes.INT.getCanonicalType()).isEqualTo(CNumericTypes.SIGNED_INT);
+    assertThat(CNumericTypes.SIGNED_INT.getCanonicalType()).isEqualTo(CNumericTypes.SIGNED_INT);
+    assertThat(CNumericTypes.UNSIGNED_INT.getCanonicalType()).isEqualTo(CNumericTypes.UNSIGNED_INT);
+
+    CType longType = new CSimpleType(false, false, CBasicType.UNSPECIFIED, true, false, false, false, false, false, false);
+    CType signedLongIntType = new CSimpleType(false, false, CBasicType.INT, true, false, true, false, false, false, false);
+    assertThat(longType.getCanonicalType()).isEqualTo(signedLongIntType);
+  }
 
   @Test
   public void typedefQualifiers() {
@@ -67,5 +80,14 @@ public class CanonicalTypeTest {
 
     CArrayType expected = new CArrayType(false, false, VOLATILE_CONST_INT, null);
     assertThat(typedef.getCanonicalType()).isEqualTo(expected);
+  }
+
+  @Test
+  public void functionType() {
+    CTypedefType typedef = new CTypedefType(false, false, "TYPEDEF", CNumericTypes.INT);
+    CFunctionType function = new CFunctionType(false, false, typedef, ImmutableList.<CType>of(typedef), false);
+
+    CFunctionType expected = new CFunctionType(false, false, CNumericTypes.SIGNED_INT, ImmutableList.<CType>of(CNumericTypes.SIGNED_INT), false);
+    assertThat(function.getCanonicalType()).isEqualTo(expected);
   }
 }

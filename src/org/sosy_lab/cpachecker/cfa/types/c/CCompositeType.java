@@ -277,6 +277,9 @@ public final class CCompositeType implements CComplexType {
 
   @Override
   public CCompositeType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
+    if ((isConst == pForceConst) && (isVolatile == pForceVolatile)) {
+      return this;
+    }
     return new CCompositeType(isConst || pForceConst, isVolatile || pForceVolatile, kind, members, name, origName);
   }
 

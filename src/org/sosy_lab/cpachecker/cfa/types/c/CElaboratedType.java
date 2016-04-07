@@ -219,6 +219,9 @@ public final class CElaboratedType implements CComplexType {
   @Override
   public CType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
     if (realType == null) {
+      if ((isConst == pForceConst) && (isVolatile == pForceVolatile)) {
+        return this;
+      }
       return new CElaboratedType(isConst || pForceConst, isVolatile || pForceVolatile, kind, name, origName, null);
     } else {
       return realType.getCanonicalType(isConst || pForceConst, isVolatile || pForceVolatile);

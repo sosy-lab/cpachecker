@@ -324,6 +324,9 @@ public final class CEnumType implements CComplexType {
 
   @Override
   public CEnumType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
+    if ((isConst == pForceConst) && (isVolatile == pForceVolatile)) {
+      return this;
+    }
     return new CEnumType(isConst || pForceConst, isVolatile || pForceVolatile, enumerators, name, origName);
   }
 }
