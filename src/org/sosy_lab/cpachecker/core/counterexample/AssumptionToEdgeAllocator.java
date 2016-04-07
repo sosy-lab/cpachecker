@@ -1772,6 +1772,9 @@ public class AssumptionToEdgeAllocator {
         if (!pArrayType.isIncomplete() && machineModel.getSizeof(pArrayType) <= subscriptOffset) {
           return false;
         }
+        if (pArrayType.getLength() == null) {
+          return false;
+        }
 
         Address address = pArrayAddress.addOffset(BigInteger.valueOf(subscriptOffset));
 
