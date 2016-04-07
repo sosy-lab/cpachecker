@@ -534,10 +534,10 @@ class WebInterface:
         # TODO use code from CPAchecker module, it add -stats and sets -timelimit,
         # instead of doing it here manually, too
         if self._tool_name == "CPAchecker":
-            params.append(("options", "statistics.print=true"))
+            params.append(("option", "statistics.print=true"))
 
             if 'softtimelimit' in rlimits:
-                params.append(("options", "limits.time.cpu=" + str(rlimits['softtimelimit']) + "s"))
+                params.append(("option", "limits.time.cpu=" + str(rlimits['softtimelimit']) + "s"))
 
         if run.options:
             i = iter(run.options)
@@ -553,37 +553,37 @@ class WebInterface:
                         params.append(('stack', next(i)))
                         
                     elif option == "-noout":
-                        params.append(("options", "output.disable=true"))
+                        params.append(("option", "output.disable=true"))
                     elif option == "-outputpath":
-                        params.append(("options", "output.path=" + next(i)))
+                        params.append(("option", "output.path=" + next(i)))
                     elif option == "-logfile":
-                        params.append(("options", "log.file=" + next(i)))
+                        params.append(("option", "log.file=" + next(i)))
                     elif option == "-nolog":
-                        params.append(("options", "log.level=OFF"))
-                        params.append(("options", "log.consoleLevel=OFF"))
+                        params.append(("option", "log.level=OFF"))
+                        params.append(("option", "log.consoleLevel=OFF"))
                     elif option == "-stats":
                         # ignore, is always set by this script
                         pass
                     elif option == "-disable-java-assertions":
                         params.append(('disableJavaAssertions', 'true'))
                     elif option == "-java":
-                        params.append(("options", "language=JAVA"))
+                        params.append(("option", "language=JAVA"))
                     elif option == "-32":
-                        params.append(("options", "analysis.machineModel=Linux32"))
+                        params.append(("option", "analysis.machineModel=Linux32"))
                     elif option == "-64":
-                        params.append(("options", "analysis.machineModel=Linux64"))
+                        params.append(("option", "analysis.machineModel=Linux64"))
                     elif option == "-entryfunction":
-                        params.append(("options", "analysis.entryFunction=" + next(i)))
+                        params.append(("option", "analysis.entryFunction=" + next(i)))
                     elif option == "-timelimit":
-                        params.append(("options", "limits.time.cpu=" + next(i)))
+                        params.append(("option", "limits.time.cpu=" + next(i)))
                     elif option == "-skipRecursion":
-                        params.append(("options", "cpa.callstack.skipRecursion=true"))
-                        params.append(("options", "analysis.summaryEdges=true"))
+                        params.append(("option", "cpa.callstack.skipRecursion=true"))
+                        params.append(("option", "analysis.summaryEdges=true"))
                     elif option == "-cbmc":
-                        params.append(("options", "analysis.checkCounterexamples=true"))
-                        params.append(("options", "counterexample.checker=CBMC"))
+                        params.append(("option", "analysis.checkCounterexamples=true"))
+                        params.append(("option", "counterexample.checker=CBMC"))
                     elif option == "-preprocess":
-                        params.append(("options", "parser.usePreprocessor=true"))
+                        params.append(("option", "parser.usePreprocessor=true"))
                     elif option == "-generateReport":
                         params.append(('generateReport', 'true'))
 
@@ -595,7 +595,7 @@ class WebInterface:
                         elif spec_path[-4:] == ".prp":
                             params.append(('propertyText', spec_file))
                         else:
-                            params.append(("options", spec_file))
+                            params.append(("specificationText", spec_file))
 
                     elif option == "-config":
                         configPath = next(i)
@@ -608,7 +608,7 @@ class WebInterface:
                         params.append(('configuration', config))
 
                     elif option == "-setprop":
-                        params.append(("options", next(i)))
+                        params.append(("option", next(i)))
 
                     elif option[0] == '-' and 'configuration' not in params :
                         params.append(('configuration', option[1:]))
