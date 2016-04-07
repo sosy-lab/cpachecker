@@ -156,17 +156,13 @@ try:
             else:
                 raise StopIteration()
 
-        def __del__(self):
-            if hasattr(self, 'resp'):
-                self.resp.close()
-
     class SseResultDownloader:
 
-        def __init__(self, web_interface, web_interface_url, result_poll_interval):
+        def __init__(self, web_interface, result_poll_interval):
             logging.debug("Server-Send Events are used to get state of runs.")
 
             self._web_interface = web_interface
-            self._run_finished_url = web_interface_url + "runs/finished"
+            self._run_finished_url = web_interface._web_interface_url + "runs/finished"
             self._result_poll_interval = result_poll_interval
             self._sse_client = None
             self._shutdown = False
@@ -203,21 +199,15 @@ try:
                 for run_id in run_ids:
                     params.append(("run", run_id))
 
-                headers = {}
-                headers["Accept-Encoding"] = "UTF-8"
-                if self._web_interface._base64_user_pwd:
-                    headers["Authorization"] = "Basic " + self._web_interface._base64_user_pwd
-
-                for k, v in self._web_interface.default_headers.items():
-                    if k not in headers:
-                        headers[k] = v
-
+                headers = {"Accept-Encoding": "UTF-8"}
+                
                 logging.debug("Creating Server-Send Event connection.")
                 try:
                     self._sse_client = ShouldReconnectSeeClient(
                         self._run_finished_url, self._should_reconnect,
-                        verify='/etc/ssl/certs',
-                        headers=headers, data=params)
+                        session = self._web_interface._connection,
+                        headers=headers,
+                        data=params)
 
                 except Exception as e:
                     logging.warning("Creating SSE connection failed: %s", e)
@@ -324,17 +314,17 @@ class WebInterface:
         if not web_interface_url[-1] == '/':
             web_interface_url += '/'
 
-        self.default_headers = {'Connection': 'Keep-Alive'}
+        default_headers = {'Connection': 'Keep-Alive'}
         if user_agent:
-            self.default_headers['User-Agent'] = \
+            default_headers['User-Agent'] = \
                 '{}/{} (Python/{} {}/{})'.format(user_agent, version, platform.python_version(), platform.system(), platform.release())
 
         urllib.urlparse(web_interface_url) # sanity check
-        self.web_interface_url = web_interface_url
+        self._web_interface_url = web_interface_url
         logging.info('Using VerifierCloud at %s', web_interface_url)
 
         self._connection = requests.Session()
-        self._connection.headers = self.default_headers
+        self._connection.headers = default_headers
         self._connection.verify='/etc/ssl/certs'
         if user_pwd:
             self._connection.auth = (user_pwd.split(":")[0], user_pwd.split(":")[1])
@@ -342,7 +332,6 @@ class WebInterface:
         else:
             self._base64_user_pwd = None
         
-
         self._unfinished_runs = {}
         self._unfinished_runs_lock = threading.Lock()
         self._downloading_result_futures = {}
@@ -357,7 +346,7 @@ class WebInterface:
         self._tool_name = self._request_tool_name()
 
         try:
-            self._result_downloader = SseResultDownloader(self, web_interface_url, result_poll_interval)
+            self._result_downloader = SseResultDownloader(self, result_poll_interval)
         except:
             self._result_downloader = PollingResultDownloader(self, result_poll_interval)
 
@@ -749,7 +738,7 @@ class WebInterface:
 
 
     def _request(self, method, path, data=None, headers=None, files=None, expectedStatusCodes=[200], user_pwd=None):
-        url = self.web_interface_url + path
+        url = self._web_interface_url + path
         if user_pwd:
             auth = (user_pwd.cplit(":")[0], user_pwd.cplit(":")[1])
         else:
