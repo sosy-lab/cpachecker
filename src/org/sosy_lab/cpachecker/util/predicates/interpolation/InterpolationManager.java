@@ -686,6 +686,7 @@ public final class InterpolationManager {
         throws SolverException, CPATransferException, InterruptedException {
 
       // Check feasibility of counterexample
+      shutdownNotifier.shutdownIfNecessary();
       logger.log(Level.FINEST, "Checking feasibility of counterexample trace");
       satCheckTimer.start();
 

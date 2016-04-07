@@ -337,7 +337,7 @@ public class ValueAnalysisRefiner
   }
 
   private ARGState relocateRefinementRoot(final ARGState pRefinementRoot,
-      final boolean  predicatePrecisionIsAvailable) {
+      final boolean  predicatePrecisionIsAvailable) throws InterruptedException{
 
     // no relocation needed if only running value analysis,
     // because there, this does slightly degrade performance
@@ -360,6 +360,7 @@ public class ValueAnalysisRefiner
 
     Set<ARGState> descendants = pRefinementRoot.getSubgraph();
     Set<ARGState> coveredStates = new HashSet<>();
+    shutdownNotifier.shutdownIfNecessary();
     for (ARGState descendant : descendants) {
       coveredStates.addAll(descendant.getCoveredByThis());
     }
@@ -378,6 +379,7 @@ public class ValueAnalysisRefiner
 
     // build the coverage tree, bottom-up, starting from the covered states
     while (!todo.isEmpty()) {
+      shutdownNotifier.shutdownIfNecessary();
       final ARGState currentState = todo.removeFirst();
 
       if (currentState.getParents().iterator().hasNext()) {
@@ -395,6 +397,7 @@ public class ValueAnalysisRefiner
     // the new refinement root is either the first node
     // having two or more children, or the original
     // refinement root, what ever comes first
+    shutdownNotifier.shutdownIfNecessary();
     ARGState newRefinementRoot = coverageTreeRoot;
     while (successorRelation.get(newRefinementRoot).size() == 1 && newRefinementRoot != pRefinementRoot) {
       newRefinementRoot = Iterables.getOnlyElement(successorRelation.get(newRefinementRoot));
