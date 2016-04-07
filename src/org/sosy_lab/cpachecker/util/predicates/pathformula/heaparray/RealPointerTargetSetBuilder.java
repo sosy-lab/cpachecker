@@ -182,8 +182,11 @@ class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
     bases = bases.putAndCopy(pName, pType); // To get proper inequalities
     final BooleanFormula nextInequality = ptsMgs.getNextBaseAddressInequality(
         pName, bases, lastBase);
-    bases = bases.putAndCopy(pName, PointerTargetSetManagerHeapArray.getFakeBaseType(
-        ptsMgs.getSize(pType))); // To prevent adding spurious targets when merging
+    // If typoe is incomplete, we can use a dummy size here because it is only used for the fake
+    // base.
+    int size = pType.isIncomplete() ? 0 : ptsMgs.getSize(pType);
+    // To prevent adding spurious targets when merging
+    bases = bases.putAndCopy(pName, PointerTargetSetManagerHeapArray.getFakeBaseType(size));
     lastBase = pName;
     return nextInequality;
   }

@@ -602,7 +602,11 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
         PointerTargetSet.getBaseName(pNewBase));
 
     if (pLastBase != null) {
-      final int lastSize = typeHandler.getSizeof(pBases.get(pLastBase));
+      final CType lastType = pBases.get(pLastBase);
+      final int lastSize =
+          lastType.isIncomplete()
+              ? options.defaultAllocationSize()
+              : typeHandler.getSizeof(lastType);
       final Formula rhs = formulaManager.makePlus(
           formulaManager.makeVariable(pointerType,
               PointerTargetSet.getBaseName(pLastBase)),
