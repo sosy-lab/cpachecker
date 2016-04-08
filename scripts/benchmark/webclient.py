@@ -756,7 +756,7 @@ class WebInterface:
     def _request(self, method, path, data=None, headers=None, files=None, expectedStatusCodes=[200], user_pwd=None):
         url = self._web_interface_url + path
         if user_pwd:
-            auth = (user_pwd.cplit(":")[0], user_pwd.cplit(":")[1])
+            auth = (user_pwd.split(":")[0], user_pwd.split(":")[1])
         else:
             auth = None
         
