@@ -90,7 +90,7 @@ public class BlockOperator {
 
   @Option(secure=true, description="abstraction always and only on explicitly computed abstraction nodes.")
   private boolean alwaysAndOnlyAtExplicitNodes = false;
-  
+
   @Option(secure=true, description="force abstractions at end of program, regardless of threshold")
   private boolean alwaysAtEndOfProgram = false;
 
@@ -206,8 +206,8 @@ public class BlockOperator {
         return true;
       }
     }
-    
-    if(alwaysAtEndOfProgram && succLoc.getNumLeavingEdges() == 0) {
+
+    if(alwaysAtEndOfProgram && loc.getNumLeavingEdges() == 0) {
       return true;
     }
 

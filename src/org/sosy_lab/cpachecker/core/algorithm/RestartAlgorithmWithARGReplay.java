@@ -287,4 +287,9 @@ public class RestartAlgorithmWithARGReplay implements Algorithm, StatisticsProvi
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
   }
+
+  @Override
+  public boolean reset() {
+    return true;
+  }
 }

@@ -28,7 +28,6 @@ import java.util.Collection;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -44,7 +43,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import com.google.common.collect.Iterables;
 
-@Options(prefix="counterexample")
 public class ContinueOnCounterexampleAlgorithm implements Algorithm, StatisticsProvider, Statistics {
 
   private final Algorithm algorithm;

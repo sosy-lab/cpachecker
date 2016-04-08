@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
@@ -177,14 +176,14 @@ public class ARGToCTranslator {
   private final Set<ARGState> discoveredElements = new HashSet<>();
   private final Set<ARGState> mergeElements = new HashSet<>();
   private FunctionBody mainFunctionBody;
-  private static Collection<AbstractState> reached;
+  // private static Collection<AbstractState> reached;
 
   private ARGToCTranslator(LogManager pLogger) {
     logger = pLogger;
   }
 
   public static String translateARG(ARGState argRoot, ReachedSet pReached, boolean includeHeader, LogManager pLogger) {
-    reached = pReached.asCollection();
+    // reached = pReached.asCollection();
     ARGToCTranslator translator = new ARGToCTranslator(pLogger);
 
     translator.translate(argRoot);

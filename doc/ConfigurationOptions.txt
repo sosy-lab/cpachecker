@@ -429,6 +429,13 @@ cegar.noRefinementInFirstRun = false
 # omitted.
 cegar.refiner = no default value
 
+# maximum count of attempted refinements
+cegar.stopRefiningCount = -1
+
+# threshold (in ms) after which the CEGAR algorithm gives up refining
+# (spurious) counterexamples
+cegar.stopRefiningThreshold = -1
+
 # whether or not to use refinement selection to decide which domain to refine
 cegar.useRefinementSelection = false
 
@@ -687,6 +694,9 @@ cpa.arg.dumpARG = false
 # Dump all ARG related statistics files after each iteration of the CPA
 # algorithm? (for debugging and demonstration)
 cpa.arg.dumpAfterIteration = false
+
+# export final ARG as .c file
+cpa.arg.dumpFile = "ARG.c"
 
 # export error path as automaton
 cpa.arg.errorPath.automaton = "ErrorPath.%d.spc"
