@@ -45,15 +45,14 @@ from time import sleep
 from time import time
 
 import requests
-import urllib.parse as urllib
-import urllib.request as urllib2
+from requests import HTTPError
+import urllib.parse 
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
 from concurrent.futures import Future
 
 try:
     import sseclient  # @UnresolvedImport
-    from requests import HTTPError
 except:
     pass
 
@@ -319,7 +318,7 @@ class WebInterface:
             default_headers['User-Agent'] = \
                 '{}/{} (Python/{} {}/{})'.format(user_agent, version, platform.python_version(), platform.system(), platform.release())
 
-        urllib.urlparse(web_interface_url) # sanity check
+        urllib.parse.urlparse(web_interface_url) # sanity check
         self._web_interface_url = web_interface_url
         logging.info('Using VerifierCloud at %s', web_interface_url)
 
@@ -437,7 +436,7 @@ class WebInterface:
                    "Content-Encoding": "deflate",
                    "Accept": "text/plain"}
 
-        paramsCompressed = zlib.compress(urllib.urlencode(params, doseq=True).encode('utf-8'))
+        paramsCompressed = zlib.compress(urllib.parse.urlencode(params, doseq=True).encode('utf-8'))
         path = "runs/witness_validation/"
 
         (run_id, _) = self._request("POST", path, paramsCompressed, headers, user_pwd=user_pwd)
@@ -468,14 +467,18 @@ class WebInterface:
     def _submit(self, run, limits, cpu_model, result_files_pattern, priority, user_pwd, svn_branch, svn_revision, counter=0):
 
         params = []
+        opened_files = [] # open file handles are passed to the request library
+        
         for programPath in run.sourcefiles:
-            params.append(('programTextHash', (programPath, self._get_sha1_hash(programPath))))
+            norm_path = self._normalize_path_for_cloud(programPath)
+            params.append(('programTextHash', (norm_path, self._get_sha1_hash(programPath))))
 
         params.append(('svnBranch', svn_branch or self._svn_branch))
         params.append(('revision', svn_revision or self._svn_revision))
 
         if run.propertyfile:
-            params.append(('propertyText', open(run.propertyfile, 'r')))
+            file = self._add_file_to_params(params, 'propertyText', run.propertyfile)
+            opened_files.append(file)
 
         if MEMLIMIT in limits:
             params.append(('memoryLimitation', str(limits[MEMLIMIT])))
@@ -496,7 +499,8 @@ class WebInterface:
         if priority:
             params.append(('priority', priority))
 
-        invalidOption = self._handle_options(run, params, limits)
+        (invalidOption, files) = self._handle_options(run, params, limits)
+        opened_files.extend(files)
         if invalidOption:
             raise WebClientError('Command {0}  contains option "{1}" that is not usable with the webclient. '\
                 .format(run.options, invalidOption))
@@ -509,6 +513,9 @@ class WebInterface:
         (run_id, statusCode) = self._request("POST", path, files=params, headers=headers, \
                                              expectedStatusCodes=[200, 412], user_pwd=user_pwd)
 
+        for opened_file in opened_files:
+            opened_file.close()
+        
         # program files given as hash value are not known by the cloud system
         if statusCode == 412 and counter < 1:
             headers = {"Content-Type": "application/octet-stream",
@@ -531,6 +538,8 @@ class WebInterface:
             return self._create_and_add_run_future(run_id)
 
     def _handle_options(self, run, params, rlimits):
+        opened_files = []
+        
         # TODO use code from CPAchecker module, it add -stats and sets -timelimit,
         # instead of doing it here manually, too
         if self._tool_name == "CPAchecker":
@@ -589,13 +598,8 @@ class WebInterface:
 
                     elif option == "-spec":
                         spec_path = next(i)
-                        spec_file = open(spec_path, 'r')
-                        if spec_path[-8:] == ".graphml":
-                            params.append(('errorWitnessText', spec_file))
-                        elif spec_path[-4:] == ".prp":
-                            params.append(('propertyText', spec_file))
-                        else:
-                            params.append(("specificationText", spec_file))
+                        file = self._add_file_to_params(params, "specificationText", spec_path)
+                        opened_files.append(file)
 
                     elif option == "-config":
                         configPath = next(i)
@@ -603,7 +607,7 @@ class WebInterface:
                         if not (tokens[0] == "config" and len(tokens) == 2):
                             logging.warning('Configuration %s of run %s is not from the default config directory.',
                                             configPath, run.identifier)
-                            return configPath
+                            return (configPath, opened_files)
                         config = tokens[1].split('.')[0]
                         params.append(('configuration', config))
 
@@ -613,12 +617,24 @@ class WebInterface:
                     elif option[0] == '-' and 'configuration' not in params :
                         params.append(('configuration', option[1:]))
                     else:
-                        return option
+                        return (option, opened_files)
 
                 except StopIteration:
                     break
 
-        return None
+        return (None, opened_files)
+
+    def _add_file_to_params(self, params, name, path):
+        norm_path = self._normalize_path_for_cloud(path)
+        file = open(path, 'rb')
+        params.append((name, (norm_path, file)))
+        return file
+    
+    def _normalize_path_for_cloud(self, path):
+        norm_path = os.path.normpath(path)
+        if '..' in norm_path:
+            norm_path = os.path.basename(norm_path)
+        return norm_path
 
     def flush_runs(self):
         """
@@ -651,7 +667,7 @@ class WebInterface:
 
             return state
 
-        except urllib2.HTTPError as e:
+        except requests.HTTPError as e:
             logging.warning('Could not get run state %s: %s', run_id, e.reason)
             return False
 
@@ -678,7 +694,7 @@ class WebInterface:
                 logging.info('Could not get result of run %s: %s', run_id, downloaded_result.exception())
 
                 # client error
-                if type(exception) is urllib2.HTTPError and 400 <= exception.code and exception.code <= 499:
+                if type(exception) is HTTPError and 400 <= exception.code and exception.code <= 499:
                     attempts = self._download_attempts.pop(run_id, 1);
                     if attempts < 10:
                         self._download_attempts[run_id] = attempts + 1;
@@ -733,7 +749,7 @@ class WebInterface:
         path = "runs/" + run_id
         try:
             self._request("DELETE", path, expectedStatusCodes=[200, 204, 404])
-        except urllib2.HTTPError as e:
+        except HTTPError as e:
             logging.info("Stopping of run %s failed: %s", run_id, e.reason)
 
 
