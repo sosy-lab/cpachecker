@@ -80,11 +80,29 @@ public abstract class UnarySymbolicExpression extends SymbolicExpression {
 
     UnarySymbolicExpression that = (UnarySymbolicExpression) o;
 
-    return operand.equals(that.operand) && type.equals(that.type);
+    return super.equals(that)
+        && operand.equals(that.operand) && type.equals(that.type);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getClass(), operand, type);
+    return super.hashCode() + Objects.hash(getClass(), operand, type);
   }
+
+  @Override
+  public String getRepresentation() {
+    if (getRepresentedLocation().isPresent()) {
+      return getRepresentedLocation().get().toString();
+
+    } else {
+      return getOperationString() + operand.getRepresentation();
+    }
+  }
+
+  @Override
+  public String toString() {
+    return getOperationString() + "(" + operand + ")";
+  }
+
+  public abstract String getOperationString();
 }

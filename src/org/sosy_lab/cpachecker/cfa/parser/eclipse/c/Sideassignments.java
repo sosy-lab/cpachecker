@@ -32,7 +32,7 @@ import java.util.Deque;
 import java.util.List;
 
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 

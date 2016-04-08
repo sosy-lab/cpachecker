@@ -38,8 +38,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.VariableClassification;
-import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
+import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
 /** This class guarantees a fixed order of variables in the BDD,
  * that should be good for the operations in the BitvectorManager. */

@@ -45,6 +45,8 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -53,12 +55,12 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
@@ -94,6 +96,10 @@ public class StateToFormulaWriter implements StatisticsProvider {
       + "write its atoms as a list of formulas. Therefore we ignore operators for conjunction and disjunction.")
   private FormulaSplitter splitFormulas = FormulaSplitter.LOCATION;
 
+  @Option(secure=true,
+      description="export formulas for all program locations or just the important locations,"
+          + "which include loop-heads, funtion-calls and function-exits.")
+  private boolean exportOnlyImporantLocations = false;
 
   private static final Splitter LINE_SPLITTER = Splitter.on('\n').omitEmptyStrings();
   private static final Joiner LINE_JOINER = Joiner.on('\n');
@@ -102,6 +108,7 @@ public class StateToFormulaWriter implements StatisticsProvider {
   private final FormulaManagerView fmgr;
   private final PathFormulaManager pfmgr;
   private final LogManager logger;
+  private final CFA cfa;
 
   public enum FormulaSplitter {
     LOCATION, // one formula per location: "(a=2&b=3)|(a=2&b=4)"
@@ -111,21 +118,19 @@ public class StateToFormulaWriter implements StatisticsProvider {
 
   public StateToFormulaWriter(
       Configuration config, LogManager pLogger,
-      ShutdownNotifier shutdownNotifier, CFA cfa)
+      ShutdownNotifier shutdownNotifier, CFA pCfa)
           throws InvalidConfigurationException {
     config.inject(this);
     solver = Solver.create(config, pLogger, shutdownNotifier);
     logger = pLogger;
     fmgr = solver.getFormulaManager();
     pfmgr = new PathFormulaManagerImpl(fmgr, config, logger,
-        shutdownNotifier, cfa, AnalysisDirection.FORWARD);
+        shutdownNotifier, pCfa, AnalysisDirection.FORWARD);
+    cfa = pCfa;
   }
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    // solver-statistics dump symbol-encoding
-    solver.collectStatistics(pStatsCollection);
-
     pStatsCollection.add(new Statistics() {
 
       @Override
@@ -152,16 +157,32 @@ public class StateToFormulaWriter implements StatisticsProvider {
     SetMultimap<CFANode, FormulaReportingState> locationPredicates = HashMultimap.create();
     for (AbstractState state : pReachedSet) {
       CFANode location = extractLocation(state);
-
-      // In most cases we re-use only states at abstraction locations.
-      // TODO Add some filter-mechanism to export only them!
-
-      if (location != null) {
+      if (location != null && isImportantNode(location)) {
         FluentIterable<FormulaReportingState> formulaState = asIterable(state).filter(FormulaReportingState.class);
         locationPredicates.putAll(location, formulaState);
       }
+
     }
     write(locationPredicates, pAppendable);
+  }
+
+  /**
+   * Filter important program locations.
+   * In some cases we re-use only states at abstraction locations,
+   * which include loop-starts and function calls.
+   * We use a simple filter-mechanism to export only them!
+   */
+  private boolean isImportantNode(CFANode location) {
+    if (exportOnlyImporantLocations) {
+      return (cfa.getAllLoopHeads().isPresent() && cfa.getAllLoopHeads().get().contains(location))
+          || location instanceof FunctionEntryNode
+          || location instanceof FunctionExitNode
+          || location.getLeavingSummaryEdge() != null
+          || location.getEnteringSummaryEdge() != null;
+    } else {
+      // all locations are important
+      return true;
+    }
   }
 
   /** write all formulas for a single program location. */
@@ -182,15 +203,14 @@ public class StateToFormulaWriter implements StatisticsProvider {
 
     // fill the above set and map
     for (CFANode cfaNode : pStates.keySet()) {
-      List<BooleanFormula> formulas = getFormulasForNode(pStates.get(cfaNode), cfaNode);
+      List<BooleanFormula> formulas = getFormulasForNode(pStates.get(cfaNode));
       extractPredicatesAndDefinitions(cfaNode, definitions, cfaNodeToPredicate, formulas);
     }
 
     writeFormulas(pAppendable, definitions, cfaNodeToPredicate);
   }
 
-  /** get formulas representing the abstract states at the cfaNode. */
-  private List<BooleanFormula> getFormulasForNode(Set<FormulaReportingState> states, CFANode cfaNode) {
+  private List<BooleanFormula> getFormulasForNode(Set<FormulaReportingState> states) {
     final List<BooleanFormula> formulas = new ArrayList<>();
     final BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
 
@@ -235,7 +255,7 @@ public class StateToFormulaWriter implements StatisticsProvider {
       CFANode cfaNode,
       Set<String> definitions,
       Multimap<CFANode, String> cfaNodeToPredicate,
-      List<BooleanFormula> predicates) throws IOException {
+      List<BooleanFormula> predicates) {
 
     for (BooleanFormula formula : predicates) {
       String s = fmgr.dumpFormula(formula).toString();

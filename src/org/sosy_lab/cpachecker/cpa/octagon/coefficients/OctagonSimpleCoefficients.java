@@ -71,7 +71,6 @@ public class OctagonSimpleCoefficients extends AOctagonCoefficients {
    * Create new Coefficients for #size variables. With a constant value
    *
    * @param size The size of variables for which coefficients should be stored
-   * @param index The index of the variable which should be set by default to a given value
    * @param value The value to which the variable should be set
    */
   public OctagonSimpleCoefficients(int size, OctagonNumericValue value, OctagonState oct) {

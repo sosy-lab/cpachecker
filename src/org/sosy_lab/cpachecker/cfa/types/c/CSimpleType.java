@@ -23,13 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Strings;
+import javax.annotation.Nullable;
 
 public final class CSimpleType implements CType, Serializable {
 
@@ -53,7 +57,7 @@ public final class CSimpleType implements CType, Serializable {
       final boolean pIsLongLong) {
     isConst = pConst;
     isVolatile = pVolatile;
-    type = pType;
+    type = checkNotNull(pType);
     isLong = pIsLong;
     isShort = pIsShort;
     isSigned = pIsSigned;
@@ -106,6 +110,11 @@ public final class CSimpleType implements CType, Serializable {
   }
 
   @Override
+  public boolean isIncomplete() {
+    return false;
+  }
+
+  @Override
   public int hashCode() {
       final int prime = 31;
       int result = 7;
@@ -128,7 +137,7 @@ public final class CSimpleType implements CType, Serializable {
    * typedefs in it use #getCanonicalType().equals()
    */
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(@Nullable Object obj) {
     if (obj == this) {
       return true;
     }
@@ -158,6 +167,7 @@ public final class CSimpleType implements CType, Serializable {
 
   @Override
   public String toASTString(String pDeclarator) {
+    checkNotNull(pDeclarator);
     List<String> parts = new ArrayList<>();
 
     if (isConst()) {
@@ -210,6 +220,14 @@ public final class CSimpleType implements CType, Serializable {
     if (newType == CBasicType.INT && !isSigned && !isUnsigned) {
       newIsSigned = true;
     }
+
+    if ((isConst == pForceConst)
+        && (isVolatile == pForceVolatile)
+        && (type == newType)
+        && (isSigned == newIsSigned)) {
+      return this;
+    }
+
     return new CSimpleType(isConst || pForceConst, isVolatile || pForceVolatile, newType, isLong, isShort, newIsSigned, isUnsigned, isComplex, isImaginary, isLongLong);
   }
 }

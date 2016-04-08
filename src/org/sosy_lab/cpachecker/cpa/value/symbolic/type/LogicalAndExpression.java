@@ -60,7 +60,7 @@ public class LogicalAndExpression extends BinarySymbolicExpression {
   }
 
   @Override
-  public String toString() {
-    return "(" + getOperand1() + " && " + getOperand2() + ")";
+  public String getOperationString() {
+    return "&&";
   }
 }

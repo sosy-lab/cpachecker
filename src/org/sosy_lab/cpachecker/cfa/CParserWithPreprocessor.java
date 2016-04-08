@@ -59,6 +59,13 @@ class CParserWithPreprocessor implements CParser {
 
   @Override
   public ParseResult parseString(String pFilename, String pCode, CSourceOriginMapping sourceOriginMapping) throws ParserException, InvalidConfigurationException {
+    return parseString(pFilename, pCode, sourceOriginMapping, CProgramScope.empty());
+  }
+
+  @Override
+  public ParseResult parseString(
+      String pFilename, String pCode, CSourceOriginMapping pSourceOriginMapping, Scope pScope)
+      throws CParserException, InvalidConfigurationException {
     // TODO
     throw new UnsupportedOperationException();
   }

@@ -281,7 +281,7 @@ class ASTConverter {
 
   private static void check(boolean assertion, String msg, ASTNode astNode) throws CFAGenerationRuntimeException {
     if (!assertion) {
-      throw new CFAGenerationRuntimeException(msg);
+      throw new CFAGenerationRuntimeException(msg, astNode);
     }
   }
 
@@ -411,15 +411,14 @@ class ASTConverter {
 
     for (VariableDeclarationFragment vdf : vdfs) {
 
-      result.add(handleFieldDeclarationFragment(vdf, fd));
+      result.add(handleFieldDeclarationFragment(vdf));
     }
 
     return result;
   }
 
 
-  private JDeclaration handleFieldDeclarationFragment(VariableDeclarationFragment pVdf,
-      FieldDeclaration pFd) {
+  private JDeclaration handleFieldDeclarationFragment(VariableDeclarationFragment pVdf) {
     // TODO initializer with side assignment
 
     NameAndInitializer nameAndInitializer = getNamesAndInitializer(pVdf);
@@ -978,10 +977,10 @@ class ASTConverter {
       return miv;
   }
 
-
-
+  /**
+   * @param pE the node to convert
+   */
   private JAstNode convert(TypeLiteral pE) {
-
     throw new CFAGenerationRuntimeException("Standard Library support not yet implemented.\n"
       +  "Cannot use Type Literals which would return a class Object.");
   }
@@ -1561,7 +1560,7 @@ class ASTConverter {
               NameConverter.convertName((IVariableBinding) e.resolveBinding()));
         }
 
-        return convertQualifiedVariableIdentificationExpression(e, vb);
+        return convertQualifiedVariableIdentificationExpression(e);
       } else {
 
         String name = e.getFullyQualifiedName();
@@ -1612,7 +1611,7 @@ class ASTConverter {
   }
 
   private JAstNode convertQualifiedVariableIdentificationExpression(
-      QualifiedName e, IVariableBinding vb) {
+      QualifiedName e) {
 
     JAstNode identifier = convertExpressionWithoutSideEffects(e.getName());
 
@@ -2121,6 +2120,9 @@ class ASTConverter {
         return BinaryOperator.EQUALS;
       } else if (op.equals(InfixExpression.Operator.NOT_EQUALS)) {
         return BinaryOperator.NOT_EQUALS;
+      } else if (op.equals(InfixExpression.Operator.PLUS)
+          && (isStringType(pOp1Type) || isStringType(pOp2Type))) {
+        return BinaryOperator.STRING_CONCATENATION;
       } else {
         throw new CFAGenerationRuntimeException(invalidTypeMsg);
       }
@@ -2141,6 +2143,11 @@ class ASTConverter {
   private boolean isBooleanCompatible(JBasicType pType) {
     return pType == JBasicType.BOOLEAN || pType == JBasicType.UNSPECIFIED;
 
+  }
+
+  private boolean isStringType(JType t) {
+    return t instanceof JClassOrInterfaceType
+        && ((JClassOrInterfaceType)t).getName().equals("java.lang.String");
   }
 
   private BinaryOperator convertNumericOperator(InfixExpression.Operator op) {
@@ -2217,20 +2224,17 @@ class ASTConverter {
     case INT:
       return new JIntegerLiteralExpression(fileLoc, parseIntegerLiteral(valueStr, e));
     case FLOAT:
-      return new JFloatLiteralExpression(fileLoc, parseFloatLiteral(valueStr, e));
+      return new JFloatLiteralExpression(fileLoc, parseFloatLiteral(valueStr));
 
     case DOUBLE:
-      return new JFloatLiteralExpression(fileLoc, parseFloatLiteral(valueStr, e));
+      return new JFloatLiteralExpression(fileLoc, parseFloatLiteral(valueStr));
 
     default:
       return new JIntegerLiteralExpression(getFileLocation(e), BigInteger.valueOf(Long.parseLong(e.getToken())));
     }
   }
 
-
-
-
-  private BigDecimal parseFloatLiteral(String valueStr, NumberLiteral e) {
+  private BigDecimal parseFloatLiteral(String valueStr) {
 
     BigDecimal value;
     try {

@@ -59,4 +59,9 @@ public class BinaryNotExpression extends UnarySymbolicExpression {
   public String toString() {
     return "~" + getOperand();
   }
+
+  @Override
+  public String getOperationString() {
+    return "~";
+  }
 }

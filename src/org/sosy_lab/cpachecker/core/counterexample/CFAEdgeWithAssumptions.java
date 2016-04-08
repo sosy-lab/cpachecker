@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.counterexample;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import javax.annotation.Nullable;
@@ -40,7 +41,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 public class CFAEdgeWithAssumptions {
 
   private final CFAEdge edge;
-  private final List<AExpressionStatement> expressionStmts;
+  private final Collection<AExpressionStatement> expressionStmts;
   private final String comment;
 
   /**
@@ -50,7 +51,7 @@ public class CFAEdgeWithAssumptions {
    * @param pExpStmt The concrete assumptions represented as expression statements
    * @param pComment Further comments that should be given to the user about this part of the path but can't be represented as assumption.
    */
-  public CFAEdgeWithAssumptions(CFAEdge pEdge, List<AExpressionStatement> pExpStmt, String pComment) {
+  public CFAEdgeWithAssumptions(CFAEdge pEdge, Collection<AExpressionStatement> pExpStmt, String pComment) {
     assert pExpStmt != null;
     assert pComment != null;
     edge = pEdge;
@@ -66,8 +67,8 @@ public class CFAEdgeWithAssumptions {
      */
     edge = pEdgeWA.edge;
 
-    List<AExpressionStatement> expStmts1 = pEdgeWA.getExpStmts();
-    List<AExpressionStatement> expStmts2 = pEdgeWA2.getExpStmts();
+    Collection<AExpressionStatement> expStmts1 = pEdgeWA.getExpStmts();
+    Collection<AExpressionStatement> expStmts2 = pEdgeWA2.getExpStmts();
 
     List<AExpressionStatement> result = new ArrayList<>(pEdgeWA.expressionStmts);
 
@@ -81,7 +82,7 @@ public class CFAEdgeWithAssumptions {
     expressionStmts = result;
   }
 
-  public List<AExpressionStatement> getExpStmts() {
+  public Collection<AExpressionStatement> getExpStmts() {
     return expressionStmts;
   }
 
@@ -179,7 +180,7 @@ public class CFAEdgeWithAssumptions {
   /**
    * Try to merge two different edges {@link CFAEdgeWithAssumptions}.
    *
-   * @param CFAEdgeWithAssumptions the other edge to be merged with this edge.
+   * @param pEdge the other edge to be merged with this edge.
    * @return A Edge that contain both assumptions of the merged edges.
    */
   public CFAEdgeWithAssumptions mergeEdge(CFAEdgeWithAssumptions pEdge) {

@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.livevar;
 import java.util.Collections;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -86,7 +85,6 @@ public class LiveVariablesCPA implements ConfigurableProgramAnalysis {
 
   private LiveVariablesCPA(final Configuration pConfig,
                            final LogManager pLogger,
-                           final ShutdownNotifier pShutdownNotifier,
                            final CFA cfa) throws InvalidConfigurationException {
     pConfig.inject(this, LiveVariablesCPA.class);
     logger = pLogger;

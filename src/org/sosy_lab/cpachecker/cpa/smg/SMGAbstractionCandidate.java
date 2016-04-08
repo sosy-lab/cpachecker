@@ -23,8 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 
 public interface SMGAbstractionCandidate {
+
+  public CLangSMG execute(CLangSMG pSMG, SMGState pSmgState) throws SMGInconsistentException;
   public int getScore();
-  public CLangSMG execute(CLangSMG pSMG);
+
 }

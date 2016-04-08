@@ -41,6 +41,7 @@ public class RefinementFailedException extends CPAException {
     InterpolationFailed("Interpolation failed"),
     InvariantRefinementFailed("Could not find invariant"),
     RepeatedCounterexample("Counterexample could not be ruled out and was found again"),
+    RepeatedPathPrefix("Error path prefix could not be ruled out and was used again"),
     TooMuchUnrolling("Too much unrolling"),
     InfeasibleCounterexample("External tool verified counterexample as infeasible"),
     TIMEOUT("SMT-solver timed out");
@@ -61,13 +62,17 @@ public class RefinementFailedException extends CPAException {
 
   private ARGPath path;
 
+  private final Reason reason;
+
   public RefinementFailedException(Reason r, @Nullable ARGPath p) {
     super(getMessage(r, null));
+    reason = r;
     path = p;
   }
 
   public RefinementFailedException(Reason r, @Nullable ARGPath p, Throwable t) {
     super(getMessage(r, t), checkNotNull(t));
+    reason = r;
     path = p;
   }
 
@@ -93,5 +98,9 @@ public class RefinementFailedException extends CPAException {
 
   public void setErrorPath(ARGPath pPath) {
     path = checkNotNull(pPath);
+  }
+
+  public Reason getReason() {
+    return reason;
   }
 }

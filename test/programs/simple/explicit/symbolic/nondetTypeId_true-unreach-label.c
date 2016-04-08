@@ -6,7 +6,10 @@ int main() {
   int b = sizeof(int);
 
   if (a < 0) {
-    a = -a;
+    a++;
+    if (a < 0) {
+      a = -a;
+    }
   }
 
   a = a + b;

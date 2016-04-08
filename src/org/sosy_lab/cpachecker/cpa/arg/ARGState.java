@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.base.Preconditions.*;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -39,12 +39,12 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
-import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Sets;
@@ -119,6 +119,9 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
   /**
    * Returns the edge from current state to child or Null, if there is no edge.
    * Both forward and backward analysis must be considered!
+   *
+   * If there are several edges between the states,
+   * only one of them will be returned, non-deterministically.
    */
   @Nullable
   public CFAEdge getEdgeToChild(ARGState pChild) {
@@ -128,26 +131,38 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     // by an analysis. Possible traces might be 'interrupted' by covered states.
     // Covered states do not have children, so we expect the return value null in this case.
 
-    CFANode currentLoc = extractLocation(this);
-    CFANode childLoc = extractLocation(pChild);
+    final Iterable<CFANode> currentLocs = extractLocations(this);
+    final Iterable<CFANode> childLocs = extractLocations(pChild);
 
-    if (currentLoc.hasEdgeTo(childLoc)) { // Forwards
-      return currentLoc.getEdgeTo(childLoc);
+    // first try to get a normal edge
+    for (CFANode currentLoc : currentLocs) {
+      for (CFANode childLoc : childLocs) {
+        if (currentLoc.hasEdgeTo(childLoc)) { // Forwards
+          return currentLoc.getEdgeTo(childLoc);
 
-    } else if (currentLoc.getLeavingSummaryEdge() != null
-            && currentLoc.getLeavingSummaryEdge().getSuccessor().equals(childLoc)) { // Forwards
-      return currentLoc.getLeavingSummaryEdge();
-
-    } else if (childLoc.hasEdgeTo(currentLoc)) { // Backwards
-      return childLoc.getEdgeTo(currentLoc);
-
-    } else if (currentLoc.getEnteringSummaryEdge() != null
-          && currentLoc.getEnteringSummaryEdge().getSuccessor().equals(childLoc)) { // Backwards
-      return currentLoc.getEnteringSummaryEdge();
-
-    } else {
-      return null;
+        } else if (childLoc.hasEdgeTo(currentLoc)) { // Backwards
+          return childLoc.getEdgeTo(currentLoc);
+        }
+      }
     }
+
+    // then try to get a special edge, just to have some edge.
+    for (CFANode currentLoc : currentLocs) {
+      for (CFANode childLoc : childLocs) {
+        if (currentLoc.getLeavingSummaryEdge() != null
+            && currentLoc.getLeavingSummaryEdge().getSuccessor().equals(childLoc)) { // Forwards
+          return currentLoc.getLeavingSummaryEdge();
+
+        } else if (currentLoc.getEnteringSummaryEdge() != null
+            && currentLoc.getEnteringSummaryEdge().getSuccessor().equals(childLoc)) { // Backwards
+          return currentLoc.getEnteringSummaryEdge();
+
+        }
+      }
+    }
+
+    // there is no edge
+    return null;
   }
 
   public Set<ARGState> getSubgraph() {
@@ -353,17 +368,50 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
   // removal from ARG
 
   /**
-   * This method removes this element from the ARG by removing it from its
-   * parents' children list and from its children's parents list.
-   *
-   * This method also removes the element from the covered set of the other
-   * element covering this element, if it is covered.
+   * This method removes this element from the ARG and  also removes the element
+   * from the covered set of the other element covering this element, if it is
+   * covered.
    *
    * This means, if its children do not have any other parents, they will be not
    * reachable any more, i.e. they do not belong to the ARG any more. But those
    * elements will not be removed from the covered set.
    */
   public void removeFromARG() {
+    assert !destroyed : "Don't use destroyed ARGState " + this;
+
+    detachFromARG();
+
+    clearCoverageRelation();
+
+    destroyed = true;
+  }
+
+  /**
+   * This method removes the element from the covered set of the other
+   * element covering this element, if it is covered.
+   */
+  private void clearCoverageRelation() {
+    if (isCovered()) {
+      assert mCoveredBy.mCoveredByThis.contains(this);
+
+      mCoveredBy.mCoveredByThis.remove(this);
+      mCoveredBy = null;
+    }
+
+    if (mCoveredByThis != null) {
+      for (ARGState covered : mCoveredByThis) {
+        covered.mCoveredBy = null;
+      }
+      mCoveredByThis.clear();
+      mCoveredByThis = null;
+    }
+  }
+
+  /**
+   * This method removes this element from the ARG by removing it from its
+   * parents' children list and from its children's parents list.
+   */
+  void detachFromARG() {
     assert !destroyed : "Don't use destroyed ARGState " + this;
 
     // clear children
@@ -379,24 +427,6 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
       parent.children.remove(this);
     }
     parents.clear();
-
-    // clear coverage relation
-    if (isCovered()) {
-      assert mCoveredBy.mCoveredByThis.contains(this);
-
-      mCoveredBy.mCoveredByThis.remove(this);
-      mCoveredBy = null;
-    }
-
-    if (mCoveredByThis != null) {
-      for (ARGState covered : mCoveredByThis) {
-        covered.mCoveredBy = null;
-      }
-      mCoveredByThis.clear();
-      mCoveredByThis = null;
-    }
-
-    destroyed = true;
   }
 
   /**
@@ -406,7 +436,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
    * children of this element, and it will also cover all elements which are
    * currently covered by this element.
    *
-   * @param replacement
+   * @param replacement the replacement for this state
    */
   public void replaceInARGWith(ARGState replacement) {
     assert !destroyed : "Don't use destroyed ARGState " + this;

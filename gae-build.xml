@@ -2,7 +2,8 @@
 <project basedir="." default="server" name="CPAchecker on Google App Engine" xmlns:ivy="antlib:org.apache.ivy.ant">
 
   <!-- use this to specifically set the SDK version, otherwise we will check online for the current API version -->
-  <!-- <property name="gae-sdk.version" value="1.9.17" /> -->
+  <!-- next line is used, because 1.9.33 for Java is not online, TODO disable again -->
+  <property name="gae-sdk.version" value="1.9.32" />
 
   <property name="specification.dir" value="${basedir}/config/specification" />
   <property name="configuration.dir" value="${basedir}/config" />
@@ -41,9 +42,7 @@
     <fileset dir="${lib.dir}">
       <include name="*.jar" />
     </fileset>
-    <fileset dir="${ivy.lib.dir}">
-      <include name="**/*.jar" />
-    </fileset>
+    <fileset dir="${ivy.lib.dir}" includes="runtime/*.jar test/*.jar build/annotations.jar build/error_prone_annotations.jar" />
     <fileset dir="${lib.dir.gae}">
       <include name="**/*.jar" />
     </fileset>
@@ -117,11 +116,9 @@
       </fileset>
       <fileset dir="${ivy.lib.dir}">
         <include name="runtime/*.jar" />
-        <include name="build/*.jar" />
       </fileset>
       <fileset dir="${lib.dir.gae}">
         <include name="runtime/*.jar" />
-        <include name="build/*.jar" />
       </fileset>
       <fileset dir="${gae-sdk.dir}">
         <include name="lib/user/**/*.jar" />

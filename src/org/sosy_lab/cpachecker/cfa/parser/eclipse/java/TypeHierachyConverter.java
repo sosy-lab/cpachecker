@@ -147,7 +147,7 @@ class TypeHierachyConverter {
   /**
    * Converts a List of Field Declaration into the intern AST.
    *
-   * @param field Declarations given to be transformed.
+   * @param fd Declarations given to be transformed.
    * @return intern AST of the Field Declarations.
    */
   public Set<JFieldDeclaration> convert(FieldDeclaration fd, String pFileOfDeclaration) {

@@ -151,37 +151,6 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     }
   }
 
-  public static class ComputeAbstractionState extends PredicateAbstractState {
-
-    private static final long serialVersionUID = -3961784113582993743L;
-    private transient final CFANode location;
-
-    public ComputeAbstractionState(PathFormula pf, AbstractionFormula pA,
-        CFANode pLoc, PersistentMap<CFANode, Integer> pAbstractionLocations) {
-      super(pf, pA, pAbstractionLocations);
-      location = pLoc;
-    }
-
-    @Override
-    public boolean isAbstractionState() {
-      return false;
-    }
-
-    @Override
-    public Object getPartitionKey() {
-      return this;
-    }
-
-    @Override
-    public String toString() {
-      return "Abstraction location: true, Abstraction: <TO COMPUTE>";
-    }
-
-    public CFANode getLocation() {
-      return location;
-    }
-  }
-
   public static PredicateAbstractState mkAbstractionState(
       PathFormula pF, AbstractionFormula pA,
       PersistentMap<CFANode, Integer> pAbstractionLocations) {
@@ -192,6 +161,13 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
       PredicateAbstractState oldState) {
     return new NonAbstractionState(pF, oldState.getAbstractionFormula(),
                                         oldState.getAbstractionLocationsOnPath());
+  }
+
+  static PredicateAbstractState mkNonAbstractionState(
+      PathFormula pF,
+      AbstractionFormula pA,
+      PersistentMap<CFANode, Integer> pAbstractionLocations) {
+    return new NonAbstractionState(pF, pA, pAbstractionLocations);
   }
 
   /** The path formula for the path from the last abstraction node to this node.
@@ -218,6 +194,9 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     throw new UnsupportedOperationException("Assuming wrong PredicateAbstractStates were merged!");
   }
 
+  /**
+   * @param pMergedInto the state that should be set as merged
+   */
   void setMergedInto(PredicateAbstractState pMergedInto) {
     throw new UnsupportedOperationException("Merging wrong PredicateAbstractStates!");
   }
@@ -243,14 +222,6 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     } else {
       throw new UnsupportedOperationException("Changing abstraction formula is only supported for abstraction elements");
     }
-  }
-
-  /**
-   * Replace the path formula part of this element.
-   * THIS IS POTENTIALLY UNSOUND!
-   */
-  public void setPathFormula(PathFormula pPathFormula) {
-    pathFormula = checkNotNull(pPathFormula);
   }
 
   public PathFormula getPathFormula() {

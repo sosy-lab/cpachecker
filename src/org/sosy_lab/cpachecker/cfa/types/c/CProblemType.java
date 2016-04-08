@@ -23,20 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-import java.io.Serializable;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.Objects;
+
+import javax.annotation.Nullable;
 
 
 /**
  * This type is used when the parser could not determine the correct type.
  */
-public class CProblemType implements CType, Serializable {
+public final class CProblemType implements CType {
 
   private static final long serialVersionUID = -5658149239682173246L;
   private final String typeName;
 
   public CProblemType(String pTypeName) {
-    typeName = pTypeName;
+    typeName = checkNotNull(pTypeName);
   }
 
   @Override
@@ -55,7 +58,13 @@ public class CProblemType implements CType, Serializable {
   }
 
   @Override
+  public boolean isIncomplete() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
   public String toASTString(String pDeclarator) {
+    checkNotNull(pDeclarator);
     return typeName + " " + pDeclarator;
   }
 
@@ -78,7 +87,7 @@ public class CProblemType implements CType, Serializable {
    * typedefs in it use #getCanonicalType().equals()
    */
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(@Nullable Object obj) {
     if (obj == this) {
       return true;
     }

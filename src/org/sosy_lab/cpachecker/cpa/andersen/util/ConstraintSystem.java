@@ -122,7 +122,6 @@ public class ConstraintSystem {
    * Add a (new) {@link SimpleConstraint} to this element.
    *
    * @param pConstr {@link SimpleConstraint} that should be added.
-   * @return
    */
   public ConstraintSystem addConstraint(SimpleConstraint pConstr) {
     if (simpleConstraints.contains(pConstr)) {

@@ -108,6 +108,18 @@ public class AutomatonTest {
 
   //Automaton Tests
   @Test
+  public void syntaxErrorTest() throws Exception {
+    Map<String, String> prop = ImmutableMap.of(
+        "specification",           "config/predicateAnalysis.properties",
+        "log.consoleLevel",        "INFO"
+      );
+
+      TestResults results = CPATestRunner.run(prop, "test/programs/simple/UninitVarsErrors.c");
+      assertThat(results.getCheckerResult().getResult()).isEqualTo(Result.NOT_YET_STARTED);
+      assertThat(results.getLog()).contains("Illegal character");
+  }
+
+  @Test
   public void matchEndOfProgramTest() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas",       "cpa.location.LocationCPA",

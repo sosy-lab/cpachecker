@@ -32,6 +32,9 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
 /**
  * Interface for the computation of (ir-)relevant predicates of a given block.
+ *
+ * We assume, that a computer is immutable. We allow internal caching and optimizations,
+ * but the set of (ir-)relevant variables must remain constant (within one instance).
  */
 public interface RelevantPredicatesComputer {
   public Set<AbstractionPredicate> getIrrelevantPredicates(Block context, Collection<AbstractionPredicate> predicates);

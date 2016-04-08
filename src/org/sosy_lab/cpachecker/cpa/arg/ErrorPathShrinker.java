@@ -386,7 +386,6 @@ public final class ErrorPathShrinker {
    * Literals are not part of important variables.
    *
    * @param exp the expression to be divided and added
-   * @param importantVars all currently important variables
    */
   private void addAllVarsInExpToSet(final ARightHandSide exp) {
 

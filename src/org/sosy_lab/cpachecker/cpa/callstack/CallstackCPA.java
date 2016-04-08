@@ -45,9 +45,8 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
@@ -55,7 +54,8 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 import com.google.common.collect.Iterables;
 
-public class CallstackCPA extends AbstractCPA implements ConfigurableProgramAnalysisWithBAM, ProofChecker, ReachedSetAdjustingCPA {
+public class CallstackCPA extends AbstractCPA
+    implements ConfigurableProgramAnalysisWithBAM, ProofChecker {
 
   private final Reducer reducer;
 
@@ -68,10 +68,9 @@ public class CallstackCPA extends AbstractCPA implements ConfigurableProgramAnal
   public CallstackCPA(Configuration config, LogManager pLogger, CFA pCFA) throws InvalidConfigurationException {
     super("sep", "sep",
         new DomainInitializer(config).initializeDomain(),
-        new CallstackTransferRelation(config, pLogger)
-    );
+        new TransferInitializer(config).initializeTransfer(config, pLogger));
     this.cfa = pCFA;
-    reducer = new CallstackReducer();
+    this.reducer = new CallstackReducer();
   }
 
   @Override
@@ -151,20 +150,23 @@ public class CallstackCPA extends AbstractCPA implements ConfigurableProgramAnal
     }
   }
 
-  @Override
-  public boolean adjustPrecision() {
-    CallstackTransferRelation ctr = (CallstackTransferRelation) getTransferRelation();
-    ++ctr.recursionBoundDepth;
-    return true;
+  @Options(prefix = "cpa.callstack")
+  private static class TransferInitializer {
+
+    @Option(description="analyse the CFA backwards", secure=true)
+    private boolean traverseBackwards = false;
+
+    public TransferInitializer(Configuration pConfig) throws InvalidConfigurationException {
+      pConfig.inject(this);
+    }
+
+    public TransferRelation initializeTransfer(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
+      if (traverseBackwards) {
+        return new CallstackTransferRelationBackwards(pConfig, pLogger);
+      } else {
+        return new CallstackTransferRelation(pConfig, pLogger);
+      }
+    }
   }
 
-  @Override
-  public void adjustReachedSet(ReachedSet pReachedSet) {
-    // No action required
-  }
-
-  public void setMaxRecursionDepth(int pK) {
-    CallstackTransferRelation ctr = (CallstackTransferRelation) getTransferRelation();
-    ctr.recursionBoundDepth = pK;
-  }
 }

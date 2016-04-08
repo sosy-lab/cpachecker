@@ -28,11 +28,11 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cpa.smg.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
 import com.google.common.collect.Iterables;
@@ -50,13 +50,12 @@ class SMGJoinFields {
       throw new IllegalArgumentException("SMGJoinFields object arguments need to be included in parameter SMGs");
     }
 
-    Set<SMGEdgeHasValue> H1Prime = getCompatibleHVEdgeSet(pSMG1, pSMG2, pObj1, pObj2);
-    Set<SMGEdgeHasValue> H2Prime = getCompatibleHVEdgeSet(pSMG2, pSMG1, pObj2, pObj1);
-
     SMG origSMG1 = new SMG(pSMG1);
     SMG origSMG2 = new SMG(pSMG2);
 
+    Set<SMGEdgeHasValue> H1Prime = getCompatibleHVEdgeSet(pSMG1, pSMG2, pObj1, pObj2);
     pSMG1.replaceHVSet(H1Prime);
+    Set<SMGEdgeHasValue> H2Prime = getCompatibleHVEdgeSet(pSMG2, pSMG1, pObj2, pObj1);
     pSMG2.replaceHVSet(H2Prime);
 
     status = joinFieldsRelaxStatus(origSMG1, pSMG1, status, SMGJoinStatus.RIGHT_ENTAIL, pObj1);

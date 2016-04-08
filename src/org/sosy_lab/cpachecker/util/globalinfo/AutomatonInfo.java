@@ -40,7 +40,7 @@ public class AutomatonInfo {
     nameToCPA = new HashMap<>();
   }
 
-  void register(Automaton automaton, ControlAutomatonCPA cpa) {
+  public void register(Automaton automaton, ControlAutomatonCPA cpa) {
     for (AutomatonInternalState state : automaton.getStates()) {
       idToState.put(state.getStateId(), state);
     }

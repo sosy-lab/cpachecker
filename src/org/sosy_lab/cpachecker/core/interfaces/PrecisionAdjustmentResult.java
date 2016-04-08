@@ -28,12 +28,16 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+
+import com.google.common.base.Function;
 import com.google.common.base.Objects;
 
 /**
- * Represents the result to a call to {@link org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment#prec(org.sosy_lab.cpachecker.core.interfaces.AbstractState, org.sosy_lab.cpachecker.core.interfaces.Precision, org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet, org.sosy_lab.cpachecker.core.interfaces.AbstractState)}.
+ * Represents the result to a call to
+ * {@link PrecisionAdjustment#prec(AbstractState, Precision, UnmodifiableReachedSet, Function, AbstractState)}.
  * Contains the (possibly changed) abstract abstractState and precision,
- * and an {@link org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action} instance (all are not null).
+ * and an {@link PrecisionAdjustmentResult.Action} instance (all are not null).
  */
 @Immutable
 public class PrecisionAdjustmentResult {

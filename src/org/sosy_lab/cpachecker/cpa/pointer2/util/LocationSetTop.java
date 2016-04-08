@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.pointer2.util;
 
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+
 
 
 public enum LocationSetTop implements LocationSet {
@@ -30,12 +32,12 @@ public enum LocationSetTop implements LocationSet {
   INSTANCE;
 
   @Override
-  public boolean mayPointTo(String pTarget) {
+  public boolean mayPointTo(MemoryLocation pTarget) {
     return true;
   }
 
   @Override
-  public LocationSet addElement(String pTarget) {
+  public LocationSet addElement(MemoryLocation pTarget) {
     return this;
   }
 
@@ -51,12 +53,12 @@ public enum LocationSetTop implements LocationSet {
    * @return the same unchanged object.
    */
   @Override
-  public LocationSet removeElement(String pTarget) {
+  public LocationSet removeElement(MemoryLocation pTarget) {
     return this;
   }
 
   @Override
-  public LocationSet addElements(Iterable<String> pTargets) {
+  public LocationSet addElements(Iterable<MemoryLocation> pTargets) {
     return this;
   }
 

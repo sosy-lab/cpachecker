@@ -36,8 +36,6 @@ import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -58,6 +56,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.pcc.propertychecker.NoTargetStateChecker;
 import org.sosy_lab.cpachecker.pcc.strategy.SequentialReadStrategy;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 
 /**
  * Uses ProofChecker interface to check an ARG (certificate) in parallel.
@@ -73,7 +72,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
   private PropertyChecker propChecker;
 
   public ARGProofCheckerParallelStrategy(Configuration pConfig, LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier, ProofChecker pChecker)
+      ProofChecker pChecker)
       throws InvalidConfigurationException {
     super(pConfig, pLogger);
     checker = pChecker;
@@ -522,7 +521,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
 
     public synchronized Collection<ARGState> getResult() throws InterruptedException {
       try {
-        if (numSetResults != max) {
+        while (numSetResults != max) {
           wait();
         }
         if (!success) {
@@ -536,7 +535,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
       }
     }
 
-    public void increaseSetResults() {
+    private void increaseSetResults() {
       numSetResults++;
       if (numSetResults == max) {
         notify();

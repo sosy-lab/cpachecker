@@ -24,11 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.constraints;
 
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.util.predicates.AssignableTerm;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.ProverEnvironment;
 
 
 /**
@@ -45,6 +45,18 @@ public interface FormulaCreator {
   BooleanFormula createFormula(Constraint pConstraint) throws UnrecognizedCCodeException, InterruptedException;
 
   /**
+   * Creates a {@link BooleanFormula} representing the given {@link Constraint}.
+   * Symbolic Identifiers in constraints are replaced by their known definite assignments, if
+   * one exists.
+   *
+   * @param pConstraint the constraint to create a formula of
+   * @param pDefiniteAssignment the known definite assignments of symbolic identifiers
+   *
+   * @return a <code>Formula</code> representing the given constraint
+   */
+  BooleanFormula createFormula(Constraint pConstraint, IdentifierAssignment pDefiniteAssignment) throws UnrecognizedCCodeException, InterruptedException;
+
+  /**
    * Creates a {@link BooleanFormula} representing the given term-value assignment.
    *
    * <p>These assignments are usually returned by {@link ProverEnvironment#getModel()} after a
@@ -54,10 +66,9 @@ public interface FormulaCreator {
    * returns the formula <code>a equals 5</code>
    * </p>
    *
-   * @param pTerm the term of the assignment
-   * @param termAssignment the value of the assignment
+   * @param pVariable the variable as a formula to assign the given value to
+   * @param pTermAssignment the value of the assignment
    * @return a <code>BooleanFormula</code> representing the given assignment
    */
-  BooleanFormula transformAssignment(AssignableTerm pTerm, Object termAssignment, VariableMap pVariables)
-  ;
+  BooleanFormula transformAssignment(Formula pVariable, Object pTermAssignment);
 }

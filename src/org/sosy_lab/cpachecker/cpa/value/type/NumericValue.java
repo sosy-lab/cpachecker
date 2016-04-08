@@ -61,7 +61,6 @@ public class NumericValue implements Value, Serializable {
   /**
    * Returns the integer stored in the container as long. Before calling this function,
    * it must be ensured using `getType()` that this container contains an integer.
-   * @return
    */
   public long longValue() {
     return number.longValue();
@@ -69,7 +68,6 @@ public class NumericValue implements Value, Serializable {
 
   /**
    * Returns the floating point stored in the container as float.
-   * @return
    */
   public float floatValue() {
     return number.floatValue();
@@ -77,7 +75,6 @@ public class NumericValue implements Value, Serializable {
 
   /**
    * Returns the floating point stored in the container as double.
-   * @return
    */
   public double doubleValue() {
     return number.doubleValue();
@@ -133,7 +130,33 @@ public class NumericValue implements Value, Serializable {
    * @return the negation of this objects value
    */
   public NumericValue negate() {
-    // TODO explicitfloat: handle the different implementations of Number properly
+    // TODO explicitfloat: handle the remaining different implementations of Number properly
+    final Number number = getNumber();
+
+    // check if number is infinite or NaN
+    if (number instanceof Float) {
+      if (number.equals(Float.POSITIVE_INFINITY)) {
+        return new NumericValue(Float.NEGATIVE_INFINITY);
+
+      } else if (number.equals(Float.NEGATIVE_INFINITY)) {
+        return new NumericValue(Float.POSITIVE_INFINITY);
+
+      } else if (number.equals(Float.NaN)) {
+        return this;
+      }
+    } else if (number instanceof Double) {
+      if (number.equals(Double.POSITIVE_INFINITY)) {
+        return new NumericValue(Double.NEGATIVE_INFINITY);
+
+      } else if (number.equals(Double.NEGATIVE_INFINITY)) {
+        return new NumericValue(Double.POSITIVE_INFINITY);
+
+      } else if (number.equals(Double.NaN)) {
+        return this;
+      }
+    }
+
+    // if the stored number is a 'casual' number, just negate it
     return new NumericValue(this.bigDecimalValue().negate());
   }
 

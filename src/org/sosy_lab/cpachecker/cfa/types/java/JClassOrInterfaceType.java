@@ -50,6 +50,8 @@ import com.google.common.collect.ImmutableSet;
  */
 public abstract class JClassOrInterfaceType implements JReferenceType {
 
+  private static final long serialVersionUID = -9116725120756000396L;
+
   private final VisibilityModifier visibility;
   private final String name;
   private final String simpleName;

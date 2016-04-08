@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.precisionConverter;
 import static com.google.common.truth.Truth.assert_;
 
 import org.junit.Test;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.common.log.TestLogManager;
 
 
@@ -50,7 +50,7 @@ public class ConverterTest {
       "(define-fun .def_178 (t t t) Bool (4))",
       };
 
-  private final LogManager logger = TestLogManager.getInstance();
+  private final LogManagerWithoutDuplicates logger = new LogManagerWithoutDuplicates(TestLogManager.getInstance());
 
   @Test
   public void test1() throws Exception {

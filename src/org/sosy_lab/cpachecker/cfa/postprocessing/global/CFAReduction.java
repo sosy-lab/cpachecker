@@ -125,7 +125,7 @@ public class CFAReduction {
   private Collection<CFANode> getErrorNodesWithCPA(MutableCFA cfa) throws InterruptedException {
     try {
       LogManager lLogger = logger.withComponentName("CFAReduction");
-      ReachedSetFactory lReachedSetFactory = new ReachedSetFactory(Configuration.defaultConfiguration(), lLogger);
+      ReachedSetFactory lReachedSetFactory = new ReachedSetFactory(Configuration.defaultConfiguration());
 
       // create new configuration based on existing config but with default set of CPAs
       Configuration lConfig = Configuration.builder()

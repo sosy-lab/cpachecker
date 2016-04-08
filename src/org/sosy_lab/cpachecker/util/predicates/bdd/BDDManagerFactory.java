@@ -28,7 +28,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
+import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 
 /**
  * Factory for creating a RegionManager for one of the available BDD packages

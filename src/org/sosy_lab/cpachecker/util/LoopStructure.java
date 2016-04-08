@@ -118,7 +118,7 @@ public final class LoopStructure {
     // and never called after the LoopStructure information has been collected.
 
     // loopHeads is a sub-set of nodes such that all infinite paths through
-    // the set nodes will pass through at least one node in loopHeads infinitively often
+    // the set nodes will pass through at least one node in loopHeads infinitely often
     // i.e. you will have to pass through at least one loop head in every iteration
     private ImmutableSet<CFANode> loopHeads;
 
@@ -560,7 +560,6 @@ public final class LoopStructure {
    * @param nodes The set of nodes to look for loops in.
    * @param language The source language.
    * @return A collection of found loops.
-   * @throws ParserException
    */
   private static Collection<Loop> findLoops(SortedSet<CFANode> nodes, Language language) throws ParserException {
 

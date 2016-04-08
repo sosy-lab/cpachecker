@@ -128,8 +128,6 @@ class AutomatonExpressionArguments {
    * 2. TransitionVariables (referenced by $<Number-of-Variable>)
    * with the values of the variables.
    * If the variable is not found the function returns null.
-   * @param pSourceString
-   * @return
    */
   String replaceVariables(String pSourceString) {
 

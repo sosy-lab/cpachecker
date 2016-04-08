@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cpa.pointer2.util.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSetBot;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSetTop;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
@@ -55,13 +56,13 @@ public class PointerState implements AbstractState {
   /**
    * The points-to map of the state.
    */
-  private final PersistentSortedMap<String, LocationSet> pointsToMap;
+  private final PersistentSortedMap<MemoryLocation, LocationSet> pointsToMap;
 
   /**
    * Creates a new pointer state with an empty initial points-to map.
     */
   private PointerState() {
-    pointsToMap = PathCopyingPersistentTreeMap.<String, LocationSet>of();
+    pointsToMap = PathCopyingPersistentTreeMap.<MemoryLocation, LocationSet>of();
   }
 
   /**
@@ -69,7 +70,7 @@ public class PointerState implements AbstractState {
    *
    * @param pPointsToMap the points-to map of this state.
    */
-  private PointerState(PersistentSortedMap<String, LocationSet> pPointsToMap) {
+  private PointerState(PersistentSortedMap<MemoryLocation, LocationSet> pPointsToMap) {
     this.pointsToMap = pPointsToMap;
   }
 
@@ -82,7 +83,7 @@ public class PointerState implements AbstractState {
    * @param pTarget the second identifier.
    * @return the pointer state.
    */
-  public PointerState addPointsToInformation(String pSource, String pTarget) {
+  public PointerState addPointsToInformation(MemoryLocation pSource, MemoryLocation pTarget) {
     LocationSet previousPointsToSet = getPointsToSet(pSource);
     LocationSet newPointsToSet = previousPointsToSet.addElement(pTarget);
     return new PointerState(pointsToMap.putAndCopy(pSource, newPointsToSet));
@@ -97,7 +98,7 @@ public class PointerState implements AbstractState {
    * @param pTargets the target identifiers.
    * @return the pointer state.
    */
-  public PointerState addPointsToInformation(String pSource, Iterable<String> pTargets) {
+  public PointerState addPointsToInformation(MemoryLocation pSource, Iterable<MemoryLocation> pTargets) {
     LocationSet previousPointsToSet = getPointsToSet(pSource);
     LocationSet newPointsToSet = previousPointsToSet.addElements(pTargets);
     return new PointerState(pointsToMap.putAndCopy(pSource, newPointsToSet));
@@ -112,7 +113,7 @@ public class PointerState implements AbstractState {
    * @param pTargets the target identifiers.
    * @return the pointer state.
    */
-  public PointerState addPointsToInformation(String pSource, LocationSet pTargets) {
+  public PointerState addPointsToInformation(MemoryLocation pSource, LocationSet pTargets) {
     if (pTargets.isBot()) {
       return this;
     }
@@ -129,7 +130,7 @@ public class PointerState implements AbstractState {
    * @param pSource the identifier pointing to the points-to set in question.
    * @return the points-to set of the given identifier.
    */
-  public LocationSet getPointsToSet(String pSource) {
+  public LocationSet getPointsToSet(MemoryLocation pSource) {
     LocationSet result = this.pointsToMap.get(pSource);
     if (result == null) {
       return LocationSetBot.INSTANCE;
@@ -147,7 +148,7 @@ public class PointerState implements AbstractState {
    * the second identifier and <code>null</code> if it might point to it.
    */
   @Nullable
-  public Boolean pointsTo(String pSource, String pTarget) {
+  public Boolean pointsTo(MemoryLocation pSource, MemoryLocation pTarget) {
     LocationSet pointsToSet = getPointsToSet(pSource);
     if (pointsToSet.equals(LocationSetBot.INSTANCE)) {
       return false;
@@ -167,13 +168,11 @@ public class PointerState implements AbstractState {
    * Checks whether or not the first identifier is known to point to the second
    * identifier.
    *
-   * @param pSource
-   * @param pTarget
    * @return <code>true</code> if the first identifier definitely points to the
    * second identifier, <code>false</code> if it might point to it or is known
    * not to point to it.
    */
-  public boolean definitelyPointsTo(String pSource, String pTarget) {
+  public boolean definitelyPointsTo(MemoryLocation pSource, MemoryLocation pTarget) {
     return Boolean.TRUE.equals(pointsTo(pSource, pTarget));
   }
 
@@ -181,13 +180,11 @@ public class PointerState implements AbstractState {
    * Checks whether or not the first identifier is known to not point to the
    * second identifier.
    *
-   * @param pSource
-   * @param pTarget
    * @return <code>true</code> if the first identifier definitely does not
    * points to the second identifier, <code>false</code> if it might point to
    * it or is known to point to it.
    */
-  public boolean definitelyNotPointsTo(String pSource, String pTarget) {
+  public boolean definitelyNotPointsTo(MemoryLocation pSource, MemoryLocation pTarget) {
     return Boolean.FALSE.equals(pointsTo(pSource, pTarget));
   }
 
@@ -195,13 +192,11 @@ public class PointerState implements AbstractState {
    * Checks whether or not the first identifier is may point to the second
    * identifier.
    *
-   * @param pSource
-   * @param pTarget
    * @return <code>true</code> if the first identifier definitely points to the
    * second identifier or might point to it, <code>false</code> if it is known
    * not to point to it.
    */
-  public boolean mayPointTo(String pSource, String pTarget) {
+  public boolean mayPointTo(MemoryLocation pSource, MemoryLocation pTarget) {
     return !Boolean.FALSE.equals(pointsTo(pSource, pTarget));
   }
 
@@ -210,11 +205,11 @@ public class PointerState implements AbstractState {
    *
    * @return all locations known to the state.
    */
-  public Set<String> getKnownLocations() {
-    return FluentIterable.from(Iterables.concat(pointsToMap.keySet(), FluentIterable.from(pointsToMap.values()).transformAndConcat(new Function<LocationSet, Iterable<? extends String>>() {
+  public Set<MemoryLocation> getKnownLocations() {
+    return FluentIterable.from(Iterables.concat(pointsToMap.keySet(), FluentIterable.from(pointsToMap.values()).transformAndConcat(new Function<LocationSet, Iterable<? extends MemoryLocation>>() {
 
       @Override
-      public Iterable<? extends String> apply(LocationSet pArg0) {
+      public Iterable<? extends MemoryLocation> apply(LocationSet pArg0) {
         if (pArg0 instanceof ExplicitLocationSet) {
           return (ExplicitLocationSet) pArg0;
         }
@@ -229,7 +224,7 @@ public class PointerState implements AbstractState {
    *
    * @return the points-to map of this state.
    */
-  public Map<String, LocationSet> getPointsToMap() {
+  public Map<MemoryLocation, LocationSet> getPointsToMap() {
     return Collections.unmodifiableMap(this.pointsToMap);
   }
 

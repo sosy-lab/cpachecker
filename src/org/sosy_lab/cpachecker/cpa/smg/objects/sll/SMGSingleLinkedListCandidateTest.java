@@ -29,9 +29,9 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cpa.smg.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
@@ -87,7 +87,7 @@ public class SMGSingleLinkedListCandidateTest {
     SMGObject startObject = smg.getPointer(value).getObject();
     SMGSingleLinkedListCandidate candidate = new SMGSingleLinkedListCandidate(startObject, OFFSET, SEGMENT_LENGTH);
 
-    CLangSMG abstractedSmg = candidate.execute(smg);
+    CLangSMG abstractedSmg = candidate.execute(smg, null);
     Set<SMGObject> heap = abstractedSmg.getHeapObjects();
     Assert.assertEquals(3, heap.size());
     SMGObject pointedObject = abstractedSmg.getPointer(value).getObject();
@@ -123,7 +123,7 @@ public class SMGSingleLinkedListCandidateTest {
     Integer value = root.getValue();
     SMGObject startObject = smg.getPointer(value).getObject();
     SMGSingleLinkedListCandidate candidate = new SMGSingleLinkedListCandidate(startObject, 8, 2);
-    CLangSMG abstractedSmg = candidate.execute(smg);
+    CLangSMG abstractedSmg = candidate.execute(smg, null);
     Set<SMGObject> heap = abstractedSmg.getHeapObjects();
     Assert.assertEquals(2, heap.size());
 

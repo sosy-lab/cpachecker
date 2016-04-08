@@ -4,11 +4,12 @@
 
     <!-- Targets for compilation. -->
 
-    <!-- Keep this file synchronized between SoSy-Lab Common, CPAchecker and VerifierCloud. -->
+    <!-- Keep this file synchronized between SoSy-Lab Common, CPAchecker, JavaSMT, and VerifierCloud. -->
 
     <!-- These properties can be overridden from including file. -->
     <property name="source.format" value="1.7"/>
     <property name="source.dir" value="src"/>
+    <property name="source.generated.dir" value=".apt-generated"/>
     <property name="class.format" value="1.7"/>
     <property name="class.dir" value="bin"/>
 
@@ -19,6 +20,7 @@
     <!-- We use error-prone as the compiler, cf. http://errorprone.info/ -->
     <target name="build-project" depends="build-dependencies">
         <depend srcdir="${source.dir}" destdir="${class.dir}"/>
+        <mkdir dir="${source.generated.dir}"/>
         <javac debug="true"
                debuglevel="source,lines,vars"
                destdir="${class.dir}"
@@ -32,6 +34,7 @@
             <compilerarg value="-Xlint"/>
             <compilerarg value="-Xlint:-processing"/>
             <compilerarg value="-Werror"/>
+            <compilerarg value="-s"/><compilerarg value="${source.generated.dir}"/>
             <compilerclasspath refid="errorprone"/>
         </javac>
     </target>

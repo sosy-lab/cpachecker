@@ -101,8 +101,7 @@ public class CPAcheckerResult {
       return;
     }
 
-    out.print("Verification result: ");
-    out.println(getResultString());
+    out.println("Verification result: " + getResultString());
   }
 
   public String getResultString() {

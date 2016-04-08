@@ -28,8 +28,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
@@ -42,10 +40,6 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
  * The transfer relation of the StatisticsCPA.
  */
 public class StatisticsTransferRelation extends SingleEdgeTransferRelation {
-
-
-  public StatisticsTransferRelation(Configuration pConfig, LogManager pLogger) {
-  }
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(

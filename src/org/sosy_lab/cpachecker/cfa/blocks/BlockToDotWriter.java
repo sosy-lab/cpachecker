@@ -180,7 +180,7 @@ public class BlockToDotWriter {
     return node.getNodeNumber() + " [" + shape + label + color + "]\n";
   }
 
-  /** method copied from {@link org.sosy_lab.cpachecker.cfa.export.DOTBuilder.DotGenerator#formatEdge} */
+  /** method copied from <ode>org.sosy_lab.cpachecker.cfa.export.DOTBuilder.DotGenerator#formatEdge</code> */
   private static String formatEdge(CFAEdge edge) {
     StringBuilder sb = new StringBuilder();
     sb.append(edge.getPredecessor().getNodeNumber());

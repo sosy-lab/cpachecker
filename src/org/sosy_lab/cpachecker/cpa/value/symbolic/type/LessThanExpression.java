@@ -61,7 +61,7 @@ public class LessThanExpression extends BinarySymbolicExpression implements Bina
   }
 
   @Override
-  public String toString() {
-    return "(" + getOperand1() + " < " + getOperand2() + ")";
+  public String getOperationString() {
+    return "<";
   }
 }

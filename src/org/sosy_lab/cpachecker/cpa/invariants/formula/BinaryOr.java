@@ -29,7 +29,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  *
  * @param <ConstantType> the type of the constants used in the formula.
  */
-public class BinaryOr<ConstantType> extends AbstractBinaryFormula<ConstantType> implements InvariantsFormula<ConstantType> {
+public class BinaryOr<ConstantType> extends AbstractBinaryFormula<ConstantType> implements NumeralFormula<ConstantType> {
 
   /**
    * Creates a new binary or operation over the given operands.
@@ -37,18 +37,18 @@ public class BinaryOr<ConstantType> extends AbstractBinaryFormula<ConstantType> 
    * @param pOperand1 the first operand.
    * @param pOperand2 the second operand.
    */
-  private BinaryOr(InvariantsFormula<ConstantType> pOperand1, InvariantsFormula<ConstantType> pOperand2) {
+  private BinaryOr(NumeralFormula<ConstantType> pOperand1, NumeralFormula<ConstantType> pOperand2) {
     super("|", true, pOperand1, pOperand2);
   }
 
   @Override
-  public <ReturnType> ReturnType accept(InvariantsFormulaVisitor<ConstantType, ReturnType> pVisitor) {
+  public <ReturnType> ReturnType accept(NumeralFormulaVisitor<ConstantType, ReturnType> pVisitor) {
     return pVisitor.visit(this);
   }
 
   @Override
   public <ReturnType, ParamType> ReturnType accept(
-      ParameterizedInvariantsFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
     return pVisitor.visit(this, pParameter);
   }
 
@@ -62,7 +62,7 @@ public class BinaryOr<ConstantType> extends AbstractBinaryFormula<ConstantType> 
    * @return an invariants formula representing the binary or operation over the
    * given operands.
    */
-  static <ConstantType> BinaryOr<ConstantType> of(InvariantsFormula<ConstantType> pOperand1, InvariantsFormula<ConstantType> pOperand2) {
+  static <ConstantType> BinaryOr<ConstantType> of(NumeralFormula<ConstantType> pOperand1, NumeralFormula<ConstantType> pOperand2) {
     return new BinaryOr<>(pOperand1, pOperand2);
   }
 

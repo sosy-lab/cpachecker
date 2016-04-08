@@ -47,8 +47,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapParser;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 
 import com.google.common.collect.ImmutableList;
@@ -82,7 +81,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
   private final PrecisionBootstrapStatistics statistics = new PrecisionBootstrapStatistics();
 
   public PredicatePrecisionBootstrapper(Configuration config, LogManager logger, CFA cfa,
-      PathFormulaManager pathFormulaManager, AbstractionManager abstractionManager, FormulaManagerView formulaManagerView) throws InvalidConfigurationException {
+      AbstractionManager abstractionManager, FormulaManagerView formulaManagerView) throws InvalidConfigurationException {
     this.config = config;
     this.logger = logger;
     this.cfa = cfa;
@@ -126,9 +125,6 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
 
   /**
    * Read the (initial) precision (predicates to track) from a file.
-   *
-   * @return      Precision
-   * @throws      InvalidConfigurationException
    */
   public PredicatePrecision prepareInitialPredicates() throws InvalidConfigurationException {
     Timer precisionReadTime = new Timer();

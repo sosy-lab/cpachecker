@@ -84,8 +84,9 @@ class CoverageReportGcov implements CoverageWriter {
 
     try (Writer w = Files.openOutputFile(outputCoverageFile)) {
 
-      for (String sourcefile: pCoverage.keySet()) {
-        FileCoverageInformation fileInfos = pCoverage.get(sourcefile);
+      for (Map.Entry<String, FileCoverageInformation> entry : pCoverage.entrySet()) {
+        String sourcefile = entry.getKey();
+        FileCoverageInformation fileInfos = entry.getValue();
 
         //Convert ./test.c -> /full/path/test.c
         w.append(TEXTNAME + "\n");
@@ -98,14 +99,14 @@ class CoverageReportGcov implements CoverageWriter {
           w.append("#" + FUNCTION + info.lastLine + "\n");
         }
 
-        for (String name : fileInfos.visitedFunctions) {
-          w.append(FUNCTIONDATA + "1," + name + "\n");
+        for (String name : fileInfos.visitedFunctions.keySet()) {
+          w.append(FUNCTIONDATA + fileInfos.visitedFunctions.get(name) + "," +  name + "\n");
         }
 
         /* Now save information about lines
          */
         for (Integer line : fileInfos.allLines) {
-          w.append(LINEDATA + line + "," + (fileInfos.visitedLines.get(line) ? 1 : 0) + "\n");
+          w.append(LINEDATA + line + "," + fileInfos.getVisitedLine(line) + "\n");
         }
         w.append("end_of_record\n");
       }

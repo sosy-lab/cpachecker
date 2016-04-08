@@ -29,8 +29,8 @@ import static com.google.common.collect.Iterables.getLast;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 
 public class CFANode implements Comparable<CFANode> {
 

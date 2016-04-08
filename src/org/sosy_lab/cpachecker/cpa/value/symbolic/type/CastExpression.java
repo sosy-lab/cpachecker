@@ -55,7 +55,7 @@ public class CastExpression extends UnarySymbolicExpression {
    *
    * @param pOperand the operand to cast
    * @param pType the type to cast the operand to
-   * @param the memory location this cast expression represents
+   * @param pRepresentedLocation the memory location this cast expression represents
    */
   protected CastExpression(
       final SymbolicExpression pOperand,
@@ -78,5 +78,10 @@ public class CastExpression extends UnarySymbolicExpression {
   @Override
   public String toString() {
     return "Cast[" + getType() + ", " + getOperand() + "]";
+  }
+
+  @Override
+  public String getOperationString() {
+    return "Cast>";
   }
 }

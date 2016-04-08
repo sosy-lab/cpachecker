@@ -27,9 +27,11 @@ import static com.google.common.base.Preconditions.*;
 import static com.google.common.base.Predicates.not;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Queue;
 import java.util.Set;
 import java.util.SortedSet;
@@ -38,6 +40,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -48,14 +51,16 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Queues;
 import com.google.common.collect.UnmodifiableIterator;
 
 public class CFAUtils {
 
   /**
    * Return an {@link Iterable} that contains all entering edges of a given CFANode,
-   * including the summary edge if the node as one.
+   * including the summary edge if the node has one.
    */
   public static FluentIterable<CFAEdge> allEnteringEdges(final CFANode node) {
     checkNotNull(node);
@@ -245,7 +250,7 @@ public class CFAUtils {
    * Returns a predicate for CFA edges with the given edge type.
    * The predicate is not null safe.
    *
-   * @param pEdgeType the edge type matched on.
+   * @param pType the edge type matched on.
    */
   public static Predicate<CFAEdge> edgeHasType(final CFAEdgeType pType) {
     checkNotNull(pType);
@@ -346,7 +351,7 @@ public class CFAUtils {
 
   /**
    * Searches for backwards edges from a given starting node
-   * @param actNode The node where the search is started
+   * @param rootNode The node where the search is started
    * @return indicates if a backwards edge was found
    */
   static boolean hasBackWardsEdges(CFANode rootNode) {
@@ -377,5 +382,58 @@ public class CFAUtils {
     // produces them.
     String prefix = checkNotNull(function) + "::";
     return Collections3.subSetWithPrefix(variables, prefix);
+  }
+
+  /**
+   * Get all (sub)-paths through the given nodes connected only via blank edges.
+   *
+   * @param pNode the node to get the blank paths for.
+   * @return all (sub)-paths through the given nodes connected only via blank edges.
+   */
+  public static Iterable<List<CFANode>> getBlankPaths(CFANode pNode) {
+    List<List<CFANode>> blankPaths = new ArrayList<>();
+    Queue<List<CFANode>> waitlist = Queues.newArrayDeque();
+    waitlist.offer(ImmutableList.of(pNode));
+    while (!waitlist.isEmpty()) {
+      List<CFANode> currentPath = waitlist.poll();
+      CFANode pathSucc = currentPath.get(currentPath.size() - 1);
+      List<BlankEdge> leavingBlankEdges =
+          CFAUtils.leavingEdges(pathSucc).filter(BlankEdge.class).toList();
+      if (pathSucc.getNumLeavingEdges() <= 0
+          || leavingBlankEdges.size() < pathSucc.getNumLeavingEdges()) {
+        blankPaths.add(currentPath);
+      } else {
+        for (CFAEdge leavingEdge : leavingBlankEdges) {
+          CFANode successor = leavingEdge.getSuccessor();
+          if (!currentPath.contains(successor)) {
+            List<CFANode> newPath =
+                ImmutableList.<CFANode>builder().addAll(currentPath).add(successor).build();
+            waitlist.offer(newPath);
+          }
+        }
+      }
+    }
+    waitlist.addAll(blankPaths);
+    blankPaths.clear();
+    while (!waitlist.isEmpty()) {
+      List<CFANode> currentPath = waitlist.poll();
+      CFANode pathPred = currentPath.get(0);
+      List<BlankEdge> enteringBlankEdges =
+          CFAUtils.enteringEdges(pathPred).filter(BlankEdge.class).toList();
+      if (pathPred.getNumEnteringEdges() <= 0
+          || enteringBlankEdges.size() < pathPred.getNumEnteringEdges()) {
+        blankPaths.add(currentPath);
+      } else {
+        for (CFAEdge enteringEdge : enteringBlankEdges) {
+          CFANode predecessor = enteringEdge.getPredecessor();
+          if (!currentPath.contains(predecessor)) {
+            List<CFANode> newPath =
+                ImmutableList.<CFANode>builder().add(predecessor).addAll(currentPath).build();
+            waitlist.offer(newPath);
+          }
+        }
+      }
+    }
+    return blankPaths;
   }
 }

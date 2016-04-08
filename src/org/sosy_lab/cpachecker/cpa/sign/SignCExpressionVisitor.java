@@ -139,12 +139,28 @@ public class SignCExpressionVisitor
     case BINARY_AND:
       result = evaluateAndOperator(pLeft, pRight);
       break;
+    case LESS_EQUAL:
+      result = evaluateLessEqualOperator(pLeft, pRight);
+      break;
+    case GREATER_EQUAL:
+      result = evaluateLessEqualOperator(pRight, pLeft);
+      break;
+    case LESS_THAN:
+      result = evaluateLessOperator(pLeft, pRight);
+      break;
+    case GREATER_THAN:
+      result = evaluateLessOperator(pRight, pLeft);
+      break;
+    case EQUALS:
+      result = evaluateEqualOperator(pLeft, pRight);
+      break;
     default:
       throw new UnsupportedCCodeException(
           "Not supported", edgeOfExpr);
     }
     return result;
   }
+
 
   @Override
   public SIGN visit(CFloatLiteralExpression pIastFloatLiteralExpression) throws UnrecognizedCodeException {
@@ -328,5 +344,92 @@ public class SignCExpressionVisitor
       return SIGN.MINUS0;
     }
     return SIGN.EMPTY;
+  }
+
+  private SIGN evaluateLessOperator(SIGN pLeft, SIGN pRight) {
+    if (pLeft == SIGN.EMPTY || pRight == SIGN.EMPTY) { return SIGN.EMPTY; }
+    switch (pLeft) {
+      case PLUS:
+        if (SIGN.MINUS0.covers(pRight)) {
+          return SIGN.ZERO;
+        }
+        break;
+      case MINUS:
+        if (SIGN.PLUS0.covers(pRight)) {
+          return SIGN.ZERO;
+        }
+        break;
+      case ZERO:
+        if (SIGN.MINUS0.covers(pRight)) {
+          return SIGN.ZERO;
+        }
+        if(pRight == SIGN.ZERO) {
+          return SIGN.PLUSMINUS;
+        }
+        break;
+      case PLUS0:
+        if(pRight == SIGN.MINUS) {
+          return SIGN.ZERO;
+        }
+        if(pRight == SIGN.ZERO) {
+          return SIGN.PLUSMINUS;
+        }
+        break;
+      case MINUS0:
+        if(pRight == SIGN.PLUS) {
+          return SIGN.PLUSMINUS;
+        }
+        break;
+      default:
+        break;
+    }
+    return SIGN.ALL;
+  }
+
+  private SIGN evaluateLessEqualOperator(SIGN pLeft, SIGN pRight) {
+    if (pLeft == SIGN.EMPTY || pRight == SIGN.EMPTY) { return SIGN.EMPTY; }
+    switch (pLeft) {
+      case PLUS:
+        if (SIGN.MINUS0.covers(pRight)) {
+          return SIGN.ZERO;
+        }
+        break;
+      case MINUS:
+        if (SIGN.PLUS0.covers(pRight)) {
+          return SIGN.ZERO;
+        }
+        break;
+      case ZERO:
+        if (SIGN.PLUS0.covers(pRight)) {
+          return SIGN.PLUSMINUS;
+        }
+        if(pRight == SIGN.MINUS) {
+          return SIGN.ZERO;
+        }
+        break;
+      case PLUS0:
+        if(pRight == SIGN.MINUS) {
+          return SIGN.ZERO;
+        }
+        break;
+      case MINUS0:
+        if(pRight == SIGN.PLUS) {
+          return SIGN.PLUSMINUS;
+        }
+        break;
+      default:
+        break;
+    }
+    return SIGN.ALL;
+  }
+
+  private SIGN evaluateEqualOperator(SIGN pLeft, SIGN pRight) {
+    if(pLeft==SIGN.EMPTY || pRight == SIGN.EMPTY) {
+      return SIGN.EMPTY;
+    }
+    if(pLeft==SIGN.ZERO && pRight == SIGN.ZERO) {
+      return SIGN.PLUSMINUS;
+    }
+    return SIGN.ALL;
   }
 }

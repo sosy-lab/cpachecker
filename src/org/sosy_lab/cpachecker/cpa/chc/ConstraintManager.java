@@ -33,19 +33,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
-import jpl.Compound;
-import jpl.JPL;
-import jpl.Query;
-import jpl.Term;
-import jpl.Util;
-import jpl.Variable;
-
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -65,8 +57,15 @@ import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.Pair;
+
+import jpl.Compound;
+import jpl.JPL;
+import jpl.Query;
+import jpl.Term;
+import jpl.Util;
+import jpl.Variable;
 
 public class ConstraintManager {
 
@@ -125,7 +124,7 @@ public class ConstraintManager {
   }
 
   @SuppressWarnings("unchecked")
-  public static Constraint generalize(Constraint cn1, Constraint cn2, Precision p) {
+  public static Constraint generalize(Constraint cn1, Constraint cn2) {
 
     // Constraint 1
     Term constraint1 = Util.termArrayToList(cn1.getConstraint().toArray(new Term[0]));
@@ -722,7 +721,12 @@ public class ConstraintManager {
     return q.hasSolution();
   }
 
-
+  /**
+   * Compute over-approximation of convex hull of two constraints.
+   * TODO: Currently the over-approximation is always very imprecise (it is just the top element)
+   * @param cn1 the first constraint
+   * @param cn2s the second constraint
+   */
   public static Constraint convexHull(Constraint cn1, Constraint cn2s) {
     return new Constraint();
   }

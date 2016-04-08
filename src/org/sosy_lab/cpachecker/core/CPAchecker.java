@@ -35,9 +35,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
 
-import javax.annotation.Nullable;
-
 import org.sosy_lab.common.AbstractMBean;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.common.configuration.Configuration;
@@ -63,6 +62,7 @@ import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -71,13 +71,12 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
+import org.sosy_lab.cpachecker.util.automaton.TargetLocationProviderImpl;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.base.StandardSystemProperty;
-import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
@@ -96,12 +95,12 @@ public class CPAchecker {
   private static class CPAcheckerBean extends AbstractMBean implements CPAcheckerMXBean {
 
     private final ReachedSet reached;
-    private final ShutdownNotifier shutdownNotifier;
+    private final ShutdownManager shutdownManager;
 
-    public CPAcheckerBean(ReachedSet pReached, LogManager logger, ShutdownNotifier pShutdownNotifier) {
+    public CPAcheckerBean(ReachedSet pReached, LogManager logger, ShutdownManager pShutdownManager) {
       super("org.sosy_lab.cpachecker:type=CPAchecker", logger);
       reached = pReached;
-      shutdownNotifier = pShutdownNotifier;
+      shutdownManager = pShutdownManager;
       register();
     }
 
@@ -112,7 +111,7 @@ public class CPAchecker {
 
     @Override
     public void stop() {
-      shutdownNotifier.requestShutdown("A stop request was received via the JMX interface.");
+      shutdownManager.requestShutdown("A stop request was received via the JMX interface.");
     }
 
   }
@@ -173,6 +172,7 @@ public class CPAchecker {
 
   private final LogManager logger;
   private final Configuration config;
+  private final ShutdownManager shutdownManager;
   private final ShutdownNotifier shutdownNotifier;
   private final CoreComponentsFactory factory;
 
@@ -207,10 +207,11 @@ public class CPAchecker {
   }
 
   public CPAchecker(Configuration pConfiguration, LogManager pLogManager,
-      ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+      ShutdownManager pShutdownManager) throws InvalidConfigurationException {
     config = pConfiguration;
     logger = pLogManager;
-    shutdownNotifier = pShutdownNotifier;
+    shutdownManager = pShutdownManager;
+    shutdownNotifier = pShutdownManager.getNotifier();
 
     config.inject(this);
     factory = new CoreComponentsFactory(pConfiguration, pLogManager, shutdownNotifier);
@@ -255,7 +256,7 @@ public class CPAchecker {
         ConfigurableProgramAnalysis cpa = factory.createCPA(
             cfa, stats,
             speComposition);
-        GlobalInfo.getInstance().storeCPA(cpa);
+        GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
         algorithm = factory.createAlgorithm(cpa, programDenotation, cfa, stats);
 
@@ -283,20 +284,23 @@ public class CPAchecker {
 
       AlgorithmStatus status = runAlgorithm(algorithm, reached, stats);
 
-      violatedPropertyDescription = findViolatedProperties(reached);
-      if (violatedPropertyDescription != null) {
+      stats.resultAnalysisTime.start();
+      Set<Property> violatedProperties = findViolatedProperties(reached);
+      if (!violatedProperties.isEmpty()) {
+        violatedPropertyDescription = Joiner.on(", ").join(violatedProperties);
+
         if (!status.isPrecise()) {
           result = Result.UNKNOWN;
         } else {
           result = Result.FALSE;
         }
       } else {
-        violatedPropertyDescription = "";
         result = analyzeResult(reached, status.isSound());
         if (unknownAsTrue && result == Result.UNKNOWN) {
           result = Result.TRUE;
         }
       }
+      stats.resultAnalysisTime.stop();
 
     } catch (IOException e) {
       logger.logUserException(Level.SEVERE, e, "Could not read file");
@@ -318,9 +322,7 @@ public class CPAchecker {
       // CPAchecker must exit because it was asked to
       // we return normally instead of propagating the exception
       // so we can return the partial result we have so far
-      if (!Strings.isNullOrEmpty(e.getMessage())) {
-        logger.logUserException(Level.WARNING, e, "Analysis stopped");
-      }
+      logger.logUserException(Level.WARNING, e, "Analysis interrupted");
 
     } catch (CPAException e) {
       logger.logUserException(Level.SEVERE, e, null);
@@ -385,11 +387,10 @@ public class CPAchecker {
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
 
     // register management interface for CPAchecker
-    CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger, shutdownNotifier);
+    CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger, shutdownManager);
 
     stats.startAnalysisTimer();
     try {
-
       do {
         status = status.update(algorithm.run(reached));
 
@@ -408,21 +409,16 @@ public class CPAchecker {
     }
   }
 
-  private @Nullable String findViolatedProperties(final ReachedSet reached) {
-    Set<String> descriptions = from(reached).filter(IS_TARGET_STATE)
-                        .transform(new Function<AbstractState, String>() {
-                                    @Override
-                                    public String apply(AbstractState s) {
-                                      return  ((Targetable)s).getViolatedPropertyDescription();
-                                    }
-                                  })
-                        .copyInto(new HashSet<String>());
-    if (descriptions.isEmpty()) {
-      // signal no target state -> result safe
-      return null;
+  private Set<Property> findViolatedProperties(final ReachedSet reached) {
+
+    final Set<Property> result = Sets.newHashSet();
+
+    for (AbstractState e : from(reached).filter(IS_TARGET_STATE)) {
+      Targetable t = (Targetable) e;
+      result.addAll(t.getViolatedProperties());
     }
-    descriptions.remove("");
-    return Joiner.on(", ").join(descriptions);
+
+    return result;
   }
 
   private Result analyzeResult(final ReachedSet reached, boolean isSound) {
@@ -490,7 +486,7 @@ public class CPAchecker {
          initialLocations = builder.build();
         break;
       case TARGET:
-        TargetLocationProvider tlp = new TargetLocationProvider(factory.getReachedSetFactory(), shutdownNotifier, logger, config, pCfa);
+        TargetLocationProvider tlp = new TargetLocationProviderImpl(factory.getReachedSetFactory(), shutdownNotifier, logger, config, pCfa);
         initialLocations = tlp.tryGetAutomatonTargetLocations(pAnalysisEntryFunction);
         break;
       default:

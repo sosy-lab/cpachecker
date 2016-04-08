@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <!-- Example file that demonstrates all available options. -->
 
 <!--
@@ -20,14 +20,14 @@
   <!--
     There are two important top-level tags:
     <rundefinition>
-    <sourcefiles>
+    <tasks>
 
     A <rundefinition> tag defines a set of runs of the tool which will be executed
-    for all files mentioned in all <sourcefiles> tags.
+    for all files mentioned in all <tasks> tags.
     Both tags may appear arbitrarily often and
     support an optional attribute "name" in order to distinguish them.
 
-    Inside a <sourcefiles> tag, the tags <include>, <exclude>, <includesfile>, and <excludesfile>
+    Inside a <tasks> tag, the tags <include>, <exclude>, <includesfile>, and <excludesfile>
     may appear. All take a file name (supporting wildcards, variables, etc.) as content.
     <include> and <exclude> may be used to include or exclude files for verification runs directly.
     <includesfile> and <excludesfile> needs to reference text files which may contain
@@ -39,7 +39,7 @@
     Another tag is <option> which defines a command-line argument
     for the verification tool.
     This tag may appear as a top-level tag, inside <rundefinition> tags,
-    and inside <sourcefiles> tags, and the argument is used for all files,
+    and inside <tasks> tags, and the argument is used for all files,
     only in the specific set of runs, or only for the specific set of files,
     respectively.
     The tag has a required attribute "name" and optionally takes some text content.
@@ -70,7 +70,7 @@
 
     The tag <propertyfile> defines the specification to be checked.
     This will be given to the verifier and will be used for the score calculations.
-    This tag can appear also within a <sourcefiles> tag.
+    This tag can appear also within a <tasks> tag.
     The variables defined above are allowed inside this tag.
 
     There are three more top-level tags that are used only when the verifier cloud is used:
@@ -79,7 +79,7 @@
     for executing the benchmark. The tag may contain a path to a file or directory
     that is transmitted to the worker. Wildcards, environment variables etc. are resolved.
     The tag may appear several times, and can be placed inside the <benchmark>,
-    <rundefinition>, and <sourcefiles> tags.
+    <rundefinition>, and <tasks> tags.
 
     <require> can be used to select a specific set of worker machines. The attributes
     "cpuModel" (giving a string that needs to be contained in the worker's CPU name),
@@ -105,11 +105,11 @@
   <!-- Define some global options. -->
   <option name="--error-label">ERROR</option>
 
-  <!-- Define a set of sourcefiles that will be used with all run definitions. -->
-  <sourcefiles name="small_locks">
+  <!-- Define a set of tasks that will be used with all run definitions. -->
+  <tasks name="small_locks">
     <include>../../test/programs/benchmarks/locks/*.c</include>
     <exclude>../../test/programs/benchmarks/locks/test_locks_1?*.c</exclude>
-  </sourcefiles>
+  </tasks>
 
   <!-- Define a run definition with one specific option. -->
   <rundefinition name="small_locks">
@@ -120,9 +120,9 @@
   <rundefinition name="all_locks">
     <option name="--unwind">1</option>
 
-    <sourcefiles name="big_locks">
+    <tasks name="big_locks">
       <include>../../test/programs/benchmarks/locks/test_locks_1?*.c</include>
-    </sourcefiles>
+    </tasks>
   </rundefinition>
 
   <!-- Yet another run definition, this time using an <includesfile>
@@ -130,10 +130,10 @@
   <rundefinition name="locks+drivers">
     <option name="--unwind">1</option>
 
-    <sourcefiles name="drivers">
+    <tasks name="drivers">
       <includesfile>../../test/programs/benchmarks/DeviceDrivers64.set</includesfile>
       <option name="-64"/>
-    </sourcefiles>
+    </tasks>
   </rundefinition>
 
   <!-- Some requirements for the worker machine. -->

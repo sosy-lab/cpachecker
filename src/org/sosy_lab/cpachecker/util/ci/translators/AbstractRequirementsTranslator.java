@@ -28,7 +28,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import org.sosy_lab.common.Pair;
+import javax.annotation.Nullable;
+
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -55,18 +57,19 @@ public abstract class AbstractRequirementsTranslator<T extends AbstractState> {
     return requirements;
   }
 
-  protected abstract Pair<List<String>, String> convertToFormula(final T requirement, final SSAMap indices)
+  protected abstract Pair<List<String>, String> convertToFormula(final T requirement, final SSAMap indices, final @Nullable Collection<String> pRequiredVars)
       throws CPAException;
 
   public Pair<Pair<List<String>, String>, Pair<List<String>, String>> convertRequirements(
-      final AbstractState pre, final Collection<? extends AbstractState> post, final SSAMap postIndices)
+      final AbstractState pre, final Collection<? extends AbstractState> post, final SSAMap postIndices,
+      final @Nullable Collection<String> pInputVariables, final @Nullable Collection<String> pOutputVariables)
           throws CPAException {
 
-    Pair<List<String>, String> formulaPre = convertToFormula(extractRequirement(pre), SSAMap.emptySSAMap());
+    Pair<List<String>, String> formulaPre = convertToFormula(extractRequirement(pre), SSAMap.emptySSAMap(), pInputVariables);
     formulaPre = Pair.of(formulaPre.getFirst(), renameDefine(formulaPre.getSecond(), "pre"));
 
     if (post.isEmpty()) {
-      return Pair.of(formulaPre, Pair.of(Collections.<String>emptyList(), "(define-fun post true)"));
+      return Pair.of(formulaPre, Pair.of(Collections.<String>emptyList(), "(define-fun post () Bool false)"));
     }
 
     List<String> list = new ArrayList<>();
@@ -75,21 +78,24 @@ public abstract class AbstractRequirementsTranslator<T extends AbstractState> {
     Pair<List<String>, String> formula;
     int BracketCounter = 0;
     int amount = post.size();
+    int index;
 
-    sb.append("(define-fun post Bool () ");
+    sb.append("(define-fun post () Bool ");
 
     for (AbstractState state : post){
-      formula = convertToFormula(extractRequirement(state), postIndices);
+      formula = convertToFormula(extractRequirement(state), postIndices, pOutputVariables);
       list.addAll(formula.getFirst());
 
       if (BracketCounter != amount-1) {
         sb.append("(or ");
         BracketCounter++;
       }
-      if (formula.getSecond().indexOf("(", 1) == -1) {
-        definition = formula.getSecond().substring(formula.getSecond().lastIndexOf(" "), formula.getSecond().length()-1);
+      // distinguish between (define-fun name () Bool (f)) and (define-fun name () Bool var)
+      index = formula.getSecond().indexOf("(", formula.getSecond().indexOf(")"));
+      if (index>0){
+        definition = formula.getSecond().substring(index, formula.getSecond().length()-1);
       } else {
-        definition = formula.getSecond().substring(formula.getSecond().indexOf("(", 1)+1, formula.getSecond().length()-1);
+        definition = formula.getSecond().substring(formula.getSecond().lastIndexOf(" "), formula.getSecond().length()-1);
       }
       sb.append(definition);
     }

@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.counterexample.GenerateReportWithoutGraphs;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AlgorithmIterationListener;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -108,6 +109,10 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
     description="track memory usage of JVM during runtime")
   private boolean monitorMemoryUsage = true;
 
+  @Option(secure=true, name="newCounterexampleReport",
+    description="insert all files except cfa/arg-graphs in html/js-template")
+  private boolean generateNewCounterexampleReport = true;
+
   private final LogManager logger;
   private final Collection<Statistics> subStats;
   private final MemoryStatistics memStats;
@@ -120,6 +125,7 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
   final Timer creationTime = new Timer();
   final Timer cpaCreationTime = new Timer();
   private final Timer analysisTime = new Timer();
+  final Timer resultAnalysisTime = new Timer();
 
   private long programCpuTime;
   private long analysisCpuTime = 0;
@@ -239,13 +245,16 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
       memStatsThread.interrupt(); // stop memory statistics collection
     }
 
+    final Timer statisticsTime = new Timer();
+    statisticsTime.start();
+
     if (result != Result.NOT_YET_STARTED) {
       dumpReachedSet(reached);
 
       printSubStatistics(out, result, reached);
 
       if (coverageReport != null && cfa != null) {
-        coverageReport.writeCoverageReport(out, result, reached, cfa);
+        coverageReport.writeCoverageReport(out, reached, cfa);
       }
     }
 
@@ -265,11 +274,17 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
 
     out.println();
 
-    printTimeStatistics(out, result, reached);
+    printTimeStatistics(out, result, reached, statisticsTime);
 
     out.println();
 
     printMemoryStatistics(out);
+
+    if (generateNewCounterexampleReport && cfa != null) {
+      final GenerateReportWithoutGraphs generateReportWithoutGraphs =
+          new GenerateReportWithoutGraphs(logger, cfa);
+      generateReportWithoutGraphs.generate();
+    }
   }
 
 
@@ -451,7 +466,8 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
     }
   }
 
-  private void printTimeStatistics(PrintStream out, Result result, ReachedSet reached) {
+  private void printTimeStatistics(PrintStream out, Result result, ReachedSet reached,
+      Timer statisticsTime) {
     out.println("Time for analysis setup:      " + creationTime);
     out.println("  Time for loading CPAs:      " + cpaCreationTime);
     if (cfaCreatorStatistics != null) {
@@ -459,8 +475,12 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
     }
     out.println("Time for Analysis:            " + analysisTime);
     out.println("CPU time for analysis:        " + TimeSpan.ofNanos(analysisCpuTime).formatAs(TimeUnit.SECONDS));
+    if (resultAnalysisTime.getNumberOfIntervals() > 0) {
+      out.println("Time for analyzing result:    " + resultAnalysisTime);
+    }
     out.println("Total time for CPAchecker:    " + programTime);
     out.println("Total CPU time for CPAchecker:" + TimeSpan.ofNanos(programCpuTime).formatAs(TimeUnit.SECONDS));
+    out.println("Time for statistics:          " + statisticsTime);
   }
 
   private void printMemoryStatistics(PrintStream out) {

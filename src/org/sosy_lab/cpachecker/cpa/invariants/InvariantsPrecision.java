@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
@@ -42,12 +43,13 @@ import com.google.common.collect.ImmutableSet;
 
 public class InvariantsPrecision implements Precision {
 
-  public static InvariantsPrecision getEmptyPrecision() {
+  public static InvariantsPrecision getEmptyPrecision(
+      AbstractionStrategy pAbstractionStrategy) {
     return new InvariantsPrecision(
         Collections.<CFAEdge>emptySet(),
-        Collections.<String>emptySet(),
+        Collections.<MemoryLocation>emptySet(),
         0,
-        AbstractionStateFactories.ALWAYS) {
+        pAbstractionStrategy) {
 
       @Override
       public boolean isRelevant(CFAEdge pEdge) {
@@ -64,28 +66,28 @@ public class InvariantsPrecision implements Precision {
 
   private final ImmutableSet<CFAEdge> relevantEdges;
 
-  private final ImmutableSet<String> interestingVariables;
+  private final ImmutableSet<MemoryLocation> interestingVariables;
 
   private final int maximumFormulaDepth;
 
-  private final AbstractionStateFactory abstractionStateFactory;
+  private final AbstractionStrategy abstractionStrategy;
 
   public InvariantsPrecision(Set<CFAEdge> pRelevantEdges,
-      Set<String> pInterestingVariables, int pMaximumFormulaDepth,
-      AbstractionStateFactory pAbstractionStateFactory) {
+      Set<MemoryLocation> pInterestingVariables, int pMaximumFormulaDepth,
+      AbstractionStrategy pAbstractionStrategy) {
     this(asImmutableRelevantEdges(pRelevantEdges),
-        ImmutableSet.<String>copyOf(pInterestingVariables),
+        ImmutableSet.<MemoryLocation>copyOf(pInterestingVariables),
         pMaximumFormulaDepth,
-        pAbstractionStateFactory);
+        pAbstractionStrategy);
   }
 
   public InvariantsPrecision(ImmutableSet<CFAEdge> pRelevantEdges,
-      ImmutableSet<String> pInterestingVariables, int pMaximumFormulaDepth,
-      AbstractionStateFactory pAbstractionStateFactory) {
+      ImmutableSet<MemoryLocation> pInterestingVariables, int pMaximumFormulaDepth,
+      AbstractionStrategy pAbstractionStrategy) {
     this.relevantEdges = pRelevantEdges;
     this.interestingVariables = pInterestingVariables;
     this.maximumFormulaDepth = pMaximumFormulaDepth;
-    this.abstractionStateFactory = pAbstractionStateFactory;
+    this.abstractionStrategy = pAbstractionStrategy;
   }
 
   public boolean isRelevant(CFAEdge pEdge) {
@@ -103,7 +105,7 @@ public class InvariantsPrecision implements Precision {
     return pEdge != null && (this.relevantEdges == null || this.relevantEdges.contains(pEdge));
   }
 
-  public Set<String> getInterestingVariables() {
+  public Set<MemoryLocation> getInterestingVariables() {
     return this.interestingVariables;
   }
 
@@ -135,8 +137,8 @@ public class InvariantsPrecision implements Precision {
     return this.maximumFormulaDepth;
   }
 
-  public AbstractionStateFactory getAbstractionStateFactory() {
-    return this.abstractionStateFactory;
+  public AbstractionStrategy getAbstractionStrategy() {
+    return this.abstractionStrategy;
   }
 
   private static ImmutableSet<CFAEdge> asImmutableRelevantEdges(Set<CFAEdge> pRelevantEdges) {

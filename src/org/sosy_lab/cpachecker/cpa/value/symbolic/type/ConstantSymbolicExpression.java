@@ -37,7 +37,7 @@ public class ConstantSymbolicExpression extends SymbolicExpression {
   private static final long serialVersionUID = 8720056661933193765L;
 
   private final Value value;
-  private final transient Type type;
+  private final Type type;
 
   /**
    * Create a new <code>ConstantSymbolicExpression</code> object with the given value and type.
@@ -71,6 +71,15 @@ public class ConstantSymbolicExpression extends SymbolicExpression {
   @Override
   public SymbolicExpression copyForLocation(MemoryLocation pRepresentedLocation) {
     return new ConstantSymbolicExpression(value, type, pRepresentedLocation);
+  }
+
+  @Override
+  public String getRepresentation() {
+    if (getRepresentedLocation().isPresent()) {
+      return getRepresentedLocation().get().toString();
+    } else {
+      return toString();
+    }
   }
 
   @Override
@@ -108,7 +117,8 @@ public class ConstantSymbolicExpression extends SymbolicExpression {
 
     ConstantSymbolicExpression that = (ConstantSymbolicExpression) o;
 
-    return Objects.equals(type, that.type) && Objects.equals(value, that.value);
+    return super.equals(o)
+        && Objects.equals(type, that.type) && Objects.equals(value, that.value);
 
   }
 

@@ -57,7 +57,7 @@ public class CHCPrecisionAdjustment implements PrecisionAdjustment {
     CHCState ancestor = findVariantAncestor(candidateState);
 
     if (ancestor != null) {
-      AbstractState newState = generalize(candidateState, ancestor, precision);
+      AbstractState newState = generalize(candidateState, ancestor);
       return Optional.of(PrecisionAdjustmentResult
           .create(newState, precision, Action.CONTINUE));
     } else {
@@ -83,12 +83,11 @@ public class CHCPrecisionAdjustment implements PrecisionAdjustment {
   /**
    * Compute a generalization of reachedState w.r.t. one of its ancestors
    */
-  private AbstractState generalize(CHCState reachedState, CHCState ancestor, Precision precision) {
+  private AbstractState generalize(CHCState reachedState, CHCState ancestor) {
     CHCState gState = new CHCState();
 
     gState.setConstraint(
-        ConstraintManager.generalize(
-            ancestor.getConstraint(), reachedState.getConstraint(), precision));
+        ConstraintManager.generalize(ancestor.getConstraint(), reachedState.getConstraint()));
     return gState;
   }
 

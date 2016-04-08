@@ -24,26 +24,16 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Predicates.*;
-import static com.google.common.collect.FluentIterable.from;
+import static com.google.common.base.Predicates.in;
 
-import java.io.IOException;
-import java.io.Writer;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -56,41 +46,46 @@ import org.sosy_lab.common.time.NestedTimer;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cpa.predicate.InvariantsManager.LocationInvariantSupplier;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage.AbstractionNode;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
-import org.sosy_lab.cpachecker.exceptions.SolverException;
-import org.sosy_lab.cpachecker.util.LiveVariables;
-import org.sosy_lab.cpachecker.util.precondition.segkro.rules.LinCombineRule;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment.AllSatCallback;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionCreator;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionCreator.RegionBuilder;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView.DefaultBooleanFormulaVisitor;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.regions.Region;
+import org.sosy_lab.cpachecker.util.predicates.regions.RegionCreator;
+import org.sosy_lab.cpachecker.util.predicates.regions.RegionCreator.RegionBuilder;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.ProverEnvironment;
+import org.sosy_lab.solver.api.ProverEnvironment.AllSatCallback;
 
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Collections2;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 @Options(prefix = "cpa.predicate")
 public class PredicateAbstractionManager {
@@ -103,17 +98,20 @@ public class PredicateAbstractionManager {
     public int numSymbolicAbstractions = 0; // precision completely empty, no computation
     public int numSatCheckAbstractions = 0; // precision was {false}, only sat check
     public int numCallsAbstractionCached = 0; // result was cached, no computation
+    public int numInductivePathFormulaCacheUsed = 0; // loop was cached, no new computation
 
     public int numTotalPredicates = 0;
     public int maxPredicates = 0;
     public int numIrrelevantPredicates = 0;
     public int numTrivialPredicates = 0;
+    public int numInductivePredicates = 0;
     public int numCartesianAbsPredicates = 0;
     public int numCartesianAbsPredicatesCached = 0;
     public int numBooleanAbsPredicates = 0;
     public final Timer abstractionReuseTime = new Timer();
     public final StatTimer abstractionReuseImplicationTime = new StatTimer("Time for checking reusability of abstractions");
     public final Timer trivialPredicatesTime = new Timer();
+    public final Timer inductivePredicatesTime = new Timer();
     public final Timer cartesianAbstractionTime = new Timer();
     public final Timer quantifierEliminationTime = new Timer();
     public final Timer booleanAbstractionTime = new Timer();
@@ -179,10 +177,6 @@ public class PredicateAbstractionManager {
       description="Simplify the abstraction formula that is stored to represent the state space. Helpful when debugging (formulas get smaller).")
   private boolean simplifyAbstractionFormula = false;
 
-  @Option(secure=true, name = "abstraction.elimDeadVariablePreds",
-      description="Eliminate propositions about dead variables in abstraction predicates by running a generalization procedure.")
-  private boolean elimDeadVariablePredsByGeneralization = false;
-
   private boolean warnedOfCartesianAbstraction = false;
 
   private boolean abstractionReuseDisabledBecauseOfAmbiguity = false;
@@ -197,33 +191,36 @@ public class PredicateAbstractionManager {
   // 1: predicate is true
   private final Map<Pair<BooleanFormula, AbstractionPredicate>, Byte> cartesianAbstractionCache;
 
+  private final LocationInvariantSupplier locationBasedInvariantSupplier;
+
   private final BooleanFormulaManagerView bfmgr;
 
   private final PredicateAbstractionsStorage abstractionStorage;
 
-  private Optional<LiveVariables> liveVars;
+  private final Configuration config;
 
   public PredicateAbstractionManager(
       AbstractionManager pAmgr,
-      FormulaManagerView pFmgr,
       PathFormulaManager pPfmgr,
       Solver pSolver,
-      Configuration config,
+      Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      Optional<LiveVariables> pLiveVars) throws InvalidConfigurationException, PredicateParsingFailedException {
+      LocationInvariantSupplier pRegionInvariantsSupplier)
+      throws InvalidConfigurationException, PredicateParsingFailedException {
     shutdownNotifier = pShutdownNotifier;
+    config = pConfig;
 
     config.inject(this, PredicateAbstractionManager.class);
 
     logger = pLogger;
-    fmgr = pFmgr;
+    fmgr = pSolver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     amgr = pAmgr;
     rmgr = amgr.getRegionCreator();
     pfmgr = pPfmgr;
     solver = pSolver;
-    liveVars = pLiveVars;
+    locationBasedInvariantSupplier = pRegionInvariantsSupplier;
 
     if (cartesianAbstraction) {
       abstractionType = AbstractionType.CARTESIAN;
@@ -246,12 +243,7 @@ public class PredicateAbstractionManager {
       cartesianAbstractionCache = null;
     }
 
-    abstractionStorage = new PredicateAbstractionsStorage(reuseAbstractionsFrom, logger, fmgr);
-    SSAMap extractionSsa = SSAMap.emptySSAMap().withDefault(1);
-    for (AbstractionNode an : abstractionStorage.getAbstractions().values()) {
-      BooleanFormula instanceFm = fmgr.instantiate(an.getFormula(), extractionSsa);
-      extractPredicates(instanceFm);
-    }
+    abstractionStorage = new PredicateAbstractionsStorage(reuseAbstractionsFrom, logger, fmgr, null);
   }
 
   /**
@@ -260,14 +252,16 @@ public class PredicateAbstractionManager {
    * so the indices there should match those from the PathFormula.
    * @param abstractionFormula An AbstractionFormula that is used as input.
    * @param pathFormula A PathFormula that is used as input.
-   * @param predicates The set of predicates used for abstraction.
+   * @param pPredicates The set of predicates used for abstraction.
    * @return An AbstractionFormula instance representing an abstraction of
    *          "abstractionFormula & pathFormula" with pathFormula as the block formula.
-   * @throws InterruptedException
    */
-  public AbstractionFormula buildAbstraction(CFANode location,
-      AbstractionFormula abstractionFormula, PathFormula pathFormula,
-      Collection<AbstractionPredicate> pPredicates) throws SolverException, InterruptedException {
+  public AbstractionFormula buildAbstraction(
+      final CFANode location,
+      final AbstractionFormula abstractionFormula,
+      final PathFormula pathFormula,
+      final Collection<AbstractionPredicate> pPredicates)
+      throws SolverException, InterruptedException {
 
     stats.numCallsAbstraction++;
 
@@ -276,102 +270,20 @@ public class PredicateAbstractionManager {
     logger.log(Level.ALL, "Path formula:", pathFormula);
     logger.log(Level.ALL, "Predicates:", pPredicates);
 
-    BooleanFormula absFormula = abstractionFormula.asInstantiatedFormula();
-    BooleanFormula symbFormula = buildFormula(pathFormula.getFormula());
-    BooleanFormula f = bfmgr.and(absFormula, symbFormula);
+    final BooleanFormula absFormula = abstractionFormula.asInstantiatedFormula();
+    final BooleanFormula symbFormula = buildFormula(pathFormula.getFormula());
+    final BooleanFormula f = bfmgr.and(absFormula, symbFormula);
     final SSAMap ssa = pathFormula.getSsa();
-
-    ImmutableSet<AbstractionPredicate> predicates = getRelevantPredicates(pPredicates, f, ssa, location);
 
     // Try to reuse stored abstractions
     if (reuseAbstractionsFrom != null
         && !abstractionReuseDisabledBecauseOfAmbiguity) {
-      stats.abstractionReuseTime.start();
-      ProverEnvironment reuseEnv = solver.newProverEnvironment();
-      try {
-        reuseEnv.push(f);
-
-        Deque<Pair<Integer, Integer>> tryReuseBasedOnPredecessors = new ArrayDeque<>();
-        Set<Integer> idsOfStoredAbstractionReused = abstractionFormula.getIdsOfStoredAbstractionReused();
-        for (Integer id: idsOfStoredAbstractionReused) {
-          tryReuseBasedOnPredecessors.add(Pair.of(id, 0));
-        }
-
-        if (tryReuseBasedOnPredecessors.isEmpty()) {
-          tryReuseBasedOnPredecessors.add(Pair.of(abstractionStorage.getRootAbstractionId(), 0));
-        }
-
-        while (!tryReuseBasedOnPredecessors.isEmpty()) {
-          final Pair<Integer, Integer> tryBasedOn = tryReuseBasedOnPredecessors.pop();
-          final int tryBasedOnAbstractionId = tryBasedOn.getFirst();
-          final int tryLevel = tryBasedOn.getSecond();
-
-          if (tryLevel > maxAbstractionReusePrescan) {
-            continue;
-          }
-
-          Set<AbstractionNode> candidateAbstractions = getSuccessorsInAbstractionTree(tryBasedOnAbstractionId);
-          Preconditions.checkNotNull(candidateAbstractions);
-
-          //logger.log(Level.WARNING, "Raw candidates based on", tryBasedOnAbstractionId, ":", candidateAbstractions);
-
-          Iterator<AbstractionNode> candidateIterator = candidateAbstractions.iterator();
-          while (candidateIterator.hasNext()) {
-            AbstractionNode an = candidateIterator.next();
-            Preconditions.checkNotNull(an);
-            tryReuseBasedOnPredecessors.add(Pair.of(an.getId(), tryLevel + 1));
-
-            if (bfmgr.isTrue(an.getFormula())) {
-              candidateIterator.remove();
-              continue;
-            }
-
-            if (an.getLocationId().isPresent()) {
-              if (location.getNodeNumber() != an.getLocationId().get()) {
-                candidateIterator.remove();
-                continue;
-              }
-            }
-          }
-
-          //logger.log(Level.WARNING, "Filtered candidates", "location", location.getNodeNumber(), "abstraction", tryBasedOnAbstractionId, ":", candidateAbstractions);
-
-          if (candidateAbstractions.size() > 1) {
-            logger.log(Level.WARNING, "Too many abstraction candidates on location", location, "for abstraction", tryBasedOnAbstractionId, ". Disabling abstraction reuse!");
-            this.abstractionReuseDisabledBecauseOfAmbiguity = true;
-            tryReuseBasedOnPredecessors.clear();
-            continue;
-          }
-
-          Set<Integer> reuseIds = Sets.newTreeSet();
-          BooleanFormula reuseFormula = bfmgr.makeBoolean(true);
-          for (AbstractionNode an: candidateAbstractions) {
-            reuseFormula = bfmgr.and(reuseFormula, an.getFormula());
-            abstractionStorage.markAbstractionBeingReused(an.getId());
-            reuseIds.add(an.getId());
-          }
-          BooleanFormula instantiatedReuseFormula = fmgr.instantiate(reuseFormula, ssa);
-
-          stats.abstractionReuseImplicationTime.start();
-          reuseEnv.push(bfmgr.not(instantiatedReuseFormula));
-          boolean implication = reuseEnv.isUnsat();
-          reuseEnv.pop();
-          stats.abstractionReuseImplicationTime.stop();
-
-          if (implication) {
-            stats.numAbstractionReuses++;
-
-            Region reuseFormulaRegion = buildRegionFromFormula(reuseFormula);
-            return new AbstractionFormula(fmgr, reuseFormulaRegion, reuseFormula,
-                instantiatedReuseFormula, pathFormula, reuseIds);
-          }
-        }
-      } finally {
-        reuseEnv.close();
-        stats.abstractionReuseTime.stop();
+      AbstractionFormula reused =
+          reuseAbstractionIfPossible(abstractionFormula, pathFormula, f, location);
+      if (reused != null) {
+        return reused;
       }
     }
-    // <-- End of reuse
 
     // Shortcut if the precision is empty
     if (pPredicates.isEmpty() && (abstractionType != AbstractionType.ELIMINATION)) {
@@ -380,10 +292,16 @@ public class PredicateAbstractionManager {
       return makeTrueAbstractionFormula(pathFormula);
     }
 
+    // This is the (mutable) set of remaining predicates that still need to be handled.
+    // Each step of our abstraction computation may be able to handle some predicates,
+    // and should remove those from this set afterwards.
+    final Collection<AbstractionPredicate> remainingPredicates =
+        getRelevantPredicates(pPredicates, f, ssa, location);
+
     // caching
     Pair<BooleanFormula, ImmutableSet<AbstractionPredicate>> absKey = null;
     if (useCache) {
-      absKey = Pair.of(f, predicates);
+      absKey = Pair.of(f, ImmutableSet.copyOf(remainingPredicates));
       AbstractionFormula result = abstractionCache.get(absKey);
 
       if (result != null) {
@@ -419,26 +337,35 @@ public class PredicateAbstractionManager {
     // where the result was in the cache.
     stats.numTotalPredicates += pPredicates.size();
     stats.maxPredicates = Math.max(stats.maxPredicates, pPredicates.size());
-    stats.numIrrelevantPredicates += pPredicates.size() - predicates.size();
+    stats.numIrrelevantPredicates += pPredicates.size() - remainingPredicates.size();
 
     // Compute result for those predicates
     // where we can trivially identify their truthness in the result
     Region abs = rmgr.makeTrue();
     if (identifyTrivialPredicates) {
       stats.trivialPredicatesTime.start();
-      abs = identifyTrivialPredicates(predicates, abstractionFormula, pathFormula);
+      abs = handleTrivialPredicates(remainingPredicates, abstractionFormula, pathFormula);
+      stats.trivialPredicatesTime.stop();
+    }
+
+    // add invariants to abstraction formula if available
+    Set<BooleanFormula> invariants = locationBasedInvariantSupplier.getInvariantFor(location);
+    if (!invariants.isEmpty()) {
+      Collection<AbstractionPredicate> invPredicates = new ArrayList<>();
+      for (BooleanFormula inv : invariants) {
+        AbstractionPredicate absPred = amgr.makePredicate(inv);
+        invPredicates.add(absPred);
+        abs = rmgr.makeAnd(abs, absPred.getAbstractVariable());
+      }
 
       // Calculate the set of predicates we still need to use for abstraction.
-      predicates = from(predicates)
-                     .filter(not(in(amgr.extractPredicates(abs))))
-                     .toSet();
-      stats.trivialPredicatesTime.stop();
+      Iterables.removeIf(remainingPredicates, in(invPredicates));
     }
 
     try (ProverEnvironment thmProver = solver.newProverEnvironment()) {
       thmProver.push(f);
 
-      if (predicates.isEmpty() && (abstractionType != AbstractionType.ELIMINATION)) {
+      if (remainingPredicates.isEmpty() && (abstractionType != AbstractionType.ELIMINATION)) {
         stats.numSatCheckAbstractions++;
 
         stats.abstractionSolveTime.start();
@@ -457,7 +384,7 @@ public class PredicateAbstractionManager {
         stats.quantifierEliminationTime.start();
         try {
           abs = rmgr.makeAnd(abs,
-              eliminateIrrelevantVariablePropositions(f, location, ssa, thmProver, predicates));
+              eliminateIrrelevantVariablePropositions(f, ssa));
         } finally {
           stats.quantifierEliminationTime.stop();
         }
@@ -466,34 +393,27 @@ public class PredicateAbstractionManager {
           // First do cartesian abstraction if desired
           stats.cartesianAbstractionTime.start();
           try {
-            abs = rmgr.makeAnd(abs,
-                buildCartesianAbstraction(f, ssa, thmProver, predicates));
+            abs =
+                rmgr.makeAnd(
+                    abs, buildCartesianAbstraction(f, ssa, thmProver, remainingPredicates));
           } finally {
             stats.cartesianAbstractionTime.stop();
           }
         }
 
-        if (abstractionType == AbstractionType.COMBINED) {
-          // Calculate the set of predicates that cartesian abstraction couldn't handle.
-          predicates = from(predicates)
-                         .filter(not(in(amgr.extractPredicates(abs))))
-                         .toSet();
-        }
-
-        if (abstractionType != AbstractionType.CARTESIAN
-            && !predicates.isEmpty()) {
+        if (abstractionType != AbstractionType.CARTESIAN && !remainingPredicates.isEmpty()) {
           // Last do boolean abstraction if desired and necessary
-          stats.numBooleanAbsPredicates += predicates.size();
+          stats.numBooleanAbsPredicates += remainingPredicates.size();
           stats.booleanAbstractionTime.start();
           try {
-            abs = rmgr.makeAnd(abs,
-                buildBooleanAbstraction(ssa, thmProver, predicates));
+            abs = rmgr.makeAnd(abs, buildBooleanAbstraction(ssa, thmProver, remainingPredicates));
           } finally {
             stats.booleanAbstractionTime.stop();
           }
 
           // Warning:
           // buildBooleanAbstraction() does not clean up thmProver, so do not use it here.
+          // remainingPredicates is now empty.
         }
       }
     }
@@ -523,7 +443,7 @@ public class PredicateAbstractionManager {
 
       dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "predicates", 0);
       try (Writer w = dumpFile.asCharSink(StandardCharsets.UTF_8).openBufferedStream()) {
-        Joiner.on('\n').appendTo(w, predicates);
+        Joiner.on('\n').appendTo(w, pPredicates);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Failed to wrote predicates to file");
       }
@@ -535,19 +455,117 @@ public class PredicateAbstractionManager {
     return result;
   }
 
-  private Region eliminateIrrelevantVariablePropositions(BooleanFormula pF, CFANode pLocation, SSAMap pSsa,
-      ProverEnvironment pThmProver, ImmutableSet<AbstractionPredicate> pPredicates) throws InterruptedException, SolverException {
+  private @Nullable AbstractionFormula reuseAbstractionIfPossible(
+      final AbstractionFormula abstractionFormula,
+      final PathFormula pathFormula,
+      final BooleanFormula f,
+      final CFANode location)
+      throws SolverException, InterruptedException {
+    stats.abstractionReuseTime.start();
+    try (ProverEnvironment reuseEnv = solver.newProverEnvironment()) {
+      reuseEnv.push(f);
+
+      Deque<Pair<Integer, Integer>> tryReuseBasedOnPredecessors = new ArrayDeque<>();
+      Set<Integer> idsOfStoredAbstractionReused =
+          abstractionFormula.getIdsOfStoredAbstractionReused();
+      for (Integer id : idsOfStoredAbstractionReused) {
+        tryReuseBasedOnPredecessors.add(Pair.of(id, 0));
+      }
+
+      if (tryReuseBasedOnPredecessors.isEmpty()) {
+        tryReuseBasedOnPredecessors.add(Pair.of(abstractionStorage.getRootAbstractionId(), 0));
+      }
+
+      while (!tryReuseBasedOnPredecessors.isEmpty()) {
+        final Pair<Integer, Integer> tryBasedOn = tryReuseBasedOnPredecessors.pop();
+        final int tryBasedOnAbstractionId = tryBasedOn.getFirst();
+        final int tryLevel = tryBasedOn.getSecond();
+
+        if (tryLevel > maxAbstractionReusePrescan) {
+          continue;
+        }
+
+        Set<AbstractionNode> candidateAbstractions =
+            getSuccessorsInAbstractionTree(tryBasedOnAbstractionId);
+        Preconditions.checkNotNull(candidateAbstractions);
+
+        //logger.log(Level.WARNING, "Raw candidates based on", tryBasedOnAbstractionId, ":", candidateAbstractions);
+
+        Iterator<AbstractionNode> candidateIterator = candidateAbstractions.iterator();
+        while (candidateIterator.hasNext()) {
+          AbstractionNode an = candidateIterator.next();
+          Preconditions.checkNotNull(an);
+          tryReuseBasedOnPredecessors.add(Pair.of(an.getId(), tryLevel + 1));
+
+          if (bfmgr.isTrue(an.getFormula())) {
+            candidateIterator.remove();
+            continue;
+          }
+
+          if (an.getLocationId().isPresent()) {
+            if (location.getNodeNumber() != an.getLocationId().get()) {
+              candidateIterator.remove();
+              continue;
+            }
+          }
+        }
+
+        //logger.log(Level.WARNING, "Filtered candidates", "location", location.getNodeNumber(), "abstraction", tryBasedOnAbstractionId, ":", candidateAbstractions);
+
+        if (candidateAbstractions.size() > 1) {
+          logger.log(
+              Level.WARNING,
+              "Too many abstraction candidates on location",
+              location,
+              "for abstraction",
+              tryBasedOnAbstractionId,
+              ". Disabling abstraction reuse!");
+          this.abstractionReuseDisabledBecauseOfAmbiguity = true;
+          tryReuseBasedOnPredecessors.clear();
+          continue;
+        }
+
+        Set<Integer> reuseIds = Sets.newTreeSet();
+        BooleanFormula reuseFormula = bfmgr.makeBoolean(true);
+        for (AbstractionNode an : candidateAbstractions) {
+          reuseFormula = bfmgr.and(reuseFormula, an.getFormula());
+          abstractionStorage.markAbstractionBeingReused(an.getId());
+          reuseIds.add(an.getId());
+        }
+        BooleanFormula instantiatedReuseFormula =
+            fmgr.instantiate(reuseFormula, pathFormula.getSsa());
+
+        stats.abstractionReuseImplicationTime.start();
+        reuseEnv.push(bfmgr.not(instantiatedReuseFormula));
+        boolean implication = reuseEnv.isUnsat();
+        reuseEnv.pop();
+        stats.abstractionReuseImplicationTime.stop();
+
+        if (implication) {
+          stats.numAbstractionReuses++;
+
+          Region reuseFormulaRegion = amgr.convertFormulaToRegion(reuseFormula);
+          return new AbstractionFormula(
+              fmgr,
+              reuseFormulaRegion,
+              reuseFormula,
+              instantiatedReuseFormula,
+              pathFormula,
+              reuseIds);
+        }
+      }
+    } finally {
+      stats.abstractionReuseTime.stop();
+    }
+    return null; //no abstraction could be reused
+  }
+
+  private Region eliminateIrrelevantVariablePropositions(BooleanFormula pF, SSAMap pSsa) throws InterruptedException, SolverException {
 
     BooleanFormula eliminationResult = fmgr.uninstantiate(
         fmgr.eliminateDeadVariables(pF, pSsa));
 
-    Collection<BooleanFormula> atoms = fmgr.extractAtoms(eliminationResult, false);
-    for (BooleanFormula atom: atoms) {
-      amgr.makePredicate(atom);
-      extractPredicates(atom);
-    }
-
-    return amgr.buildRegionFromFormula(eliminationResult);
+    return amgr.convertFormulaToRegion(eliminationResult);
 
   }
 
@@ -564,21 +582,18 @@ public class PredicateAbstractionManager {
    * @param pPredicates The set of predicates.
    * @param f The formula that determines which variables and predicates are relevant.
    * @param ssa The SSA map to use for instantiating predicates.
-   * @param pPathFormula
+   * @param pLocation the location that should be used
    * @return A subset of pPredicates.
-   *
-   * @throws InterruptedException
-   * @throws SolverException
    */
-  private ImmutableSet<AbstractionPredicate> getRelevantPredicates(
+  private Collection<AbstractionPredicate> getRelevantPredicates(
       final Collection<AbstractionPredicate> pPredicates,
       final BooleanFormula f,
       final SSAMap ssa,
-      final CFANode pLocation) throws SolverException, InterruptedException {
+      final CFANode pLocation) {
 
     Set<String> variables = fmgr.extractVariableNames(f);
-    Multimap<Formula, AbstractionPredicate> elimPredicatesOnDeadVariables = HashMultimap.create();
-    ImmutableSet.Builder<AbstractionPredicate> predicateBuilder = ImmutableSet.builder();
+    // LinkedList keeps order (important to avoid non-determinism) and supports efficient removal.
+    Collection<AbstractionPredicate> relevantPredicates = new LinkedList<>();
 
     for (AbstractionPredicate predicate : pPredicates) {
       final BooleanFormula predicateTerm = predicate.getSymbolicAtom();
@@ -590,76 +605,20 @@ public class PredicateAbstractionManager {
       }
 
       BooleanFormula instantiatedPredicate = fmgr.instantiate(predicateTerm, ssa);
-      Map<String, Formula> predVariables = fmgr.extractFreeVariableMap(instantiatedPredicate);
+      Set<String> predVariables = fmgr.extractVariableNames(instantiatedPredicate);
 
-      final Set<String> deadPredVariables;
-      if (liveVars.isPresent()) {
-        Set<String> liveVariabes = fmgr.instantiate(
-            liveVars.get().getLiveVariableNamesForNode(pLocation),
-            ssa);
-        deadPredVariables = Sets.difference(predVariables.keySet(), liveVariabes);
-      } else {
-        deadPredVariables = Collections.emptySet();
-      }
-
-      if (!deadPredVariables.isEmpty() && elimDeadVariablePredsByGeneralization) {
-
-        for (String var: deadPredVariables) {
-          elimPredicatesOnDeadVariables.put(predVariables.get(var), predicate);
-        }
-
-      } else if (predVariables.isEmpty()
-          || !Sets.intersection(predVariables.keySet(), variables).isEmpty()) {
+      if (predVariables.isEmpty()
+          || !Sets.intersection(predVariables, variables).isEmpty()) {
         // Predicates without variables occur (for example, talking about UFs).
         // We do not know whether they are relevant, so we have to add them.
-        predicateBuilder.add(predicate);
+        relevantPredicates.add(predicate);
 
       } else {
-        logger.log(Level.FINEST, "Ignoring predicate about variables", predVariables.keySet());
+        logger.log(Level.FINEST, "Ignoring predicate about variables", predVariables);
       }
     }
 
-    // Do not ignore predicates on dead variables,
-    // but infer new predicates from them that are more general
-    // and that eliminate them.
-    if (!elimPredicatesOnDeadVariables.isEmpty()) {
-      for (Formula deadVar: elimPredicatesOnDeadVariables.keySet()) {
-        Collection<AbstractionPredicate> referencingPreds = elimPredicatesOnDeadVariables.get(deadVar);
-        Collection<AbstractionPredicate> predsWithoutVar = deriveNewPredsWithoutVar(deadVar, referencingPreds);
-        predicateBuilder.addAll(predsWithoutVar);
-      }
-    }
-
-    return predicateBuilder.build();
-  }
-
-  private Collection<AbstractionPredicate> deriveNewPredsWithoutVar(
-      final Formula pDeadVar,
-      final Collection<AbstractionPredicate> pReferencingPreds)
-          throws SolverException, InterruptedException {
-
-    LinCombineRule linComb = new LinCombineRule(solver, solver.getSmtAstMatcher());
-
-    Multimap<String, Formula> ruleVarBinding = HashMultimap.create();
-    ruleVarBinding.put("e", fmgr.uninstantiate(pDeadVar));
-
-    Collection<BooleanFormula> conjunctiveInputPredicates = Collections2.transform(
-        pReferencingPreds, new Function<AbstractionPredicate, BooleanFormula>() {
-      @Override
-      public BooleanFormula apply(AbstractionPredicate pArg0) {
-        return pArg0.getSymbolicAtom();
-      }
-    });
-
-    Set<BooleanFormula> inferred = linComb.apply(conjunctiveInputPredicates, ruleVarBinding);
-
-    return Collections2.transform(
-        inferred, new Function<BooleanFormula, AbstractionPredicate>() {
-      @Override
-      public AbstractionPredicate apply(BooleanFormula pArg0) {
-        return createPredicateFor(pArg0);
-      }
-    });
+    return relevantPredicates;
   }
 
   /**
@@ -668,14 +627,16 @@ public class PredicateAbstractionManager {
    * and returns a region with these predicates,
    * so that these predicates also do not need to be used in the abstraction computation.
    *
-   * @param pPredicates The set of predicates.
+   * @param pPredicates The set of predicates. Each predicate that is handled will be removed from the set.
    * @param pOldAbs An abstraction formula that determines which variables and predicates are relevant.
    * @param pBlockFormula A path formula that determines which variables and predicates are relevant.
    * @return A region of predicates from pPredicates that is entailed by (pOldAbs & pBlockFormula)
    */
-  private Region identifyTrivialPredicates(
+  private Region handleTrivialPredicates(
       final Collection<AbstractionPredicate> pPredicates,
-      final AbstractionFormula pOldAbs, final PathFormula pBlockFormula) throws SolverException, InterruptedException {
+      final AbstractionFormula pOldAbs,
+      final PathFormula pBlockFormula)
+      throws SolverException, InterruptedException {
 
     final SSAMap ssa = pBlockFormula.getSsa();
     final Set<String> blockVariables = fmgr.extractVariableNames(pBlockFormula.getFormula());
@@ -684,7 +645,9 @@ public class PredicateAbstractionManager {
     final RegionCreator regionCreator = amgr.getRegionCreator();
     Region region = regionCreator.makeTrue();
 
-    for (final AbstractionPredicate predicate : pPredicates) {
+    final Iterator<AbstractionPredicate> predicateIt = pPredicates.iterator();
+    while (predicateIt.hasNext()) {
+      final AbstractionPredicate predicate = predicateIt.next();
       final BooleanFormula predicateTerm = predicate.getSymbolicAtom();
 
       BooleanFormula instantiatedPredicate = fmgr.instantiate(predicateTerm, ssa);
@@ -698,6 +661,7 @@ public class PredicateAbstractionManager {
           // predicate is unconditionally implied by old abs,
           // we can just copy it to the output
           region = regionCreator.makeAnd(region, predicateVar);
+          predicateIt.remove(); // mark predicate as handled
           stats.numTrivialPredicates++;
           logger.log(Level.FINEST, "Predicate", predicate, "is unconditionally true in old abstraction and can be copied to the result.");
 
@@ -707,6 +671,7 @@ public class PredicateAbstractionManager {
             // negated predicate is unconditionally implied by old abs,
             // we can just copy it to the output
             region = regionCreator.makeAnd(region, negatedPredicateVar);
+            predicateIt.remove(); // mark predicate as handled
             stats.numTrivialPredicates++;
             logger.log(Level.FINEST, "Negation of predicate", predicate, "is unconditionally true in old abstraction and can be copied to the result.");
 
@@ -766,13 +731,26 @@ public class PredicateAbstractionManager {
    */
   public AbstractionFormula buildAbstraction(final BooleanFormula f,
       final PathFormula blockFormula) {
-    Region r = amgr.buildRegionFromFormula(f);
+    Region r = amgr.convertFormulaToRegion(f);
     return makeAbstractionFormula(r, blockFormula.getSsa(), blockFormula);
   }
 
-  private Region buildCartesianAbstraction(final BooleanFormula f, final SSAMap ssa,
-      ProverEnvironment thmProver, Collection<AbstractionPredicate> predicates)
-          throws SolverException, InterruptedException {
+  /**
+   * Compute a Cartesian abstraction of a formula given a set of predicates.
+   * The abstracted formula is expected to have been pushed onto the solver stack already.
+   *
+   * @param f The (instantiated) formula to abstract, only used as cache key.
+   * @param ssa The SSAMap for instantiating predicates such that it matches f.
+   * @param thmProver The solver to use with the input formula on the stack.
+   * @param pPredicates The set of predicates. Each predicate that is handled will be removed from the set.
+   * @return A over-approximation of f.
+   */
+  private Region buildCartesianAbstraction(
+      final BooleanFormula f,
+      final SSAMap ssa,
+      final ProverEnvironment thmProver,
+      final Collection<AbstractionPredicate> pPredicates)
+      throws SolverException, InterruptedException {
 
     stats.abstractionSolveTime.start();
     boolean feasibility = !thmProver.isUnsat();
@@ -796,7 +774,9 @@ public class PredicateAbstractionManager {
 
       // check whether each of the predicate is implied in the next state...
 
-      for (AbstractionPredicate p : predicates) {
+      final Iterator<AbstractionPredicate> predicateIt = pPredicates.iterator();
+      while (predicateIt.hasNext()) {
+        final AbstractionPredicate p = predicateIt.next();
         Pair<BooleanFormula, AbstractionPredicate> cacheKey = Pair.of(f, p);
         if (useCache && cartesianAbstractionCache.containsKey(cacheKey)) {
           byte predVal = cartesianAbstractionCache.get(cacheKey);
@@ -837,6 +817,7 @@ public class PredicateAbstractionManager {
             stats.abstractionEnumTime.getCurentInnerTimer().start();
             Region v = p.getAbstractVariable();
             absbdd = rmgr.makeAnd(absbdd, v);
+            predicateIt.remove(); // mark predicate as handled
             stats.abstractionEnumTime.getCurentInnerTimer().stop();
 
             predVal = 1;
@@ -852,6 +833,7 @@ public class PredicateAbstractionManager {
               Region v = p.getAbstractVariable();
               v = rmgr.makeNot(v);
               absbdd = rmgr.makeAnd(absbdd, v);
+              predicateIt.remove(); // mark predicate as handled
               stats.abstractionEnumTime.getCurentInnerTimer().stop();
 
               predVal = -1;
@@ -885,8 +867,22 @@ public class PredicateAbstractionManager {
     return symbFormula;
   }
 
-  private Region buildBooleanAbstraction(SSAMap ssa,
-      ProverEnvironment thmProver, Collection<AbstractionPredicate> predicates) throws InterruptedException, SolverException {
+  /**
+   * Compute a Boolean abstraction of a formula given a set of predicates.
+   * The abstracted formula is expected to have been pushed onto the solver stack already.
+   *
+   * @param ssa The SSAMap for instantiating predicates such that it matches f.
+   * @param thmProver The solver to use with the input formula on the stack.
+   * @param predicates The set of predicates.
+   *    Each predicate that is handled will be removed from the set
+   *    (and Boolean abstraction handles all predicates so the set is empty afterwards!).
+   * @return A over-approximation of f.
+   */
+  private Region buildBooleanAbstraction(
+      final SSAMap ssa,
+      final ProverEnvironment thmProver,
+      final Collection<AbstractionPredicate> predicates)
+      throws InterruptedException, SolverException {
 
     // build the definition of the predicates, and instantiate them
     // also collect all predicate variables so that the solver knows for which
@@ -923,12 +919,13 @@ public class PredicateAbstractionManager {
       stats.allSatCount += numModels;
     }
 
+    // Not strictly necessary, but mark all predicates as handled
+    predicates.clear();
+
     return result;
   }
 
-  private class AllSatCallbackImpl
-      extends DefaultBooleanFormulaVisitor<BooleanFormula>
-      implements AllSatCallback<Region> {
+  private class AllSatCallbackImpl implements AllSatCallback<Region> {
 
     private final RegionBuilder builder;
 
@@ -939,7 +936,6 @@ public class PredicateAbstractionManager {
     private Region formula;
 
     private AllSatCallbackImpl() {
-      super(fmgr);
       builder = rmgr.builder(shutdownNotifier);
 
       stats.abstractionSolveTime.start();
@@ -960,11 +956,13 @@ public class PredicateAbstractionManager {
       // first, let's create the BDD corresponding to the model
       builder.startNewConjunction();
       for (BooleanFormula f : model) {
-        if (bfmgr.isNot(f)) { // todo: possible bug if the predicate contains
-                             // the negation.
-          builder.addNegativeRegion(amgr.getPredicate(visit(f)).getAbstractVariable());
+        Optional<BooleanFormula> inner = fmgr.stripNegation(f);
+        Region region = amgr.getPredicate(inner.or(f)).getAbstractVariable();
+        if (inner.isPresent()) {
+          // TODO: possible bug if the predicate itself contains the negation.
+          builder.addNegativeRegion(region);
         } else {
-          builder.addPositiveRegion(amgr.getPredicate(f).getAbstractVariable());
+          builder.addPositiveRegion(region);
         }
       }
       builder.finishConjunction();
@@ -973,11 +971,6 @@ public class PredicateAbstractionManager {
 
       regionTime.stop();
 
-    }
-
-    @Override
-    public BooleanFormula visitNot(BooleanFormula negated) {
-      return negated;
     }
 
     @Override
@@ -1030,8 +1023,8 @@ public class PredicateAbstractionManager {
 
   /**
    * Checks if an abstraction formula and a pathFormula are unsatisfiable.
-   * @param pAbstractionFormula the abstraction formula
-   * @param pPathFormula the path formula
+   * @param abstractionFormula the abstraction formula
+   * @param pathFormula the path formula
    * @return unsat(pAbstractionFormula & pPathFormula)
    */
   public boolean unsat(AbstractionFormula abstractionFormula, PathFormula pathFormula)
@@ -1070,7 +1063,7 @@ public class PredicateAbstractionManager {
   }
 
   private AbstractionFormula makeAbstractionFormula(Region abs, SSAMap ssaMap, PathFormula blockFormula) {
-    BooleanFormula symbolicAbs = amgr.toConcrete(abs);
+    BooleanFormula symbolicAbs = amgr.convertRegionToFormula(abs);
     BooleanFormula instantiatedSymbolicAbs = fmgr.instantiate(symbolicAbs, ssaMap);
 
     if (simplifyAbstractionFormula) {
@@ -1106,20 +1099,6 @@ public class PredicateAbstractionManager {
    * @param sourceAbstraction The abstraction where to take the predicates from.
    * @param relevantPredicates The predicates to add.
    * @param newSSA The SSAMap to use for instantiating the new abstraction.
-   * @return A new abstraction similar to the old one with some more predicates.
-   */
-  public AbstractionFormula expand(AbstractionFormula reducedAbstraction, AbstractionFormula sourceAbstraction,
-      Collection<AbstractionPredicate> relevantPredicates, SSAMap newSSA) {
-    return expand(reducedAbstraction.asRegion(), sourceAbstraction.asRegion(), relevantPredicates, newSSA,
-        reducedAbstraction.getBlockFormula());
-  }
-
-  /**
-   * Extend an abstraction by a set of predicates.
-   * @param reducedAbstraction The abstraction to extend.
-   * @param sourceAbstraction The abstraction where to take the predicates from.
-   * @param relevantPredicates The predicates to add.
-   * @param newSSA The SSAMap to use for instantiating the new abstraction.
    * @param blockFormula block formula of reduced abstraction state
    * @return A new abstraction similar to the old one with some more predicates.
    */
@@ -1139,15 +1118,18 @@ public class PredicateAbstractionManager {
 
   /**
    * Extract all atoms from a formula and create predicates for them.
+   * If instead a single predicate should be created for the whole formula,
+   * call {@link #getPredicateFor(BooleanFormula)} instead.
+   *
    * @param pFormula The formula with the atoms (with SSA indices).
-   * @return A (possibly empty) collection of AbstractionPredicates.
+   * @return A (possibly empty) collection of AbstractionPredicates without duplicates.
    */
-  public Collection<AbstractionPredicate> extractPredicates(BooleanFormula pFormula) {
+  public Collection<AbstractionPredicate> getPredicatesForAtomsOf(BooleanFormula pFormula) {
     if (bfmgr.isFalse(pFormula)) {
       return ImmutableList.of(amgr.makeFalsePredicate());
     }
 
-    Collection<BooleanFormula> atoms = fmgr.extractAtoms(pFormula, splitItpAtoms);
+    Set<BooleanFormula> atoms = fmgr.extractAtoms(pFormula, splitItpAtoms);
 
     List<AbstractionPredicate> preds = new ArrayList<>(atoms.size());
 
@@ -1161,23 +1143,36 @@ public class PredicateAbstractionManager {
 
   /**
    * Create a single AbstractionPredicate representing a formula.
-   * @param pFormula The formula to use (without SSA indices!), may not simply be "true".
+   * If instead a predicate should be used for each atom in this formula,
+   * call {@link #getPredicatesForAtomsOf(BooleanFormula)}.
+   *
+   * @param pFormula The formula to use (with SSA indices), may not simply be "true".
    * @return A single abstraction predicate.
    */
-  public AbstractionPredicate createPredicateFor(BooleanFormula pFormula) {
+  public AbstractionPredicate getPredicateFor(BooleanFormula pFormula) {
     checkArgument(!bfmgr.isTrue(pFormula));
 
-    return amgr.makePredicate(pFormula);
+    return amgr.makePredicate(fmgr.uninstantiate(pFormula));
   }
 
   // delegate methods
 
-  public Set<AbstractionPredicate> extractPredicates(Region pRegion) {
-    return amgr.extractPredicates(pRegion);
+  public AbstractionPredicate makeFalsePredicate() {
+    return amgr.makeFalsePredicate();
   }
 
-  public Region buildRegionFromFormula(BooleanFormula pF) {
-    return amgr.buildRegionFromFormula(pF);
+  /**
+   * Return the set of predicates that occur in a region.
+   *
+   * Note: this method currently fails with SymbolicRegionManager,
+   * and it probably cannot really be fixed either, because when using symbolic regions
+   * we do not know what are the predicates (a predicate does not need to be an SMT atom,
+   * it can be larger).
+   *
+   * Thus better avoid using this method if possible.
+   */
+  public Set<AbstractionPredicate> extractPredicates(Region pRegion) {
+    return amgr.extractPredicates(pRegion);
   }
 
   private Set<AbstractionNode> getSuccessorsInAbstractionTree(int pIdOfLastAbstractionReused) {

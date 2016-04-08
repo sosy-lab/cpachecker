@@ -23,10 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg.counterexamples;
 
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 
 /**
  * Dummy implementation of {@link CounterexampleFilter}
@@ -34,12 +31,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
  */
 public class NullCounterexampleFilter implements CounterexampleFilter {
 
-  public NullCounterexampleFilter(
-      Configuration config, LogManager logger, ConfigurableProgramAnalysis cpa) {
-  }
-
-  public NullCounterexampleFilter() {
-  }
+  public NullCounterexampleFilter() {}
 
   @Override
   public boolean isRelevant(CounterexampleInfo pCounterexample) {

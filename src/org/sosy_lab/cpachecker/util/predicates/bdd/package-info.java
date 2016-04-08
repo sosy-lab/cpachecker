@@ -23,8 +23,8 @@
  */
 /**
  * Interface to the BDD library JavaBDD,
- * implementing the {@link org.sosy_lab.cpachecker.util.predicates.interfaces.Region}
- * and {@link org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager}
+ * implementing the {@link org.sosy_lab.cpachecker.util.predicates.regions.Region}
+ * and {@link org.sosy_lab.cpachecker.util.predicates.regions.RegionManager}
  * interfaces.
  */
 package org.sosy_lab.cpachecker.util.predicates.bdd;

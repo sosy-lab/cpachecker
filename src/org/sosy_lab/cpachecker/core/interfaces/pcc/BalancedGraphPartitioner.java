@@ -41,7 +41,6 @@ public interface BalancedGraphPartitioner {
    * @param pNumPartitions - number of disjunct sets, greater 1
    * @param pGraph - directed graph whose nodes should be partitioned
    * @return the partitioning, each set contains the indices of the nodes which it contains
-   * @throws InterruptedException
    */
   public List<Set<Integer>> computePartitioning(int pNumPartitions, PartialReachedSetDirectedGraph pGraph)
       throws InterruptedException;

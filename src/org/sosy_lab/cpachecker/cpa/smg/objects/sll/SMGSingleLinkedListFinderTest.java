@@ -29,12 +29,12 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cpa.smg.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
@@ -49,7 +49,7 @@ public class SMGSingleLinkedListFinderTest {
     SMGEdgeHasValue root = TestHelpers.createGlobalList(smg, 5, 16, 8, "pointer");
 
     SMGSingleLinkedListFinder finder = new SMGSingleLinkedListFinder(1);
-    Set<SMGAbstractionCandidate> candidates = finder.traverse(smg);
+    Set<SMGAbstractionCandidate> candidates = finder.traverse(smg, null);
     Assert.assertEquals(1, candidates.size());
     SMGAbstractionCandidate candidate = Iterables.getOnlyElement(candidates);
     Assert.assertTrue(candidate instanceof SMGSingleLinkedListCandidate);
@@ -67,7 +67,7 @@ public class SMGSingleLinkedListFinderTest {
     TestHelpers.createGlobalList(smg, 2, 16, 8, "pointer");
 
     SMGSingleLinkedListFinder finder = new SMGSingleLinkedListFinder(1);
-    Set<SMGAbstractionCandidate> candidates = finder.traverse(smg);
+    Set<SMGAbstractionCandidate> candidates = finder.traverse(smg, null);
     Assert.assertEquals(1, candidates.size());
   }
 
@@ -121,7 +121,7 @@ public class SMGSingleLinkedListFinderTest {
     smg.addHasValueEdge(headConnection);
 
     SMGSingleLinkedListFinder finder = new SMGSingleLinkedListFinder(1);
-    Set<SMGAbstractionCandidate> candidates = finder.traverse(smg);
+    Set<SMGAbstractionCandidate> candidates = finder.traverse(smg, null);
     Assert.assertEquals(2, candidates.size());
 
     boolean sawHead = false;

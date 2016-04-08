@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.Set;
 
 
 public interface CandidateGenerator extends Iterable<CandidateInvariant> {
@@ -41,7 +42,7 @@ public interface CandidateGenerator extends Iterable<CandidateInvariant> {
    * Checks if there are candidates currently available.
    *
    * If no candidates are available, more can be requested to be produced by
-   * calling {@link produceMoreCandidates}.
+   * calling {@link #produceMoreCandidates}.
    *
    * @return {@code true} if there are any candidates,
    * {@code false} if more need to be produced first.
@@ -51,35 +52,44 @@ public interface CandidateGenerator extends Iterable<CandidateInvariant> {
   /**
    * Confirms the given candidates, so that they are no longer provided as
    * candidates.
-   *
-   * @param pCandidates
    */
   void confirmCandidates(Iterable<CandidateInvariant> pCandidates);
+
+  /**
+   * Returns the confirmed candidate invariants.
+   */
+  Set<? extends CandidateInvariant> getConfirmedCandidates();
 
   @Override
   Iterator<CandidateInvariant> iterator();
 
-  public static CandidateGenerator EMPTY_GENERATOR = new CandidateGenerator() {
+  public static CandidateGenerator EMPTY_GENERATOR =
+      new CandidateGenerator() {
 
-    @Override
-    public void confirmCandidates(Iterable<CandidateInvariant> pCandidates) {
-      // Do nothing
-    }
+        @Override
+        public void confirmCandidates(Iterable<CandidateInvariant> pCandidates) {
+          // Do nothing
+        }
 
-    @Override
-    public boolean produceMoreCandidates() {
-      return false;
-    }
+        @Override
+        public boolean produceMoreCandidates() {
+          return false;
+        }
 
-    @Override
-    public boolean hasCandidatesAvailable() {
-      return false;
-    }
+        @Override
+        public boolean hasCandidatesAvailable() {
+          return false;
+        }
 
-    @Override
-    public Iterator<CandidateInvariant> iterator() {
-      return Collections.emptyIterator();
-    }
-  };
+        @Override
+        public Iterator<CandidateInvariant> iterator() {
+          return Collections.emptyIterator();
+        }
+
+        @Override
+        public Set<CandidateInvariant> getConfirmedCandidates() {
+          return Collections.emptySet();
+        }
+      };
 
 }

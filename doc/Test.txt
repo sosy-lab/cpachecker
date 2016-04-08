@@ -45,7 +45,7 @@ Hints for Writing Tests
   - CNumericTypes.* for CSimpleType instances
   - for other types, look in the specific class
   There is no need to mock these types or create your own instances.
-  For ShutdownNotifier, simply use ShutdownNotifier.create().
+  For ShutdownNotifier, simply use ShutdownNotifier.createDummy().
   Other utilities may be found in the package util.test.
 
 - Inside tests, you can use the library Truth (https://google.github.io/truth/) for writing assertions.

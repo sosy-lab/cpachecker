@@ -74,11 +74,11 @@ class FillInAllBindingsVisitor extends DefaultCTypeVisitor<Void, RuntimeExceptio
     if (pElaboratedType.getRealType() == null) {
 
       CComplexType realType = scope.lookupType(pElaboratedType.getQualifiedName());
-      if (realType == null) {
-        realType = programDeclarations.lookupType(pElaboratedType.getQualifiedName(), pElaboratedType.getOrigName());
-      }
       while (realType instanceof CElaboratedType) {
         realType = ((CElaboratedType)realType).getRealType();
+      }
+      if (realType == null) {
+        realType = programDeclarations.lookupType(pElaboratedType.getQualifiedName(), pElaboratedType.getOrigName());
       }
       if (realType != null) {
         pElaboratedType.setRealType(realType);

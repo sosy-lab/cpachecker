@@ -24,7 +24,9 @@
 package org.sosy_lab.cpachecker.cfa.types;
 
 
-public interface Type  {
+import java.io.Serializable;
+
+public interface Type extends Serializable {
 
 
   /**

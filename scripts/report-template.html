@@ -1055,7 +1055,7 @@ a.action:hover {
                     };
                     //next button
                     document.getElementById('sim_next').onclick = function() {
-                        if (self.pos < viewer.data.errorpath.length) self.pos++;
+                        if (self.pos < viewer.data.errorpath.length-1) self.pos++;
                         update();
                     };
                 };

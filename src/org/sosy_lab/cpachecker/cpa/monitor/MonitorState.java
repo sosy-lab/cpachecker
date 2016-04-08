@@ -26,20 +26,30 @@ package org.sosy_lab.cpachecker.cpa.monitor;
 import java.io.IOException;
 import java.io.NotSerializableException;
 
-import org.sosy_lab.common.Pair;
+import javax.annotation.Nullable;
+
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
 
 import com.google.common.base.Preconditions;
 
+/**
+ * Keeps track of the resources spent on a path.
+ */
 public class MonitorState extends AbstractSingleWrapperState implements AvoidanceReportingState {
-  /* Boilerplate code to avoid serializing this class */
+
   private static final long serialVersionUID = 0xDEADBEEF;
+
+  /**
+   * javadoc to remove unused parameter warning
+   * @param out the output stream
+   */
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
     throw new NotSerializableException();
   }
@@ -53,9 +63,11 @@ public class MonitorState extends AbstractSingleWrapperState implements Avoidanc
     }
   }
 
+  /// The total time spent on this path
   private final long totalTimeOnPath;
 
-  // stores what caused the element to go further (may be null)
+  /// The cause why the analysis did not proceed after this state (may be null)
+  @Nullable
   private final Pair<PreventingHeuristic, Long> preventingCondition;
 
   protected MonitorState(AbstractState pWrappedState, long totalTimeOnPath) {
@@ -64,9 +76,14 @@ public class MonitorState extends AbstractSingleWrapperState implements Avoidanc
 
   protected MonitorState(AbstractState pWrappedState, long totalTimeOnPath,
       Pair<PreventingHeuristic, Long> preventingCondition) {
+
     super(pWrappedState);
-    Preconditions.checkArgument(!(pWrappedState instanceof MonitorState), "Don't wrap a MonitorCPA in a MonitorCPA, this makes no sense!");
-    Preconditions.checkArgument(!(pWrappedState == TimeoutState.INSTANCE && preventingCondition == null), "Need a preventingCondition in case of TimeoutState");
+
+    Preconditions.checkArgument(!(pWrappedState instanceof MonitorState),
+        "Don't wrap a MonitorCPA in a MonitorCPA, this makes no sense!");
+    Preconditions.checkArgument(!(pWrappedState == TimeoutState.INSTANCE && preventingCondition == null),
+        "Need a preventingCondition in case of TimeoutState");
+
     this.totalTimeOnPath = totalTimeOnPath;
     this.preventingCondition = preventingCondition; // may be null
   }
@@ -92,9 +109,12 @@ public class MonitorState extends AbstractSingleWrapperState implements Avoidanc
     return getWrappedState().hashCode();
   }
 
+  /**
+   * @return  Is the current element the same as BOTTOM?
+   *  (no successor states because there was a reason that prevented it)
+   */
   @Override
   public boolean mustDumpAssumptionForAvoidance() {
-    // returns true if the current element is the same as bottom
     return preventingCondition != null;
   }
 
@@ -104,16 +124,18 @@ public class MonitorState extends AbstractSingleWrapperState implements Avoidanc
 
   @Override
   public String toString() {
-    return "Total time: " + this.totalTimeOnPath
-    + " Wrapped elem: " + getWrappedStates();
+    return String.format("Total time: %s Wrapped elem: %s",
+        this.totalTimeOnPath, getWrappedStates());
   }
-
 
   @Override
   public BooleanFormula getReasonFormula(FormulaManagerView manager) {
+
     if (mustDumpAssumptionForAvoidance()) {
       return preventingCondition.getFirst().getFormula(manager, preventingCondition.getSecond());
+
     } else {
+
       BooleanFormulaManager bfmgr = manager.getBooleanFormulaManager();
       return bfmgr.makeBoolean(true);
     }

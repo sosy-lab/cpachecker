@@ -1,30 +1,29 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableMap;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.cpa.policyiteration.congruence.CongruenceState;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.solver.api.BooleanFormula;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
 
 public final class PolicyAbstractedState extends PolicyState
-      implements Iterable<Entry<Template, PolicyBound>>, FormulaReportingState {
+      implements Iterable<Entry<Template, PolicyBound>>,
+                 FormulaReportingState {
 
   private final CongruenceState congruence;
 
-  private final PolicyIterationManager manager;
+  private final StateFormulaConversionManager manager;
 
   /**
    * Finite bounds for templates.
@@ -38,18 +37,15 @@ public final class PolicyAbstractedState extends PolicyState
   private final PointerTargetSet pointerTargetSet;
 
   /**
-   * Uninstantiated predicate associated with a state,
+   * Uninstantiated invariant associated with a state,
    * derived from other analyses.
-   * *NOT* used in comparison.
    */
-  private final BooleanFormula predicate;
+  private final BooleanFormula extraInvariant;
 
   /**
-   * Pointer to the latest version of the state associated with the given
-   * location.
+   * Predecessor intermediate state, empty only for the initial state.
    */
-  private transient Optional<PolicyAbstractedState> newVersion =
-      Optional.absent();
+  private final Optional<PolicyIntermediateState> predecessor;
 
   /**
    * If state A and state B can potentially get merged, they share the same
@@ -61,12 +57,14 @@ public final class PolicyAbstractedState extends PolicyState
       Map<Template, PolicyBound> pAbstraction,
       CongruenceState pCongruence,
       int pLocationID,
-      PolicyIterationManager pManager, SSAMap pSsaMap,
-      PointerTargetSet pPointerTargetSet, BooleanFormula pPredicate) {
+      StateFormulaConversionManager pManager, SSAMap pSsaMap,
+      PointerTargetSet pPointerTargetSet, BooleanFormula pPredicate,
+      Optional<PolicyIntermediateState> pPredecessor) {
     super(node);
     ssaMap = pSsaMap;
     pointerTargetSet = pPointerTargetSet;
-    predicate = pPredicate;
+    extraInvariant = pPredicate;
+    predecessor = pPredecessor;
     abstraction = ImmutableMap.copyOf(pAbstraction);
     congruence = pCongruence;
     locationID = pLocationID;
@@ -81,82 +79,60 @@ public final class PolicyAbstractedState extends PolicyState
     return congruence;
   }
 
-  public void setNewVersion(PolicyAbstractedState pNewVersion) {
-    newVersion = Optional.of(pNewVersion);
-  }
-
-  /**
-   * @return latest version of this state found in the reached set.
-   * Only used in {@code joinOnMerge} configuration.
-   */
-  public PolicyAbstractedState getLatestVersion() {
-    PolicyAbstractedState latest = this;
-    List<PolicyAbstractedState> toUpdate = new ArrayList<>();
-
-    // Traverse the pointers up.
-    while (latest.newVersion.isPresent()) {
-      toUpdate.add(latest);
-      latest = latest.newVersion.get();
-    }
-
-    // Update the pointers on the visited states.
-    for (PolicyAbstractedState updated : toUpdate) {
-      updated.newVersion = Optional.of(latest);
-    }
-    return latest;
-  }
-
   public static PolicyAbstractedState of(
       Map<Template, PolicyBound> data,
       CFANode node,
       CongruenceState pCongruence,
       int pLocationID,
-      PolicyIterationManager pManager,
+      StateFormulaConversionManager pManager,
       SSAMap pSSAMap,
       PointerTargetSet pPointerTargetSet,
-      BooleanFormula pPredicate
+      BooleanFormula pPredicate,
+      PolicyIntermediateState pPredecessor
   ) {
     return new PolicyAbstractedState(node, data,
         pCongruence, pLocationID, pManager, pSSAMap,
-        pPointerTargetSet, pPredicate);
+        pPointerTargetSet, pPredicate, Optional.of(pPredecessor));
   }
 
-  public PolicyAbstractedState updateAbstraction(
+  /**
+   * Replace the abstraction with the given input.
+   */
+  public PolicyAbstractedState withNewAbstraction(
       Map<Template, PolicyBound> newAbstraction) {
     return new PolicyAbstractedState(getNode(),
         newAbstraction, congruence, locationID, manager, ssaMap,
-        pointerTargetSet, predicate);
+        pointerTargetSet, extraInvariant, predecessor);
+  }
+
+  /**
+   * Replace the extra invariant with the given input.
+   */
+  public PolicyAbstractedState withNewExtraInvariant(BooleanFormula pNewExtraInvariant) {
+    if (pNewExtraInvariant.equals(extraInvariant)) {
+
+      // Very important to return identity.
+      return this;
+    }
+    return new PolicyAbstractedState(getNode(),
+        abstraction, congruence, locationID, manager, ssaMap,
+        pointerTargetSet, pNewExtraInvariant, predecessor);
   }
 
   public ImmutableMap<Template, PolicyBound> getAbstraction() {
     return abstraction;
   }
 
-  public PolicyAbstractedState withUpdates(
-      Map<Template, PolicyBound> newAbstraction,
-      CongruenceState newCongruence,
-      BooleanFormula newPredicate
-  ) {
-    return new PolicyAbstractedState(getNode(),
-        newAbstraction, newCongruence, locationID, manager, ssaMap,
-        pointerTargetSet, newPredicate);
+  public BooleanFormula getExtraInvariant() {
+    return extraInvariant;
   }
 
-  public BooleanFormula getPredicate() {
-    return predicate;
+  public SSAMap getSSA() {
+    return ssaMap;
   }
 
-  public PathFormula getPathFormula(FormulaManagerView fmgr) {
-    // If we are inside our analysis, use the predicate.
-    // If we are reporting the invariant for another solver, conjoin "true"
-    // instead.
-    BooleanFormula extraPredicate;
-    if (fmgr == manager.getFormulaManagerView()) {
-      extraPredicate = fmgr.instantiate(predicate, ssaMap);
-    } else {
-      extraPredicate = fmgr.getBooleanFormulaManager().makeBoolean(true);
-    }
-    return new PathFormula(extraPredicate, ssaMap, pointerTargetSet, 1);
+  public PointerTargetSet getPointerTargetSet() {
+    return pointerTargetSet;
   }
 
   /**
@@ -171,19 +147,18 @@ public final class PolicyAbstractedState extends PolicyState
    * @return Empty abstracted state associated with {@code node}.
    */
   public static PolicyAbstractedState empty(CFANode node,
-      SSAMap pSSAMap,
-      PointerTargetSet pPointerTargetSet,
       BooleanFormula pPredicate,
-      PolicyIterationManager pManager) {
-    return PolicyAbstractedState.of(
-        ImmutableMap.<Template, PolicyBound>of(), // abstraction
+      StateFormulaConversionManager pManager) {
+    return new PolicyAbstractedState(
         node, // node
+        ImmutableMap.<Template, PolicyBound>of(), // abstraction
         CongruenceState.empty(),
         -1,
         pManager,
-        pSSAMap,
-        pPointerTargetSet,
-        pPredicate
+        SSAMap.emptySSAMap(),
+        PointerTargetSet.emptyPointerTargetSet(),
+        pPredicate,
+        Optional.<PolicyIntermediateState>absent()
     );
   }
 
@@ -199,10 +174,9 @@ public final class PolicyAbstractedState extends PolicyState
   @Override
   public String toDOTLabel() {
     return String.format(
-        "(node=%s)%s%n %n %s %n",
-        getNode(),
-        (new PolicyDotWriter()).toDOTLabel(abstraction),
-        predicate
+        "(node=%s, locID=%s)%s%n",
+        getNode(), locationID,
+        (new PolicyDotWriter()).toDOTLabel(abstraction)
     );
   }
 
@@ -221,11 +195,22 @@ public final class PolicyAbstractedState extends PolicyState
     return abstraction.entrySet().iterator();
   }
 
+  public Optional<PolicyIntermediateState> getGenerationState() {
+    return predecessor;
+  }
+
   @Override
   public BooleanFormula getFormulaApproximation(FormulaManagerView fmgr, PathFormulaManager pfmgr) {
-    BooleanFormula invariant = fmgr.getBooleanFormulaManager().and(
-        manager.abstractStateToConstraints(fmgr, pfmgr, this)
-    );
+    BooleanFormula invariant;
+    try {
+      invariant = fmgr.getBooleanFormulaManager().and(
+          manager.abstractStateToConstraints(fmgr, pfmgr, this, false)
+      );
+    } catch (CPAException e) {
+      throw new UnsupportedOperationException(
+          "The invariant generation exception should never be "
+              + "encountered on this code path.");
+    }
     return fmgr.uninstantiate(invariant);
   }
 }

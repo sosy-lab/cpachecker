@@ -1,11 +1,11 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import java.util.Iterator;
-import java.util.Set;
+import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
-import com.google.common.collect.ImmutableSet;
+import java.util.Iterator;
+import java.util.Set;
 
 /**
  * Policy iteration precision is simply a set of templates.
@@ -24,5 +24,22 @@ public class PolicyPrecision implements Precision, Iterable<Template> {
   @Override
   public Iterator<Template> iterator() {
     return templates.iterator();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (!(o instanceof PolicyPrecision)) {
+      return false;
+    }
+    if (o == this) {
+      return true;
+    }
+    PolicyPrecision other = (PolicyPrecision) o;
+    return other.templates.equals(templates);
+  }
+
+  @Override
+  public int hashCode() {
+    return templates.hashCode();
   }
 }

@@ -76,7 +76,11 @@ public class ShiftRightExpression extends BinarySymbolicExpression {
   }
 
   @Override
-  public String toString() {
-    return "(" + getOperand1() + " >> " + getOperand2() + ")";
+  public String getOperationString() {
+    if (isSigned()) {
+      return ">>";
+    } else {
+      return ">>>";
+    }
   }
 }

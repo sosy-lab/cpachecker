@@ -33,6 +33,8 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.cdt.core.dom.ast.ASTVisitor;
 import org.eclipse.cdt.core.dom.ast.IASTASMDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
@@ -43,8 +45,6 @@ import org.eclipse.cdt.core.dom.ast.IASTProblemDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -64,8 +64,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Triple;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
@@ -78,7 +81,7 @@ import com.google.common.collect.TreeMultimap;
  * Builder to traverse AST.
  *
  * After instantiating this class,
- * call {@link #analyzeTranslationUnit(IASTTranslationUnit, String)}
+ * call {@link #analyzeTranslationUnit(IASTTranslationUnit, String, Scope)}
  * once for each translation unit that should be used
  * and finally call {@link #createCFA()}.
  */
@@ -99,6 +102,7 @@ class CFABuilder extends ASTVisitor {
 
 
   private GlobalScope fileScope = new GlobalScope();
+  private Scope artificialScope;
   private ProgramDeclarations programDeclarations = new ProgramDeclarations();
   private ASTConverter astCreator;
   private final Function<String, String> niceFileNameFunction;
@@ -132,15 +136,21 @@ class CFABuilder extends ASTVisitor {
     shouldVisitTranslationUnit = true;
   }
 
-  public void analyzeTranslationUnit(IASTTranslationUnit ast, String staticVariablePrefix) throws InvalidConfigurationException {
+  public void analyzeTranslationUnit(
+      IASTTranslationUnit ast, String staticVariablePrefix, Scope pFallbackScope)
+      throws InvalidConfigurationException {
     sideAssignmentStack = new Sideassignments();
-    fileScope = new GlobalScope(new HashMap<String, CSimpleDeclaration>(),
-                                new HashMap<String, CSimpleDeclaration>(),
-                                new HashMap<String, CFunctionDeclaration>(),
-                                new HashMap<String, CComplexTypeDeclaration>(),
-                                new HashMap<String, CTypeDefDeclaration>(),
-                                programDeclarations,
-                                staticVariablePrefix);
+    artificialScope = pFallbackScope;
+    fileScope =
+        new GlobalScope(
+            new HashMap<String, CSimpleDeclaration>(),
+            new HashMap<String, CSimpleDeclaration>(),
+            new HashMap<String, CFunctionDeclaration>(),
+            new HashMap<String, CComplexTypeDeclaration>(),
+            new HashMap<String, CTypeDefDeclaration>(),
+            programDeclarations,
+            staticVariablePrefix,
+            artificialScope);
     astCreator = new ASTConverter(config, fileScope, logger, niceFileNameFunction, sourceOriginMapping, machine, staticVariablePrefix, sideAssignmentStack);
     functionDeclarations.add(Triple.of((List<IASTFunctionDefinition>)new ArrayList<IASTFunctionDefinition>(), staticVariablePrefix, fileScope));
 
@@ -153,10 +163,9 @@ class CFABuilder extends ASTVisitor {
   @Override
   public int visit(IASTDeclaration declaration) {
     sideAssignmentStack.enterBlock();
-    IASTFileLocation fileloc = declaration.getFileLocation();
 
     if (declaration instanceof IASTSimpleDeclaration) {
-      return handleSimpleDeclaration((IASTSimpleDeclaration)declaration, fileloc);
+      return handleSimpleDeclaration((IASTSimpleDeclaration)declaration);
 
     } else if (declaration instanceof IASTFunctionDefinition) {
       IASTFunctionDefinition fd = (IASTFunctionDefinition) declaration;
@@ -195,7 +204,12 @@ class CFABuilder extends ASTVisitor {
     } else if (declaration instanceof IASTASMDeclaration) {
       // TODO Assembler code is ignored here
       encounteredAsm = true;
-      logger.log(Level.FINER, "Ignoring inline assembler code at line", fileloc.getStartingLineNumber());
+      @Nullable IASTFileLocation fileloc = declaration.getFileLocation();
+      if (fileloc != null) {
+        logger.log(Level.FINER, "Ignoring inline assembler code at line", fileloc.getStartingLineNumber());
+      } else {
+        logger.log(Level.FINER, "Ignoring inline assembler code at unknown line.");
+      }
       sideAssignmentStack.leaveBlock();
       return PROCESS_SKIP;
 
@@ -205,8 +219,7 @@ class CFABuilder extends ASTVisitor {
     }
   }
 
-  private int handleSimpleDeclaration(final IASTSimpleDeclaration sd,
-      final IASTFileLocation fileloc) {
+  private int handleSimpleDeclaration(final IASTSimpleDeclaration sd) {
 
     //these are unneccesary semicolons which would cause an abort of CPAchecker
     if (sd.getDeclarators().length == 0  && sd.getDeclSpecifier() instanceof IASTSimpleDeclSpecifier) {
@@ -347,7 +360,8 @@ class CFABuilder extends ASTVisitor {
                                         ImmutableMap<String, CTypeDefDeclaration> typedefs,
                                         ImmutableMap<String, CSimpleDeclaration> globalVars) {
 
-    FunctionScope localScope = new FunctionScope(functions, types, typedefs, globalVars, fileName);
+    FunctionScope localScope =
+        new FunctionScope(functions, types, typedefs, globalVars, fileName, artificialScope);
     CFAFunctionBuilder functionBuilder;
 
     try {

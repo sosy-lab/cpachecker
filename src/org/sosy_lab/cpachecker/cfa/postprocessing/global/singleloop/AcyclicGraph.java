@@ -118,7 +118,6 @@ class AcyclicGraph {
    * strategy.
    *
    * @param pRoot the root node.
-   * @param pGrowthStrategy the growth strategy.
    */
   public AcyclicGraph(CFANode pRoot) {
     this.nodes.add(pRoot);

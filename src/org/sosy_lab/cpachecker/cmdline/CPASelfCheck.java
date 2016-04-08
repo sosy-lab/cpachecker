@@ -67,7 +67,7 @@ public class CPASelfCheck {
   private static Configuration config;
 
   /**
-   * @param args
+   * @param args cmdline parameters, unused here
    */
   public static void main(String[] args) throws Exception {
     config = Configuration.defaultConfiguration();
@@ -107,13 +107,13 @@ public class CPASelfCheck {
 
         boolean ok = true;
         // check domain and lattice
-        ok &= checkJoin(cpa, cpaInst, main);
+        ok &= checkJoin(cpaInst, main);
         /// TODO checking the invariantes of the transfer relation is a bit more work ...
         // check merge
-        ok &= checkMergeSoundness(cpa, cpaInst, main);
+        ok &= checkMergeSoundness(cpaInst, main);
         // check stop
-        ok &= checkStopEmptyReached(cpa, cpaInst, main);
-        ok &= checkStopReached(cpa, cpaInst, main);
+        ok &= checkStopEmptyReached(cpaInst, main);
+        ok &= checkStopReached(cpaInst, main);
         /// TODO check invariants of precision adjustment
         logManager.log(Level.INFO, ok ? " OK" : " ERROR");
       } catch (Exception e) {
@@ -155,8 +155,8 @@ public class CPASelfCheck {
     return true;
   }
 
-  private static boolean checkJoin(Class<ConfigurableProgramAnalysis> pCpa,
-                                ConfigurableProgramAnalysis pCpaInst, FunctionEntryNode pMain) throws CPAException, InterruptedException {
+  private static boolean checkJoin(ConfigurableProgramAnalysis pCpaInst,
+                                FunctionEntryNode pMain) throws CPAException, InterruptedException {
     AbstractDomain d = pCpaInst.getAbstractDomain();
     AbstractState initial = pCpaInst.getInitialState(pMain, StateSpacePartition.getDefaultPartition());
 
@@ -164,8 +164,8 @@ public class CPASelfCheck {
         "Join of same elements is unsound!");
   }
 
-  private static boolean checkMergeSoundness(Class<ConfigurableProgramAnalysis> pCpa,
-                                 ConfigurableProgramAnalysis pCpaInst, FunctionEntryNode pMain) throws CPAException, InterruptedException {
+  private static boolean checkMergeSoundness(ConfigurableProgramAnalysis pCpaInst,
+                                 FunctionEntryNode pMain) throws CPAException, InterruptedException {
     AbstractDomain d = pCpaInst.getAbstractDomain();
     MergeOperator merge = pCpaInst.getMergeOperator();
     AbstractState initial = pCpaInst.getInitialState(pMain, StateSpacePartition.getDefaultPartition());
@@ -177,8 +177,8 @@ public class CPASelfCheck {
 
 
   private static boolean checkStopEmptyReached(
-                                            Class<ConfigurableProgramAnalysis> pCpa,
-                                            ConfigurableProgramAnalysis pCpaInst, FunctionEntryNode pMain) throws CPAException, InterruptedException {
+                                            ConfigurableProgramAnalysis pCpaInst,
+                                            FunctionEntryNode pMain) throws CPAException, InterruptedException {
     StopOperator stop = pCpaInst.getStopOperator();
     HashSet<AbstractState> reached = new HashSet<>();
     AbstractState initial = pCpaInst.getInitialState(pMain, StateSpacePartition.getDefaultPartition());
@@ -187,8 +187,8 @@ public class CPASelfCheck {
     return ensure(!stop.stop(initial, reached, initialPrec), "Stopped on empty set!");
   }
 
-  private static boolean checkStopReached(Class<ConfigurableProgramAnalysis> pCpa,
-                                       ConfigurableProgramAnalysis pCpaInst, FunctionEntryNode pMain) throws CPAException, InterruptedException {
+  private static boolean checkStopReached(ConfigurableProgramAnalysis pCpaInst,
+                                       FunctionEntryNode pMain) throws CPAException, InterruptedException {
     StopOperator stop = pCpaInst.getStopOperator();
     HashSet<AbstractState> reached = new HashSet<>();
     AbstractState initial = pCpaInst.getInitialState(pMain, StateSpacePartition.getDefaultPartition());
@@ -220,7 +220,7 @@ public class CPASelfCheck {
     return cpas;
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({ "unchecked", "unused" })
   private static <T> Class<T> uncheckedGenericCast(Class<?> classObj, Class<T> targetType) {
     return (Class<T>)classObj;
   }

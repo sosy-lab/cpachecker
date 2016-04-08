@@ -76,7 +76,6 @@ public class DefaultOptions {
      * cpa.chc.CHCCPA
      * cpa.ldd.LDDAbstractionCPA
      * cpa.octagon.OctagonCPA
-     * cpa.seplogic.SeplogicCPA
      */
   }
 

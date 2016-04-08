@@ -80,7 +80,7 @@ public class AndersenCPA implements ConfigurableProgramAnalysisWithBAM {
     config.inject(this);
 
     abstractDomain      = DelegateAbstractDomain.<AndersenState>getInstance();
-    transferRelation    = new AndersenTransferRelation(config, logger);
+    transferRelation    = new AndersenTransferRelation(logger);
     mergeOperator       = initializeMergeOperator();
     stopOperator        = initializeStopOperator();
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();

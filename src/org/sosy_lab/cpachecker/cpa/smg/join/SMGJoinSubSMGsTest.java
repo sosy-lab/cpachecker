@@ -27,8 +27,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cpa.smg.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
@@ -52,7 +52,7 @@ public class SMGJoinSubSMGsTest {
     SMGNodeMapping mapping1 = new SMGNodeMapping();
     SMGNodeMapping mapping2 = new SMGNodeMapping();
 
-    jssDefined = new SMGJoinSubSMGs(SMGJoinStatus.EQUAL, smg1, smg2, destSmg, mapping1, mapping2, obj1, obj2, null);
+    jssDefined = new SMGJoinSubSMGs(SMGJoinStatus.EQUAL, smg1, smg2, destSmg, mapping1, mapping2, obj1, obj2, null, 0, false, false, null, null);
   }
 
   @Test

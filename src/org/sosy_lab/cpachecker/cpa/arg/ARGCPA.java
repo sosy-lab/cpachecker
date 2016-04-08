@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
@@ -110,6 +110,10 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
           PathEqualityCounterexampleFilter.class);
   private final CounterexampleFilter cexFilter;
 
+  @Option(secure=true, name="errorPath.exportImmediately",
+          description="export error paths to files immediately after they were found")
+  private boolean dumpErrorPathImmediately = false;
+
   private final LogManager logger;
 
   private final AbstractDomain abstractDomain;
@@ -170,8 +174,10 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     }
     stopOperator = new ARGStopSep(getWrappedCpa().getStopOperator(), logger, config);
     cexFilter = createCounterexampleFilter(config, logger, cpa);
-    cexExporter = new CEXExporter(config, logger);
-    stats = new ARGStatistics(config, this);
+    ARGPathExporter argPathExporter = new ARGPathExporter(config, logger, cfa);
+    cexExporter = new CEXExporter(config, logger, argPathExporter);
+    stats = new ARGStatistics(config, logger, this, cfa.getMachineModel(),
+        dumpErrorPathImmediately ? null : cexExporter, argPathExporter);
 
     machineModel = cfa.getMachineModel();
 
@@ -266,11 +272,9 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   public void addCounterexample(ARGState targetState, CounterexampleInfo pCounterexample) {
     checkArgument(targetState.isTarget());
     checkArgument(!pCounterexample.isSpurious());
-    if (pCounterexample.getTargetPath() != null) {
-      // With BAM, the targetState and the last state of the path
-      // may actually be not identical.
-      checkArgument(pCounterexample.getTargetPath().getLastState().isTarget());
-    }
+    // With BAM, the targetState and the last state of the path
+    // may actually be not identical.
+    checkArgument(pCounterexample.getTargetPath().getLastState().isTarget());
     counterexamples.put(targetState, pCounterexample);
   }
 
@@ -317,9 +321,9 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
 
   void exportCounterexampleOnTheFly(ARGState pTargetState,
     CounterexampleInfo pCounterexampleInfo, int cexIndex) throws InterruptedException {
-    if (cexExporter.shouldDumpErrorPathImmediately()) {
+    if (dumpErrorPathImmediately) {
       if (cexFilter.isRelevant(pCounterexampleInfo)) {
-        cexExporter.exportCounterexample(pTargetState, pCounterexampleInfo, cexIndex, null, true);
+        cexExporter.exportCounterexample(pTargetState, pCounterexampleInfo, cexIndex);
       } else {
         logger.log(Level.FINEST, "Skipping counterexample printing because it is similar to one of already printed.");
       }

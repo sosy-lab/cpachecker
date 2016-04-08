@@ -1,34 +1,42 @@
 <?xml version="1.0"?>
-<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="60" hardtimelimit="90" memlimit="3000" cpuCores="4">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="3 GB" cpuCores="4">
 
   <option name="-noout"/>
   <option name="-heap">2000M</option>
-  <option name="-valueAnalysis-symbolic"/>
+  <option name="-valueAnalysis-symbolic-refiner"/>
 
   <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
 
   <rundefinition>
-    <sourcefiles>
+    <tasks>
       <include>../programs/simple/explicit/symbolic/*.c</include>
       <includesfile>../programs/benchmarks/Simple.set</includesfile>
-      <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
-      <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
+      <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+      <includesfile>../programs/benchmarks/HeapReach.set</includesfile>
       <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
       <!-- exclude tasks from Sequentialized set -->
       <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
       <exclude>../programs/benchmarks/seq-pthread/*</exclude>
-      <!-- exclude always-error tasks -->
-      <exclude>../programs/benchmarks/ssh/*</exclude>
+
       <!-- exclude close-to-timeout tasks -->
       <exclude>../programs/benchmarks/ssh-simplified/s3_clnt_1_true-unreach-call.cil.c</exclude>
       <exclude>../programs/benchmarks/systemc/transmitter.07_false-unreach-call_false-termination.cil.c</exclude>
-    </sourcefiles>
-    <sourcefiles>
-      <includesfile>integration-DeviceDrivers64.set</includesfile>
+    </tasks>
+    <tasks>
+      <includesfile>integration-DeviceDriversLinux64.set</includesfile>
       <exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-media-video-c-qcam.ko_true-unreach-call.cil.out.i.pp.cil.c</exclude>
       <option name="-skipRecursion"/>
       <option name="-64"/>
-    </sourcefiles>
+    </tasks>
   </rundefinition>
+
+  <columns>
+    <column title="total">time for CPAchecker</column>
+    <column title="reached">Size of reached set</column>
+    <column title="refinements">Number of refinements</column>
+    <column title="refinements_succ">Number of successful refinements</column>
+    <column title="refinements_fail">Number of failed refinements</column>
+    <column title="time_refinements">Time for refinements</column>
+  </columns>
 </benchmark>

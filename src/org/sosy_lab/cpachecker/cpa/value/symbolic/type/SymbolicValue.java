@@ -46,4 +46,10 @@ public interface SymbolicValue extends Value, Serializable {
   Optional<MemoryLocation> getRepresentedLocation();
 
   SymbolicValue copyForLocation(MemoryLocation pLocation);
+
+  /**
+   * Returns a string representation of this symbolic value with symbolic expressions representing
+   * a certain memory locations replaced with these locations.
+   */
+  String getRepresentation();
 }

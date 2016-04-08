@@ -73,7 +73,6 @@ import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 import org.eclipse.cdt.core.dom.ast.gnu.IGNUASTCompoundStatementExpression;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTDeclarationStatement;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -126,6 +125,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -938,7 +938,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   /**
    * Create a statement edge for an expression (which may be an expression list).
-   * @param exp The expression to put at the edge.
+   * @param expression The expression to put at the edge.
    * @param fileLocation The file location.
    * @param prevNode The predecessor of the new edge.
    * @param lastNode The successor of the new edge
@@ -1079,7 +1079,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       // but it prevents the need for a temporary variable in the common case of
       // "if (a && b)"
       CFANode innerNode = newCFANode();
-      buildConditionTree(((IASTBinaryExpression) condition).getOperand1(), fileLocation, rootNode, innerNode, elseNode, thenNodeForLastThen, elseNodeForLastElse, true, false, flippedThenElse);
+      buildConditionTree(((IASTBinaryExpression) condition).getOperand1(), fileLocation, rootNode, innerNode, elseNode, thenNodeForLastThen, elseNode, true, false, flippedThenElse);
       buildConditionTree(((IASTBinaryExpression) condition).getOperand2(), fileLocation, innerNode, thenNode, elseNode, thenNodeForLastThen, elseNodeForLastElse, true, true, flippedThenElse);
       return Optional.absent();
 

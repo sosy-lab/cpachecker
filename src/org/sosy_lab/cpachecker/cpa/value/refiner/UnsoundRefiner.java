@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.value.refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 public interface UnsoundRefiner extends Refiner {
 
@@ -37,9 +38,8 @@ public interface UnsoundRefiner extends Refiner {
    *
    * To this end, all states except the root state must be removed from the
    * reached set, and a valid precision must be put in place, e.g. by calling
-   * the respective {@link ARGReachedSet#removeSubtree()} method.
+   * the respective {@link ARGReachedSet#removeSubtree(ARGState)} method.
    *
-   * @param reached
    */
-  public void forceRestart(ReachedSet reached);
+  void forceRestart(ReachedSet reached);
 }

@@ -29,7 +29,6 @@ import org.sosy_lab.common.collect.PersistentSortedMaps;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.FreshValueProvider;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Equivalence;
 
 public class BAMFreshValueProvider implements FreshValueProvider {
 
@@ -57,9 +56,11 @@ public class BAMFreshValueProvider implements FreshValueProvider {
     if (other instanceof DefaultFreshValueProvider) {
       return this;
     } else if (other instanceof BAMFreshValueProvider) {
-      PersistentSortedMap<String, Integer> vars = PersistentSortedMaps.merge(
-          this.vars, ((BAMFreshValueProvider)other).vars, Equivalence.equals(),
-          PersistentSortedMaps.<String, Integer>getMaximumMergeConflictHandler(), null);
+      PersistentSortedMap<String, Integer> vars =
+          PersistentSortedMaps.merge(
+              this.vars,
+              ((BAMFreshValueProvider) other).vars,
+              PersistentSortedMaps.<String, Integer>getMaximumMergeConflictHandler());
       return new BAMFreshValueProvider(vars);
     } else {
       throw new AssertionError("unhandled case for FreshValueProvider: " + other.getClass());

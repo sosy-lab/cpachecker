@@ -27,17 +27,10 @@ import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.SortedSet;
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
 
-import javax.annotation.Nullable;
-
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
@@ -48,13 +41,20 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet.CompositeField;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.solver.api.BooleanFormula;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.collect.FluentIterable;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.SortedSet;
+
+import javax.annotation.Nullable;
 
 
 public interface PointerTargetSetBuilder {
@@ -66,8 +66,6 @@ public interface PointerTargetSetBuilder {
   /**
    * Adds the newly allocated base of the given type for tracking along with all its tracked (sub)fields
    * (if its a structure/union) or all its elements (if its an array).
-   * @param name
-   * @param type
    */
   BooleanFormula addBase(String name, CType type);
 
@@ -86,7 +84,6 @@ public interface PointerTargetSetBuilder {
 
   /**
    * Removes pointer to a deferred memory allocation from tracking.
-   * @param oldPointerVariable
    * @return whether the removed variable was the only pointer to the corresponding referred allocation
    */
   boolean removeDeferredAllocatinPointer(String oldPointerVariable);
@@ -181,7 +178,7 @@ public interface PointerTargetSetBuilder {
         }
       };
 
-    RealPointerTargetSetBuilder(final PointerTargetSet pointerTargetSet,
+    public RealPointerTargetSetBuilder(final PointerTargetSet pointerTargetSet,
         final FormulaManagerView pFormulaManager,
         final PointerTargetSetManager pPtsMgr,
         final FormulaEncodingWithPointerAliasingOptions pOptions) {
@@ -201,8 +198,8 @@ public interface PointerTargetSetBuilder {
      *
      * Note: the recursion doesn't proceed on unused (untracked) (sub)fields.
      *
-     * @param base the name of the newly allocated base variable
-     * @param currentType type of the allocated base or the next added pointer target
+     * @param name the name of the newly allocated base variable
+     * @param type type of the allocated base or the next added pointer target
      */
     private void addTargets(final String name, CType type) {
       targets = ptsMgr.addToTargets(name, type, null, 0, 0, targets, fields);
@@ -217,7 +214,9 @@ public interface PointerTargetSetBuilder {
       }
       bases = bases.putAndCopy(name, type); // To get proper inequalities
       final BooleanFormula nextInequality = ptsMgr.getNextBaseAddressInequality(name, bases, lastBase);
-      bases = bases.putAndCopy(name, PointerTargetSetManager.getFakeBaseType(ptsMgr.getSize(type))); // To prevent adding spurious targets when merging
+      // If type is incomplete, we can use a dummy size here because it is only used for the fake base.
+      int size = type.isIncomplete() ? 0 : ptsMgr.getSize(type);
+      bases = bases.putAndCopy(name, PointerTargetSetManager.getFakeBaseType(size)); // To prevent adding spurious targets when merging
       lastBase = name;
       return nextInequality;
     }
@@ -244,8 +243,6 @@ public interface PointerTargetSetBuilder {
     /**
      * Adds the newly allocated base of the given type for tracking along with all its tracked (sub)fields
      * (if its a structure/union) or all its elements (if its an array).
-     * @param name
-     * @param type
      */
     @Override
     public BooleanFormula addBase(final String name, CType type) {
@@ -348,8 +345,6 @@ public interface PointerTargetSetBuilder {
     /**
      * Should be used to remove the newly added field if it didn't turn out to correspond to any actual pointer target.
      * This can happen if we try to track a field of a composite that has no corresponding allocated bases.
-     * @param composite
-     * @param fieldName
      */
     private void shallowRemoveField(final CCompositeType composite, final String fieldName) {
       final String type = CTypeUtils.typeToString(composite);
@@ -447,7 +442,6 @@ public interface PointerTargetSetBuilder {
 
     /**
      * Removes pointer to a deferred memory allocation from tracking.
-     * @param oldPointerVariable
      * @return whether the removed variable was the only pointer to the corresponding referred allocation
      */
     @Override

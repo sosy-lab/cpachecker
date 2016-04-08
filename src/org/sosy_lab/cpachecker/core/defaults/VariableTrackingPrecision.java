@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
@@ -51,6 +52,7 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -67,11 +69,6 @@ public abstract class VariableTrackingPrecision implements Precision {
    * This method creates a precision which cannot be refined, all decisions about
    * the tracking of variables depend on the configuration options and the variable
    * classification.
-   *
-   * @param config
-   * @param vc the variable classification that should be used
-   * @return
-   * @throws InvalidConfigurationException
    */
   public static VariableTrackingPrecision createStaticPrecision(Configuration config, Optional<VariableClassification> vc, Class<? extends ConfigurableProgramAnalysis> cpaClass)
           throws InvalidConfigurationException {
@@ -104,10 +101,7 @@ public abstract class VariableTrackingPrecision implements Precision {
    * This method creates a refinable precision. The baseline should usually be
    * a static precision, where the most configuration options are handled.
    *
-   * @param config
    * @param pBaseline The precision which should be used as baseline.
-   * @return
-   * @throws InvalidConfigurationException
    */
   public static VariableTrackingPrecision createRefineablePrecision(Configuration config, VariableTrackingPrecision pBaseline) throws InvalidConfigurationException {
     Preconditions.checkNotNull(pBaseline);
@@ -167,7 +161,6 @@ public abstract class VariableTrackingPrecision implements Precision {
 
   /**
    * This method returns the size of the refinable precision, i.e., the number of elements contained.
-   * @return
    */
   public abstract int getSize();
 
@@ -175,7 +168,6 @@ public abstract class VariableTrackingPrecision implements Precision {
    * This method transforms the precision and writes it using the given writer.
    *
    * @param writer the write to write the precision to
-   * @throws IOException
    */
   public abstract void serialize(Writer writer) throws IOException;
 
@@ -191,7 +183,6 @@ public abstract class VariableTrackingPrecision implements Precision {
    * Only precisions of the same class can track the same variables.
    *
    * @param otherPrecision the precision to compare the tracking behavior
-   * @return
    */
   public abstract boolean tracksTheSameVariablesAs(VariableTrackingPrecision otherPrecision);
 
@@ -213,6 +204,11 @@ public abstract class VariableTrackingPrecision implements Precision {
   @ForOverride
   protected abstract Class<? extends ConfigurableProgramAnalysis> getCPAClass();
 
+  @Override
+  abstract public boolean equals(Object other);
+
+  @Override
+  abstract public int hashCode();
 
   @Options(prefix="precision")
   private static class RefinablePrecisionOptions {
@@ -420,6 +416,39 @@ public abstract class VariableTrackingPrecision implements Precision {
       return false;
     }
 
+    @Override
+    public boolean equals(Object other) {
+      return other instanceof ConfigurablePrecision
+          && tracksTheSameVariablesAs((ConfigurablePrecision)other);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(
+          variableBlacklist,
+          variableWhitelist,
+          trackBooleanVariables,
+          trackIntEqualVariables,
+          trackIntAddVariables,
+          trackFloatVariables,
+          trackAddressedVariables
+          );
+    }
+
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(ConfigurablePrecision.class)
+          .add("CPA", cpaClass.getSimpleName())
+          .add("blacklist", variableBlacklist)
+          .add("whitelist", variableWhitelist)
+          .add("trackBooleanVariables", trackBooleanVariables)
+          .add("trackIntEqualVariables", trackIntEqualVariables)
+          .add("trackIntAddVariables", trackIntAddVariables)
+          .add("trackFloatVariables", trackFloatVariables)
+          .add("trackAddressedVariables", trackAddressedVariables)
+          .toString();
+    }
+
   }
 
 
@@ -452,6 +481,18 @@ public abstract class VariableTrackingPrecision implements Precision {
     @Override
     protected final Class<? extends ConfigurableProgramAnalysis> getCPAClass() {
       return baseline.getCPAClass();
+    }
+
+    @Override
+    public boolean equals(Object other) {
+      return other != null
+          && other instanceof RefinablePrecision
+          && baseline.equals(((RefinablePrecision)other).baseline);
+    }
+
+    @Override
+    public int hashCode() {
+      return baseline.hashCode();
     }
   }
 
@@ -536,6 +577,18 @@ public abstract class VariableTrackingPrecision implements Precision {
         return true;
       }
       return false;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+      return super.equals(other)
+          && other instanceof LocalizedRefinablePrecision
+          && rawPrecision.equals(((LocalizedRefinablePrecision)other).rawPrecision);
+    }
+
+    @Override
+    public int hashCode() {
+      return super.hashCode() * 31 + rawPrecision.hashCode();
     }
   }
 
@@ -634,6 +687,18 @@ public abstract class VariableTrackingPrecision implements Precision {
         return true;
       }
       return false;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+      return super.equals(other)
+          && other instanceof ScopedRefinablePrecision
+          && rawPrecision.equals(((ScopedRefinablePrecision)other).rawPrecision);
+    }
+
+    @Override
+    public int hashCode() {
+      return super.hashCode() * 31 + rawPrecision.hashCode();
     }
   }
 

@@ -23,23 +23,25 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.variableselection;
 
-import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanFormula;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 
 public class AcceptAllVariableSelection<ConstantType> implements VariableSelection<ConstantType> {
 
   @Override
-  public boolean contains(String pVariableName) {
+  public boolean contains(MemoryLocation pMemoryLocation) {
     return true;
   }
 
   @Override
-  public VariableSelection<ConstantType> acceptAssumption(InvariantsFormula<ConstantType> pAssumption) {
+  public VariableSelection<ConstantType> acceptAssumption(BooleanFormula<ConstantType> pAssumption) {
     return this;
   }
 
   @Override
-  public VariableSelection<ConstantType> acceptAssignment(String pVariableName, InvariantsFormula<ConstantType> pAssumption) {
+  public VariableSelection<ConstantType> acceptAssignment(MemoryLocation pMemoryLocation, NumeralFormula<ConstantType> pAssumption) {
     return this;
   }
 

@@ -27,8 +27,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
-import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 
 /** Represents a State in the automaton.
  */
@@ -109,6 +109,21 @@ public class AutomatonInternalState {
 
   public boolean isTarget() {
     return mIsTarget;
+  }
+
+  /**
+   * @return Is it a state in that we will remain
+   *  the rest of the time?
+   */
+  public boolean isFinalSelfLoopingState() {
+    if (transitions.size() == 1) {
+      AutomatonTransition tr = transitions.get(0);
+      if (tr.getFollowState().equals(this)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   public boolean getDoesMatchAll() {

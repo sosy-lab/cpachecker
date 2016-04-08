@@ -36,6 +36,7 @@ import java.util.Map.Entry;
 import org.eclipse.cdt.core.dom.ast.DOMException;
 import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTElaboratedTypeSpecifier;
+import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTNamedTypeSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTPointer;
 import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
@@ -301,7 +302,7 @@ class ASTTypeConverter {
 
     final String name = t.getName();
 
-    CType oldType = scope.lookupTypedef(name);
+    CType oldType = scope.lookupTypedef(scope.getFileSpecificTypeName(name));
 
     // We have seen this type already.
     if (oldType != null) {
@@ -327,7 +328,9 @@ class ASTTypeConverter {
       length = new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(v.numericalValue()));
     } else {
       try {
-        length = converter.convertExpressionWithoutSideEffects(t.getArraySizeExpression());
+        @SuppressWarnings("deprecation")
+        IASTExpression arraySizeExpression = t.getArraySizeExpression();
+        length = converter.convertExpressionWithoutSideEffects(arraySizeExpression);
         if (length != null) {
           length = converter.simplifyExpressionRecursively(length);
         }
@@ -434,18 +437,14 @@ class ASTTypeConverter {
     }
     CType type = null;
     if (binding instanceof IProblemBinding) {
-      type = scope.lookupTypedef(name);
-      if (type == null) {
-        type = scope.lookupType(name);
-      } else {
-        return type;
-      }
+      type = scope.lookupTypedef(scope.getFileSpecificTypeName(name));
     }
+
     if (type == null) {
       return convert((IType) binding);
     }
 
-    return new CTypedefType(d.isConst(), d.isVolatile(), scope.getFileSpecificTypeName(name), type);
+    return type;
   }
 
   CStorageClass convertCStorageClass(final IASTDeclSpecifier d) {

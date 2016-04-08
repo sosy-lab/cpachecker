@@ -62,7 +62,9 @@ public class CPreprocessor {
 
   public String preprocess(String file) throws CParserException, InterruptedException {
     // create command line
-    List<String> argList = Lists.newArrayList(Splitter.on(CharMatcher.WHITESPACE).omitEmptyStrings().split(preprocessor));
+    List<String> argList =
+        Lists.newArrayList(
+            Splitter.on(CharMatcher.whitespace()).omitEmptyStrings().split(preprocessor));
     argList.add(file);
     String[] args = argList.toArray(new String[argList.size()]);
 

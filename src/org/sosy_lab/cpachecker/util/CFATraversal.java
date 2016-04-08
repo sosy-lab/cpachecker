@@ -233,6 +233,22 @@ public class CFATraversal {
     return visitor.getVisitedNodes();
   }
 
+  /**
+   * Traverse through the CFA according to the strategy represented by the
+   * current instance, starting at a given node and collecting all encountered nodes
+   * up to a given end node
+   * @param startingNode The starting node.
+   * @param endingNode The ending node
+   * @return A modifiable reference to the set of visited nodes.
+   */
+  public Set<CFANode> collectNodesReachableFromTo(final CFANode startingNode,
+                                                  final CFANode endingNode) {
+    NodeCollectingCFAVisitor visitor = new NodeCollectingCFAVisitor();
+    visitor.stopVisitingNode = endingNode;
+    this.traverse(startingNode, visitor);
+    return visitor.getVisitedNodes();
+  }
+
   // --- Useful visitor implementations ---
 
   /**
@@ -250,6 +266,12 @@ public class CFATraversal {
   public final static class NodeCollectingCFAVisitor extends ForwardingCFAVisitor {
 
     private final Set<CFANode> visitedNodes = new HashSet<>();
+
+    /**
+     * A Node where the visitor should stop calling the visit methed of its
+     * super class. This is used by {@link CFATraversal#collectNodesReachableFromTo(CFANode, CFANode)}.
+     */
+    private CFANode stopVisitingNode = null;
 
     /**
      * Creates a new instance which delegates calls to another visitor, but
@@ -270,7 +292,7 @@ public class CFATraversal {
 
     @Override
     public TraversalProcess visitNode(CFANode pNode) {
-      if (visitedNodes.add(pNode)) {
+      if (visitedNodes.add(pNode) && !(stopVisitingNode != null && stopVisitingNode == pNode)) {
         return super.visitNode(pNode);
       }
 

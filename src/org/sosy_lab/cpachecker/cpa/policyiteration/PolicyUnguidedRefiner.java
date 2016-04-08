@@ -53,7 +53,7 @@ public class PolicyUnguidedRefiner implements Refiner {
     LoopstackCPA loopstackCPA = CPAs.retrieveCPA(pCpa, LoopstackCPA.class);
     if (policyCPA == null) {
       throw new InvalidConfigurationException(
-          PolicyUnguidedRefiner.class.getSimpleName() + " needs a ValueAnalysisCPA"
+          PolicyUnguidedRefiner.class.getSimpleName() + " needs a PolicyCPA"
       );
     }
 

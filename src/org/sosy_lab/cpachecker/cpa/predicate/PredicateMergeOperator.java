@@ -32,8 +32,8 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 
 
 /**
@@ -50,9 +50,9 @@ public class PredicateMergeOperator implements MergeOperator {
 
   final Timer totalMergeTime = new Timer();
 
-  public PredicateMergeOperator(PredicateCPA pCpa) {
-    this.logger = pCpa.getLogger();
-    formulaManager = pCpa.getPathFormulaManager();
+  public PredicateMergeOperator(LogManager pLogger, PathFormulaManager pPfmgr) {
+    logger = pLogger;
+    formulaManager = pPfmgr;
   }
 
   @Override

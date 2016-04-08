@@ -23,18 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Set;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -55,28 +46,35 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.Address;
+import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
-import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcerteStatePathNode;
+import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcreteStatePathNode;
 import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.core.counterexample.MemoryName;
-import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 
-import com.google.common.collect.ImmutableMap;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Set;
 
 public class SMGConcreteErrorPathAllocator {
 
-  @SuppressWarnings("unused")
-  private final LogManager logger;
+  private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 
   private MemoryName memoryName = new MemoryName() {
 
@@ -86,8 +84,8 @@ public class SMGConcreteErrorPathAllocator {
     }
   };
 
-  public SMGConcreteErrorPathAllocator(LogManager pLogger) {
-    logger = pLogger;
+  public SMGConcreteErrorPathAllocator(AssumptionToEdgeAllocator pAssumptionToEdgeAllocator) {
+    assumptionToEdgeAllocator = pAssumptionToEdgeAllocator;
   }
 
   public ConcreteStatePath allocateAssignmentsToPath(ARGPath pPath) {
@@ -111,23 +109,14 @@ public class SMGConcreteErrorPathAllocator {
     return createConcreteStatePath(path);
   }
 
-  public RichModel allocateAssignmentsToPath(List<Pair<SMGState, CFAEdge>> pPath, MachineModel pMachineModel) {
-
-    pPath.remove(pPath.size() - 1);
-
+  public CFAPathWithAssumptions allocateAssignmentsToPath(List<Pair<SMGState, CFAEdge>> pPath) {
     ConcreteStatePath concreteStatePath = createConcreteStatePath(pPath);
-
-    CFAPathWithAssumptions pathWithAssignments =
-        CFAPathWithAssumptions.of(concreteStatePath, logger, pMachineModel);
-
-    RichModel model = RichModel.empty();
-
-    return model.withAssignmentInformation(pathWithAssignments);
+    return CFAPathWithAssumptions.of(concreteStatePath, assumptionToEdgeAllocator);
   }
 
   private ConcreteStatePath createConcreteStatePath(List<Pair<SMGState, CFAEdge>> pPath) {
 
-    List<ConcerteStatePathNode> result = new ArrayList<>(pPath.size());
+    List<ConcreteStatePathNode> result = new ArrayList<>(pPath.size());
 
     // Until SMGObjects are comparable for persistant maps, this object is mutable
     // and depends on side effects
@@ -138,7 +127,7 @@ public class SMGConcreteErrorPathAllocator {
       SMGState pSMGState = edgeStatePair.getFirst();
       CFAEdge edge = edgeStatePair.getSecond();
 
-      ConcerteStatePathNode node;
+      ConcreteStatePathNode node;
 
       if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
 
@@ -155,7 +144,7 @@ public class SMGConcreteErrorPathAllocator {
     return new ConcreteStatePath(result);
   }
 
-  private ConcerteStatePathNode createMultiEdge(SMGState pSMGState, MultiEdge multiEdge,
+  private ConcreteStatePathNode createMultiEdge(SMGState pSMGState, MultiEdge multiEdge,
       SMGObjectAddressMap pVariableAddresses) {
 
     int size = multiEdge.getEdges().size();
@@ -333,21 +322,15 @@ public class SMGConcreteErrorPathAllocator {
 
     Map<Address, Object> result = new HashMap<>();
 
-    for (SMGEdgeHasValue hvEdge : symbolicValues) {
+    for (SMGEdgeHasValue hvEdge : ImmutableSet.copyOf(symbolicValues)) {
 
       int symbolicValue = hvEdge.getValue();
       BigInteger value = null;
 
-      if(symbolicValue == 0) {
+      if (symbolicValue == 0) {
         value = BigInteger.ZERO;
       } else if (pSMGState.isPointer(symbolicValue)) {
-        SMGEdgePointsTo pointer;
-        try {
-          pointer = pSMGState.getPointerFromValue(symbolicValue);
-        } catch (SMGInconsistentException e) {
-          throw new AssertionError();
-        }
-
+        SMGEdgePointsTo pointer = pSMGState.getPointsToEdge(symbolicValue);
 
         //TODO ugly, use common representation
         value = pAdresses.calculateAddress(pointer.getObject(), pointer.getOffset(), pSMGState).getAddressValue();

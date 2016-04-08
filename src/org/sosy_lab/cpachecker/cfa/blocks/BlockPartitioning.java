@@ -80,7 +80,7 @@ public class BlockPartitioning {
   }
 
   /**
-   * @param node
+   * @param node the node to be checked
    * @return true, if there is a <code>Block</code> such that <code>node</node> is a callnode of the subtree.
    */
   public boolean isCallNode(CFANode node) {

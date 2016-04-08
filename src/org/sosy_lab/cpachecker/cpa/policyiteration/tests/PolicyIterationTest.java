@@ -68,22 +68,34 @@ public class PolicyIterationTest {
     check("loop_nested_false_assert.c");
   }
 
-  @Ignore
-  @Test public void pointer_past_abstraction_true_assert() throws Exception {
-    // todo: requires re-enabling formula slicing.
-    check("pointers/pointer_past_abstraction_true_assert.c");
+  @Test
+  public void pointer_past_abstraction_true_assert() throws Exception {
+    check("pointers/pointer_past_abstraction_true_assert.c", ImmutableMap.of(
+            "CompositeCPA.cpas", CPAS_W_SLICING,
+            "cpa.stator.policy.generateOctagons", "true"
+        )
+    );
   }
 
-  @Test public void pointer_past_abstraction_false_assert() throws Exception {
+  @Test
+  public void pointer_past_abstraction_false_assert() throws Exception {
     check("pointers/pointer_past_abstraction_false_assert.c",
-        ImmutableMap.of("cpa.stator.policy.generateOctagons", "true"));
+        ImmutableMap.of(
+            "CompositeCPA.cpas", CPAS_W_SLICING,
+            "cpa.stator.policy.runCongruence", "false"
+        )
+    );
   }
 
-  @Ignore
-  @Test public void pointers_loop_true_assert() throws Exception {
-    // todo: requires re-enabling formula slicing.
+  @Test
+  @Ignore("seems to require some kind of strengthening after the precision adjustment to work")
+  public void pointers_loop_true_assert() throws Exception {
     check("pointers/pointers_loop_true_assert.c",
-        ImmutableMap.of("cpa.stator.policy.generateOctagons", "true"));
+        ImmutableMap.of(
+            "CompositeCPA.cpas", CPAS_W_SLICING,
+            "cpa.stator.policy.generateOctagons", "true",
+            "cpa.stator.policy.linearizePolicy", "false"
+        ));
   }
 
   @Test public void octagons_loop_true_assert() throws Exception {
@@ -138,13 +150,12 @@ public class PolicyIterationTest {
     check("formula_fail_true_assert.c",
         ImmutableMap.of("cpa.stator.policy.generateLowerBound", "false",
                         "cpa.stator.policy.generateFromAsserts", "false",
-                        "cpa.stator.policy.pathFocusing", "false"));
+                        "cpa.stator.policy.abstractionLocations", "all"));
   }
 
   @Test public void unrolling_true_assert() throws Exception {
     check("unrolling_true_assert.c",
-        ImmutableMap.of("cpa.loopstack.loopIterationsBeforeAbstraction",
-            "2"));
+        ImmutableMap.of("cpa.loopstack.loopIterationsBeforeAbstraction", "2"));
   }
 
   @Test public void timeout_true_assert() throws Exception {
@@ -156,19 +167,8 @@ public class PolicyIterationTest {
     check("boolean_true_assert.c",
         ImmutableMap.of("cpa.stator.policy.generateOctagons", "true",
             "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.functionpointer.FunctionPointerCPA, cpa.loopstack.LoopstackCPA, cpa.value.ValueAnalysisCPA, cpa.policyiteration.PolicyCPA",
-            "cpa.stator.policy.joinOnMerge", "false",
             "precision.trackIntAddVariables", "false",
             "precision.trackVariablesBesidesEqAddBool", "false"));
-  }
-
-  @Test public void cex_check() throws Exception {
-    check("test/programs/benchmarks/loops/terminator_01_false-unreach-call_false-termination.i",
-        ImmutableMap.of(
-            "analysis.checkCounterexamples", "true",
-            "counterexample.checker", "CPACHECKER",
-            "counterexample.checker.config",
-              "config/cex-checks/predicateAnalysis-as-bitprecise-cex-check.properties"
-        ));
   }
 
   private void check(String filename) throws Exception {
@@ -207,21 +207,39 @@ public class PolicyIterationTest {
             ))
         )
         .put("cpa.loopstack.loopIterationsBeforeAbstraction", "1")
-        .put("cpa.predicate.solver.z3.requireProofs", "false")
-        .put("cpa.predicate.solver", "Z3")
+        .put("solver.z3.requireProofs", "false")
+
+        .put("solver.solver", "z3")
         .put("specification", "config/specification/default.spc")
         .put("cpa.predicate.ignoreIrrelevantVariables", "true")
-        .put("cpa.predicate.maxArrayLength", "3")
+        .put("cpa.predicate.maxArrayLength", "1000")
         .put("cpa.predicate.defaultArrayLength", "3")
         .put("parser.usePreprocessor", "true")
         .put("cfa.findLiveVariables", "true")
-        .put("analysis.traversal.order", "bfs")
+
+        .put("cpa.stator.policy.linearizePolicy", "true")
+
+        // Traversal options.
+        .put("analysis.traversal.order", "dfs")
         .put("analysis.traversal.useCallstack", "true")
         .put("analysis.traversal.useReversePostorder", "true")
+        .put("analysis.traversal.useLoopstack", "true")
 
         .put("log.consoleLevel", "INFO")
     .build());
     props.putAll(extra);
     return props;
   }
+
+  private static final String CPAS_W_SLICING = Joiner.on(", ").join(ImmutableList.<String>builder()
+          .add("cpa.location.LocationCPA")
+          .add("cpa.callstack.CallstackCPA")
+          .add("cpa.functionpointer.FunctionPointerCPA")
+          .add("cpa.loopstack.LoopstackCPA")
+          .add("cpa.formulaslicing.FormulaSlicingCPA")
+          .add("cpa.policyiteration.PolicyCPA")
+          .build()
+
+  );
+
 }

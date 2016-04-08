@@ -109,12 +109,31 @@ public abstract class BinarySymbolicExpression extends SymbolicExpression {
 
     BinarySymbolicExpression that = (BinarySymbolicExpression) pObj;
 
-    return operand1.equals(that.operand1) && operand2.equals(that.operand2) && expressionType
+    return super.equals(that) &&
+        operand1.equals(that.operand1) && operand2.equals(that.operand2) && expressionType
         .equals(that.expressionType);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getClass(), operand1, operand2, expressionType);
+    return super.hashCode() + Objects.hash(getClass(), operand1, operand2, expressionType);
   }
+
+  @Override
+  public String getRepresentation() {
+    if (getRepresentedLocation().isPresent()) {
+      return getRepresentedLocation().get().toString();
+
+    } else {
+      return "(" + operand1.getRepresentation() + " " + getOperationString()
+          + " " + operand2.getRepresentation() + ")";
+    }
+  }
+
+  @Override
+  public String toString() {
+    return operand1 + " " + getOperationString() + " " + operand2;
+  }
+
+  public abstract String getOperationString();
 }

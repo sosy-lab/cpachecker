@@ -35,13 +35,13 @@ import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.BitvectorType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.SymbolEncoding;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.SymbolEncoding.Type;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.SymbolEncoding.UnknownFormulaSymbolException;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.solver.api.FormulaType.BitvectorType;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.Type;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.UnknownFormulaSymbolException;
 
 import apache.harmony.math.BigInteger;
 
@@ -53,19 +53,13 @@ import com.google.common.collect.Sets;
 
 public class BVConverter extends Converter {
 
-  private final SymbolEncoding symbolEncoding;
-  private final LogManager logger;
-
   private final Map<String,String> unaryOps; // input-type == output-type
   private final Map<String,Pair<String,String>> binOps; // type is Bool
   private final Map<String,Pair<String,String>> arithmeticOps; // type is BV
   private final Set<String> ignorableFunctions = Sets.newHashSet("to_int", "to_real");
 
-  public BVConverter(SymbolEncoding pSymbolEncoding, LogManager pLogger) {
-    super();
-
-    symbolEncoding = pSymbolEncoding;
-    logger = pLogger;
+  public BVConverter(CFA pCfa, LogManager pLogger) {
+    super(pLogger, pCfa);
 
     unaryOps = new HashMap<>();
     unaryOps.put("-", "bvneg");

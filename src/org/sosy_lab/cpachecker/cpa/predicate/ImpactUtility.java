@@ -35,14 +35,14 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 /**
  * This class implements the core of all the approaches that are similar
@@ -111,8 +111,8 @@ final class ImpactUtility {
    * Strengthen a state given a (non-trivial) interpolant
    * by conjunctively adding the interpolant to the state's state formula.
    *
-   * @param interpolant The interpolant.
-   * @param state The state.
+   * @param itp The interpolant.
+   * @param s The state.
    * @param lastAbstraction The abstraction that was computed at the beginning
    *         of the current block (so it is not the abstraction of s,
    *         but the abstraction of the last predecessor of s that
@@ -148,9 +148,6 @@ final class ImpactUtility {
 
     CFANode location = AbstractStates.extractLocation(s);
 
-    // Extract predicates from interpolants.
-    Collection<AbstractionPredicate> preds = predAbsMgr.extractPredicates(itp);
-
     // Compute an abstraction with the new predicates.
     abstractionTime.start();
     AbstractionFormula newAbstraction;
@@ -159,11 +156,13 @@ final class ImpactUtility {
       newAbstraction = predAbsMgr.buildAbstraction(fmgr.uninstantiate(itp), blockFormula);
 
     } else if (abstractInterpolantOnly) {
-      // Compute an abstraction of "itp"
+      // Compute an abstraction of "itp" using the predicates from "itp".
+      Collection<AbstractionPredicate> preds = predAbsMgr.getPredicatesForAtomsOf(itp);
       newAbstraction = predAbsMgr.buildAbstraction(location, itp, blockFormula, preds);
 
     } else {
-      // Compute an abstraction of "lastAbstraction & blockFormula"
+      // Compute an abstraction of "lastAbstraction & blockFormula" using the predicates from "itp".
+      Collection<AbstractionPredicate> preds = predAbsMgr.getPredicatesForAtomsOf(itp);
       newAbstraction = predAbsMgr.buildAbstraction(location, lastAbstraction, blockFormula, preds);
     }
     abstractionTime.stop();

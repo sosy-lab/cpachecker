@@ -25,9 +25,14 @@ package org.sosy_lab.cpachecker.core.counterexample;
 
 import java.util.Map;
 
+import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ACastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -40,7 +45,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * the left hand side expressions in the assignments along the path.
  *
  * CPAs have to create an object of this class for every CFA Edge {@link CFAEdge}
- * along an Error Path {@link MutableARGPath} to create an object of
+ * along an Error Path {@link ARGPath} to create an object of
  * the concrete state path {@link ConcreteStatePath}. The allocator class
  * {@link AssumptionToEdgeAllocator} uses this object to create
  * an error path {@link CFAPathWithAssumptions} where every assignment,
@@ -56,7 +61,7 @@ public final class ConcreteState {
   private final Map<LeftHandSide, Object> variables;
   private final Map<String, Memory> allocatedMemory;
   private final Map<LeftHandSide, Address> variableAddressMap;
-
+  private final ConcreteExpressionEvaluator analysisConcreteExpressionEvaluation;
   private final MemoryName memoryNameAllocator;
 
   /**
@@ -77,6 +82,28 @@ public final class ConcreteState {
     allocatedMemory = ImmutableMap.copyOf(pAllocatedMemory);
     variables = ImmutableMap.copyOf(pVariables);
     memoryNameAllocator = pMemoryName;
+    analysisConcreteExpressionEvaluation = new DefaultConcreteExpressionEvaluator();
+  }
+
+  /**
+   * Creates an object of this class.
+   *
+   *
+   * @param pVariables a map that assigns variables a concrete value, without the need to assign a concrete address to a variable.
+   * @param pAllocatedMemory a map that assigns the allocated memory to its name.
+   * @param pVariableAddressMap a map that assigns variables along the error path an unique address.
+   * @param pMemoryName a class that, given a cfa expression {@link CRightHandSide},
+   * calculate the memory that contains the value.
+   */
+  public ConcreteState(Map<LeftHandSide, Object> pVariables,
+      Map<String, Memory> pAllocatedMemory,
+      Map<LeftHandSide, Address> pVariableAddressMap,
+      MemoryName pMemoryName, ConcreteExpressionEvaluator pAnalysisConcreteExpressionEvaluation) {
+    variableAddressMap = ImmutableMap.copyOf(pVariableAddressMap);
+    allocatedMemory = ImmutableMap.copyOf(pAllocatedMemory);
+    variables = ImmutableMap.copyOf(pVariables);
+    memoryNameAllocator = pMemoryName;
+    analysisConcreteExpressionEvaluation = pAnalysisConcreteExpressionEvaluation;
   }
 
   private ConcreteState() {
@@ -90,6 +117,8 @@ public final class ConcreteState {
         return "";
       }
     };
+
+    analysisConcreteExpressionEvaluation = new DefaultConcreteExpressionEvaluator();
   }
 
   /**
@@ -149,6 +178,17 @@ public final class ConcreteState {
   }
 
   /**
+   * Get the concrete expression evaluation of the analysis. Used to evaluate expressions
+   * while calculating the counterexample of the analysis. Necessary, because different
+   * analysis calculate concrete expressions differently.
+   *
+   * @return class that can evaluate concrete expressions, if the concrete operands are given.
+   */
+  public ConcreteExpressionEvaluator getAnalysisConcreteExpressionEvaluation() {
+    return analysisConcreteExpressionEvaluation;
+  }
+
+  /**
    * Checks, whether the given variable has a concrete address.
    * A variable without a concrete address may have a value directly assigned
    * to the variable.
@@ -198,5 +238,33 @@ public final class ConcreteState {
    */
   public static ConcreteState empty() {
     return EMPTY_CONCRETE_STATE;
+  }
+
+  private static class DefaultConcreteExpressionEvaluator implements ConcreteExpressionEvaluator {
+
+    @Override
+    public boolean shouldEvaluateExpressionWithThisEvaluator(AExpression pExp) {
+      return false;
+    }
+
+    private Value throwUnsupportedOperationException(AExpression pExp) {
+      throw new UnsupportedOperationException(
+          pExp.toASTString() + "should not be evaluated with this class.");
+    }
+
+    @Override
+    public Value evaluate(ABinaryExpression pBinExp, Value pOp1, Value pOp2) {
+      return throwUnsupportedOperationException(pBinExp);
+    }
+
+    @Override
+    public Value evaluate(AUnaryExpression pUnaryExpression, Value pOperand) {
+      return throwUnsupportedOperationException(pUnaryExpression);
+    }
+
+    @Override
+    public Value evaluate(ACastExpression pCastExpression, Value pOperand) {
+      return throwUnsupportedOperationException(pCastExpression);
+    }
   }
 }

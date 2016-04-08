@@ -29,7 +29,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  *
  * @param <ConstantType> the type of the constants used in the formulae.
  */
-public class Modulo<ConstantType> extends AbstractBinaryFormula<ConstantType> implements InvariantsFormula<ConstantType> {
+public class Modulo<ConstantType> extends AbstractBinaryFormula<ConstantType> implements NumeralFormula<ConstantType> {
 
   /**
    * Creates a new modulo formula over the given numerator and denominator
@@ -38,8 +38,8 @@ public class Modulo<ConstantType> extends AbstractBinaryFormula<ConstantType> im
    * @param pNumerator the numerator of the fraction.
    * @param pDenominator the denominator of the fraction.
    */
-  private Modulo(InvariantsFormula<ConstantType> pNumerator,
-      InvariantsFormula<ConstantType> pDenominator) {
+  private Modulo(NumeralFormula<ConstantType> pNumerator,
+      NumeralFormula<ConstantType> pDenominator) {
     super("%", false, pNumerator, pDenominator);
   }
 
@@ -48,7 +48,7 @@ public class Modulo<ConstantType> extends AbstractBinaryFormula<ConstantType> im
    *
    * @return the numerator of the fraction.
    */
-  public InvariantsFormula<ConstantType> getNumerator() {
+  public NumeralFormula<ConstantType> getNumerator() {
     return super.getOperand1();
   }
 
@@ -57,18 +57,18 @@ public class Modulo<ConstantType> extends AbstractBinaryFormula<ConstantType> im
    *
    * @return the denominator of the fraction.
    */
-  public InvariantsFormula<ConstantType> getDenominator() {
+  public NumeralFormula<ConstantType> getDenominator() {
     return super.getOperand2();
   }
 
   @Override
-  public <ReturnType> ReturnType accept(InvariantsFormulaVisitor<ConstantType, ReturnType> pVisitor) {
+  public <ReturnType> ReturnType accept(NumeralFormulaVisitor<ConstantType, ReturnType> pVisitor) {
     return pVisitor.visit(this);
   }
 
   @Override
   public <ReturnType, ParamType> ReturnType accept(
-      ParameterizedInvariantsFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
     return pVisitor.visit(this, pParameter);
   }
 
@@ -81,7 +81,7 @@ public class Modulo<ConstantType> extends AbstractBinaryFormula<ConstantType> im
    * @return an invariants formula representing the modulo operation over the
    * given operands.
    */
-  static <ConstantType> Modulo<ConstantType> of(InvariantsFormula<ConstantType> pNumerator, InvariantsFormula<ConstantType> pDenominator) {
+  static <ConstantType> Modulo<ConstantType> of(NumeralFormula<ConstantType> pNumerator, NumeralFormula<ConstantType> pDenominator) {
     return new Modulo<>(pNumerator, pDenominator);
   }
 

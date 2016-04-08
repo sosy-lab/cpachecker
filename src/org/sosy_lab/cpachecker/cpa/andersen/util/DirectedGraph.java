@@ -237,9 +237,6 @@ public class DirectedGraph {
    * Detects a cycle in this graph that contains the edge from <code>src</code> to <code>dest</code>
    * and merges all nodes in it. Returns the new, merged node, if a cycle is found, else
    * <code>null</code>.
-   *
-   * @param src The source node for the edge.
-   * @param dest The destination node for the edge.
    * @return The merged node, if a cylce was found, else <code>null</code>.
    */
   public DirectedGraph.Node detectAndCollapseCycleContainingEdge(DirectedGraph.Edge edge) {

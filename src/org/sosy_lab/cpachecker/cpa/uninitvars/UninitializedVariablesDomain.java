@@ -27,9 +27,9 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Set;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.collect.Sets;
 
@@ -42,7 +42,7 @@ public class UninitializedVariablesDomain implements AbstractDomain {
 
     if (uninitVarsElement2.getGlobalVariables().containsAll(uninitVarsElement1.getGlobalVariables())
         && uninitVarsElement2.getLocalVariables().containsAll(uninitVarsElement1.getLocalVariables())) {
-      return element2;
+      return uninitVarsElement2;
     }
 
       UninitializedVariablesState newElement = uninitVarsElement1.clone();

@@ -29,7 +29,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  *
  * @param <ConstantType> the type of the constants used in the formulae.
  */
-public class ShiftLeft<ConstantType> extends AbstractBinaryFormula<ConstantType> implements InvariantsFormula<ConstantType> {
+public class ShiftLeft<ConstantType> extends AbstractBinaryFormula<ConstantType> implements NumeralFormula<ConstantType> {
 
   /*
    * Creates a new left shift formula over the given operands.
@@ -38,8 +38,8 @@ public class ShiftLeft<ConstantType> extends AbstractBinaryFormula<ConstantType>
    * @param pShiftDistance the distance by which to shift the first operand to
    * the left.
    */
-  private ShiftLeft(InvariantsFormula<ConstantType> pToShift,
-      InvariantsFormula<ConstantType> pShiftDistance) {
+  private ShiftLeft(NumeralFormula<ConstantType> pToShift,
+      NumeralFormula<ConstantType> pShiftDistance) {
     super("<<", false, pToShift, pShiftDistance);
   }
 
@@ -48,7 +48,7 @@ public class ShiftLeft<ConstantType> extends AbstractBinaryFormula<ConstantType>
    *
    * @return the formula shifted by this operation.
    */
-  public InvariantsFormula<ConstantType> getShifted() {
+  public NumeralFormula<ConstantType> getShifted() {
     return super.getOperand1();
   }
 
@@ -57,18 +57,18 @@ public class ShiftLeft<ConstantType> extends AbstractBinaryFormula<ConstantType>
    *
    * @return the shift distance formula of this operation.
    */
-  public InvariantsFormula<ConstantType> getShiftDistance() {
+  public NumeralFormula<ConstantType> getShiftDistance() {
     return super.getOperand2();
   }
 
   @Override
-  public <ReturnType> ReturnType accept(InvariantsFormulaVisitor<ConstantType, ReturnType> pVisitor) {
+  public <ReturnType> ReturnType accept(NumeralFormulaVisitor<ConstantType, ReturnType> pVisitor) {
     return pVisitor.visit(this);
   }
 
   @Override
   public <ReturnType, ParamType> ReturnType accept(
-      ParameterizedInvariantsFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
     return pVisitor.visit(this, pParameter);
   }
 
@@ -82,8 +82,8 @@ public class ShiftLeft<ConstantType> extends AbstractBinaryFormula<ConstantType>
    * @return an invariants formula representing the left shift of the first
    * given operand by the second given operand.
    */
-  static <ConstantType> ShiftLeft<ConstantType> of(InvariantsFormula<ConstantType> pToShift,
-      InvariantsFormula<ConstantType> pShiftDistance) {
+  static <ConstantType> ShiftLeft<ConstantType> of(NumeralFormula<ConstantType> pToShift,
+      NumeralFormula<ConstantType> pShiftDistance) {
     return new ShiftLeft<>(pToShift, pShiftDistance);
   }
 

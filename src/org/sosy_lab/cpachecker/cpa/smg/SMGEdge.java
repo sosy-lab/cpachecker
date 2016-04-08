@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
+import com.google.common.base.Objects;
+
 
 public abstract class SMGEdge {
   final protected int value;
@@ -46,11 +48,7 @@ public abstract class SMGEdge {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((object == null) ? 0 : object.hashCode());
-    result = prime * result + value;
-    return result;
+    return Objects.hashCode(object, value);
   }
 
   @Override
@@ -58,23 +56,11 @@ public abstract class SMGEdge {
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (obj == null || !(obj instanceof SMGEdge)) {
       return false;
     }
     SMGEdge other = (SMGEdge) obj;
-    if (object == null) {
-      if (other.object != null) {
-        return false;
-      }
-    } else if (!object.equals(other.object)) {
-      return false;
-    }
-    if (value != other.value) {
-      return false;
-    }
-    return true;
+    return value == other.value
+        && Objects.equal(object, other.object);
   }
 }

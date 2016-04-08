@@ -23,6 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
+import java.util.Objects;
+
+import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
+import org.sosy_lab.cpachecker.cpa.invariants.BitVectorType;
+
 import com.google.common.base.Preconditions;
 
 /**
@@ -30,7 +35,7 @@ import com.google.common.base.Preconditions;
  *
  * @param <T> the type of the constant value.
  */
-public class Constant<T> extends AbstractFormula<T> implements InvariantsFormula<T> {
+public class Constant<T> extends AbstractFormula<T> implements NumeralFormula<T> {
 
   /**
    * The value of the constant.
@@ -42,8 +47,12 @@ public class Constant<T> extends AbstractFormula<T> implements InvariantsFormula
    *
    * @param pValue the value of the constant.
    */
-  private Constant(T pValue) {
+  private Constant(BitVectorInfo pInfo, T pValue) {
+    super(pInfo);
     Preconditions.checkNotNull(pValue);
+    if (pValue instanceof BitVectorType) {
+      Preconditions.checkArgument(pInfo.equals(((BitVectorType) pValue).getBitVectorInfo()));
+    }
     this.value = pValue;
   }
 
@@ -62,29 +71,31 @@ public class Constant<T> extends AbstractFormula<T> implements InvariantsFormula
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (this == o) {
+  public boolean equals(Object pOther) {
+    if (this == pOther) {
       return true;
     }
-    if (o instanceof Constant) {
-      return getValue().equals(((Constant<?>) o).getValue());
+    if (pOther instanceof Constant) {
+      Constant<?> other = (Constant<?>) pOther;
+      return getBitVectorInfo().equals(other.getBitVectorInfo())
+          && getValue().equals(other.getValue());
     }
     return false;
   }
 
   @Override
   public int hashCode() {
-    return getValue().hashCode();
+    return Objects.hash(getBitVectorInfo(), getValue());
   }
 
   @Override
-  public <ReturnType> ReturnType accept(InvariantsFormulaVisitor<T, ReturnType> pVisitor) {
+  public <ReturnType> ReturnType accept(NumeralFormulaVisitor<T, ReturnType> pVisitor) {
     return pVisitor.visit(this);
   }
 
   @Override
   public <ReturnType, ParamType> ReturnType accept(
-      ParameterizedInvariantsFormulaVisitor<T, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+      ParameterizedNumeralFormulaVisitor<T, ParamType, ReturnType> pVisitor, ParamType pParameter) {
     return pVisitor.visit(this, pParameter);
   }
 
@@ -95,8 +106,19 @@ public class Constant<T> extends AbstractFormula<T> implements InvariantsFormula
    *
    * @return a invariants formula representing a constant with the given value.
    */
-  static <T> Constant<T> of(T pValue) {
-    return new Constant<>(pValue);
+  static <T> Constant<T> of(BitVectorInfo pInfo, T pValue) {
+    return new Constant<>(pInfo, pValue);
+  }
+
+  /**
+   * Gets a invariants formula representing a constant with the given value.
+   *
+   * @param pValue the value of the constant.
+   *
+   * @return a invariants formula representing a constant with the given value.
+   */
+  static <T extends BitVectorType> Constant<T> of(T pValue) {
+    return new Constant<>(pValue.getBitVectorInfo(), pValue);
   }
 
 }

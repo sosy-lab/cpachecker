@@ -28,7 +28,7 @@ import java.util.logging.Handler;
 import java.util.logging.SimpleFormatter;
 import java.util.logging.StreamHandler;
 
-import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
@@ -72,8 +72,8 @@ public class CPATestRunner {
     }
 
     LogManager logger = new BasicLogManager(config, h);
-    ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
-    CPAchecker cpaChecker = new CPAchecker(config, logger, shutdownNotifier);
+    ShutdownManager shutdownManager = ShutdownManager.create();
+    CPAchecker cpaChecker = new CPAchecker(config, logger, shutdownManager);
     try {
       CPAcheckerResult results = cpaChecker.run(pSourceCodeFilePath);
       return new TestResults(stringLogHandler.getLog(), results);

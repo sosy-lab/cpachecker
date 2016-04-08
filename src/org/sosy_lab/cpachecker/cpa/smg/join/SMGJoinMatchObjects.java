@@ -27,11 +27,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cpa.smg.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGAbstractObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
 
 import com.google.common.collect.Iterators;
 
@@ -48,8 +49,7 @@ final class SMGJoinMatchObjects {
   }
 
   private static boolean checkMatchingMapping(SMGObject pObj1, SMGObject pObj2,
-                                                    SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
-                                                    SMG pSMG1, SMG pSMG2) {
+                                                    SMGNodeMapping pMapping1, SMGNodeMapping pMapping2) {
     if (pMapping1.containsKey(pObj1) && pMapping2.containsKey(pObj2) &&
         pMapping1.get(pObj1) != pMapping2.get(pObj2)) {
       return true;
@@ -59,8 +59,7 @@ final class SMGJoinMatchObjects {
   }
 
   private static boolean checkConsistentMapping(SMGObject pObj1, SMGObject pObj2,
-                                                      SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
-                                                      SMG pSMG1, SMG pSMG2) {
+                                                      SMGNodeMapping pMapping1, SMGNodeMapping pMapping2) {
     if ((pMapping1.containsKey(pObj1) && pMapping2.containsValue(pMapping1.get(pObj1))) ||
         (pMapping2.containsKey(pObj2) && pMapping1.containsValue(pMapping2.get(pObj2)))) {
       return true;
@@ -130,17 +129,29 @@ final class SMGJoinMatchObjects {
       return;
     }
 
-    if (SMGJoinMatchObjects.checkMatchingMapping(pObj1, pObj2, pMapping1, pMapping2, pSMG1, pSMG2)) {
+    if (SMGJoinMatchObjects.checkMatchingMapping(pObj1, pObj2, pMapping1, pMapping2)) {
       return;
     }
 
-    if (SMGJoinMatchObjects.checkConsistentMapping(pObj1, pObj2, pMapping1, pMapping2, pSMG1, pSMG2)) {
+    if (SMGJoinMatchObjects.checkConsistentMapping(pObj1, pObj2, pMapping1, pMapping2)) {
       return;
     }
 
     if (SMGJoinMatchObjects.checkConsistentObjects(pObj1, pObj2, pSMG1, pSMG2)) {
       return;
     }
+
+    if (pObj1 instanceof SMGDoublyLinkedList && pObj2 instanceof SMGDoublyLinkedList) {
+
+      SMGDoublyLinkedList l1 = (SMGDoublyLinkedList) pObj1;
+      SMGDoublyLinkedList l2 = (SMGDoublyLinkedList) pObj2;
+
+      if (l1.getHfo() != l2.getHfo() || l1.getNfo() != l2.getNfo()
+          || l1.getPfo() != l2.getPfo()) {
+        return;
+      }
+    }
+
 
     if (SMGJoinMatchObjects.checkMatchingAbstractions(pObj1, pObj2)) {
       return;

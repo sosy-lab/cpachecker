@@ -84,6 +84,6 @@ public class PostDominatorCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
-    return this.parametricDominatorCPA.getInitialPrecision(pNode, pPartition);
+    return this.parametricDominatorCPA.getInitialPrecision();
   }
 }

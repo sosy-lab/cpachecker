@@ -34,7 +34,7 @@ import com.google.common.base.Strings;
  * a type and an (optional) name.
  *
  * This class is only SuperClass of all abstract Classes and their Subclasses.
- * The Interface {@link IASimpleDeclarations} contains all language specific
+ * The Interface {@link ASimpleDeclaration} contains all language specific
  * AST Nodes as well.
  */
 public abstract class AbstractSimpleDeclaration extends AbstractAstNode implements ASimpleDeclaration {

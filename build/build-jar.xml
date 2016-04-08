@@ -4,7 +4,7 @@
 
     <!-- Targets for generating JAR files. -->
 
-    <!-- Keep this file synchronized between SoSy-Lab Common, CPAchecker and VerifierCloud. -->
+    <!-- Keep this file synchronized between SoSy-Lab Common, CPAchecker, JavaSMT, and VerifierCloud. -->
 
     <!-- These properties can and should be overridden from including file. -->
     <property name="class.main" value=""/>
@@ -33,10 +33,10 @@
     </target>
 
     <target name="sources" depends="determine-version, resolve-dependencies">
-        <jar basedir="${source.dir}/"
-                destfile="${ivy.module}-${version}-sources.jar"
-                includes="**/*.java"
+        <jar destfile="${ivy.module}-${version}-sources.jar"
                 whenmanifestonly="fail">
+            <fileset dir="${source.dir}/" includes="**/*.java"/>
+            <fileset dir="${source.generated.dir}/" includes="**/*.java"/>
             <manifest>
                     <attribute name="Implementation-Title" value="${ant.project.name}"/>
                     <attribute name="Implementation-Version" value="${version}"/>

@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <!--
   Example file that demonstrates the use of CPAchecker.
   This file can and should be used as a base for building own benchmark definitions.
@@ -9,7 +9,7 @@
   <!-- Note that all paths to ../../test/programs need to be changed if you move this file. -->
 
   <!-- Global sourcefiles are used in every run definition. -->
-  <sourcefiles name="locks">
+  <tasks name="locks">
     <include>../../test/programs/benchmarks/locks/*_5_*.c</include>
 
     <!-- Next line shows the use of a variable,
@@ -22,13 +22,13 @@
 
     <!-- Multiple sourcefiles can be used as input for the tool, just append some files. All matching files will be appended. -->
     <append>../../${sourcefile_path}/${sourcefile_name}__second_file.c.does_not_exist</append>
-  </sourcefiles>
+  </tasks>
 
-  <sourcefiles name="DeviceDrivers64">
+  <tasks name="DeviceDrivers64">
     <includesfile>../../test/programs/benchmarks/DeviceDrivers64.set</includesfile>
     <!-- Do not forget to specify the -64 option for 64bit files. -->
     <option name="-64"/>
-  </sourcefiles>
+  </tasks>
 
   <!-- Global options for all run definitions. -->
   <!-- Set the Java heap size to some value lower than the memlimit.

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
@@ -37,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -52,7 +54,7 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Sets;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Implements a boolean expression that evaluates and returns a <code>MaybeBoolean</code> value when <code>eval()</code> is called.
@@ -74,6 +76,125 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       } else {
         return CONST_FALSE;
       }
+    }
+
+  }
+
+  static enum MatchProgramEntry implements AutomatonBoolExpr {
+
+    INSTANCE;
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
+      CFAEdge edge = pArgs.getCfaEdge();
+      CFANode predecessor = edge.getPredecessor();
+      if (predecessor instanceof FunctionEntryNode
+          && predecessor.getNumEnteringEdges() == 0) {
+        return AutomatonBoolExpr.CONST_TRUE;
+      }
+      return AutomatonBoolExpr.CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return "PROGRAM-ENTRY";
+    }
+
+  }
+
+  static enum MatchLoopStart implements AutomatonBoolExpr {
+    INSTANCE;
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
+        throws CPATransferException {
+      CFAEdge edge = pArgs.getCfaEdge();
+      CFANode successor = edge.getSuccessor();
+      if (successor.isLoopStart()) {
+        return AutomatonBoolExpr.CONST_TRUE;
+      }
+      return AutomatonBoolExpr.CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return "LOOP-START";
+    }
+  }
+
+  class MatchSuccessor implements AutomatonBoolExpr {
+
+    private final Set<CFANode> acceptedNodes;
+
+    private MatchSuccessor(Set<CFANode> pAcceptedNodes) {
+      this.acceptedNodes = pAcceptedNodes;
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
+        throws CPATransferException {
+      CFAEdge edge = pArgs.getCfaEdge();
+      CFANode successor = edge.getSuccessor();
+      if (acceptedNodes.contains(successor)) {
+        return AutomatonBoolExpr.CONST_TRUE;
+      }
+      return AutomatonBoolExpr.CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return "SUCCESSOR IN " + acceptedNodes;
+    }
+
+    static AutomatonBoolExpr of(CFANode pAcceptedNode) {
+      return new MatchSuccessor(Collections.singleton(pAcceptedNode));
+    }
+
+    static AutomatonBoolExpr of(Set<CFANode> pAcceptedNodes) {
+      return new MatchSuccessor(ImmutableSet.copyOf(pAcceptedNodes));
+    }
+  }
+
+  class EpsilonMatch implements AutomatonBoolExpr {
+
+    private final AutomatonBoolExpr expr;
+
+    private EpsilonMatch(AutomatonBoolExpr pExpr) {
+      Preconditions.checkArgument(!(pExpr instanceof EpsilonMatch));
+      expr = Objects.requireNonNull(pExpr);
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
+        throws CPATransferException {
+      ResultValue<Boolean> evaluation = expr.eval(pArgs);
+      CFAEdge edge = pArgs.getCfaEdge();
+      while (!Boolean.TRUE.equals(evaluation.getValue())
+          && edge.getSuccessor().getNumLeavingEdges() == 1
+          && AutomatonGraphmlCommon.handleAsEpsilonEdge(edge.getSuccessor().getLeavingEdge(0))) {
+        edge = edge.getSuccessor().getLeavingEdge(0);
+        AutomatonExpressionArguments args =
+            new AutomatonExpressionArguments(
+                pArgs.getState(),
+                pArgs.getAutomatonVariables(),
+                pArgs.getAbstractStates(),
+                edge,
+                pArgs.getLogger());
+        evaluation = expr.eval(args);
+      }
+      return evaluation;
+    }
+
+    @Override
+    public String toString() {
+      return "~" + expr;
+    }
+
+    static AutomatonBoolExpr of(AutomatonBoolExpr pExpr) {
+      if (pExpr instanceof EpsilonMatch) {
+        return pExpr;
+      }
+      return new EpsilonMatch(pExpr);
     }
 
   }
@@ -382,116 +503,6 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     @Override
     public String toString() {
       return "MATCH PATH RELEVANT EDGE";
-    }
-
-  }
-
-  static class MatchNonEmptyEdgeTokens implements OnRelevantEdgesBoolExpr {
-
-    @Override
-    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
-      Set<Integer> edgeTokens;
-      if (AutomatonGraphmlCommon.handleAsEpsilonEdge(pArgs.getCfaEdge())) {
-        edgeTokens = Collections.emptySet();
-      } else {
-        edgeTokens = SourceLocationMapper.getAbsoluteTokensFromCFAEdge(pArgs.getCfaEdge(), true);
-      }
-
-      return edgeTokens.size() > 0 ? CONST_TRUE : CONST_FALSE;
-    }
-
-    @Override
-    public String toString() {
-      return "MATCH NONEMPTY TOKENS";
-    }
-
-  }
-
-  static abstract class MatchEdgeTokens implements OnRelevantEdgesBoolExpr {
-
-    protected final Set<Comparable<Integer>> matchTokens;
-
-    public MatchEdgeTokens(Set<Comparable<Integer>> pTokens) {
-      matchTokens = pTokens;
-    }
-
-    protected abstract boolean tokensMatching(Set<Integer> cfaEdgeTokens);
-
-    @Override
-    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
-      boolean match = false;
-
-      Set<Integer> edgeTokens;
-      if (AutomatonGraphmlCommon.handleAsEpsilonEdge(pArgs.getCfaEdge())) {
-        edgeTokens = Collections.emptySet();
-      } else {
-        edgeTokens = SourceLocationMapper.getAbsoluteTokensFromCFAEdge(pArgs.getCfaEdge(), true);
-      }
-
-      match = tokensMatching(edgeTokens);
-
-      if (!match) {
-        Set<Integer> tokensSinceLastMatch = pArgs.getState().getTokensSinceLastMatch();
-        if (!tokensSinceLastMatch.isEmpty()) {
-          match = tokensMatching(tokensSinceLastMatch);
-        }
-      }
-
-      return match ? CONST_TRUE : CONST_FALSE;
-    }
-
-    public Set<Comparable<Integer>> getMatchTokens() {
-      return matchTokens;
-    }
-
-    @Override
-    public String toString() {
-      return "MATCH TOKENS " + matchTokens;
-    }
-  }
-
-
-
-  static class SubsetMatchEdgeTokens extends MatchEdgeTokens {
-
-    public SubsetMatchEdgeTokens(Set<Comparable<Integer>> pTokens) {
-      super(pTokens);
-    }
-
-    @Override
-    protected boolean tokensMatching(Set<Integer> cfaEdgeTokens) {
-      if (matchTokens.isEmpty()) {
-        return cfaEdgeTokens.isEmpty();
-      } else {
-        return cfaEdgeTokens.containsAll(matchTokens);
-      }
-    }
-
-    @Override
-    public String toString() {
-      return "MATCH TOKENS SUBSET " + matchTokens;
-    }
-
-  }
-
-  static class IntersectionMatchEdgeTokens extends MatchEdgeTokens {
-
-    public IntersectionMatchEdgeTokens(Set<Comparable<Integer>> pTokens) {
-      super(pTokens);
-    }
-
-    @Override
-    protected boolean tokensMatching(Set<Integer> cfaEdgeTokens) {
-      if (matchTokens.isEmpty()) {
-        return cfaEdgeTokens.isEmpty();
-      } else {
-        return Sets.intersection(cfaEdgeTokens, matchTokens).size() > 0;
-      }
-    }
-
-    @Override
-    public String toString() {
-      return "MATCH TOKENS INTERSECT " + matchTokens;
     }
 
   }

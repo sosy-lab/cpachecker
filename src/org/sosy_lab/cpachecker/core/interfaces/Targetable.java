@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
+import java.util.Set;
+
 import javax.annotation.Nonnull;
 
 /**
@@ -41,5 +43,5 @@ public interface Targetable {
    * @return A non-null String, may be empty if no description is available.
    * @throws IllegalStateException if {@link #isTarget()} returns false
    */
-  public @Nonnull String getViolatedPropertyDescription() throws IllegalStateException;
+  public @Nonnull Set<Property> getViolatedProperties() throws IllegalStateException;
 }

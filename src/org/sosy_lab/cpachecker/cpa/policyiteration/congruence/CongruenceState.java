@@ -1,13 +1,14 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration.congruence;
 
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableMap;
 
 import org.sosy_lab.cpachecker.cpa.policyiteration.Template;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
 
 public class CongruenceState implements Iterable<Entry<Template, Congruence>>{
 
@@ -36,5 +37,32 @@ public class CongruenceState implements Iterable<Entry<Template, Congruence>>{
   @Override
   public Iterator<Entry<Template, Congruence>> iterator() {
     return data.entrySet().iterator();
+  }
+
+  public String toDOTLabel() {
+    StringBuilder b = new StringBuilder();
+    for (Entry<Template, Congruence> e : data.entrySet()) {
+      if (e.getValue() == Congruence.EVEN) {
+        b.append(e.getKey().toString()).append(" is even\n");
+      }
+    }
+    return b.toString();
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(data);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (!(o instanceof CongruenceState)) {
+      return false;
+    }
+    if (o == this) {
+      return true;
+    }
+    CongruenceState other = (CongruenceState) o;
+    return other.data.equals(data);
   }
 }

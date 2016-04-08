@@ -22,7 +22,7 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * A {@link org.sosy_lab.cpachecker.cfa.JParser} implementation
+ * A {@link org.sosy_lab.cpachecker.cfa.parser.eclipse.java.EclipseJavaParser} implementation
  * based on the Eclipse JDT project.
  *
  * Important: this package may NOT contain public types,

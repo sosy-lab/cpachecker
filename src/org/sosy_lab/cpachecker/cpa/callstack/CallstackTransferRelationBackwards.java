@@ -81,9 +81,9 @@ public class CallstackTransferRelationBackwards extends CallstackTransferRelatio
         AExpression functionNameExp = ((AFunctionCall)edge.getStatement()).getFunctionCallExpression().getFunctionNameExpression();
         if (functionNameExp instanceof AIdExpression) {
           String functionName = ((AIdExpression)functionNameExp).getName();
-          if (UNSUPPORTED_FUNCTIONS.containsKey(functionName)) {
+          if (unsupportedFunctions.contains(functionName)) {
             throw new UnrecognizedCodeException(
-                "Unsupported feature: " + UNSUPPORTED_FUNCTIONS.get(functionName),
+                "Unsupported feature: " + unsupportedFunctions,
                 edge, edge.getStatement());
           }
         }

@@ -25,13 +25,11 @@ package org.sosy_lab.cpachecker.util;
 
 import java.util.Collections;
 import java.util.Deque;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.eclipse.cdt.internal.core.parser.scanner.Token;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -42,15 +40,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.FileLocationCollectingVisitor;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
@@ -59,16 +54,11 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 
 
 public class SourceLocationMapper {
-
-  private static Map<String, Set<Integer>> variableRelatedTokens = Maps.newHashMap();
-  private static Map<Integer, Token> tokenNumberToTokenMap = Maps.newHashMap();
-  private static Map<Integer, Integer> tokenNumberToLineNumberMap = Maps.newHashMap();
 
   public static interface LocationDescriptor {
 
@@ -76,7 +66,7 @@ public class SourceLocationMapper {
 
   }
 
-  public static class FileNameDescriptor implements LocationDescriptor {
+  public static abstract class FileNameDescriptor implements LocationDescriptor {
 
     private final Optional<String> originFileName;
 
@@ -126,18 +116,6 @@ public class SourceLocationMapper {
     @Override
     public int hashCode() {
       return originFileName.hashCode();
-    }
-
-    @Override
-    public boolean equals(Object pObj) {
-      if (this == pObj) {
-        return true;
-      }
-      if (pObj instanceof FileNameDescriptor && pObj.getClass().equals(FileNameDescriptor.class)) {
-        FileNameDescriptor other = (FileNameDescriptor) pObj;
-        return originFileName.equals(other.originFileName);
-      }
-      return false;
     }
 
     @Override
@@ -238,13 +216,8 @@ public class SourceLocationMapper {
     }
   }
 
-  public static Set<String> matchTokenNumbersToTokenStrings(final Set<Integer> tokenNumbers) {
+  public static Set<String> matchTokenNumbersToTokenStrings() {
     return Collections.emptySet();
-  }
-
-  public static void storeTokenInformation(final Token token, final int lineNumber, final int tokenNumber) {
-    tokenNumberToTokenMap.put(tokenNumber, token);
-    tokenNumberToLineNumberMap.put(tokenNumber, lineNumber);
   }
 
   private static void collectLine(final SortedSet<Integer> target, final FileLocation loc, boolean overApproximateTokens) {
@@ -328,7 +301,7 @@ public class SourceLocationMapper {
     }
   }
 
-  public static synchronized Set<RowAndColumn> collectRowsAndColsFrom(CAstNode astNode, boolean overApproximateTokens) {
+  public static synchronized Set<RowAndColumn> collectRowsAndColsFrom(CAstNode astNode) {
     final TreeSet<RowAndColumn> result = Sets.newTreeSet();
     Set<FileLocation> locs = collectFileLocationsFrom(astNode);
 
@@ -389,6 +362,11 @@ public class SourceLocationMapper {
       case StatementEdge:
         result.add(((CStatementEdge) edge).getStatement());
       break;
+      case BlankEdge:
+        // do nothing
+        break;
+      default:
+        throw new AssertionError("Unhandled edge type in switch statement: " + edge.getEdgeType());
       }
     }
 
@@ -416,12 +394,12 @@ public class SourceLocationMapper {
     return result;
   }
 
-  public static synchronized Set<RowAndColumn> getRowsAndColsFromCFAEdge(CFAEdge pEdge, boolean overApproximateTokens) {
+  public static synchronized Set<RowAndColumn> getRowsAndColsFromCFAEdge(CFAEdge pEdge) {
     final TreeSet<RowAndColumn> result = Sets.newTreeSet();
     final Set<CAstNode> astNodes = getAstNodesFromCfaEdge(pEdge);
 
     for (CAstNode n: astNodes) {
-      result.addAll(collectRowsAndColsFrom(n, overApproximateTokens));
+      result.addAll(collectRowsAndColsFrom(n));
     }
 
     RowAndColumn rc = new RowAndColumn(
@@ -430,114 +408,6 @@ public class SourceLocationMapper {
     result.add(rc);
 
     return result;
-  }
-
-  public static synchronized Set<Integer> getAbsoluteTokensFromCFAEdge(CFAEdge pEdge, boolean overApproximateTokens) {
-    final TreeSet<Integer> result = Sets.newTreeSet();
-    final Deque<CFAEdge> edges = Queues.newArrayDeque();
-    final Deque<CAstNode> astNodes = Queues.newArrayDeque();
-
-    if (overApproximateTokens) {
-      Set<String> variables = getEdgeVariableNames(pEdge);
-      for (String variable: variables) {
-        if (variable.contains("__CPA")) {
-          Set<Integer> tokens = variableRelatedTokens.get(variable);
-          if (tokens != null) {
-            result.addAll(tokens);
-          } else {
-            result.addAll(Collections.<Integer>emptySet());
-          }
-        }
-      }
-    }
-
-    edges.add(pEdge);
-
-    while (!edges.isEmpty()) {
-      CFAEdge edge = edges.pop();
-      CFANode startNode = edge.getPredecessor();
-
-      if (overApproximateTokens) {
-        result.add(edge.getLineNumber());
-      }
-
-      switch (edge.getEdgeType()) {
-      case MultiEdge:
-        edges.addAll(((MultiEdge) edge).getEdges());
-      break;
-      case AssumeEdge:
-        if (overApproximateTokens) {
-          result.add(edge.getFileLocation().getEndingLineNumber());
-
-          // Assumes of a while loop should also include the while token
-          for (CFAEdge e: CFAUtils.enteringEdges(startNode)) {
-            if (e instanceof BlankEdge) {
-              result.add(e.getLineNumber());
-            }
-          }
-        }
-        CAssumeEdge assumeEdge = ((CAssumeEdge) edge);
-        astNodes.add(assumeEdge.getExpression());
-      break;
-      case CallToReturnEdge:
-        CFunctionSummaryEdge fnSumEdge = (CFunctionSummaryEdge) edge;
-        result.add(fnSumEdge.getLineNumber());
-        astNodes.add(fnSumEdge.getExpression());
-      break;
-      case DeclarationEdge:
-        CDeclaration decl = ((CDeclarationEdge) edge).getDeclaration();
-        collectLine(result, decl.getFileLocation(), overApproximateTokens);
-        if (decl instanceof CVariableDeclaration) {
-          CVariableDeclaration varDecl = (CVariableDeclaration) decl;
-          if (varDecl.getInitializer() != null) {
-            result.addAll(collectTokensFrom(varDecl.getInitializer(), overApproximateTokens));
-          }
-        }
-      break;
-      case FunctionCallEdge:
-        if (edge.getPredecessor().getLeavingSummaryEdge() != null) {
-          edges.add(edge.getPredecessor().getLeavingSummaryEdge());
-        }
-        result.add(((CFunctionCallEdge) edge).getLineNumber());
-        astNodes.addAll(((CFunctionCallEdge) edge).getArguments());
-      break ;
-      case FunctionReturnEdge:
-        result.add(((CFunctionReturnEdge) edge).getLineNumber());
-      break;
-      case ReturnStatementEdge:
-        result.add(((CReturnStatementEdge) edge).getLineNumber());
-        Optional<CExpression> expr = ((CReturnStatementEdge) edge).getExpression();
-        if (expr.isPresent()) {
-          astNodes.add(expr.get());
-        }
-      break;
-      case StatementEdge:
-        result.addAll(collectTokensFrom(((CStatementEdge) edge).getStatement(), overApproximateTokens));
-      break;
-      }
-
-      while (!astNodes.isEmpty()) {
-        CAstNode node = astNodes.pop();
-        result.addAll(collectTokensFrom(node, overApproximateTokens));
-      }
-    }
-
-    return result;
-  }
-
-  public static synchronized void getKnownToEdge(CFAEdge edge) {
-    Set<String> variables = getEdgeVariableNames(edge);
-    Set<Integer> tokens = getAbsoluteTokensFromCFAEdge(edge, true);
-
-    // Store for each variable the related tokens
-    for (String variable: variables) {
-      Set<Integer> variableTokens = variableRelatedTokens.get(variable);
-      if (variableTokens == null) {
-        variableTokens = Sets.newTreeSet();
-        variableRelatedTokens.put(variable, variableTokens);
-      }
-      variableTokens.addAll(tokens);
-    }
   }
 
   public static Set<String> getEdgeVariableNames(CFAEdge subject) {
@@ -604,6 +474,11 @@ public class SourceLocationMapper {
       case StatementEdge:
         idExs.addAll(((CStatementEdge) edge).getStatement().accept(visitor));
       break;
+      case BlankEdge:
+        // do nothing
+        break;
+      default:
+        throw new AssertionError("Unhandled edge type in switch statement: " + edge.getEdgeType());
       }
     }
 

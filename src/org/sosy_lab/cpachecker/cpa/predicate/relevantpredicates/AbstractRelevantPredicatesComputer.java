@@ -28,17 +28,17 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 import com.google.common.collect.Maps;
 import com.google.errorprone.annotations.ForOverride;
 
 public abstract class AbstractRelevantPredicatesComputer<T> implements RelevantPredicatesComputer {
 
-  private final FormulaManagerView fmgr;
+  protected final FormulaManagerView fmgr;
 
   protected final Map<Pair<T, AbstractionPredicate>, Boolean> relevantPredicates = Maps.newHashMap();
 

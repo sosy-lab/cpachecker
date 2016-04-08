@@ -1,40 +1,65 @@
 <?xml version="1.0"?>
-<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="90" hardtimelimit="120" memlimit="3000" cpuCores="2">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="90 s" hardtimelimit="120 s" memlimit="3 GB" cpuCores="2">
   <option name="-noout"/>
   <option name="-heap">2000M</option>
 
   <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
 
   <rundefinition>
-    <sourcefiles>
+    <tasks>
       <includesfile>../programs/benchmarks/Simple.set</includesfile>
       <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
-    </sourcefiles>
-    <sourcefiles>
+      <!-- SV-Comp files assume that malloc always succeeds -->
+      <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+    </tasks>
+    <tasks>
       <includesfile>../programs/simple/simple.set</includesfile>
       <exclude>../programs/simple/bitvectors/*</exclude>
-      <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
-      <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
+      <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+      <includesfile>../programs/benchmarks/HeapReach.set</includesfile>
       <includesfile>../programs/benchmarks/Loops.set</includesfile>
       <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+
+      <!--
+           The following three tasks need to be removed from the test set,
+           because they nondeterministically change between false (correct)
+           and true (wrong),
+           due to conflicts between the linear-arithmetic SMT solver
+           and the bit-precise invariant generator.
+       -->
+      <exclude>../programs/benchmarks/loop-acceleration/const_false-unreach-call1.i</exclude>
+      <exclude>../programs/benchmarks/loop-acceleration/underapprox_false-unreach-call2.i</exclude>
+      <exclude>../programs/benchmarks/loops/sum03_false-unreach-call_true-termination.i</exclude>
+
       <exclude>../programs/loop-lit/afnp2014_true-unreach-call.c.i</exclude>
       <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
       <exclude>../programs/benchmarks/seq-pthread/*</exclude>
       <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_3_true-unreach-call.cil.c</exclude>
       <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_4_true-unreach-call.cil.c</exclude>
+      <exclude>../programs/benchmarks/ssh/s3_srvr.blast.08_true-unreach-call.i.cil.c</exclude>
+      <exclude>../programs/benchmarks/ssh/s3_srvr.blast.13_true-unreach-call.i.cil.c</exclude>
+      <exclude>../programs/benchmarks/ssh/s3_srvr.blast.15_true-unreach-call.i.cil.c</exclude>
+      <exclude>../programs/benchmarks/systemc/kundu1_false-unreach-call_false-termination.cil.c</exclude>
       <exclude>../programs/benchmarks/systemc/kundu2_false-unreach-call_false-termination.cil.c</exclude>
-      <exclude>../programs/benchmarks/systemc/token_ring.04_false-unreach-call_false-termination.cil.c</exclude>
       <exclude>../programs/benchmarks/systemc/toy2_false-unreach-call_false-termination.cil.c</exclude>
-    </sourcefiles>
-    <sourcefiles>
-      <includesfile>integration-DeviceDrivers64.set</includesfile>
+      <exclude>../programs/benchmarks/systemc/token_ring.02_true-unreach-call_false-termination.cil.c</exclude>
+      <exclude>../programs/benchmarks/systemc/token_ring.04_false-unreach-call_false-termination.cil.c</exclude>
+      <exclude>../programs/benchmarks/systemc/token_ring.06_false-unreach-call_false-termination.cil.c</exclude>
+      <exclude>../programs/benchmarks/systemc/token_ring.07_false-unreach-call_false-termination.cil.c</exclude>
+      <exclude>../programs/benchmarks/systemc/transmitter.09_false-unreach-call_false-termination.cil.c</exclude>
+      <exclude>../programs/benchmarks/systemc/transmitter.11_false-unreach-call_false-termination.cil.c</exclude>
+    </tasks>
+    <tasks>
+      <includesfile>integration-DeviceDriversLinux64.set</includesfile>
       <include>../programs/benchmarks/ldv-linux-3.4-simple/43_1a*true-unreach-call*.cil.out.c</include>
       <include>../programs/benchmarks/ldv-linux-3.4-simple/43_1a*false-unreach-call*.cil.out.c</include>
       <option name="-skipRecursion"/>
       <option name="-64"/>
-    </sourcefiles>
+      <!-- SV-Comp files assume that malloc always succeeds -->
+      <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+    </tasks>
     <option name="-bmc-induction"/>
-    <option name="-setprop">cpa.predicate.solver=SMTINTERPOL</option>
+    <option name="-setprop">solver.solver=SMTINTERPOL</option>
   </rundefinition>
 </benchmark>

@@ -75,7 +75,7 @@ public interface TransferRelation {
    *
    * @param state current abstract state
    * @param precision precision for abstract state
-   * @param cfaEdge
+   * @param cfaEdge the edge for which the successors should be computed
    * @return collection of all successors of the current state (may be empty)
    */
   Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
@@ -91,7 +91,7 @@ public interface TransferRelation {
    * @param state abstract state of the current domain
    * @param otherStates list of abstract states of all domains
    * @param cfaEdge null or an edge of the CFA
-   * @param precision
+   * @param precision the precision to use during strengthening
    * @return list of all abstract states which should replace the old one, empty list for bottom or null for no change.
    */
   public Collection<? extends AbstractState> strengthen(

@@ -29,7 +29,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
@@ -74,7 +73,7 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, S
   private final PrecisionAdjustment precisionAdjustment;
   private final UninitializedVariablesStatistics statistics;
 
-  private UninitializedVariablesCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
+  private UninitializedVariablesCPA(Configuration config) throws InvalidConfigurationException {
 
     config.inject(this);
 
@@ -98,7 +97,7 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, S
     this.abstractDomain = domain;
     this.mergeOperator = mergeOp;
     this.stopOperator = stopOp;
-    this.transferRelation = new UninitializedVariablesTransferRelation(printWarnings, logger);
+    this.transferRelation = new UninitializedVariablesTransferRelation(printWarnings);
     this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
 
     statistics = new UninitializedVariablesStatistics(printWarnings);

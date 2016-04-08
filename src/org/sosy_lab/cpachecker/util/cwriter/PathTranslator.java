@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.cwriter;
 import static com.google.common.base.Predicates.in;
 import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.concat;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -58,9 +59,9 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.errorprone.annotations.ForOverride;
 
 
 public abstract class PathTranslator {
@@ -73,12 +74,21 @@ public abstract class PathTranslator {
     }
   };
 
+  protected final static CFunctionEntryNode extractFunctionCallLocation(ARGState state) {
+    // We assume, that each node has one location.
+    // TODO: the location is invalid for all concurrent programs,
+    //       because interleaving threads are not handled.
+    return FluentIterable.from(extractLocations(state))
+        .filter(CFunctionEntryNode.class)
+        .first().orNull();
+  }
+
   protected final List<String> mGlobalDefinitionsList = new ArrayList<>();
-  private final List<String> mFunctionDecls = new ArrayList<>();
+  protected final List<String> mFunctionDecls = new ArrayList<>();
   private int mFunctionIndex = 0;
 
   // list of functions
-  private final List<FunctionBody> mFunctionBodies = new ArrayList<>();
+  protected final List<FunctionBody> mFunctionBodies = new ArrayList<>();
 
   protected PathTranslator() {}
 
@@ -86,7 +96,6 @@ public abstract class PathTranslator {
    * Gets the piece of code that should appear at the target state; e.g. <code>assert(0)</code> or <code>exit(-1)</code>
    * @return Line of code for target state
    */
-  @ForOverride
   protected abstract String getTargetState();
 
   protected Appender generateCCode() {
@@ -98,13 +107,13 @@ public abstract class PathTranslator {
 
   /**
    * Translate a single linear path to code.
-   * @param pPath
+   * @param pPath the path to translate
    * @param callback A callback that receives each <code>ARGState</code>
    * along with their edges and can then determine what code to generate
    * from it. The default behavior of a <code>ProcessEdgeFunction</code>
    *  is to call {@link #processEdge(ARGState, CFAEdge, Stack)}
    */
-  protected final void translateSinglePath0(ARGPath pPath, EdgeVisitor callback) {
+  protected void translateSinglePath0(ARGPath pPath, EdgeVisitor callback) {
     assert pPath.size() >= 1;
 
     PathIterator pathIt = pPath.pathIterator();
@@ -113,7 +122,7 @@ public abstract class PathTranslator {
     Stack<FunctionBody> functionStack = new Stack<>();
 
     // create the first function and put in into the stack
-    startFunction(firstElement, functionStack);
+    startFunction(firstElement, functionStack, extractFunctionCallLocation(firstElement));
 
     while (pathIt.hasNext()) {
       pathIt.advance();
@@ -137,7 +146,7 @@ public abstract class PathTranslator {
       Stack<FunctionBody> newStack = new Stack<>();
 
       // create the first function and put in into newStack
-      startFunction(firstElement, newStack);
+      startFunction(firstElement, newStack, extractFunctionCallLocation(firstElement));
 
       waitlist.addAll(getRelevantChildrenOfState(firstElement, newStack, elementsOnPath));
     }
@@ -154,9 +163,16 @@ public abstract class PathTranslator {
     }
   }
 
-  private String startFunction(ARGState firstFunctionElement, Stack<FunctionBody> functionStack) {
+  /**
+   * Start the function, puts another body on the function stack.
+   *
+   * @param firstFunctionElement the first state inside the function
+   * @param functionStack the current callstack
+   * @param predecessor the previous node
+   */
+  protected String startFunction(ARGState firstFunctionElement, Stack<FunctionBody> functionStack, CFANode predecessor) {
     // create the first stack element using the first element of the function
-    CFunctionEntryNode functionStartNode = (CFunctionEntryNode) extractLocation(firstFunctionElement);
+    CFunctionEntryNode functionStartNode = extractFunctionCallLocation(firstFunctionElement);
     String freshFunctionName = getFreshFunctionName(functionStartNode);
 
     String lFunctionHeader = functionStartNode.getFunctionDefinition().getType().toASTString(freshFunctionName);
@@ -175,11 +191,11 @@ public abstract class PathTranslator {
 
   /**
    * Processes an edge of the CFA and will write code to the output function body.
-   * @param childElement
-   * @param edge
-   * @param functionStack
+   * @param childElement the state after the given edge
+   * @param edge the edge to process
+   * @param functionStack the current callstack
    */
-  final void processEdge(ARGState childElement, CFAEdge edge, Stack<FunctionBody> functionStack) {
+  void processEdge(ARGState childElement, CFAEdge edge, Stack<FunctionBody> functionStack) {
     FunctionBody currentFunction = functionStack.peek();
 
     if (childElement.isTarget()) {
@@ -193,7 +209,7 @@ public abstract class PathTranslator {
       // it to the topmost stack to represent the function
 
       // create function and put in onto stack
-      String freshFunctionName = startFunction(childElement, functionStack);
+      String freshFunctionName = startFunction(childElement, functionStack, edge.getPredecessor());
 
       // write summary edge to the caller site (with the new unique function name)
       currentFunction.write(processFunctionCall(edge, freshFunctionName));
@@ -348,7 +364,7 @@ public abstract class PathTranslator {
 
   }
 
-  private String processSimpleEdge(CFAEdge pCFAEdge, BasicBlock currentBlock) {
+  protected String processSimpleEdge(CFAEdge pCFAEdge, BasicBlock currentBlock) {
 
     switch (pCFAEdge.getEdgeType()) {
 
@@ -394,7 +410,7 @@ public abstract class PathTranslator {
     }
   }
 
-  private String processFunctionCall(CFAEdge pCFAEdge, String functionName) {
+  protected final String processFunctionCall(CFAEdge pCFAEdge, String functionName) {
 
     CFunctionCallEdge lFunctionCallEdge = (CFunctionCallEdge) pCFAEdge;
 
@@ -420,7 +436,7 @@ public abstract class PathTranslator {
     }
   }
 
-  private String getFreshFunctionName(FunctionEntryNode functionStartNode) {
+  protected final String getFreshFunctionName(FunctionEntryNode functionStartNode) {
     return functionStartNode.getFunctionName() + "_" + mFunctionIndex++;
   }
 

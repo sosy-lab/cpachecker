@@ -30,8 +30,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.solver.SolverException;
 
 public class PredicatePCCStopOperator implements StopOperator {
 
@@ -40,9 +41,10 @@ public class PredicatePCCStopOperator implements StopOperator {
 
   private final AbstractionFormula trueAbs;
 
-  public PredicatePCCStopOperator(final PredicateCPA pCPA) {
-    paMgr = pCPA.getPredicateManager();
-    pMgr = pCPA.getPathFormulaManager();
+  public PredicatePCCStopOperator(
+      PathFormulaManager pPfmgr, PredicateAbstractionManager pPredAbsManager) {
+    paMgr = pPredAbsManager;
+    pMgr = pPfmgr;
 
     trueAbs = paMgr.makeTrueAbstractionFormula(null);
   }
@@ -56,15 +58,19 @@ public class PredicatePCCStopOperator implements StopOperator {
     for (AbstractState reachedState : pReached) {
       PredicateAbstractState e2 = (PredicateAbstractState) reachedState;
 
-      if (isCoveredBy(e1, e2)) { return true; }
+      try {
+        if (isCoveredBy(e1, e2)) { return true; }
+      } catch (SolverException e) {
+        throw new CPAException("Solver Failure", e);
+      }
 
     }
     return false;
 
   }
 
-  private boolean isCoveredBy(final PredicateAbstractState e1, final PredicateAbstractState e2) throws CPAException,
-      InterruptedException {
+  private boolean isCoveredBy(final PredicateAbstractState e1, final PredicateAbstractState e2)
+      throws InterruptedException, SolverException {
     if (e1.isAbstractionState() && e2.isAbstractionState()) {
       return paMgr.checkCoverage(e1.getAbstractionFormula(), e2.getAbstractionFormula());
 

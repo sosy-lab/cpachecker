@@ -50,18 +50,22 @@ public class BoundsTransferRelation extends SingleEdgeTransferRelation {
   private Multimap<CFANode, Loop> loopHeads = null;
 
   private final int maxLoopIterations;
+  private final int maxRecursionDepth;
   private final int loopIterationsBeforeAbstraction;
 
   public BoundsTransferRelation(
       int pLoopIterationsBeforeAbstraction,
-      int maxLoopIterations, LoopStructure loops) {
+      int pMaxLoopIterations,
+      int pMaxRecursionDepth,
+      LoopStructure pLoops) {
 
     loopIterationsBeforeAbstraction = pLoopIterationsBeforeAbstraction;
-    this.maxLoopIterations = maxLoopIterations;
+    this.maxLoopIterations = pMaxLoopIterations;
+    this.maxRecursionDepth = pMaxRecursionDepth;
 
     ImmutableMultimap.Builder<CFANode, Loop> heads = ImmutableMultimap.builder();
 
-    for (Loop l : loops.getAllLoops()) {
+    for (Loop l : pLoops.getAllLoops()) {
       for (CFANode h : l.getLoopHeads()) {
         heads.put(h, l);
       }
@@ -104,7 +108,7 @@ public class BoundsTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
-    if (e.getDeepestRecursion() > maxLoopIterations) {
+    if (maxRecursionDepth > 0 && e.getDeepestRecursion() > maxRecursionDepth) {
       e = e.stopRec();
     }
 

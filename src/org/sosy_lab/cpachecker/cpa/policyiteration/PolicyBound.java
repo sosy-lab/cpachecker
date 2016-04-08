@@ -1,18 +1,17 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
+import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableSet;
+
+import org.sosy_lab.common.UniqueIdGenerator;
+import org.sosy_lab.common.rationals.Rational;
+import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.solver.api.BooleanFormula;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-
-import org.sosy_lab.common.Triple;
-import org.sosy_lab.common.rationals.Rational;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
-
-import com.google.common.base.Objects;
-import com.google.common.collect.ImmutableSet;
 
 /**
  * Policy with a local bound.
@@ -82,7 +81,7 @@ public class PolicyBound {
   }
 
   public PolicyAbstractedState getPredecessor() {
-    return predecessor.getLatestVersion();
+    return predecessor;
   }
 
   public PathFormula getFormula() {
@@ -91,10 +90,6 @@ public class PolicyBound {
 
   public Rational getBound() {
     return bound;
-  }
-
-  public PathFormula getStartPathFormula(FormulaManagerView fmgr) {
-    return getPredecessor().getPathFormula(fmgr);
   }
 
   public ImmutableSet<Template> getDependencies() {
@@ -108,7 +103,9 @@ public class PolicyBound {
 
   @Override
   public String toString() {
-    return String.format("%s (from: %s)", bound, predecessor);
+
+    // Converting the predecessor to string is very costly.
+    return bound.toString();
   }
 
   @Override

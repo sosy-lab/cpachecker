@@ -104,7 +104,7 @@ public class ConstraintFactory {
     }
   }
 
-  public Constraint createNegativeConstraint(AIdExpression pExpression) throws UnrecognizedCodeException {
+  public Constraint createNegativeConstraint(AIdExpression pExpression) {
    Constraint positiveConstraint = createPositiveConstraint(pExpression);
 
     if (positiveConstraint == null) {
@@ -163,7 +163,7 @@ public class ConstraintFactory {
     }
   }
 
-  public Constraint createPositiveConstraint(AIdExpression pExpression) throws UnrecognizedCodeException {
+  public Constraint createPositiveConstraint(AIdExpression pExpression) {
     ExpressionTransformer transformer = new ExpressionTransformer(functionName, valueState);
     SymbolicExpression symbolicExpression = transformer.visit(pExpression);
 
