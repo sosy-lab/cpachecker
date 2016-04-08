@@ -23,6 +23,18 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.partialcertificate;
 
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
+
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.util.Pair;
+
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,17 +45,6 @@ import java.util.Locale;
 import java.util.Set;
 
 import javax.annotation.Nullable;
-
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
 
 public class PartialReachedSetDirectedGraph implements Statistics {
 
@@ -337,6 +338,7 @@ public class PartialReachedSetDirectedGraph implements Statistics {
     private int indexPredecessor;
     private final HashMap<AbstractState, Integer> nodeToIndex;
     private final List<List<Integer>> changeableAdjacencyList;
+    private final HashSet<Pair<Integer, Integer>> knownEdges;
 
     public SuccessorEdgeConstructor(List<List<Integer>> pAdjacencyList) {
       super(false);
@@ -345,6 +347,7 @@ public class PartialReachedSetDirectedGraph implements Statistics {
         nodeToIndex.put(nodes[i], i);
       }
       changeableAdjacencyList = pAdjacencyList;
+      knownEdges = Sets.newHashSetWithExpectedSize(nodes.length);
     }
 
     public void setPredecessorBeforeARGPass(ARGState pNewPredecessor) {
@@ -359,7 +362,10 @@ public class PartialReachedSetDirectedGraph implements Statistics {
           pNode = pNode.getCoveringState();
         }
         int indexSuccessor = nodeToIndex.get(pNode);
-        changeableAdjacencyList.get(indexPredecessor).add(indexSuccessor);
+        Pair<Integer, Integer> edge = Pair.of(indexPredecessor, indexSuccessor);
+        if (knownEdges.add(edge)) {
+          changeableAdjacencyList.get(indexPredecessor).add(indexSuccessor);
+        }
       }
     }
 
