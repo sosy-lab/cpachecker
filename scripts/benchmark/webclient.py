@@ -632,7 +632,7 @@ class WebInterface:
     
     def _normalize_path_for_cloud(self, path):
         norm_path = os.path.normpath(path)
-        if '..' in norm_path:
+        if '..' in norm_path or os.path.isabs(norm_path):
             norm_path = os.path.basename(norm_path)
         return norm_path
 
