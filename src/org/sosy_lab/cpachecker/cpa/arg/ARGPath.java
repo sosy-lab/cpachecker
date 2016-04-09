@@ -771,6 +771,11 @@ public class ARGPath extends AbstractAppender {
       fullPath = pPath.getFullPath();
     }
 
+    @Override
+    public int getIndex() {
+      return overallOffset;
+    }
+
     /**
      * {@inheritDoc}
      * May only be called on positions of the iterator where we have an {@link ARGState}
