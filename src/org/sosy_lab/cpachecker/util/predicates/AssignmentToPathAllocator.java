@@ -23,14 +23,17 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.math.IntMath;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -59,6 +62,8 @@ import org.sosy_lab.cpachecker.core.counterexample.ConcreteExpressionEvaluator;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcreteStatePathNode;
+import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.IntermediateConcreteState;
+import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.SingleConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.FieldReference;
 import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
@@ -72,17 +77,15 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.Model.ValueAssignment;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
-import com.google.common.math.IntMath;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 
 public class AssignmentToPathAllocator {
@@ -151,35 +154,50 @@ public class AssignmentToPathAllocator {
 
       /*We always look at the precise path, with resolved multi edges*/
       if (cfaEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
-        MultiEdge multiEdge = (MultiEdge)cfaEdge;
-
-        List<ConcreteState> singleConcreteStates =
-            new ArrayList<>(multiEdge.getEdges().size());
-
-        int multiEdgeIndex = 0;
-        for (@SuppressWarnings("unused") CFAEdge singleCfaEdge : multiEdge) {
-
+        Iterator<CFAEdge> it = ((MultiEdge) cfaEdge).iterator();
+        while (it.hasNext()) {
+          CFAEdge singleCfaEdge = it.next();
           variableEnvironment = new HashMap<>(variableEnvironment);
-          variables = new HashMap<>(variables);
           functionEnvironment = HashMultimap.create(functionEnvironment);
-          memory = new HashMap<>(memory);
           Collection<ValueAssignment> terms =
               assignableTerms.getAssignableTermsAtPosition().get(ssaMapIndex);
 
           SSAMap ssaMap = pSSAMaps.get(ssaMapIndex);
+          ConcreteStatePathNode concreteStatePathNode;
 
-          ConcreteState concreteState = createSingleConcreteState(
-              ssaMap, variableEnvironment, variables,
-              functionEnvironment, memory, addressOfVariables, terms, evaluator);
+          // more edges to come
+          if (it.hasNext()) {
+            concreteStatePathNode =
+                createIntermediateConcreteStateNode(
+                    singleCfaEdge,
+                    ssaMap,
+                    variableEnvironment,
+                    variables,
+                    functionEnvironment,
+                    memory,
+                    addressOfVariables,
+                    terms,
+                    evaluator);
 
-          singleConcreteStates.add(multiEdgeIndex, concreteState);
+            // last edge of multiedge we have to do the computation here
+          } else {
+            concreteStatePathNode =
+                createSingleConcreteStateNode(
+                    singleCfaEdge,
+                    ssaMap,
+                    variableEnvironment,
+                    variables,
+                    functionEnvironment,
+                    memory,
+                    addressOfVariables,
+                    terms,
+                    evaluator);
+          }
+
+          pathWithAssignments.add(concreteStatePathNode);
           ssaMapIndex++;
-          multiEdgeIndex++;
         }
 
-        ConcreteStatePathNode edge =
-            ConcreteStatePath.valueOfPathNode(singleConcreteStates, multiEdge);
-        pathWithAssignments.add(edge);
       } else {
         variableEnvironment = new HashMap<>(variableEnvironment);
         functionEnvironment = HashMultimap.create(functionEnvironment);
@@ -400,31 +418,50 @@ public class AssignmentToPathAllocator {
       Map<LeftHandSide, Address> addressOfVariables,
       Collection<ValueAssignment> terms, ConcreteExpressionEvaluator pEvaluator) {
 
-    ConcreteState concreteState = createSingleConcreteState(ssaMap,
-        variableEnvoirment, variables,
-        functionEnvoirment, memory,
-        addressOfVariables, terms, pEvaluator);
+    Map<String, Memory> allocatedMemory =
+        createConcreteStateNode0(
+            ssaMap, variableEnvoirment, variables, functionEnvoirment, memory, terms);
 
-    return ConcreteStatePath.valueOfPathNode(concreteState, cfaEdge);
+    return new SingleConcreteState(
+        cfaEdge,
+        new ConcreteState(variables, allocatedMemory, addressOfVariables, memoryName, pEvaluator));
   }
 
-  private ConcreteState createSingleConcreteState(
+  private ConcreteStatePathNode createIntermediateConcreteStateNode(
+      CFAEdge cfaEdge,
       SSAMap ssaMap,
-      Map<String, ValueAssignment> variableEnvironment,
+      Map<String, ValueAssignment> variableEnvoirment,
       Map<LeftHandSide, Object> variables,
-      Multimap<String, ValueAssignment> functionEnvironment,
+      Multimap<String, ValueAssignment> functionEnvoirment,
       Map<String, Map<Address, Object>> memory,
       Map<LeftHandSide, Address> addressOfVariables,
-      Collection<ValueAssignment> terms, ConcreteExpressionEvaluator pEvaluator) {
+      Collection<ValueAssignment> terms,
+      ConcreteExpressionEvaluator pEvaluator) {
+
+    Map<String, Memory> allocatedMemory =
+        createConcreteStateNode0(
+            ssaMap, variableEnvoirment, variables, functionEnvoirment, memory, terms);
+
+    return new IntermediateConcreteState(
+        cfaEdge,
+        new ConcreteState(variables, allocatedMemory, addressOfVariables, memoryName, pEvaluator));
+  }
+
+  private Map<String, Memory> createConcreteStateNode0(
+      SSAMap ssaMap,
+      Map<String, ValueAssignment> variableEnvoirment,
+      Map<LeftHandSide, Object> variables,
+      Multimap<String, ValueAssignment> functionEnvoirment,
+      Map<String, Map<Address, Object>> memory,
+      Collection<ValueAssignment> terms) {
     Set<ValueAssignment> termSet = new HashSet<>();
 
-    createAssignments(terms, termSet, variableEnvironment, variables, functionEnvironment, memory);
+    createAssignments(terms, termSet, variableEnvoirment, variables, functionEnvoirment, memory);
 
-    removeDeallocatedVariables(ssaMap, variableEnvironment);
+    removeDeallocatedVariables(ssaMap, variableEnvoirment);
 
     Map<String, Memory> allocatedMemory = createAllocatedMemory(memory);
-
-    return new ConcreteState(variables, allocatedMemory, addressOfVariables, memoryName, pEvaluator);
+    return allocatedMemory;
   }
 
   private Map<String, Memory> createAllocatedMemory(Map<String, Map<Address, Object>> pMemory) {

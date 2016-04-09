@@ -23,9 +23,23 @@
  */
 package org.sosy_lab.cpachecker.core.counterexample;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
+
+import com.google.common.collect.Lists;
+
+import org.sosy_lab.common.Appenders.AbstractAppender;
+import org.sosy_lab.common.JSON;
+import org.sosy_lab.common.io.PathTemplate;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -34,17 +48,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.sosy_lab.common.Appenders.AbstractAppender;
-import org.sosy_lab.common.JSON;
-import org.sosy_lab.common.io.PathTemplate;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.util.Pair;
-
-import com.google.common.collect.Lists;
 
 public class CounterexampleInfo extends AbstractAppender {
 
@@ -144,6 +147,7 @@ public class CounterexampleInfo extends AbstractAppender {
     List<Map<?, ?>> path = new ArrayList<>(pathLength);
 
     PathIterator iterator = targetPath.fullPathIterator();
+    int multiEdgeOffset = 0;
     while (iterator.hasNext()) {
       Map<String, Object> elem = new HashMap<>();
       CFAEdge edge = iterator.getOutgoingEdge();
@@ -163,7 +167,10 @@ public class CounterexampleInfo extends AbstractAppender {
       if (assignments == null) {
         elem.put("val", "");
       } else {
-        CFAEdgeWithAssumptions edgeWithAssignment = assignments.get(iterator.getIndex());
+        if (edge instanceof MultiEdge) {
+          multiEdgeOffset += ((MultiEdge)edge).getEdges().size()-1;
+        }
+        CFAEdgeWithAssumptions edgeWithAssignment = assignments.get(iterator.getIndex() + multiEdgeOffset);
         elem.put("val", edgeWithAssignment.printForHTML());
       }
 
@@ -179,24 +186,12 @@ public class CounterexampleInfo extends AbstractAppender {
       out.append("SPURIOUS COUNTEREXAMPLE");
 
     } else if (isPreciseCounterExample) {
-      printPathWithValues(out, assignments);
+      for (CFAEdgeWithAssumptions edgeWithAssignments : from(assignments).filter(notNull())) {
+        printPreciseValues(out, edgeWithAssignments);
+      }
 
     } else {
       targetPath.appendTo(out);
-    }
-  }
-
-  private void printPathWithValues(Appendable out, CFAPathWithAssumptions pExactValuePath)
-      throws IOException {
-    for (CFAEdgeWithAssumptions edgeWithAssignments : from(pExactValuePath).filter(notNull())) {
-      if (edgeWithAssignments instanceof CFAMultiEdgeWithAssumptions) {
-        for (CFAEdgeWithAssumptions singleEdge :
-            (CFAMultiEdgeWithAssumptions) edgeWithAssignments) {
-          printPreciseValues(out, singleEdge);
-        }
-      } else {
-        printPreciseValues(out, edgeWithAssignments);
-      }
     }
   }
 
