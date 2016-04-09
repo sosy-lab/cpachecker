@@ -23,11 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Multiset;
+
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 import java.io.PrintStream;
 import java.util.concurrent.TimeUnit;
@@ -38,22 +41,23 @@ import java.util.concurrent.TimeUnit;
 class FormulaSlicingStatistics implements Statistics {
   final Timer propagation = new Timer();
   final Timer inductiveWeakening = new Timer();
-  private final Solver solver;
-
-  FormulaSlicingStatistics(Solver pSolver) {
-    solver = pSolver;
-  }
-
+  final Timer reachabilityCheck = new Timer();
+  int cachedSatChecks = 0;
+  final Multiset<CFANode> satChecksLocations = HashMultiset.create();
+  int abstractionLocations = 0;
 
   @Override
   public void printStatistics(PrintStream out,
                               Result result,
                               ReachedSet reached) {
     printTimer(out, propagation, "propagating formulas");
-    printTimer(out, solver.solverTime, "checking reachability");
+    printTimer(out, reachabilityCheck, "checking reachability");
     printTimer(out, inductiveWeakening, "inductive weakening");
-    out.printf("# SAT checks: %d%n", solver.satChecks);
-    out.printf("# cached SAT checks: %d%n", solver.cachedSatChecks);
+    out.printf("# uncached SAT checks: %d%n",
+        reachabilityCheck.getNumberOfIntervals());
+    out.printf("# cached SAT checks: %d%n", cachedSatChecks);
+    out.printf("SAT locations: %s%n", satChecksLocations);
+    out.printf("# abstractions: %d%n", abstractionLocations);
   }
 
   @Override
