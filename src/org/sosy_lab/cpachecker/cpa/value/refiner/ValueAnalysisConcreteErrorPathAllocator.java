@@ -150,21 +150,23 @@ public class ValueAnalysisConcreteErrorPathAllocator {
         Iterator<CFAEdge> it = ((MultiEdge) edge).getEdges().reverse().iterator();
         List<SingleConcreteState> intermediateStates = new ArrayList<>();
         Set<CLeftHandSide> alreadyAssigned = new HashSet<>();
+        boolean isFirstIteration = true;
         while (it.hasNext()) {
           CFAEdge innerEdge = it.next();
           ConcreteState state =
               createConcreteStateForMultiEdge(valueState, alreadyAssigned, innerEdge);
 
           // intermediate edge
-          if (it.hasNext()) {
-            intermediateStates.add(new IntermediateConcreteState(innerEdge, state));
+          if (isFirstIteration) {
+            intermediateStates.add(new SingleConcreteState(innerEdge, state));
+            isFirstIteration = false;
 
             // last edge of (dynamic) multi edge
           } else {
-            result.addAll(Lists.reverse(intermediateStates));
-            result.add(new SingleConcreteState(innerEdge, state));
+            intermediateStates.add(new IntermediateConcreteState(innerEdge, state));
           }
         }
+        result.addAll(Lists.reverse(intermediateStates));
 
         // a normal edge, no special handling required
       } else {
