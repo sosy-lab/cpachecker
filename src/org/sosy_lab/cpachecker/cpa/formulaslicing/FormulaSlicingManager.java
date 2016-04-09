@@ -4,6 +4,7 @@ import static org.sosy_lab.solver.api.SolverContext.ProverOptions.GENERATE_UNSAT
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -34,7 +35,6 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.SolverException;
@@ -44,11 +44,9 @@ import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FunctionDeclaration;
 import org.sosy_lab.solver.api.FunctionDeclarationKind;
 import org.sosy_lab.solver.api.ProverEnvironment;
-import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
 import org.sosy_lab.solver.visitors.TraversalProcess;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -214,7 +212,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
   private Set<BooleanFormula> toRcnf(SlicingIntermediateState iState)
       throws InterruptedException {
     PathFormula pf = iState.getPathFormula();
-    SSAMap ssa = pf.getSsa();
+    final SSAMap ssa = pf.getSsa();
     CFANode node = iState.getNode();
     SlicingAbstractedState abstractParent = iState.getAbstractParent();
 
@@ -223,8 +221,14 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
         bfmgr.and(abstractParent.getInstantiatedAbstraction())
     );
 
-    // Special handling for UFs as they can't be quantified.
-    transition = removeLiteralsWithDeadUFs(transition, ssa);
+    // Filter non-final UFs out first, as they can not be quantified.
+    transition = fmgr.filterLiterals(transition,
+        new Predicate<BooleanFormula>() {
+          @Override
+          public boolean apply(BooleanFormula input) {
+            return !hasDeadUf(input, ssa);
+          }
+        });
     BooleanFormula quantified = fmgr.quantifyDeadVariables(
         transition, ssa);
 
@@ -336,6 +340,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     BooleanFormula instantiatedFormula =
         fmgr.instantiate(prevSlice, iState.getAbstractParent().getSSA());
     BooleanFormula reachabilityQuery = bfmgr.and(
+        // TODO: apply factorization to formulas.
         iState.getPathFormula().getFormula(), instantiatedFormula);
 
     Set<BooleanFormula> constraints = ImmutableSet.copyOf(
@@ -534,68 +539,6 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(statistics);
-  }
-
-  /**
-   * Special handling for intermediate UFs as they can not be quantified.
-   */
-  private BooleanFormula removeLiteralsWithDeadUFs(
-      BooleanFormula input, final SSAMap ssa) throws InterruptedException {
-    input = fmgr.applyTactic(input, Tactic.NNF);
-    return bfmgr.transformRecursively(
-        new BooleanFormulaTransformationVisitor(fmgr) {
-
-          @Override
-          public BooleanFormula visitAnd(List<BooleanFormula> pOperands) {
-
-            // TODO: extract common code for such operations.
-            List<BooleanFormula> newOperands = new ArrayList<>();
-            for (BooleanFormula op : pOperands) {
-              if (!bfmgr.isTrue(op)) {
-                newOperands.add(op);
-              }
-            }
-            if (newOperands.size() == 0) {
-              return bfmgr.makeBoolean(true);
-            }
-            return bfmgr.and(newOperands);
-          }
-
-          @Override
-          public BooleanFormula visitOr(List<BooleanFormula> pOperands) {
-            for (BooleanFormula op : pOperands) {
-              if (bfmgr.isTrue(op)) {
-                return bfmgr.makeBoolean(true);
-              }
-            }
-            if (pOperands.size() == 0) {
-              return bfmgr.makeBoolean(false);
-            }
-            return bfmgr.or(pOperands);
-          }
-
-          @Override
-          public BooleanFormula visitAtom(
-              BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> decl) {
-            if (hasDeadUf(pAtom, ssa)) {
-              return bfmgr.makeBoolean(true);
-            }
-            return super.visitAtom(pAtom, decl);
-          }
-
-          @Override
-          public BooleanFormula visitNot(BooleanFormula pOperand) {
-            if (bfmgr.isTrue(pOperand)) {
-              // TODO: temporary hacky bugfix.
-              // pOperand is already _processed_ and we have no way of
-              // knowing what it was before the processing.
-              // TODO: change JavaSMT interface to return the formula both
-              // before and after the processing.
-              return pOperand;
-            }
-            return super.visitNot(pOperand);
-          }
-        }, input);
   }
 
   private boolean hasDeadUf(BooleanFormula atom, final SSAMap pSSAMap) {
