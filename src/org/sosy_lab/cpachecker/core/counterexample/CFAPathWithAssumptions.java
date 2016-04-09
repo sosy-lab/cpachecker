@@ -89,11 +89,11 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
   }
 
   boolean fitsPath(List<CFAEdge> pPath) {
-
     int index = 0;
+    Iterator<CFAEdge> it = pPath.iterator();
 
-    for (CFAEdge edge : pPath) {
-
+    while (it.hasNext()) {
+      CFAEdge edge = it.next();
       CFAEdgeWithAssumptions cfaWithAssignment = pathWithAssignments.get(index);
 
       if (edge instanceof MultiEdge) {
@@ -121,10 +121,11 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
 
     PathIterator pathIterator = pPath.fullPathIterator();
     int multiEdgeOffset = 0;
-    while (pathIterator.hasNext()) {
 
+    while (pathIterator.hasNext()) {
       CFAEdgeWithAssumptions edgeWithAssignment = pathWithAssignments.get(pathIterator.getIndex() + multiEdgeOffset);
       CFAEdge argPathEdge = pathIterator.getOutgoingEdge();
+
       if (argPathEdge instanceof MultiEdge) {
         for (CFAEdge innerEdge : (MultiEdge) argPathEdge) {
           edgeWithAssignment = pathWithAssignments.get(pathIterator.getIndex() + multiEdgeOffset);
@@ -141,7 +142,11 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
           // path is not equivalent
           return null;
         }
-        result.put(pathIterator.getAbstractState(), edgeWithAssignment);
+        if (pathIterator.isPositionWithState()) {
+          result.put(pathIterator.getAbstractState(), edgeWithAssignment);
+        } else {
+          result.put(pathIterator.getPreviousAbstractState(), edgeWithAssignment);
+        }
       }
 
       pathIterator.advance();
@@ -194,7 +199,6 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
           for (IntermediateConcreteState intermediates : currentIntermediateStates) {
             CFAEdgeWithAssumptions assumptionForedge =
                 pAllocator.allocateAssumptionsToEdge(intermediates.getCfaEdge(), lastState);
-
             addAssumptionsIfNecessary(assumptions, assumptionCodes, comment, assumptionForedge);
           }
 

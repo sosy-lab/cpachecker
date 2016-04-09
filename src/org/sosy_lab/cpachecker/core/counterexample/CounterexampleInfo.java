@@ -97,7 +97,7 @@ public class CounterexampleInfo extends AbstractAppender {
    */
   public static CounterexampleInfo feasiblePrecise(ARGPath pTargetPath, CFAPathWithAssumptions pAssignments) {
     checkArgument(!pAssignments.isEmpty());
-    checkArgument(pAssignments.fitsPath(pTargetPath.getInnerEdges()));
+    checkArgument(pAssignments.fitsPath(pTargetPath.getFullPath()));
     return new CounterexampleInfo(false, checkNotNull(pTargetPath), pAssignments, true);
   }
 

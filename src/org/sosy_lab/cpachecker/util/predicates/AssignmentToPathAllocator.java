@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.core.counterexample.MemoryName;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
@@ -149,8 +150,11 @@ public class AssignmentToPathAllocator {
 
     int ssaMapIndex = 0;
 
-    for (CFAEdge cfaEdge : pPath.getInnerEdges()) {
+    PathIterator pathIt = pPath.fullPathIterator();
+
+    while (pathIt.hasNext()) {
       shutdownNotifier.shutdownIfNecessary();
+      CFAEdge cfaEdge = pathIt.getOutgoingEdge();
 
       /*We always look at the precise path, with resolved multi edges*/
       if (cfaEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
@@ -198,7 +202,33 @@ public class AssignmentToPathAllocator {
           ssaMapIndex++;
         }
 
+        // we are in an ARG hole (formerly known as multi-edge)
+      } else if (!pathIt.isPositionWithState()) {
+        // TODO is all this copying really necessary?
+        variables = new HashMap<>(variables);
+        memory = new HashMap<>(memory);
+        variableEnvironment = new HashMap<>(variableEnvironment);
+        functionEnvironment = HashMultimap.create(functionEnvironment);
+
+        Collection<ValueAssignment> terms =
+            assignableTerms.getAssignableTermsAtPosition().get(ssaMapIndex);
+
+        pathWithAssignments.add(
+            createIntermediateConcreteStateNode(
+                cfaEdge,
+                pSSAMaps.get(ssaMapIndex),
+                variableEnvironment,
+                variables,
+                functionEnvironment,
+                memory,
+                addressOfVariables,
+                terms,
+                evaluator));
+
+        // we are on a normal position in the ARG (state is available)
       } else {
+        variables = new HashMap<>(variables);
+        memory = new HashMap<>(memory);
         variableEnvironment = new HashMap<>(variableEnvironment);
         functionEnvironment = HashMultimap.create(functionEnvironment);
         Collection<ValueAssignment> terms =
@@ -207,13 +237,21 @@ public class AssignmentToPathAllocator {
         SSAMap ssaMap = pSSAMaps.get(ssaMapIndex);
 
         ConcreteStatePathNode concreteStatePathNode =
-            createSingleConcreteStateNode(cfaEdge, ssaMap, variableEnvironment,
+            createSingleConcreteStateNode(
+                cfaEdge,
+                ssaMap,
+                variableEnvironment,
                 variables,
-                functionEnvironment, memory, addressOfVariables,
-                terms, evaluator);
+                functionEnvironment,
+                memory,
+                addressOfVariables,
+                terms,
+                evaluator);
         pathWithAssignments.add(concreteStatePathNode);
         ssaMapIndex++;
       }
+
+      pathIt.advance();
     }
 
     return new ConcreteStatePath(pathWithAssignments);
