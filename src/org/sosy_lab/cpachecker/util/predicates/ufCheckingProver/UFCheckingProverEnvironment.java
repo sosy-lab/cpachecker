@@ -31,6 +31,7 @@ import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.ProverEnvironment;
 
+import java.util.Collection;
 import java.util.List;
 
 public class UFCheckingProverEnvironment
@@ -58,14 +59,14 @@ public class UFCheckingProverEnvironment
   }
 
   @Override
-  public boolean isUnsatWithAssumptions(List<BooleanFormula> assumptions)
+  public boolean isUnsatWithAssumptions(Collection<BooleanFormula> assumptions)
       throws SolverException, InterruptedException {
     return delegate.isUnsatWithAssumptions(assumptions);
   }
 
   @Override
   public Optional<List<BooleanFormula>> unsatCoreOverAssumptions(
-      List<BooleanFormula> assumptions)
+      Collection<BooleanFormula> assumptions)
       throws SolverException, InterruptedException {
     return delegate.unsatCoreOverAssumptions(assumptions);
   }
