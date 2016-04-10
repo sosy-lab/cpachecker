@@ -788,6 +788,11 @@ public class ARGPath extends AbstractAppender {
     }
 
     @Override
+    public boolean isPositionWithState() {
+      return currentPositionHasState;
+    }
+
+    @Override
     public @Nullable CFAEdge getIncomingEdge() {
       checkState(pos > 0, "First state in ARGPath has no incoming edge.");
       return fullPath.get(overallOffset-1);
@@ -902,11 +907,6 @@ public class ARGPath extends AbstractAppender {
     @Override
     public boolean hasPrevious() {
       return overallOffset > 0;
-    }
-
-    @Override
-    public boolean isPositionWithState() {
-      return currentPositionHasState;
     }
   }
 
