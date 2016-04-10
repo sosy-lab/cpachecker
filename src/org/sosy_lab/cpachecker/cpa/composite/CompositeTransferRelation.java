@@ -39,7 +39,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -237,11 +236,10 @@ public final class CompositeTransferRelation implements TransferRelation {
 
     CFANode nodeAfterEdge = edge.getSuccessor();
 
-    result = result && nodeAfterEdge.getNumLeavingEdges() == 1
-                    && nodeAfterEdge.getNumEnteringEdges() == 1
-                    && nodeAfterEdge.getLeavingSummaryEdge() == null
-                    && !nodeAfterEdge.isLoopStart()
-                    && nodeAfterEdge.getClass() == CFANode.class;
+    result =
+        result
+            && nodeAfterEdge.getNumEnteringEdges() == 1
+            && nodeAfterEdge.getClass() == CFANode.class;
 
     return result && !containsFunctionCall(edge);
   }
