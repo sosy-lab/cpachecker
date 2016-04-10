@@ -65,7 +65,12 @@ public class ARGPathTest {
   public void setup() {
     // setup for the builder tests
     edge = BlankEdge.buildNoopEdge(new CFANode("test"), new CFANode("test"));
-    state = new ARGState(null, null);
+    edge.getSuccessor().addEnteringEdge(edge);
+    edge.getPredecessor().addLeavingEdge(edge);
+    LocationState tmp = Mockito.mock(LocationState.class);
+    Mockito.when(tmp.getLocationNode()).thenReturn(edge.getPredecessor());
+    Mockito.when(tmp.getLocationNodes()).thenReturn(Collections.singleton(edge.getPredecessor()));
+    state = new ARGState(tmp, null);
 
     // setup for the full path and path iterator tests
 
@@ -127,20 +132,19 @@ public class ARGPathTest {
     ARGPathBuilder builder = ARGPath.builder();
     builder.add(state, edge);
 
-    CFAEdge secondEdge = BlankEdge.buildNoopEdge(new CFANode("test"), new CFANode("test"));
-    ARGState secondState = new ARGState(null, null);
-    builder.add(secondState, secondEdge);
-
     builder.removeLast();
-    assertThat(builder.edges).containsExactly(edge);
-    assertThat(builder.states).containsExactly(state);
+    assertThat(builder.edges).isEmpty();
+    assertThat(builder.states).isEmpty();
   }
 
   @Test
   public void testDefaultBuilderBuild() {
     ARGPathBuilder builder = ARGPath.builder();
     builder.add(state, edge);
-    ARGState secondState = new ARGState(null, null);
+    LocationState tmp = Mockito.mock(LocationState.class);
+    Mockito.when(tmp.getLocationNode()).thenReturn(edge.getSuccessor());
+    Mockito.when(tmp.getLocationNodes()).thenReturn(Collections.singleton(edge.getSuccessor()));
+    ARGState secondState = new ARGState(tmp, null);
 
     List<ARGState> states = new ArrayList<>();
     states.add(state);
@@ -157,7 +161,10 @@ public class ARGPathTest {
   @Test
   public void testReverseBuilderBuild() {
     ARGPathBuilder builder = ARGPath.reverseBuilder();
-    ARGState secondState = new ARGState(null, null);
+    LocationState tmp = Mockito.mock(LocationState.class);
+    Mockito.when(tmp.getLocationNode()).thenReturn(edge.getSuccessor());
+    Mockito.when(tmp.getLocationNodes()).thenReturn(Collections.singleton(edge.getSuccessor()));
+    ARGState secondState = new ARGState(tmp, null);
     builder.add(secondState, edge);
 
     List<ARGState> states = new ArrayList<>();
