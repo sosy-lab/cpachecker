@@ -23,9 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
+
+import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
+
+import org.sosy_lab.common.UniqueIdGenerator;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -34,20 +48,11 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
-import org.sosy_lab.common.UniqueIdGenerator;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Graphable;
-
-import com.google.common.base.Function;
-import com.google.common.collect.Sets;
 
 public class ARGState extends AbstractSingleWrapperState implements Comparable<ARGState>, Graphable {
 
@@ -163,6 +168,33 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
 
     // there is no edge
     return null;
+  }
+
+  /**
+   * Returns the edges from the current state to the child state, or an empty list
+   * if there is no path between both states.
+   */
+  public List<CFAEdge> getEdgesToChild(ARGState pChild) {
+    CFAEdge singleEdge = getEdgeToChild(pChild);
+
+    // no direct connection, this is only possible for ARG holes during dynamic
+    // multiedges, it is guaranteed that there is exactly one path and no other
+    // leaving edges from the parent to the child
+    if (singleEdge == null) {
+      List<CFAEdge> allEdges = new ArrayList<>();
+      CFANode currentLoc = AbstractStates.extractLocation(this);
+      CFANode childLoc = AbstractStates.extractLocation(pChild);
+
+      while (!currentLoc.equals(childLoc)) {
+        Preconditions.checkState(currentLoc.getNumLeavingEdges() == 1);
+        final CFAEdge leavingEdge = currentLoc.getLeavingEdge(0);
+        allEdges.add(leavingEdge);
+        currentLoc = leavingEdge.getSuccessor();
+      }
+      return allEdges;
+    } else {
+      return Collections.singletonList(singleEdge);
+    }
   }
 
   public Set<ARGState> getSubgraph() {

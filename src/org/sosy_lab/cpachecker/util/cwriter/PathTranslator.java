@@ -28,14 +28,11 @@ import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.concat;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Stack;
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
@@ -57,11 +54,14 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Stack;
 
 
 public abstract class PathTranslator {
@@ -116,7 +116,7 @@ public abstract class PathTranslator {
   protected void translateSinglePath0(ARGPath pPath, EdgeVisitor callback) {
     assert pPath.size() >= 1;
 
-    PathIterator pathIt = pPath.pathIterator();
+    PathIterator pathIt = pPath.fullPathIterator();
     ARGState firstElement = pathIt.getAbstractState();
 
     Stack<FunctionBody> functionStack = new Stack<>();
@@ -128,7 +128,12 @@ public abstract class PathTranslator {
       pathIt.advance();
 
       CFAEdge currentCFAEdge = pathIt.getIncomingEdge();
-      ARGState childElement = pathIt.getAbstractState();
+      ARGState childElement;
+      if (pathIt.isPositionWithState()) {
+        childElement = pathIt.getAbstractState();
+      } else {
+        childElement = pathIt.getPreviousAbstractState();
+      }
 
       callback.visit(childElement, currentCFAEdge, functionStack);
     }
