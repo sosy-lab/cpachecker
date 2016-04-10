@@ -203,30 +203,8 @@ public class AssignmentToPathAllocator {
         }
 
         // we are in an ARG hole (formerly known as multi-edge)
-      } else if (!pathIt.isPositionWithState()) {
-        // TODO is all this copying really necessary?
-        variables = new HashMap<>(variables);
-        memory = new HashMap<>(memory);
-        variableEnvironment = new HashMap<>(variableEnvironment);
-        functionEnvironment = HashMultimap.create(functionEnvironment);
-
-        Collection<ValueAssignment> terms =
-            assignableTerms.getAssignableTermsAtPosition().get(ssaMapIndex);
-
-        pathWithAssignments.add(
-            createIntermediateConcreteStateNode(
-                cfaEdge,
-                pSSAMaps.get(ssaMapIndex),
-                variableEnvironment,
-                variables,
-                functionEnvironment,
-                memory,
-                addressOfVariables,
-                terms,
-                evaluator));
-
-        // we are on a normal position in the ARG (state is available)
       } else {
+        // TODO is all this copying really necessary?
         variables = new HashMap<>(variables);
         memory = new HashMap<>(memory);
         variableEnvironment = new HashMap<>(variableEnvironment);
@@ -236,18 +214,43 @@ public class AssignmentToPathAllocator {
 
         SSAMap ssaMap = pSSAMaps.get(ssaMapIndex);
 
-        ConcreteStatePathNode concreteStatePathNode =
-            createSingleConcreteStateNode(
-                cfaEdge,
-                ssaMap,
-                variableEnvironment,
-                variables,
-                functionEnvironment,
-                memory,
-                addressOfVariables,
-                terms,
-                evaluator);
-        pathWithAssignments.add(concreteStatePathNode);
+        boolean hasNextPositionAState;
+
+        if (pathIt.hasNext()) {
+          pathIt.advance();
+          hasNextPositionAState = pathIt.isPositionWithState();
+          pathIt.rewind();
+        } else {
+          hasNextPositionAState = false;
+        }
+
+        if (!hasNextPositionAState) {
+          pathWithAssignments.add(
+              createIntermediateConcreteStateNode(
+                  cfaEdge,
+                  pSSAMaps.get(ssaMapIndex),
+                  variableEnvironment,
+                  variables,
+                  functionEnvironment,
+                  memory,
+                  addressOfVariables,
+                  terms,
+                  evaluator));
+
+          // we are on a normal position in the ARG (state is available)
+        } else {
+          pathWithAssignments.add(
+              createSingleConcreteStateNode(
+                  cfaEdge,
+                  ssaMap,
+                  variableEnvironment,
+                  variables,
+                  functionEnvironment,
+                  memory,
+                  addressOfVariables,
+                  terms,
+                  evaluator));
+        }
         ssaMapIndex++;
       }
 
