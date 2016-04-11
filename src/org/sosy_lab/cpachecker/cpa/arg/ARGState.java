@@ -186,7 +186,11 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
       CFANode childLoc = AbstractStates.extractLocation(pChild);
 
       while (!currentLoc.equals(childLoc)) {
-        Preconditions.checkState(currentLoc.getNumLeavingEdges() == 1);
+        // we didn't find a proper connection to the child so we return an empty list
+        if (currentLoc.getNumLeavingEdges() != 1) {
+          return Collections.emptyList();
+        }
+
         final CFAEdge leavingEdge = currentLoc.getLeavingEdge(0);
         allEdges.add(leavingEdge);
         currentLoc = leavingEdge.getSuccessor();
