@@ -762,6 +762,26 @@ public class ARGPath extends AbstractAppender {
     public PathIterator reverseFullPathIterator() {
       return new ReverseFullPathIterator(path, pos, offset);
     }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + path.hashCode();
+      result = prime * result + pos;
+      result = prime * result + offset;
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object pObj) {
+      if (!(pObj instanceof FullPathPosition)) {
+        return false;
+      }
+      FullPathPosition other = (FullPathPosition) pObj;
+
+      return super.equals(pObj) && other.offset == this.offset;
+    }
   }
 
   /**
