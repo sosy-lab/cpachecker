@@ -49,6 +49,9 @@ _print_lock = threading.Lock()
 
 def init(config, benchmark):
     global _webclient
+    
+    if not config.debug:
+        logging.getLogger('requests').setLevel(logging.WARNING)
 
     if not benchmark.config.cpu_model:
         logging.warning("It is strongly recommended to set a CPU model('--cloudCPUModel'). "\
