@@ -39,6 +39,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -255,18 +256,16 @@ public final class CompositeTransferRelation implements TransferRelation {
     if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
       CStatementEdge statementEdge = (CStatementEdge)edge;
 
-      /* Temporarily disabled because SV-COMP specification relies on matching
-       * extern function calls, and target states cannot appear within a multi edge.
-            if ((statementEdge.getStatement() instanceof CFunctionCall)) {
-              CFunctionCall call = ((CFunctionCall)statementEdge.getStatement());
-              CSimpleDeclaration declaration = call.getFunctionCallExpression().getDeclaration();
+      if ((statementEdge.getStatement() instanceof CFunctionCall)) {
+        CFunctionCall call = ((CFunctionCall) statementEdge.getStatement());
+        CSimpleDeclaration declaration = call.getFunctionCallExpression().getDeclaration();
 
-              // declaration == null -> functionPointer
-              // functionName exists in CFA -> functioncall with CFA for called function
-              // otherwise: call of non-existent function, example: nondet_int() -> ignore this case
-              return declaration == null || cfa.getAllFunctionNames().contains(declaration.getQualifiedName());
-            }
-      */
+        // declaration == null -> functionPointer
+        // functionName exists in CFA -> functioncall with CFA for called function
+        // otherwise: call of non-existent function, example: nondet_int() -> ignore this case
+        return declaration == null
+            || cfa.getAllFunctionNames().contains(declaration.getQualifiedName());
+      }
       return (statementEdge.getStatement() instanceof CFunctionCall);
     }
     return false;
