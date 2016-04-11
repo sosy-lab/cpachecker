@@ -871,33 +871,53 @@ public class ARGPath extends AbstractAppender {
     @Override
     public void advance() throws IllegalStateException {
       checkState(hasNext(), "No more states in PathIterator.");
-      if (Iterables.contains(extractLocations(getNextAbstractState()),
-          fullPath.get(overallOffset).getSuccessor())) {
+
+      // if we are currently on a position with state and we have a real
+      // (non-null) edge then we can directly set the parameters without
+      // further checking
+      if (path.edges.get(pos) != null && currentPositionHasState) {
         pos++;
+        overallOffset++;
         currentPositionHasState = true;
+
       } else {
-        currentPositionHasState = false;
+        if (Iterables.contains(extractLocations(getNextAbstractState()),
+            fullPath.get(overallOffset).getSuccessor())) {
+          pos++;
+          currentPositionHasState = true;
+        } else {
+          currentPositionHasState = false;
+        }
+        overallOffset++;
       }
-      overallOffset++;
-      pos = pos + 0;
     }
 
     @Override
     public void rewind() throws IllegalStateException {
       checkState(hasPrevious(), "No more states in PathIterator.");
 
-      boolean previousPositionHasState =
-          Iterables.contains(
-              extractLocations(getPreviousAbstractState()),
-              fullPath.get(overallOffset - 1).getPredecessor());
+      // if we are currently on a position with state and we have a real
+      // (non-null) edge then we can directly set the parameters without
+      // further checking
+      if (path.edges.get(pos-1) != null && currentPositionHasState) {
+        pos--;
+        overallOffset--;
+        currentPositionHasState = true;
 
-      if (currentPositionHasState) {
-        pos--; // only reduce by one if it was a real node before we are leaving it now
+      } else {
+        boolean previousPositionHasState =
+            Iterables.contains(
+                extractLocations(getPreviousAbstractState()),
+                fullPath.get(overallOffset - 1).getPredecessor());
+
+        if (currentPositionHasState) {
+          pos--; // only reduce by one if it was a real node before we are leaving it now
+        }
+
+        currentPositionHasState = previousPositionHasState;
+
+        overallOffset--;
       }
-
-      currentPositionHasState = previousPositionHasState;
-
-      overallOffset--;
     }
 
     @Override
@@ -926,30 +946,52 @@ public class ARGPath extends AbstractAppender {
     public void advance() throws IllegalStateException {
       checkState(hasNext(), "No more states in PathIterator.");
 
-      boolean nextPositionHasState = Iterables.contains(
-          extractLocations(getPreviousAbstractState()),
-          fullPath.get(overallOffset-1).getPredecessor());
+      // if we are currently on a position with state and we have a real
+      // (non-null) edge then we can directly set the parameters without
+      // further checking
+      if (path.edges.get(pos-1) != null && currentPositionHasState) {
+        pos--;
+        overallOffset--;
+        currentPositionHasState = true;
 
-      if (currentPositionHasState) {
-        pos--; // only reduce by one if it was a real node before we are leaving it now
+      } else {
+
+        boolean nextPositionHasState = Iterables.contains(
+            extractLocations(getPreviousAbstractState()),
+            fullPath.get(overallOffset-1).getPredecessor());
+
+        if (currentPositionHasState) {
+          pos--; // only reduce by one if it was a real node before we are leaving it now
+        }
+
+        currentPositionHasState = nextPositionHasState;
+
+        overallOffset--;
       }
-
-      currentPositionHasState = nextPositionHasState;
-
-      overallOffset--;
     }
 
     @Override
     public void rewind() throws IllegalStateException {
       checkState(hasPrevious(), "No more states in PathIterator.");
-      if (Iterables.contains(
-          extractLocations(getNextAbstractState()), fullPath.get(overallOffset).getSuccessor())) {
+
+      // if we are currently on a position with state and we have a real
+      // (non-null) edge then we can directly set the parameters without
+      // further checking
+      if (path.edges.get(pos) != null && currentPositionHasState) {
         pos++;
+        overallOffset++;
         currentPositionHasState = true;
+
       } else {
-        currentPositionHasState = false;
+        if (Iterables.contains(
+            extractLocations(getNextAbstractState()), fullPath.get(overallOffset).getSuccessor())) {
+          pos++;
+          currentPositionHasState = true;
+        } else {
+          currentPositionHasState = false;
+        }
+        overallOffset++;
       }
-      overallOffset++;
     }
 
     @Override
