@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.google.common.base.Optional;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -43,7 +42,8 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.refinement.GenericFeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 
-import com.google.common.base.Optional;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ValueAnalysisFeasibilityChecker
     extends GenericFeasibilityChecker<ValueAnalysisState> {
@@ -85,7 +85,7 @@ public class ValueAnalysisFeasibilityChecker
       List<Pair<ValueAnalysisState, CFAEdge>> reevaluatedPath = new ArrayList<>();
       ValueAnalysisState next = new ValueAnalysisState(machineModel);
 
-      PathIterator iterator = path.pathIterator();
+      PathIterator iterator = path.fullPathIterator();
       while (iterator.hasNext()) {
         Optional<ValueAnalysisState> successor = strongestPostOp.getStrongestPost(
             next,
