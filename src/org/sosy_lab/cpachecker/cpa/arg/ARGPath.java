@@ -319,14 +319,10 @@ public class ARGPath extends AbstractAppender {
      * Add the given state and edge to the ARGPath that should be created.
      */
     public ARGPathBuilder add(ARGState state, CFAEdge outgoingEdge) {
-      assert isValidAdditionToPath(state, outgoingEdge);
-
       states.add(state);
       edges.add(outgoingEdge);
       return this;
     }
-
-    protected abstract boolean isValidAdditionToPath(ARGState state, CFAEdge edge);
 
     /**
      * Remove the state and edge that were added at last.
@@ -352,36 +348,10 @@ public class ARGPath extends AbstractAppender {
 
     @Override
     public ARGPath build(ARGState pState) {
-      assert isValidAdditionToPath(pState, null);
-
       states.add(pState);
       ARGPath path = new ARGPath(states, edges);
       states.remove(states.size()-1);
       return path;
-    }
-
-    @Override
-    protected boolean isValidAdditionToPath(ARGState pState, CFAEdge pEdge) {
-      CFANode currentNode = extractLocation(pState);
-
-      // check if the last node of the path has a connection to the new state
-      if (!states.isEmpty()) {
-        CFANode lastNode = extractLocation(states.get(states.size() - 1));
-        while (!lastNode.equals(currentNode)) {
-          if (lastNode.getNumLeavingEdges() != 1) {
-            return false;
-          } else {
-            lastNode = lastNode.getLeavingEdge(0).getSuccessor();
-          }
-        }
-      }
-
-      // if an edge is given it has to have the new state as predecessor
-      if (pEdge != null) {
-        return extractLocation(pState).equals(pEdge.getPredecessor());
-      }
-
-      return true;
     }
   }
 
@@ -393,36 +363,10 @@ public class ARGPath extends AbstractAppender {
 
     @Override
     public ARGPath build(ARGState pState) {
-      assert isValidAdditionToPath(pState, null);
-
       states.add(pState);
       ARGPath path = new ARGPath(Lists.reverse(states), Lists.reverse(edges));
       states.remove(states.size()-1);
       return path;
-    }
-
-    @Override
-    protected boolean isValidAdditionToPath(ARGState pState, CFAEdge pEdge) {
-      CFANode currentNode = extractLocation(pState);
-
-      // check if the last node of the path has a connection to the new state
-      if (!states.isEmpty()) {
-        CFANode lastNode = extractLocation(states.get(states.size() - 1));
-        while (!lastNode.equals(currentNode)) {
-          if (lastNode.getNumEnteringEdges() != 1) {
-            return false;
-          } else {
-            lastNode = lastNode.getEnteringEdge(0).getPredecessor();
-          }
-        }
-      }
-
-      // if an edge is given it has to have the new state as predecessor
-      if (pEdge != null) {
-        return extractLocation(pState).equals(pEdge.getSuccessor());
-      }
-
-      return true;
     }
   }
 
