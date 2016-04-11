@@ -54,6 +54,14 @@ public class AutomatonPrecision implements Precision {
     return new AutomatonPrecision(ImmutableMap.<SafetyProperty, Optional<Region>>of(), null);
   }
 
+  /**
+   * Create a copy of this precision and
+   * add blacklist the given properties for the corresponding region.
+   *
+   * @param pProperties
+   * @param pRegionManager
+   * @return
+   */
   public AutomatonPrecision cloneAndAddBlacklisted(Map<SafetyProperty, Optional<Region>> pProperties,
       RegionManager pRegionManager) {
 
@@ -65,7 +73,7 @@ public class AutomatonPrecision implements Precision {
       Optional<Region> otherPresenceCond = pProperties.get(prop);
 
       final Optional<Region> presenceCondUnion =
-          makeAndOfConditions(pRegionManager, thisPresenceCond, otherPresenceCond);
+          makeDisjunctionOfConditions(pRegionManager, thisPresenceCond, otherPresenceCond);
 
       builder.put(prop, presenceCondUnion);
     }
@@ -79,7 +87,7 @@ public class AutomatonPrecision implements Precision {
     return new AutomatonPrecision(builder.build(), pRegionManager);
   }
 
-  private Optional<Region> makeAndOfConditions(RegionManager pRegionManager,
+  private Optional<Region> makeDisjunctionOfConditions(RegionManager pRegionManager,
       Optional<Region> thisPresenceCond, Optional<Region> otherPresenceCond) {
 
     if (!otherPresenceCond.isPresent()) {
@@ -87,7 +95,10 @@ public class AutomatonPrecision implements Precision {
     } else if (!thisPresenceCond.isPresent()) {
       return otherPresenceCond;
     } else {
-      return Optional.of(pRegionManager.makeOr(thisPresenceCond.get(), otherPresenceCond.get()));
+      return Optional.of(pRegionManager.makeOr(
+          otherPresenceCond.get(),
+          thisPresenceCond.get()
+          ));
     }
   }
 
@@ -124,7 +135,7 @@ public class AutomatonPrecision implements Precision {
       Optional<Region> thisPresenceCond = this.blacklist.get(p);
       Optional<Region> otherPresenceCond = other.blacklist.get(p);
 
-      final Optional<Region> joinedPresenceCondition = makeAndOfConditions(rm, thisPresenceCond, otherPresenceCond);
+      final Optional<Region> joinedPresenceCondition = makeDisjunctionOfConditions(rm, thisPresenceCond, otherPresenceCond);
 
       builder.put(p, joinedPresenceCondition);
     }
