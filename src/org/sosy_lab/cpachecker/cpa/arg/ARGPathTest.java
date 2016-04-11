@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.ARGPathBuilder;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -566,5 +567,65 @@ public class ARGPathTest {
     } catch (IllegalStateException e) {
       /*do nothing we want to continue testing*/
     }
+  }
+
+  @Test
+  public void testPathPositionDefault() {
+    // pathiterator -> fullpathiterator
+    PathIterator it = path.pathIterator();
+    it.advance();
+
+    assertThat(it.getIncomingEdge())
+        .isEqualTo(it.getPosition().fullPathIterator().getIncomingEdge());
+
+    it.advance();
+    assertThat(it.getPosition().fullPathIterator().getIncomingEdge().getPredecessor())
+        .isNotEqualTo(AbstractStates.extractLocation(firstARGState));
+
+    // fullpathiterator -> iterator
+    it = path.fullPathIterator();
+    it.advance();
+    PathIterator it2 = it.getPosition().iterator();
+
+    assertThat(it.getIncomingEdge()).isEqualTo(it2.getIncomingEdge());
+
+    it.advance();
+    assertThat(it2.getIncomingEdge()).isEqualTo(it.getPosition().iterator().getIncomingEdge());
+
+    // fullpathiterator -> fullpathiterator
+    assertThat(it.getPosition().fullPathIterator().getOutgoingEdge())
+        .isEqualTo(it.getOutgoingEdge());
+  }
+
+  @Test
+  public void testPathPositionReverse() {
+    // pathiterator -> fullpathiterator
+    PathIterator it = path.reversePathIterator();
+    while (it.advanceIfPossible()) {}
+    it.rewind();
+
+    assertThat(it.getIncomingEdge())
+        .isEqualTo(it.getPosition().reverseFullPathIterator().getIncomingEdge());
+
+    it.rewind();
+    assertThat(it.getPosition().fullPathIterator().getIncomingEdge().getPredecessor())
+        .isNotEqualTo(AbstractStates.extractLocation(firstARGState));
+
+    // fullpathiterator -> iterator
+    it = path.reverseFullPathIterator();
+    while (it.advanceIfPossible()) {}
+    it.rewind();
+
+    PathIterator it2 = it.getPosition().reverseIterator();
+
+    assertThat(it.getIncomingEdge()).isEqualTo(it2.getIncomingEdge());
+
+    it.rewind();
+    assertThat(it2.getIncomingEdge())
+        .isEqualTo(it.getPosition().reverseIterator().getIncomingEdge());
+
+    // fullpathiterator -> fullpathiterator
+    assertThat(it.getPosition().reverseFullPathIterator().getOutgoingEdge())
+        .isEqualTo(it.getOutgoingEdge());
   }
 }

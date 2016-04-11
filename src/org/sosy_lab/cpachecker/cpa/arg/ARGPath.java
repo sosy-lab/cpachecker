@@ -627,10 +627,10 @@ public class ARGPath extends AbstractAppender {
    * A marker for a specific position in an {@link ARGPath}.
    * This class is independent of the traversal order of the iterator that was used to create it.
    */
-  public static final class PathPosition {
+  public static class PathPosition {
 
-    private final int pos;
-    private final ARGPath path;
+    protected final int pos;
+    protected final ARGPath path;
 
     private PathPosition(ARGPath pPath, int pPosition) {
       this.path = pPath;
@@ -674,6 +674,52 @@ public class ARGPath extends AbstractAppender {
     }
 
     /**
+     * Create a fresh {@link FullPathIterator} for this path,
+     * initialized at this position of the path, and iterating forwards.
+     *
+     * Note: if the  {@link PathPosition} object was not created from a
+     * FullPathIterator the iteration will always start at a position with
+     * abstract state, not inside and ARG hole.
+     */
+    public PathIterator fullPathIterator() {
+      PathIterator it = new DefaultFullPathIterator(path);
+      while (it.pos != pos) {
+        it.advance();
+      }
+      assert it.pos == pos;
+
+      return new DefaultFullPathIterator(path, pos, it.getIndex());
+    }
+
+    /**
+     * Create a fresh {@link FullPathIterator} for this path,
+     * initialized at this position of the path, and iterating backwards.
+     *
+     * Note: if the  {@link PathPosition} object was not created from a
+     * FullPathIterator the iteration will always start at a position with
+     * abstract state, not inside and ARG hole.
+     */
+    public PathIterator reverseFullPathIterator() {
+      PathIterator it = new ReverseFullPathIterator(path);
+      // get to the correct abstract state location
+      while (it.pos != pos) {
+        it.advance();
+      }
+      // now move until the offset is also correct
+      while (it.hasNext() && it.pos == pos) {
+        it.advance();
+      }
+
+      if (pos == it.pos) {
+        assert pos == 0;
+        return new ReverseFullPathIterator(path, pos, pos);
+      } else {
+        assert pos == it.pos + 1;
+        return new ReverseFullPathIterator(path, pos, it.getIndex() + 1);
+      }
+    }
+
+    /**
      * @see PathIterator#getLocation()
      */
     public CFANode getLocation() {
@@ -685,6 +731,36 @@ public class ARGPath extends AbstractAppender {
      */
     public ARGPath getPath() {
       return path;
+    }
+  }
+
+  private static class FullPathPosition extends PathPosition {
+
+    private final int offset;
+
+    private FullPathPosition(ARGPath pPath, int pPosition, int pOffset) {
+      super(pPath, pPosition);
+      offset = pOffset;
+    }
+
+    /**
+     * {@inheritDoc}
+     * The position is exact, that means if the position is in the middle of an
+     * ARG hole the iterator will start there.
+     */
+    @Override
+    public PathIterator fullPathIterator() {
+      return new DefaultFullPathIterator(path, pos, offset);
+    }
+
+    /**
+     * {@inheritDoc}
+     * The position is exact, that means if the position is in the middle of an
+     * ARG hole the iterator will start there.
+     */
+    @Override
+    public PathIterator reverseFullPathIterator() {
+      return new ReverseFullPathIterator(path, pos, offset);
     }
   }
 
@@ -746,7 +822,7 @@ public class ARGPath extends AbstractAppender {
 
     @Override
     public void rewind() throws IllegalStateException {
-      checkState(hasNext(), "No previous states in PathIterator.");
+      checkState(hasPrevious(), "No previous states in PathIterator.");
       pos++;
     }
 
@@ -764,16 +840,22 @@ public class ARGPath extends AbstractAppender {
   private static abstract class FullPathIterator extends PathIterator {
     protected final List<CFAEdge> fullPath;
     protected boolean currentPositionHasState = true;
-    protected int overallOffset = 0;
+    protected int overallOffset;
 
-    private FullPathIterator(ARGPath pPath, int pPos) {
+    private FullPathIterator(ARGPath pPath, int pPos, int pOverallOffset) {
       super(pPath, pPos);
       fullPath = pPath.getFullPath();
+      overallOffset = pOverallOffset;
     }
 
     @Override
     public int getIndex() {
       return overallOffset;
+    }
+
+    @Override
+    public PathPosition getPosition() {
+      return new FullPathPosition(path, pos, overallOffset);
     }
 
     /**
@@ -860,12 +942,12 @@ public class ARGPath extends AbstractAppender {
 
   private static class DefaultFullPathIterator extends FullPathIterator {
 
-    private DefaultFullPathIterator(ARGPath pPath, int pPos) {
-      super(pPath, pPos);
+    private DefaultFullPathIterator(ARGPath pPath, int pPos, int pOverallOffset) {
+      super(pPath, pPos, pOverallOffset);
     }
 
     private DefaultFullPathIterator(ARGPath pPath) {
-      this(pPath, 0);
+      this(pPath, 0, 0);
     }
 
     @Override
@@ -933,13 +1015,12 @@ public class ARGPath extends AbstractAppender {
 
   private static class ReverseFullPathIterator extends FullPathIterator {
 
-    private ReverseFullPathIterator(ARGPath pPath, int pPos) {
-      super(pPath, pPos);
-      overallOffset = fullPath.size();
+    private ReverseFullPathIterator(ARGPath pPath, int pPos, int pOverallOffset) {
+      super(pPath, pPos, pOverallOffset);
     }
 
     private ReverseFullPathIterator(ARGPath pPath) {
-      this(pPath, pPath.states.size() - 1);
+      this(pPath, pPath.states.size() - 1, pPath.getFullPath().size());
     }
 
     @Override
