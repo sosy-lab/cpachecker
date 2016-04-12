@@ -238,7 +238,15 @@ public abstract class PathTranslator {
     // for every element
     functionStack = cloneStack(functionStack);
 
-    callback.visit(childElement, edge, functionStack);
+    // we do not have a single edge, instead a dynamic multi-edge
+    if (edge == null) {
+      List<CFAEdge> edges = nextEdge.getParentState().getEdgesToChild(childElement);
+      for (CFAEdge inner : edges) {
+        callback.visit(childElement, inner, functionStack);
+      }
+    } else {
+      callback.visit(childElement, edge, functionStack);
+    }
 
     // how many parents does the child have?
     // ignore parents not on the error path
@@ -300,7 +308,7 @@ public abstract class PathTranslator {
       // get the next ARG state, create a new edge using the same stack and add it to the waitlist
       ARGState elem = Iterables.getOnlyElement(relevantChildrenOfElement);
       CFAEdge e = currentElement.getEdgeToChild(elem);
-      Edge newEdge = new Edge(elem, e, functionStack);
+      Edge newEdge = new Edge(elem, currentElement, e, functionStack);
       return Collections.singleton(newEdge);
 
     } else if (relevantChildrenOfElement.size() > 1) {
@@ -337,7 +345,7 @@ public abstract class PathTranslator {
         // create a new block starting with this condition
         currentFunction.enterBlock(currentElement.getStateId(), assumeEdge, cond);
 
-        Edge newEdge = new Edge(elem, e, newStack);
+        Edge newEdge = new Edge(elem, currentElement, e, newStack);
         result.add(newEdge);
       }
       return result;
