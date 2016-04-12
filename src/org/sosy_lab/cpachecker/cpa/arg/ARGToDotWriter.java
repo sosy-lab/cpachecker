@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
@@ -32,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -166,7 +168,7 @@ public class ARGToDotWriter {
     builder.append(" [");
 
     if (state.getChildren().contains(succesorState)) {
-      final List<CFAEdge> edges = state.getEdgesToChild(succesorState);
+      List<CFAEdge> edges = state.getEdgesToChild(succesorState);
 
       // there is no direct edge between the nodes, use a dummy-edge
       if (edges.isEmpty()) {
@@ -179,8 +181,13 @@ public class ARGToDotWriter {
           builder.append("color=\"red\" ");
         }
 
+        if (edges.size() == 1 && Iterables.getOnlyElement(edges) instanceof MultiEdge) {
+          edges = ((MultiEdge)Iterables.getOnlyElement(edges)).getEdges();
+        }
+
         builder.append("label=\"");
         if (edges.size() > 1) {
+
           builder
               .append("Lines ")
               .append(edges.get(0).getLineNumber())
@@ -189,10 +196,11 @@ public class ARGToDotWriter {
         } else {
           builder.append("Line ").append(edges.get(0).getLineNumber());
         }
-        builder.append(": ");
+        builder.append(": \\l");
 
         for (CFAEdge edge : edges) {
           builder.append(edge.getDescription().replaceAll("\n", " ").replace('"', '\''));
+          builder.append("\\l");
         }
 
         builder.append("\"");
