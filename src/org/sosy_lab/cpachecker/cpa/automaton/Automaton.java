@@ -23,15 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.regex.Matcher;
-
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
@@ -41,6 +32,15 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
 
 @SuppressFBWarnings(value = "VA_FORMAT_STRING_USES_NEWLINE",
     justification = "consistent Unix-style line endings")
@@ -58,6 +58,19 @@ public class Automaton {
   private final AutomatonSafetyPropertyFactory propertyFactory ;
 
   private Optional<Boolean> isObservingOnly = Optional.absent();
+
+  public Automaton(
+      final AutomatonSafetyPropertyFactory pPropFact,
+      final String pName,
+      final Map<String, AutomatonVariable> pVars,
+      final List<AutomatonInternalState> pRawStates,
+      final String pInitialStateName,
+      final String pHeaderFile)
+      throws InvalidAutomatonException {
+    this(pPropFact, pName, pVars, pRawStates, pInitialStateName);
+
+    String test = pHeaderFile;
+  }
 
   public Automaton(AutomatonSafetyPropertyFactory pPropFact,
       String pName, Map<String, AutomatonVariable> pVars, List<AutomatonInternalState> pRawStates,

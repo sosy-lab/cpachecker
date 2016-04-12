@@ -182,10 +182,11 @@ parser code {:
 
 
 
-terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COMMA, COLON, OPEN_BRACKETS, CLOSE_BRACKETS, AUTOMATON,OBSERVER, CONTROL, END, LOCAL, INITIAL, STATE, ERROR, STOP, INACTIVE, EXIT, ENTRY, BREAK, ASSERT, ASSUME, MATCH, LABEL, CHECK, EVAL, MODIFY, DO, ENCODE, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, USEALL, USEFIRST, TARGET, IS_TARGET_STATE, CALL, RETURN, SPLIT, NEGATION;
+terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COMMA, COLON, OPEN_BRACKETS, CLOSE_BRACKETS, AUTOMATON,OBSERVER, CONTROL, END, LOCAL, INITIAL, HEADER, STATE, ERROR, STOP, INACTIVE, EXIT, ENTRY, BREAK, ASSERT, ASSUME, MATCH, LABEL, CHECK, EVAL, MODIFY, DO, ENCODE, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, USEALL, USEFIRST, TARGET, IS_TARGET_STATE, CALL, RETURN, SPLIT, NEGATION;
 non terminal List<Automaton> initial ;  
 non terminal Automaton Specification ;
 non terminal Automaton Automaton ;
+non terminal String HeaderDef ;
 non terminal String InitDef ;
 non terminal Automaton Body ;
 non terminal Map<String, AutomatonVariable> LocalDefs ;
@@ -239,9 +240,13 @@ Automaton ::= OBSERVER Body:b
 
 Body      ::= AUTOMATON IDENTIFIER:id LocalDefs:vars InitDef:init StateDefs:states END AUTOMATON
               {: RESULT = new Automaton(propFact, id.toString(), vars, states, init); :}
+            | AUTOMATON IDENTIFIER:id LocalDefs:vars HeaderDef:file InitDef:init StateDefs:states END AUTOMATON
+              {: RESULT = new Automaton(propFact, id.toString(), vars, states, init, file.toString()); :}
             ;
 
 InitDef    ::= INITIAL STATE IDENTIFIER:id SEMICOLON {: RESULT = id.toString(); :};
+
+HeaderDef  ::= HEADER IDENTIFIER:id SEMICOLON {: RESULT = id.toString(); :};
 
 LocalDefs ::= LocalDef:d LocalDefs:lst {: lst.put(d.getName(), d); RESULT = lst; :}
               | /* empty */ {: RESULT = new HashMap<String, AutomatonVariable>(); :}
