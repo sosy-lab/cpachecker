@@ -13,6 +13,7 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -29,6 +30,10 @@ public class RCNFManager {
   @Option(description="Limit for explicit CNF expansion (potentially exponential otherwise)",
       secure=true)
   private int expansionDepthLimit = 1;
+
+  @Option(description="Limit on the size of the resulting number of lemmas from the explicit "
+      + "CNF expansion", secure=true)
+  private int expansionResultSizeLimit = 1000;
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bfmgr;
@@ -102,14 +107,19 @@ public class RCNFManager {
         BooleanFormula common = bfmgr.and(intersection);
         List<BooleanFormula> branches = new ArrayList<>();
 
+        BigInteger expectedSizeAfterExpansion = BigInteger.ONE;
+
         ArrayList<Set<BooleanFormula>> argsAsConjunctionsWithoutIntersection = new ArrayList<>();
         for (Set<BooleanFormula> args : argsAsConjunctions) {
           Set<BooleanFormula> newEl = Sets.difference(args, intersection);
           argsAsConjunctionsWithoutIntersection.add(newEl);
           branches.add(bfmgr.and(newEl));
+          expectedSizeAfterExpansion = expectedSizeAfterExpansion.multiply(
+              BigInteger.valueOf(newEl.size()));
         }
 
-        if (expansionsAllowed.get() > 0) {
+        if (expansionsAllowed.get() > 0 &&
+            expectedSizeAfterExpansion.compareTo(BigInteger.valueOf(expansionResultSizeLimit)) == -1) {
           expansionsAllowed.decrementAndGet();
 
           // Perform recursive expansion.
