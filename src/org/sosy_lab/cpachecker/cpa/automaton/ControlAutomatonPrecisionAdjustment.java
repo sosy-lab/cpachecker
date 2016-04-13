@@ -159,11 +159,11 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
     Set<? extends SafetyProperty> disabled = pi.getBlacklist().keySet();
     Set<? extends SafetyProperty> activeProperties = Sets.difference(encoded, disabled);
 
-    if (activeProperties.isEmpty()) {
-      return Optional.of(PrecisionAdjustmentResult.create(
-          inactiveState,
-          pi, Action.CONTINUE));
-    }
+//    if (activeProperties.isEmpty()) {
+//      return Optional.of(PrecisionAdjustmentResult.create(
+//          inactiveState,
+//          pi, Action.CONTINUE));
+//    }
 
     for (SafetyProperty p: activeProperties) {
       if (budgeting.get().isTransitionBudgedExhausted(p)) {

@@ -25,24 +25,25 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.core.interfaces.IntermediateTargetable;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
-import org.sosy_lab.cpachecker.core.interfaces.Graphable;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
-
 public class PowersetAutomatonState implements AbstractWrapperState,
-    Targetable, Serializable, Graphable, Iterable<AutomatonState> {
+    Targetable, IntermediateTargetable, Serializable, Graphable, Iterable<AutomatonState> {
 
   private static class TopPowersetAutomatonState extends PowersetAutomatonState {
 
@@ -111,8 +112,6 @@ public class PowersetAutomatonState implements AbstractWrapperState,
       builder.append(String.format("%d different automata states!", states.size()));
     } else {
       for (AbstractState element : states) {
-        builder.append(element.getClass().getSimpleName());
-        builder.append(": ");
         builder.append(element.toString());
         builder.append("\n ");
       }
@@ -125,6 +124,7 @@ public class PowersetAutomatonState implements AbstractWrapperState,
   @Override
   public String toDOTLabel() {
     StringBuilder builder = new StringBuilder();
+
     for (AbstractState element : states) {
       if (element instanceof Graphable) {
         String label = ((Graphable)element).toDOTLabel();
@@ -164,6 +164,16 @@ public class PowersetAutomatonState implements AbstractWrapperState,
   @Override
   public Iterator<AutomatonState> iterator() {
     return states.iterator();
+  }
+
+  @Override
+  public boolean isIntermediateTarget() {
+    for (AutomatonState e : states) {
+      if (e.isIntermediateTarget()) {
+        return true;
+      }
+    }
+    return false;
   }
 
 }

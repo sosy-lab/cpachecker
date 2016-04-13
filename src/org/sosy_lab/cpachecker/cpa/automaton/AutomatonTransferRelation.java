@@ -27,20 +27,14 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.collect.FluentIterable.from;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.regex.Pattern;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -62,14 +56,20 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatIntHist;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.regex.Pattern;
+
+import javax.annotation.Nullable;
 
 /** The TransferRelation of this CPA determines the AbstractSuccessor of a {@link AutomatonState}
  * and strengthens an {@link AutomatonState.AutomatonUnknownState}.
@@ -387,11 +387,28 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
         // this transition will be taken. copy the variables
         AutomatonTransition t = pair.getFirst();
         Map<Integer, AAstNode> transitionVariables = pair.getSecond();
+
+        boolean checkFeasibility = false;
+
         actionTime.start();
         Map<String, AutomatonVariable> newVars = deepCloneVars(pState.getVars());
         exprArgs.setAutomatonVariables(newVars);
         exprArgs.putTransitionVariables(transitionVariables);
-        t.executeActions(exprArgs);
+
+        for (AutomatonAction action : t.getActions()) {
+          ResultValue<?> res = action.eval(exprArgs);
+          if (res.canNotEvaluate()) {
+            exprArgs.getLogger().log(Level.SEVERE, res.getFailureMessage() + " in " + res.getFailureOrigin());
+          }
+
+          if (action instanceof AutomatonAction.CheckFeasibility) {
+            checkFeasibility = true;
+          }
+        }
+        if (exprArgs.getLogMessage() != null && exprArgs.getLogMessage().length() > 0) {
+          exprArgs.getLogger().log(Level.INFO, exprArgs.getLogMessage());
+          exprArgs.clearLogMessage();
+        }
         actionTime.stop();
 
         Map<SafetyProperty, ResultValue<?>> violatedProperties = Maps.newHashMap();
@@ -417,6 +434,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
             shadowCode,
             pState.getMatches() + 1,
             pState.getFailedMatches(),
+            checkFeasibility,
             violatedProperties);
 
         if (!(lSuccessor instanceof AutomatonState.BOTTOM)) {

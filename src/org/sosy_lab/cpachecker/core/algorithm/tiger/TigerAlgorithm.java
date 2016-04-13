@@ -1166,16 +1166,16 @@ public class TigerAlgorithm
             } else {
               dumpArgForCex(cexi);
 
-              Set<Goal> coveredGoals = null;
+              Set<Goal> fullyCoveredGoals = null;
               if (allCoveredGoalsPerTestCase) {
-                coveredGoals = addTestToSuite(testsuite.getGoals(), cexi, pInfeasibilityPropagation);
+                fullyCoveredGoals = addTestToSuite(testsuite.getGoals(), cexi, pInfeasibilityPropagation);
               } else if (checkCoverage) {
-                coveredGoals =
+                fullyCoveredGoals =
                     addTestToSuite(Sets.union(pUncoveredGoals, pTestGoalsToBeProcessed), cexi, pInfeasibilityPropagation);
               } else {
-                coveredGoals = addTestToSuite(pTestGoalsToBeProcessed, cexi, pInfeasibilityPropagation);
+                fullyCoveredGoals = addTestToSuite(pTestGoalsToBeProcessed, cexi, pInfeasibilityPropagation);
               }
-              pUncoveredGoals.removeAll(coveredGoals);
+              pUncoveredGoals.removeAll(fullyCoveredGoals);
             }
           }
 
@@ -1387,12 +1387,12 @@ public class TigerAlgorithm
           : null;
 
       TestCase testcase = createTestcase(pCex, testCasePresenceCondition);
-      Set<Goal> coveredGoals = updateTestsuiteByCoverageOf(testcase, pRemainingGoals);
+      Set<Goal> fullyCoveredGoals = updateTestsuiteByCoverageOf(testcase, pRemainingGoals);
 
       //        if (lGoalPrediction != null) {
       //          lGoalPrediction[pGoal.getIndex() - 1] = Prediction.FEASIBLE;
       //        }
-      return coveredGoals;
+      return fullyCoveredGoals;
     }
   }
 
