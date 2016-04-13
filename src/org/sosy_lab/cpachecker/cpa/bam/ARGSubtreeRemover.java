@@ -110,6 +110,11 @@ public class ARGSubtreeRemover {
       assert data.initialStateToReachedSet.get(removeCachedSubtreeArguments.getKey()).contains(removeCachedSubtreeArguments.getValue());
     }
 
+    // first remove the cut-state directly
+    removeCachedSubtree(getReachedState(Iterables.getLast(relevantCallStates)),
+        getReachedState(element), pNewPrecisions, pNewPrecisionTypes);
+
+    // then remove some important states along the path, sufficient for re-exploration
     final ARGState lastRelevantNode = getReachedState(Iterables.getLast(relevantCallStates));
     final ARGState target = getReachedState(element);
     for (final Entry<ARGState, ARGState> removeCachedSubtreeArguments : neededRemoveCachedSubtreeCalls.entries()) {
@@ -130,9 +135,6 @@ public class ARGSubtreeRemover {
       }
       removeCachedSubtree(removeCachedSubtreeArguments.getKey(), removeCachedSubtreeArguments.getValue(), newPrecisions, newPrecisionTypes);
     }
-
-    removeCachedSubtree(getReachedState(Iterables.getLast(relevantCallStates)),
-            getReachedState(element), pNewPrecisions, pNewPrecisionTypes);
 
     // the main-reachedset contains only the root, exit-states and targets.
     // we assume, that the current refinement was caused by a target-state.
