@@ -95,9 +95,12 @@ public class BAMDataManager {
     initialStateToReachedSet.clear();
   }
 
-  ReachedSet createInitialReachedSet(AbstractState initialState, Precision initialPredicatePrecision) {
-    ReachedSet reached = reachedSetFactory.create();
-    reached.add(initialState, initialPredicatePrecision);
+  /** Create a new reached-set with the given state as root and register it in the cache. */
+  ReachedSet createAndRegisterNewReachedSet(
+      AbstractState initialState, Precision initialPrecision, Block context) {
+    final ReachedSet reached = reachedSetFactory.create();
+    reached.add(initialState, initialPrecision);
+    bamCache.put(initialState, initialPrecision, context, reached);
     return reached;
   }
 

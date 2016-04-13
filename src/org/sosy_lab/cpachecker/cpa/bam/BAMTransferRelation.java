@@ -390,8 +390,7 @@ public class BAMTransferRelation implements TransferRelation {
       if (reached == null) {
         // we have not even cached a partly computed reach-set,
         // so we must compute the subgraph specification from scratch
-        reached = data.createInitialReachedSet(reducedInitialState, reducedInitialPrecision);
-        data.bamCache.put(reducedInitialState, reducedInitialPrecision, currentBlock, reached);
+        reached = data.createAndRegisterNewReachedSet(reducedInitialState, reducedInitialPrecision, currentBlock);
         logger.log(Level.FINEST, "Cache miss: starting recursive CPAAlgorithm with new initial reached-set.");
       } else {
         logger.log(Level.FINEST, "Partial cache hit: starting recursive CPAAlgorithm with partial reached-set with root", reached.getFirstState());

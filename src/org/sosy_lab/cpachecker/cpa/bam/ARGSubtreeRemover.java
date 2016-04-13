@@ -345,8 +345,7 @@ public class ARGSubtreeRemover {
     AbstractState reducedRootState = wrappedReducer.getVariableReducedState(getReachedState(rootState), context, node);
     Precision reducedNewPrecision = wrappedReducer.getVariableReducedPrecision(rootPrecision, context);
     if (!bamCache.containsPreciseKey(reducedRootState, reducedNewPrecision, context)) {
-      ReachedSet reachedSet = data.createInitialReachedSet(reducedRootState, reducedNewPrecision);
-      bamCache.put(reducedRootState, reducedNewPrecision, context, reachedSet);
+      data.createAndRegisterNewReachedSet(reducedRootState, reducedNewPrecision, context);
     }
 
     // check if the used precision is equal to the new precision
