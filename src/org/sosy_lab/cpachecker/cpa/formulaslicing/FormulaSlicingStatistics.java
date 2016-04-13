@@ -48,7 +48,7 @@ class FormulaSlicingStatistics implements Statistics {
     printTimer(out, propagation, "propagating formulas");
     printTimer(out, reachability, "checking reachability");
     printTimer(out, inductiveWeakening, "inductive weakening");
-    printTimer(out, deadVarElimination, "eliminating dead variables");
+    printTimer(out, deadVarElimination, "eliminating quantified variables");
     printTimer(out, semiCnfConversion, "converting to SemiCNF");
   }
 

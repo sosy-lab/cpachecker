@@ -1,19 +1,22 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -38,15 +41,21 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.QuantifiedFormulaManager.Quantifier;
+import org.sosy_lab.solver.basicimpl.tactics.Tactic;
+import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
+import org.sosy_lab.solver.visitors.TraversalProcess;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Options(prefix="cpa.slicing")
 public class FormulaSlicingManager implements IFormulaSlicingManager {
@@ -56,40 +65,44 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
   private final InductiveWeakeningManager inductiveWeakeningManager;
   private final Solver solver;
   private final FormulaSlicingStatistics statistics;
-  private final SemiCNFManager semiCNFManager;
+  private final RCNFManager rcnfManager;
   private final LiveVariables liveVariables;
   private final ShutdownNotifier shutdownNotifier;
   private final LoopStructure loopStructure;
+  private final LogManager logger;
 
   @Option(secure=true, description="Check target states reachability")
   private boolean checkTargetStates = true;
 
   @Option(secure = true, description="Use information from outer states to strengthen")
-  private boolean useOuterStrengthening = true; // TODO: false by default? too expensive?
+  private boolean useOuterStrengthening = true;
 
   @Option(secure=true, description="Replace dead variables")
-  private boolean eliminateDeadVars = true;
+  private boolean runQELight = true;
 
   @Option(secure=true, description="Filter clauses by liveness")
   private boolean filterByLiveness = true;
 
-  public FormulaSlicingManager(
+
+  FormulaSlicingManager(
       Configuration config,
       PathFormulaManager pPfmgr,
       FormulaManagerView pFmgr,
       CFA pCfa,
       InductiveWeakeningManager pInductiveWeakeningManager,
       Solver pSolver,
-      ShutdownNotifier pShutdownNotifier)
+      ShutdownNotifier pShutdownNotifier,
+      LogManager pLogger)
       throws InvalidConfigurationException {
     shutdownNotifier = pShutdownNotifier;
+    logger = pLogger;
     config.inject(this);
     fmgr = pFmgr;
     pfmgr = pPfmgr;
     inductiveWeakeningManager = pInductiveWeakeningManager;
     solver = pSolver;
     bfmgr = pFmgr.getBooleanFormulaManager();
-    semiCNFManager = new SemiCNFManager(fmgr, config);
+    rcnfManager = new RCNFManager(fmgr, config);
     statistics = new FormulaSlicingStatistics();
     Preconditions.checkState(pCfa.getLiveVariables().isPresent() &&
       pCfa.getLoopStructure().isPresent());
@@ -185,44 +198,45 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     PathFormula pf = iState.getPathFormula();
     SSAMap ssa = pf.getSsa();
     CFANode node = iState.getNode();
-
-    if (eliminateDeadVars) {
-
-      // TODO: dead variable elimination should also be attempted on the
-      // clauses which come from the previous abstraction.
-      statistics.deadVarElimination.start();
-      pf = fmgr.eliminateDeadVarsFixpoint(pf);
-      statistics.deadVarElimination.stop();
-    }
-
-    Set<BooleanFormula> clauses = semiCNFManager.toClauses(pf.getFormula());
-
     SlicingAbstractedState abstractParent = iState.getAbstractParent();
+
+    BooleanFormula input = fmgr.simplify(pf.getFormula());
     if (useOuterStrengthening) {
-      clauses = Sets.union(
-          clauses, abstractParent.getInstantiatedAbstraction()
-      );
+      input = bfmgr.and(input, bfmgr.and(abstractParent.getInstantiatedAbstraction()));
+    }
+    Set<BooleanFormula> lemmas;
+
+    if (runQELight) {
+      statistics.deadVarElimination.start();
+      try {
+        BooleanFormula afterQE = applyQELight(input, pf.getSsa());
+        lemmas = bfmgr.toConjunctionArgs(afterQE, true);
+      } finally {
+        statistics.deadVarElimination.stop();
+      }
+    } else {
+      lemmas = rcnfManager.toLemmas(pf.getFormula());
     }
 
-    Set<BooleanFormula> finalClauses = new HashSet<>();
-    for (BooleanFormula clause : clauses) {
-      if (!fmgr.getDeadFunctionNames(clause, ssa).isEmpty()) {
+    Set<BooleanFormula> finalLemmas = new HashSet<>();
+    for (BooleanFormula lemma : lemmas) {
+      if (!fmgr.getDeadFunctionNames(lemma, ssa).isEmpty()) {
         continue;
       }
       if (filterByLiveness &&
           // TODO: avoid re-calculating #extractFunctionNames twice.
           Sets.intersection(
               ImmutableSet.copyOf(liveVariables.getLiveVariableNamesForNode(node)),
-              fmgr.extractFunctionNames(fmgr.uninstantiate(clause))).isEmpty()
+              fmgr.extractFunctionNames(fmgr.uninstantiate(lemma))).isEmpty()
           ) {
 
         continue;
       }
-      finalClauses.add(fmgr.uninstantiate(clause));
+      finalLemmas.add(fmgr.uninstantiate(lemma));
     }
 
     return SlicingAbstractedState.ofClauses(
-        finalClauses,
+        finalLemmas,
         ssa,
         iState.getPathFormula().getPointerTargetSet(),
         fmgr,
@@ -230,6 +244,95 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
         Optional.of(iState)
     );
   }
+
+  private BooleanFormula applyQELight(final BooleanFormula input, SSAMap pSSAMap)
+      throws InterruptedException {
+    BooleanFormula quantified = fmgr.quantifyDeadVariables(input, pSSAMap);
+    BooleanFormula qeLightResult = fmgr.applyTactic(quantified, Tactic.QE_LIGHT);
+    BooleanFormula result = overApproximateExistentials(qeLightResult);
+    assert !hasQuantifiers(result);
+    return result;
+  }
+
+  private boolean hasQuantifiers(BooleanFormula input) {
+    final AtomicBoolean hasQ = new AtomicBoolean(false);
+    fmgr.visitRecursively(new DefaultFormulaVisitor<TraversalProcess>() {
+      @Override
+      protected TraversalProcess visitDefault(Formula f) {
+        return TraversalProcess.CONTINUE;
+      }
+
+      @Override
+      public TraversalProcess visitFreeVariable(Formula f, String name) {
+        return TraversalProcess.CONTINUE;
+      }
+
+      @Override
+      public TraversalProcess visitBoundVariable(Formula f, int deBruijnIdx) {
+        hasQ.set(true);
+        return TraversalProcess.ABORT;
+      }
+
+      @Override
+      public TraversalProcess visitQuantifier(
+          BooleanFormula f,
+          Quantifier quantifier,
+          List<Formula> boundVariables,
+          BooleanFormula body) {
+        hasQ.set(true);
+        return TraversalProcess.ABORT;
+      }
+    }, input);
+    return hasQ.get();
+  }
+
+  private BooleanFormula overApproximateExistentials(final BooleanFormula input) {
+    return fmgr.visit(new DefaultFormulaVisitor<BooleanFormula>() {
+      @Override
+      protected BooleanFormula visitDefault(Formula f) {
+        try {
+          return bfmgr.and(rcnfManager.toLemmas(input));
+        } catch (InterruptedException pE) {
+          throw new UnsupportedOperationException("Failed converting to RCNF");
+        }
+      }
+
+      @Override
+      public BooleanFormula visitQuantifier(
+          BooleanFormula f,
+          Quantifier quantifier,
+          List<Formula> boundVariables,
+          BooleanFormula body) {
+        Set<BooleanFormula> lemmas;
+        try {
+          lemmas = rcnfManager.toLemmas(body);
+        } catch (InterruptedException pE) {
+          throw new UnsupportedOperationException("Failed converting to RCNF");
+        }
+        return bfmgr.and(Sets.filter(lemmas, Predicates.not(hasBoundVariables)));
+      }
+    }, input);
+  }
+
+  private final Predicate<BooleanFormula> hasBoundVariables = new Predicate<BooleanFormula>() {
+    @Override
+    public boolean apply(BooleanFormula input) {
+      final AtomicBoolean hasBound = new AtomicBoolean(false);
+      fmgr.visitRecursively(new DefaultFormulaVisitor<TraversalProcess>() {
+        @Override
+        protected TraversalProcess visitDefault(Formula f) {
+          return TraversalProcess.CONTINUE;
+        }
+
+        @Override
+        public TraversalProcess visitBoundVariable(Formula f, int deBruijnIdx) {
+          hasBound.set(true);
+          return TraversalProcess.ABORT;
+        }
+      }, input);
+      return hasBound.get();
+    }
+  };
 
   private  final Map<Pair<SlicingIntermediateState, ImmutableList<SlicingAbstractedState>>,
       SlicingAbstractedState> slicingCache = new HashMap<>();

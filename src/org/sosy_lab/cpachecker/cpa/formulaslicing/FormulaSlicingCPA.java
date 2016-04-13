@@ -84,7 +84,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
     manager = new FormulaSlicingManager(
         pConfiguration,
         pathFormulaManager, formulaManager, cfa,
-        inductiveWeakeningManager, solver, pShutdownNotifier);
+        inductiveWeakeningManager, solver, pShutdownNotifier, pLogger);
     stopOperator = new StopSepOperator(this);
     mergeOperator = this;
   }
