@@ -98,7 +98,7 @@
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
 
         <!-- JavaSMT -->
-        <dependency org="org.sosy_lab" name="javasmt" rev="0.51-9-g27175af" conf="runtime->runtime; contrib->sources" />
+        <dependency org="org.sosy_lab" name="javasmt" rev="0.51-34-gef8c75e" conf="runtime->runtime; contrib->sources" />
 
         <!-- Guava has a dependency on error_prone_annotations without a revision number, need an override. -->
         <override org="com.google.errorprone" module="error_prone_annotations" rev="2.0.5"/>
