@@ -37,7 +37,7 @@ public class RCNFManagerTest extends SolverBasedTest0{
   @Before
   public void setUp() throws InvalidConfigurationException {
     Configuration d = Configuration.builder().setOption(
-        "cpa.slicing.quantifiedHandling", "drop"
+        "cpa.slicing.boundVarsHandling", "drop"
     ).build();
     FormulaManagerView mgrView = new FormulaManagerView(
         mgr, d, TestLogManager.getInstance());
@@ -116,9 +116,8 @@ public class RCNFManagerTest extends SolverBasedTest0{
             bfmgr.or(v("c"), v("e")),
             bfmgr.or(v("c"), v("f"))
         );
-    Truth.assertThat(bfmgr.toConjunctionArgs(converted, true)).isEqualTo(bfmgr.toConjunctionArgs(
-        expected, true
-    ));
+    Truth.assertThat(bfmgr.toConjunctionArgs(converted, true)).isEqualTo(
+        bfmgr.toConjunctionArgs(expected, true));
   }
 
   private BooleanFormula v(String name) {
