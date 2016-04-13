@@ -3,158 +3,100 @@ package org.sosy_lab.cpachecker.cpa.formulaslicing;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
-import org.junit.After;
+import org.hamcrest.core.Is;
+import org.hamcrest.core.IsNot;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.BasicLogManager;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.solver.SolverContextFactory.Solvers;
 import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.IntegerFormulaManager;
 
-import java.util.logging.Level;
+import java.util.Set;
 import java.util.logging.SimpleFormatter;
 import java.util.logging.StreamHandler;
 
+@RunWith(Parameterized.class)
 public class InductiveWeakeningManagerTest {
-  private CFACreator creator;
-  private LogManager logger;
-  private FormulaManagerView fmgr;
+  @Parameters(name = "{0}")
+  public static Object[] getAllSolvers() {
+    return Solvers.values();
+  }
+
+  @Parameter(0)
+  public Solvers solver;
+
   private InductiveWeakeningManager inductiveWeakeningManager;
-  private Configuration config;
-  private ShutdownNotifier notifier;
+  private IntegerFormulaManager ifmgr;
 
-  @Before public void setUp() throws Exception {
-    config = TestDataTools.configurationForTest().setOptions(
-        ImmutableMap.of(
-            "solver.solver", "Z3",
-
-            // For easier debugging.
-            "cpa.predicate.handlePointerAliasing", "false",
-            "cpa.predicate.ignoreIrrelevantVariables", "false"
-        )
-    ).build();
-    notifier = ShutdownNotifier.createDummy();
-    logger = new BasicLogManager(config,
-        new StreamHandler(System.out, new SimpleFormatter()));
-    creator = new CFACreator(config, logger, notifier);
-    Solver solver = Solver.create(config, logger, notifier);
-    fmgr = solver.getFormulaManager();
-
-    inductiveWeakeningManager = new InductiveWeakeningManager(config, solver, logger,
-        ShutdownNotifier.createDummy());
-  }
-
-  @After public void tearDown() throws Exception {
-    logger.flush();
-  }
 
   @Test public void testSlicingVerySimple() throws Exception {
-    CFA cfa = toCFA("int x, y; x = 1; y = 0;");
-    PathFormulaManager pfmgr = new PathFormulaManagerImpl(fmgr, config, logger, notifier,
-        cfa, AnalysisDirection.FORWARD);
-    PathFormula f = toPathFormula(pfmgr, cfa);
-    logger.log(Level.INFO, "Sliced formula: ", f);
-
-    cfa = toCFA("int x; x++;");
-    pfmgr = new PathFormulaManagerImpl(fmgr, config, logger, notifier,
-        cfa, AnalysisDirection.FORWARD);
-    PathFormula loop = toPathFormula(pfmgr, cfa, f.getSsa());
-    logger.log(Level.INFO, "Loop transition: ", loop);
-
-    BooleanFormula slice = inductiveWeakeningManager.findInductiveWeakening
-        (f, loop);
-
-
-    logger.log(Level.INFO, "Obtained slice", slice);
-
-    cfa = toCFA("int y; y = 0;");
-    pfmgr = new PathFormulaManagerImpl(fmgr, config, logger, notifier,
-        cfa, AnalysisDirection.FORWARD);
-    BooleanFormula expectedFormula = fmgr.uninstantiate(toPathFormula(pfmgr, cfa)
-        .getFormula());
-
-    assertThat(slice).isEqualTo(expectedFormula);
-  }
-
-  @Test public void slicingSimpleRearranged() throws Exception {
-    CFA cfa = toCFA("int x, y; y = 0; x = 1;");
-    PathFormulaManager pfmgr = new PathFormulaManagerImpl(fmgr, config, logger, notifier,
-        cfa, AnalysisDirection.FORWARD);
-    PathFormula f = toPathFormula(pfmgr, cfa);
-    logger.log(Level.INFO, "Sliced formula: ", f);
-
-    cfa = toCFA("int x; x++;");
-    pfmgr = new PathFormulaManagerImpl(fmgr, config, logger, notifier,
-        cfa, AnalysisDirection.FORWARD);
-    PathFormula loop = toPathFormula(pfmgr, cfa, f.getSsa());
-    logger.log(Level.INFO, "Loop transition: ", loop);
-
-    BooleanFormula slice = inductiveWeakeningManager.findInductiveWeakening
-        (f, loop);
-
-    logger.log(Level.INFO, "Obtained slice", slice);
-
-    cfa = toCFA("int y; y = 0;");
-    pfmgr = new PathFormulaManagerImpl(fmgr, config, logger, notifier,
-        cfa, AnalysisDirection.FORWARD);
-    BooleanFormula expectedFormula = fmgr.uninstantiate(toPathFormula(pfmgr, cfa)
-        .getFormula());
-
-    assertThat(slice).isEqualTo(expectedFormula);
-
-  }
-
-  @Test public void testSlicingComplex() throws Exception {
-    CFA cfa = toCFA(
-        "int x, y, p, nondet;",
-        "x = 5;",
-        "y = 10;",
-        "if (nondet) {",
-          "y = 100;",
-          "p = 1;",
-        "} else {",
-          "p = 2;",
-        "}"
+    // TODO: SMTINTERPOL currently does not support solving with assumptions.
+    Assume.assumeThat(solver, new IsNot<>(Is.is(Solvers.SMTINTERPOL)));
+    SSAMap startingSsa = SSAMap.emptySSAMap().withDefault(0);
+    PathFormula transition = new PathFormula(
+        ifmgr.equal(
+            ifmgr.makeVariable("x@1"),
+            ifmgr.add(
+                ifmgr.makeVariable("x@0"),
+                ifmgr.makeNumber(1)
+            )
+        ),
+        startingSsa.builder().setIndex(
+            "x", CNumericTypes.INT, 1
+        ).build(),
+        PointerTargetSet.emptyPointerTargetSet(), 0
     );
-    PathFormulaManager pfmgr = new PathFormulaManagerImpl(fmgr, config, logger, notifier,
-        cfa, AnalysisDirection.FORWARD);
-    // FIXME Tests should not rely on a user manually checking log message
-    // but instead use proper assertions, otherwise they are useless as regression tests.
-    PathFormula input = toPathFormula(pfmgr, cfa);
-
-    cfa = toCFA("int x; x += 1;");
-    pfmgr = new PathFormulaManagerImpl(fmgr, config, logger, notifier,
-        cfa, AnalysisDirection.FORWARD);
-    PathFormula loopTransition = toPathFormula(pfmgr, cfa);
-
-    BooleanFormula slice = inductiveWeakeningManager.findInductiveWeakening(
-        input, loopTransition);
-
-    logger.log(Level.INFO, "Obtained slice", slice);
+    Set<BooleanFormula> lemmas = ImmutableSet.of(
+        ifmgr.equal(
+            ifmgr.makeVariable("x@0"), ifmgr.makeNumber(1)
+        ),
+        ifmgr.equal(
+            ifmgr.makeVariable("y@0"), ifmgr.makeNumber(0)
+        )
+    );
+    Set<BooleanFormula> weakening = inductiveWeakeningManager
+        .findInductiveWeakeningForRCNF(startingSsa, transition, lemmas);
+    assertThat(weakening).containsExactly(
+        ifmgr.equal(
+            ifmgr.makeVariable("y@0"), ifmgr.makeNumber(0)
+        )
+    );
   }
 
-  private PathFormula toPathFormula(PathFormulaManager pfmgr, CFA cfa) throws Exception {
-    return toPathFormula(pfmgr, cfa, SSAMap.emptySSAMap());
-  }
+  @Before
+  public void setUp() throws Exception {
+    Configuration config = TestDataTools.configurationForTest().setOptions(
+        ImmutableMap.of(
+            "solver.solver", solver.toString(),
 
-  private PathFormula toPathFormula(PathFormulaManager pfmgr, CFA cfa, SSAMap initialSSA) throws Exception {
-    return TestDataTools.toPathFormula(cfa, initialSSA,
-        fmgr, pfmgr, true);
-  }
-
-  private CFA toCFA(String... parts) throws Exception {
-    return TestDataTools.toCFA(creator, parts);
+            // Just to please Princess.
+            "cpa.predicate.encodeFloatAs", "integer"
+        )
+    ).build();
+    ShutdownNotifier notifier = ShutdownNotifier.createDummy();
+    BasicLogManager logger = new BasicLogManager(config,
+        new StreamHandler(System.out, new SimpleFormatter()));
+    Solver solver = Solver.create(config, logger, notifier);
+    FormulaManagerView fmgr = solver.getFormulaManager();
+    inductiveWeakeningManager = new InductiveWeakeningManager(
+        config, solver, logger, notifier);
+    ifmgr = fmgr.getIntegerFormulaManager();
   }
 }
