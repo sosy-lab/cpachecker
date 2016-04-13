@@ -56,7 +56,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
   private final LiveVariables liveVariables;
   private final LoopStructure loopStructure;
 
-  @SuppressWarnings("FieldCanBeLocal")
+  @SuppressWarnings({"FieldCanBeLocal", "unused"})
   private final LogManager logger;
 
   @Option(secure=true, description="Check target states reachability")
@@ -237,17 +237,38 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     Set<BooleanFormula> candidateLemmas = Sets.intersection(
         oldState.getAbstraction(), fromState.getAbstraction());
 
-    // TODO: optimization iff oldState == newState
-
     Set<BooleanFormula> finalClauses;
+    if (oldState == fromState) {
+      PathFormulaWithStartSSA path =
+          new PathFormulaWithStartSSA(iState.getPathFormula(), iState
+              .getAbstractParent().getSSA());
+
+      if (fromState.getInductiveUnder().contains(path)) {
+
+        // Optimization!
+        return SlicingAbstractedState.copyOf(fromState);
+      }
+    }
+
     try {
       statistics.inductiveWeakening.start();
-      finalClauses = inductiveWeakeningManager.findInductiveWeakeningForRCNF(
-              fromState.getSSA(),
-              fromState.getAbstraction(),
-              iState.getPathFormula(),
-              candidateLemmas
-          );
+
+      if (fromState != oldState) {
+        finalClauses = inductiveWeakeningManager.findInductiveWeakeningForRCNF(
+            fromState.getSSA(),
+            fromState.getAbstraction(),
+            iState.getPathFormula(),
+            candidateLemmas
+        );
+      } else {
+
+        // No nested loops: remove lemmas on both sides.
+        finalClauses = inductiveWeakeningManager.findInductiveWeakeningForRCNF(
+            fromState.getSSA(),
+            iState.getPathFormula(),
+            candidateLemmas
+        );
+      }
     } catch (SolverException pE) {
       throw new CPAException("Solver call failed", pE);
     } finally {
@@ -262,8 +283,6 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
         fmgr,
         iState.getNode(),
         Optional.of(iState),
-
-        // TODO: change the datastructure.
         ImmutableSet.<PathFormulaWithStartSSA>of()
     );
     slicingCache.put(Pair.of(iState, oldState), out);
