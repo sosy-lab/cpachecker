@@ -14,6 +14,9 @@
         <!-- Dependencies needed for building or running tests. -->
         <conf name="test" />
 
+        <!-- Dependencies needed for running source-code auto-formatter. -->
+        <conf name="format-source" />
+
         <!-- Dependencies needed for benchmarking. -->
         <conf name="benchmark" />
 
@@ -85,7 +88,7 @@
 
         <!-- google-java-format
              A source-code formatter for Java -->
-        <dependency org="com.google.google-java-format" name="google-java-format" rev="0.1-SNAPSHOT-104-g79b7f0f" conf="build->runtime"/>
+        <dependency org="com.google.googlejavaformat" name="google-java-format" rev="1.0" conf="format-source->default"/>
 
         <!-- FindBugs -->
         <dependency org="com.google.code.findbugs" name="findbugs" rev="3.0.1" conf="findbugs->default"/>

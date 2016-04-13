@@ -27,6 +27,7 @@ Example usage for git/svn users:
 
 import argparse
 import difflib
+import glob
 import os
 import re
 import string
@@ -35,8 +36,11 @@ import StringIO
 import sys
 
 CMD = ['java',
-       '-jar',
-       os.path.join(os.path.dirname(__file__), os.pardir, 'lib', 'java', 'build', 'google-java-format.jar')]
+       '-cp',
+       ':'.join(glob.glob(os.path.join(
+           os.path.dirname(__file__), os.pardir, 'lib', 'java', 'format-source', '*.jar'))),
+       'com.google.googlejavaformat.java.Main',
+       ]
 
 def main():
   parser = argparse.ArgumentParser(description=

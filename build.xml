@@ -17,6 +17,7 @@
     <property name="class.main" value="org.sosy_lab.cpachecker.cmdline.CPAMain"/>
     <property name="jar.excludes" value=""/>
     <property name="project.url" value="http://cpachecker.sosy-lab.org"/>
+    <property name="ivy.configurations" value="build, runtime, test, format-source, findbugs"/>
 
     <import file="build/build-ivy.xml"/>
     <import file="build/build-compile.xml"/>

@@ -12,7 +12,10 @@
             <include name="**/*.java" />
         </fileset>
         <pathconvert property="source.files" refid="source.files" pathsep="' '"/>
-        <java fork="true" jar="${ivy.lib.dir}/build/google-java-format.jar">
+        <java fork="true" classname="com.google.googlejavaformat.java.Main">
+            <classpath>
+                <fileset dir="${ivy.lib.dir}" includes="format-source/*.jar"/>
+            </classpath>
             <arg value="-i"/>
             <arg line="'${source.files}'"/>
         </java>
