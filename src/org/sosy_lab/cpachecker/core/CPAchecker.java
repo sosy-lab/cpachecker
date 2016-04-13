@@ -27,17 +27,17 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.ShutdownNotifier.interruptCurrentThreadOnShutdown;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
+import com.google.common.base.StandardSystemProperty;
+import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
+import com.google.common.collect.Sets;
+import com.google.common.io.Resources;
 
 import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.ShutdownManager;
@@ -62,6 +62,8 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory.SpecAutomatonCompositionType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
+import org.sosy_lab.cpachecker.core.algorithm.AlgorithmWithResult;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -87,17 +89,17 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.statistics.Stats;
 import org.sosy_lab.cpachecker.util.statistics.Stats.Contexts;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
-import com.google.common.base.StandardSystemProperty;
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableCollection;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
-import com.google.common.collect.Sets;
-import com.google.common.io.Resources;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 @Options
 public class CPAchecker {
@@ -255,6 +257,7 @@ public class CPAchecker {
       shutdownNotifier.register(interruptThreadOnShutdown);
 
       Algorithm algorithm = null;
+      AlgorithmResult algResult = null;
 
       try {
         stats = new MainCPAStatistics(config, logger);
@@ -303,12 +306,16 @@ public class CPAchecker {
         // now everything necessary has been instantiated
 
         if (disableAnalysis) {
-          return new CPAcheckerResult(Result.NOT_YET_STARTED, PropertySummary.UNKNOWN, null, stats);
+          return new CPAcheckerResult(Result.NOT_YET_STARTED, PropertySummary.UNKNOWN, null, null, stats);
         }
 
         // run analysis
         AlgorithmStatus status = runAlgorithm(algorithm, reached, stats);
         result = extractResult(algorithm, reached, status);
+
+        if (algorithm instanceof AlgorithmWithResult) {
+          algResult = ((AlgorithmWithResult) algorithm).getResult();
+        }
 
       } catch (IOException e) {
         logger.logUserException(Level.SEVERE, e, "Could not read file");
@@ -346,7 +353,7 @@ public class CPAchecker {
         shutdownNotifier.unregister(interruptThreadOnShutdown);
       }
 
-      return new CPAcheckerResult(result.getFirst(), result.getSecond(), reached, stats);
+      return new CPAcheckerResult(result.getFirst(), result.getSecond(), algResult, reached, stats);
     }
   }
 

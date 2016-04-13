@@ -23,11 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core;
 
-import java.util.List;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
-
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -57,6 +52,8 @@ import org.sosy_lab.cpachecker.core.algorithm.pcc.AlgorithmWithPropertyCheck;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.PartialARGsCombiner;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerConfiguration;
 import org.sosy_lab.cpachecker.core.interfaces.AlgorithmIterationListener;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -69,6 +66,11 @@ import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.InterruptProvider;
+
+import java.util.List;
+import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 /**
  * Factory class for the three core components of CPAchecker:
@@ -253,6 +255,11 @@ public class CoreComponentsFactory {
 
       if (useAdjustableConditions) {
         algorithm = new RestartWithConditionsAlgorithm(algorithm, cpa, config, logger);
+      }
+
+      TigerConfiguration tigerConfig = new TigerConfiguration(config);
+      if (tigerConfig.useTigerAlgorithm) {
+        algorithm = new TigerAlgorithm(algorithm, cpa, shutdownManager, cfa, config, logger, programDenotation, stats, reachedSetFactory);
       }
 
       if (usePropertyCheckingAlgorithm) {

@@ -23,15 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 /** Represents a State in the automaton.
  */
@@ -41,7 +41,7 @@ public class AutomatonInternalState {
   private final int stateId = idGenerator.getFreshId();
 
   /** State representing BOTTOM */
-  static final AutomatonInternalState BOTTOM = new AutomatonInternalState("_predefinedState_BOTTOM", Collections.<AutomatonTransition>emptyList());
+  public static final AutomatonInternalState BOTTOM = new AutomatonInternalState("_predefinedState_BOTTOM", Collections.<AutomatonTransition>emptyList());
 
   /** State representing TOP */
   static final AutomatonInternalState TOP = new AutomatonInternalState("_predefinedState_TOP", Collections.<AutomatonTransition>emptyList());

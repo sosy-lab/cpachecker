@@ -23,7 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import java.util.Set;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+import com.google.common.base.Supplier;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multiset;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -43,13 +49,10 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.google.common.base.Supplier;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Multiset;
-import com.google.common.collect.Sets;
+import java.util.Map;
+import java.util.Set;
 
 @Options(prefix="cpa.automaton.prec")
 public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment {
@@ -150,11 +153,10 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
       default: stateOnHandledTarget = state;
     }
 
-    Set<SafetyProperty> exhaustedProperties = Sets.newHashSet();
+    Map<SafetyProperty, Optional<Region>> exhaustedProperties = Maps.newHashMap();
 
-    ImmutableSet<? extends SafetyProperty> encoded = automaton.getEncodedProperties();
-    ImmutableSet<SafetyProperty> disabled = pi.getBlacklist();
-
+    Set<? extends SafetyProperty> encoded = automaton.getEncodedProperties();
+    Set<? extends SafetyProperty> disabled = pi.getBlacklist().keySet();
     Set<? extends SafetyProperty> activeProperties = Sets.difference(encoded, disabled);
 
     if (activeProperties.isEmpty()) {
@@ -165,7 +167,7 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
 
     for (SafetyProperty p: activeProperties) {
       if (budgeting.get().isTransitionBudgedExhausted(p)) {
-        exhaustedProperties.add(p);
+        exhaustedProperties.put(p, Optional.<Region>absent()); // FIXME: Make it variability aware!
       }
     }
 
@@ -174,7 +176,7 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
 
       // A property might have already been disabled!
       //    Handling of blacklisted (disabled) states:
-      if (pi.getBlacklist().containsAll(state.getViolatedProperties())) {
+      if (pi.areBlackListed((Set<? extends SafetyProperty>) state.getViolatedProperties(), Optional.<Region>absent())) { // FIXME: Make it variability aware!
         return Optional.of(PrecisionAdjustmentResult.create(
             stateOnHandledTarget,
             pi, Action.CONTINUE));
@@ -188,15 +190,15 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
 
         for (SafetyProperty p: violated) {
           if (isPropertyBudgetExhausted(p)) {
-            exhaustedProperties.add(p);
+            exhaustedProperties.put(p, Optional.<Region>absent());
           }
         }
       }
     }
 
     if (exhaustedProperties.size() > 0) {
-      final AutomatonPrecision piPrime = pi.cloneAndAddBlacklisted(exhaustedProperties);
-      signalDisablingProperties(exhaustedProperties);
+      final AutomatonPrecision piPrime = pi.cloneAndAddBlacklisted(exhaustedProperties, null);
+      signalDisablingProperties(exhaustedProperties.keySet()); // FIXME: Make it variability aware!
 
       return Optional.of(PrecisionAdjustmentResult.create(
           state.isTarget() ? stateOnHandledTarget : inactiveState,

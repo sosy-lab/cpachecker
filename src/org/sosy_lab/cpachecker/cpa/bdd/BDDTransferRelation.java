@@ -23,19 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.math.BigInteger;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -89,11 +76,24 @@ import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.math.BigInteger;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 /** This Transfer Relation tracks variables and handles them as bitvectors. */
 @Options(prefix = "cpa.bdd")
@@ -115,6 +115,11 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   private final NamedRegionManager rmgr;
   private final PredicateManager predmgr;
   private final MachineModel machineModel;
+
+  /**
+   * All states for which (stateBDD AND globalConstraint) == FALSE will be ignored.
+   */
+  private Region globalConstraint;
 
   /** The Constructor of BDDVectorTransferRelation sets the NamedRegionManager
    * and the BitVectorManager. Both are used to build and manipulate BDDs,
@@ -146,6 +151,15 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       return Collections.emptyList();
     }
     return null;
+  }
+
+  /**
+   * Adds a constraint that must be satisfied after each transition.
+   * If it is not satisfied, the new state is ignored by the analysis.
+   * @param pConstraint
+   */
+  public void setGlobalConstraint(Region pConstraint) {
+    this.globalConstraint = pConstraint;
   }
 
   /** This function handles statements like "a = 0;" and "b = !a;" and

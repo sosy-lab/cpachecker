@@ -23,18 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import java.util.logging.Level;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
-interface AutomatonExpression {
+import java.util.logging.Level;
+
+public interface AutomatonExpression {
 
   ResultValue<?> eval(AutomatonExpressionArguments pArgs) throws CPATransferException;
 
-  static class StringExpression implements AutomatonExpression {
+  public static class StringExpression implements AutomatonExpression {
 
     public static StringExpression empty() {
       return new StringExpression("");

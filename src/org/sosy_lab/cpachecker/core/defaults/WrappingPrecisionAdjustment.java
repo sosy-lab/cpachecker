@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -30,10 +34,6 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
 
 /**
  * Base implementation for precision adjustment implementations wrap other
@@ -51,7 +51,7 @@ public abstract class WrappingPrecisionAdjustment implements PrecisionAdjustment
       AbstractState pState, Precision pPrecision,
       UnmodifiableReachedSet pStates,
       Function<AbstractState, AbstractState> pProjection,
-      AbstractState pFullState) throws CPAException;
+      AbstractState pFullState) throws CPAException, InterruptedException;
 
   @Override
   public final Optional<PrecisionAdjustmentResult> prec(

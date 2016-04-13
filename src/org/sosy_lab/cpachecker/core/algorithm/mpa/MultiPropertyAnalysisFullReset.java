@@ -25,16 +25,13 @@ package org.sosy_lab.cpachecker.core.algorithm.mpa;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
-import java.io.PrintStream;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.management.JMException;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
+import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.configuration.ClassOption;
@@ -90,13 +87,16 @@ import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.StatCpuTimer;
 import org.sosy_lab.cpachecker.util.statistics.Stats;
 import org.sosy_lab.cpachecker.util.statistics.Stats.Contexts;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
-import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import java.io.PrintStream;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.management.JMException;
 
 @Options(prefix="analysis.mpa")
 public final class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, StatisticsProvider, Statistics {
@@ -280,7 +280,7 @@ public final class MultiPropertyAnalysisFullReset implements MultiPropertyAlgori
     for (Precision p: Precisions.asIterable(prec)) {
       if (p instanceof AutomatonPrecision) {
         AutomatonPrecision ap = (AutomatonPrecision) p;
-        properties.removeAll(ap.getBlacklist());
+        properties.removeAll(ap.getBlacklist().keySet());
       }
     }
 

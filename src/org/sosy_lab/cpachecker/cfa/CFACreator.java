@@ -23,19 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.concurrency.Threads;
@@ -94,6 +84,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerConfiguration;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WrapperUtil;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
@@ -109,9 +102,19 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.VariableClassificationBuilder;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterables;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
@@ -460,7 +463,23 @@ private boolean classifyNodes = false;
       // FIRST, parse file(s) and create CFAs for each function
       logger.log(Level.FINE, "Starting parsing of file(s)");
 
-      final ParseResult c = parseToCFAs(sourceFiles);
+      TigerConfiguration tigerConfig = new TigerConfiguration(config);
+      boolean useTiger = tigerConfig.useTigerAlgorithm;
+
+      if (useTiger && (language != Language.C)) {
+        throw new InvalidConfigurationException("Tiger algorithm is only supported for C!");
+      }
+
+      if (useTiger) {
+        TigerAlgorithm.originalMainFunction = mainFunctionName;
+        mainFunctionName = WrapperUtil.CPAtiger_MAIN;
+      }
+
+      ParseResult c = parseToCFAs(sourceFiles);
+
+      if (useTiger) {
+        c = WrapperUtil.addWrapper((CParser) parser, c, new CSourceOriginMapping());
+      }
 
       logger.log(Level.FINE, "Parser Finished");
 

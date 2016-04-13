@@ -25,6 +25,16 @@ package org.sosy_lab.cpachecker.core;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
+
+import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.core.interfaces.PropertySummary;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
@@ -32,15 +42,6 @@ import java.util.List;
 import java.util.Set;
 
 import javax.annotation.Nullable;
-
-import org.sosy_lab.cpachecker.core.interfaces.Property;
-import org.sosy_lab.cpachecker.core.interfaces.PropertySummary;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-
-import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
 
 /**
  * Class that represents the result of a CPAchecker analysis.
@@ -56,6 +57,8 @@ public class CPAcheckerResult {
   public static enum Result { NOT_YET_STARTED, UNKNOWN, FALSE, TRUE }
 
   private final Result result;
+  private final AlgorithmResult algorithmResult;
+
   private final PropertySummary propertySummary;
 
   private final @Nullable ReachedSet reached;
@@ -66,12 +69,13 @@ public class CPAcheckerResult {
 
   CPAcheckerResult(Result pResult,
         PropertySummary pSummary,
+        @Nullable AlgorithmResult pAlgResult,
         @Nullable ReachedSet reached,
         @Nullable Statistics stats) {
 
     this.propertySummary = checkNotNull(pSummary);
     this.result = checkNotNull(pResult);
-
+    this.algorithmResult = pAlgResult;
     this.reached = reached;
     this.stats = stats;
   }
@@ -81,6 +85,10 @@ public class CPAcheckerResult {
    */
   public Result getResult() {
     return result;
+  }
+
+  public AlgorithmResult getAlgorithmResult() {
+    return algorithmResult;
   }
 
   /**

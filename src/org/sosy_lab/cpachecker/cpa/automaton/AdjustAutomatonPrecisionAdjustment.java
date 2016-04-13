@@ -23,7 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import java.util.List;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Table;
 
 import org.sosy_lab.cpachecker.core.defaults.WrappingPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -33,13 +38,9 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Table;
+import java.util.List;
 
 public class AdjustAutomatonPrecisionAdjustment extends WrappingPrecisionAdjustment {
 
@@ -52,7 +53,7 @@ public class AdjustAutomatonPrecisionAdjustment extends WrappingPrecisionAdjustm
   @Override
   protected Optional<PrecisionAdjustmentResult> wrappingPrec(AbstractState pState, Precision pPrecision,
       UnmodifiableReachedSet pStates, Function<AbstractState, AbstractState> pProjection, AbstractState pFullState)
-          throws CPAException {
+          throws CPAException, InterruptedException {
 
     final AutomatonState state = (AutomatonState) pState;
     final AutomatonPrecision pi = (AutomatonPrecision) pPrecision;
@@ -60,8 +61,10 @@ public class AdjustAutomatonPrecisionAdjustment extends WrappingPrecisionAdjustm
 
     List<AutomatonTransition> relevantTransitions = null;
 
+    //
+    // Which transitions of relevant for this automaton state with the given precision?
+    //    Determine them if not already cached
     relevantTransitions = relevanTransCache.get(state.getInternalState(), pi);
-
     if (relevantTransitions == null) {
       boolean hasIrrelevantTransitions = false;
 
@@ -77,7 +80,7 @@ public class AdjustAutomatonPrecisionAdjustment extends WrappingPrecisionAdjustm
         for (AutomatonTransition trans: state.getLeavingTransitions()) {
 
           ImmutableSet<? extends SafetyProperty> transProps = a.getIsRelevantForProperties(trans);
-          final boolean transRelevantForActiveProps = !(pi.getBlacklist().containsAll(transProps));
+          final boolean transRelevantForActiveProps = !(pi.areBlackListed(transProps, Optional.<Region>absent()));
 
           if (transRelevantForActiveProps) {
             relevantTransitions.add(trans);
@@ -94,6 +97,7 @@ public class AdjustAutomatonPrecisionAdjustment extends WrappingPrecisionAdjustm
       }
     }
 
+    // If a different number of transitions is relevant...
     if (relevantTransitions.size() != state.getLeavingTransitions().size()) {
       final AutomatonState adjustedState = AutomatonState.automatonStateFactory(
           state.getVars(), state.getInternalState(), relevantTransitions,
