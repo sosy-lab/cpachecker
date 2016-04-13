@@ -685,9 +685,10 @@ class InvariantsManager implements StatisticsProvider {
 
       BooleanFormula invariant =
           inductiveWeakeningMgr.findInductiveWeakening(
-              pBlockFormula.updateFormula(semiCNFConverter.convert(pBlockFormula.getFormula())),
-              loopFormula,
-              bfmgr.makeBoolean(true));
+              pBlockFormula.updateFormula(bfmgr.and(semiCNFConverter.toLemmas
+                  (pBlockFormula
+                  .getFormula()))),
+              loopFormula);
 
       if (bfmgr.isTrue(invariant)) {
         logger.log(Level.FINER, "Invariant for location", pLocation, "is true, ignoring it");
@@ -708,7 +709,10 @@ class InvariantsManager implements StatisticsProvider {
     try {
       stats.pfKindTime.start();
 
-      BooleanFormula cnfFormula = semiCNFConverter.convert(pPathFormula.getFormula());
+      BooleanFormula cnfFormula = bfmgr.and(semiCNFConverter.toLemmas
+          (pPathFormula
+          .getFormula
+          ()));
       Collection<BooleanFormula> conjuncts =
           bfmgr.visit(
               new DefaultBooleanFormulaVisitor<List<BooleanFormula>>() {
