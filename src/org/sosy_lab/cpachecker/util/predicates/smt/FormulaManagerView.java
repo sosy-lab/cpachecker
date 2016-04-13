@@ -1402,13 +1402,14 @@ public class FormulaManagerView {
    */
   public boolean isIntermediate(String varName, SSAMap ssa) {
     Pair<String, Integer> p = parseName(varName);
+    String name = p.getFirst();
     Integer idx = p.getSecond();
     if (idx == null) {
       if (ssa.containsVariable(varName)) {
         return true;
       }
     } else {
-      if (idx != ssa.getIndex(varName)) {
+      if (idx != ssa.getIndex(name)) {
         return true;
       }
     }
