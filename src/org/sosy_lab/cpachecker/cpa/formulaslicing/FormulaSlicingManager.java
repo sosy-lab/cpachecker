@@ -255,23 +255,22 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
   private Optional<SlicingAbstractedState> performSlicing(
       final SlicingIntermediateState iState,
-      final SlicingAbstractedState oldState
+      final SlicingAbstractedState prevToMerge
   ) throws CPAException, InterruptedException {
-    SlicingAbstractedState out = slicingCache.get(Pair.of(iState, oldState));
+    SlicingAbstractedState out = slicingCache.get(Pair.of(iState, prevToMerge));
     if (out != null) {
       return Optional.of(out);
     }
 
-    final SlicingAbstractedState fromState = iState.getAbstractParent();
+    final SlicingAbstractedState parentState = iState.getAbstractParent();
 
     Set<BooleanFormula> candidateLemmas = Sets.filter(
-        fromState.getAbstraction(),
+        prevToMerge.getAbstraction(),
         new Predicate<BooleanFormula>() {
           @Override
           public boolean apply(BooleanFormula input) {
-            return fromState.getAbstraction().contains(input) &&
-                allVarsInSSAMap(input,
-                    oldState.getSSA(),
+            return allVarsInSSAMap(input,
+                    prevToMerge.getSSA(),
                     iState.getPathFormula().getSsa());
           }
         });
@@ -279,14 +278,14 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     PathFormulaWithStartSSA path =
         new PathFormulaWithStartSSA(iState.getPathFormula(), iState
             .getAbstractParent().getSSA());
-    if (oldState == fromState) {
+    if (prevToMerge == parentState) {
 
       // TODO: optimization can be extended to nested loops
       // as well.
-      if (fromState.getInductiveUnder().contains(path)) {
+      if (parentState.getInductiveUnder().contains(path)) {
 
         // Optimization for non-nested loops.
-        return Optional.of(SlicingAbstractedState.copyOf(fromState));
+        return Optional.of(SlicingAbstractedState.copyOf(parentState));
       }
     }
 
@@ -297,10 +296,10 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     }
     try {
       statistics.inductiveWeakening.start();
-      if (fromState != oldState) {
+      if (parentState != prevToMerge) {
         finalClauses = inductiveWeakeningManager.findInductiveWeakeningForRCNF(
-            fromState.getSSA(),
-            fromState.getAbstraction(),
+            parentState.getSSA(),
+            parentState.getAbstraction(),
             iState.getPathFormula(),
             candidateLemmas
         );
@@ -309,12 +308,12 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
         // No nested loops: remove lemmas on both sides.
         finalClauses = inductiveWeakeningManager.findInductiveWeakeningForRCNF(
-            fromState.getSSA(),
+            parentState.getSSA(),
             iState.getPathFormula(),
             candidateLemmas
         );
         inductiveUnder = Sets.union(
-            fromState.getInductiveUnder(), ImmutableSet.of(path)
+            parentState.getInductiveUnder(), ImmutableSet.of(path)
         );
       }
     } catch (SolverException pE) {
@@ -327,14 +326,14 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
         finalClauses,
         // It is crucial to use the previous SSA so that PathFormulas stay
         // the same and can be cached.
-        oldState.getSSA(),
+        prevToMerge.getSSA(),
         iState.getPathFormula().getPointerTargetSet(),
         fmgr,
         iState.getNode(),
         Optional.of(iState),
         inductiveUnder
     );
-    slicingCache.put(Pair.of(iState, oldState), out);
+    slicingCache.put(Pair.of(iState, prevToMerge), out);
     return Optional.of(out);
   }
 
