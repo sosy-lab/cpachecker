@@ -25,17 +25,20 @@ public class SyntacticWeakeningManager {
    * In that case, \phi is exactly the same as \phi',
    * and the formula should be unsatisfiable.
    *
-   * @param selectionInfo selection variable -> corresponding atom (instantiated
-   * with unprimed SSA).
+   * @param selectionInfo selection variable -> corresponding lemma
+   *                      (instantiated with unprimed SSA).
    * @param transition Transition with respect to which the weakening must be inductive.
-   *
    *
    * @return Set of selectors which correspond to atoms which *should*
    *         be abstracted.
    */
   public Set<BooleanFormula> performWeakening(
+
+      // todo: allow to only operate on those lemmas which occur both in the
+      // {@code fromState} and in the {@code toState}.
       Map<BooleanFormula, BooleanFormula> selectionInfo,
-      PathFormula transition) {
+      PathFormula transition
+  ) {
     Set<BooleanFormula> out = new HashSet<>();
     for (Entry<BooleanFormula, BooleanFormula> e : selectionInfo.entrySet()) {
       BooleanFormula selector = e.getKey();
@@ -45,12 +48,9 @@ public class SyntacticWeakeningManager {
       // transition.
       Set<String> deadVars = fmgr.getDeadFunctionNames(atom, transition.getSsa());
 
-      // I don't even understand now why this is valid.
-      // Dead vars is not empty
-      if (!deadVars.isEmpty()
-          // todo: remove this hack
-          ||  atom.toString().contains("z3name")
-          ) {
+      if (!deadVars.isEmpty()) {
+
+        // Abstract away the selectors where the associated atoms have changed.
         out.add(selector);
       }
     }
