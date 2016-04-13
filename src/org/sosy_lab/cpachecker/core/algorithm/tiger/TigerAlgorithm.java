@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -123,6 +124,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.cpa.automaton.PowersetAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.ReducedAutomatonProduct;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDCPA;
+import org.sosy_lab.cpachecker.cpa.bdd.BDDTransferRelation;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionRefinementStrategy;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -369,11 +371,11 @@ public class TigerAlgorithm
   private String programDenotation;
   private MainCPAStatistics stats;
   private int testCaseId = 0;
-  private int partitionId = 0;
 
   NamedRegionManager bddCpaNamedRegionManager = null;
 
   private TestGoalUtils testGoalUtils = null;
+  private Map<CFAEdge, Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>>> edgeToTgaMapping;
 
   private final ReachedSetFactory reachedSetFactory;
 
@@ -417,6 +419,8 @@ public class TigerAlgorithm
     mAlphaLabel = new GuardedEdgeLabel(new SingletonECPEdgeSet(wrapper.getAlphaEdge()));
     mInverseAlphaLabel = new InverseGuardedEdgeLabel(mAlphaLabel);
     mOmegaLabel = new GuardedEdgeLabel(new SingletonECPEdgeSet(wrapper.getOmegaEdge()));
+
+   edgeToTgaMapping = new HashMap<>();
 
     testGoalUtils = new TestGoalUtils(logger, useTigerAlgorithm_with_pc, bddCpaNamedRegionManager, mAlphaLabel,
         mInverseAlphaLabel, mOmegaLabel);
@@ -478,6 +482,8 @@ public class TigerAlgorithm
 
     Set<Goal> goalsToCover = testGoalUtils.extractTestGoalPatterns(fqlSpecification, lGoalPrediction,
         lInfeasibilityPropagation, mCoverageSpecificationTranslator, optimizeGoalAutomata, useOmegaLabel);
+    fillEdgeToTgaMapping(goalsToCover);
+
     statistics_numberOfTestGoals = goalsToCover.size();
     logger.logf(Level.INFO, "Number of test goals: %d", statistics_numberOfTestGoals);
 
@@ -503,6 +509,29 @@ public class TigerAlgorithm
       return AlgorithmStatus.SOUND_AND_PRECISE;
     } else {
       return AlgorithmStatus.UNSOUND_AND_PRECISE;
+    }
+  }
+
+  private void fillEdgeToTgaMapping(Set<Goal> pGoalsToCover) {
+    for (Goal goal : pGoalsToCover) {
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> automaton = goal.getAutomaton();
+      for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge edge : automaton.getEdges()) {
+        if (edge.getSource().equals(edge.getTarget())) {
+          continue;
+        }
+
+        GuardedEdgeLabel label = edge.getLabel();
+        Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>> tgaSet = edgeToTgaMapping.get(label);
+
+        if (tgaSet == null) {
+          tgaSet = new HashSet<>();
+          for (CFAEdge e : label.getEdgeSet()) {
+            edgeToTgaMapping.put(e, tgaSet);
+          }
+        }
+
+        tgaSet.add(automaton);
+      }
     }
   }
 
@@ -602,7 +631,6 @@ public class TigerAlgorithm
           Set<Goal> goalsToBeProcessed = nextTestGoalSet(pGoalsToCover, testsuite);
           statistics_numberOfProcessedTestGoals += goalsToBeProcessed.size();
           pGoalsToCover.removeAll(goalsToBeProcessed);
-          partitionId++;
 
           if (useTigerAlgorithm_with_pc) {
             /* force that a new reachedSet is computed when first starting on a new TestGoal with initial PC TRUE.
@@ -621,8 +649,8 @@ public class TigerAlgorithm
           logString = logString.substring(0, logString.length() - 2);
 
           if (useTigerAlgorithm_with_pc) {
-            Region remainingPresenceCondition =
-                BDDUtils.composeRemainingPresenceConditions(goalsToBeProcessed, testsuite, bddCpaNamedRegionManager);
+//            Region remainingPresenceCondition =
+//                BDDUtils.composeRemainingPresenceConditions(goalsToBeProcessed, testsuite, bddCpaNamedRegionManager);
             logger.logf(Level.INFO, "%s of %d for a PC.", logString, numberOfTestGoals);
           } else {
             logger.logf(Level.INFO, "%s of %d.", logString, numberOfTestGoals);
@@ -713,7 +741,115 @@ public class TigerAlgorithm
     return null;
   }
 
-  private Set<Goal> updateTestsuiteByCoverageOf(TestCase pTestcase, Collection<Goal> pCheckCoverageOf) {
+  private Set<Goal> updateTestsuiteByCoverageOf(TestCase pTestcase, Set<Goal> pCheckCoverageOf) {
+    try (StatCpuTimer t = tigerStats.updateTestsuiteByCoverageOfTime.start()) {
+      Set<Goal> checkCoverageOf = new HashSet<>();
+      checkCoverageOf.addAll(pCheckCoverageOf);
+
+      Set<Goal> coveredGoals = Sets.newLinkedHashSet();
+      Set<Goal> goalsCoveredByLastState = Sets.newLinkedHashSet();
+
+      ARGState lastState = pTestcase.getArgPath().getLastState();
+      for (Property p : lastState.getViolatedProperties()) {
+        Preconditions.checkState(p instanceof Goal);
+        goalsCoveredByLastState.add((Goal) p);
+      }
+
+      checkCoverageOf.removeAll(goalsCoveredByLastState);
+
+      for (Goal goal : pCheckCoverageOf) {
+        if (!allCoveredGoalsPerTestCase && testsuite.isGoalCovered(goal)) {
+          checkCoverageOf.remove(goal);
+        }
+      }
+
+      Map<NondeterministicFiniteAutomaton<GuardedEdgeLabel>, AcceptStatus> acceptStati =
+          accepts(checkCoverageOf, pTestcase.getErrorPath());
+
+      for (Goal goal : goalsCoveredByLastState) {
+        AcceptStatus acceptStatus = new AcceptStatus(goal);
+        acceptStatus.answer = ThreeValuedAnswer.ACCEPT;
+        acceptStati.put(goal.getAutomaton(), acceptStatus);
+      }
+
+      for (NondeterministicFiniteAutomaton<GuardedEdgeLabel> automaton : acceptStati.keySet()) {
+        AcceptStatus acceptStatus = acceptStati.get(automaton);
+        Goal goal = acceptStatus.goal;
+
+        if (acceptStatus.answer.equals(ThreeValuedAnswer.UNKNOWN)) {
+          logger.logf(Level.WARNING, "Coverage check for goal %d could not be performed in a precise way!",
+              goal.getIndex());
+          continue;
+        } else if (acceptStatus.answer.equals(ThreeValuedAnswer.REJECT)) {
+          continue;
+        }
+
+        // test goal is already covered by an existing test case
+        if (useTigerAlgorithm_with_pc) {
+
+          final ARGState criticalState = findStateAfterCriticalEdge(goal, pTestcase.getArgPath());
+
+          if (criticalState == null) {
+            Path argFile = Paths.get("output",
+                "ARG_goal_criticalIsNull_" + Integer.toString(goal.getIndex()) + ".dot");
+
+            final Set<Pair<ARGState, ARGState>> allTargetPathEdges = Sets.newLinkedHashSet();
+            allTargetPathEdges.addAll(pTestcase.getArgPath().getStatePairs());
+
+            try (Writer w = Files.openOutputFile(argFile)) {
+              ARGToDotWriter.write(w, (ARGState) reachedSet.getFirstState(),
+                  ARGUtils.CHILDREN_OF_STATE,
+                  Predicates.alwaysTrue(),
+                  Predicates.in(allTargetPathEdges));
+            } catch (IOException e) {
+              logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
+            }
+
+            throw new RuntimeException(
+                "Each ARG path of a counterexample must be along a critical edge! None for edge "
+                    + goal.getCriticalEdge());
+          }
+
+          Preconditions.checkState(criticalState != null,
+              "Each ARG path of a counterexample must be along a critical edge!");
+
+          Region statePresenceCondition = BDDUtils.getRegionFromWrappedBDDstate(criticalState);
+          Preconditions.checkState(statePresenceCondition != null,
+              "Each critical state must be annotated with a presence condition!");
+
+          if (allCoveredGoalsPerTestCase
+              || !bddCpaNamedRegionManager
+                  .makeAnd(testsuite.getRemainingPresenceCondition(goal), statePresenceCondition)
+                  .isFalse()) {
+
+            // configurations in testGoalPCtoCover and testcase.pc have a non-empty intersection
+
+            testsuite.addTestCase(pTestcase, goal, statePresenceCondition);
+
+            logger.logf(Level.WARNING,
+                "Covered some PCs for Goal %d (%s) for a PC by test case %d!",
+                goal.getIndex(), testsuite.getTestGoalLabel(goal), pTestcase.getId());
+
+            if (testsuite.getRemainingPresenceCondition(goal).isFalse()) {
+              coveredGoals.add(goal);
+            }
+          }
+
+        } else {
+          testsuite.addTestCase(pTestcase, goal, null);
+          logger.logf(Level.WARNING, "Covered Goal %d (%s) by test case %d!",
+              goal.getIndex(),
+              testsuite.getTestGoalLabel(goal),
+              pTestcase.getId());
+          coveredGoals.add(goal);
+        }
+      }
+
+      return coveredGoals;
+    }
+  }
+
+  private Set<Goal> updateTestsuiteByCoverageOf1(TestCase pTestcase, Collection<Goal> pCheckCoverageOf) {
     try (StatCpuTimer t = tigerStats.updateTestsuiteByCoverageOfTime.start()) {
 
       Set<Goal> coveredGoals = Sets.newLinkedHashSet();
@@ -799,6 +935,104 @@ public class TigerAlgorithm
       }
 
       return coveredGoals;
+    }
+  }
+
+  private class AcceptStatus {
+
+    private Goal goal;
+    private NondeterministicFiniteAutomaton<GuardedEdgeLabel> automaton;
+    private Set<NondeterministicFiniteAutomaton.State> currentStates;
+    boolean hasPredicates;
+    private ThreeValuedAnswer answer;
+
+    public AcceptStatus(Goal pGoal) {
+      goal = pGoal;
+      automaton = pGoal.getAutomaton();
+      currentStates = Sets.newLinkedHashSet();
+      hasPredicates = false;
+
+      currentStates.add(automaton.getInitialState());
+    }
+
+  }
+
+  private Map<NondeterministicFiniteAutomaton<GuardedEdgeLabel>, AcceptStatus> accepts(
+      Collection<Goal> pGoals, List<CFAEdge> pErrorPath) {
+    try (StatCpuTimer t = tigerStats.acceptsTime.start()) {
+
+      Map<NondeterministicFiniteAutomaton<GuardedEdgeLabel>, AcceptStatus> map = new HashMap<>();
+      Set<NondeterministicFiniteAutomaton.State> lNextStates = Sets.newLinkedHashSet();
+
+      Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>> automataWithResult = new HashSet<>();
+
+      for (Goal goal : pGoals) {
+        AcceptStatus acceptStatus = new AcceptStatus(goal);
+        map.put(goal.getAutomaton(), acceptStatus);
+        if (acceptStatus.automaton.getFinalStates().contains(acceptStatus.automaton.getInitialState())) {
+          acceptStatus.answer = ThreeValuedAnswer.ACCEPT;
+          automataWithResult.add(acceptStatus.automaton);
+        }
+      }
+
+      for (CFAEdge lCFAEdge : pErrorPath) {
+        Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>> automata = edgeToTgaMapping.get(lCFAEdge);
+        if (automata == null) {
+          continue;
+        }
+
+        for (NondeterministicFiniteAutomaton<GuardedEdgeLabel> automaton : automata) {
+          if (automataWithResult.contains(automaton)) {
+            continue;
+          }
+
+          AcceptStatus acceptStatus = map.get(automaton);
+          if (acceptStatus == null) {
+            continue;
+          }
+          for (NondeterministicFiniteAutomaton.State lCurrentState : acceptStatus.currentStates) {
+            for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lOutgoingEdge : automaton
+                .getOutgoingEdges(lCurrentState)) {
+              GuardedEdgeLabel lLabel = lOutgoingEdge.getLabel();
+
+              if (lLabel.hasGuards()) {
+                acceptStatus.hasPredicates = true;
+              } else {
+                if (lLabel.contains(lCFAEdge)) {
+                  lNextStates.add(lOutgoingEdge.getTarget());
+                  lNextStates.addAll(getSuccsessorsOfEmptyTransitions(automaton, lOutgoingEdge.getTarget()));
+
+                  for (State nextState : lNextStates) {
+                    // Automaton accepts as soon as it sees a final state (implicit self-loop)
+                    if (automaton.getFinalStates().contains(nextState)) {
+                      acceptStatus.answer = ThreeValuedAnswer.ACCEPT;
+                      automataWithResult.add(automaton);
+                    }
+                  }
+                }
+              }
+            }
+          }
+
+          acceptStatus.currentStates.addAll(lNextStates);
+          lNextStates.clear();
+        }
+      }
+
+      for (NondeterministicFiniteAutomaton<GuardedEdgeLabel> autom : map.keySet()) {
+        if (automataWithResult.contains(autom)) {
+          continue;
+        }
+
+        AcceptStatus accepts = map.get(autom);
+        if (accepts.hasPredicates) {
+          accepts.answer = ThreeValuedAnswer.UNKNOWN;
+        } else {
+          accepts.answer = ThreeValuedAnswer.REJECT;
+        }
+      }
+
+      return map;
     }
   }
 
@@ -1070,11 +1304,12 @@ public class TigerAlgorithm
       } else if (cpa instanceof BDDCPA) {
         bddcpa = (BDDCPA) cpa;
       }
-  //    if (bddcpa.getTransferRelation() instanceof BDDTransferRelation) {
-  //      ((BDDTransferRelation) bddcpa.getTransferRelation()).setGlobalConstraint(pRemainingPresenceCondition);
-  //      logger.logf(Level.INFO, "Restrict BDD to %s.",
-  //          bddCpaNamedRegionManager.dumpRegion(pRemainingPresenceCondition));
-  //    }
+      if (bddcpa.getTransferRelation() instanceof BDDTransferRelation) {
+        ((BDDTransferRelation) bddcpa.getTransferRelation()).setGlobalConstraint(pRemainingPresenceCondition);
+        logger.logf(Level.INFO, "Restrict global BDD.");
+//        logger.logf(Level.INFO, "Restrict BDD to %s.",
+//            bddCpaNamedRegionManager.dumpRegion(pRemainingPresenceCondition));
+      }
     }
   }
 
@@ -1221,8 +1456,10 @@ public class TigerAlgorithm
 
       final RichModel model = pCex.getTargetPathModel();
       final List<BigInteger> inputValues = calculateInputValues(model);
-      final Pair<TreeSet<Entry<AssignableTerm, Object>>, TreeSet<Entry<AssignableTerm, Object>>> inputsAndOutputs = calculateInputAndOutputValues(model);
-      final List<TestStep> testSteps = calculateTestSteps(model, pCex);
+//      final Pair<TreeSet<Entry<AssignableTerm, Object>>, TreeSet<Entry<AssignableTerm, Object>>> inputsAndOutputs = calculateInputAndOutputValues(model);
+      final Pair<TreeSet<Entry<AssignableTerm, Object>>, TreeSet<Entry<AssignableTerm, Object>>> inputsAndOutputs = null;
+//      final List<TestStep> testSteps = calculateTestSteps(model, pCex);
+      final List<TestStep> testSteps = null;
 
       TestCase testcase = new TestCase(testCaseId++,
           testSteps,

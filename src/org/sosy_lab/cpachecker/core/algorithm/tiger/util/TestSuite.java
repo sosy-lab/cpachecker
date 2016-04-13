@@ -248,19 +248,27 @@ public class TestSuite extends AlgorithmResult {
 
     for (TestCase testcase : testcases) {
       str.append(testcase.toString() + "\n");
-      str.append("Inputs:\n");
-      TreeSet<Entry<AssignableTerm, Object>> inputs = testcase.getInputsAndOutputs().getFirst();
-      Collection<Entry<AssignableTerm, Object>> lastInputs = getLastAssignments(inputs);
-      for (Entry<AssignableTerm, Object> input : lastInputs) {
-        Pair<String, Integer> nameAndSsaIndex = parseVariableName(input.getKey().getName());
-        str.append(nameAndSsaIndex.getFirst() + ": " + input.getValue() + "\n");
-      }
-      str.append("Outputs:\n");
-      TreeSet<Entry<AssignableTerm, Object>> outputs = testcase.getInputsAndOutputs().getSecond();
-      Collection<Entry<AssignableTerm, Object>> lastOutputs = getLastAssignments(outputs);
-      for (Entry<AssignableTerm, Object> output : lastOutputs) {
-        Pair<String, Integer> nameAndSsaIndex = parseVariableName(output.getKey().getName());
-        str.append(nameAndSsaIndex.getFirst() + ": " + output.getValue() + "\n");
+      Pair<TreeSet<Entry<AssignableTerm, Object>>, TreeSet<Entry<AssignableTerm, Object>>> inputsAndOutputs =
+          testcase.getInputsAndOutputs();
+      if (inputsAndOutputs != null) {
+        TreeSet<Entry<AssignableTerm, Object>> inputs = inputsAndOutputs.getFirst();
+        if (inputs != null) {
+          str.append("Inputs:\n");
+          Collection<Entry<AssignableTerm, Object>> lastInputs = getLastAssignments(inputs);
+          for (Entry<AssignableTerm, Object> input : lastInputs) {
+            Pair<String, Integer> nameAndSsaIndex = parseVariableName(input.getKey().getName());
+            str.append(nameAndSsaIndex.getFirst() + ": " + input.getValue() + "\n");
+          }
+        }
+        TreeSet<Entry<AssignableTerm, Object>> outputs = inputsAndOutputs.getSecond();
+        if (outputs != null) {
+          str.append("Outputs:\n");
+          Collection<Entry<AssignableTerm, Object>> lastOutputs = getLastAssignments(outputs);
+          for (Entry<AssignableTerm, Object> output : lastOutputs) {
+            Pair<String, Integer> nameAndSsaIndex = parseVariableName(output.getKey().getName());
+            str.append(nameAndSsaIndex.getFirst() + ": " + output.getValue() + "\n");
+          }
+        }
       }
       List<CFAEdge> errorPath = testcase.getErrorPath();
       if (testcase.getGenerationTime() != -1) {
