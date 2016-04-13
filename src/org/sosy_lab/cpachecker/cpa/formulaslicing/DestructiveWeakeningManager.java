@@ -11,6 +11,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.SolverException;
@@ -75,12 +76,13 @@ public class DestructiveWeakeningManager {
       BooleanFormula fromState,
       PathFormula transition,
       BooleanFormula toState,
-      Set<BooleanFormula> selectorsWithIntermediate
+      Set<BooleanFormula> selectorsWithIntermediate,
+      SSAMap fromSSA
   ) throws SolverException, InterruptedException {
     Set<BooleanFormula> selectorsToAbstractOverApproximation;
     if (preRunSyntacticWeakening) {
       selectorsToAbstractOverApproximation = swmgr.performWeakening(
-          selectionsVarsInfo, transition);
+          fromSSA, selectionsVarsInfo, transition);
     } else {
       selectorsToAbstractOverApproximation = selectionsVarsInfo.keySet();
     }

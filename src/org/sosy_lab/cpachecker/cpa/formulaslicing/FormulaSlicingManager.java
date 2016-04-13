@@ -159,10 +159,8 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
         AbstractStates.IS_TARGET_STATE).iterator().hasNext();
     boolean shouldPerformAbstraction = shouldPerformAbstraction(
         iState.getNode(), pFullState);
-    if (hasTargetState && checkTargetStates) {
-      if (isUnreachable(iState)) {
-        return Optional.absent();
-      }
+    if (hasTargetState && checkTargetStates && isUnreachable(iState)) {
+      return Optional.absent();
     }
 
     if (shouldPerformAbstraction) {
