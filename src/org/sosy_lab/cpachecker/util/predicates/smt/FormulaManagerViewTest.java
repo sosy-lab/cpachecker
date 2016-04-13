@@ -25,7 +25,12 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import java.util.Set;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import com.google.common.truth.Truth;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -37,30 +42,28 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.solver.SolverContextFactory.Solvers;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BitvectorFormulaManager;
 import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.FormulaType.NumeralType;
 import org.sosy_lab.solver.api.NumeralFormula;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.NumeralFormulaManager;
 import org.sosy_lab.solver.test.SolverBasedTest0;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.google.common.truth.Truth;
+import java.util.Set;
 
 @RunWith(Parameterized.class)
 public class FormulaManagerViewTest extends SolverBasedTest0 {
 
-  @Parameters(name="{0}")
+  @Parameters(name = "{0}")
   public static Object[] getAllSolvers() {
     return Solvers.values();
   }
@@ -76,6 +79,7 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
   private FormulaManagerView mgrv;
   private BooleanFormulaManagerView bmgrv;
   private IntegerFormulaManagerView imgrv;
+  private FunctionFormulaManagerView fmgrv;
 
   @Before
   public void setUp() throws InvalidConfigurationException {
@@ -89,9 +93,12 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
         viewConfig, TestLogManager.getInstance());
     bmgrv = mgrv.getBooleanFormulaManager();
     imgrv = mgrv.getIntegerFormulaManager();
+    fmgrv = mgrv.getFunctionFormulaManager();
   }
 
-  /** strip the most outer NOT, if there is one, else return the formula unchanged. */
+  /**
+   * strip the most outer NOT, if there is one, else return the formula unchanged.
+   */
   private BooleanFormula stripNot(final BooleanFormula f) {
     return mgrv.stripNegation(f).or(f);
   }
@@ -108,7 +115,8 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
         bmgrv.and(atom1, atom2), bmgrv.and(atom1, atom3), atom4, atom5));
 
     assertThat(mgrv.extractAtoms(f, false))
-        .containsExactly(stripNot(atom1), stripNot(atom2), stripNot(atom3), stripNot(atom4), stripNot(atom5));
+        .containsExactly(stripNot(atom1), stripNot(atom2), stripNot(atom3), stripNot(atom4),
+            stripNot(atom5));
   }
 
   private void testExtractAtoms_SplitEqualities(
@@ -120,7 +128,8 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
         bmgrv.and(atom1, atom2), bmgrv.and(atom1, atom3), atom4, atom5));
 
     Set<BooleanFormula> atoms = mgrv.extractAtoms(f, true);
-    Set<BooleanFormula> expected = ImmutableSet.of(stripNot(atom1), stripNot(atom2), stripNot(atom3), stripNot(atom4), stripNot(atom5));
+    Set<BooleanFormula> expected = ImmutableSet
+        .of(stripNot(atom1), stripNot(atom2), stripNot(atom3), stripNot(atom4), stripNot(atom5));
 
     // Assert that atoms contains all of atom1-5
     // and another atom that is equivalent to atom1ineq
@@ -156,13 +165,19 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
     testExtractAtoms_SplitEqualities_numeral(rmgr);
   }
 
-  private void testExtractAtoms_SplitEqualities_bitvectors(BitvectorFormulaManager bvmgr) throws SolverException, InterruptedException {
+  private void testExtractAtoms_SplitEqualities_bitvectors(BitvectorFormulaManager bvmgr)
+      throws SolverException, InterruptedException {
     BooleanFormula atom1 = bvmgr.equal(bvmgr.makeVariable(32, "a"), bvmgr.makeBitvector(32, 1));
-    BooleanFormula atom1ineq = bvmgr.lessOrEquals(bvmgr.makeVariable(32, "a"), bvmgr.makeBitvector(32, 1), false);
-    BooleanFormula atom2 = bvmgr.greaterThan(bvmgr.makeVariable(32, "b"), bvmgr.makeBitvector(32, 2), false);
-    BooleanFormula atom3 = bvmgr.greaterOrEquals(bvmgr.makeVariable(32, "c"), bvmgr.makeBitvector(32, 3), false);
-    BooleanFormula atom4 = bvmgr.lessThan(bvmgr.makeVariable(32, "d"), bvmgr.makeBitvector(32, 4), false);
-    BooleanFormula atom5 = bvmgr.lessOrEquals(bvmgr.makeVariable(32, "e"), bvmgr.makeBitvector(32, 5), false);
+    BooleanFormula atom1ineq =
+        bvmgr.lessOrEquals(bvmgr.makeVariable(32, "a"), bvmgr.makeBitvector(32, 1), false);
+    BooleanFormula atom2 =
+        bvmgr.greaterThan(bvmgr.makeVariable(32, "b"), bvmgr.makeBitvector(32, 2), false);
+    BooleanFormula atom3 =
+        bvmgr.greaterOrEquals(bvmgr.makeVariable(32, "c"), bvmgr.makeBitvector(32, 3), false);
+    BooleanFormula atom4 =
+        bvmgr.lessThan(bvmgr.makeVariable(32, "d"), bvmgr.makeBitvector(32, 4), false);
+    BooleanFormula atom5 =
+        bvmgr.lessOrEquals(bvmgr.makeVariable(32, "e"), bvmgr.makeBitvector(32, 5), false);
 
     testExtractAtoms_SplitEqualities(atom1, atom1ineq, atom2, atom3, atom4, atom5);
   }
@@ -174,14 +189,16 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
   }
 
   @Test
-  public void testExtractAtoms_SplitEqualities_bvReplaceByInt() throws SolverException, InterruptedException {
+  public void testExtractAtoms_SplitEqualities_bvReplaceByInt()
+      throws SolverException, InterruptedException {
     // BitvectorFormulaManagerView here!
     testExtractAtoms_SplitEqualities_bitvectors(mgrv.getBitvectorFormulaManager());
   }
 
   private void assertIsConjunctive(BooleanFormula f) {
     if (!mgrv.isPurelyConjunctive(f)) {
-      Truth.assert_().fail("Formula <%s> is not detected as purely conjunctive but it should be.", f);
+      Truth.assert_()
+          .fail("Formula <%s> is not detected as purely conjunctive but it should be.", f);
     }
   }
 
@@ -223,13 +240,15 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
   @Test
   public void testIsPurelyConjunctive_Equivalence() {
     assertIsNotConjunctive(bmgrv.equivalence(bmgrv.makeVariable("a"), bmgrv.makeVariable("b")));
-    assertIsNotConjunctive(bmgr.not(bmgrv.equivalence(bmgrv.makeVariable("a"), bmgrv.makeVariable("b"))));
+    assertIsNotConjunctive(
+        bmgr.not(bmgrv.equivalence(bmgrv.makeVariable("a"), bmgrv.makeVariable("b"))));
   }
 
   @Test
   public void testIsPurelyConjunctive_Implication() {
     assertIsNotConjunctive(bmgrv.implication(bmgrv.makeVariable("a"), bmgrv.makeVariable("b")));
-    assertIsNotConjunctive(bmgr.not(bmgrv.implication(bmgrv.makeVariable("a"), bmgrv.makeVariable("b"))));
+    assertIsNotConjunctive(
+        bmgr.not(bmgrv.implication(bmgrv.makeVariable("a"), bmgrv.makeVariable("b"))));
   }
 
   @Test
@@ -240,12 +259,14 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
 
   @Test
   public void testIsPurelyConjunctive_BooleanIfThenElse() {
-    assertIsNotConjunctive(bmgrv.ifThenElse(bmgrv.makeVariable("a"), bmgrv.makeVariable("b"), bmgrv.makeVariable("c")));
+    assertIsNotConjunctive(bmgrv
+        .ifThenElse(bmgrv.makeVariable("a"), bmgrv.makeVariable("b"), bmgrv.makeVariable("c")));
   }
 
   @Test
   public void testIsPurelyConjunctive_IfThenElse() {
-    IntegerFormula ifThenElse = bmgrv.ifThenElse(bmgrv.makeVariable("a"), imgr.makeNumber(0), imgr.makeNumber(1));
+    IntegerFormula ifThenElse =
+        bmgrv.ifThenElse(bmgrv.makeVariable("a"), imgr.makeNumber(0), imgr.makeNumber(1));
     BooleanFormula atom = imgr.equal(imgr.makeVariable("x"), ifThenElse);
     assertIsNotConjunctive(atom);
     assertIsNotConjunctive(bmgrv.not(atom));
@@ -332,5 +353,78 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
     BooleanFormula r2 = mgrv.uninstantiate(pInstantiated);
     assertThatFormula(r2).isEquivalentTo(pUninstantiated);
     assertThat(r2.toString()).isEqualTo(pUninstantiated.toString());
+  }
+
+  @Test
+  public void testCanonicalForm() {
+    BooleanFormula input = bmgr.and(
+        imgrv.equal(
+            imgr.makeVariable("x@5"),
+            imgrv.makeNumber(1)
+        ),
+        imgrv.equal(
+            imgr.makeVariable("x@6"),
+            imgr.makeVariable("x@7")
+        ),
+        imgrv.equal(
+            imgr.makeVariable("y@1"),
+            imgr.makeVariable("y@2")
+        ),
+        imgrv.equal(
+            imgr.makeVariable("y@3"),
+            imgr.makeVariable("y@4")
+        ),
+        imgrv.equal(
+            imgrv.makeNumber(2),
+            fmgrv.declareAndCallUF(
+                "uf@10",
+                FormulaType.IntegerType,
+                imgr.makeVariable("x@4")
+            )
+        ),
+        bmgrv.makeVariable("NOIDX")
+    );
+
+    BooleanFormula expectedCanonical = bmgr.and(
+        imgrv.equal(
+            imgr.makeVariable("x@2"),
+            imgrv.makeNumber(1)
+        ),
+        imgrv.equal(
+            imgr.makeVariable("x@3"),
+            imgr.makeVariable("x@4")
+        ),
+        imgrv.equal(
+            imgr.makeVariable("y@0"),
+            imgr.makeVariable("y@1")
+        ),
+        imgrv.equal(
+            imgr.makeVariable("y@2"),
+            imgr.makeVariable("y@3")
+        ),
+        imgrv.equal(
+            imgrv.makeNumber(2),
+            fmgrv.declareAndCallUF(
+                "uf@1",
+                FormulaType.IntegerType,
+                imgr.makeVariable("x@1")
+            )
+        ),
+        bmgrv.makeVariable("NOIDX")
+    );
+    BooleanFormula canonical = mgrv.newStartSSA(
+        SSAMap.emptySSAMap().withDefault(1),
+        new PathFormula(
+            input,
+            SSAMap.emptySSAMap().builder()
+                .setIndex("x", CNumericTypes.INT, 4)
+                .setIndex("y", CNumericTypes.INT, 3)
+                .setIndex("uf", CNumericTypes.INT, 1)
+                .build(),
+            PointerTargetSet.emptyPointerTargetSet(),
+            0),
+        SSAMap.emptySSAMap().withDefault(0)
+    ).getFormula();
+    assertThat(canonical).isEqualTo(expectedCanonical);
   }
 }

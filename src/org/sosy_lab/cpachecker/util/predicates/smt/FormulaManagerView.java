@@ -32,8 +32,10 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 
 import org.sosy_lab.common.Appender;
@@ -52,6 +54,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.ReplaceBitvectorWithNumeralAndFunctionTheory.ReplaceBitvectorEncodingOptions;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.ArrayFormula;
@@ -82,6 +85,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -1587,5 +1591,89 @@ public class FormulaManagerView {
     DeadVariablesEliminationManager eliminationManager =
         new DeadVariablesEliminationManager(this, logger);
     return eliminationManager.eliminateDeadVarsBestEffort(input);
+  }
+
+  /**
+   * Change the given {@code pPathFormula} with the start SSA map {@code initialSSA}
+   * to start at {@code desiredInitialSSA}.
+   *
+   * <p>E.g. {@code x@3 = f@8(x@4)} and {@code x@1 = f@6(x@2)}
+   * will be both mapped to {@code x@0 = f@0(x@1)}.
+   *
+   * @param initialSSA Initial SSA associated with the formula
+   * @param pPathFormula Path formula which should be converted to the canonical form.
+   *
+   */
+  public PathFormula newStartSSA(
+      SSAMap initialSSA,
+      PathFormula pPathFormula,
+      SSAMap desiredInitialSSA
+      ) {
+    BooleanFormula input = pPathFormula.getFormula();
+    SSAMap finalSSA = pPathFormula.getSsa();
+
+    SSAMapBuilder ssaBuilder = desiredInitialSSA.builder();
+
+    Set<String> funcNames = extractFunctionNames(input);
+    Multimap<String, Integer> occurringIndexes = HashMultimap.create();
+    for (String s : funcNames) {
+      Pair<String, Integer> p = parseName(s);
+      if (p.getSecond() != null) {
+        occurringIndexes.put(p.getFirstNotNull(), p.getSecond());
+      }
+    }
+    final Map<String, String> renamings = new HashMap<>();
+    for (String var : occurringIndexes.keySet()) {
+      List<Integer> idxs = new ArrayList<>(occurringIndexes.get(var));
+
+      Collections.sort(idxs);
+      int initialIndex = initialSSA.getIndex(var);
+      if (!idxs.isEmpty()) {
+        int firstIdx = idxs.get(0);
+
+        int newIdx;
+        // Treating first index in a special way: it may or may not be the same
+        // as the first index in {@code initialSSA}.
+        if (firstIdx > initialIndex) {
+
+          // First occurrence is larger than the index in the SSA map.
+          int freshIdx = ssaBuilder.getFreshIndex(var);
+          newIdx = freshIdx;
+          ssaBuilder = ssaBuilder.setIndex(var, finalSSA.getType(var), freshIdx);
+        } else {
+          newIdx = ssaBuilder.getIndex(var);
+        }
+        renamings.put(
+            makeName(var, firstIdx),
+            makeName(var, newIdx)
+        );
+      }
+
+      for (int idx : idxs.subList(1, idxs.size())) {
+        int freshIdx = ssaBuilder.getFreshIndex(var);
+        renamings.put(
+            makeName(var, idx),
+            makeName(var, freshIdx)
+        );
+        ssaBuilder = ssaBuilder.setIndex(var, finalSSA.getType(var), freshIdx);
+      }
+    }
+
+    BooleanFormula out = myFreeVariableNodeTransformer(input,
+        new HashMap<Formula, Formula>(),
+        new Function<String, String>() {
+          @Override
+          public String apply(String input) {
+            String out = renamings.get(input);
+            return out != null ? out : input;
+          }
+        });
+
+    return new PathFormula(
+        out,
+        ssaBuilder.build(),
+        pPathFormula.getPointerTargetSet(),
+        pPathFormula.getLength()
+    );
   }
 }
