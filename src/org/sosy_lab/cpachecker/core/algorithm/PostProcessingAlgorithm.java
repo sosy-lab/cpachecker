@@ -60,7 +60,7 @@ public class PostProcessingAlgorithm implements Algorithm, StatisticsProvider {
     AlgorithmStatus sound = AlgorithmStatus.SOUND_AND_PRECISE;
 
     // run the inner algorithm to fill the reached set
-    sound.update(innerAlgorithm.run(pReached));
+    sound = sound.update(innerAlgorithm.run(pReached));
     postProcessor.postProcess(pReached);
 
     return sound;
