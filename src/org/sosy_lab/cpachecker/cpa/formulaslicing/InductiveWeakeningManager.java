@@ -26,7 +26,6 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -67,7 +66,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bfmgr;
 
-  @SuppressWarnings("FieldCanBeLocal")
+  @SuppressWarnings({"FieldCanBeLocal", "unused"})
   private final LogManager logger;
   private final InductiveWeakeningStatistics statistics;
   private final SyntacticWeakeningManager syntacticWeakeningManager;
@@ -89,11 +88,11 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     logger = pLogger;
     bfmgr = fmgr.getBooleanFormulaManager();
     syntacticWeakeningManager = new SyntacticWeakeningManager(fmgr);
-    destructiveWeakeningManager = new DestructiveWeakeningManager(statistics, pSolver, fmgr,
-        logger, config);
+    destructiveWeakeningManager = new DestructiveWeakeningManager(
+        statistics, pSolver, fmgr, config);
     solver = pSolver;
     cexWeakeningManager = new CEXWeakeningManager(
-        fmgr, pSolver, logger, statistics, config, pShutdownNotifier);
+        fmgr, pSolver, statistics, config, pShutdownNotifier);
   }
 
   /**
@@ -135,8 +134,8 @@ public class InductiveWeakeningManager implements StatisticsProvider {
         bfmgr.and(fromStateLemmasInstantiated),
         transition,
         toStateLemmasAnnotated,
-        Collections.<BooleanFormula>emptySet(),
-        startingSSA);
+        startingSSA,
+        fromStateLemmas);
 
     Set<BooleanFormula> out =
         Sets.filter(toStateLemmas, new Predicate<BooleanFormula>() {
@@ -183,8 +182,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
         fromStateLemmasAnnotated,
         transition,
         toStateLemmasAnnotated,
-        Collections.<BooleanFormula>emptySet(),
-        startingSSA);
+        startingSSA, lemmas);
 
     Set<BooleanFormula> out =
         Sets.filter(lemmas, new Predicate<BooleanFormula>() {
@@ -227,9 +225,8 @@ public class InductiveWeakeningManager implements StatisticsProvider {
    * @param transition Transition under which inductiveness should hold.
    * @param toState Instantiated formula representing the state after the
    *                transition.
-   * @param selectorsWithIntermediate Selectors which should be abstracted
-   *                                  from the start.
    * @param fromSSA SSAMap associated with the {@code fromState}.
+   * @param pFromStateLemmas Uninstantiated lemmas describing the from- state.
    * @return Set of selectors which should be abstracted.
    *         Subset of {@code selectionVarsInfo} keys.
    */
@@ -238,16 +235,13 @@ public class InductiveWeakeningManager implements StatisticsProvider {
       BooleanFormula fromState,
       PathFormula transition,
       BooleanFormula toState,
-      Set<BooleanFormula> selectorsWithIntermediate,
-      SSAMap fromSSA
-  ) throws SolverException, InterruptedException {
+      SSAMap fromSSA,
+      Set<BooleanFormula> pFromStateLemmas) throws SolverException, InterruptedException {
     switch (weakeningStrategy) {
 
       case SYNTACTIC:
-
-        // todo: this interface is probably not sufficient.
         return syntacticWeakeningManager.performWeakening(
-                fromSSA, selectionVarsInfo, transition);
+                fromSSA, selectionVarsInfo, transition, pFromStateLemmas);
 
       case DESTRUCTIVE:
         return destructiveWeakeningManager.performWeakening(
@@ -255,16 +249,15 @@ public class InductiveWeakeningManager implements StatisticsProvider {
             fromState,
             transition,
             toState,
-            selectorsWithIntermediate,
-            fromSSA);
+            fromSSA,
+            pFromStateLemmas);
 
       case CEX:
         return cexWeakeningManager.performWeakening(
             selectionVarsInfo,
             fromState,
             transition,
-            toState,
-            selectorsWithIntermediate);
+            toState);
       default:
         throw new UnsupportedOperationException("Unexpected enum value");
     }
