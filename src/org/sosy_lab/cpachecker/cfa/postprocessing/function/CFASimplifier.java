@@ -24,14 +24,10 @@
 package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
 import static com.google.common.collect.Iterables.addAll;
-import static org.sosy_lab.cpachecker.util.CFAUtils.*;
+import static org.sosy_lab.cpachecker.util.CFAUtils.predecessorsOf;
+import static org.sosy_lab.cpachecker.util.CFAUtils.successorsOf;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import com.google.common.base.Predicates;
 
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
@@ -42,7 +38,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-import com.google.common.base.Predicates;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 
 public class CFASimplifier {
@@ -118,7 +119,12 @@ public class CFASimplifier {
           }
           assert CFAUtils.allLeavingEdges(current).allMatch(Predicates.instanceOf(AssumeEdge.class));
 
-          branchingPoints.addLast(current);
+          CFANode firstSucc = current.getLeavingEdge(0).getSuccessor();
+          CFANode secondSucc = current.getLeavingEdge(1).getSuccessor();
+          if (firstSucc.getNumLeavingEdges() == 1 && firstSucc.getLeavingEdge(0) instanceof BlankEdge
+              && secondSucc.getNumLeavingEdges() == 1 && secondSucc.getLeavingEdge(0) instanceof BlankEdge) {
+            branchingPoints.addLast(current);
+          }
         }
 
         addAll(waitlist, successorsOf(current));
