@@ -224,7 +224,6 @@ public class InductiveWeakeningManager implements StatisticsProvider {
    *
    * Searches through the space of all literals present in {@code input}.
    */
-  @Deprecated
   public BooleanFormula findInductiveWeakening(
       PathFormula input, PathFormula transition
   ) throws SolverException, InterruptedException {
