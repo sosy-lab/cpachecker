@@ -91,6 +91,30 @@ public class RCNFManager implements StatisticsProvider {
     statistics = new RCNFConversionStatistics();
     conversionCache = new HashMap<>();
     dropQuantifiedLiteralsVisitor = new BooleanFormulaTransformationVisitor(fmgr) {
+
+      @Override
+      public BooleanFormula visitAnd(List<BooleanFormula> pOperands) {
+        List<BooleanFormula> newOperands = new ArrayList<>();
+        for (BooleanFormula op : pOperands) {
+          if (!bfmgr.isTrue(op)) {
+            newOperands.add(op);
+          }
+        }
+        if (newOperands.size() == 0) {
+          return bfmgr.makeBoolean(true);
+        }
+        return bfmgr.and(newOperands);
+      }
+
+      @Override
+      public BooleanFormula visitOr(List<BooleanFormula> pOperands) {
+        for (BooleanFormula op : pOperands) {
+          if (bfmgr.isTrue(op)) {
+            return bfmgr.makeBoolean(true);
+          }
+        }
+        return bfmgr.or(pOperands);
+      }
       @Override
       public BooleanFormula visitAtom(
           BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> decl) {
@@ -102,8 +126,13 @@ public class RCNFManager implements StatisticsProvider {
 
       @Override
       public BooleanFormula visitNot(BooleanFormula pOperand) {
-        if (hasBoundVariables(pOperand)) {
-          return bfmgr.makeBoolean(true);
+        if (bfmgr.isTrue(pOperand)) {
+          // TODO: temporary hacky bugfix.
+          // pOperand is already _processed_ and we have no way of
+          // knowing what it was before the processing.
+          // TODO: change JavaSMT interface to return the formula both
+          // before and after the processing.
+          return pOperand;
         }
         return super.visitNot(pOperand);
       }
@@ -144,8 +173,6 @@ public class RCNFManager implements StatisticsProvider {
       default:
         throw new UnsupportedOperationException("Unexpected state");
     }
-
-    // TODO: NNF does not work nicely with quantified variables.
     BooleanFormula noBoundVars = dropBoundVariables(result);
 
     try {
