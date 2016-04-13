@@ -252,18 +252,16 @@ public class ARGSubtreeRemover {
         // We ignore this here, because we just need the 'number' of block-exits.
       }
 
+      if (bamCutState == bamState) {
+        // do not enter or leave a block, when we found the cutState.
+        break;
+      }
+
       if (data.initialStateToReachedSet.containsKey(state)) {
         assert partitioning.isCallNode(extractLocation(state)) : "the mapping of initial state to reached-set should only exist for block-start-locations";
         // we start a new sub-reached-set, add state as start-state of a (possibly) open block.
         // if we are at lastState, we do not want to enter the block
         openCallStates.addLast(bamState);
-      }
-
-      if (bamCutState == bamState) {
-        // TODO:
-        // current solution: when we found the cutState, we only enter new blocks, but never leave one.
-        // maybe better solution: do not enter or leave a block, when we found the cutState.
-        break;
       }
     }
 
