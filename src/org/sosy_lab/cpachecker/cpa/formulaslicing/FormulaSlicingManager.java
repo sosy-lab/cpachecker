@@ -218,7 +218,6 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     );
   }
 
-
   private final Map<Pair<SlicingIntermediateState, SlicingAbstractedState>,
       SlicingAbstractedState> slicingCache = new HashMap<>();
 
@@ -241,6 +240,8 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
             .getAbstractParent().getSSA());
     if (oldState == fromState) {
 
+      // TODO: optimization can be extended to nested loops
+      // as well.
       if (fromState.getInductiveUnder().contains(path)) {
 
         // Optimization for non-nested loops.
@@ -281,8 +282,9 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
     out = SlicingAbstractedState.makeSliced(
         finalClauses,
-        oldState.getSSA(), // It is crucial to use the previous SSA so that PathFormulas stay
-                        // the same.
+        // It is crucial to use the previous SSA so that PathFormulas stay
+        // the same and can be cached.
+        oldState.getSSA(),
         iState.getPathFormula().getPointerTargetSet(),
         fmgr,
         iState.getNode(),
