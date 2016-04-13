@@ -1,7 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
 import com.google.common.base.Optional;
-import com.google.common.base.Predicate;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -95,7 +94,7 @@ public class RCNFManager implements StatisticsProvider {
       @Override
       public BooleanFormula visitAtom(
           BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> decl) {
-        if (hasBoundVariables.apply(pAtom)) {
+        if (hasBoundVariables(pAtom)) {
           return bfmgr.makeBoolean(true);
         }
         return super.visitAtom(pAtom, decl);
@@ -103,7 +102,7 @@ public class RCNFManager implements StatisticsProvider {
 
       @Override
       public BooleanFormula visitNot(BooleanFormula pOperand) {
-        if (hasBoundVariables.apply(pOperand)) {
+        if (hasBoundVariables(pOperand)) {
           return bfmgr.makeBoolean(true);
         }
         return super.visitNot(pOperand);
@@ -146,8 +145,8 @@ public class RCNFManager implements StatisticsProvider {
         throw new UnsupportedOperationException("Unexpected state");
     }
 
-    BooleanFormula nnf = fmgr.applyTactic(result, Tactic.NNF);
-    BooleanFormula noBoundVars = dropBoundVariables(nnf);
+    // TODO: NNF does not work nicely with quantified variables.
+    BooleanFormula noBoundVars = dropBoundVariables(result);
 
     try {
       statistics.conversion.start();
@@ -163,11 +162,13 @@ public class RCNFManager implements StatisticsProvider {
    * @param input Formula with at most one outer-level existential
    *              quantifier, in NNF.
    */
-  private BooleanFormula dropBoundVariables(BooleanFormula input) {
+  private BooleanFormula dropBoundVariables(BooleanFormula input)
+      throws InterruptedException {
 
     Optional<BooleanFormula> body = fmgr.visit(quantifiedBodyExtractor, input);
     if (body.isPresent()) {
-      return bfmgr.transformRecursively(dropQuantifiedLiteralsVisitor, body.get());
+      BooleanFormula nnf = fmgr.applyTactic(body.get(), Tactic.NNF);
+      return bfmgr.transformRecursively(dropQuantifiedLiteralsVisitor, nnf);
     } else {
 
       // Does not have quantified variables.
@@ -259,25 +260,22 @@ public class RCNFManager implements StatisticsProvider {
   }
 
 
-  private final Predicate<BooleanFormula> hasBoundVariables = new Predicate<BooleanFormula>() {
-    @Override
-    public boolean apply(BooleanFormula input) {
-      final AtomicBoolean hasBound = new AtomicBoolean(false);
-      fmgr.visitRecursively(new DefaultFormulaVisitor<TraversalProcess>() {
-        @Override
-        protected TraversalProcess visitDefault(Formula f) {
-          return TraversalProcess.CONTINUE;
-        }
+  private boolean hasBoundVariables(BooleanFormula input) {
+    final AtomicBoolean hasBound = new AtomicBoolean(false);
+    fmgr.visitRecursively(new DefaultFormulaVisitor<TraversalProcess>() {
+      @Override
+      protected TraversalProcess visitDefault(Formula f) {
+        return TraversalProcess.CONTINUE;
+      }
 
-        @Override
-        public TraversalProcess visitBoundVariable(Formula f, int deBruijnIdx) {
-          hasBound.set(true);
-          return TraversalProcess.ABORT;
-        }
-      }, input);
-      return hasBound.get();
-    }
-  };
+      @Override
+      public TraversalProcess visitBoundVariable(Formula f, int deBruijnIdx) {
+        hasBound.set(true);
+        return TraversalProcess.ABORT;
+      }
+    }, input);
+    return hasBound.get();
+  }
 
   private final DefaultFormulaVisitor<Optional<BooleanFormula>>
       quantifiedBodyExtractor = new

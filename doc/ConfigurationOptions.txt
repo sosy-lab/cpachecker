@@ -1651,9 +1651,11 @@ cpa.predicate.stop = "SEP"
 cpa.predicate.strengthenWithFormulaReportingStates = false
 
 # try to reuse old abstractions from file during strengthening
+cpa.predicate.strengthenWithReusedAbstractions = no default value
 cpa.predicate.strengthenWithReusedAbstractions = false
 
 # file that consists of old abstractions, to be used during strengthening
+cpa.predicate.strengthenWithReusedAbstractionsFile = no default value
 cpa.predicate.strengthenWithReusedAbstractionsFile = "abstractions.txt"
 
 # The function used to model successful heap object allocation. This is only
@@ -1744,13 +1746,14 @@ cpa.slicing.checkTargetStates = true
 # -1 for no limit.
 cpa.slicing.destructiveIterationLimit = -1
 
-# Replace dead variables
-cpa.slicing.eliminateDeadVars = true
-
 # Limit for explicit CNF expansion (potentially exponential otherwise)
 cpa.slicing.expansionDepthLimit = 1
 
-# Filter clauses by liveness
+# Limit on the size of the resulting number of lemmas from the explicit CNF
+# expansion
+cpa.slicing.expansionResultSizeLimit = 1000
+
+# Filter lemmas by liveness
 cpa.slicing.filterByLiveness = true
 
 # Instead of considering the entire SCC, ignore the function nested in the
@@ -1763,8 +1766,12 @@ cpa.slicing.leastRemovalsDepthLimit = 2
 # Pre-run syntactic weakening
 cpa.slicing.preRunSyntacticWeakening = true
 
+# Quantifier elimination strategy
+cpa.slicing.quantifiedHandling = QE_LIGHT_THEN_DROP
+  enum:     [QE_LIGHT_THEN_DROP, QE, DROP]
+
 # Strategy for abstracting children during CEX weakening
-cpa.slicing.removalSelectionStrategy = FIRST
+cpa.slicing.removalSelectionStrategy = ALL
   enum:     [ALL, FIRST, RANDOM, LEAST_REMOVALS]
 
 # Granularity of weakening
@@ -1781,9 +1788,6 @@ cpa.slicing.timeForLoopGeneration = 0s
 
 # Cache formulas produced by path formula manager
 cpa.slicing.useCachingPathFormulaManager = true
-
-# Use information from outer states to strengthen
-cpa.slicing.useOuterStrengthening = true
 
 # Inductive weakening strategy
 cpa.slicing.weakeningStrategy = CEX
@@ -1935,8 +1939,8 @@ cpa.statistics.statisticsCPAFile = no default value
 cpa.stator.congruence.trackCongruenceSum = false
 
 # Where to perform abstraction
-cpa.stator.policy.abstractionLocations = LOOPHEAD
-  enum:     [ALL, LOOPHEAD, MERGE]
+cpa.stator.policy.abstractionLocations = "LOOPHEAD"
+  allowed values: [ALL, LOOPHEAD, MERGE]
 
 # Check whether the policy depends on the initial value
 cpa.stator.policy.checkPolicyInitialCondition = true
@@ -1984,6 +1988,10 @@ cpa.stator.policy.lengthLimitForSATCheck = 300
 
 # Remove UFs and ITEs from policies.
 cpa.stator.policy.linearizePolicy = true
+
+# Whether to merge intermediate states
+cpa.stator.policy.mergeIntermediateStates = "ALWAYS"
+  allowed values: [ALWAYS, NEVER]
 
 # Run simple congruence analysis
 cpa.stator.policy.runCongruence = true
