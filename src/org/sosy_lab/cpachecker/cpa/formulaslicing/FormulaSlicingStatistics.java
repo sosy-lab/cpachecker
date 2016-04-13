@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
 import java.io.PrintStream;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Statistics for formula slicing.
@@ -39,9 +38,6 @@ class FormulaSlicingStatistics implements Statistics {
   final Timer propagation = new Timer();
   final Timer reachability = new Timer();
   final Timer inductiveWeakening = new Timer();
-  final Timer deadVarElimination = new Timer();
-  final Timer semiCnfConversion = new Timer();
-  final AtomicInteger numReWeakeningComputations = new AtomicInteger(0);
 
   @Override
   public void printStatistics(PrintStream out,
@@ -50,9 +46,6 @@ class FormulaSlicingStatistics implements Statistics {
     printTimer(out, propagation, "propagating formulas");
     printTimer(out, reachability, "checking reachability");
     printTimer(out, inductiveWeakening, "inductive weakening");
-    printTimer(out, deadVarElimination, "eliminating quantified variables");
-    printTimer(out, semiCnfConversion, "converting to RCNF");
-    out.println("Number of re-weakening computations (merges): " + numReWeakeningComputations);
   }
 
   @Override
