@@ -254,18 +254,27 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
       SlicingAbstractedState> slicingCache = new HashMap<>();
 
   private Optional<SlicingAbstractedState> performSlicing(
-      SlicingIntermediateState iState,
-      SlicingAbstractedState oldState
+      final SlicingIntermediateState iState,
+      final SlicingAbstractedState oldState
   ) throws CPAException, InterruptedException {
     SlicingAbstractedState out = slicingCache.get(Pair.of(iState, oldState));
     if (out != null) {
       return Optional.of(out);
     }
 
-    SlicingAbstractedState fromState = iState.getAbstractParent();
+    final SlicingAbstractedState fromState = iState.getAbstractParent();
 
-    Set<BooleanFormula> candidateLemmas = Sets.intersection(
-        oldState.getAbstraction(), fromState.getAbstraction());
+    Set<BooleanFormula> candidateLemmas = Sets.filter(
+        fromState.getAbstraction(),
+        new Predicate<BooleanFormula>() {
+          @Override
+          public boolean apply(BooleanFormula input) {
+            return fromState.getAbstraction().contains(input) &&
+                allVarsInSSAMap(input,
+                    oldState.getSSA(),
+                    iState.getPathFormula().getSsa());
+          }
+        });
 
     PathFormulaWithStartSSA path =
         new PathFormulaWithStartSSA(iState.getPathFormula(), iState
@@ -492,6 +501,23 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
       SlicingIntermediateState iState2 = pState2.asIntermediate();
       return joinIntermediateStates(iState1, iState2);
     }
+  }
+
+  /**
+   * If the variable got removed from SSAMap along the path, it should not be
+   * in the set of candidate lemmas anymore, as one version would be
+   * instantiated and another version would not.
+   */
+  private boolean allVarsInSSAMap(
+      BooleanFormula lemma,
+      SSAMap oldSsa,
+      SSAMap newSsa) {
+    for (String var : fmgr.extractVariableNames(lemma)) {
+      if (oldSsa.containsVariable(var) != newSsa.containsVariable(var)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**

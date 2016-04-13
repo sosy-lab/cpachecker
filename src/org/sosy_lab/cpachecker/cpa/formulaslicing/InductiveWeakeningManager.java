@@ -175,14 +175,14 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     BooleanFormula fromStateLemmasAnnotated = annotateConjunctions(
         fromStateLemmasInstantiated, selectionInfo
     );
-    BooleanFormula toStateInstantiated = fmgr.instantiate(
+    BooleanFormula toStateLemmasAnnotated = fmgr.instantiate(
         fromStateLemmasAnnotated, transition.getSsa());
 
     final Set<BooleanFormula> toAbstract = findSelectorsToAbstract(
         selectionInfo,
         fromStateLemmasAnnotated,
         transition,
-        toStateInstantiated,
+        toStateLemmasAnnotated,
         Collections.<BooleanFormula>emptySet(),
         startingSSA);
 
@@ -212,10 +212,9 @@ public class InductiveWeakeningManager implements StatisticsProvider {
       BooleanFormula transition
   ) throws SolverException, InterruptedException {
     return solver.isUnsat(bfmgr.and(
-            bfmgr.and(fmgr.instantiate(Lists.newArrayList(from), startSSA)),
+            fmgr.instantiate(bfmgr.and(from), startSSA),
             transition,
-            bfmgr.not(bfmgr.and(fmgr.instantiate(Lists.newArrayList(to),
-                finishSSA)))
+            fmgr.instantiate(bfmgr.not(bfmgr.and(to)), finishSSA)
         ));
   }
 
