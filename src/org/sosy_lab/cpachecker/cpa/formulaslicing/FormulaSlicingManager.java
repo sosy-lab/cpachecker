@@ -31,18 +31,27 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FunctionDeclaration;
+import org.sosy_lab.solver.api.FunctionDeclarationKind;
+import org.sosy_lab.solver.basicimpl.tactics.Tactic;
+import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
+import org.sosy_lab.solver.visitors.TraversalProcess;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Options(prefix="cpa.slicing")
 public class FormulaSlicingManager implements IFormulaSlicingManager {
@@ -62,12 +71,8 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
   @Option(secure=true, description="Check target states reachability")
   private boolean checkTargetStates = true;
 
-
   @Option(secure=true, description="Filter lemmas by liveness")
   private boolean filterByLiveness = true;
-
-  @Option(secure=true, description="Eliminate existential quantifiers with QE_light")
-  private boolean runQELight = true;
 
   FormulaSlicingManager(
       Configuration config,
@@ -183,18 +188,16 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
         bfmgr.and(abstractParent.getInstantiatedAbstraction())
     );
 
-    Set<BooleanFormula> lemmas;
-    if (runQELight) {
-      lemmas = rcnfManager.toLemmasRemoveExistentials(pf.updateFormula(transition));
-    } else {
-      lemmas = rcnfManager.toLemmas(pf.getFormula());
-    }
+    // Special handling for UFs as they can't be quantified.
+    BooleanFormula transitionUFsDropped =
+        removeLiteralsWithDeadUFs(transition, ssa);
+    BooleanFormula quantified = fmgr.quantifyDeadVariables(
+        transitionUFsDropped, ssa);
+
+    Set<BooleanFormula> lemmas = rcnfManager.toLemmas(quantified);
 
     Set<BooleanFormula> finalLemmas = new HashSet<>();
     for (BooleanFormula lemma : lemmas) {
-      if (!fmgr.getDeadFunctionNames(lemma, ssa).isEmpty()) {
-        continue;
-      }
       if (filterByLiveness &&
           Sets.intersection(
               ImmutableSet.copyOf(
@@ -217,6 +220,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
         Optional.of(iState)
     );
   }
+
 
   private final Map<Pair<SlicingIntermediateState, SlicingAbstractedState>,
       SlicingAbstractedState> slicingCache = new HashMap<>();
@@ -455,5 +459,57 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(statistics);
+  }
+
+  /**
+   * Special handling for intermediate UFs as they can not be quantified.
+   */
+  private BooleanFormula removeLiteralsWithDeadUFs(
+      BooleanFormula input, final SSAMap ssa) throws InterruptedException {
+    input = fmgr.applyTactic(input, Tactic.NNF);
+    return bfmgr.transformRecursively(
+        new BooleanFormulaTransformationVisitor(fmgr) {
+          @Override
+          public BooleanFormula visitAtom(
+              BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> decl) {
+            if (hasDeadUf(pAtom, ssa)) {
+              return bfmgr.makeBoolean(true);
+            }
+            return super.visitAtom(pAtom, decl);
+          }
+
+          @Override
+          public BooleanFormula visitNot(BooleanFormula pOperand) {
+            if (hasDeadUf(pOperand, ssa)) {
+              return bfmgr.makeBoolean(true);
+            }
+            return super.visitNot(pOperand);
+          }
+        }, input);
+  }
+
+  private boolean hasDeadUf(BooleanFormula atom, final SSAMap pSSAMap) {
+    final AtomicBoolean out = new AtomicBoolean(false);
+    fmgr.visitRecursively(new DefaultFormulaVisitor<TraversalProcess>() {
+      @Override
+      protected TraversalProcess visitDefault(Formula f) {
+        return TraversalProcess.CONTINUE;
+      }
+
+      @Override
+      public TraversalProcess visitFunction(
+          Formula f,
+          List<Formula> args,
+          FunctionDeclaration<?> functionDeclaration) {
+        if (functionDeclaration.getKind() == FunctionDeclarationKind.UF) {
+          if (fmgr.isIntermediate(functionDeclaration.getName(), pSSAMap)) {
+            out.set(true);
+            return TraversalProcess.ABORT;
+          }
+        }
+        return TraversalProcess.CONTINUE;
+      }
+    }, atom);
+    return out.get();
   }
 }
