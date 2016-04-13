@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import com.google.common.base.Optional;
+
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Model;
@@ -61,6 +63,13 @@ public class ProverEnvironmentView implements ProverEnvironment{
   public boolean isUnsatWithAssumptions(List<BooleanFormula> assumptions)
       throws SolverException, InterruptedException {
     return delegate.isUnsatWithAssumptions(assumptions);
+  }
+
+  @Override
+  public Optional<List<BooleanFormula>> unsatCoreOverAssumptions(
+      List<BooleanFormula> assumptions)
+      throws SolverException, InterruptedException {
+    return delegate.unsatCoreOverAssumptions(assumptions);
   }
 
   @Nullable
