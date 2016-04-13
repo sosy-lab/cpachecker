@@ -31,26 +31,27 @@ public class SyntacticWeakeningManager {
    *                      (instantiated with unprimed SSA).
    * @param transition Transition with respect to which the weakening must be inductive.
    *
+   * @param pFromStateLemmas Uninstantiated lemmas describing the from- state.
    * @return Set of selectors which correspond to atoms which *should*
    *         be abstracted.
    */
   public Set<BooleanFormula> performWeakening(
       SSAMap pFromSSA,
       Map<BooleanFormula, BooleanFormula> selectionInfo,
-      PathFormula transition
-  ) {
+      PathFormula transition,
+      Set<BooleanFormula> pFromStateLemmas) {
     Set<BooleanFormula> out = new HashSet<>();
     for (Entry<BooleanFormula, BooleanFormula> e : selectionInfo.entrySet()) {
       BooleanFormula selector = e.getKey();
-      BooleanFormula atom = fmgr.instantiate(e.getValue(), pFromSSA);
+      BooleanFormula lemma = e.getValue();
 
-      // Variables which have the SSA index different to the one after the
-      // transition.
-      Set<String> deadVars = fmgr.getDeadFunctionNames(atom, transition.getSsa());
+      BooleanFormula uninstantiated = fmgr.uninstantiate(lemma);
+      BooleanFormula instantiatedFrom = fmgr.instantiate(uninstantiated, pFromSSA);
+      BooleanFormula instantiatedTo =
+          fmgr.instantiate(uninstantiated, transition.getSsa());
 
-      if (!deadVars.isEmpty()) {
-
-        // Abstract away the selectors where the associated atoms have changed.
+      if (!pFromStateLemmas.contains(uninstantiated) ||
+            !instantiatedFrom.equals(instantiatedTo)) {
         out.add(selector);
       }
     }

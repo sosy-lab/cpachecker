@@ -8,8 +8,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.log.NullLogManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -69,7 +67,6 @@ public class CEXWeakeningManager {
 
   private final BooleanFormulaManager bfmgr;
   private final Solver solver;
-  private final LogManager logger;
   private final InductiveWeakeningStatistics statistics;
   private final Random r = new Random();
   private final ShutdownNotifier shutdownNotifier;
@@ -77,12 +74,10 @@ public class CEXWeakeningManager {
   public CEXWeakeningManager(
       FormulaManagerView pFmgr,
       Solver pSolver,
-      LogManager pLogger,
       InductiveWeakeningStatistics pStatistics,
       Configuration config, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     config.inject(this);
     solver = pSolver;
-    logger = pLogger;
     statistics = pStatistics;
     bfmgr = pFmgr.getBooleanFormulaManager();
     shutdownNotifier = pShutdownNotifier;
@@ -95,16 +90,14 @@ public class CEXWeakeningManager {
       Map<BooleanFormula, BooleanFormula> selectionInfo,
       BooleanFormula fromState,
       PathFormula transition,
-      BooleanFormula toState,
-      Set<BooleanFormula> pSelectorsWithIntermediate) throws SolverException, InterruptedException {
+      BooleanFormula toState) throws SolverException, InterruptedException {
     try {
       statistics.cexWeakeningTime.start();
       return counterexampleBasedWeakening0(
           selectionInfo,
           fromState,
           transition,
-          toState,
-          pSelectorsWithIntermediate);
+          toState);
     } finally {
       statistics.cexWeakeningTime.stop();
     }
@@ -120,10 +113,9 @@ public class CEXWeakeningManager {
       final Map<BooleanFormula, BooleanFormula> selectionInfo,
       BooleanFormula fromState,
       PathFormula transition,
-      BooleanFormula toState,
-      Set<BooleanFormula> pSelectorsWithIntermediate) throws SolverException, InterruptedException {
+      BooleanFormula toState) throws SolverException, InterruptedException {
 
-    final Set<BooleanFormula> toAbstract = new HashSet<>(pSelectorsWithIntermediate);
+    final Set<BooleanFormula> toAbstract = new HashSet<>();
     List<BooleanFormula> selectorConstraints = new ArrayList<>();
     for (BooleanFormula selector : selectionInfo.keySet()) {
       selectorConstraints.add(bfmgr.not(selector));
@@ -145,7 +137,6 @@ public class CEXWeakeningManager {
             m,
             selectionInfo,
             toState,
-            logger,
             0
         ));
 
@@ -168,7 +159,6 @@ public class CEXWeakeningManager {
       final Model m,
       final Map<BooleanFormula, BooleanFormula> selectionInfo,
       final BooleanFormula primed,
-      final LogManager usedLogger,
       final int depth
   ) {
     final List<BooleanFormula> newToAbstract = new ArrayList<>();
@@ -270,7 +260,7 @@ public class CEXWeakeningManager {
         // Doing recursion while doing recursion :P
         // Use NullLogManager to avoid log pollution.
         return getSelectorsToAbstract(
-            toAbstract, m, selectionInfo, f, NullLogManager.getInstance(), depth + 1);
+            toAbstract, m, selectionInfo, f, depth + 1);
       }
 
     }, primed);

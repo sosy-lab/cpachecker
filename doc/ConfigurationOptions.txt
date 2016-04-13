@@ -1651,11 +1651,9 @@ cpa.predicate.stop = "SEP"
 cpa.predicate.strengthenWithFormulaReportingStates = false
 
 # try to reuse old abstractions from file during strengthening
-cpa.predicate.strengthenWithReusedAbstractions = no default value
 cpa.predicate.strengthenWithReusedAbstractions = false
 
 # file that consists of old abstractions, to be used during strengthening
-cpa.predicate.strengthenWithReusedAbstractionsFile = no default value
 cpa.predicate.strengthenWithReusedAbstractionsFile = "abstractions.txt"
 
 # The function used to model successful heap object allocation. This is only
@@ -1739,6 +1737,10 @@ cpa.sign.stop = "SEP"
 # Apply AND- LBE transformation to loop transition relation.
 cpa.slicing.applyLBETransformation = true
 
+# Quantifier elimination strategy
+cpa.slicing.boundVarsHandling = QE_LIGHT_THEN_DROP
+  enum:     [QE_LIGHT_THEN_DROP, QE, DROP]
+
 # Check target states reachability
 cpa.slicing.checkTargetStates = true
 
@@ -1749,7 +1751,7 @@ cpa.slicing.destructiveIterationLimit = -1
 # Limit for explicit CNF expansion (potentially exponential otherwise)
 cpa.slicing.expansionDepthLimit = 1
 
-# Limit on the size of the resulting number of lemmas from the explicit CNF
+# Limit on the size of the resulting number of lemmas from the explicit
 # expansion
 cpa.slicing.expansionResultSizeLimit = 1000
 
@@ -1766,17 +1768,9 @@ cpa.slicing.leastRemovalsDepthLimit = 2
 # Pre-run syntactic weakening
 cpa.slicing.preRunSyntacticWeakening = true
 
-# Quantifier elimination strategy
-cpa.slicing.quantifiedHandling = QE_LIGHT_THEN_DROP
-  enum:     [QE_LIGHT_THEN_DROP, QE, DROP]
-
 # Strategy for abstracting children during CEX weakening
 cpa.slicing.removalSelectionStrategy = ALL
   enum:     [ALL, FIRST, RANDOM, LEAST_REMOVALS]
-
-# Granularity of weakening
-cpa.slicing.selectorAnnotationMode = LITERALS
-  enum:     [LITERALS, CONJUNCTIONS]
 
 # Sort selection variables based on syntactic similarity to the transition
 # relation
