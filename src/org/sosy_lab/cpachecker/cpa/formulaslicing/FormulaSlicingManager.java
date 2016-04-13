@@ -227,7 +227,9 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
       if (filterByLiveness &&
           // TODO: avoid re-calculating #extractFunctionNames twice.
           Sets.intersection(
-              ImmutableSet.copyOf(liveVariables.getLiveVariableNamesForNode(node)),
+              ImmutableSet.copyOf(
+                  liveVariables.getLiveVariableNamesForNode(node).filter(
+                      Predicates.<String>notNull())),
               fmgr.extractFunctionNames(fmgr.uninstantiate(lemma))).isEmpty()
           ) {
 
