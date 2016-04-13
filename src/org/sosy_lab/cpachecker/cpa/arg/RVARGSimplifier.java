@@ -49,7 +49,7 @@ public class RVARGSimplifier implements PostProcessor {
   private final ShutdownNotifier shutdownNotifier;
 
   public RVARGSimplifier(Configuration config, ARGCPA cpa, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
-    config.inject(this);
+    //config.inject(this);
     this.cpa = cpa;
     shutdownNotifier = pShutdownNotifier;
   }
