@@ -1,9 +1,10 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
-<benchmark tool="cpachecker" timelimit="600 s" hardtimelimit="900 s" memlimit="8 GB" cpuCores="1">
+<benchmark tool="cpachecker" timelimit="600 s" hardtimelimit="900 s" memlimit="8 GB" cpuCores="2">
     <option name="-noout" />
 
     <option name="-heap">8000m</option>
+    <option name="-64" /> <!-- 64-bit -->
 
 
     <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
@@ -53,8 +54,41 @@
         </tasks>
     </rundefinition>
 
-    <rundefinition name="just-slicing">
+
+    <rundefinition name="slicing-w-lpi">
+        <option name="-policy-slicing"/>
+        <option name="-setprop">cpa.slicing.expansionResultSizeLimit=100</option>
+        <tasks name="DeviceDriversHard">
+            <includesfile>../programs/benchmarks/DeviceDriversHardNoRecursionLinux64.set</includesfile>
+        </tasks>
+    </rundefinition>
+
+    <rundefinition name="slicing-k-induction">
         <option name="-formula-slicing"/>
+        <tasks name="DeviceDriversHard">
+            <includesfile>../programs/benchmarks/DeviceDriversHardNoRecursionLinux64.set</includesfile>
+        </tasks>
+    </rundefinition>
+
+    <rundefinition name="predicateAnalysis">
+        <!-- Obtains ~100 -->
+        <option name="-predicateAnalysis"/>
+        <tasks name="DeviceDriversHard">
+            <includesfile>../programs/benchmarks/DeviceDriversHardNoRecursionLinux64.set</includesfile>
+        </tasks>
+    </rundefinition>
+
+    <rundefinition name="predicateAnalysis-w-slicing-invariants">
+        <option name="-formula-slicing-w-predicate"/>
+        <tasks name="DeviceDriversHard">
+            <includesfile>../programs/benchmarks/DeviceDriversHardNoRecursionLinux64.set</includesfile>
+        </tasks>
+    </rundefinition>
+
+    <rundefinition name="just-slicing">
+        <!-- Obtains ~67 -->
+        <option name="-formula-slicing"/>
+        <option name="-setprop">cpa.slicing.expansionResultSizeLimit=100</option>
         <tasks name="DeviceDriversHard">
             <includesfile>../programs/benchmarks/DeviceDriversHardNoRecursionLinux64.set</includesfile>
         </tasks>
@@ -62,10 +96,19 @@
 
     <rundefinition name="just-slicing-syntactic">
         <option name="-formula-slicing"/>
+        <option name="-setprop">cpa.slicing.expansionResultSizeLimit=100</option>
         <option name="-setprop">cpa.slicing.weakeningStrategy=syntactic</option>
         <tasks name="DeviceDriversHard">
             <includesfile>../programs/benchmarks/DeviceDriversHardNoRecursionLinux64.set</includesfile>
         </tasks>
     </rundefinition>
 
+    <rundefinition name="just-slicing-destructive">
+        <option name="-formula-slicing"/>
+        <option name="-setprop">cpa.slicing.expansionResultSizeLimit=100</option>
+        <option name="-setprop">cpa.slicing.weakeningStrategy=destructive</option>
+        <tasks name="DeviceDriversHard">
+            <includesfile>../programs/benchmarks/DeviceDriversHardNoRecursionLinux64.set</includesfile>
+        </tasks>
+    </rundefinition>
 </benchmark>
