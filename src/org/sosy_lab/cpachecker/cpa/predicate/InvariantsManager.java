@@ -683,18 +683,20 @@ class InvariantsManager implements StatisticsProvider {
         loopFormulaCache.put(pLocation, fmgr.uninstantiate(loopFormula.getFormula()));
       }
 
-      BooleanFormula invariant =
-          inductiveWeakeningMgr.findInductiveWeakening(
-              pBlockFormula.updateFormula(bfmgr.and(semiCNFConverter.toLemmas
-                  (pBlockFormula
-                  .getFormula()))),
-              loopFormula);
+      Set<BooleanFormula> lemmas =
+          semiCNFConverter.toLemmas(
+              fmgr.uninstantiate(pBlockFormula.getFormula()));
 
-      if (bfmgr.isTrue(invariant)) {
+      Set<BooleanFormula> inductiveLemmas =
+          inductiveWeakeningMgr.findInductiveWeakeningForRCNF(
+              ssa, loopFormula, lemmas
+          );
+
+      if (lemmas.isEmpty()) {
         logger.log(Level.FINER, "Invariant for location", pLocation, "is true, ignoring it");
         return false;
       } else {
-        addResultToCache(invariant, pLocation);
+        addResultToCache(bfmgr.and(inductiveLemmas), pLocation);
         return true;
       }
     } finally {
