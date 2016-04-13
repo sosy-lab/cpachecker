@@ -252,43 +252,10 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
       throws InterruptedException {
     BooleanFormula quantified = fmgr.quantifyDeadVariables(input, pSSAMap);
     BooleanFormula qeLightResult = fmgr.applyTactic(quantified, Tactic.QE_LIGHT);
-    Set<BooleanFormula> result = overApproximateExistentials(qeLightResult);
-    assert !hasQuantifiers(bfmgr.and(result));
-    return result;
+    return overApproximateExistentials(qeLightResult);
   }
 
-  private boolean hasQuantifiers(BooleanFormula input) {
-    final AtomicBoolean hasQ = new AtomicBoolean(false);
-    fmgr.visitRecursively(new DefaultFormulaVisitor<TraversalProcess>() {
-      @Override
-      protected TraversalProcess visitDefault(Formula f) {
-        return TraversalProcess.CONTINUE;
-      }
-
-      @Override
-      public TraversalProcess visitFreeVariable(Formula f, String name) {
-        return TraversalProcess.CONTINUE;
-      }
-
-      @Override
-      public TraversalProcess visitBoundVariable(Formula f, int deBruijnIdx) {
-        hasQ.set(true);
-        return TraversalProcess.ABORT;
-      }
-
-      @Override
-      public TraversalProcess visitQuantifier(
-          BooleanFormula f,
-          Quantifier quantifier,
-          List<Formula> boundVariables,
-          BooleanFormula body) {
-        hasQ.set(true);
-        return TraversalProcess.ABORT;
-      }
-    }, input);
-    return hasQ.get();
-  }
-
+  // TODO: probably should be moved to RCNF manager.
   private Set<BooleanFormula> overApproximateExistentials(final BooleanFormula input)
       throws InterruptedException {
     Optional<BooleanFormula> body = fmgr.visit(quantifiedBodyExtractor, input);
@@ -364,14 +331,20 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
           }
         });
 
-    Set<PathFormulaWithStartSSA> taus = approximateLoopTransitions(predecessors, iState);
+    Set<PathFormulaWithStartSSA> taus = getLoopTransitions(predecessors, iState);
     Set<PathFormulaWithStartSSA> difference = Sets.difference(taus, first.getInductiveUnder());
     if (difference.isEmpty()) {
       // Just copy the state, no new information => no need to re-perform the slicing.
       return SlicingAbstractedState.copyOf(first);
     } else {
+
       // Slice with respect to the remaining transitions.
-      taus = difference;
+      statistics.numReWeakeningComputations.addAndGet(1);
+
+      // todo: this is not actually correct. unfortunately, inductiveness is not a monotone
+      // property, and a lesser set of clauses may _stop_ being inductive wrt to something
+      // it previously was.
+      taus = Sets.union(taus, first.getInductiveUnder());
     }
 
     // now slice "first" wrt \tau
@@ -381,24 +354,25 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
                                        bfmgr.and(abstractParent.getInstantiatedAbstraction())
                                                          : bfmgr.makeBoolean(true);
     Set<BooleanFormula> finalClauses = first.getAbstraction();
-    for (PathFormulaWithStartSSA tau : taus) { // Intersection of all slices attained.
-      shutdownNotifier.shutdownIfNecessary();
-      try {
-        statistics.inductiveWeakening.start();
-        finalClauses = Sets.intersection(
-            inductiveWeakeningManager.findInductiveWeakeningForSemiCNF(
-                tau.getStartMap(),
-                finalClauses,
-                tau.getPathFormula(),
-                strengthening
-            ),
-            finalClauses
-        );
-      } catch (SolverException pE) {
-        throw new CPAException("Solver call failed", pE);
-      } finally {
-        statistics.inductiveWeakening.stop();
-      }
+
+    SSAMap initial = SSAMap.emptySSAMap().withDefault(0);
+    PathFormula transitionsOverapproximations = overApproximateLoopTransitions(taus, initial);
+
+    try {
+      statistics.inductiveWeakening.start();
+      finalClauses = Sets.intersection(
+          inductiveWeakeningManager.findInductiveWeakeningForSemiCNF(
+              initial,
+              finalClauses,
+              transitionsOverapproximations,
+              strengthening
+          ),
+          finalClauses
+      );
+    } catch (SolverException pE) {
+      throw new CPAException("Solver call failed", pE);
+    } finally {
+      statistics.inductiveWeakening.stop();
     }
 
     out = SlicingAbstractedState.makeSliced(
@@ -419,7 +393,34 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
    * Over-approximate all possible transitions through the nested loop as a disjunction of
    * all possible inner transitions.
    */
-  private Set<PathFormulaWithStartSSA> approximateLoopTransitions(
+  private PathFormula overApproximateLoopTransitions(
+      Set<PathFormulaWithStartSSA> paths, final SSAMap desiredInitialSSA)
+
+      throws InterruptedException {
+    Iterable<PathFormula> canonical = Iterables.transform(paths,
+        new Function<PathFormulaWithStartSSA, PathFormula>() {
+          @Override
+          public PathFormula apply(PathFormulaWithStartSSA input) {
+            return fmgr.newStartSSA(
+                input.getStartMap(), input.getPathFormula(), desiredInitialSSA);
+          }
+        });
+    PathFormula out = null;
+    for (PathFormula p : canonical) {
+      if (out == null) {
+        out = p;
+      } else {
+        out = pfmgr.makeOr(out, p);
+      }
+    }
+    return out;
+  }
+
+
+  /**
+   * Get loop transitions from trace.
+   */
+  private Set<PathFormulaWithStartSSA> getLoopTransitions(
       List<SlicingIntermediateState> paths, SlicingIntermediateState iState) {
     Set<PathFormulaWithStartSSA> out = new HashSet<>(paths.size() + 1);
     for (SlicingIntermediateState s : Iterables.concat(paths, ImmutableList.of(iState))) {
