@@ -27,6 +27,7 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 import java.io.PrintStream;
 import java.util.concurrent.TimeUnit;
@@ -36,16 +37,23 @@ import java.util.concurrent.TimeUnit;
  */
 class FormulaSlicingStatistics implements Statistics {
   final Timer propagation = new Timer();
-  final Timer reachability = new Timer();
   final Timer inductiveWeakening = new Timer();
+  private final Solver solver;
+
+  FormulaSlicingStatistics(Solver pSolver) {
+    solver = pSolver;
+  }
+
 
   @Override
   public void printStatistics(PrintStream out,
                               Result result,
                               ReachedSet reached) {
     printTimer(out, propagation, "propagating formulas");
-    printTimer(out, reachability, "checking reachability");
+    printTimer(out, solver.solverTime, "checking reachability");
     printTimer(out, inductiveWeakening, "inductive weakening");
+    out.printf("# SAT checks: %d%n", solver.satChecks);
+    out.printf("# cached SAT checks: %d%n", solver.cachedSatChecks);
   }
 
   @Override
