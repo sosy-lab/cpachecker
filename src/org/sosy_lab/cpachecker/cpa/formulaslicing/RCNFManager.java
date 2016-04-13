@@ -2,11 +2,10 @@ package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
 import static org.sosy_lab.solver.basicimpl.tactics.Tactic.QE;
 
-import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.google.common.math.LongMath;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -37,7 +36,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Convert the formula to form *resembling* CNF, but without exponential
@@ -216,22 +214,23 @@ public class RCNFManager implements StatisticsProvider {
 
       @Override
       public BooleanFormula visitOr(List<BooleanFormula> operands) {
-        final AtomicInteger sizeAfterExpansion = new AtomicInteger(1);
-        final AtomicBoolean limitExceeded = new AtomicBoolean(false);
-        List<Set<BooleanFormula>> asConjunctions = Lists.transform(operands,
-            new Function<BooleanFormula, Set<BooleanFormula>>() {
-              @Override
-              public Set<BooleanFormula> apply(BooleanFormula input) {
-                Set<BooleanFormula> out = bfmgr.toConjunctionArgs(input, true);
-                sizeAfterExpansion.set(sizeAfterExpansion.intValue() * out.size());
-                if (sizeAfterExpansion.intValue() > expansionResultSizeLimit) {
-                  limitExceeded.set(true);
-                }
-                return out;
-              }
-            });
+        long sizeAfterExpansion = 1;
 
-        if (!limitExceeded.get()) {
+        List<Set<BooleanFormula>> asConjunctions = new ArrayList<>();
+        for (BooleanFormula op : operands) {
+          Set<BooleanFormula> out = bfmgr.toConjunctionArgs(op, true);
+          try {
+            sizeAfterExpansion = LongMath.checkedMultiply(
+                sizeAfterExpansion, out.size()
+            );
+          } catch (ArithmeticException ex) {
+            sizeAfterExpansion = expansionResultSizeLimit + 1;
+            break;
+          }
+          asConjunctions.add(out);
+        }
+
+        if (sizeAfterExpansion <= expansionResultSizeLimit) {
           // Perform recursive expansion.
           Set<List<BooleanFormula>> product = Sets.cartesianProduct(asConjunctions);
           Set<BooleanFormula> newArgs = new HashSet<>(product.size());
