@@ -613,6 +613,36 @@ private boolean classifyNodes = false;
     }
 
     // Transform dummy loops into edges to termination nodes
+    transformDummyLoopsToEdges(cfa);
+
+    if (useFunctionCallUnwinding) {
+      // must be done before adding global vars
+      final FunctionCallUnwinder fca = new FunctionCallUnwinder(cfa, config);
+      cfa = fca.unwindRecursion();
+    }
+
+    if (useCFACloningForMultiThreadedPrograms && isMultiThreadedProgram(cfa)) {
+      // cloning must be done before adding global vars,
+      // current use case is ThreadingCPA, thus we check for the creation of new threads first.
+      logger.log(Level.INFO, "program contains concurrency, cloning functions...");
+      final CFACloner cloner = new CFACloner(cfa, config);
+      cfa = cloner.execute();
+    }
+
+    if (useGlobalVars) {
+      // add global variables at the beginning of main
+      insertGlobalDeclarations(cfa, globalDeclarations);
+    }
+
+    if (useMultiEdges) {
+      MultiEdgeCreator.createMultiEdges(cfa);
+    }
+
+    return cfa;
+  }
+
+  /** Transform dummy loops into edges to termination nodes */
+  private void transformDummyLoopsToEdges(MutableCFA cfa) throws InterruptedException {
     List<CFANode> toAdd = new ArrayList<>(1);
     for (CFANode node : cfa.getAllNodes()) {
       this.shutdownNotifier.shutdownIfNecessary();
@@ -650,31 +680,6 @@ private boolean classifyNodes = false;
     for (CFANode nodeToAdd : toAdd) {
       cfa.addNode(nodeToAdd);
     }
-
-    if (useFunctionCallUnwinding) {
-      // must be done before adding global vars
-      final FunctionCallUnwinder fca = new FunctionCallUnwinder(cfa, config);
-      cfa = fca.unwindRecursion();
-    }
-
-    if (useCFACloningForMultiThreadedPrograms && isMultiThreadedProgram(cfa)) {
-      // cloning must be done before adding global vars,
-      // current use case is ThreadingCPA, thus we check for the creation of new threads first.
-      logger.log(Level.INFO, "program contains concurrency, cloning functions...");
-      final CFACloner cloner = new CFACloner(cfa, config);
-      cfa = cloner.execute();
-    }
-
-    if (useGlobalVars) {
-      // add global variables at the beginning of main
-      insertGlobalDeclarations(cfa, globalDeclarations);
-    }
-
-    if (useMultiEdges) {
-      MultiEdgeCreator.createMultiEdges(cfa);
-    }
-
-    return cfa;
   }
 
   /** check, whether the program contains function calls to crate a new thread. */
