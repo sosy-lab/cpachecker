@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import java.util.logging.Level;
 
 /**
  * Perform weakening using counter-examples to induction.
@@ -87,10 +86,6 @@ public class CEXWeakeningManager {
     statistics = pStatistics;
     bfmgr = pFmgr.getBooleanFormulaManager();
     shutdownNotifier = pShutdownNotifier;
-  }
-
-  public SELECTION_STRATEGY getRemovalSelectionStrategy() {
-    return removalSelectionStrategy;
   }
 
   /**
@@ -214,6 +209,9 @@ public class CEXWeakeningManager {
           return TraversalProcess.SKIP;
         } else {
 
+          // N.B.: This branch is *never* hit if we use
+          // conjunction-annotation mode.
+
           // OR- implies a difficult choice, unless a selector is present.
           return selectChildren(operands);
         }
@@ -223,9 +221,6 @@ public class CEXWeakeningManager {
         // Don't-care or evaluates-to-false.
         if (!toAbstract.contains(selector)) {
           newToAbstract.add(selector);
-
-          usedLogger.log(Level.FINE, "Model = " + m);
-          usedLogger.log(Level.FINE, "Abstracting away", selectionInfo.get(selector));
         }
       }
 
