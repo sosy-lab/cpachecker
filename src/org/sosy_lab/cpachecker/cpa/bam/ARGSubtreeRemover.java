@@ -167,6 +167,11 @@ public class ARGSubtreeRemover {
     }
   }
 
+  /**
+   * This method removes a state from the corresponding reached-set.
+   * This is basically the same as {@link ARGReachedSet#removeSubtree(ARGState)},
+   * but we also update the BAM-cache.
+   */
   private void removeCachedSubtree(ARGState rootState, ARGState removeElement,
                                    List<Precision> pNewPrecisions,
                                    List<Predicate<? super Precision>> pPrecisionTypes) {
@@ -193,11 +198,15 @@ public class ARGSubtreeRemover {
     } else {
       final Pair<Precision, Predicate<? super Precision>> newPrecision = getUpdatedPrecision(
           reachedSet.getPrecision(removeElement), rootSubtree, pNewPrecisions, pPrecisionTypes);
-      boolean updateCacheNeeded = removeElement.getParents().contains(reachedSet.getFirstState());
-      argReachedSet.removeSubtree(removeElement, newPrecision.getFirst(), newPrecision.getSecond());
-      if (updateCacheNeeded) {
-        logger.log(Level.FINER, "updating cache");
-        bamCache.updatePrecisionForEntry(reducedRootState, reducedRootPrecision, rootSubtree, newPrecision.getFirst());
+      if (removeElement.getParents().contains(reachedSet.getFirstState())) {
+        // after removing the state, only the root-state (and maybe other branches
+        // starting at root) would remain, with a new precision for root.
+        // instead of modifying the existing reached-set,
+        // we create a new reached-set with a new root with the new precision.
+        logger.log(Level.FINER, "creating reached-set with new precision");
+        data.createAndRegisterNewReachedSet(reducedRootState, reducedRootPrecision, rootSubtree);
+      } else {
+        argReachedSet.removeSubtree(removeElement, newPrecision.getFirst(), newPrecision.getSecond());
       }
     }
 

@@ -257,16 +257,6 @@ public class BAMCache {
     return preciseReachedCache.containsKey(hash);
   }
 
-  public void updatePrecisionForEntry(AbstractState stateKey, Precision precisionKey, Block context,
-                                      Precision newPrecisionKey) {
-    AbstractStateHash hash = getHashCode(stateKey, precisionKey, context);
-    ReachedSet reachedSet = preciseReachedCache.get(hash);
-    if (reachedSet != null) {
-      preciseReachedCache.remove(hash);
-      preciseReachedCache.put(getHashCode(stateKey, newPrecisionKey, context), reachedSet);
-    }
-  }
-
   public Collection<ReachedSet> getAllCachedReachedStates() {
     return preciseReachedCache.values();
   }
