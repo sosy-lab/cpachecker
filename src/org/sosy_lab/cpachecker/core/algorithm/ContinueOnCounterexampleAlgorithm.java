@@ -64,7 +64,7 @@ public class ContinueOnCounterexampleAlgorithm implements Algorithm, StatisticsP
 
     try {
       while (reached.hasWaitingState()) {
-        sound.update(algorithm.run(reached));
+        sound = sound.update(algorithm.run(reached));
 
         numberOfCounterexamples++;
 
@@ -87,7 +87,7 @@ public class ContinueOnCounterexampleAlgorithm implements Algorithm, StatisticsP
 
         removeErrorElement(reached, errorElement);
 
-        sound.withSound(false);
+        sound = sound.withSound(false);
       }
     } finally {
       checkTime.stopIfRunning();
