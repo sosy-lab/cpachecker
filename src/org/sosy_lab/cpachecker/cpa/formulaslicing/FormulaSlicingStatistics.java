@@ -49,7 +49,7 @@ class FormulaSlicingStatistics implements Statistics {
     printTimer(out, reachability, "checking reachability");
     printTimer(out, inductiveWeakening, "inductive weakening");
     printTimer(out, deadVarElimination, "eliminating quantified variables");
-    printTimer(out, semiCnfConversion, "converting to SemiCNF");
+    printTimer(out, semiCnfConversion, "converting to RCNF");
   }
 
   @Override
