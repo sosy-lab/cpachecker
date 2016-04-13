@@ -1,6 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
 
+import static org.sosy_lab.cpachecker.cpa.formulaslicing.InductiveWeakeningManager.ANNOTATION_MODE.LITERALS;
 import static org.sosy_lab.cpachecker.cpa.formulaslicing.InductiveWeakeningManager.WEAKENING_STRATEGY.CEX;
 
 import com.google.common.base.Preconditions;
@@ -55,9 +56,9 @@ public class InductiveWeakeningManager implements StatisticsProvider {
   private WEAKENING_STRATEGY weakeningStrategy = CEX;
 
   @Option(description="Granularity of weakening", secure=true)
-  private ANNOTATION_MODE selectorAnnotationMode = ANNOTATION_MODE.LITERALS;
+  private ANNOTATION_MODE selectorAnnotationMode = LITERALS;
 
-  private enum ANNOTATION_MODE {
+  enum ANNOTATION_MODE {
 
     /**
      * Introduce a selector per each literal.
@@ -378,7 +379,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
       BooleanFormula input,
       final Map<BooleanFormula, BooleanFormula> selectionVarsInfoToFill) {
 
-    if (selectorAnnotationMode == ANNOTATION_MODE.LITERALS) {
+    if (selectorAnnotationMode == LITERALS) {
       return annotateLiterals(input, selectionVarsInfoToFill);
     } else {
       assert selectorAnnotationMode == ANNOTATION_MODE.CONJUNCTIONS;
