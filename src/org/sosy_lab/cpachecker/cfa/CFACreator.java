@@ -584,7 +584,7 @@ private boolean classifyNodes = false;
    * @return either a modified old CFA or a complete new CFA
    */
   private MutableCFA postProcessingOnMutableCFAs(MutableCFA cfa, final List<Pair<ADeclaration, String>> globalDeclarations)
-          throws InvalidConfigurationException, CParserException {
+          throws InvalidConfigurationException, CParserException, InterruptedException {
 
     // remove all edges which don't have any effect on the program
     if (simplifyCfa) {
@@ -615,6 +615,7 @@ private boolean classifyNodes = false;
     // Transform dummy loops into edges to termination nodes
     List<CFANode> toAdd = new ArrayList<>(1);
     for (CFANode node : cfa.getAllNodes()) {
+      this.shutdownNotifier.shutdownIfNecessary();
       Set<CFANode> visited = new HashSet<>();
       Queue<CFANode> waitlist = new ArrayDeque<>();
       waitlist.offer(node);

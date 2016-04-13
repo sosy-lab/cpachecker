@@ -23,19 +23,21 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
-import java.util.HashMap;
-import java.util.Map;
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Multiset;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 
-import com.google.common.collect.HashMultiset;
-import com.google.common.collect.Multiset;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 
 public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
@@ -114,7 +116,9 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
 
     final Multiset<String> members = HashMultiset.create();
     int offset = 0;
-    for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
+    Iterator<CCompositeTypeMemberDeclaration> memberIt = compositeType.getMembers().iterator();
+    while (memberIt.hasNext()) {
+      final CCompositeTypeMemberDeclaration memberDeclaration = memberIt.next();
       members.setCount(memberDeclaration.getName(), offset);
       final CType memberType = CTypeUtils.simplifyType(memberDeclaration.getType());
       final CCompositeType memberCompositeType;
@@ -135,6 +139,11 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
         if (memberCompositeType != null) {
           offset += machineModel.getPadding(offset, memberCompositeType);
           offset += sizes.count(memberCompositeType);
+        } else if (memberType.isIncomplete() && memberType instanceof CArrayType && !memberIt.hasNext()) {
+          // Last member of a struct can be an incomplete array.
+          // In this case we need only padding according to the element type of the array and no size.
+          CType elementType = ((CArrayType) memberType).getType();
+          offset += machineModel.getPadding(size, elementType);
         } else {
           offset += machineModel.getPadding(offset, memberDeclaration.getType());
           offset += memberDeclaration.getType().accept(sizeofVisitor);

@@ -24,14 +24,21 @@
 package org.sosy_lab.cpachecker.cpa.location;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Predicates.*;
+import static com.google.common.base.Predicates.instanceOf;
+import static com.google.common.base.Predicates.not;
+import static com.google.common.base.Predicates.or;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.CFAUtils.*;
+import static org.sosy_lab.cpachecker.util.CFAUtils.allEnteringEdges;
+import static org.sosy_lab.cpachecker.util.CFAUtils.allLeavingEdges;
+import static org.sosy_lab.cpachecker.util.CFAUtils.enteringEdges;
+import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
-import java.io.Serializable;
-import java.util.Collections;
-import java.util.Set;
-import java.util.SortedSet;
+import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Ordering;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -55,10 +62,10 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Ordering;
+import java.io.Serializable;
+import java.util.Collections;
+import java.util.Set;
+import java.util.SortedSet;
 
 public class LocationState implements AbstractStateWithLocation, AbstractQueryableState, Partitionable, Serializable {
 
@@ -126,6 +133,10 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
 
     private static final long serialVersionUID = 6825257572921009531L;
 
+    @SuppressFBWarnings(
+      value = "SE_BAD_FIELD",
+      justification = "backwards analysis not serializable"
+    )
     private final CFA cfa;
     private boolean followFunctionCalls;
 

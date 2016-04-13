@@ -181,7 +181,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     );
 
 
-    if (input.getFormula().equals(bfmgr.makeBoolean(true))) {
+    if (bfmgr.isTrue(input.getFormula())) {
       return bfmgr.makeBoolean(true);
     }
 

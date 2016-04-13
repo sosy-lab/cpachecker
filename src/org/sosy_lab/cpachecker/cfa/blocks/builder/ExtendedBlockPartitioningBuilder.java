@@ -23,14 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Set;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
@@ -38,8 +34,15 @@ import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 /**
  *  Class implements more intelligent partitioning building,
@@ -52,7 +55,7 @@ public class ExtendedBlockPartitioningBuilder extends BlockPartitioningBuilder {
   @Override
   public BlockPartitioning build(CFANode mainFunction) {
 
-    Map<CFANode, Set<FunctionEntryNode>> workCopyOfInnerFunctionCalls = new HashMap<>();
+    SetMultimap<CFANode, FunctionEntryNode> workCopyOfInnerFunctionCalls = HashMultimap.create();
 
     /* We chose one representative from every loop.
      * This map stores for the node its representative.
@@ -60,9 +63,8 @@ public class ExtendedBlockPartitioningBuilder extends BlockPartitioningBuilder {
     Map<CFANode, CFANode> loopMapping = new HashMap<>();
 
     //Deep clone, because we will delete nodes
-    for (CFANode node : innerFunctionCallsMap.keySet()) {
-      Set<FunctionEntryNode> newSet = Sets.newHashSet(innerFunctionCallsMap.get(node));
-      workCopyOfInnerFunctionCalls.put(node, newSet);
+    for (Entry<CFANode, Set<FunctionEntryNode>> entry : innerFunctionCallsMap.entrySet()) {
+      workCopyOfInnerFunctionCalls.putAll(entry.getKey(), entry.getValue());
     }
 
     //Set of not handled CFANodes
@@ -143,8 +145,9 @@ public class ExtendedBlockPartitioningBuilder extends BlockPartitioningBuilder {
     Map<CFANode, ImmutableSet<ReferencedVariable>> immutableVariablesMap = new HashMap<>();
     Map<CFANode, ImmutableSet<CFANode>> immutableNodesMap = new HashMap<>();
     //Resolve loop mapping
-    for (CFANode node : loopMapping.keySet()) {
-      CFANode mappedNode = loopMapping.get(node);
+    for (Entry<CFANode, CFANode> nodeMapping : loopMapping.entrySet()) {
+      CFANode node = nodeMapping.getKey();
+      CFANode mappedNode = nodeMapping.getValue();
       while (loopMapping.containsKey(mappedNode)) {
         mappedNode = loopMapping.get(mappedNode);
       }
@@ -171,13 +174,14 @@ public class ExtendedBlockPartitioningBuilder extends BlockPartitioningBuilder {
 
     //now we can create the Blocks for the BlockPartitioning
     Collection<Block> blocks = new ArrayList<>(returnNodesMap.keySet().size());
-    for (CFANode key : returnNodesMap.keySet()) {
+    for (Entry<CFANode, Set<CFANode>> returnNodesEntry : returnNodesMap.entrySet()) {
+      CFANode key = returnNodesEntry.getKey();
       if (immutableVariablesMap.containsKey(key)) {
         assert immutableNodesMap.containsKey(key);
         blocks.add(new Block(immutableVariablesMap.get(key), callNodesMap.get(key), returnNodesMap.get(key), immutableNodesMap.get(key)));
       } else {
         blocks.add(new Block(ImmutableSet.copyOf(referencedVariablesMap.get(key)), callNodesMap.get(key),
-            returnNodesMap.get(key), ImmutableSet.copyOf(blockNodesMap.get(key))));
+            returnNodesEntry.getValue(), ImmutableSet.copyOf(blockNodesMap.get(key))));
       }
     }
     return new BlockPartitioning(blocks, mainFunction);

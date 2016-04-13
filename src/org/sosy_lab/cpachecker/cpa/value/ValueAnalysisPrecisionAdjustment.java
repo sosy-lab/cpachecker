@@ -25,10 +25,11 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import static com.google.common.base.Preconditions.checkState;
 
-import java.io.PrintStream;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -60,9 +61,12 @@ import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableSet;
+import java.io.PrintStream;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+
+import javax.annotation.Nullable;
 
 @Options(prefix="cpa.value.abstraction")
 public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, StatisticsProvider {
@@ -94,6 +98,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
   @Option(secure=true, description="threshold for level of determinism, in percent,"
       + " up-to which abstraction computations are performed (and iteration threshold was reached)")
   @IntegerOption(min=0, max=100)
+  @SuppressFBWarnings(value = "URF_UNREAD_FIELD", justification = "false alarm")
   private int determinismThreshold = 85;
 
   private final ValueAnalysisTransferRelation transfer;
@@ -102,7 +107,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
 
   private final Optional<LiveVariables> liveVariables;
 
-  private Boolean performPrecisionBasedAbstraction = null;
+  private @Nullable Boolean performPrecisionBasedAbstraction = null;
 
   private final Statistics statistics;
 

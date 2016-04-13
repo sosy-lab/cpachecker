@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
@@ -59,7 +60,7 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
   }
 
   @Override
-  public CLangSMG execute(CLangSMG pSMG) throws SMGInconsistentException {
+  public CLangSMG execute(CLangSMG pSMG, SMGState pSmgState) throws SMGInconsistentException {
 
     SMGObject prevObject = candidate.getObject();
     int nfo = candidate.getNfo();
@@ -70,7 +71,7 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
       SMGEdgeHasValue nextEdge = Iterables.getOnlyElement(pSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(prevObject).filterAtOffset(nfo)));
       SMGObject nextObject = pSMG.getPointer(nextEdge.getValue()).getObject();
       SMGJoinSubSMGsForAbstraction join =
-          new SMGJoinSubSMGsForAbstraction(pSMG, prevObject, nextObject, candidate);
+          new SMGJoinSubSMGsForAbstraction(pSMG, prevObject, nextObject, candidate, pSmgState);
 
       SMGObject newAbsObj = join.getNewAbstractObject();
 

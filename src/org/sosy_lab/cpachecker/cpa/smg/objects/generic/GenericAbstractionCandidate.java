@@ -23,15 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects.generic;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class GenericAbstractionCandidate implements SMGGenericAbstractionCandidate {
 
@@ -63,11 +63,6 @@ public class GenericAbstractionCandidate implements SMGGenericAbstractionCandida
       Map<Integer, List<MaterlisationStep>> pMaterlisationStep, int pScore) {
     return new GenericAbstractionCandidate(pObjectsToBeRemoved, pAbstractToConcretePointerMap,
         pMaterlisationStep, pScore);
-  }
-
-  @Override
-  public int compareTo(SMGGenericAbstractionCandidate other) {
-    return getScore() - other.getScore();
   }
 
   @Override

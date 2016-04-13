@@ -23,10 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.refinement;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Optional;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -42,7 +39,10 @@ import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-import com.google.common.base.Optional;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * Generic feasibility checker
@@ -96,7 +96,7 @@ public class GenericFeasibilityChecker<S extends ForgetfulState<?>>
     try {
       S next = pStartingPoint;
 
-      PathIterator iterator = pPath.pathIterator();
+      PathIterator iterator = pPath.fullPathIterator();
       while (iterator.hasNext()) {
         final CFAEdge edge = iterator.getOutgoingEdge();
 

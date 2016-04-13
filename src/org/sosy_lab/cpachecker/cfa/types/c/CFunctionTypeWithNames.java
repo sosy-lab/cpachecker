@@ -23,17 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-import java.util.List;
-import java.util.Objects;
-
-import javax.annotation.Nullable;
-
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+
+import java.util.List;
+import java.util.Objects;
+
+import javax.annotation.Nullable;
 
 /**
  * This is a subclass of {@link CFunctionType} that is necessary during AST
@@ -44,6 +46,8 @@ import com.google.common.collect.ImmutableList;
 public final class CFunctionTypeWithNames extends CFunctionType implements CType {
 
   private static final long serialVersionUID = -3585082910610497708L;
+
+  @SuppressFBWarnings(value = "SE_BAD_FIELD", justification = "writeReplace() takes care of this")
   private final List<CParameterDeclaration> parameters;
 
   public CFunctionTypeWithNames(
@@ -137,5 +141,11 @@ public final class CFunctionTypeWithNames extends CFunctionType implements CType
     CFunctionTypeWithNames other = (CFunctionTypeWithNames) obj;
 
     return Objects.equals(parameters, other.parameters);
+  }
+
+  private Object writeReplace() {
+    // Cannot serialize parameter names, but typically this is not necessary anyway.
+    return new CFunctionType(
+        isConst(), isVolatile(), getReturnType(), getParameters(), takesVarArgs());
   }
 }

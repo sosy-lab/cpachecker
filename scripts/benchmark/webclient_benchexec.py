@@ -33,7 +33,7 @@ import os
 import shutil
 import threading
 
-import urllib.request as urllib2
+from requests import HTTPError
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
 
@@ -49,6 +49,9 @@ _print_lock = threading.Lock()
 
 def init(config, benchmark):
     global _webclient
+    
+    if not config.debug:
+        logging.getLogger('requests').setLevel(logging.WARNING)
 
     if not benchmark.config.cpu_model:
         logging.warning("It is strongly recommended to set a CPU model('--cloudCPUModel'). "\
@@ -158,7 +161,7 @@ def _submitRunsParallel(runSet, benchmark):
                     logging.info('Submitted run %s/%s', submissonCounter, len(runSet.runs))
 
 
-            except (urllib2.URLError, WebClientError) as e:
+            except (HTTPError, WebClientError) as e:
                 logging.warning('Could not submit run %s: %s.', run.identifier, e)
             finally:
                 submissonCounter += 1

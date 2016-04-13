@@ -23,23 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGGenericAbstractionCandidate;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 
 final class SMGJoinSubSMGs {
@@ -63,7 +63,7 @@ final class SMGJoinSubSMGs {
       SMG pSMG1, SMG pSMG2, SMG pDestSMG,
       SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
       SMGObject pObj1, SMGObject pObj2, SMGObject pNewObject,
-      int pLDiff, boolean pIncreaseLevelAndRelabelTargetSpc, boolean identicalInputSmg) throws SMGInconsistentException {
+      int pLDiff, boolean pIncreaseLevel, boolean identicalInputSmg, SMGState pSmgState1, SMGState pSmgState2) throws SMGInconsistentException {
 
     SMGJoinFields joinFields = new SMGJoinFields(pSMG1, pSMG2, pObj1, pObj2);
     subSmgAbstractionCandidates = ImmutableList.of();
@@ -129,7 +129,7 @@ final class SMGJoinSubSMGs {
       }
 
       SMGJoinValues joinValues = new SMGJoinValues(status, inputSMG1, inputSMG2, destSMG,
-          mapping1, mapping2, hvIn1.getValue(), hvIn2.getValue(), pLDiff, pIncreaseLevelAndRelabelTargetSpc, identicalInputSmg, pObj1.getLevel(), pObj2.getLevel());
+          mapping1, mapping2, hvIn1.getValue(), hvIn2.getValue(), pLDiff, pIncreaseLevel, identicalInputSmg, pObj1.getLevel(), pObj2.getLevel(), pSmgState1, pSmgState2);
 
       /* If the join of the values is not defined and can't be
        * recovered through abstraction, the join fails.*/
@@ -195,8 +195,7 @@ final class SMGJoinSubSMGs {
     }
 
     for(List<SMGGenericAbstractionCandidate> abstractionCandidates : valueAbstractionCandidates.values()) {
-      Collections.sort(abstractionCandidates);
-      abstractionCandidates.get(0).execute(destSMG);
+      abstractionCandidates.iterator().next().execute(destSMG);
     }
 
     defined = true;

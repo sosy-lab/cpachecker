@@ -23,9 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -52,8 +51,9 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 
 public class SMGStateTest {
@@ -297,14 +297,6 @@ public class SMGStateTest {
     add2.getValueAndStateList().get(0).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
 
     add2.getValueAndStateList().get(1).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
-
-    SMGState newState2 = add2.getValueAndStateList().get(0).getSmgState();
-
-    SMGAddressValueAndStateList add3 = newState2.getPointerFromValue(27);
-
-    add3.getValueAndStateList().get(0).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
-
-    add3.getValueAndStateList().get(1).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
 
   }
 

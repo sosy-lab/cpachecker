@@ -23,9 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cfa.export;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ListMultimap;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -33,15 +36,13 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ListMultimap;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Class for generating a DOT file from a CFA.
@@ -143,7 +144,14 @@ public final class DOTBuilder {
 
       //the first call to replaceAll replaces \" with \ " to prevent a bug in dotty.
       //future updates of dotty may make this obsolete.
-      sb.append(escapeGraphvizLabel(edge.getDescription(), " "));
+      if (edge instanceof MultiEdge) {
+        for (CFAEdge inner : (MultiEdge) edge) {
+          sb.append(escapeGraphvizLabel(inner.getDescription(), " "));
+          sb.append("\\l");
+        }
+      } else {
+        sb.append(escapeGraphvizLabel(edge.getDescription(), " "));
+      }
 
       sb.append("\"");
       if (edge instanceof FunctionSummaryEdge) {

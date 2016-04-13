@@ -25,17 +25,11 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
-import static org.sosy_lab.cpachecker.util.AbstractStates.*;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -70,7 +64,15 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import com.google.common.collect.Sets;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
 
 
 /**
@@ -169,15 +171,20 @@ public abstract class BAMPredicateRefiner implements Refiner {
         final List<ARGState> currentStacks = new ArrayList<>(currentState.getParents().size());
         for (ARGState parentElement : currentState.getParents()) {
           PathFormula parentFormula = finishedFormulas.get(parentElement);
-          final CFAEdge edge = parentElement.getEdgeToChild(currentState);
-          assert edge != null: "ARG is invalid: parent has no edge to child";
+          final List<CFAEdge> edges = parentElement.getEdgesToChild(currentState);
+          assert !edges.isEmpty() : "ARG is invalid: parent has no edge to child";
 
           final ARGState prevCallState;
+
+          boolean isSingleEdge = edges.size() == 1;
+
           // we enter a function, so lets add the previous state to the stack
-          if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+          if (isSingleEdge
+              && Iterables.getOnlyElement(edges).getEdgeType() == CFAEdgeType.FunctionCallEdge) {
             prevCallState = parentElement;
 
-          } else if (edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+          } else if (isSingleEdge
+              && Iterables.getOnlyElement(edges).getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
             // we leave a function, so rebuild return-state before assigning the return-value.
             // rebuild states with info from previous state
             assert callStacks.containsKey(parentElement);
@@ -197,7 +204,10 @@ public abstract class BAMPredicateRefiner implements Refiner {
             prevCallState = callStacks.get(parentElement);
           }
 
-          final PathFormula currentFormula = pfmgr.makeAnd(parentFormula, edge);
+          PathFormula currentFormula = parentFormula;
+          for (CFAEdge edge : edges) {
+            currentFormula = pfmgr.makeAnd(currentFormula, edge);
+          }
           currentFormulas.add(currentFormula);
           currentStacks.add(prevCallState);
         }

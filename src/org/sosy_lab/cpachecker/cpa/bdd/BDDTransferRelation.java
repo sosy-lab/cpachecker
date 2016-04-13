@@ -23,19 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.math.BigInteger;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -89,11 +76,24 @@ import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.math.BigInteger;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 /** This Transfer Relation tracks variables and handles them as bitvectors. */
 @Options(prefix = "cpa.bdd")
@@ -276,8 +276,13 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
     if (decl instanceof CVariableDeclaration) {
       CVariableDeclaration vdecl = (CVariableDeclaration) decl;
-      CInitializer initializer = vdecl.getInitializer();
+      if (vdecl.getType().isIncomplete()) {
+        // Variables of such types cannot store values, only their address can be taken.
+        // We can ignore them.
+        return state;
+      }
 
+      CInitializer initializer = vdecl.getInitializer();
       CExpression init = null;
       if (initializer instanceof CInitializerExpression) {
         init = ((CInitializerExpression) initializer).getExpression();

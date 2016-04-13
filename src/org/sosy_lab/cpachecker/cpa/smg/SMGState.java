@@ -23,17 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -72,10 +65,17 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.refinement.ForgetfulState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 public class SMGState implements AbstractQueryableState, LatticeAbstractState<SMGState>, ForgetfulState<SMGStateInformation> {
 
@@ -152,7 +152,13 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     id = id_counter.getAndIncrement();
     memoryErrors = pTargetMemoryErrors;
     unknownOnUndefined = pUnknownOnUndefined;
-    this.runtimeCheckLevel = pSMGRuntimeCheck;
+
+    if (pSMGRuntimeCheck == null) {
+      runtimeCheckLevel = SMGRuntimeCheck.NONE;
+    } else {
+      this.runtimeCheckLevel = pSMGRuntimeCheck;
+    }
+
     invalidFree = false;
     invalidRead = false;
     invalidWrite = false;
@@ -486,7 +492,10 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       SMGObject obj = address.getObject();
 
       if (obj instanceof SMGAbstractObject) {
-        return handleMaterilisation(addressValue, ((SMGAbstractObject) obj));
+        SMGAddressValueAndStateList result =
+            handleMaterilisation(addressValue, ((SMGAbstractObject) obj));
+        performConsistencyCheck(SMGRuntimeCheck.HALF);
+        return result;
       }
 
       return SMGAddressValueAndStateList.of(SMGAddressValueAndState.of(this, address));
@@ -543,40 +552,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     heap.mergeValues(nextEdge.getValue(), firstPointer);
     heap.mergeValues(prevEdge.getValue(), lastPointer);
-
-    /*
-
-    heap.removePointsToEdge(nextPointerEdge.getValue());
-    heap.removePointsToEdge(prevPointerEdge.getValue());
-    heap.removeValue(nextPointerEdge.getValue());
-    heap.removeValue(prevPointerEdge.getValue());
-
-    SMGEdgePointsTo newNextEdge;
-    SMGEdgePointsTo newPrevEdge;
-
-    if (prevPointerEdge.getValue() == nextPointerEdge.getValue()) {
-      newNextEdge = new SMGEdgePointsTo(firstPointer, nextPointerEdge.getObject(),
-          nextPointerEdge.getOffset(), nextPointerEdge.getTargetSpecifier());
-      newPrevEdge = newNextEdge;
-
-      for (SMGEdgeHasValue hve : heap.getHVEdges(SMGEdgeHasValueFilter.valueFilter(lastPointer))) {
-        heap.removeHasValueEdge(hve);
-        heap.addHasValueEdge(
-            new SMGEdgeHasValue(hve.getType(), hve.getOffset(), hve.getObject(), firstPointer));
-      }
-
-      heap.removeValue(lastPointer);
-    } else {
-      newNextEdge = new SMGEdgePointsTo(firstPointer, nextPointerEdge.getObject(),
-          nextPointerEdge.getOffset(), nextPointerEdge.getTargetSpecifier());
-      newPrevEdge = new SMGEdgePointsTo(lastPointer, prevPointerEdge.getObject(),
-          prevPointerEdge.getOffset(), prevPointerEdge.getTargetSpecifier());
-    }
-
-    heap.addPointsToEdge(newNextEdge);
-    heap.addPointsToEdge(newPrevEdge);
-
-    */
 
     if(firstPointer == pPointerToAbstractObject.getValue()) {
       return SMGAddressValueAndState.of(this, SMGKnownAddVal.valueOf(nextPointerEdge.getValue(), nextPointerEdge.getObject(), nextPointerEdge.getOffset()));
@@ -697,7 +672,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
           int level = reachedObjectSubSmg.getLevel();
           SMGTargetSpecifier tg = reachedObjectSubSmgPTEdge.getTargetSpecifier();
 
-          if((level != 0 || tg != SMGTargetSpecifier.ALL) && newVal != 0) {
+          if((level != 0 || tg == SMGTargetSpecifier.ALL) && newVal != 0) {
 
             SMGObject copyOfReachedObject;
 
@@ -717,7 +692,16 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
               newVal = SMGValueFactory.getNewValue();
               heap.addValue(newVal);
               newValueMap.put(subDlsValue, newVal);
-              SMGEdgePointsTo newPtEdge = new SMGEdgePointsTo(newVal, copyOfReachedObject, reachedObjectSubSmgPTEdge.getOffset(), reachedObjectSubSmgPTEdge.getTargetSpecifier());
+
+              SMGTargetSpecifier newTg;
+
+              if (copyOfReachedObject instanceof SMGRegion) {
+                newTg = SMGTargetSpecifier.REGION;
+              } else {
+                newTg = reachedObjectSubSmgPTEdge.getTargetSpecifier();
+              }
+
+              SMGEdgePointsTo newPtEdge = new SMGEdgePointsTo(newVal, copyOfReachedObject, reachedObjectSubSmgPTEdge.getOffset(), newTg);
               heap.addPointsToEdge(newPtEdge);
             }
           }
@@ -759,7 +743,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
         int level = reachedObjectSubSmg.getLevel();
         SMGTargetSpecifier tg = reachedObjectSubSmgPTEdge.getTargetSpecifier();
 
-        if ((level != 0 || tg != SMGTargetSpecifier.ALL) && newVal != 0) {
+        if ((level != 0 || tg == SMGTargetSpecifier.ALL) && newVal != 0) {
 
           SMGObject copyOfReachedObject;
 
@@ -779,9 +763,18 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
             newVal = SMGValueFactory.getNewValue();
             heap.addValue(newVal);
             newValueMap.put(subDlsValue, newVal);
+
+            SMGTargetSpecifier newTg;
+
+            if (copyOfReachedObject instanceof SMGRegion) {
+              newTg = SMGTargetSpecifier.REGION;
+            } else {
+              newTg = reachedObjectSubSmgPTEdge.getTargetSpecifier();
+            }
+
             SMGEdgePointsTo newPtEdge = new SMGEdgePointsTo(newVal, copyOfReachedObject,
                 reachedObjectSubSmgPTEdge.getOffset(),
-                reachedObjectSubSmgPTEdge.getTargetSpecifier());
+                newTg);
             heap.addPointsToEdge(newPtEdge);
           }
         }
@@ -815,7 +808,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
           SMGTargetSpecifier tg = reachedObjectSubSmgPTEdge.getTargetSpecifier();
 
           if ((!reached.contains(reachedObjectSubSmg))
-              && (level != 0 || tg != SMGTargetSpecifier.ALL) && subDlsValue != 0) {
+              && (level != 0 || tg == SMGTargetSpecifier.ALL) && subDlsValue != 0) {
             assert level > 0;
             reached.add(reachedObjectSubSmg);
             heap.setValidity(reachedObjectSubSmg, false);
@@ -860,7 +853,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
         SMGTargetSpecifier tg = reachedObjectSubSmgPTEdge.getTargetSpecifier();
 
         if ((!reached.contains(reachedObjectSubSmg))
-            && (level != 0 || tg != SMGTargetSpecifier.ALL) && subDlsValue != 0) {
+            && (level != 0 || tg == SMGTargetSpecifier.ALL) && subDlsValue != 0) {
           assert level > 0;
           reached.add(reachedObjectSubSmg);
           heap.setValidity(reachedObjectSubSmg, false);
@@ -1162,7 +1155,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   public SMGState joinSMG(SMGState reachedState) throws SMGInconsistentException {
     // Not necessary if merge_SEP and stop_SEP is used.
 
-    SMGJoin join = new SMGJoin(this.heap, reachedState.heap);
+    SMGJoin join = new SMGJoin(this.heap, reachedState.heap, this, reachedState);
 
     if (join.isDefined() && join.getStatus() != SMGJoinStatus.INCOMPARABLE
         && join.getStatus() != SMGJoinStatus.INCOMPLETE) {
@@ -1203,11 +1196,27 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     if(morePreciseIsLessOrEqual) {
 
-      SMGJoin join = new SMGJoin(heap, reachedState.heap);
+      SMGJoin join = new SMGJoin(heap, reachedState.heap, this, reachedState);
 
       if(join.isDefined()) {
         SMGJoinStatus jss = join.getStatus();
-        return jss == SMGJoinStatus.EQUAL || jss == SMGJoinStatus.RIGHT_ENTAIL;
+        boolean result = jss == SMGJoinStatus.EQUAL || jss == SMGJoinStatus.RIGHT_ENTAIL;
+
+        /* Only stop if either reached has memleak or this state has no memleak to avoid
+         * losing memleak information.
+        */
+        if (result) {
+
+          SMGState s1 = new SMGState(reachedState);
+          SMGState s2 = new SMGState(this);
+
+          s1.pruneUnreachable();
+          s2.pruneUnreachable();
+
+          return s1.heap.hasMemoryLeaks() == s2.heap.hasMemoryLeaks();
+        } else {
+          return result;
+        }
       } else {
         return false;
       }
@@ -1807,7 +1816,64 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * @throws SMGInconsistentException Join lead to inconsistent smg.
    */
   public void executeHeapAbstraction() throws SMGInconsistentException {
-    SMGAbstractionManager manager = new SMGAbstractionManager(heap, true);
+    SMGAbstractionManager manager = new SMGAbstractionManager(heap, true, this);
     manager.execute();
+    performConsistencyCheck(SMGRuntimeCheck.HALF);
+  }
+
+  /**
+   * Check if symbolic value1 of this smgState is less or equal to value2
+   * of smgsState2.
+   *
+   * A value is less or equal if every concrete value represented by value1 is also
+   * represented by value2.
+   *
+   * This check may be imprecise, but only insofar that equal symbolic values or
+   * symbolic values that entail each other may be identified as incomparable, never the other way around.
+   *
+   * @param value1 Value of this smgState.
+   * @param value2 Value of smgState2.
+   * @param smgState2 Another SMG State.
+   * @return SMGJoinStatus.RIGHT_ENTAIL iff all values represented by value1 are also represented by value2.
+   * SMGJoinStatus.EQUAL iff values represented by value1 and value2 are equal.
+   * SMGJoinStatus.INCOMPARABLE otherwise.
+   */
+  public SMGJoinStatus valueIsLessOrEqual(SMGKnownSymValue value1, SMGKnownSymValue value2,
+      SMGState smgState2) {
+
+    if (value1.equals(value2)) {
+      return SMGJoinStatus.EQUAL;
+    }
+
+    if (smgState2.explicitValues.containsKey(value2)) {
+      if (!explicitValues.containsKey(value1)) {
+        return SMGJoinStatus.INCOMPARABLE;
+      }
+
+      if (!smgState2.explicitValues.get(value2).equals(explicitValues.get(value1))) {
+        return SMGJoinStatus.INCOMPARABLE;
+      } else {
+        // Same explicit values
+        return SMGJoinStatus.EQUAL;
+      }
+    }
+
+    for (Integer neqToVal2 : smgState2.heap.getNeqsForValue(value2.getAsInt())) {
+      if (!heap.haveNeqRelation(value1.getAsInt(),
+          neqToVal2)) {
+        return SMGJoinStatus.INCOMPARABLE;
+      }
+    }
+
+    if (explicitValues.containsKey(value1) || heap.getNeqsForValue(value1.getAsInt()).size() > 0) {
+      return SMGJoinStatus.RIGHT_ENTAIL;
+    }
+
+    // Both values represent top
+    return SMGJoinStatus.EQUAL;
+  }
+
+  SMGEdgePointsTo getPointsToEdge(int pSymbolicValue) {
+    return heap.getPointer(pSymbolicValue);
   }
 }

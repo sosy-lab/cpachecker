@@ -25,12 +25,11 @@ package org.sosy_lab.cpachecker.cfa.types;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.math.BigInteger;
-
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
@@ -44,6 +43,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+
+import java.math.BigInteger;
+import java.util.Iterator;
 
 /**
  * This enum stores the sizes for all the basic types that exist.
@@ -513,10 +515,24 @@ public enum MachineModel {
 
     private Integer handleSizeOfStruct(CCompositeType pCompositeType) {
       int size = 0;
-      // TODO: Take possible padding into account
-      for (CCompositeTypeMemberDeclaration decl : pCompositeType.getMembers()) {
-        size += model.getPadding(size, decl.getType());
-        size += decl.getType().accept(this);
+      Iterator<CCompositeTypeMemberDeclaration> declIt = pCompositeType.getMembers().iterator();
+      while (declIt.hasNext()) {
+        CCompositeTypeMemberDeclaration decl = declIt.next();
+        if (decl.getType().isIncomplete() && !declIt.hasNext()) {
+          // Last member of a struct can be an incomplete array.
+          // In this case we need only padding according to the element type of the array and no size.
+          CType type = decl.getType().getCanonicalType();
+          if (type instanceof CArrayType) {
+            CType elementType = ((CArrayType) type).getType();
+            size += model.getPadding(size, elementType);
+          } else {
+            throw new IllegalArgumentException(
+                "Cannot compute size of incomplete type " + decl.getType());
+          }
+        } else {
+          size += model.getPadding(size, decl.getType());
+          size += decl.getType().accept(this);
+        }
       }
       size += model.getPadding(size, pCompositeType);
       return size;
@@ -540,18 +556,12 @@ public enum MachineModel {
         return def.accept(this);
       }
 
-      switch (pElaboratedType.getKind()) {
-      case ENUM:
-        return model.getSizeofInt();
-      case STRUCT:
-        // TODO: UNDEFINED
-        return model.getSizeofInt();
-      case UNION:
-        // TODO: UNDEFINED
-        return model.getSizeofInt();
-      default:
+      if (pElaboratedType.getKind() == ComplexTypeKind.ENUM) {
         return model.getSizeofInt();
       }
+
+      throw new IllegalArgumentException(
+          "Cannot compute size of incomplete type " + pElaboratedType);
     }
 
     @Override
@@ -593,6 +603,10 @@ public enum MachineModel {
   }
 
   public int getSizeof(CType type) {
+    checkArgument(
+        type instanceof CVoidType || !type.isIncomplete(),
+        "Cannot compute size of incomplete type %s",
+        type);
     return type.accept(sizeofVisitor);
   }
 
@@ -633,7 +647,17 @@ public enum MachineModel {
 
     @Override
     public Integer visit(CElaboratedType pElaboratedType) throws IllegalArgumentException {
-      return pElaboratedType.getRealType().accept(this);
+      CType def = pElaboratedType.getRealType();
+      if (def != null) {
+        return def.accept(this);
+      }
+
+      if (pElaboratedType.getKind() == ComplexTypeKind.ENUM) {
+        return model.getSizeofInt();
+      }
+
+      throw new IllegalArgumentException(
+          "Cannot compute alignment of incomplete type " + pElaboratedType);
     }
 
     @Override

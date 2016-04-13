@@ -26,14 +26,8 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static org.sosy_lab.common.collect.PersistentSortedMaps.merge;
 
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.annotation.CheckReturnValue;
-import javax.annotation.Nullable;
+import com.google.common.base.Equivalence;
+import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.CopyOnWriteSortedMap;
@@ -67,8 +61,14 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
 
-import com.google.common.base.Equivalence;
-import com.google.common.collect.ImmutableList;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.CheckReturnValue;
+import javax.annotation.Nullable;
 
 public class PointerTargetSetManager {
 
@@ -456,7 +456,11 @@ public class PointerTargetSetManager {
     final FormulaType<?> pointerType = typeHandler.getPointerType();
     final Formula newBaseFormula = formulaManager.makeVariable(pointerType, PointerTargetSet.getBaseName(newBase));
     if (lastBase != null) {
-      final int lastSize = typeHandler.getSizeof(bases.get(lastBase));
+      final CType lastType = bases.get(lastBase);
+      final int lastSize =
+          lastType.isIncomplete()
+              ? options.defaultAllocationSize()
+              : typeHandler.getSizeof(lastType);
       final Formula rhs = formulaManager.makePlus(formulaManager.makeVariable(pointerType, PointerTargetSet.getBaseName(lastBase)),
                                                   formulaManager.makeNumber(pointerType, lastSize));
       // The condition rhs > 0 prevents overflows in case of bit-vector encoding

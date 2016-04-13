@@ -158,7 +158,7 @@ public class SMGDoublyLinkedListCandidateFinderTest {
 
     SMGDoublyLinkedListCandidateFinder f = new SMGDoublyLinkedListCandidateFinder(3);
 
-     Set<SMGAbstractionCandidate> s = f.traverse(smg1);
+     Set<SMGAbstractionCandidate> s = f.traverse(smg1, null);
 
      Assert.assertTrue(s.size() == 2);
   }

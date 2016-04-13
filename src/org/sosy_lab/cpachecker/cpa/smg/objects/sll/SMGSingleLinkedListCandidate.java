@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
@@ -47,7 +48,7 @@ public class SMGSingleLinkedListCandidate implements SMGAbstractionCandidate {
   }
 
   @Override
-  public CLangSMG execute(CLangSMG pSMG) {
+  public CLangSMG execute(CLangSMG pSMG, SMGState pSMGState) {
     CLangSMG newSMG = pSMG;
     SMGSingleLinkedList sll = new SMGSingleLinkedList((SMGRegion)start, offset, length);
     newSMG.addHeapObject(sll);

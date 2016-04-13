@@ -1706,7 +1706,7 @@ cpa.predicate.useUFsForNonLinearArithmetic = true
 
 # Qualified name for class which checks that the computed abstraction adheres
 # to the desired property.
-cpa.propertychecker.className = "org.sosy_lab.cpachecker.pcc.propertychecker.DefaultPropertyChecker"
+cpa.propertychecker.className = org.sosy_lab.cpachecker.pcc.propertychecker.DefaultPropertyChecker.class
 
 # List of parameters for constructor of propertychecker.className. Parameter
 # values are specified in the order the parameters are defined in the

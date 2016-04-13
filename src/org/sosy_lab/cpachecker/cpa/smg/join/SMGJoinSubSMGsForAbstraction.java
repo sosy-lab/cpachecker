@@ -23,13 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
-import java.util.HashSet;
-import java.util.Map.Entry;
-import java.util.Set;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
+import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGAbstractObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
@@ -37,8 +40,9 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedListCandidate;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
+import java.util.HashSet;
+import java.util.Map.Entry;
+import java.util.Set;
 
 
 final public class SMGJoinSubSMGsForAbstraction {
@@ -52,7 +56,7 @@ final public class SMGJoinSubSMGsForAbstraction {
   private Set<SMGObject> nonSharedObjectsFromSMG2 = null;
   private boolean defined = false;
 
-  public SMGJoinSubSMGsForAbstraction(CLangSMG inputSMG, SMGObject obj1, SMGObject obj2, SMGDoublyLinkedListCandidate dlsc) throws SMGInconsistentException {
+  public SMGJoinSubSMGsForAbstraction(CLangSMG inputSMG, SMGObject obj1, SMGObject obj2, SMGDoublyLinkedListCandidate dlsc, SMGState pStateOfSmg) throws SMGInconsistentException {
 
     CLangSMG smg = inputSMG;
     Set<SMGObject> origObjects = ImmutableSet.copyOf(smg.getObjects());
@@ -100,10 +104,10 @@ final public class SMGJoinSubSMGsForAbstraction {
     mapping1.map(obj1, dls);
     mapping2.map(obj2, dls);
 
-    boolean increaseLevelAndRelabelTargetSpc =
+    boolean increaseLevel =
         obj1 instanceof SMGRegion && obj2 instanceof SMGRegion;
 
-    SMGJoinSubSMGs jss = new SMGJoinSubSMGs(SMGJoinStatus.EQUAL, smg, smg, smg, mapping1, mapping2, obj1, obj2, dls, lDiff, increaseLevelAndRelabelTargetSpc, true);
+    SMGJoinSubSMGs jss = new SMGJoinSubSMGs(SMGJoinStatus.EQUAL, smg, smg, smg, mapping1, mapping2, obj1, obj2, dls, lDiff, increaseLevel, true, pStateOfSmg, pStateOfSmg);
 
     if(!jss.isDefined()) {
       return;
@@ -114,6 +118,16 @@ final public class SMGJoinSubSMGsForAbstraction {
     mapping2 = jss.getMapping2();
 
     //TODO Contains dls0Cycle?
+
+    /* increase level hold already calculated value for
+     * obj1 instanceof SMGRegion && obj2 instanceof SMGRegion
+     */
+    if (increaseLevel) {
+      for (SMGEdgePointsTo pte : SMGUtils.getPointerToThisObject(dls, smg)) {
+        smg.removePointsToEdge(pte.getValue());
+        smg.addPointsToEdge(new SMGEdgePointsTo(pte.getValue(), pte.getObject(), pte.getOffset(), SMGTargetSpecifier.ALL));
+      }
+    }
 
 /*    smg.removeHasValueEdge(prevObj1hveT);
     smg.removeHasValueEdge(nextObj1hveT);
@@ -137,26 +151,26 @@ final public class SMGJoinSubSMGsForAbstraction {
     nonSharedValuesFromSMG2 = new HashSet<>();
 
     for (Entry<SMGObject, SMGObject> entry : mapping1.getObject_mapEntrySet()) {
-      if(origObjects.contains(entry.getValue())) {
-        nonSharedObjectsFromSMG1.add(entry.getValue());
+      if(origObjects.contains(entry.getKey())) {
+        nonSharedObjectsFromSMG1.add(entry.getKey());
       }
     }
 
     for (Entry<SMGObject, SMGObject> entry : mapping2.getObject_mapEntrySet()) {
-      if(origObjects.contains(entry.getValue())) {
-        nonSharedObjectsFromSMG2.add(entry.getValue());
+      if(origObjects.contains(entry.getKey())) {
+        nonSharedObjectsFromSMG2.add(entry.getKey());
       }
     }
 
     for (Entry<Integer, Integer> entry : mapping1.getValue_mapEntrySet()) {
-      if (origValues.contains(entry.getValue())) {
-        nonSharedValuesFromSMG1.add(entry.getValue());
+      if (origValues.contains(entry.getKey())) {
+        nonSharedValuesFromSMG1.add(entry.getKey());
       }
     }
 
     for (Entry<Integer, Integer> entry : mapping2.getValue_mapEntrySet()) {
-      if (origValues.contains(entry.getValue())) {
-        nonSharedValuesFromSMG2.add(entry.getValue());
+      if (origValues.contains(entry.getKey())) {
+        nonSharedValuesFromSMG2.add(entry.getKey());
       }
     }
 

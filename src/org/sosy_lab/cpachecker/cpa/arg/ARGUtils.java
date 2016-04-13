@@ -23,26 +23,30 @@
 */
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.*;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
-import java.io.IOException;
-import java.util.AbstractCollection;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.base.Verify;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Multimaps;
+import com.google.common.collect.Ordering;
+import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Sets;
+import com.google.common.collect.UnmodifiableIterator;
 
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -62,23 +66,21 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.GraphUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.base.Verify;
-import com.google.common.collect.Collections2;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Multimaps;
-import com.google.common.collect.Ordering;
-import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
-import com.google.common.collect.UnmodifiableIterator;
+import java.io.IOException;
+import java.util.AbstractCollection;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
+import javax.annotation.Nullable;
 
 /**
  * Helper class with collection of ARG related utility methods.
@@ -623,40 +625,88 @@ public class ARGUtils {
         }
 
         if (pPathStates.contains(child)) {
-          CFAEdge edge = s.getEdgeToChild(child);
-          if (edge instanceof MultiEdge) {
+          List<CFAEdge> allEdges = s.getEdgesToChild(child);
+          CFAEdge edge;
+
+          if (allEdges.size() == 1) {
+            edge = Iterables.getOnlyElement(allEdges);
+            if (edge instanceof MultiEdge) {
+              // The successor state might have several incoming MultiEdges.
+              // In this case the state names like ARG<successor>_0 would occur
+              // several times.
+              // So we add this counter to the state names to make them unique.
+              multiEdgeCount++;
+
+              // Write out a long linear chain of pseudo-states
+              // because the AutomatonCPA also iterates through the MultiEdge.
+              List<CFAEdge> edges = ((MultiEdge) edge).getEdges();
+
+              // first, write edge entering the list
+              int i = 0;
+              sb.append("    MATCH \"");
+              escape(edges.get(i).getRawStatement(), sb);
+              sb.append("\" -> ");
+              sb.append("GOTO ARG" + child.getStateId() + "_" + (i + 1) + "_" + multiEdgeCount);
+              sb.append(";\n");
+
+              // inner part (without first and last edge)
+              for (; i < edges.size() - 1; i++) {
+                sb.append(
+                    "STATE USEFIRST ARG"
+                        + child.getStateId()
+                        + "_"
+                        + i
+                        + "_"
+                        + multiEdgeCount
+                        + " :\n");
+                sb.append("    MATCH \"");
+                escape(edges.get(i).getRawStatement(), sb);
+                sb.append("\" -> ");
+                sb.append("GOTO ARG" + child.getStateId() + "_" + (i + 1) + "_" + multiEdgeCount);
+                sb.append(";\n");
+              }
+
+              // last edge connecting it with the real successor
+              edge = edges.get(i);
+              sb.append(
+                  "STATE USEFIRST ARG"
+                      + child.getStateId()
+                      + "_"
+                      + i
+                      + "_"
+                      + multiEdgeCount
+                      + " :\n");
+            }
+
+            // this is a dynamic multi edge
+          } else {
             // The successor state might have several incoming MultiEdges.
             // In this case the state names like ARG<successor>_0 would occur
             // several times.
             // So we add this counter to the state names to make them unique.
             multiEdgeCount++;
 
-            // Write out a long linear chain of pseudo-states
-            // because the AutomatonCPA also iterates through the MultiEdge.
-            List<CFAEdge> edges = ((MultiEdge)edge).getEdges();
-
             // first, write edge entering the list
             int i = 0;
             sb.append("    MATCH \"");
-            escape(edges.get(i).getRawStatement(), sb);
+            escape(allEdges.get(i).getRawStatement(), sb);
             sb.append("\" -> ");
             sb.append("GOTO ARG" + child.getStateId() + "_" + (i+1) + "_" + multiEdgeCount);
             sb.append(";\n");
 
             // inner part (without first and last edge)
-            for (; i < edges.size()-1; i++) {
+            for (; i < allEdges.size() - 1; i++) {
               sb.append("STATE USEFIRST ARG" + child.getStateId() + "_" + i + "_" + multiEdgeCount + " :\n");
               sb.append("    MATCH \"");
-              escape(edges.get(i).getRawStatement(), sb);
+              escape(allEdges.get(i).getRawStatement(), sb);
               sb.append("\" -> ");
               sb.append("GOTO ARG" + child.getStateId() + "_" + (i+1) + "_" + multiEdgeCount);
               sb.append(";\n");
             }
 
             // last edge connecting it with the real successor
-            edge = edges.get(i);
+            edge = allEdges.get(i);
             sb.append("STATE USEFIRST ARG" + child.getStateId() + "_" + i + "_" + multiEdgeCount + " :\n");
-            // remainder is written by code below
           }
 
           handleMatchCase(sb, edge);
@@ -748,40 +798,90 @@ public class ARGUtils {
             }
 
             if (pPathStates.contains(child)) {
-              CFAEdge edge = s.getEdgeToChild(child);
-              if (edge instanceof MultiEdge) {
+              List<CFAEdge> allEdges = s.getEdgesToChild(child);
+              CFAEdge edge;
+
+              if (allEdges.size() == 1) {
+                edge = Iterables.getOnlyElement(allEdges);
+                if (edge instanceof MultiEdge) {
+                  // The successor state might have several incoming MultiEdges.
+                  // In this case the state names like ARG<successor>_0 would occur
+                  // several times.
+                  // So we add this counter to the state names to make them unique.
+                  multiEdgeCount++;
+
+                  // Write out a long linear chain of pseudo-states
+                  // because the AutomatonCPA also iterates through the MultiEdge.
+                  List<CFAEdge> edges = ((MultiEdge) edge).getEdges();
+
+                  // first, write edge entering the list
+                  int i = 0;
+                  sb.append("    MATCH \"");
+                  escape(edges.get(i).getRawStatement(), sb);
+                  sb.append("\" -> ");
+                  sb.append("GOTO ARG" + child.getStateId() + "_" + (i + 1) + "_" + multiEdgeCount);
+                  sb.append(";\n");
+
+                  // inner part (without first and last edge)
+                  for (; i < edges.size() - 1; i++) {
+                    sb.append(
+                        "STATE USEFIRST ARG"
+                            + child.getStateId()
+                            + "_"
+                            + i
+                            + "_"
+                            + multiEdgeCount
+                            + " :\n");
+                    sb.append("    MATCH \"");
+                    escape(edges.get(i).getRawStatement(), sb);
+                    sb.append("\" -> ");
+                    sb.append(
+                        "GOTO ARG" + child.getStateId() + "_" + (i + 1) + "_" + multiEdgeCount);
+                    sb.append(";\n");
+                  }
+
+                  // last edge connecting it with the real successor
+                  edge = edges.get(i);
+                  sb.append(
+                      "STATE USEFIRST ARG"
+                          + child.getStateId()
+                          + "_"
+                          + i
+                          + "_"
+                          + multiEdgeCount
+                          + " :\n");
+                  // remainder is written by code below
+                }
+
+                // this is a dynamic multi edge
+              } else {
                 // The successor state might have several incoming MultiEdges.
                 // In this case the state names like ARG<successor>_0 would occur
                 // several times.
                 // So we add this counter to the state names to make them unique.
                 multiEdgeCount++;
 
-                // Write out a long linear chain of pseudo-states
-                // because the AutomatonCPA also iterates through the MultiEdge.
-                List<CFAEdge> edges = ((MultiEdge)edge).getEdges();
-
                 // first, write edge entering the list
                 int i = 0;
                 sb.append("    MATCH \"");
-                escape(edges.get(i).getRawStatement(), sb);
+                escape(allEdges.get(i).getRawStatement(), sb);
                 sb.append("\" -> ");
                 sb.append("GOTO ARG" + child.getStateId() + "_" + (i+1) + "_" + multiEdgeCount);
                 sb.append(";\n");
 
                 // inner part (without first and last edge)
-                for (; i < edges.size()-1; i++) {
+                for (; i < allEdges.size() - 1; i++) {
                   sb.append("STATE USEFIRST ARG" + child.getStateId() + "_" + i + "_" + multiEdgeCount + " :\n");
                   sb.append("    MATCH \"");
-                  escape(edges.get(i).getRawStatement(), sb);
+                  escape(allEdges.get(i).getRawStatement(), sb);
                   sb.append("\" -> ");
                   sb.append("GOTO ARG" + child.getStateId() + "_" + (i+1) + "_" + multiEdgeCount);
                   sb.append(";\n");
                 }
 
                 // last edge connecting it with the real successor
-                edge = edges.get(i);
+                edge = allEdges.get(i);
                 sb.append("STATE USEFIRST ARG" + child.getStateId() + "_" + i + "_" + multiEdgeCount + " :\n");
-                // remainder is written by code below
               }
 
               handleMatchCase(sb, edge);

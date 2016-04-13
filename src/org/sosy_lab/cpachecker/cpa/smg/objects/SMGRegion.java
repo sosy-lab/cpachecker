@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects;
 
-import java.util.Map;
-
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGObjectTemplate;
+
+import java.util.Map;
 
 public final class SMGRegion extends SMGObject implements SMGObjectTemplate {
 
@@ -107,6 +107,6 @@ public final class SMGRegion extends SMGObject implements SMGObjectTemplate {
 
   @Override
   public SMGObject copy(int pNewLevel) {
-    return new SMGRegion(getSize(), getLabel(), pNewLevel);
+    return new SMGRegion(getSize(), "ID" + SMGValueFactory.getNewValue() + " Copy of : " + getLabel(), pNewLevel);
   }
 }

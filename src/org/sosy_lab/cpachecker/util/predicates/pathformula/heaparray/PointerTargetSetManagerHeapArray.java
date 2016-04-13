@@ -402,7 +402,8 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
             && !compositeType2.getMembers().isEmpty()
             && compositeType2.getMembers().get(0).getName().equals(
             getUnitedFieldBaseName(0))) {
-          for (CCompositeTypeMemberDeclaration ignored : compositeType2.getMembers()) {
+          for (@SuppressWarnings("unused") CCompositeTypeMemberDeclaration ignored
+              : compositeType2.getMembers()) {
             membersBuilder.add(new CCompositeTypeMemberDeclaration(compositeType2,
                 getUnitedFieldBaseName(currentFieldIndex)));
             currentFieldIndex++;
@@ -601,7 +602,11 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
         PointerTargetSet.getBaseName(pNewBase));
 
     if (pLastBase != null) {
-      final int lastSize = typeHandler.getSizeof(pBases.get(pLastBase));
+      final CType lastType = pBases.get(pLastBase);
+      final int lastSize =
+          lastType.isIncomplete()
+              ? options.defaultAllocationSize()
+              : typeHandler.getSizeof(lastType);
       final Formula rhs = formulaManager.makePlus(
           formulaManager.makeVariable(pointerType,
               PointerTargetSet.getBaseName(pLastBase)),

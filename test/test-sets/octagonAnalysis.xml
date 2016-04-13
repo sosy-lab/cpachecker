@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
-<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
-<benchmark tool="cpachecker" softtimelimit="500 s" hardtimelimit="550 s" memlimit="32 GB" cpuCores="2">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.4//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.4.dtd">
+<benchmark tool="cpachecker" timelimit="500 s" hardtimelimit="550 s" memlimit="32 GB" cpuCores="2">
   <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
   <option name="-heap">2000M</option>
   <option name="-noout"/>

@@ -28,5 +28,5 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 
 public interface SMGAbstractionFinder {
-  public Set<SMGAbstractionCandidate> traverse(CLangSMG pSmg) throws SMGInconsistentException;
+  public Set<SMGAbstractionCandidate> traverse(CLangSMG pSmg, SMGState pSMGState) throws SMGInconsistentException;
 }

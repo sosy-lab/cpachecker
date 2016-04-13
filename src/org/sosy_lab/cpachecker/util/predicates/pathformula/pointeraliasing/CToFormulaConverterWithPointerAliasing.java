@@ -308,7 +308,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
           offset += getSizeof(memberType);
         }
       }
-    } else if (!(baseType instanceof CFunctionType)) {
+    } else if (!(baseType instanceof CFunctionType) && !baseType.isIncomplete()) {
       // This adds a constraint *a = a for the case where we previously tracked
       // a variable directly and now via its address (we do not want to loose
       // the value previously stored in the variable).
@@ -651,7 +651,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
       if (initializer != null) {
         result = assignmentHandler.handleAssignment(lhs, lhs, ((CInitializerExpression) initializer).getExpression(), false, null);
-      } else if (isRelevantVariable(declaration)) {
+      } else if (isRelevantVariable(declaration) && !declarationType.isIncomplete()) {
         result = assignmentHandler.handleAssignment(lhs, lhs, null, false, null);
       } else {
         result = bfmgr.makeBoolean(true);
