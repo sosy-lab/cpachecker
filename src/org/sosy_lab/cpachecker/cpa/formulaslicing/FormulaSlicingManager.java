@@ -209,8 +209,9 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     if (runQELight) {
       statistics.deadVarElimination.start();
       try {
-        BooleanFormula afterQE = applyQELight(input, pf.getSsa());
-        lemmas = bfmgr.toConjunctionArgs(afterQE, true);
+
+        // Applying QE light includes RCNF conversion.
+        lemmas = applyQELightAndConvert(input, pf.getSsa());
       } finally {
         statistics.deadVarElimination.stop();
       }
@@ -245,12 +246,12 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     );
   }
 
-  private BooleanFormula applyQELight(final BooleanFormula input, SSAMap pSSAMap)
+  private Set<BooleanFormula> applyQELightAndConvert(final BooleanFormula input, SSAMap pSSAMap)
       throws InterruptedException {
     BooleanFormula quantified = fmgr.quantifyDeadVariables(input, pSSAMap);
     BooleanFormula qeLightResult = fmgr.applyTactic(quantified, Tactic.QE_LIGHT);
-    BooleanFormula result = overApproximateExistentials(qeLightResult);
-    assert !hasQuantifiers(result);
+    Set<BooleanFormula> result = overApproximateExistentials(qeLightResult);
+    assert !hasQuantifiers(bfmgr.and(result));
     return result;
   }
 
@@ -286,33 +287,37 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     return hasQ.get();
   }
 
-  private BooleanFormula overApproximateExistentials(final BooleanFormula input) {
-    return fmgr.visit(new DefaultFormulaVisitor<BooleanFormula>() {
+  private Set<BooleanFormula> overApproximateExistentials(final BooleanFormula input)
+      throws InterruptedException {
+    Optional<BooleanFormula> body = fmgr.visit(quantifiedBodyExtractor, input);
+    if (body.isPresent()) {
+
+      // Has quantified variables.
+      Set<BooleanFormula> lemmas = rcnfManager.toLemmas(body.get());
+      return Sets.filter(lemmas, Predicates.not(hasBoundVariables));
+    } else {
+
+      // Does not have quantified variables.
+      return rcnfManager.toLemmas(input);
+    }
+  }
+
+  private final DefaultFormulaVisitor<Optional<BooleanFormula>> quantifiedBodyExtractor = new
+      DefaultFormulaVisitor<Optional<BooleanFormula>> () {
       @Override
-      protected BooleanFormula visitDefault(Formula f) {
-        try {
-          return bfmgr.and(rcnfManager.toLemmas(input));
-        } catch (InterruptedException pE) {
-          throw new UnsupportedOperationException("Failed converting to RCNF");
-        }
+      protected Optional<BooleanFormula> visitDefault(Formula f) {
+        return Optional.absent();
       }
 
       @Override
-      public BooleanFormula visitQuantifier(
+      public Optional<BooleanFormula> visitQuantifier(
           BooleanFormula f,
           Quantifier quantifier,
           List<Formula> boundVariables,
           BooleanFormula body) {
-        Set<BooleanFormula> lemmas;
-        try {
-          lemmas = rcnfManager.toLemmas(body);
-        } catch (InterruptedException pE) {
-          throw new UnsupportedOperationException("Failed converting to RCNF");
-        }
-        return bfmgr.and(Sets.filter(lemmas, Predicates.not(hasBoundVariables)));
+        return Optional.of(body);
       }
-    }, input);
-  }
+    };
 
   private final Predicate<BooleanFormula> hasBoundVariables = new Predicate<BooleanFormula>() {
     @Override
