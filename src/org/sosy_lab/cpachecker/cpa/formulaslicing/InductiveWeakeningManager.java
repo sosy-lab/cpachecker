@@ -7,7 +7,6 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.ShutdownNotifier;
@@ -31,7 +30,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 /**
@@ -138,7 +136,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
         transition,
         toStateLemmasAnnotated,
         Collections.<BooleanFormula>emptySet(),
-        true);
+        startingSSA);
 
     Set<BooleanFormula> out =
         Sets.filter(toStateLemmas, new Predicate<BooleanFormula>() {
@@ -186,7 +184,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
         transition,
         toStateInstantiated,
         Collections.<BooleanFormula>emptySet(),
-        false);
+        startingSSA);
 
     Set<BooleanFormula> out =
         Sets.filter(lemmas, new Predicate<BooleanFormula>() {
@@ -213,14 +211,12 @@ public class InductiveWeakeningManager implements StatisticsProvider {
       SSAMap finishSSA,
       BooleanFormula transition
   ) throws SolverException, InterruptedException {
-    return solver.isUnsat(
-        bfmgr.and(
+    return solver.isUnsat(bfmgr.and(
             bfmgr.and(fmgr.instantiate(Lists.newArrayList(from), startSSA)),
             transition,
             bfmgr.not(bfmgr.and(fmgr.instantiate(Lists.newArrayList(to),
                 finishSSA)))
-        )
-    );
+        ));
   }
 
   /**
@@ -234,10 +230,9 @@ public class InductiveWeakeningManager implements StatisticsProvider {
    *                transition.
    * @param selectorsWithIntermediate Selectors which should be abstracted
    *                                  from the start.
-   * @param toAndFromDiffer Whether lemmas associated with the from-
-   *                        and to-states differ.
+   * @param fromSSA SSAMap associated with the {@code fromState}.
    * @return Set of selectors which should be abstracted.
-   *         Subset of {@code selectionVarsInfo}.
+   *         Subset of {@code selectionVarsInfo} keys.
    */
   private Set<BooleanFormula> findSelectorsToAbstract(
       Map<BooleanFormula, BooleanFormula> selectionVarsInfo,
@@ -245,35 +240,15 @@ public class InductiveWeakeningManager implements StatisticsProvider {
       PathFormula transition,
       BooleanFormula toState,
       Set<BooleanFormula> selectorsWithIntermediate,
-      boolean toAndFromDiffer
+      SSAMap fromSSA
   ) throws SolverException, InterruptedException {
     switch (weakeningStrategy) {
 
       case SYNTACTIC:
-        if (toAndFromDiffer) {
-          // Allow through only those lemmas which appear in both
-          // input and output.
-          final Set<BooleanFormula> fromStateUninstantiatedLemmas =
-              bfmgr.toConjunctionArgs(
-                  fmgr.uninstantiate(fromState), false
-              );
-          selectionVarsInfo =
-              Maps.filterEntries(selectionVarsInfo,
-                  new Predicate<Entry<BooleanFormula, BooleanFormula>>() {
-                    @Override
-                    public boolean apply(Entry<BooleanFormula, BooleanFormula> e) {
-                      BooleanFormula value = e.getValue();
-                      return fromStateUninstantiatedLemmas.contains(
-                          value
-                      );
-                    }
-                  });
-        }
 
         // todo: this interface is probably not sufficient.
         return syntacticWeakeningManager.performWeakening(
-            selectionVarsInfo,
-            transition);
+                fromSSA, selectionVarsInfo, transition);
 
       case DESTRUCTIVE:
         return destructiveWeakeningManager.performWeakening(
@@ -281,7 +256,8 @@ public class InductiveWeakeningManager implements StatisticsProvider {
             fromState,
             transition,
             toState,
-            selectorsWithIntermediate);
+            selectorsWithIntermediate,
+            fromSSA);
 
       case CEX:
         return cexWeakeningManager.performWeakening(
