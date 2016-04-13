@@ -196,7 +196,6 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
         continue;
       }
       if (filterByLiveness &&
-          // TODO: avoid re-calculating #extractFunctionNames twice.
           Sets.intersection(
               ImmutableSet.copyOf(
                   liveVariables.getLiveVariableNamesForNode(node).filter(
@@ -237,19 +236,20 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     Set<BooleanFormula> candidateLemmas = Sets.intersection(
         oldState.getAbstraction(), fromState.getAbstraction());
 
-    Set<BooleanFormula> finalClauses;
+    PathFormulaWithStartSSA path =
+        new PathFormulaWithStartSSA(iState.getPathFormula(), iState
+            .getAbstractParent().getSSA());
     if (oldState == fromState) {
-      PathFormulaWithStartSSA path =
-          new PathFormulaWithStartSSA(iState.getPathFormula(), iState
-              .getAbstractParent().getSSA());
 
       if (fromState.getInductiveUnder().contains(path)) {
 
-        // Optimization!
+        // Optimization for non-nested loops.
         return SlicingAbstractedState.copyOf(fromState);
       }
     }
 
+    Set<BooleanFormula> finalClauses;
+    Set<PathFormulaWithStartSSA> inductiveUnder;
     try {
       statistics.inductiveWeakening.start();
 
@@ -260,6 +260,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
             iState.getPathFormula(),
             candidateLemmas
         );
+        inductiveUnder = ImmutableSet.of();
       } else {
 
         // No nested loops: remove lemmas on both sides.
@@ -267,6 +268,9 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
             fromState.getSSA(),
             iState.getPathFormula(),
             candidateLemmas
+        );
+        inductiveUnder = Sets.union(
+            fromState.getInductiveUnder(), ImmutableSet.of(path)
         );
       }
     } catch (SolverException pE) {
@@ -283,7 +287,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
         fmgr,
         iState.getNode(),
         Optional.of(iState),
-        ImmutableSet.<PathFormulaWithStartSSA>of()
+        inductiveUnder
     );
     slicingCache.put(Pair.of(iState, oldState), out);
     return out;
