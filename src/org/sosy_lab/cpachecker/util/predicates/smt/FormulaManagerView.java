@@ -32,6 +32,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
@@ -51,6 +52,7 @@ import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.ReplaceBitvectorWithNumeralAndFunctionTheory.ReplaceBitvectorEncodingOptions;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.ArrayFormula;
@@ -1571,5 +1573,41 @@ public class FormulaManagerView {
       FormulaVisitor<TraversalProcess> rFormulaVisitor,
       Formula f) {
     manager.visitRecursively(rFormulaVisitor, unwrap(f));
+  }
+
+  /**
+   * Replace all literals in {@code input} which do not satisfy {@code toKeep}
+   * with {@code true}.
+   */
+  public BooleanFormula filterLiterals(
+      BooleanFormula input,
+      final Predicate<BooleanFormula> toKeep)
+      throws InterruptedException {
+    // No nested NOT's are possible in NNF.
+    BooleanFormula nnf = applyTactic(input, Tactic.NNF);
+
+    BooleanFormula nnfNotTransformed =
+        booleanFormulaManager.transformRecursively(
+            new BooleanFormulaTransformationVisitor(this) {
+              @Override
+              public BooleanFormula visitNot(BooleanFormula pOperand) {
+                if (!toKeep.apply(pOperand)) {
+                  return booleanFormulaManager.makeBoolean(true);
+                }
+                return super.visitNot(pOperand);
+              }
+            }, nnf);
+    return booleanFormulaManager.transformRecursively(
+        new BooleanFormulaTransformationVisitor(this) {
+          @Override
+          public BooleanFormula visitAtom(
+              BooleanFormula pOperand,
+              FunctionDeclaration<BooleanFormula> decl) {
+            if (!toKeep.apply(pOperand)) {
+              return booleanFormulaManager.makeBoolean(true);
+            }
+            return super.visitAtom(pOperand, decl);
+          }
+        }, nnfNotTransformed);
   }
 }
