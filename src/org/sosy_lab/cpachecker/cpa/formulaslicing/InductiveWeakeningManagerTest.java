@@ -73,8 +73,9 @@ public class InductiveWeakeningManagerTest {
     PathFormula loop = toPathFormula(pfmgr, cfa, f.getSsa());
     logger.log(Level.INFO, "Loop transition: ", loop);
 
-    BooleanFormula slice = inductiveWeakeningManager.findInductiveWeakening(f, loop,
-        fmgr.getBooleanFormulaManager().makeBoolean(true));
+    BooleanFormula slice = inductiveWeakeningManager.findInductiveWeakening
+        (f, loop);
+
 
     logger.log(Level.INFO, "Obtained slice", slice);
 
@@ -100,8 +101,9 @@ public class InductiveWeakeningManagerTest {
     PathFormula loop = toPathFormula(pfmgr, cfa, f.getSsa());
     logger.log(Level.INFO, "Loop transition: ", loop);
 
-    BooleanFormula slice = inductiveWeakeningManager.findInductiveWeakening(f, loop,
-        fmgr.getBooleanFormulaManager().makeBoolean(true));
+    BooleanFormula slice = inductiveWeakeningManager.findInductiveWeakening
+        (f, loop);
+
     logger.log(Level.INFO, "Obtained slice", slice);
 
     cfa = toCFA("int y; y = 0;");
@@ -138,8 +140,7 @@ public class InductiveWeakeningManagerTest {
     PathFormula loopTransition = toPathFormula(pfmgr, cfa);
 
     BooleanFormula slice = inductiveWeakeningManager.findInductiveWeakening(
-        input, loopTransition,
-        fmgr.getBooleanFormulaManager().makeBoolean(true));
+        input, loopTransition);
 
     logger.log(Level.INFO, "Obtained slice", slice);
   }
