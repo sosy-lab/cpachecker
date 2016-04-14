@@ -1662,8 +1662,8 @@ cpa.predicate.successfulZallocFunctionName = "__VERIFIER_successful_zalloc"
 # only the fast abstract checks
 cpa.predicate.symbolicCoverageCheck = false
 
-# check satisfiability when a target state has been found (should be true)
-cpa.predicate.targetStateSatCheck = true
+# check satisfiability when a target state has been found
+cpa.predicate.targetStateSatCheck = false
 
 # Whether to track values stored in variables of function-pointer type.
 cpa.predicate.trackFunctionPointers = true
