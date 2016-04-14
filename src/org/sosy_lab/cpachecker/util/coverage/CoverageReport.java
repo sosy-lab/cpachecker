@@ -27,11 +27,10 @@ import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.EXTRACT_LOCATION;
 
-import java.io.PrintStream;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Multiset;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -53,9 +52,12 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-import com.google.common.collect.HashMultiset;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Multiset;
+import java.io.PrintStream;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Class responsible for extracting coverage information from ReachedSet and CFA
@@ -139,13 +141,13 @@ public class CoverageReport {
       if (argState != null ) {
         for (ARGState child : argState.getChildren()) {
           if (!child.isCovered()) {
-            CFAEdge edge = argState.getEdgeToChild(child);
-            if (edge instanceof MultiEdge) {
-              for (CFAEdge innerEdge : ((MultiEdge)edge).getEdges()) {
+            List<CFAEdge> edges = argState.getEdgesToChild(child);
+            if (edges.size() > 1) {
+              for (CFAEdge innerEdge : edges) {
                 handleCoveredEdge(innerEdge, infosPerFile);
               }
             } else {
-              handleCoveredEdge(edge, infosPerFile);
+              handleCoveredEdge(Iterables.getOnlyElement(edges), infosPerFile);
             }
           }
         }
