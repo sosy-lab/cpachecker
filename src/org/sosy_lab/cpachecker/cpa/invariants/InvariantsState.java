@@ -392,21 +392,21 @@ public class InvariantsState implements AbstractState,
     if (variableType == null) {
       return this;
     }
-    BitVectorInfo bitVectorInfo = BitVectorInfo.from(machineModel, variableType);
-    NumeralFormula<CompoundInterval> value = compoundIntervalFormulaManager.cast(bitVectorInfo, pValue);
+    TypeInfo typeInfo = BitVectorInfo.from(machineModel, variableType);
+    NumeralFormula<CompoundInterval> value = compoundIntervalFormulaManager.cast(typeInfo, pValue);
     for (Map.Entry<MemoryLocation, NumeralFormula<CompoundInterval>> entry : this.environment.entrySet()) {
       MemoryLocation memoryLocation = entry.getKey();
-      BitVectorInfo varBitVectorInfo = BitVectorInfo.from(machineModel, getType(memoryLocation));
+      TypeInfo varTypeInfo = BitVectorInfo.from(machineModel, getType(memoryLocation));
       if (memoryLocation.getAsSimpleString().startsWith(pMemoryLocation.getAsSimpleString() + "->")
           || memoryLocation.getAsSimpleString().startsWith(pMemoryLocation.getAsSimpleString() + ".")) {
-        result = result.assign(memoryLocation, allPossibleValuesFormula(varBitVectorInfo));
+        result = result.assign(memoryLocation, allPossibleValuesFormula(varTypeInfo));
       }
     }
     if (value instanceof Variable<?>) {
       MemoryLocation valueMemoryLocation = ((Variable<?>) value).getMemoryLocation();
       if (valueMemoryLocation.getAsSimpleString().startsWith(pMemoryLocation.getAsSimpleString() + "->")
           || valueMemoryLocation.getAsSimpleString().startsWith(pMemoryLocation.getAsSimpleString() + ".")) {
-        return assign(pMemoryLocation, allPossibleValuesFormula(bitVectorInfo));
+        return assign(pMemoryLocation, allPossibleValuesFormula(typeInfo));
       }
       String pointerDerefPrefix = valueMemoryLocation.getAsSimpleString() + "->";
       String nonPointerDerefPrefix = valueMemoryLocation.getAsSimpleString() + ".";
@@ -691,23 +691,27 @@ public class InvariantsState implements AbstractState,
       MemoryLocation memoryLocation = typeEntry.getKey();
       Type type = typeEntry.getValue();
       if (BitVectorInfo.isSupported(type)) {
-        BitVectorInfo bitVectorInfo = BitVectorInfo.from(machineModel, typeEntry.getValue());
-        CompoundIntervalManager cim = compoundIntervalManagerFactory.createCompoundIntervalManager(bitVectorInfo);
+        TypeInfo typeInfo = BitVectorInfo.from(machineModel, typeEntry.getValue());
+        CompoundIntervalManager cim =
+            compoundIntervalManagerFactory.createCompoundIntervalManager(typeInfo);
         CompoundInterval range = cim.allPossibleValues();
-        Variable<CompoundInterval> variable = InvariantsFormulaManager.INSTANCE.asVariable(
-                bitVectorInfo,
-                memoryLocation);
+        Variable<CompoundInterval> variable =
+            InvariantsFormulaManager.INSTANCE.asVariable(typeInfo, memoryLocation);
         NumeralFormula<CompoundInterval> value = environment.get(memoryLocation);
         if (value == null || value.accept(evaluationVisitor, environment).containsAllPossibleValues()) {
           if (range.hasLowerBound()) {
-            assumptions.add(compoundIntervalFormulaManager.greaterThanOrEqual(
-                variable,
-                InvariantsFormulaManager.INSTANCE.asConstant(bitVectorInfo, cim.singleton(range.getLowerBound()))));
+            assumptions.add(
+                compoundIntervalFormulaManager.greaterThanOrEqual(
+                    variable,
+                    InvariantsFormulaManager.INSTANCE.asConstant(
+                        typeInfo, cim.singleton(range.getLowerBound()))));
           }
           if (range.hasUpperBound()) {
-            assumptions.add(compoundIntervalFormulaManager.lessThanOrEqual(
-                variable,
-                InvariantsFormulaManager.INSTANCE.asConstant(bitVectorInfo, cim.singleton(range.getUpperBound()))));
+            assumptions.add(
+                compoundIntervalFormulaManager.lessThanOrEqual(
+                    variable,
+                    InvariantsFormulaManager.INSTANCE.asConstant(
+                        typeInfo, cim.singleton(range.getUpperBound()))));
           }
         }
       }

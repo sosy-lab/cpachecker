@@ -1068,11 +1068,12 @@ public class CompoundIntervalFormulaManager {
   }
 
   public NumeralFormula<CompoundInterval> fromBoolean(
-      BitVectorInfo pBitVectorInfo,
-      BooleanFormula<CompoundInterval> pFormula) {
-    CompoundIntervalManager cim = getCompoundIntervalManager(pBitVectorInfo);
-    NumeralFormula<CompoundInterval> trueNumeralFormula = asConstant(pBitVectorInfo, cim.singleton(BigInteger.ONE));
-    NumeralFormula<CompoundInterval> falseNumeralFormula = asConstant(pBitVectorInfo, cim.logicalFalse());
+      TypeInfo pTypeInfo, BooleanFormula<CompoundInterval> pFormula) {
+    CompoundIntervalManager cim = getCompoundIntervalManager(pTypeInfo);
+    NumeralFormula<CompoundInterval> trueNumeralFormula =
+        asConstant(pTypeInfo, cim.singleton(BigInteger.ONE));
+    NumeralFormula<CompoundInterval> falseNumeralFormula =
+        asConstant(pTypeInfo, cim.logicalFalse());
     return ifThenElse(
         pFormula,
         trueNumeralFormula,

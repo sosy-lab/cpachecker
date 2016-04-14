@@ -71,6 +71,9 @@ public enum CompoundBitVectorIntervalManagerFactory implements CompoundIntervalM
       return new CompoundBitVectorIntervalManager(
           (BitVectorInfo) pInfo, isSignedWrapAroundAllowed(), compositeHandler);
     }
+    if (pInfo instanceof FloatingPointTypeInfo) {
+      return new CompoundFloatingPointIntervalManager((FloatingPointTypeInfo) pInfo);
+    }
     throw new AssertionError("Unsupported type: " + pInfo);
   }
 

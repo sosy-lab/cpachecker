@@ -110,15 +110,14 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     this.compoundIntervalFormulaManager = new CompoundIntervalFormulaManager(compoundIntervalManagerFactory);
   }
 
-  private CompoundIntervalManager getCompoundIntervalManager(BitVectorInfo pBitVectorInfo) {
-    return compoundIntervalManagerFactory.createCompoundIntervalManager(pBitVectorInfo);
+  private CompoundIntervalManager getCompoundIntervalManager(TypeInfo pTypeInfo) {
+    return compoundIntervalManagerFactory.createCompoundIntervalManager(pTypeInfo);
   }
 
   private NumeralFormula<CompoundInterval> allPossibleValues(Type pType) {
-    BitVectorInfo bitVectorInfo = BitVectorInfo.from(machineModel, pType);
+    TypeInfo typeInfo = BitVectorInfo.from(machineModel, pType);
     return InvariantsFormulaManager.INSTANCE.asConstant(
-        bitVectorInfo,
-        getCompoundIntervalManager(bitVectorInfo).allPossibleValues());
+        typeInfo, getCompoundIntervalManager(typeInfo).allPossibleValues());
   }
 
   @Override
@@ -242,6 +241,11 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       return pElement;
     }
 
+    // Ignore unsupported types
+    if (!BitVectorInfo.isSupported(decl.getType())) {
+      return pElement;
+    }
+
     MemoryLocation varName = MemoryLocation.valueOf(decl.getName());
     if (!decl.isGlobal()) {
       varName = MemoryLocationExtractor.scope(decl.getName(), pEdge.getSuccessor().getFunctionName());
@@ -341,10 +345,10 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
         if (functionNameExpression instanceof CIdExpression) {
           CIdExpression idExpression = (CIdExpression) functionNameExpression;
           if (idExpression.getName().equals("__VERIFIER_nondet_uint")) {
-            BitVectorInfo bitVectorInfo = BitVectorInfo.from(machineModel, leftHandSide.getExpressionType());
-            value = InvariantsFormulaManager.INSTANCE.asConstant(
-                bitVectorInfo,
-                getCompoundIntervalManager(bitVectorInfo).singleton(0).extendToMaxValue());
+            TypeInfo typeInfo = BitVectorInfo.from(machineModel, leftHandSide.getExpressionType());
+            value =
+                InvariantsFormulaManager.INSTANCE.asConstant(
+                    typeInfo, getCompoundIntervalManager(typeInfo).singleton(0).extendToMaxValue());
           }
         }
       }

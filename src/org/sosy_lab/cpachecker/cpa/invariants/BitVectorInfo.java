@@ -25,10 +25,11 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 
 import com.google.common.base.Preconditions;
 
-import org.eclipse.cdt.internal.core.dom.parser.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
@@ -107,7 +108,7 @@ public class BitVectorInfo implements TypeInfo {
     return new BitVectorInfo(pSize, pSigned);
   }
 
-  public static BitVectorInfo from(MachineModel pMachineModel, Type pType) {
+  public static TypeInfo from(MachineModel pMachineModel, Type pType) {
     Type type = pType;
     if (type instanceof CType) {
       type = ((CType) type).getCanonicalType();
@@ -115,6 +116,15 @@ public class BitVectorInfo implements TypeInfo {
     final int size;
     final boolean signed;
     if (type instanceof CType) {
+      if (type instanceof CSimpleType) {
+        CBasicType basicType = ((CSimpleType) type).getType();
+        if (basicType == CBasicType.FLOAT) {
+          return FloatingPointTypeInfo.FLOAT;
+        }
+        if (basicType == CBasicType.DOUBLE) {
+          return FloatingPointTypeInfo.DOUBLE;
+        }
+      }
       int sizeInChars = ((CType) type).accept(new BaseSizeofVisitor(pMachineModel));
       if (sizeInChars == 0) {
         sizeInChars = pMachineModel.getSizeofPtr();
@@ -148,8 +158,10 @@ public class BitVectorInfo implements TypeInfo {
         size = 64;
         signed = true;
         break;
-      case FLOAT:
-      case DOUBLE:
+        case FLOAT:
+          return FloatingPointTypeInfo.FLOAT;
+        case DOUBLE:
+          return FloatingPointTypeInfo.DOUBLE;
       case NULL:
       case UNSPECIFIED:
       case VOID:
