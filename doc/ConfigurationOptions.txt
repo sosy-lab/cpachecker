@@ -1744,13 +1744,6 @@ cpa.slicing.boundVarsHandling = QE_LIGHT_THEN_DROP
 # Check target states reachability
 cpa.slicing.checkTargetStates = true
 
-# Limits the number of iteration for the destructive slicing strategy. Set to
-# -1 for no limit.
-cpa.slicing.destructiveIterationLimit = -1
-
-# Limit for explicit CNF expansion (potentially exponential otherwise)
-cpa.slicing.expansionDepthLimit = 1
-
 # Limit on the size of the resulting number of lemmas from the explicit
 # expansion
 cpa.slicing.expansionResultSizeLimit = 1000
@@ -1771,10 +1764,6 @@ cpa.slicing.preRunSyntacticWeakening = true
 # Strategy for abstracting children during CEX weakening
 cpa.slicing.removalSelectionStrategy = ALL
   enum:     [ALL, FIRST, RANDOM, LEAST_REMOVALS]
-
-# Sort selection variables based on syntactic similarity to the transition
-# relation
-cpa.slicing.sortSelectionVariablesSyntactic = true
 
 # Time for loop generation before aborting.
 # (Use seconds or specify a unit; 0 for infinite)
@@ -1933,8 +1922,8 @@ cpa.statistics.statisticsCPAFile = no default value
 cpa.stator.congruence.trackCongruenceSum = false
 
 # Where to perform abstraction
-cpa.stator.policy.abstractionLocations = "LOOPHEAD"
-  allowed values: [ALL, LOOPHEAD, MERGE]
+cpa.stator.policy.abstractionLocations = LOOPHEAD
+  enum:     [ALL, LOOPHEAD, MERGE]
 
 # Check whether the policy depends on the initial value
 cpa.stator.policy.checkPolicyInitialCondition = true
@@ -1982,10 +1971,6 @@ cpa.stator.policy.lengthLimitForSATCheck = 300
 
 # Remove UFs and ITEs from policies.
 cpa.stator.policy.linearizePolicy = true
-
-# Whether to merge intermediate states
-cpa.stator.policy.mergeIntermediateStates = "ALWAYS"
-  allowed values: [ALWAYS, NEVER]
 
 # Run simple congruence analysis
 cpa.stator.policy.runCongruence = true

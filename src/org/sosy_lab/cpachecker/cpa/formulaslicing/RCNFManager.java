@@ -1,7 +1,5 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
-import static org.sosy_lab.solver.basicimpl.tactics.Tactic.QE;
-
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Sets;
@@ -111,7 +109,7 @@ public class RCNFManager implements StatisticsProvider {
       case QE:
         try {
           statistics.quantifierElimination.start();
-          result = fmgr.applyTactic(input, QE);
+          result = fmgr.applyTactic(input, Tactic.QE);
         } finally {
           statistics.quantifierElimination.stop();
         }
@@ -156,8 +154,7 @@ public class RCNFManager implements StatisticsProvider {
     }
   }
 
-  private BooleanFormula factorize(BooleanFormula input)
-      throws InterruptedException {
+  private BooleanFormula factorize(BooleanFormula input) {
     return bfmgr.transformRecursively(new BooleanFormulaTransformationVisitor(fmgr) {
 
       /**
@@ -245,8 +242,7 @@ public class RCNFManager implements StatisticsProvider {
     }, input);
   }
 
-  private Set<BooleanFormula> convert(BooleanFormula input) throws
-                                                        InterruptedException {
+  private Set<BooleanFormula> convert(BooleanFormula input) {
     BooleanFormula factorized = factorize(input);
     Set<BooleanFormula> factorizedLemmas =
         bfmgr.toConjunctionArgs(factorized, true);
