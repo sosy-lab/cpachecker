@@ -69,6 +69,8 @@ def execute_benchmark(benchmark, output_handler):
             util.write_file(cloudInput, cloudInputFile)
             output_handler.all_created_files.add(cloudInputFile)
         meta_information = json.dumps({"tool": {"name": benchmark.tool_name, "revision": benchmark.tool_version}, \
+                                       "benchmark" : benchmark.name,
+                                       "timestamp" : benchmark.instance,
                                         "generator": "benchmark.vcloud.py"})
 
         # install cloud and dependencies
