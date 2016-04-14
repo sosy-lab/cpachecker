@@ -23,6 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
+import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import com.google.common.math.IntMath;
+
+import org.sosy_lab.cpachecker.cpa.invariants.operators.Operator;
+import org.sosy_lab.cpachecker.cpa.invariants.operators.bitvector.ICCOperatorFactory;
+import org.sosy_lab.cpachecker.cpa.invariants.operators.bitvector.IICOperatorFactory;
+import org.sosy_lab.cpachecker.cpa.invariants.operators.bitvector.ISCOperatorFactory;
+
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,16 +42,6 @@ import java.util.List;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
-
-import org.sosy_lab.cpachecker.cpa.invariants.operators.Operator;
-import org.sosy_lab.cpachecker.cpa.invariants.operators.bitvector.ICCOperatorFactory;
-import org.sosy_lab.cpachecker.cpa.invariants.operators.bitvector.IICOperatorFactory;
-import org.sosy_lab.cpachecker.cpa.invariants.operators.bitvector.ISCOperatorFactory;
-
-import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.common.math.IntMath;
 
 /**
  * Instances of this class represent compound states of intervals.
@@ -74,7 +74,7 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * {@code null}.
    */
   private CompoundBitVectorInterval(BitVectorInterval pInterval) {
-    this.info = pInterval.getBitVectorInfo();
+    this.info = pInterval.getTypeInfo();
     this.intervals = new BitVectorInterval[] { pInterval };
   }
 
@@ -126,7 +126,7 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
   }
 
   @Override
-  public BitVectorInfo getBitVectorInfo() {
+  public BitVectorInfo getTypeInfo() {
     return info;
   }
 
@@ -210,7 +210,7 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * @return the union of this compound state with the given simple interval.
    */
   public CompoundBitVectorInterval unionWith(BitVectorInterval pOther) {
-    checkBitVectorCompatibilityWith(pOther.getBitVectorInfo());
+    checkBitVectorCompatibilityWith(pOther.getTypeInfo());
     if (contains(pOther)) { return this; }
     if (isBottom() || pOther.isTop()) { return getInternal(pOther); }
     ArrayList<BitVectorInterval> resultIntervals = new ArrayList<>();
@@ -306,7 +306,7 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * @return the compound state resulting from the intersection of this compound state with the given interval.
    */
   public CompoundBitVectorInterval intersectWith(BitVectorInterval pOther) {
-    checkBitVectorCompatibilityWith(pOther.getBitVectorInfo());
+    checkBitVectorCompatibilityWith(pOther.getTypeInfo());
     if (isBottom() || pOther.isTop()) { return this; }
     if (contains(pOther)) { return CompoundBitVectorInterval.of(pOther); }
     if (this.intervals.length == 1 && pOther.contains(this.intervals[0])) { return this; }
@@ -1785,9 +1785,9 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * @return the union of the two intervals.
    */
   private static BitVectorInterval union(BitVectorInterval pA, BitVectorInterval pB) {
-    Preconditions.checkArgument(pA.getBitVectorInfo().equals(pB.getBitVectorInfo()));
+    Preconditions.checkArgument(pA.getTypeInfo().equals(pB.getTypeInfo()));
     Preconditions.checkArgument(pA.touches(pB), "Cannot unite intervals that do not touch.");
-    return BitVectorInterval.of(pA.getBitVectorInfo(), lowestBound(pA, pB), highestBound(pA, pB));
+    return BitVectorInterval.of(pA.getTypeInfo(), lowestBound(pA, pB), highestBound(pA, pB));
   }
 
   /**

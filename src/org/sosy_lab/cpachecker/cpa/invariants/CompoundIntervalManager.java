@@ -113,6 +113,6 @@ public interface CompoundIntervalManager {
 
   CompoundInterval negate(CompoundInterval pToNegate);
 
-  CompoundInterval cast(BitVectorInfo pBitVectorInfo, CompoundInterval pToCast);
+  CompoundInterval cast(TypeInfo pTypeInfo, CompoundInterval pToCast);
 
 }

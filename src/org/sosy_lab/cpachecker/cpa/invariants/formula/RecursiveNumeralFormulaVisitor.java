@@ -225,7 +225,7 @@ public abstract class RecursiveNumeralFormulaVisitor<T> implements NumeralFormul
     if (operand == pCast.getCasted()) {
       toVisit = pCast;
     } else {
-      toVisit = InvariantsFormulaManager.INSTANCE.cast(pCast.getBitVectorInfo(), operand);
+      toVisit = InvariantsFormulaManager.INSTANCE.cast(pCast.getTypeInfo(), operand);
     }
     return visitPost(toVisit);
   }

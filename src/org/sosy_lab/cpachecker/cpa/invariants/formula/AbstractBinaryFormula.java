@@ -44,11 +44,11 @@ public abstract class AbstractBinaryFormula<ConstantType> extends AbstractFormul
      * @param pOperand2 the second operand.
      */
     protected AbstractBinaryFormula(String pOperator, boolean pIsCommutative, NumeralFormula<ConstantType> pOperand1, NumeralFormula<ConstantType> pOperand2) {
-      super(pOperand1.getBitVectorInfo());
+    super(pOperand1.getTypeInfo());
       Preconditions.checkNotNull(pOperator);
       Preconditions.checkNotNull(pOperand1);
       Preconditions.checkNotNull(pOperand1);
-      Preconditions.checkArgument(pOperand1.getBitVectorInfo().equals(pOperand2.getBitVectorInfo()));
+    Preconditions.checkArgument(pOperand1.getTypeInfo().equals(pOperand2.getTypeInfo()));
       this.operator = pOperator;
       this.isCommutative = pIsCommutative;
       this.operand1 = pOperand1;
@@ -73,7 +73,7 @@ public abstract class AbstractBinaryFormula<ConstantType> extends AbstractFormul
      }
      if (this.getClass().equals(o.getClass())) { // equality for subclasses
        AbstractBinaryFormula<?> other = (AbstractBinaryFormula<?>) o;
-       if (!getBitVectorInfo().equals(other.getBitVectorInfo())) {
+      if (!getTypeInfo().equals(other.getTypeInfo())) {
          return false;
        }
        if (operator.equals(other.operator) && isCommutative == other.isCommutative) {
@@ -90,9 +90,9 @@ public abstract class AbstractBinaryFormula<ConstantType> extends AbstractFormul
 
    @Override
    public int hashCode() {
-     return 31 * operator.hashCode()
-         + getOperand1().hashCode() * getOperand2().hashCode()
-         + 43 * getBitVectorInfo().hashCode();
+    return 31 * operator.hashCode()
+        + getOperand1().hashCode() * getOperand2().hashCode()
+        + 43 * getTypeInfo().hashCode();
    }
 
    @Override

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
-import java.math.BigInteger;
+import com.google.common.base.Preconditions;
 
 import org.eclipse.cdt.internal.core.dom.parser.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -33,10 +33,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 
-import com.google.common.base.Preconditions;
+import java.math.BigInteger;
 
-
-public class BitVectorInfo {
+public class BitVectorInfo implements TypeInfo {
 
   private final int size;
 
@@ -58,20 +57,28 @@ public class BitVectorInfo {
     return size;
   }
 
+  @Override
   public boolean isSigned() {
     return signed;
   }
 
+  @Override
   public BigInteger getMinValue() {
     return minValue;
   }
 
+  @Override
   public BigInteger getMaxValue() {
     return maxValue;
   }
 
   public BitVectorInterval getRange() {
     return BitVectorInterval.of(this, minValue, maxValue);
+  }
+
+  @Override
+  public String abbrev() {
+    return size + (signed ? "" : "U");
   }
 
   @Override

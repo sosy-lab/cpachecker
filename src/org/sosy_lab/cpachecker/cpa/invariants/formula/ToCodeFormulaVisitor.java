@@ -23,23 +23,24 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-import java.math.BigInteger;
-import java.util.Map;
-
-import javax.annotation.Nullable;
-
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
+import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+
+import java.math.BigInteger;
+import java.util.Map;
+
+import javax.annotation.Nullable;
 
 /**
  * Instances of this class are compound state invariants visitors used to
@@ -88,17 +89,21 @@ public class ToCodeFormulaVisitor
     this.machineModel = pMachineModel;
   }
 
-  private CSimpleType determineType(BitVectorInfo pBitVectorInfo) {
-    int sizeOfChar = machineModel.getSizeofCharInBits();
-    int size = pBitVectorInfo.getSize();
-    boolean isSigned = pBitVectorInfo.isSigned();
-    for (CSimpleType type : TYPES) {
-      if (machineModel.isSigned(type) == isSigned
-          && machineModel.getSizeof(type) * sizeOfChar >= size) {
-        return type;
+  private CSimpleType determineType(TypeInfo pTypeInfo) {
+    if (pTypeInfo instanceof BitVectorInfo) {
+      BitVectorInfo bitVectorInfo = (BitVectorInfo) pTypeInfo;
+      int sizeOfChar = machineModel.getSizeofCharInBits();
+      int size = bitVectorInfo.getSize();
+      boolean isSigned = bitVectorInfo.isSigned();
+      for (CSimpleType type : TYPES) {
+        if (machineModel.isSigned(type) == isSigned
+            && machineModel.getSizeof(type) * sizeOfChar >= size) {
+          return type;
+        }
       }
+      return CNumericTypes.INT;
     }
-    return CNumericTypes.INT;
+    throw new AssertionError("Unsupported type: " + pTypeInfo);
   }
 
   /**
@@ -115,7 +120,10 @@ public class ToCodeFormulaVisitor
   private @Nullable String evaluate(NumeralFormula<CompoundInterval> pFormula, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     CompoundInterval intervals = pFormula.accept(this.evaluationVisitor, pEnvironment);
     if (intervals.isSingleton()) {
-      return asBitVectorFormula(pFormula.getBitVectorInfo(), intervals.getValue());
+      TypeInfo info = pFormula.getTypeInfo();
+      if (info instanceof BitVectorInfo) {
+        return asFormulaString(info, intervals.getValue());
+      }
     }
     return null;
   }
@@ -124,32 +132,37 @@ public class ToCodeFormulaVisitor
    * Encodes the given value as a bit vector formula using the given bit vector
    * information.
    *
-   * @param pBitVectorInfo the bit vector information.
+   * @param pInfo the bit vector information.
    * @param pValue the value.
    *
    * @return a bit vector formula representing the given value as a bit vector
    * with the given size.
    */
-  private String asBitVectorFormula(BitVectorInfo pBitVectorInfo, BigInteger pValue) {
-    int size = pBitVectorInfo.getSize();
-    BigInteger value = pValue;
-    // Get only the [size] least significant bits
-    BigInteger upperExclusive = BigInteger.valueOf(2).pow(size);
-    boolean negative = value.signum() < 0;
-    if (negative && !value.equals(upperExclusive.shiftRight(1).negate())) {
-      value = value.negate();
-      value = value.and(BigInteger.valueOf(2).pow(size - 1).subtract(BigInteger.valueOf(1))).negate();
-    } else if (!negative) {
-      value = value.and(BigInteger.valueOf(2).pow(size).subtract(BigInteger.valueOf(1)));
+  private String asFormulaString(TypeInfo pInfo, BigInteger pValue) {
+    if (pInfo instanceof BitVectorInfo) {
+      BitVectorInfo bitVectorInfo = (BitVectorInfo) pInfo;
+      int size = bitVectorInfo.getSize();
+      BigInteger value = pValue;
+      // Get only the [size] least significant bits
+      BigInteger upperExclusive = BigInteger.valueOf(2).pow(size);
+      boolean negative = value.signum() < 0;
+      if (negative && !value.equals(upperExclusive.shiftRight(1).negate())) {
+        value = value.negate();
+        value =
+            value.and(BigInteger.valueOf(2).pow(size - 1).subtract(BigInteger.valueOf(1))).negate();
+      } else if (!negative) {
+        value = value.and(BigInteger.valueOf(2).pow(size).subtract(BigInteger.valueOf(1)));
+      }
+      String result = value.toString();
+      if (!bitVectorInfo.isSigned()) {
+        result += "U";
+      }
+      if (bitVectorInfo.getSize() > 32) {
+        result += "LL";
+      }
+      return result;
     }
-    String result = value.toString();
-    if (!pBitVectorInfo.isSigned()) {
-      result += "U";
-    }
-    if (pBitVectorInfo.getSize() > 32) {
-      result += "LL";
-    }
-    return result;
+    throw new AssertionError("Unsupported type: " + pInfo);
   }
 
   @Override
@@ -285,14 +298,17 @@ public class ToCodeFormulaVisitor
   @Override
   public String visit(Cast<CompoundInterval> pCast,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    BitVectorInfo sourceInfo = pCast.getCasted().getBitVectorInfo();
-    BitVectorInfo targetInfo = pCast.getBitVectorInfo();
-    int sourceSize = sourceInfo.getSize();
-    int targetSize = targetInfo.getSize();
+    TypeInfo targetInfo = pCast.getTypeInfo();
     String sourceFormula = pCast.getCasted().accept(this, pEnvironment);
-    if (sourceSize == targetSize && sourceInfo.isSigned() == targetInfo.isSigned()
-        || sourceFormula == null) {
-      return sourceFormula;
+    TypeInfo sourceInfo = pCast.getCasted().getTypeInfo();
+    if (targetInfo instanceof BitVectorInfo && sourceInfo instanceof BitVectorInfo) {
+      BitVectorInfo sourceBitVectorInfo = (BitVectorInfo) sourceInfo;
+      int sourceSize = sourceBitVectorInfo.getSize();
+      int targetSize = ((BitVectorInfo) targetInfo).getSize();
+      if (sourceSize == targetSize && sourceBitVectorInfo.isSigned() == targetInfo.isSigned()
+          || sourceFormula == null) {
+        return sourceFormula;
+      }
     }
     CSimpleType castType = determineType(targetInfo);
     return String.format("(%s) %s", castType, sourceFormula);
@@ -330,25 +346,31 @@ public class ToCodeFormulaVisitor
          + negativeCaseFormula + ")";
   }
 
-  public static Integer getSize(NumeralFormula<CompoundInterval> pFormula) {
-    return pFormula.getBitVectorInfo().getSize();
-  }
-
   @Override
   public ExpressionTree<String> visit(
       Equal<CompoundInterval> pEqual,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    BitVectorInfo bitVectorInfo = pEqual.getOperand1().getBitVectorInfo();
+    TypeInfo typeInfo = pEqual.getOperand1().getTypeInfo();
 
     // Check not equals
     ExpressionTree<String> inversion = ExpressionTrees.getTrue();
     CompoundInterval op1EvalInvert = pEqual.getOperand1().accept(evaluationVisitor, pEnvironment).invert();
     if (op1EvalInvert.isSingleton() && pEqual.getOperand2() instanceof Variable) {
-      inversion = And.of(inversion, not(Equal.of(Constant.of(bitVectorInfo, op1EvalInvert), pEqual.getOperand2()).accept(this, pEnvironment)));
+      inversion =
+          And.of(
+              inversion,
+              not(
+                  Equal.of(Constant.of(typeInfo, op1EvalInvert), pEqual.getOperand2())
+                      .accept(this, pEnvironment)));
     }
     CompoundInterval op2EvalInvert = pEqual.getOperand2().accept(evaluationVisitor, pEnvironment).invert();
     if (op2EvalInvert.isSingleton() && pEqual.getOperand1() instanceof Variable) {
-      inversion = And.of(inversion,  not(Equal.of(pEqual.getOperand1(), Constant.of(bitVectorInfo, op2EvalInvert)).accept(this, pEnvironment)));
+      inversion =
+          And.of(
+              inversion,
+              not(
+                  Equal.of(pEqual.getOperand1(), Constant.of(typeInfo, op2EvalInvert))
+                      .accept(this, pEnvironment)));
     }
 
     // General case
@@ -372,15 +394,15 @@ public class ToCodeFormulaVisitor
       for (SimpleInterval interval : rightValue.getIntervals()) {
         ExpressionTree<String> intervalFormula = ExpressionTrees.getTrue();
         if (interval.isSingleton()) {
-          String value = asBitVectorFormula(bitVectorInfo, interval.getLowerBound());
+          String value = asFormulaString(typeInfo, interval.getLowerBound());
           intervalFormula = And.of(intervalFormula, equal(left, value));
         } else {
           if (interval.hasLowerBound()) {
-            String lb = asBitVectorFormula(bitVectorInfo, interval.getLowerBound());
+            String lb = asFormulaString(typeInfo, interval.getLowerBound());
             intervalFormula = And.of(intervalFormula, greaterEqual(left, lb));
           }
           if (interval.hasUpperBound()) {
-            String ub = asBitVectorFormula(bitVectorInfo, interval.getUpperBound());
+            String ub = asFormulaString(typeInfo, interval.getUpperBound());
             intervalFormula = And.of(intervalFormula, lessEqual(left, ub));
           }
         }
@@ -395,7 +417,7 @@ public class ToCodeFormulaVisitor
   public ExpressionTree<String> visit(
       LessThan<CompoundInterval> pLessThan,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    BitVectorInfo bitVectorInfo = pLessThan.getOperand1().getBitVectorInfo();
+    TypeInfo typeInfo = pLessThan.getOperand1().getTypeInfo();
     String operand1 = pLessThan.getOperand1().accept(this, pEnvironment);
     String operand2 = pLessThan.getOperand2().accept(this, pEnvironment);
     if (operand1 == null && operand2 == null) {
@@ -420,10 +442,10 @@ public class ToCodeFormulaVisitor
       }
       if (lessThan) {
         if (rightValue.hasUpperBound()) {
-          return lessThan(left, asBitVectorFormula(bitVectorInfo, rightValue.getUpperBound()));
+          return lessThan(left, asFormulaString(typeInfo, rightValue.getUpperBound()));
         }
       } else if (rightValue.hasLowerBound()) {
-        return greaterThan(left, asBitVectorFormula(bitVectorInfo, rightValue.getLowerBound()));
+        return greaterThan(left, asFormulaString(typeInfo, rightValue.getLowerBound()));
       }
       return null;
     }

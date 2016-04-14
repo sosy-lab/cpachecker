@@ -236,9 +236,9 @@ public enum CompoundMathematicalIntervalManager implements CompoundIntervalManag
   }
 
   @Override
-  public CompoundInterval cast(BitVectorInfo pInfo, CompoundInterval pToCast) {
+  public CompoundInterval cast(TypeInfo pInfo, CompoundInterval pToCast) {
     checkOperand(pToCast);
-    return ((CompoundMathematicalInterval) pToCast).cast(pInfo);
+    return pToCast;
   }
 
   private static void checkOperand(CompoundInterval pOperand) {

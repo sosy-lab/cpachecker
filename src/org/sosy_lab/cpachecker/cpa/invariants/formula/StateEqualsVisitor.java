@@ -305,24 +305,25 @@ public class StateEqualsVisitor extends DefaultParameterizedNumeralFormulaVisito
     }
     MemoryLocation leftVarLocation = pVariable.getMemoryLocation();
     NumeralFormula<CompoundInterval> resolvedLeft = this.environment.get(leftVarLocation);
-    CompoundIntervalManager cim = compoundIntervalManagerFactory.createCompoundIntervalManager(pVariable.getBitVectorInfo());
-    resolvedLeft = resolvedLeft == null
-        ? InvariantsFormulaManager.INSTANCE.asConstant(
-            pVariable.getBitVectorInfo(),
-            cim.allPossibleValues())
-        : resolvedLeft;
+    CompoundIntervalManager cim =
+        compoundIntervalManagerFactory.createCompoundIntervalManager(pVariable.getTypeInfo());
+    resolvedLeft =
+        resolvedLeft == null
+            ? InvariantsFormulaManager.INSTANCE.asConstant(
+                pVariable.getTypeInfo(), cim.allPossibleValues())
+            : resolvedLeft;
     if (pOther instanceof Variable) {
       MemoryLocation rightVarLocation = ((Variable<?>) pOther).getMemoryLocation();
       if (leftVarLocation.equals(rightVarLocation)) {
         return true;
       }
       NumeralFormula<CompoundInterval> resolvedRight = this.environment.get(rightVarLocation);
-      cim = compoundIntervalManagerFactory.createCompoundIntervalManager(pOther.getBitVectorInfo());
-      resolvedRight = resolvedRight == null
-          ? InvariantsFormulaManager.INSTANCE.asConstant(
-              pOther.getBitVectorInfo(),
-              cim.allPossibleValues())
-          : resolvedRight;
+      cim = compoundIntervalManagerFactory.createCompoundIntervalManager(pOther.getTypeInfo());
+      resolvedRight =
+          resolvedRight == null
+              ? InvariantsFormulaManager.INSTANCE.asConstant(
+                  pOther.getTypeInfo(), cim.allPossibleValues())
+              : resolvedRight;
       if (resolvedLeft.accept(this, resolvedRight)) {
         return true;
       }
@@ -347,7 +348,7 @@ public class StateEqualsVisitor extends DefaultParameterizedNumeralFormulaVisito
   @Override
   public Boolean visit(Cast<CompoundInterval> pCast, NumeralFormula<CompoundInterval> pOther) {
     if (pOther instanceof Cast) {
-      return pCast.getBitVectorInfo().equals(pOther.getBitVectorInfo())
+      return pCast.getTypeInfo().equals(pOther.getTypeInfo())
           && pCast.getCasted().accept(this, ((Cast<CompoundInterval>) pOther).getCasted());
     }
     return visitDefault(pCast, pOther);

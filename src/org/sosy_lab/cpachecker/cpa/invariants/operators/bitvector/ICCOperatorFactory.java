@@ -58,10 +58,15 @@ public enum ICCOperatorFactory {
     return new Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval>() {
 
       @Override
-      public CompoundBitVectorInterval apply(BitVectorInterval pFirstOperand, CompoundBitVectorInterval pSecondOperand) {
-        CompoundBitVectorInterval result = CompoundBitVectorInterval.bottom(pFirstOperand.getBitVectorInfo());
+      public CompoundBitVectorInterval apply(
+          BitVectorInterval pFirstOperand, CompoundBitVectorInterval pSecondOperand) {
+        CompoundBitVectorInterval result =
+            CompoundBitVectorInterval.bottom(pFirstOperand.getTypeInfo());
         for (BitVectorInterval interval : pSecondOperand.getBitVectorIntervals()) {
-          CompoundBitVectorInterval current = IICOperatorFactory.INSTANCE.getDivide(pAllowSignedWrapAround, pOverflowEventHandler).apply(pFirstOperand,interval);
+          CompoundBitVectorInterval current =
+              IICOperatorFactory.INSTANCE
+                  .getDivide(pAllowSignedWrapAround, pOverflowEventHandler)
+                  .apply(pFirstOperand, interval);
           if (current != null) {
             result = result.unionWith(current);
             if (result.containsAllPossibleValues()) {
@@ -71,7 +76,6 @@ public enum ICCOperatorFactory {
         }
         return result;
       }
-
     };
   }
 
@@ -82,10 +86,15 @@ public enum ICCOperatorFactory {
     return new Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval>() {
 
       @Override
-      public CompoundBitVectorInterval apply(BitVectorInterval pFirstOperand, CompoundBitVectorInterval pSecondOperand) {
-        CompoundBitVectorInterval result = CompoundBitVectorInterval.bottom(pFirstOperand.getBitVectorInfo());
+      public CompoundBitVectorInterval apply(
+          BitVectorInterval pFirstOperand, CompoundBitVectorInterval pSecondOperand) {
+        CompoundBitVectorInterval result =
+            CompoundBitVectorInterval.bottom(pFirstOperand.getTypeInfo());
         for (BitVectorInterval interval : pSecondOperand.getBitVectorIntervals()) {
-          CompoundBitVectorInterval current = IICOperatorFactory.INSTANCE.getModulo(pAllowSignedWrapAround, pOverflowEventHandler).apply(pFirstOperand, interval);
+          CompoundBitVectorInterval current =
+              IICOperatorFactory.INSTANCE
+                  .getModulo(pAllowSignedWrapAround, pOverflowEventHandler)
+                  .apply(pFirstOperand, interval);
           if (current != null) {
             result = result.unionWith(current);
             if (result.containsAllPossibleValues()) {
@@ -95,7 +104,6 @@ public enum ICCOperatorFactory {
         }
         return result;
       }
-
     };
   }
 
@@ -120,10 +128,15 @@ public enum ICCOperatorFactory {
     return new Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval>() {
 
       @Override
-      public CompoundBitVectorInterval apply(BitVectorInterval pFirstOperand, CompoundBitVectorInterval pSecondOperand) {
-        CompoundBitVectorInterval result = CompoundBitVectorInterval.bottom(pFirstOperand.getBitVectorInfo());
+      public CompoundBitVectorInterval apply(
+          BitVectorInterval pFirstOperand, CompoundBitVectorInterval pSecondOperand) {
+        CompoundBitVectorInterval result =
+            CompoundBitVectorInterval.bottom(pFirstOperand.getTypeInfo());
         for (BitVectorInterval interval : pSecondOperand.getBitVectorIntervals()) {
-          CompoundBitVectorInterval current = IICOperatorFactory.INSTANCE.getShiftLeft(pAllowSignedWrapAround, pOverflowEventHandler).apply(pFirstOperand,interval);
+          CompoundBitVectorInterval current =
+              IICOperatorFactory.INSTANCE
+                  .getShiftLeft(pAllowSignedWrapAround, pOverflowEventHandler)
+                  .apply(pFirstOperand, interval);
           if (current != null) {
             result = result.unionWith(current);
             if (result.containsAllPossibleValues()) {
@@ -133,7 +146,6 @@ public enum ICCOperatorFactory {
         }
         return result;
       }
-
     };
   }
 
@@ -144,10 +156,15 @@ public enum ICCOperatorFactory {
     return new Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval>() {
 
       @Override
-      public CompoundBitVectorInterval apply(BitVectorInterval pFirstOperand, CompoundBitVectorInterval pSecondOperand) {
-        CompoundBitVectorInterval result = CompoundBitVectorInterval.bottom(pFirstOperand.getBitVectorInfo());
+      public CompoundBitVectorInterval apply(
+          BitVectorInterval pFirstOperand, CompoundBitVectorInterval pSecondOperand) {
+        CompoundBitVectorInterval result =
+            CompoundBitVectorInterval.bottom(pFirstOperand.getTypeInfo());
         for (BitVectorInterval interval : pSecondOperand.getBitVectorIntervals()) {
-          CompoundBitVectorInterval current = IICOperatorFactory.INSTANCE.getShiftRight(pAllowSignedWrapAround, pOverflowEventHandler).apply(pFirstOperand,interval);
+          CompoundBitVectorInterval current =
+              IICOperatorFactory.INSTANCE
+                  .getShiftRight(pAllowSignedWrapAround, pOverflowEventHandler)
+                  .apply(pFirstOperand, interval);
           if (current != null) {
             result = result.unionWith(current);
             if (result.containsAllPossibleValues()) {
@@ -157,7 +174,6 @@ public enum ICCOperatorFactory {
         }
         return result;
       }
-
     };
   }
 

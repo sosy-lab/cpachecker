@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
-import java.util.Collection;
-import java.util.concurrent.CopyOnWriteArrayList;
-
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+
+import java.util.Collection;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 
 public enum CompoundBitVectorIntervalManagerFactory implements CompoundIntervalManagerFactory {
@@ -66,8 +66,12 @@ public enum CompoundBitVectorIntervalManagerFactory implements CompoundIntervalM
   }
 
   @Override
-  public CompoundIntervalManager createCompoundIntervalManager(BitVectorInfo pBitVectorInfo) {
-    return new CompoundBitVectorIntervalManager(pBitVectorInfo, isSignedWrapAroundAllowed(), compositeHandler);
+  public CompoundIntervalManager createCompoundIntervalManager(TypeInfo pInfo) {
+    if (pInfo instanceof BitVectorInfo) {
+      return new CompoundBitVectorIntervalManager(
+          (BitVectorInfo) pInfo, isSignedWrapAroundAllowed(), compositeHandler);
+    }
+    throw new AssertionError("Unsupported type: " + pInfo);
   }
 
   public abstract boolean isSignedWrapAroundAllowed();

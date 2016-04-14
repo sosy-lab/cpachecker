@@ -317,7 +317,8 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
   private NumeralFormula<CompoundInterval> toConstant(
       NumeralFormula<CompoundInterval> pFormula,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    return InvariantsFormulaManager.INSTANCE.asConstant(pFormula.getBitVectorInfo(), evaluate(pFormula, pEnvironment));
+    return InvariantsFormulaManager.INSTANCE.asConstant(
+        pFormula.getTypeInfo(), evaluate(pFormula, pEnvironment));
   }
 
   private InvariantsState handleStatement(InvariantsState pElement, CStatementEdge pEdge, InvariantsPrecision pPrecision) throws UnrecognizedCodeException {
@@ -372,7 +373,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     if (pPrecision.getMaximumFormulaDepth() == 0) {
       CompoundInterval v = evaluate(pValue, pElement.getEnvironment());
       if (v.isSingleton()) {
-        value = InvariantsFormulaManager.INSTANCE.asConstant(value.getBitVectorInfo(), v);
+        value = InvariantsFormulaManager.INSTANCE.asConstant(value.getTypeInfo(), v);
       } else {
         value = allPossibleValues(pLeftHandSide.getExpressionType());
       }

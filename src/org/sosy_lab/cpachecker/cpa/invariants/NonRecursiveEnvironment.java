@@ -23,11 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedSet;
+import com.google.common.base.Preconditions;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
@@ -40,7 +36,11 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormulaManager;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import com.google.common.base.Preconditions;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
 
 
 public class NonRecursiveEnvironment implements Map<MemoryLocation, NumeralFormula<CompoundInterval>> {
@@ -132,25 +132,23 @@ public class NonRecursiveEnvironment implements Map<MemoryLocation, NumeralFormu
     }
     pTarget = pTarget.removeAndCopy(pMemoryLocation);
     ContainsVarVisitor<CompoundInterval> containsVarVisitor = new ContainsVarVisitor<>(pTarget);
-    BitVectorInfo bitVectorInfo = pValue.getBitVectorInfo();
+    TypeInfo typeInfo = pValue.getTypeInfo();
     if (pValue.accept(containsVarVisitor, pMemoryLocation)) {
       return sanitizedInnerPutAndCopyInternal(
           pTarget,
           pMemoryLocation,
           InvariantsFormulaManager.INSTANCE.asConstant(
-              bitVectorInfo,
-              pValue.accept(formulaEvaluationVisitor, this)));
+              typeInfo, pValue.accept(formulaEvaluationVisitor, this)));
     }
     NumeralFormula<CompoundInterval> variable =
-        InvariantsFormulaManager.INSTANCE.asVariable(bitVectorInfo, pMemoryLocation);
+        InvariantsFormulaManager.INSTANCE.asVariable(typeInfo, pMemoryLocation);
     for (MemoryLocation containedMemoryLocation : pValue.accept(COLLECT_VARS_VISITOR)) {
       if (variable.accept(containsVarVisitor, containedMemoryLocation)) {
         return sanitizedInnerPutAndCopyInternal(
             pTarget,
             pMemoryLocation,
             InvariantsFormulaManager.INSTANCE.asConstant(
-                bitVectorInfo,
-                pValue.accept(formulaEvaluationVisitor, this)));
+                typeInfo, pValue.accept(formulaEvaluationVisitor, this)));
       }
     }
     return sanitizedInnerPutAndCopyInternal(pTarget, pMemoryLocation, pValue);
@@ -244,12 +242,12 @@ public class NonRecursiveEnvironment implements Map<MemoryLocation, NumeralFormu
     return inner.hashCode();
   }
 
-  private NumeralFormula<CompoundInterval> getAllPossibleValues(BitVectorType pBitVectorType) {
+  private NumeralFormula<CompoundInterval> getAllPossibleValues(Typed pTyped) {
     return InvariantsFormulaManager.INSTANCE.asConstant(
-        pBitVectorType.getBitVectorInfo(),
+        pTyped.getTypeInfo(),
         compoundIntervalManagerFactory
-          .createCompoundIntervalManager(pBitVectorType.getBitVectorInfo())
-          .allPossibleValues());
+            .createCompoundIntervalManager(pTyped.getTypeInfo())
+            .allPossibleValues());
   }
 
   public static NonRecursiveEnvironment of(CompoundIntervalManagerFactory pCompoundIntervalManagerFactory) {

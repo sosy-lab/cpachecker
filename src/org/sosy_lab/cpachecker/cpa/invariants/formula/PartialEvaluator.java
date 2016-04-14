@@ -23,6 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManager;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
+import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
+import org.sosy_lab.cpachecker.cpa.invariants.Typed;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.Collections;
@@ -31,13 +38,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-
-import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
-import org.sosy_lab.cpachecker.cpa.invariants.BitVectorType;
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManager;
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * The singleton instance of this class is a compound state invariants formula
@@ -78,28 +78,25 @@ public class PartialEvaluator implements
     this.compoundIntervalFormulaManager = new CompoundIntervalFormulaManager(compoundIntervalManagerFactory);
   }
 
-  private CompoundIntervalManager getCompoundIntervalManager(BitVectorInfo pBitVectorInfo) {
-    return compoundIntervalManagerFactory.createCompoundIntervalManager(pBitVectorInfo);
+  private CompoundIntervalManager getCompoundIntervalManager(TypeInfo pTypeInfo) {
+    return compoundIntervalManagerFactory.createCompoundIntervalManager(pTypeInfo);
   }
 
-  private CompoundIntervalManager getCompoundIntervalManager(BitVectorType pBitvectorType) {
-    return getCompoundIntervalManager(pBitvectorType.getBitVectorInfo());
+  private CompoundIntervalManager getCompoundIntervalManager(Typed pTyped) {
+    return getCompoundIntervalManager(pTyped.getTypeInfo());
   }
 
   private NumeralFormula<CompoundInterval> evaluateAndWrap(NumeralFormula<CompoundInterval> pFormula, FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
     return InvariantsFormulaManager.INSTANCE.asConstant(
-        pFormula.getBitVectorInfo(),
-        pFormula.accept(pEvaluationVisitor, environment));
+        pFormula.getTypeInfo(), pFormula.accept(pEvaluationVisitor, environment));
   }
 
-  private NumeralFormula<CompoundInterval> asConstant(BitVectorType pBitVectorType, CompoundInterval pValue) {
-    return InvariantsFormulaManager.INSTANCE.asConstant(
-        pBitVectorType.getBitVectorInfo(),
-        pValue);
+  private NumeralFormula<CompoundInterval> asConstant(Typed pTyped, CompoundInterval pValue) {
+    return InvariantsFormulaManager.INSTANCE.asConstant(pTyped.getTypeInfo(), pValue);
   }
 
-  private NumeralFormula<CompoundInterval> singleton(BitVectorType pBitVectorType, BigInteger pValue) {
-    BitVectorInfo info = pBitVectorType.getBitVectorInfo();
+  private NumeralFormula<CompoundInterval> singleton(Typed pTyped, BigInteger pValue) {
+    TypeInfo info = pTyped.getTypeInfo();
     return InvariantsFormulaManager.INSTANCE.asConstant(
         info,
         getCompoundIntervalManager(info).singleton(pValue));
@@ -522,7 +519,7 @@ public class PartialEvaluator implements
     if (operand == pCast.getCasted()) {
       return pCast;
     }
-    return compoundIntervalFormulaManager.cast(pCast.getBitVectorInfo(), operand);
+    return compoundIntervalFormulaManager.cast(pCast.getTypeInfo(), operand);
   }
 
 }

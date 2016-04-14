@@ -545,12 +545,15 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
           return forPositiveLeft;
         }
         NumeralFormula<CompoundInterval> forNegativeLeft =
-            compoundIntervalFormulaManager.add(forPositiveLeft,
+            compoundIntervalFormulaManager.add(
+                forPositiveLeft,
                 compoundIntervalFormulaManager.shiftLeft(
                     asConstant(
                         pBinaryExpression.getExpressionType(),
-                        compoundIntervalManagerFactory.createCompoundIntervalManager(left.getBitVectorInfo()).singleton(2)),
-                        compoundIntervalFormulaManager.binaryNot(right)));
+                        compoundIntervalManagerFactory
+                            .createCompoundIntervalManager(left.getTypeInfo())
+                            .singleton(2)),
+                    compoundIntervalFormulaManager.binaryNot(right)));
         if (!leftEval.containsPositive()) {
           return forNegativeLeft;
         }
