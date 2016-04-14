@@ -363,7 +363,7 @@ public class TigerAlgorithm
   NamedRegionManager bddCpaNamedRegionManager = null;
 
   private TestGoalUtils testGoalUtils = null;
-  private Map<CFAEdge, Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>>> edgeToTgaMapping;
+  private Map<CFAEdge, List<NondeterministicFiniteAutomaton<GuardedEdgeLabel>>> edgeToTgaMapping;
 
   private final ReachedSetFactory reachedSetFactory;
 
@@ -509,16 +509,16 @@ public class TigerAlgorithm
         }
 
         GuardedEdgeLabel label = edge.getLabel();
-        Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>> tgaSet = edgeToTgaMapping.get(label);
+        for (CFAEdge e : label.getEdgeSet()) {
+          List<NondeterministicFiniteAutomaton<GuardedEdgeLabel>> tgaSet = edgeToTgaMapping.get(e);
 
-        if (tgaSet == null) {
-          tgaSet = new HashSet<>();
-          for (CFAEdge e : label.getEdgeSet()) {
+          if (tgaSet == null) {
+            tgaSet = new ArrayList<>();
             edgeToTgaMapping.put(e, tgaSet);
           }
-        }
 
-        tgaSet.add(automaton);
+          tgaSet.add(automaton);
+        }
       }
     }
   }
@@ -745,9 +745,11 @@ public class TigerAlgorithm
 
       checkCoverageOf.removeAll(goalsCoveredByLastState);
 
-      for (Goal goal : pCheckCoverageOf) {
-        if (!allCoveredGoalsPerTestCase && testsuite.isGoalCovered(goal)) {
-          checkCoverageOf.remove(goal);
+      if (!allCoveredGoalsPerTestCase) {
+        for (Goal goal : pCheckCoverageOf) {
+          if (testsuite.isGoalCovered(goal)) {
+            checkCoverageOf.remove(goal);
+          }
         }
       }
 
@@ -837,95 +839,6 @@ public class TigerAlgorithm
     }
   }
 
-  private Set<Goal> updateTestsuiteByCoverageOf1(TestCase pTestcase, Collection<Goal> pCheckCoverageOf) {
-    try (StatCpuTimer t = tigerStats.updateTestsuiteByCoverageOfTime.start()) {
-
-      Set<Goal> coveredGoals = Sets.newLinkedHashSet();
-      Set<Goal> goalsCoveredByLastState = Sets.newLinkedHashSet();
-
-      ARGState lastState = pTestcase.getArgPath().getLastState();
-      for (Property p : lastState.getViolatedProperties()) {
-        Preconditions.checkState(p instanceof Goal);
-        goalsCoveredByLastState.add((Goal) p);
-      }
-
-      for (Goal goal : pCheckCoverageOf) {
-        if (!allCoveredGoalsPerTestCase && testsuite.isGoalCovered(goal)) {
-          continue;
-        }
-
-        final ThreeValuedAnswer isCovered;
-        if (goalsCoveredByLastState.contains(goal)) {
-          isCovered = ThreeValuedAnswer.ACCEPT;
-        } else {
-          isCovered = accepts(goal.getAutomaton(), pTestcase.getErrorPath());
-        }
-
-        if (isCovered.equals(ThreeValuedAnswer.UNKNOWN)) {
-          logger.logf(Level.WARNING, "Coverage check for goal %d could not be performed in a precise way!",
-              goal.getIndex());
-          continue;
-        } else if (isCovered.equals(ThreeValuedAnswer.REJECT)) {
-          continue;
-        }
-
-        // test goal is already covered by an existing test case
-        if (useTigerAlgorithm_with_pc) {
-
-          final ARGState criticalState = findStateAfterCriticalEdge(goal, pTestcase.getArgPath());
-
-          if (criticalState == null) {
-            Path argFile = Paths.get("output", "ARG_goal_criticalIsNull_" + Integer.toString(goal.getIndex()) + ".dot");
-
-            final Set<Pair<ARGState, ARGState>> allTargetPathEdges = Sets.newLinkedHashSet();
-            allTargetPathEdges.addAll(pTestcase.getArgPath().getStatePairs());
-
-            try (Writer w = Files.openOutputFile(argFile)) {
-              ARGToDotWriter.write(w, (ARGState) reachedSet.getFirstState(),
-                  ARGUtils.CHILDREN_OF_STATE,
-                  Predicates.alwaysTrue(),
-                  Predicates.in(allTargetPathEdges));
-            } catch (IOException e) {
-              logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
-            }
-
-            throw new RuntimeException("Each ARG path of a counterexample must be along a critical edge! None for edge " + goal.getCriticalEdge());
-          }
-
-          Preconditions.checkState(criticalState != null, "Each ARG path of a counterexample must be along a critical edge!");
-
-          Region statePresenceCondition = BDDUtils.getRegionFromWrappedBDDstate(criticalState);
-          Preconditions.checkState(statePresenceCondition != null, "Each critical state must be annotated with a presence condition!");
-
-          if (allCoveredGoalsPerTestCase
-              || !bddCpaNamedRegionManager.makeAnd(testsuite.getRemainingPresenceCondition(goal), statePresenceCondition).isFalse()) {
-
-            // configurations in testGoalPCtoCover and testcase.pc have a non-empty intersection
-
-            testsuite.addTestCase(pTestcase, goal, statePresenceCondition);
-
-            logger.logf(Level.WARNING, "Covered some PCs for Goal %d (%s) for a PC by test case %d!",
-                goal.getIndex(), testsuite.getTestGoalLabel(goal), pTestcase.getId());
-
-            if (testsuite.getRemainingPresenceCondition(goal).isFalse()) {
-              coveredGoals.add(goal);
-            }
-          }
-
-        } else {
-          testsuite.addTestCase(pTestcase, goal, null);
-          logger.logf(Level.WARNING, "Covered Goal %d (%s) by test case %d!",
-              goal.getIndex(),
-              testsuite.getTestGoalLabel(goal),
-              pTestcase.getId());
-          coveredGoals.add(goal);
-        }
-      }
-
-      return coveredGoals;
-    }
-  }
-
   private class AcceptStatus {
 
     private Goal goal;
@@ -941,6 +854,11 @@ public class TigerAlgorithm
       hasPredicates = false;
 
       currentStates.add(automaton.getInitialState());
+    }
+
+    @Override
+    public String toString() {
+      return goal.getName() + ": " + answer;
     }
 
   }
@@ -964,7 +882,7 @@ public class TigerAlgorithm
       }
 
       for (CFAEdge lCFAEdge : pErrorPath) {
-        Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>> automata = edgeToTgaMapping.get(lCFAEdge);
+        List<NondeterministicFiniteAutomaton<GuardedEdgeLabel>> automata = edgeToTgaMapping.get(lCFAEdge);
         if (automata == null) {
           continue;
         }
@@ -1021,54 +939,6 @@ public class TigerAlgorithm
       }
 
       return map;
-    }
-  }
-
-
-  public ThreeValuedAnswer accepts(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton,
-      List<CFAEdge> pCFAPath) {
-    try (StatCpuTimer t = tigerStats.acceptsTime.start()) {
-      Set<NondeterministicFiniteAutomaton.State> lCurrentStates = Sets.newLinkedHashSet();
-      Set<NondeterministicFiniteAutomaton.State> lNextStates = Sets.newLinkedHashSet();
-
-      lCurrentStates.add(pAutomaton.getInitialState());
-
-      boolean lHasPredicates = false;
-
-      for (CFAEdge lCFAEdge : pCFAPath) {
-        for (NondeterministicFiniteAutomaton.State lCurrentState : lCurrentStates) {
-          // Automaton accepts as soon as it sees a final state (implicit self-loop)
-          if (pAutomaton.getFinalStates().contains(lCurrentState)) { return ThreeValuedAnswer.ACCEPT; }
-
-          for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lOutgoingEdge : pAutomaton
-              .getOutgoingEdges(lCurrentState)) {
-            GuardedEdgeLabel lLabel = lOutgoingEdge.getLabel();
-
-            if (lLabel.hasGuards()) {
-              lHasPredicates = true;
-            } else {
-              if (lLabel.contains(lCFAEdge)) {
-                lNextStates.add(lOutgoingEdge.getTarget());
-                lNextStates.addAll(getSuccsessorsOfEmptyTransitions(pAutomaton, lOutgoingEdge.getTarget()));
-              }
-            }
-          }
-        }
-
-        lCurrentStates.addAll(lNextStates);
-        lNextStates.clear();
-      }
-
-      for (NondeterministicFiniteAutomaton.State lCurrentState : lCurrentStates) {
-        // Automaton accepts as soon as it sees a final state (implicit self-loop)
-        if (pAutomaton.getFinalStates().contains(lCurrentState)) { return ThreeValuedAnswer.ACCEPT; }
-      }
-
-      if (lHasPredicates) {
-        return ThreeValuedAnswer.UNKNOWN;
-      } else {
-        return ThreeValuedAnswer.REJECT;
-      }
     }
   }
 
