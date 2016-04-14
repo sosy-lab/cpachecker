@@ -27,16 +27,8 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getUncoveredChildrenView;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.util.ArrayDeque;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.logging.Level;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -76,8 +68,17 @@ import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.util.ArrayDeque;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.logging.Level;
 
 /**
  * Outer algorithm to collect all invariants generated during
@@ -361,18 +362,21 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       for (final ARGState child : getUncoveredChildrenView(s)) {
         assert !child.isCovered();
 
-        CFAEdge edge = s.getEdgeToChild(child);
+        List<CFAEdge> edges = s.getEdgesToChild(child);
 
-        if (edge instanceof MultiEdge) {
-          assert (((MultiEdge) edge).getEdges().size() > 1);
+        if (edges.size() == 1 && edges.get(0) instanceof MultiEdge) {
+          edges = ((MultiEdge) edges.get(0)).getEdges();
+        }
+
+        if (edges.size() > 1) {
 
           sb.append("    MATCH \"");
-          escape(((MultiEdge) edge).getEdges().get(0).getRawStatement(), sb);
+          escape(edges.get(0).getRawStatement(), sb);
           sb.append("\" -> ");
           sb.append("GOTO ARG" + s.getStateId() + "M" + multiEdgeID);
 
           boolean first = true;
-          for (CFAEdge innerEdge : from(((MultiEdge) edge).getEdges()).skip(1)) {
+          for (CFAEdge innerEdge : from(edges).skip(1)) {
 
             if (!first) {
               multiEdgeID++;
@@ -399,7 +403,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         } else {
 
           sb.append("    MATCH \"");
-          escape(edge.getRawStatement(), sb);
+          escape(Iterables.getOnlyElement(edges).getRawStatement(), sb);
           sb.append("\" -> ");
 
           AssumptionStorageState assumptionChild = AbstractStates.extractStateByType(child, AssumptionStorageState.class);
