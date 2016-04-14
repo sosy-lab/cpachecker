@@ -56,6 +56,7 @@ public class Automaton {
   private final AutomatonInternalState initState;
   private final ImmutableSet<SafetyProperty> encodedProperties;
   private final AutomatonSafetyPropertyFactory propertyFactory ;
+  private String headerFile;
 
   private Optional<Boolean> isObservingOnly = Optional.absent();
 
@@ -68,8 +69,7 @@ public class Automaton {
       final String pHeaderFile)
       throws InvalidAutomatonException {
     this(pPropFact, pName, pVars, pRawStates, pInitialStateName);
-
-    String test = pHeaderFile;
+    headerFile = pHeaderFile;
   }
 
   public Automaton(AutomatonSafetyPropertyFactory pPropFact,
@@ -79,6 +79,7 @@ public class Automaton {
     this.propertyFactory = Preconditions.checkNotNull(pPropFact);
     this.name = pName;
     this.initVars = pVars;
+    headerFile = null;
 
     Map<String, AutomatonInternalState> nameToState = Maps.newHashMapWithExpectedSize(pRawStates.size());
     List<AutomatonInternalState> postprocessedStates = postprocessStates(pRawStates);
@@ -138,6 +139,10 @@ public class Automaton {
 
   public Set<AutomatonInternalState> getStates() {
     return states;
+  }
+
+  public String getHeaderFile() {
+    return headerFile;
   }
 
   public int getTransitionsToTargetStatesCount() {

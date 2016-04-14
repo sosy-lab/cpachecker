@@ -44,17 +44,22 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.CParser;
+import org.sosy_lab.cpachecker.cfa.CParser.FileToParse;
 import org.sosy_lab.cpachecker.cfa.DummyParser;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
+import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonSafetyPropertyFactory;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -178,6 +183,23 @@ parser code {:
   AutomatonASTComparator.ASTMatcherProvider generateASTPattern(String pattern) throws InvalidAutomatonException, InvalidConfigurationException {
     return AutomatonASTComparator.generatePatternAST(pattern, cparser, scope);
   }
+
+  public String parseHeaderFile(final String pFileName) throws InvalidConfigurationException {
+    /*FileToParse file = new FileToParse(pFileName);
+    List<FileToParse> fileList = new ArrayList<>();
+    fileList.add(file);
+    try {
+      ParseResult result = cparser.parseFile(fileList, new CSourceOriginMapping());
+      List<Pair<ADeclaration, String>> declarations = result.getGlobalDeclarations();
+    } catch (Exception e) {
+      Throwables.propagateIfPossible(e, InvalidConfigurationException.class);
+      throw new InvalidConfigurationException("Could not load header file "
+            + " (" + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName())
+            + ")", e);
+    }
+    */
+    return pFileName;
+  }
 :};
 
 
@@ -241,12 +263,12 @@ Automaton ::= OBSERVER Body:b
 Body      ::= AUTOMATON IDENTIFIER:id LocalDefs:vars InitDef:init StateDefs:states END AUTOMATON
               {: RESULT = new Automaton(propFact, id.toString(), vars, states, init); :}
             | AUTOMATON IDENTIFIER:id LocalDefs:vars HeaderDef:file InitDef:init StateDefs:states END AUTOMATON
-              {: RESULT = new Automaton(propFact, id.toString(), vars, states, init, file.toString()); :}
+              {: RESULT = new Automaton(propFact, id.toString(), vars, states, init, file); :}
             ;
 
 InitDef    ::= INITIAL STATE IDENTIFIER:id SEMICOLON {: RESULT = id.toString(); :};
 
-HeaderDef  ::= HEADER IDENTIFIER:id SEMICOLON {: RESULT = id.toString(); :};
+HeaderDef  ::= HEADER STRING_LITERAL:id SEMICOLON {: RESULT = parser.parseHeaderFile(id.toString()); :};
 
 LocalDefs ::= LocalDef:d LocalDefs:lst {: lst.put(d.getName(), d); RESULT = lst; :}
               | /* empty */ {: RESULT = new HashMap<String, AutomatonVariable>(); :}
