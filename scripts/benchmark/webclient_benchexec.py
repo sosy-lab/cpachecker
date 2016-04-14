@@ -28,6 +28,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import sys
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
+import json
 import logging
 import os
 import shutil
@@ -127,6 +128,12 @@ def _submitRunsParallel(runSet, benchmark):
     global _webclient
 
     logging.info('Submitting runs...')
+    
+    meta_information = json.dumps({"tool": {"name": _webclient.tool_name(), "revision": _webclient.tool_revision()}, \
+                                       "benchmark" : benchmark.name,
+                                       "timestamp" : benchmark.instance,
+                                       "runSet" : runSet.real_name or "",
+                                       "generator": "benchmark.webcliebt_benchexec.py"})
 
     executor = ThreadPoolExecutor(max_workers=_webclient.thread_count)
     submission_futures = {}
@@ -144,7 +151,8 @@ def _submitRunsParallel(runSet, benchmark):
         logging.warning("No result files pattern is given and the result will not contain any result files.")
 
     for run in runSet.runs:
-        submisson_future = executor.submit(_webclient.submit, run, limits, cpu_model, result_files_pattern, priority)
+        submisson_future = executor.submit(_webclient.submit, run, limits, cpu_model, 
+                                           result_files_pattern, meta_information, priority)
         submission_futures[submisson_future] = run
 
     executor.shutdown(wait=False)
