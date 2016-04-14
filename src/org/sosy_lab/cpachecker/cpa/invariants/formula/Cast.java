@@ -23,15 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-import java.util.Objects;
+import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
 
-import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
+import java.util.Objects;
 
 public class Cast<ConstantType> extends AbstractFormula<ConstantType> {
 
   private final NumeralFormula<ConstantType> casted;
 
-  private Cast(BitVectorInfo pInfo, NumeralFormula<ConstantType> pCasted) {
+  private Cast(TypeInfo pInfo, NumeralFormula<ConstantType> pCasted) {
     super(pInfo);
     this.casted = pCasted;
   }
@@ -42,15 +42,12 @@ public class Cast<ConstantType> extends AbstractFormula<ConstantType> {
 
   @Override
   public String toString() {
-    return String.format("((%d%s) %s)",
-        getBitVectorInfo().getSize(),
-        getBitVectorInfo().isSigned() ? "" : "U",
-        getCasted());
+    return String.format("((%s) %s)", getTypeInfo().abbrev(), getCasted());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getBitVectorInfo(), getCasted());
+    return Objects.hash(getTypeInfo(), getCasted());
   }
 
   @Override
@@ -60,8 +57,7 @@ public class Cast<ConstantType> extends AbstractFormula<ConstantType> {
     }
     if (pOther instanceof Cast) {
       Cast<?> other = (Cast<?>) pOther;
-      return getBitVectorInfo().equals(other.getBitVectorInfo())
-          && getCasted().equals(other.getCasted());
+      return getTypeInfo().equals(other.getTypeInfo()) && getCasted().equals(other.getCasted());
     }
     return false;
   }
@@ -77,8 +73,9 @@ public class Cast<ConstantType> extends AbstractFormula<ConstantType> {
     return pVisitor.visit(this, pParameter);
   }
 
-  public static <ConstantType> Cast<ConstantType> of(BitVectorInfo pBitVectorInfo, NumeralFormula<ConstantType> pCasted) {
-    return new Cast<>(pBitVectorInfo, pCasted);
+  public static <ConstantType> Cast<ConstantType> of(
+      TypeInfo pTypeInfo, NumeralFormula<ConstantType> pCasted) {
+    return new Cast<>(pTypeInfo, pCasted);
   }
 
 }

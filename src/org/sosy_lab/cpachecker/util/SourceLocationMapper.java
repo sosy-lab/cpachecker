@@ -23,12 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util;
 
-import java.util.Collections;
-import java.util.Deque;
-import java.util.Objects;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Queues;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.FileLocationCollectingVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -50,12 +49,12 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Queues;
-import com.google.common.collect.Sets;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.Objects;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 
 public class SourceLocationMapper {
@@ -328,9 +327,6 @@ public class SourceLocationMapper {
       CFAEdge edge = edges.pop();
 
       switch (edge.getEdgeType()) {
-      case MultiEdge:
-        edges.addAll(((MultiEdge) edge).getEdges());
-      break;
       case AssumeEdge:
         result.add(((CAssumeEdge) edge).getExpression());
       break;
@@ -423,9 +419,6 @@ public class SourceLocationMapper {
       CFAEdge edge = edges.pop();
 
       switch (edge.getEdgeType()) {
-      case MultiEdge:
-        edges.addAll(((MultiEdge) edge).getEdges());
-      break;
       case AssumeEdge:
         CAssumeEdge assumeEdge = ((CAssumeEdge) edge);
         idExs.addAll(assumeEdge.getExpression().accept(visitor));

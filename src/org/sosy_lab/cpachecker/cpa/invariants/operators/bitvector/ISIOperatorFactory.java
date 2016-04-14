@@ -63,9 +63,13 @@ public enum ISIOperatorFactory {
         }
         BigInteger lowerBound = pFirstOperand.getLowerBound().add(pSecondOperand);
         BigInteger upperBound = pFirstOperand.getUpperBound().add(pSecondOperand);
-        return BitVectorInterval.cast(pFirstOperand.getBitVectorInfo(), lowerBound, upperBound, pAllowSignedWrapAround, pOverflowEventHandler);
+        return BitVectorInterval.cast(
+            pFirstOperand.getTypeInfo(),
+            lowerBound,
+            upperBound,
+            pAllowSignedWrapAround,
+            pOverflowEventHandler);
       }
-
     };
   }
 
@@ -97,7 +101,11 @@ public enum ISIOperatorFactory {
          * in this interval are considered finite.
          */
         if (pSecondOperand.equals(BigInteger.ZERO)) {
-          return BitVectorInterval.cast(pFirstOperand.getBitVectorInfo(), BigInteger.ZERO, pAllowSignedWrapAround, pOverflowEventHandler);
+          return BitVectorInterval.cast(
+              pFirstOperand.getTypeInfo(),
+              BigInteger.ZERO,
+              pAllowSignedWrapAround,
+              pOverflowEventHandler);
         }
         /*
          * If the given factor is one, which is the neutral element of
@@ -114,7 +122,9 @@ public enum ISIOperatorFactory {
          * co-factors.
          */
         if (pSecondOperand.signum() < 0) {
-          return apply(pFirstOperand.negate(pAllowSignedWrapAround, pOverflowEventHandler), pSecondOperand.negate());
+          return apply(
+              pFirstOperand.negate(pAllowSignedWrapAround, pOverflowEventHandler),
+              pSecondOperand.negate());
         }
         /*
          * Infinite bounds stay infinite, finite bounds are multiplied with
@@ -122,9 +132,13 @@ public enum ISIOperatorFactory {
          */
         BigInteger lowerBound = pFirstOperand.getLowerBound().multiply(pSecondOperand);
         BigInteger upperBound = pFirstOperand.getUpperBound().multiply(pSecondOperand);
-        return BitVectorInterval.cast(pFirstOperand.getBitVectorInfo(), lowerBound, upperBound, pAllowSignedWrapAround, pOverflowEventHandler);
+        return BitVectorInterval.cast(
+            pFirstOperand.getTypeInfo(),
+            lowerBound,
+            upperBound,
+            pAllowSignedWrapAround,
+            pOverflowEventHandler);
       }
-
     };
   }
 
@@ -151,7 +165,8 @@ public enum ISIOperatorFactory {
        * <code>pSecondOperand</code> is zero.
        */
       @Override
-      public @Nullable BitVectorInterval apply(BitVectorInterval pFirstOperand, BigInteger pSecondOperand) {
+      public @Nullable BitVectorInterval apply(
+          BitVectorInterval pFirstOperand, BigInteger pSecondOperand) {
         // Division by zero is undefined, so null is returned
         if (pSecondOperand.equals(BigInteger.ZERO)) {
           return null;
@@ -160,11 +175,14 @@ public enum ISIOperatorFactory {
          * Dividing an interval by one will yield its identity; the same goes
          * for dividing [0, 0] (a singleton interval of zero) by anything.
          */
-        if (pSecondOperand.equals(BigInteger.ONE) || pFirstOperand.isSingleton() && pFirstOperand.containsZero()) {
+        if (pSecondOperand.equals(BigInteger.ONE)
+            || pFirstOperand.isSingleton() && pFirstOperand.containsZero()) {
           return pFirstOperand;
         }
         if (pSecondOperand.compareTo(BigInteger.ZERO) < 0) {
-          return apply(pFirstOperand.negate(pAllowSignedWrapAround, pOverflowEventHandler), pSecondOperand.negate());
+          return apply(
+              pFirstOperand.negate(pAllowSignedWrapAround, pOverflowEventHandler),
+              pSecondOperand.negate());
         }
         /*
          * Divide each finite bound by the divisor to obtain the new bounds;
@@ -173,9 +191,13 @@ public enum ISIOperatorFactory {
         BigInteger lowerBound = pFirstOperand.getLowerBound().divide(pSecondOperand);
         BigInteger upperBound = pFirstOperand.getUpperBound().divide(pSecondOperand);
 
-        return BitVectorInterval.cast(pFirstOperand.getBitVectorInfo(), lowerBound, upperBound, pAllowSignedWrapAround, pOverflowEventHandler);
+        return BitVectorInterval.cast(
+            pFirstOperand.getTypeInfo(),
+            lowerBound,
+            upperBound,
+            pAllowSignedWrapAround,
+            pOverflowEventHandler);
       }
-
     };
   }
 
@@ -231,7 +253,11 @@ public enum ISIOperatorFactory {
          * implementation.
          */
         if (pFirstOperand.isSingleton()) {
-          return BitVectorInterval.cast(pFirstOperand.getBitVectorInfo(), pFirstOperand.getLowerBound().remainder(pSecondOperand), pAllowSignedWrapAround, pOverflowEventHandler);
+          return BitVectorInterval.cast(
+              pFirstOperand.getTypeInfo(),
+              pFirstOperand.getLowerBound().remainder(pSecondOperand),
+              pAllowSignedWrapAround,
+              pOverflowEventHandler);
         }
         BigInteger largestPossibleValue = pSecondOperand.subtract(BigInteger.ONE);
         BitVectorInterval moduloRange = null;
@@ -245,7 +271,13 @@ public enum ISIOperatorFactory {
            * modulo operation on the negative values of this interval ranges
            * from -(divisor-1) to zero
            */
-          moduloRange = BitVectorInterval.cast(pFirstOperand.getBitVectorInfo(), largestPossibleValue.negate(), BigInteger.ZERO, pAllowSignedWrapAround, pOverflowEventHandler);
+          moduloRange =
+              BitVectorInterval.cast(
+                  pFirstOperand.getTypeInfo(),
+                  largestPossibleValue.negate(),
+                  BigInteger.ZERO,
+                  pAllowSignedWrapAround,
+                  pOverflowEventHandler);
           /*
            * The negative part of this interval is guaranteed to be finite and
            * the resulting range can possibly be narrowed down.
@@ -257,7 +289,13 @@ public enum ISIOperatorFactory {
            * both bounds of this interval are negative anyway.
            */
           if (pFirstOperand.containsZero()) {
-            negPart = BitVectorInterval.cast(pFirstOperand.getBitVectorInfo(), pFirstOperand.getLowerBound(), BigInteger.ZERO, pAllowSignedWrapAround, pOverflowEventHandler);
+            negPart =
+                BitVectorInterval.cast(
+                    pFirstOperand.getTypeInfo(),
+                    pFirstOperand.getLowerBound(),
+                    BigInteger.ZERO,
+                    pAllowSignedWrapAround,
+                    pOverflowEventHandler);
           } else {
             negPart = pFirstOperand;
           }
@@ -266,7 +304,9 @@ public enum ISIOperatorFactory {
            * negation to the negative part, computing its modulo result
            * and negating that result again.
            */
-          moduloRange = apply(negPart.negate(pAllowSignedWrapAround, pOverflowEventHandler), pSecondOperand).negate(pAllowSignedWrapAround, pOverflowEventHandler);
+          moduloRange =
+              apply(negPart.negate(pAllowSignedWrapAround, pOverflowEventHandler), pSecondOperand)
+                  .negate(pAllowSignedWrapAround, pOverflowEventHandler);
         }
         /*
          * If there are positive values in this interval, the resulting range
@@ -278,7 +318,13 @@ public enum ISIOperatorFactory {
            * modulo operation on the positive values of this interval ranges
            * from (divisor-1) to zero
            */
-          BitVectorInterval posRange = BitVectorInterval.cast(pFirstOperand.getBitVectorInfo(), BigInteger.ZERO, largestPossibleValue, pAllowSignedWrapAround, pOverflowEventHandler);
+          BitVectorInterval posRange =
+              BitVectorInterval.cast(
+                  pFirstOperand.getTypeInfo(),
+                  BigInteger.ZERO,
+                  largestPossibleValue,
+                  pAllowSignedWrapAround,
+                  pOverflowEventHandler);
           /*
            * The positive part of this interval is guaranteed to be finite and
            * the resulting range can possibly be narrowed down.
@@ -290,7 +336,13 @@ public enum ISIOperatorFactory {
            * both bounds of this interval are positive anyway.
            */
           if (pFirstOperand.containsZero()) {
-            posPart = BitVectorInterval.cast(pFirstOperand.getBitVectorInfo(), BigInteger.ZERO, pFirstOperand.getUpperBound(), pAllowSignedWrapAround, pOverflowEventHandler);
+            posPart =
+                BitVectorInterval.cast(
+                    pFirstOperand.getTypeInfo(),
+                    BigInteger.ZERO,
+                    pFirstOperand.getUpperBound(),
+                    pAllowSignedWrapAround,
+                    pOverflowEventHandler);
           } else {
             posPart = pFirstOperand;
           }
@@ -311,7 +363,13 @@ public enum ISIOperatorFactory {
                 && modBorder.add(largestPossibleValue).compareTo(posPart.getUpperBound()) >= 0) {
               BigInteger bound1 = posPart.getLowerBound().remainder(pSecondOperand);
               BigInteger bound2 = posPart.getUpperBound().remainder(pSecondOperand);
-              posRange = BitVectorInterval.cast(pFirstOperand.getBitVectorInfo(), bound1.min(bound2), bound1.max(bound2), pAllowSignedWrapAround, pOverflowEventHandler);
+              posRange =
+                  BitVectorInterval.cast(
+                      pFirstOperand.getTypeInfo(),
+                      bound1.min(bound2),
+                      bound1.max(bound2),
+                      pAllowSignedWrapAround,
+                      pOverflowEventHandler);
             }
           }
           /*
@@ -329,7 +387,6 @@ public enum ISIOperatorFactory {
         }
         return moduloRange;
       }
-
     };
   }
 
@@ -360,31 +417,43 @@ public enum ISIOperatorFactory {
          * identity is returned. The same applies for shifting [0] (a
          * singleton interval of zero) or shifting anything by 0.
          */
-        if (pFirstOperand.isTop() || pSecondOperand.signum() == 0
+        if (pFirstOperand.isTop()
+            || pSecondOperand.signum() == 0
             || pFirstOperand.isSingleton() && pFirstOperand.containsZero()) {
           return pFirstOperand;
         }
         // Negative left shifts are not defined.
         if (pSecondOperand.signum() < 0) {
-          return pFirstOperand.getBitVectorInfo().getRange();
+          return pFirstOperand.getTypeInfo().getRange();
         }
         /*
          * BigInteger supports shifting only for integer values. If the shift
          * distance is within the integer range, both bounds are shifted
          * to obtain the new bounds (infinite bounds stay infinite).
          */
-        if (pSecondOperand.compareTo(BigInteger.valueOf(pFirstOperand.getBitVectorInfo().getSize())) <= 0) {
-          BigInteger lowerBound = pFirstOperand.getLowerBound().shiftLeft(pSecondOperand.intValue());
-          BigInteger upperBound = pFirstOperand.getUpperBound().shiftLeft(pSecondOperand.intValue());
-          return BitVectorInterval.cast(pFirstOperand.getBitVectorInfo(), lowerBound, upperBound, pAllowSignedWrapAround, pOverflowEventHandler);
+        if (pSecondOperand.compareTo(BigInteger.valueOf(pFirstOperand.getTypeInfo().getSize()))
+            <= 0) {
+          BigInteger lowerBound =
+              pFirstOperand.getLowerBound().shiftLeft(pSecondOperand.intValue());
+          BigInteger upperBound =
+              pFirstOperand.getUpperBound().shiftLeft(pSecondOperand.intValue());
+          return BitVectorInterval.cast(
+              pFirstOperand.getTypeInfo(),
+              lowerBound,
+              upperBound,
+              pAllowSignedWrapAround,
+              pOverflowEventHandler);
         }
         /*
          * For shifting distances larger than the size of the bit vector,
          * we assume zero is the only possible result of left shifting.
          */
-        return BitVectorInterval.cast(pFirstOperand.getBitVectorInfo(), BigInteger.ZERO, pAllowSignedWrapAround, pOverflowEventHandler);
+        return BitVectorInterval.cast(
+            pFirstOperand.getTypeInfo(),
+            BigInteger.ZERO,
+            pAllowSignedWrapAround,
+            pOverflowEventHandler);
       }
-
     };
   }
 
@@ -416,31 +485,43 @@ public enum ISIOperatorFactory {
          * identity is returned. The same applies for shifting [0] (a
          * singleton interval of zero) or shifting anything by 0.
          */
-        if (pFirstOperand.isTop() || pSecondOperand.signum() == 0
+        if (pFirstOperand.isTop()
+            || pSecondOperand.signum() == 0
             || pFirstOperand.isSingleton() && pFirstOperand.containsZero()) {
           return pFirstOperand;
         }
         // Negative right shifts are not defined.
         if (pSecondOperand.signum() < 0) {
-          return pFirstOperand.getBitVectorInfo().getRange();
+          return pFirstOperand.getTypeInfo().getRange();
         }
         /*
          * BigInteger supports shifting only for integer values. If the shift
          * distance is within the integer range, both bounds are shifted
          * to obtain the new bounds (infinite bounds stay infinite).
          */
-        if (pSecondOperand.compareTo(BigInteger.valueOf(pFirstOperand.getBitVectorInfo().getSize())) <= 0) {
-          BigInteger lowerBound = pFirstOperand.getLowerBound().shiftRight(pSecondOperand.intValue());
-          BigInteger upperBound = pFirstOperand.getUpperBound().shiftRight(pSecondOperand.intValue());
-          return BitVectorInterval.cast(pFirstOperand.getBitVectorInfo(), lowerBound, upperBound, pAllowSignedWrapAround, pOverflowEventHandler);
+        if (pSecondOperand.compareTo(BigInteger.valueOf(pFirstOperand.getTypeInfo().getSize()))
+            <= 0) {
+          BigInteger lowerBound =
+              pFirstOperand.getLowerBound().shiftRight(pSecondOperand.intValue());
+          BigInteger upperBound =
+              pFirstOperand.getUpperBound().shiftRight(pSecondOperand.intValue());
+          return BitVectorInterval.cast(
+              pFirstOperand.getTypeInfo(),
+              lowerBound,
+              upperBound,
+              pAllowSignedWrapAround,
+              pOverflowEventHandler);
         }
         /*
          * For shifting distances larger than the size of the bit vector,
          * we assume zero is the only possible result of right shifting.
          */
-        return BitVectorInterval.cast(pFirstOperand.getBitVectorInfo(), BigInteger.ZERO, pAllowSignedWrapAround, pOverflowEventHandler);
+        return BitVectorInterval.cast(
+            pFirstOperand.getTypeInfo(),
+            BigInteger.ZERO,
+            pAllowSignedWrapAround,
+            pOverflowEventHandler);
       }
-
     };
   }
 

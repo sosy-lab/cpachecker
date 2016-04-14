@@ -78,30 +78,33 @@ public class ValueAnalysisFeasibilityChecker
     machineModel = pCfa.getMachineModel();
   }
 
-  public List<Pair<ValueAnalysisState, CFAEdge>> evaluate(final ARGPath path)
+  public List<Pair<ValueAnalysisState, List<CFAEdge>>> evaluate(final ARGPath path)
       throws CPAException, InterruptedException {
 
     try {
-      List<Pair<ValueAnalysisState, CFAEdge>> reevaluatedPath = new ArrayList<>();
+      List<Pair<ValueAnalysisState, List<CFAEdge>>> reevaluatedPath = new ArrayList<>();
       ValueAnalysisState next = new ValueAnalysisState(machineModel);
 
       PathIterator iterator = path.fullPathIterator();
       while (iterator.hasNext()) {
-        Optional<ValueAnalysisState> successor = strongestPostOp.getStrongestPost(
-            next,
-            precision,
-            iterator.getOutgoingEdge());
+        Optional<ValueAnalysisState> successor;
+        CFAEdge outgoingEdge;
+        List<CFAEdge> allOutgoingEdges = new ArrayList<>();
+        do {
+          outgoingEdge = iterator.getOutgoingEdge();
+          allOutgoingEdges.add(outgoingEdge);
+          successor = strongestPostOp.getStrongestPost(next, precision, outgoingEdge);
+          iterator.advance();
 
-        if(!successor.isPresent()) {
-          return reevaluatedPath;
-        }
+          if (!successor.isPresent()) {
+            return reevaluatedPath;
+          }
 
-        // extract singleton successor state
-        next = successor.get();
+          // extract singleton successor state
+          next = successor.get();
+        } while (!iterator.isPositionWithState());
 
-        reevaluatedPath.add(Pair.of(next, iterator.getOutgoingEdge()));
-
-        iterator.advance();
+        reevaluatedPath.add(Pair.of(next, allOutgoingEdges));
       }
 
       return reevaluatedPath;

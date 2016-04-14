@@ -40,8 +40,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -296,15 +294,8 @@ public class PathChecker {
       CFAEdge edge = pathIt.getOutgoingEdge();
       pathIt.advance();
 
-      if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
-        for (CFAEdge singleEdge : (MultiEdge) edge) {
-          pathFormula = pmgr.makeAnd(pathFormula, singleEdge);
-          ssaMaps.add(pathFormula.getSsa());
-        }
-      } else {
-        pathFormula = pmgr.makeAnd(pathFormula, edge);
-        ssaMaps.add(pathFormula.getSsa());
-      }
+      pathFormula = pmgr.makeAnd(pathFormula, edge);
+      ssaMaps.add(pathFormula.getSsa());
     }
 
     return Pair.of(pathFormula, ssaMaps);

@@ -79,7 +79,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -122,14 +121,12 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -754,38 +751,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       AbstractState state, Precision precision, CFAEdge cfaEdge)
           throws CPATransferException, InterruptedException {
 
-    Collection<? extends AbstractState> results;
-
-    if(cfaEdge instanceof MultiEdge) {
-
-      MultiEdge multiEdge = (MultiEdge) cfaEdge;
-
-      Queue<SMGState> processQueue = new ArrayDeque<>();
-      Queue<SMGState> resultQueue = new ArrayDeque<>();
-      processQueue.add((SMGState) state);
-
-      for(CFAEdge edge : multiEdge) {
-
-        while(!processQueue.isEmpty()) {
-          SMGState next = processQueue.poll();
-          Collection<? extends AbstractState> resultOfOneOp = getAbstractSuccessorsForEdge(next, edge);
-
-          for(AbstractState result : resultOfOneOp) {
-            resultQueue.add((SMGState) result);
-          }
-        }
-
-        while(!resultQueue.isEmpty()) {
-          processQueue.add(resultQueue.poll());
-        }
-      }
-
-      results = ImmutableSet.copyOf(processQueue);
-    } else {
-      results = getAbstractSuccessorsForEdge((SMGState)state, cfaEdge);
-    }
-
-    return results;
+    return getAbstractSuccessorsForEdge((SMGState) state, cfaEdge);
   }
 
   public SMGTransferRelation(Configuration config, LogManager pLogger,

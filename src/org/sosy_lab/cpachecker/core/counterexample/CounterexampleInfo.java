@@ -35,7 +35,6 @@ import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -147,7 +146,6 @@ public class CounterexampleInfo extends AbstractAppender {
     List<Map<?, ?>> path = new ArrayList<>(pathLength);
 
     PathIterator iterator = targetPath.fullPathIterator();
-    int multiEdgeOffset = 0;
     while (iterator.hasNext()) {
       Map<String, Object> elem = new HashMap<>();
       CFAEdge edge = iterator.getOutgoingEdge();
@@ -167,10 +165,7 @@ public class CounterexampleInfo extends AbstractAppender {
       if (assignments == null) {
         elem.put("val", "");
       } else {
-        if (edge instanceof MultiEdge) {
-          multiEdgeOffset += ((MultiEdge)edge).getEdges().size()-1;
-        }
-        CFAEdgeWithAssumptions edgeWithAssignment = assignments.get(iterator.getIndex() + multiEdgeOffset);
+        CFAEdgeWithAssumptions edgeWithAssignment = assignments.get(iterator.getIndex());
         elem.put("val", edgeWithAssignment.printForHTML());
       }
 

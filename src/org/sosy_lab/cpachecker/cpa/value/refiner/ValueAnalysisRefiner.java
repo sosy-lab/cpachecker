@@ -23,19 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
-import java.io.PrintStream;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.logging.Level;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.Maps;
+import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -75,13 +69,19 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Maps;
-import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
+import java.io.PrintStream;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.logging.Level;
 
 @Options(prefix = "cpa.value.refinement")
 public class ValueAnalysisRefiner
@@ -415,7 +415,7 @@ public class ValueAnalysisRefiner
    */
   @Override
   protected CFAPathWithAssumptions createModel(ARGPath errorPath) throws InterruptedException, CPAException {
-    List<Pair<ValueAnalysisState, CFAEdge>> concretePath = checker.evaluate(errorPath);
+    List<Pair<ValueAnalysisState, List<CFAEdge>>> concretePath = checker.evaluate(errorPath);
     if (concretePath.size() < errorPath.getInnerEdges().size()) {
       // If concretePath is shorter than errorPath, this means that errorPath is actually
       // infeasible and should have been ruled out during refinement.

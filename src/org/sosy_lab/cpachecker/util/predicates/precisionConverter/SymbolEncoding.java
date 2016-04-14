@@ -25,14 +25,10 @@ package org.sosy_lab.cpachecker.util.predicates.precisionConverter;
 
 import static org.sosy_lab.solver.api.FormulaType.getBitvectorTypeWithSize;
 
-import java.io.IOException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.io.Files;
@@ -43,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
@@ -56,11 +51,14 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.FormulaType.BitvectorType;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 
 public class SymbolEncoding {
@@ -187,11 +185,6 @@ public class SymbolEncoding {
         Optional<? extends CVariableDeclaration> retVar = edge.getFunctionEntry().getReturnVariable();
         if (retVar.isPresent()) {
           sd.add(retVar.get());
-        }
-      }
-      for (MultiEdge multiEdge : edges.filter(MultiEdge.class)) {
-        for (CDeclarationEdge edge : Iterables.filter(multiEdge.getEdges(), CDeclarationEdge.class)) {
-          sd.add(edge.getDeclaration());
         }
       }
     }

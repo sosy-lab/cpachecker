@@ -10,6 +10,7 @@
     <property name="source.format" value="1.7"/>
     <property name="source.dir" value="src"/>
     <property name="source.generated.dir" value=".apt-generated"/>
+    <property name="source.exclude" value=""/>
     <property name="class.format" value="1.7"/>
     <property name="class.dir" value="bin"/>
 
@@ -36,6 +37,41 @@
             <compilerarg value="-Werror"/>
             <compilerarg value="-s"/><compilerarg value="${source.generated.dir}"/>
             <compilerclasspath refid="errorprone"/>
+        </javac>
+    </target>
+
+    <path id="ecj">
+        <pathelement location="${ivy.lib.dir}/build/ecj.jar"/>
+    </path>
+
+    <target name="build-project-ecj" depends="build-dependencies" description="Build project with the Eclipse JDT compiler">
+        <depend srcdir="${source.dir}" destdir="${class.dir}"/>
+        <mkdir dir="${source.generated.dir}"/>
+
+        <copy file=".settings/org.eclipse.jdt.core.prefs" tofile="${ivy.lib.dir}/build/org.eclipse.jdt.core.prefs">
+            <!-- Convert all compiler warnings to errors. -->
+            <filterchain>
+                <replacetokens begintoken="=" endtoken="g">
+                    <token key="warnin" value="=error"/>
+                </replacetokens>
+            </filterchain>
+        </copy>
+
+        <javac debug="true"
+               debuglevel="source,lines,vars"
+               destdir="${class.dir}"
+               source="${source.format}"
+               target="${class.format}"
+               compiler="org.eclipse.jdt.core.JDTCompilerAdapter"
+               includeAntRuntime="false"
+               encoding="UTF-8">
+            <src path="${source.dir}"/>
+            <classpath refid="classpath"/>
+            <compilerarg value="-properties"/>
+            <compilerarg value="${ivy.lib.dir}/build/org.eclipse.jdt.core.prefs"/>
+            <compilerarg value="-s"/><compilerarg value="${source.generated.dir}"/>
+            <compilerclasspath refid="ecj"/>
+            <exclude name="${source.exclude}"/>
         </javac>
     </target>
 </project>

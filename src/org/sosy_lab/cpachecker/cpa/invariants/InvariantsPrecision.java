@@ -23,22 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
+import com.google.common.collect.ImmutableSet;
+
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Queue;
 import java.util.Set;
-
-import javax.annotation.Nullable;
-
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import com.google.common.base.Predicate;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableSet;
 
 
 public class InvariantsPrecision implements Precision {
@@ -91,17 +85,6 @@ public class InvariantsPrecision implements Precision {
   }
 
   public boolean isRelevant(CFAEdge pEdge) {
-    if (pEdge instanceof MultiEdge) {
-      MultiEdge multiEdge = (MultiEdge) pEdge;
-      return FluentIterable.from(multiEdge).anyMatch(new Predicate<CFAEdge>() {
-
-        @Override
-        public boolean apply(@Nullable CFAEdge pArg0) {
-          return isRelevant(pArg0);
-        }
-
-      });
-    }
     return pEdge != null && (this.relevantEdges == null || this.relevantEdges.contains(pEdge));
   }
 
@@ -150,9 +133,6 @@ public class InvariantsPrecision implements Precision {
     while (!waitlist.isEmpty()) {
       CFAEdge relevantEdge = waitlist.poll();
       builder.add(relevantEdge);
-      if (relevantEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
-        builder.addAll(((MultiEdge) relevantEdge));
-      }
     }
     return builder.build();
   }

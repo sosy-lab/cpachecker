@@ -23,15 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-import java.math.BigInteger;
-import java.util.Map;
-
-import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManager;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.NonRecursiveEnvironment;
+import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+
+import java.math.BigInteger;
+import java.util.Map;
 
 /**
  * Instances of this class are parameterized compound state invariants formula
@@ -218,8 +218,9 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedBooleanF
     // ((right lower bound) to infinity) to the left and
     // (negative infinity to (left upper bound)) to the right.
     if (pParameter.getValue()) {
-      BitVectorInfo bitVectorInfo = pLessThan.getOperand1().getBitVectorInfo();
-      CompoundIntervalManager cim = compoundIntervalManagerFactory.createCompoundIntervalManager(bitVectorInfo);
+      TypeInfo typeInfo = pLessThan.getOperand1().getTypeInfo();
+      CompoundIntervalManager cim =
+          compoundIntervalManagerFactory.createCompoundIntervalManager(typeInfo);
       leftPushValue = rightValue.isSingleton()
           ? cim.intersect(rightValue.invert(), rightValue.extendToMinValue())
           : (rightValue.hasUpperBound()

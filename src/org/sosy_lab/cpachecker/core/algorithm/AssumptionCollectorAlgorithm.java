@@ -44,7 +44,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -364,12 +363,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
         List<CFAEdge> edges = s.getEdgesToChild(child);
 
-        if (edges.size() == 1 && edges.get(0) instanceof MultiEdge) {
-          edges = ((MultiEdge) edges.get(0)).getEdges();
-        }
-
         if (edges.size() > 1) {
-
           sb.append("    MATCH \"");
           escape(edges.get(0).getRawStatement(), sb);
           sb.append("\" -> ");

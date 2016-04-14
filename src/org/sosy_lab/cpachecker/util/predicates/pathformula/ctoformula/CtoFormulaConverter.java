@@ -59,10 +59,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -847,23 +845,6 @@ public class CtoFormulaConverter {
       CFunctionSummaryEdge ce = ((CFunctionReturnEdge)edge).getSummaryEdge();
       return makeExitFunction(ce, function,
           ssa, pts, constraints, errorConditions);
-    }
-
-    case MultiEdge: {
-      List<BooleanFormula> multiEdgeFormulas = new ArrayList<>(((MultiEdge)edge).getEdges().size());
-
-      // unroll the MultiEdge
-      for (CFAEdge singleEdge : (MultiEdge)edge) {
-        if (singleEdge instanceof BlankEdge) {
-          continue;
-        }
-        multiEdgeFormulas.add(createFormulaForEdge(singleEdge, function, ssa, pts, constraints, errorConditions));
-        shutdownNotifier.shutdownIfNecessary();
-      }
-
-      // Big conjunction at the end is better than creating a new conjunction
-      // after each edge for some SMT solvers.
-      return bfmgr.and(multiEdgeFormulas);
     }
 
     default:

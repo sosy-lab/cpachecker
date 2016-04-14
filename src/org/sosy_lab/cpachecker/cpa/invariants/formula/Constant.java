@@ -23,12 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-import java.util.Objects;
-
-import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
-import org.sosy_lab.cpachecker.cpa.invariants.BitVectorType;
-
 import com.google.common.base.Preconditions;
+
+import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
+import org.sosy_lab.cpachecker.cpa.invariants.Typed;
+
+import java.util.Objects;
 
 /**
  * Instances of this class represent constants within invariants formulae.
@@ -45,13 +45,14 @@ public class Constant<T> extends AbstractFormula<T> implements NumeralFormula<T>
   /**
    * Creates a new constant with the given value.
    *
+   * @param pInfo the type information for the constant.
    * @param pValue the value of the constant.
    */
-  private Constant(BitVectorInfo pInfo, T pValue) {
+  private Constant(TypeInfo pInfo, T pValue) {
     super(pInfo);
     Preconditions.checkNotNull(pValue);
-    if (pValue instanceof BitVectorType) {
-      Preconditions.checkArgument(pInfo.equals(((BitVectorType) pValue).getBitVectorInfo()));
+    if (pValue instanceof Typed) {
+      Preconditions.checkArgument(pInfo.equals(((Typed) pValue).getTypeInfo()));
     }
     this.value = pValue;
   }
@@ -77,15 +78,14 @@ public class Constant<T> extends AbstractFormula<T> implements NumeralFormula<T>
     }
     if (pOther instanceof Constant) {
       Constant<?> other = (Constant<?>) pOther;
-      return getBitVectorInfo().equals(other.getBitVectorInfo())
-          && getValue().equals(other.getValue());
+      return getTypeInfo().equals(other.getTypeInfo()) && getValue().equals(other.getValue());
     }
     return false;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getBitVectorInfo(), getValue());
+    return Objects.hash(getTypeInfo(), getValue());
   }
 
   @Override
@@ -102,11 +102,12 @@ public class Constant<T> extends AbstractFormula<T> implements NumeralFormula<T>
   /**
    * Gets a invariants formula representing a constant with the given value.
    *
+   * @param pInfo the type information for the constant.
    * @param pValue the value of the constant.
    *
    * @return a invariants formula representing a constant with the given value.
    */
-  static <T> Constant<T> of(BitVectorInfo pInfo, T pValue) {
+  static <T> Constant<T> of(TypeInfo pInfo, T pValue) {
     return new Constant<>(pInfo, pValue);
   }
 
@@ -117,8 +118,8 @@ public class Constant<T> extends AbstractFormula<T> implements NumeralFormula<T>
    *
    * @return a invariants formula representing a constant with the given value.
    */
-  static <T extends BitVectorType> Constant<T> of(T pValue) {
-    return new Constant<>(pValue.getBitVectorInfo(), pValue);
+  static <T extends Typed> Constant<T> of(T pValue) {
+    return new Constant<>(pValue.getTypeInfo(), pValue);
   }
 
 }

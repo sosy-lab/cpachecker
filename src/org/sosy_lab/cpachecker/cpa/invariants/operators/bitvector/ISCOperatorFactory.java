@@ -77,7 +77,7 @@ public enum ISCOperatorFactory {
       public CompoundBitVectorInterval apply(BitVectorInterval pFirstOperand, BigInteger pValue) {
         // Division by zero is undefined, so bottom is returned
         if (pValue.signum() == 0) {
-          return CompoundBitVectorInterval.bottom(pFirstOperand.getBitVectorInfo());
+          return CompoundBitVectorInterval.bottom(pFirstOperand.getTypeInfo());
         }
         /*
          * Only the absolute value of the divisor is considered (see
@@ -92,26 +92,45 @@ public enum ISCOperatorFactory {
          * remainder implementation.
          */
         if (pFirstOperand.isSingleton()) {
-          return CompoundBitVectorInterval.singleton(pFirstOperand.getBitVectorInfo(), pFirstOperand.getLowerBound().remainder(pValue));
+          return CompoundBitVectorInterval.singleton(
+              pFirstOperand.getTypeInfo(), pFirstOperand.getLowerBound().remainder(pValue));
         }
         BigInteger largestPossibleValue = pValue.subtract(BigInteger.ONE);
-        CompoundBitVectorInterval result = CompoundBitVectorInterval.bottom(pFirstOperand.getBitVectorInfo());
+        CompoundBitVectorInterval result =
+            CompoundBitVectorInterval.bottom(pFirstOperand.getTypeInfo());
         if (pFirstOperand.containsZero()) {
-          result = result.unionWith(BitVectorInterval.singleton(pFirstOperand.getBitVectorInfo(), BigInteger.ZERO));
+          result =
+              result.unionWith(
+                  BitVectorInterval.singleton(pFirstOperand.getTypeInfo(), BigInteger.ZERO));
         }
         if (pFirstOperand.containsNegative()) {
-          CompoundBitVectorInterval negRange = CompoundBitVectorInterval.cast(pFirstOperand.getBitVectorInfo(), largestPossibleValue.negate(), BigInteger.ZERO, pAllowSignedWrapAround, pOverflowEventHandler);
+          CompoundBitVectorInterval negRange =
+              CompoundBitVectorInterval.cast(
+                  pFirstOperand.getTypeInfo(),
+                  largestPossibleValue.negate(),
+                  BigInteger.ZERO,
+                  pAllowSignedWrapAround,
+                  pOverflowEventHandler);
           if (pFirstOperand.hasLowerBound()) {
             BitVectorInterval negPart = pFirstOperand.getNegativePart();
-            BitVectorInterval negatedNegPart = negPart.negate(pAllowSignedWrapAround, pOverflowEventHandler);
+            BitVectorInterval negatedNegPart =
+                negPart.negate(pAllowSignedWrapAround, pOverflowEventHandler);
             if (!negatedNegPart.containsNegative()) {
-              negRange = apply(negatedNegPart, pValue).negate(pAllowSignedWrapAround, pOverflowEventHandler);
+              negRange =
+                  apply(negatedNegPart, pValue)
+                      .negate(pAllowSignedWrapAround, pOverflowEventHandler);
             }
           }
           result = result.unionWith(negRange);
         }
         if (pFirstOperand.containsPositive()) {
-          CompoundBitVectorInterval posRange = CompoundBitVectorInterval.cast(pFirstOperand.getBitVectorInfo(), BigInteger.ZERO, largestPossibleValue, pAllowSignedWrapAround, pOverflowEventHandler);
+          CompoundBitVectorInterval posRange =
+              CompoundBitVectorInterval.cast(
+                  pFirstOperand.getTypeInfo(),
+                  BigInteger.ZERO,
+                  largestPossibleValue,
+                  pAllowSignedWrapAround,
+                  pOverflowEventHandler);
           if (pFirstOperand.hasUpperBound()) {
             BitVectorInterval posPart = pFirstOperand.getPositivePart();
             BigInteger posPartLength = posPart.size();
@@ -128,11 +147,29 @@ public enum ISCOperatorFactory {
                   && nextModBorder.compareTo(posPart.getUpperBound()) >= 0) {
                 BigInteger bound1 = posPart.getLowerBound().remainder(pValue);
                 BigInteger bound2 = posPart.getUpperBound().remainder(pValue);
-                posRange = CompoundBitVectorInterval.cast(pFirstOperand.getBitVectorInfo(), bound1.min(bound2), bound1.max(bound2), pAllowSignedWrapAround, pOverflowEventHandler);
+                posRange =
+                    CompoundBitVectorInterval.cast(
+                        pFirstOperand.getTypeInfo(),
+                        bound1.min(bound2),
+                        bound1.max(bound2),
+                        pAllowSignedWrapAround,
+                        pOverflowEventHandler);
               } else if (modBorder.compareTo(posPart.getLowerBound()) > 0
                   && modBorder.compareTo(posPart.getUpperBound()) < 0) {
-                BitVectorInterval posPart1 = BitVectorInterval.cast(pFirstOperand.getBitVectorInfo(), posPart.getLowerBound(), modBorder.subtract(BigInteger.ONE), pAllowSignedWrapAround, pOverflowEventHandler);
-                BitVectorInterval posPart2 = BitVectorInterval.cast(pFirstOperand.getBitVectorInfo(), modBorder, posPart.getUpperBound(), pAllowSignedWrapAround, pOverflowEventHandler);
+                BitVectorInterval posPart1 =
+                    BitVectorInterval.cast(
+                        pFirstOperand.getTypeInfo(),
+                        posPart.getLowerBound(),
+                        modBorder.subtract(BigInteger.ONE),
+                        pAllowSignedWrapAround,
+                        pOverflowEventHandler);
+                BitVectorInterval posPart2 =
+                    BitVectorInterval.cast(
+                        pFirstOperand.getTypeInfo(),
+                        modBorder,
+                        posPart.getUpperBound(),
+                        pAllowSignedWrapAround,
+                        pOverflowEventHandler);
                 posRange = apply(posPart1, pValue).unionWith(apply(posPart2, pValue));
               }
             }
@@ -141,7 +178,6 @@ public enum ISCOperatorFactory {
         }
         return result;
       }
-
     };
   }
 

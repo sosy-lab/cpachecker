@@ -23,15 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.uninitvars;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-
-import javax.annotation.Nullable;
-
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -52,9 +43,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -78,6 +67,15 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
 /**
  * Needs typesCPA to properly deal with field references.
  * If run without typesCPA, uninitialized field references may not be detected.
@@ -100,19 +98,12 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
     UninitializedVariablesState successor = ((UninitializedVariablesState)element).clone();
     successor.clearProperties();
 
-    if (cfaEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
-      for (CFAEdge innerEdge : ((MultiEdge) cfaEdge).getEdges()) {
-        assert (! (innerEdge instanceof MultiEdge));
-        handleNonMultiEdge(innerEdge, successor);
-      }
-    } else {
-      handleNonMultiEdge(cfaEdge, successor);
-    }
+    handleEdge(cfaEdge, successor);
 
     return successor;
   }
 
-  private void handleNonMultiEdge(final CFAEdge cfaEdge, final UninitializedVariablesState successor)
+  private void handleEdge(final CFAEdge cfaEdge, final UninitializedVariablesState successor)
       throws UnrecognizedCCodeException, UnrecognizedCFAEdgeException {
     switch (cfaEdge.getEdgeType()) {
       case DeclarationEdge:

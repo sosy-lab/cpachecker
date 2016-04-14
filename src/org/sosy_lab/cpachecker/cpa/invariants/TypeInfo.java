@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2016  Dirk Beyer
+ *  Copyright (C) 2007-2015  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,9 +24,14 @@
 package org.sosy_lab.cpachecker.cpa.invariants;
 
 
-public interface BitVectorType extends Typed {
+public interface TypeInfo {
 
-  @Override
-  public BitVectorInfo getTypeInfo();
+  public boolean isSigned();
+
+  public Number getMinValue();
+
+  public Number getMaxValue();
+
+  public String abbrev();
 
 }

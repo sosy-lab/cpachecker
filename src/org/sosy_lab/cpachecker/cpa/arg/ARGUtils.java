@@ -55,7 +55,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -626,53 +625,6 @@ public class ARGUtils {
 
           if (allEdges.size() == 1) {
             edge = Iterables.getOnlyElement(allEdges);
-            if (edge instanceof MultiEdge) {
-              // The successor state might have several incoming MultiEdges.
-              // In this case the state names like ARG<successor>_0 would occur
-              // several times.
-              // So we add this counter to the state names to make them unique.
-              multiEdgeCount++;
-
-              // Write out a long linear chain of pseudo-states
-              // because the AutomatonCPA also iterates through the MultiEdge.
-              List<CFAEdge> edges = ((MultiEdge) edge).getEdges();
-
-              // first, write edge entering the list
-              int i = 0;
-              sb.append("    MATCH \"");
-              escape(edges.get(i).getRawStatement(), sb);
-              sb.append("\" -> ");
-              sb.append("GOTO ARG" + child.getStateId() + "_" + (i + 1) + "_" + multiEdgeCount);
-              sb.append(";\n");
-
-              // inner part (without first and last edge)
-              for (; i < edges.size() - 1; i++) {
-                sb.append(
-                    "STATE USEFIRST ARG"
-                        + child.getStateId()
-                        + "_"
-                        + i
-                        + "_"
-                        + multiEdgeCount
-                        + " :\n");
-                sb.append("    MATCH \"");
-                escape(edges.get(i).getRawStatement(), sb);
-                sb.append("\" -> ");
-                sb.append("GOTO ARG" + child.getStateId() + "_" + (i + 1) + "_" + multiEdgeCount);
-                sb.append(";\n");
-              }
-
-              // last edge connecting it with the real successor
-              edge = edges.get(i);
-              sb.append(
-                  "STATE USEFIRST ARG"
-                      + child.getStateId()
-                      + "_"
-                      + i
-                      + "_"
-                      + multiEdgeCount
-                      + " :\n");
-            }
 
             // this is a dynamic multi edge
           } else {
@@ -799,55 +751,6 @@ public class ARGUtils {
 
               if (allEdges.size() == 1) {
                 edge = Iterables.getOnlyElement(allEdges);
-                if (edge instanceof MultiEdge) {
-                  // The successor state might have several incoming MultiEdges.
-                  // In this case the state names like ARG<successor>_0 would occur
-                  // several times.
-                  // So we add this counter to the state names to make them unique.
-                  multiEdgeCount++;
-
-                  // Write out a long linear chain of pseudo-states
-                  // because the AutomatonCPA also iterates through the MultiEdge.
-                  List<CFAEdge> edges = ((MultiEdge) edge).getEdges();
-
-                  // first, write edge entering the list
-                  int i = 0;
-                  sb.append("    MATCH \"");
-                  escape(edges.get(i).getRawStatement(), sb);
-                  sb.append("\" -> ");
-                  sb.append("GOTO ARG" + child.getStateId() + "_" + (i + 1) + "_" + multiEdgeCount);
-                  sb.append(";\n");
-
-                  // inner part (without first and last edge)
-                  for (; i < edges.size() - 1; i++) {
-                    sb.append(
-                        "STATE USEFIRST ARG"
-                            + child.getStateId()
-                            + "_"
-                            + i
-                            + "_"
-                            + multiEdgeCount
-                            + " :\n");
-                    sb.append("    MATCH \"");
-                    escape(edges.get(i).getRawStatement(), sb);
-                    sb.append("\" -> ");
-                    sb.append(
-                        "GOTO ARG" + child.getStateId() + "_" + (i + 1) + "_" + multiEdgeCount);
-                    sb.append(";\n");
-                  }
-
-                  // last edge connecting it with the real successor
-                  edge = edges.get(i);
-                  sb.append(
-                      "STATE USEFIRST ARG"
-                          + child.getStateId()
-                          + "_"
-                          + i
-                          + "_"
-                          + multiEdgeCount
-                          + " :\n");
-                  // remainder is written by code below
-                }
 
                 // this is a dynamic multi edge
               } else {
@@ -936,23 +839,8 @@ public class ARGUtils {
       for(CFAEdge edge : leavingEdges(curNode)) {
         CFANode edgeSuccessor = edge.getSuccessor();
 
-        // make path out of multiedges
-        if (edge instanceof MultiEdge) {
-          for (CFAEdge innerEdge : ((MultiEdge)edge).getEdges()) {
-            CFANode innerSuccessor = innerEdge.getSuccessor();
-
-            handleMatchCase(sb, innerEdge);
-            handlePossibleOutOfLoopSuccessor(sb, intoLoopState, loopHead, innerSuccessor);
-
-            // only inner edges should be handled here
-            if (innerSuccessor != edgeSuccessor) {
-              handleUseFirstNode(sb, innerSuccessor, false);
-            }
-          }
-          nodesToHandle.offer(edgeSuccessor);
-
         // skip function calls
-        } else  if (edge instanceof FunctionCallEdge) {
+        if (edge instanceof FunctionCallEdge) {
           FunctionSummaryEdge sumEdge = ((FunctionCallEdge) edge).getSummaryEdge();
           CFANode sumEdgeSuccessor = sumEdge.getSuccessor();
 

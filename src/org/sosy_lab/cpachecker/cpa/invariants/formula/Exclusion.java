@@ -29,7 +29,7 @@ public class Exclusion<ConstantType> extends AbstractFormula<ConstantType> imple
   private final NumeralFormula<ConstantType> excluded;
 
   private Exclusion(NumeralFormula<ConstantType> pExcluded) {
-    super(pExcluded.getBitVectorInfo());
+    super(pExcluded.getTypeInfo());
     this.excluded = pExcluded;
   }
 

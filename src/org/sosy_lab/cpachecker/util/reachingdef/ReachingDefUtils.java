@@ -23,13 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.reachingdef;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Stack;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -46,14 +41,18 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Stack;
 
 
 public class ReachingDefUtils {
@@ -120,15 +119,6 @@ TODO delete */
 
           if(out instanceof CDeclarationEdge) {
             handleDeclaration((CDeclarationEdge) out, globalVariables, localVariables);
-          }
-
-          if (out instanceof MultiEdge) {
-            for(CFAEdge inner: ((MultiEdge) out).getEdges()) {
-              assert(!(inner instanceof FunctionCallEdge || inner instanceof FunctionReturnEdge));
-              if(inner instanceof CDeclarationEdge) {
-                handleDeclaration((CDeclarationEdge) inner, globalVariables, localVariables);
-              }
-            }
           }
 
           if (!seen.contains(out.getSuccessor())) {

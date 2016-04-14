@@ -31,6 +31,6 @@ public interface CompoundIntervalManagerFactory {
 
   CompoundIntervalManager createCompoundIntervalManager(MachineModel pMachineModel, Type pType);
 
-  CompoundIntervalManager createCompoundIntervalManager(BitVectorInfo pBitVectorInfo);
+  CompoundIntervalManager createCompoundIntervalManager(TypeInfo pTypeInfo);
 
 }

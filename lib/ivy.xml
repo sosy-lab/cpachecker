@@ -86,6 +86,10 @@
         <dependency org="com.google.errorprone" name="error_prone_ant" rev="2.0.5" transitive="false" conf="build->default" />
         <dependency org="com.google.errorprone" name="error_prone_annotations" rev="2.0.5" conf="build->default; contrib->sources" />
 
+        <!-- Eclipse JDT Compiler
+             For additional compiler warnings. -->
+        <dependency org="org.eclipse.jdt.core.compiler" name="ecj" rev="4.5.2" conf="build->default"/>
+
         <!-- google-java-format
              A source-code formatter for Java -->
         <dependency org="com.google.googlejavaformat" name="google-java-format" rev="1.0" conf="format-source->default"/>

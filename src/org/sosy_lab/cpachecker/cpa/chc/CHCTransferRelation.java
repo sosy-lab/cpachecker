@@ -23,12 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.chc;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.logging.Level;
-
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -42,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
@@ -51,6 +44,12 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.logging.Level;
 
 
 public class CHCTransferRelation extends SingleEdgeTransferRelation {
@@ -87,13 +86,6 @@ public class CHCTransferRelation extends SingleEdgeTransferRelation {
 
     case FunctionReturnEdge:
       newState = handleFunctionReturnEdge(currentState, (FunctionReturnEdge)cfaEdge);
-      break;
-
-    case MultiEdge:
-      MultiEdge me = (MultiEdge) cfaEdge;
-      for (CFAEdge innerEdge : me) {
-        newState = handleSimpleEdge(currentState, innerEdge);
-      }
       break;
 
     default:

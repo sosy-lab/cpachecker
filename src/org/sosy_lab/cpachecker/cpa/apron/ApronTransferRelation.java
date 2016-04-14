@@ -23,14 +23,22 @@
  */
 package org.sosy_lab.cpachecker.cpa.apron;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
+import apron.DoubleScalar;
+import apron.Interval;
+import apron.Linexpr0;
+import apron.Linterm0;
+import apron.Scalar;
+import apron.Tcons0;
+import apron.Texpr0BinNode;
+import apron.Texpr0CstNode;
+import apron.Texpr0DimNode;
+import apron.Texpr0Intern;
+import apron.Texpr0Node;
+import apron.Texpr0UnNode;
+
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -71,7 +79,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -99,22 +106,14 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import apron.DoubleScalar;
-import apron.Interval;
-import apron.Linexpr0;
-import apron.Linterm0;
-import apron.Scalar;
-import apron.Tcons0;
-import apron.Texpr0BinNode;
-import apron.Texpr0CstNode;
-import apron.Texpr0DimNode;
-import apron.Texpr0Intern;
-import apron.Texpr0Node;
-import apron.Texpr0UnNode;
-
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
 
 public class ApronTransferRelation extends ForwardingTransferRelation<Collection<ApronState>, ApronState, VariableTrackingPrecision> {
 
@@ -181,12 +180,6 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
     } else {
       return new HashSet<>(successors);
     }
-  }
-
-  @Override
-  protected Collection<ApronState> handleMultiEdge(MultiEdge cfaEdge)
-      throws CPATransferException {
-    return super.handleMultiEdgeReturningCollection(cfaEdge);
   }
 
   @Override

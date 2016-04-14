@@ -23,19 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.livevar;
 
-import static com.google.common.base.Predicates.*;
+import static com.google.common.base.Predicates.in;
+import static com.google.common.base.Predicates.not;
+import static com.google.common.base.Predicates.or;
 import static com.google.common.collect.Collections2.filter;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.LiveVariables.*;
+import static org.sosy_lab.cpachecker.util.LiveVariables.LIVE_DECL_EQUIVALENCE;
+import static org.sosy_lab.cpachecker.util.LiveVariables.TO_EQUIV_WRAPPER;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Equivalence.Wrapper;
+import com.google.common.base.Optional;
+import com.google.common.base.Predicate;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -72,19 +72,20 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
-import com.google.common.base.Equivalence.Wrapper;
-import com.google.common.base.Optional;
-import com.google.common.base.Predicate;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import javax.annotation.Nullable;
 
 /**
  * This transferrelation computes the live variables for each location. For C-Programs
@@ -125,24 +126,9 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     }
 
     // live variables of multiedges were handleded separately
-    if (!(edge instanceof MultiEdge)) {
-      liveVariables.putAll(edge.getPredecessor(), successor.getLiveVariables());
-    }
+    liveVariables.putAll(edge.getPredecessor(), successor.getLiveVariables());
 
     return Collections.singleton(successor);
-  }
-
-  @Override
-  protected LiveVariablesState handleMultiEdge(MultiEdge cfaEdge) throws CPATransferException {
-    // as we are using the backwards analysis, we also have to iterate over
-    // multiedges in reverse
-    for (final CFAEdge innerEdge : Lists.reverse(cfaEdge.getEdges())) {
-      edge = innerEdge;
-      state = handleSimpleEdge(innerEdge);
-      liveVariables.putAll(edge.getPredecessor(), state.getLiveVariables());
-    }
-    edge = cfaEdge; // reset edge
-    return state;
   }
 
   /**

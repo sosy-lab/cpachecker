@@ -27,16 +27,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.base.Predicates.or;
-import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.CFAUtils.allEnteringEdges;
 import static org.sosy_lab.cpachecker.util.CFAUtils.allLeavingEdges;
 import static org.sosy_lab.cpachecker.util.CFAUtils.enteringEdges;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Ordering;
+import com.google.common.collect.ImmutableSortedSet;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -49,7 +47,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
@@ -63,9 +60,9 @@ import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import java.io.Serializable;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
-import java.util.SortedSet;
 
 public class LocationState implements AbstractStateWithLocation, AbstractQueryableState, Partitionable, Serializable {
 
@@ -86,27 +83,13 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
     public LocationStateFactory(CFA pCfa, LocationStateType locationType, Configuration config) throws InvalidConfigurationException {
       config.inject(this);
 
-      SortedSet<CFANode> allNodes = from(pCfa.getAllNodes())
-          // First, we collect all CFANodes in between the inner edges of all MultiEdges.
-          // This is necessary for cpa.composite.splitMultiEdges
-          .transformAndConcat(new Function<CFANode, Iterable<CFAEdge>>() {
-                @Override
-                public Iterable<CFAEdge> apply(CFANode pInput) {
-                  return CFAUtils.leavingEdges(pInput);
-                }
-              })
-          .filter(MultiEdge.class)
-          .transformAndConcat(new Function<MultiEdge, Iterable<CFAEdge>>() {
-                @Override
-                public Iterable<CFAEdge> apply(MultiEdge pInput) {
-                  return pInput.getEdges();
-                }
-              })
-          .transform(CFAUtils.TO_SUCCESSOR)
-          // Second, we collect all normal CFANodes
-          .append(pCfa.getAllNodes())
-          // Third, sort and remove duplicates
-          .toSortedSet(Ordering.natural());
+      ImmutableSortedSet<CFANode> allNodes;
+      Collection<CFANode> tmpNodes = pCfa.getAllNodes();
+      if (tmpNodes instanceof ImmutableSortedSet) {
+        allNodes = (ImmutableSortedSet<CFANode>) tmpNodes;
+      } else {
+        allNodes = ImmutableSortedSet.copyOf(tmpNodes);
+      }
 
       int maxNodeNumber = allNodes.last().getNodeNumber();
       states = new LocationState[maxNodeNumber+1];

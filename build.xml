@@ -18,6 +18,7 @@
     <property name="jar.excludes" value=""/>
     <property name="project.url" value="http://cpachecker.sosy-lab.org"/>
     <property name="ivy.configurations" value="build, runtime, test, format-source, findbugs"/>
+    <property name="source.exclude" value="org/sosy_lab/cpachecker/appengine/**"/>
 
     <import file="build/build-ivy.xml"/>
     <import file="build/build-compile.xml"/>
@@ -71,6 +72,13 @@
 
     <target name="tests" depends="unit-tests, python-unit-tests, benchmark-tests" description="Run all tests"/>
 
+    <target name="all-checks" description="Run all tests and checks">
+        <!-- We have to use antcall here to run clean twice. -->
+        <antcall target="clean"/>
+        <antcall target="build-project-ecj"/>
+        <antcall target="clean"/>
+        <antcall target="standard-checks"/>
+    </target>
 
     <!-- Auxiliary targets -->
 
@@ -136,8 +144,7 @@
             <classpath refid="classpath"/>
             <compilerarg value="-Xlint:deprecation"/>
             <compilerarg value="-Werror"/>
-            <!-- exclude for now since necessary JARs might not be installed -->
-            <exclude name="org/sosy_lab/cpachecker/appengine/**"/>
+            <exclude name="${source.exclude}"/>
             <compilerclasspath refid="errorprone"/>
         </javac>
     </target>
@@ -166,6 +173,8 @@
         </java>
         <echo message="Options collected." level="info"/>
     </target>
+
+    <target name="standard-checks" depends="tests, findbugs"/>
 
     <!-- Release for Windows -->
     <target name="zip" depends="jar">

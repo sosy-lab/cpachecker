@@ -23,15 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.threading;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -52,7 +46,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -62,9 +55,15 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 @Options(prefix="cpa.threading")
 public final class ThreadingTransferRelation extends SingleEdgeTransferRelation {
@@ -131,9 +130,6 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       AbstractState pState, Precision precision, CFAEdge cfaEdge)
         throws CPATransferException, InterruptedException {
     Preconditions.checkNotNull(cfaEdge);
-    Preconditions.checkArgument(!(cfaEdge instanceof MultiEdge),
-        "MultiEdges cannot be supported by ThreadingCPA, "
-        + "because we need interleaving steps for chains of edges.");
 
     ThreadingState state = (ThreadingState) pState;
 

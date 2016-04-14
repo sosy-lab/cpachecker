@@ -24,9 +24,53 @@
 package org.sosy_lab.cpachecker.cpa.invariants;
 
 
-public interface BitVectorType extends Typed {
+public enum FloatingPointTypeInfo implements TypeInfo {
 
-  @Override
-  public BitVectorInfo getTypeInfo();
+  FLOAT {
+
+    @Override
+    public boolean isSigned() {
+      return true;
+    }
+
+    @Override
+    public Float getMinValue() {
+      return Float.NEGATIVE_INFINITY;
+    }
+
+    @Override
+    public Float getMaxValue() {
+      return Float.POSITIVE_INFINITY;
+    }
+
+    @Override
+    public String abbrev() {
+      return "float";
+    }
+
+  },
+
+  DOUBLE {
+
+    @Override
+    public boolean isSigned() {
+      return true;
+    }
+
+    @Override
+    public Double getMinValue() {
+      return Double.NEGATIVE_INFINITY;
+    }
+
+    @Override
+    public Double getMaxValue() {
+      return Double.POSITIVE_INFINITY;
+    }
+
+    @Override
+    public String abbrev() {
+      return "double";
+    }
+  }
 
 }

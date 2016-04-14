@@ -23,18 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-import java.math.BigInteger;
-import java.util.Map;
-import java.util.Objects;
-
-import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
-import org.sosy_lab.cpachecker.cpa.invariants.BitVectorType;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundBitVectorInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManager;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundMathematicalInterval;
+import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
+import org.sosy_lab.cpachecker.cpa.invariants.Typed;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+
+import java.math.BigInteger;
+import java.util.Map;
+import java.util.Objects;
 
 /**
  * Instances of this class are visitors for compound state invariants formulae
@@ -54,17 +54,20 @@ public class FormulaAbstractionVisitor extends DefaultParameterizedNumeralFormul
     compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
   }
 
-  private CompoundIntervalManager getCompoundIntervalManager(BitVectorInfo pBitVectorInfo) {
-    return compoundIntervalManagerFactory.createCompoundIntervalManager(pBitVectorInfo);
+  private CompoundIntervalManager getCompoundIntervalManager(TypeInfo pInfo) {
+    return compoundIntervalManagerFactory.createCompoundIntervalManager(pInfo);
   }
 
-  private CompoundIntervalManager getCompoundIntervalManager(BitVectorType pBitvectorType) {
-    return getCompoundIntervalManager(pBitvectorType.getBitVectorInfo());
+  private CompoundIntervalManager getCompoundIntervalManager(Typed pTyped) {
+    return getCompoundIntervalManager(pTyped.getTypeInfo());
   }
 
   @Override
   public CompoundInterval visit(Add<CompoundInterval> pAdd, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    return weakAdd(pAdd.getBitVectorInfo(), pAdd.getSummand1().accept(evaluationVisitor, pEnvironment), pAdd.getSummand2().accept(evaluationVisitor, pEnvironment));
+    return weakAdd(
+        pAdd.getTypeInfo(),
+        pAdd.getSummand1().accept(evaluationVisitor, pEnvironment),
+        pAdd.getSummand2().accept(evaluationVisitor, pEnvironment));
   }
 
   @Override
@@ -74,7 +77,10 @@ public class FormulaAbstractionVisitor extends DefaultParameterizedNumeralFormul
 
   @Override
   public CompoundInterval visit(Multiply<CompoundInterval> pMultiply, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    return weakMultiply(pMultiply.getBitVectorInfo(), pMultiply.getFactor1().accept(this, pEnvironment), pMultiply.getFactor2().accept(this, pEnvironment));
+    return weakMultiply(
+        pMultiply.getTypeInfo(),
+        pMultiply.getFactor1().accept(this, pEnvironment),
+        pMultiply.getFactor2().accept(this, pEnvironment));
   }
 
   @Override
@@ -85,7 +91,7 @@ public class FormulaAbstractionVisitor extends DefaultParameterizedNumeralFormul
     if (!shiftDistance.containsPositive()) {
       return evaluation;
     }
-    return abstractionOf(pShiftLeft.getBitVectorInfo(), evaluation);
+    return abstractionOf(pShiftLeft.getTypeInfo(), evaluation);
   }
 
   @Override
@@ -100,16 +106,16 @@ public class FormulaAbstractionVisitor extends DefaultParameterizedNumeralFormul
   @Override
   protected CompoundInterval visitDefault(NumeralFormula<CompoundInterval> pFormula,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pParam) {
-    return abstractionOf(pFormula.getBitVectorInfo(), pFormula.accept(evaluationVisitor, pParam));
+    return abstractionOf(pFormula.getTypeInfo(), pFormula.accept(evaluationVisitor, pParam));
   }
 
-  private CompoundInterval abstractionOf(BitVectorInfo pBitVectorInfo, CompoundInterval pValue) {
+  private CompoundInterval abstractionOf(TypeInfo pTypeInfo, CompoundInterval pValue) {
     if (pValue.isBottom() || pValue.containsAllPossibleValues()) {
       return pValue;
     }
     CompoundInterval result = pValue.signum();
     boolean extendToNeg = false;
-    CompoundIntervalManager compoundIntervalManager = getCompoundIntervalManager(pBitVectorInfo);
+    CompoundIntervalManager compoundIntervalManager = getCompoundIntervalManager(pTypeInfo);
     if (!compoundIntervalManager.lessThan(pValue, result).isDefinitelyFalse()) {
       extendToNeg = true;
     }
@@ -130,19 +136,20 @@ public class FormulaAbstractionVisitor extends DefaultParameterizedNumeralFormul
    * {@link CompoundBitVectorInterval} or {@link CompoundMathematicalInterval}
    * and will thus usually return a much larger result range.
    *
+   * @param pTypeInfo the type information.
    * @param pA the first summand.
    * @param pB the second summand.
    * @return a state representing possible results of adding the given summand
    * compound states up.
    */
-  private CompoundInterval weakAdd(BitVectorInfo pBitVectorInfo, CompoundInterval pA, CompoundInterval pB) {
+  private CompoundInterval weakAdd(TypeInfo pTypeInfo, CompoundInterval pA, CompoundInterval pB) {
     if (pA.isSingleton() && pA.contains(BigInteger.ZERO)) {
       return pB;
     }
     if (pB.isSingleton() && pB.contains(BigInteger.ZERO)) {
       return pA;
     }
-    return abstractionOf(pBitVectorInfo, getCompoundIntervalManager(pBitVectorInfo).add(pA, pB));
+    return abstractionOf(pTypeInfo, getCompoundIntervalManager(pTypeInfo).add(pA, pB));
   }
 
   /**
@@ -152,12 +159,14 @@ public class FormulaAbstractionVisitor extends DefaultParameterizedNumeralFormul
    * {@link CompoundBitVectorInterval} or {@link CompoundMathematicalInterval}
    * and will thus usually return a much larger result range.
    *
+   * @param pTypeInfo the type information.
    * @param a the first factor.
    * @param b the second factor.
    * @return a state representing possible results of multiplying the given
    * factor compound states.
    */
-  private CompoundInterval weakMultiply(BitVectorInfo pBitVectorInfo, CompoundInterval a, CompoundInterval b) {
+  private CompoundInterval weakMultiply(
+      TypeInfo pTypeInfo, CompoundInterval a, CompoundInterval b) {
     if (a.isSingleton() && a.contains(BigInteger.ZERO)) {
       return a;
     }
@@ -170,14 +179,14 @@ public class FormulaAbstractionVisitor extends DefaultParameterizedNumeralFormul
     if (b.isSingleton() && b.contains(BigInteger.ONE)) {
       return a;
     }
-    CompoundIntervalManager cim = getCompoundIntervalManager(pBitVectorInfo);
+    CompoundIntervalManager cim = getCompoundIntervalManager(pTypeInfo);
     if (a.isSingleton() && a.contains(BigInteger.ONE.negate())) {
       return cim.negate(b);
     }
     if (b.isSingleton() && b.contains(BigInteger.ONE.negate())) {
       return cim.negate(a);
     }
-    return abstractionOf(pBitVectorInfo, cim.multiply(a, b));
+    return abstractionOf(pTypeInfo, cim.multiply(a, b));
   }
 
   @Override

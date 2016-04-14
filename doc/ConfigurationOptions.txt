@@ -523,9 +523,6 @@ cfa.useCFACloningForMultiThreadedPrograms = false
 # unwind recursive functioncalls (bounded to max call stack size)
 cfa.useFunctionCallUnwinding = false
 
-# combine sequences of simple edges into a single edge
-cfa.useMultiEdges = false
-
 # Dump domain type statistics to a CSV file.
 cfa.variableClassification.domainTypeStatisticsFile = no default value
 
@@ -914,6 +911,16 @@ cpa.chc.generalizationOperator = "Widen"
 cpa.chc.merge = "SEP"
   allowed values: [SEP, JOIN]
 
+# By enabling this option the CompositeTransferRelation will compute abstract
+# successors for as many edges as possible in one call. For any chain of
+# edges in the CFA which does not have more than one outgoing or leaving edge
+# the components of the CompositeCPA are called for each of the edges in this
+# chain. Strengthening is still computed after every edge. The main
+# difference is that while this option is enabled not every ARGState may have
+# a single edge connecting to the child/parent ARGState but it may instead be
+# a list.
+cpa.composite.aggregateBasicBlocks = false
+
 # inform Composite CPA if it is run in a CPA enabled analysis because then it
 # must behave differently during merge.
 cpa.composite.inCPAEnabledAnalysis = false
@@ -923,19 +930,6 @@ cpa.composite.inCPAEnabledAnalysis = false
 # cpas agree on this. This is probably what you want.
 cpa.composite.merge = "AGREE"
   allowed values: [PLAIN, AGREE]
-
-# Split MultiEdges and pass each inner edge to the component CPAs to allow
-# strengthen calls after each single edge. Does not work with backwards
-# analysis!
-cpa.composite.splitMultiEdges = false
-
-# Instead of introducing MultiEdges in the CFA the Composite CPA can handle
-# all paths in the CFA where MultiEdges could be if they were there. This has
-# the big advantage, that we can have error locations in the middle of multi
-# edges, which is not possible withstatic MultiEdges.
-#  Note that while this option is set to true, cfa.useMultiEdges has to be
-# set to false.
-cpa.composite.useDynamicMultiEdges = false
 
 # Limit for Java heap memory used by CPAchecker (in MB, not MiB!; -1 for
 # infinite)
