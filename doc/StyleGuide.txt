@@ -1,76 +1,39 @@
 Style & Coding Guide
 ====================
 
-If not explicitly stated here otherwise, the standard Java Coding Conventions apply:
-http://www.oracle.com/technetwork/java/javase/documentation/codeconvtoc-136057.html
+The style guide of this project is the Google Java Style:
+https://google.github.io/styleguide/javaguide.html
 
-Further guidelines that are very worth reading:
-- Bloch: Effective Java, 2nd Edition: http://www.amazon.com/Effective-Java-Edition-Joshua-Bloch/dp/0321356683/
-- Guava User Guide: https://code.google.com/p/guava-libraries/wiki/GuavaExplained
-- Google's Java style guide: http://google-styleguide.googlecode.com/svn/trunk/javaguide.html
+Further guidelines that are worth reading:
+- Bloch: Effective Java, 2nd Edition:
+  http://www.amazon.com/Effective-Java-Edition-Joshua-Bloch/dp/0321356683/
+- Guava User Guide: https://github.com/google/guava/wiki
 
 Some additional information can be found in other files
 in this directory, e.g. Logging.txt and Test.txt.
 
-We suggest to use Eclipse for development,
-as several parts of this guide are incorporated into the Eclipse project configuration
-(indentation, spaces instead of tabs, no trailing whitespaces).
-If you do not use Eclipse, please ensure manually that you follow this guide,
-or configure your editor/IDE to behave similarly.
-Also Eclipse shows more warnings than javac, and these warnings should be taken care of
-(make sure to create .factorypath as explained in doc/Developing.txt).
+We use an automatic code formatter to format our new code
+(existing code still may violate the style guide).
+Before committing, run "ant format-diff" to reformat your changes
+according to the style guide.
+For git users: You need to stage your changes first (with "git add"),
+then run "ant format-diff" and then stage the changes again.
+This allows you to view exactly what the reformatter changed after running it.
+Please do not use the Eclipse code formatter,
+it destroys a lot of meaningful manual formatting.
 
-Also check for warnings from the compiler (e.g., warnings for annotation usage),
-and from FindBugs.
+We use javac, Google Error-Prone, the Eclipse Java Compiler, and FindBugs
+to findings bugs in the source, and we want to keep CPAchecker
+free of warnings from all these tools.
+You can run them all at once (plus the unit tests) with "ant all-checks".
+Our BuildBot (https://buildbot.sosy-lab.org/buildbot/waterfall)
+will also execute them and send a mail to the developer list
+(cf. Mailing.txt, please apply for membership if you commit to CPAchecker).
 
-We want to keep CPAchecker free of warnings!
-
-Code Formatting:
-- Check Google's Java style guide mentioned above!
-- No tabs in source code!
-- 2 spaces for indentation per level.
-- No trailing white spaces.
-- Do not use automatic code formatting of Eclipse for the complete code,
-  it destroys a lot of meaningful manual formatting.
-- A block is always surrounded by braces, e.g., if (...) { ...block... }.
-- Before { and after } there is one space.
-- The { is not on a new line (K&R style braces).
-- All statements are on separate lines, no two statements at the same line,
-  even in case like if (...) { return; }
-- There is no white space between method/constructor name and parenthesis,
-  but there is one space between between keywords and parenthesis. Example:
-  func();
-  if (...) { ... }
-  for (...) { ... }
-- There is no white space directly inside parentheses,
-  except for aligning lines in multi-line conditions.
-- There is one space after "," in parameter lists, and none before.
-- The ":" in enhanced for loops has one space before and after it.
-- When breaking long statements over multiple lines,
-  think about indenting them in the following way:
-  Object o = x.foo()
-              .bar()
-              .m();
-  (especially for the builder pattern and FluentIterable).
-- Aim for a line length of at maximum 80-100 characters.
-- There is at least one blank line between methods and constructors,
-  more to group related methods.
-- There is no blank line required between fields,
-  but there is between fields and other members,
-  and between unrelated groups of fields.
-- Do not align field declarations,
-  this gets mis-aligned soon on refactorings anyway.
-  Example:
-    int foo = -2;
-    long x = 3;
-  and NOT:
-    int  foo = -2;
-    long x   =  3;
+Additional rules and hints:
 
 Spelling:
 - Try to avoid typos.
-- Names are spelled camel-like, whereEachNewWordStartsWithCapital.
-- Type names start with a capital.
 - Interfaces are not named with a leading 'I'.
   In general, client code should not need to know whether
   it is using an interface or a concrete class,
@@ -83,9 +46,7 @@ Spelling:
   and the class the internal/ugly name.
   It is better to have one place using "FooImpl" and hundreds of places using "Foo"
   instead of one place using "Foo" and hundreds of places using "IFoo".
-- Method names start lower case and begin with a verb.
-- Variable names start lower case.
-  Parameters should start with 'p' to avoid confusion with
+- Parameters should start with 'p' to avoid confusion with
   local variables or fields.
 - For a set of names of concepts (e.g., of files, classes),
   the prefix order induced by the names should
@@ -96,15 +57,14 @@ Compilation:
 - Avoid warnings:
   - If there is a way to fix the code, fix it (before committing).
   - Otherwise use @SuppressWarnings.
-- Use Eclipse to check for warnings, it shows a lot more than javac.
 - After adding/changing an @Option configuration,
   run "ant" to update documentation (before committing).
 
 Design:
 - Prefer immutable objects, for own classes and for collections
-  (https://code.google.com/p/guava-libraries/wiki/ImmutableCollectionsExplained).
+  (https://github.com/google/guava/wiki/ImmutableCollectionsExplained).
 - Avoid null, replace it with real objects, or (at last resort) Optional:
-  https://code.google.com/p/guava-libraries/wiki/UsingAndAvoidingNullExplained
+  https://github.com/google/guava/wiki/UsingAndAvoidingNullExplained
 - Avoid boolean parameters. They carry no semantics
   and make it hard to understand for the reader what effect they have
   (cf. http://martinfowler.com/bliki/FlagArgument.html)
@@ -176,17 +136,3 @@ Coding:
   If logging, use the appropriate logger methods (c.f. doc/Logging.txt).
 - Always put @Override when implementing an overriding method
   (Eclipse does this automatically).
-
-
-Automatic code cleanup:
-- Most automatic code formatters are not able to follow these rules,
-  thus use them carefully. The following is a list of possibilities
-  to enforce some of these rules automatically:
-- No tabs: Eclipse configuration, SVN commit hook
-- No trailing whitespaces: Eclipse configuration applied automatically on save
-- Always use braces: Eclipse Code Cleanup
-- Opening brace on same line: sed '$!N;s%\(else\|)\) *\n *{%\1 {%;P;D' -i src/**/*.java
-- else on same line: sed '$!N;s%} *\n *else %} else %;P;D' -i src/**/*.java; sed '$!N;N;s%\( *\)}\n\n *else %\n\1} else %;P;D' -i src/**/*.java
-- Space after keyword: sed -e 's%^\( *}\? *\(assert\|else\|if\|for\|while\|switch\|try\|catch\|finally\)\)\([({]\)%\1 \3%' -i src/**/*.java
-- Space before keyword: sed -e 's%^\( *}\)\(else\|catch\|finally\) %\1 \2 %' -i src/**/*.java
-- Space between ) and {: sed 's%){$%) {%' -i src/**/*.java
