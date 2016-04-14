@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.ARGPathBuilder;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathPosition;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -377,8 +378,7 @@ public class ARGUtils {
 
     checkArgument(arg.contains(root));
 
-    List<ARGState> states = new ArrayList<>();
-    List<CFAEdge> edges = new ArrayList<>();
+    ARGPathBuilder builder = ARGPath.builder();
     ARGState currentElement = root;
     while (!currentElement.isTarget()) {
       Collection<ARGState> children = currentElement.getChildren();
@@ -459,15 +459,11 @@ public class ARGUtils {
         throw new IllegalArgumentException("ARG and direction information from solver disagree!");
       }
 
-      states.add(currentElement);
-      edges.add(edge);
+      builder.add(currentElement, edge);
       currentElement = child;
     }
 
-    // add last state
-    states.add(currentElement);
-
-    return new ARGPath(states, edges);
+    return builder.build(currentElement);
   }
 
   /**

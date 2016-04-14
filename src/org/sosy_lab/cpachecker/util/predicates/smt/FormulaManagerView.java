@@ -32,6 +32,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
@@ -50,8 +51,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.ReplaceBitvectorWithNumeralAndFunctionTheory.ReplaceBitvectorEncodingOptions;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.ArrayFormula;
@@ -1397,6 +1398,26 @@ public class FormulaManagerView {
     return manager.substitute(f, m);
   }
 
+  /**
+   * Return true iff the variable name is non-final with respect to the given
+   * SSA map.
+   */
+  public boolean isIntermediate(String varName, SSAMap ssa) {
+    Pair<String, Integer> p = parseName(varName);
+    String name = p.getFirst();
+    Integer idx = p.getSecond();
+    if (idx == null) {
+      if (ssa.containsVariable(varName)) {
+        return true;
+      }
+    } else {
+      if (idx != ssa.getIndex(name)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   public Set<String> getDeadFunctionNames(BooleanFormula pFormula, SSAMap pSsa) {
     return getDeadFunctionNames(pFormula, pSsa, true);
   }
@@ -1410,7 +1431,9 @@ public class FormulaManagerView {
    * Do not make this method public, because the returned formulas have incorrect
    * types (they are not appropriately wrapped).
    */
-  private Map<String, Formula> myGetDeadVariables(BooleanFormula pFormula, SSAMap pSsa,
+  private Map<String, Formula> myGetDeadVariables(
+      BooleanFormula pFormula,
+      SSAMap pSsa,
       boolean extractUF) {
     Map<String, Formula> result = new HashMap<>();
 
@@ -1425,20 +1448,8 @@ public class FormulaManagerView {
 
       String name = entry.getKey();
       Formula varFormula = entry.getValue();
-      Pair<String, Integer> fullName = parseName(name);
-      String varName = fullName.getFirst();
-      Integer varSsaIndex = fullName.getSecond();
-
-      if (varSsaIndex == null) {
-        if (pSsa.containsVariable(varName)) {
-          result.put(name, varFormula);
-        }
-
-      } else {
-
-        if (varSsaIndex != pSsa.getIndex(varName)) {
-          result.put(name, varFormula);
-        }
+      if (isIntermediate(name, pSsa)) {
+        result.put(name, varFormula);
       }
     }
 
@@ -1565,27 +1576,38 @@ public class FormulaManagerView {
   }
 
   /**
-   * Eliminates dead variables in a fixpoint.
-   *
-   * @see #eliminateDeadVarsBestEffort(PathFormula)
+   * Replace all literals in {@code input} which do not satisfy {@code toKeep}
+   * with {@code true}.
    */
-  public PathFormula eliminateDeadVarsFixpoint(PathFormula input) {
-    DeadVariablesEliminationManager eliminationManager =
-        new DeadVariablesEliminationManager(this, logger);
-    return eliminationManager.eliminateDeadVarsFixpoint(input);
-  }
+  public BooleanFormula filterLiterals(
+      BooleanFormula input,
+      final Predicate<BooleanFormula> toKeep)
+      throws InterruptedException {
+    // No nested NOT's are possible in NNF.
+    BooleanFormula nnf = applyTactic(input, Tactic.NNF);
 
-
-  /**
-   * Does "best-effort" for replacing dead variables: eliminate what it can eliminate,
-   * keep the rest.
-   *
-   * <p>Based on pattern matching formulas "x@n = x@i" for some {@code i < n},
-   * and replacing all occurrences of "x@i" with "x@n" if "x@n" does not occur anywhere else.
-   */
-  public PathFormula eliminateDeadVarsBestEffort(PathFormula input) {
-    DeadVariablesEliminationManager eliminationManager =
-        new DeadVariablesEliminationManager(this, logger);
-    return eliminationManager.eliminateDeadVarsBestEffort(input);
+    BooleanFormula nnfNotTransformed =
+        booleanFormulaManager.transformRecursively(
+            new BooleanFormulaTransformationVisitor(this) {
+              @Override
+              public BooleanFormula visitNot(BooleanFormula pOperand) {
+                if (!toKeep.apply(pOperand)) {
+                  return booleanFormulaManager.makeBoolean(true);
+                }
+                return super.visitNot(pOperand);
+              }
+            }, nnf);
+    return booleanFormulaManager.transformRecursively(
+        new BooleanFormulaTransformationVisitor(this) {
+          @Override
+          public BooleanFormula visitAtom(
+              BooleanFormula pOperand,
+              FunctionDeclaration<BooleanFormula> decl) {
+            if (!toKeep.apply(pOperand)) {
+              return booleanFormulaManager.makeBoolean(true);
+            }
+            return super.visitAtom(pOperand, decl);
+          }
+        }, nnfNotTransformed);
   }
 }

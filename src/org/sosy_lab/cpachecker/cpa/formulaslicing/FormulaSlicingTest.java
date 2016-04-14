@@ -6,14 +6,28 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.cpachecker.cpa.formulaslicing.InductiveWeakeningManager.WEAKENING_STRATEGY;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
 import java.util.HashMap;
 import java.util.Map;
 
+@RunWith(Parameterized.class)
 public class FormulaSlicingTest {
+
+  @Parameters(name="{0}")
+  public static Object[] getWeakeningStrategies() {
+    return WEAKENING_STRATEGY.values();
+  }
+
+  @Parameter(0)
+  public WEAKENING_STRATEGY weakeningStrategy;
 
   private static final String TEST_DIR_PATH = "test/programs/formulaslicing/";
 
@@ -97,6 +111,7 @@ public class FormulaSlicingTest {
         .put("cpa.loopstack.loopIterationsBeforeAbstraction", "1")
         .put("cfa.findLiveVariables", "true")
 
+        .put("cpa.slicing.weakeningStrategy", weakeningStrategy.toString())
         .put("log.consoleLevel", "INFO")
         .build());
     props.putAll(extra);

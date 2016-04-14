@@ -23,11 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.ufCheckingProver;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.List;
-import java.util.logging.Level;
+import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -42,6 +38,12 @@ import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.Model;
 import org.sosy_lab.solver.api.Model.ValueAssignment;
+
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.List;
+import java.util.logging.Level;
 
 /**
  * Get the model, substitute implementation for UFs which were used to replace
@@ -187,6 +189,11 @@ public class UFCheckingBasicProverEnvironment<T> implements BasicProverEnvironme
   @Override
   public Model getModel() throws SolverException {
     return delegate.getModel();
+  }
+
+  @Override
+  public ImmutableList<ValueAssignment> getModelAssignments() throws SolverException {
+    return delegate.getModelAssignments();
   }
 
   @Override

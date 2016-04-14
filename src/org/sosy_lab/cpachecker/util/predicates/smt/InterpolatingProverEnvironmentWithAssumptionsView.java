@@ -23,13 +23,16 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import java.util.List;
-import java.util.Set;
+import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.InterpolatingProverEnvironmentWithAssumptions;
 import org.sosy_lab.solver.api.Model;
+import org.sosy_lab.solver.api.Model.ValueAssignment;
+
+import java.util.List;
+import java.util.Set;
 
 /**
  * Model wrapping for InterpolatingProverEnvironment
@@ -75,6 +78,11 @@ public class InterpolatingProverEnvironmentWithAssumptionsView<E> implements
   @Override
   public Model getModel() throws SolverException {
     return new ModelView(delegate.getModel(), wrappingHandler);
+  }
+
+  @Override
+  public ImmutableList<ValueAssignment> getModelAssignments() throws SolverException {
+    return delegate.getModelAssignments();
   }
 
   @Override

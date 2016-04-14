@@ -55,7 +55,7 @@ public class SMG {
   private Map<SMGObject, SMG.ExternalObjectFlag> objectAllocationIdentity = new HashMap<>();
   private NeqRelation neq = new NeqRelation();
 
-  private final boolean trackPredicates = false;
+  private boolean trackPredicates = false;
   private PredRelation symbolicRelations = new PredRelation();
 
   private final MachineModel machine_model;

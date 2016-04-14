@@ -1,6 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 
@@ -25,32 +26,32 @@ public class SyntacticWeakeningManager {
    * In that case, \phi is exactly the same as \phi',
    * and the formula should be unsatisfiable.
    *
-   * @param selectionInfo selection variable -> corresponding atom (instantiated
-   * with unprimed SSA).
+   *
+   * @param selectionInfo selection variable -> corresponding lemma
+   *                      (instantiated with unprimed SSA).
    * @param transition Transition with respect to which the weakening must be inductive.
    *
-   *
+   * @param pFromStateLemmas Uninstantiated lemmas describing the from- state.
    * @return Set of selectors which correspond to atoms which *should*
    *         be abstracted.
    */
   public Set<BooleanFormula> performWeakening(
+      SSAMap pFromSSA,
       Map<BooleanFormula, BooleanFormula> selectionInfo,
-      PathFormula transition) {
+      PathFormula transition,
+      Set<BooleanFormula> pFromStateLemmas) {
     Set<BooleanFormula> out = new HashSet<>();
     for (Entry<BooleanFormula, BooleanFormula> e : selectionInfo.entrySet()) {
       BooleanFormula selector = e.getKey();
-      BooleanFormula atom = e.getValue();
+      BooleanFormula lemma = e.getValue();
 
-      // Variables which have the SSA index different to the one after the
-      // transition.
-      Set<String> deadVars = fmgr.getDeadFunctionNames(atom, transition.getSsa());
+      BooleanFormula uninstantiated = fmgr.uninstantiate(lemma);
+      BooleanFormula instantiatedFrom = fmgr.instantiate(uninstantiated, pFromSSA);
+      BooleanFormula instantiatedTo =
+          fmgr.instantiate(uninstantiated, transition.getSsa());
 
-      // I don't even understand now why this is valid.
-      // Dead vars is not empty
-      if (!deadVars.isEmpty()
-          // todo: remove this hack
-          ||  atom.toString().contains("z3name")
-          ) {
+      if (!pFromStateLemmas.contains(uninstantiated) ||
+            !instantiatedFrom.equals(instantiatedTo)) {
         out.add(selector);
       }
     }

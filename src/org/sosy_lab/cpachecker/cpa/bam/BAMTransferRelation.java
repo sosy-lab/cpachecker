@@ -23,18 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
-import static org.sosy_lab.cpachecker.util.AbstractStates.*;
+import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Stack;
-import java.util.logging.Level;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -67,10 +63,16 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Stack;
+import java.util.logging.Level;
 
 public class BAMTransferRelation implements TransferRelation {
 
@@ -390,8 +392,7 @@ public class BAMTransferRelation implements TransferRelation {
       if (reached == null) {
         // we have not even cached a partly computed reach-set,
         // so we must compute the subgraph specification from scratch
-        reached = data.createInitialReachedSet(reducedInitialState, reducedInitialPrecision);
-        data.bamCache.put(reducedInitialState, reducedInitialPrecision, currentBlock, reached);
+        reached = data.createAndRegisterNewReachedSet(reducedInitialState, reducedInitialPrecision, currentBlock);
         logger.log(Level.FINEST, "Cache miss: starting recursive CPAAlgorithm with new initial reached-set.");
       } else {
         logger.log(Level.FINEST, "Partial cache hit: starting recursive CPAAlgorithm with partial reached-set with root", reached.getFirstState());

@@ -26,14 +26,14 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.Predicates.in;
 import static com.google.common.collect.FluentIterable.from;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
@@ -72,14 +72,14 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Implementation of {@link BlockFormulaStrategy} that slices the formulas
@@ -725,7 +725,11 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     if (!importantEdges.containsEntry(parent, child)) {
       return oldFormula;
     } else {
-      return pfmgr.makeAnd(oldFormula, parent.getEdgeToChild(child));
+      List<CFAEdge> edges = parent.getEdgesToChild(child);
+      for (CFAEdge edge : edges) {
+        oldFormula = pfmgr.makeAnd(oldFormula, edge);
+      }
+      return oldFormula;
     }
   }
 

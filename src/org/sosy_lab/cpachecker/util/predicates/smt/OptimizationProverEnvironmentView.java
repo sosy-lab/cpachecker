@@ -24,12 +24,14 @@
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.Model;
+import org.sosy_lab.solver.api.Model.ValueAssignment;
 import org.sosy_lab.solver.api.OptimizationProverEnvironment;
 
 /**
@@ -106,7 +108,17 @@ public class OptimizationProverEnvironmentView implements OptimizationProverEnvi
   }
 
   @Override
+  public ImmutableList<ValueAssignment> getModelAssignments() throws SolverException {
+    return delegate.getModelAssignments();
+  }
+
+  @Override
   public void close() {
     delegate.close();
+  }
+
+  @Override
+  public String toString() {
+    return delegate.toString();
   }
 }

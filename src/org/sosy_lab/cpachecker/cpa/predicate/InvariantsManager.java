@@ -87,7 +87,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 import org.sosy_lab.cpachecker.cpa.formulaslicing.InductiveWeakeningManager;
 import org.sosy_lab.cpachecker.cpa.formulaslicing.LoopTransitionFinder;
-import org.sosy_lab.cpachecker.cpa.formulaslicing.SemiCNFManager;
+import org.sosy_lab.cpachecker.cpa.formulaslicing.RCNFManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -283,7 +283,7 @@ class InvariantsManager implements StatisticsProvider {
   private final InterpolationManager imgr;
 
   private final InductiveWeakeningManager inductiveWeakeningMgr;
-  private final SemiCNFManager semiCNFConverter;
+  private final RCNFManager semiCNFConverter;
   private final CFA cfa;
   private final PrefixProvider prefixProvider;
 
@@ -321,7 +321,7 @@ class InvariantsManager implements StatisticsProvider {
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     pfmgr = pPfmgr;
-    semiCNFConverter = new SemiCNFManager(fmgr, pConfig);
+    semiCNFConverter = new RCNFManager(fmgr, pConfig);
 
     imgr =
         new InterpolationManager(
@@ -683,17 +683,20 @@ class InvariantsManager implements StatisticsProvider {
         loopFormulaCache.put(pLocation, fmgr.uninstantiate(loopFormula.getFormula()));
       }
 
-      BooleanFormula invariant =
-          inductiveWeakeningMgr.findInductiveWeakening(
-              pBlockFormula.updateFormula(semiCNFConverter.convert(pBlockFormula.getFormula())),
-              loopFormula,
-              bfmgr.makeBoolean(true));
+      Set<BooleanFormula> lemmas =
+          semiCNFConverter.toLemmas(
+              fmgr.uninstantiate(pBlockFormula.getFormula()));
 
-      if (bfmgr.isTrue(invariant)) {
+      Set<BooleanFormula> inductiveLemmas =
+          inductiveWeakeningMgr.findInductiveWeakeningForRCNF(
+              ssa, loopFormula, lemmas
+          );
+
+      if (lemmas.isEmpty()) {
         logger.log(Level.FINER, "Invariant for location", pLocation, "is true, ignoring it");
         return false;
       } else {
-        addResultToCache(invariant, pLocation);
+        addResultToCache(bfmgr.and(inductiveLemmas), pLocation);
         return true;
       }
     } finally {
@@ -708,7 +711,10 @@ class InvariantsManager implements StatisticsProvider {
     try {
       stats.pfKindTime.start();
 
-      BooleanFormula cnfFormula = semiCNFConverter.convert(pPathFormula.getFormula());
+      BooleanFormula cnfFormula = bfmgr.and(semiCNFConverter.toLemmas
+          (pPathFormula
+          .getFormula
+          ()));
       Collection<BooleanFormula> conjuncts =
           bfmgr.visit(
               new DefaultBooleanFormulaVisitor<List<BooleanFormula>>() {

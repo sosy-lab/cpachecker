@@ -156,6 +156,7 @@ public class FunctionFormulaManagerView extends BaseManagerView implements UFMan
     return callUF(func, pArgs);
   }
 
+  @Override
   public <T extends Formula> T declareAndCallUF(
       String pName, FormulaType<T> pReturnType, Formula... pArgs) {
     return declareAndCallUF(pName, pReturnType, Arrays.asList(pArgs));

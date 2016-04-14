@@ -23,19 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
-import java.util.logging.Level;
+import static com.google.common.base.Predicates.instanceOf;
+import static org.sosy_lab.cpachecker.util.CFAUtils.enteringEdges;
+
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.concurrency.Threads;
@@ -105,9 +99,17 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.VariableClassificationBuilder;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterables;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * Class that encapsulates the whole CFA creation process.
@@ -613,43 +615,7 @@ private boolean classifyNodes = false;
     }
 
     // Transform dummy loops into edges to termination nodes
-    List<CFANode> toAdd = new ArrayList<>(1);
-    for (CFANode node : cfa.getAllNodes()) {
-      this.shutdownNotifier.shutdownIfNecessary();
-      Set<CFANode> visited = new HashSet<>();
-      Queue<CFANode> waitlist = new ArrayDeque<>();
-      waitlist.offer(node);
-      visited.add(node);
-      while (!waitlist.isEmpty()) {
-        CFANode current = waitlist.poll();
-        for (CFAEdge leavingBlankEdge : CFAUtils.leavingEdges(current).filter(BlankEdge.class).toList()) {
-          CFANode succ = leavingBlankEdge.getSuccessor();
-          if (succ == node && succ.getNumEnteringEdges() > 1) {
-            // Found empty loop
-            // We can only remove edges to nodes that have more than one incoming edge,
-            // otherwise we create an unreachable node.
-            leavingBlankEdge.getPredecessor().removeLeavingEdge(leavingBlankEdge);
-            leavingBlankEdge.getSuccessor().removeEnteringEdge(leavingBlankEdge);
-            CFANode terminationNode = new CFATerminationNode(node.getFunctionName());
-            BlankEdge terminationEdge =
-                    new BlankEdge(leavingBlankEdge.getRawStatement(),
-                            leavingBlankEdge.getFileLocation(),
-                            leavingBlankEdge.getPredecessor(),
-                            terminationNode,
-                            leavingBlankEdge.getDescription());
-            terminationEdge.getPredecessor().addLeavingEdge(terminationEdge);
-            terminationEdge.getSuccessor().addEnteringEdge(terminationEdge);
-            toAdd.add(terminationNode);
-          }
-          if (visited.add(succ)) {
-            waitlist.offer(succ);
-          }
-        }
-      }
-    }
-    for (CFANode nodeToAdd : toAdd) {
-      cfa.addNode(nodeToAdd);
-    }
+    transformDummyLoopsToEdges(cfa);
 
     if (useFunctionCallUnwinding) {
       // must be done before adding global vars
@@ -675,6 +641,57 @@ private boolean classifyNodes = false;
     }
 
     return cfa;
+  }
+
+  /** Transform dummy loops into edges to termination nodes */
+  private void transformDummyLoopsToEdges(MutableCFA cfa) throws InterruptedException {
+    List<CFANode> toAdd = new ArrayList<>(1);
+    Predicate<Object> isBlankEdge = instanceOf(BlankEdge.class);
+
+    for (CFANode node : cfa.getAllNodes()) {
+      this.shutdownNotifier.shutdownIfNecessary();
+
+      // only potential loop heads are interesting for us, they also need to have
+      // at least one BlankEdge as successor and predecessor
+      if (node.getNumEnteringEdges() < 2
+          || !(node.getNumLeavingEdges() == 1 && node.getLeavingEdge(0) instanceof BlankEdge)
+          || enteringEdges(node).anyMatch(isBlankEdge)) {
+        continue;
+      }
+
+      Set<CFANode> visited = new HashSet<>();
+      CFANode current = node;
+      while (current.getNumLeavingEdges() == 1
+          && current.getLeavingEdge(0) instanceof BlankEdge
+          && visited.add(current)) {
+
+        CFAEdge leavingBlankEdge = current.getLeavingEdge(0);
+        CFANode succ = leavingBlankEdge.getSuccessor();
+
+        // Found empty loop
+        if (succ.equals(node)) {
+          leavingBlankEdge.getPredecessor().removeLeavingEdge(leavingBlankEdge);
+          leavingBlankEdge.getSuccessor().removeEnteringEdge(leavingBlankEdge);
+          CFANode terminationNode = new CFATerminationNode(node.getFunctionName());
+          BlankEdge terminationEdge =
+              new BlankEdge(
+                  leavingBlankEdge.getRawStatement(),
+                  leavingBlankEdge.getFileLocation(),
+                  leavingBlankEdge.getPredecessor(),
+                  terminationNode,
+                  leavingBlankEdge.getDescription());
+          terminationEdge.getPredecessor().addLeavingEdge(terminationEdge);
+          terminationEdge.getSuccessor().addEnteringEdge(terminationEdge);
+          toAdd.add(terminationNode);
+        }
+
+        current = succ;
+      }
+    }
+
+    for (CFANode nodeToAdd : toAdd) {
+      cfa.addNode(nodeToAdd);
+    }
   }
 
   /** check, whether the program contains function calls to crate a new thread. */

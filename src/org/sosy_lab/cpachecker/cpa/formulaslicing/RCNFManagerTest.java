@@ -22,7 +22,7 @@ import org.sosy_lab.solver.test.SolverBasedTest0;
  * Test the semi-CNF conversion.
  */
 @RunWith(Parameterized.class)
-public class SemiCNFManagerTest extends SolverBasedTest0{
+public class RCNFManagerTest extends SolverBasedTest0{
   @Parameters(name = "{0}")
   public static Object[] getAllSolvers() {
     return Solvers.values();
@@ -31,15 +31,17 @@ public class SemiCNFManagerTest extends SolverBasedTest0{
   @Parameter(0)
   public Solvers solver;
 
-  private SemiCNFManager semiCNFManager;
+  private RCNFManager RCNFManager;
   private BooleanFormulaManager bfmgr;
 
   @Before
   public void setUp() throws InvalidConfigurationException {
-    Configuration d = Configuration.defaultConfiguration();
+    Configuration d = Configuration.builder().setOption(
+        "cpa.slicing.boundVarsHandling", "drop"
+    ).build();
     FormulaManagerView mgrView = new FormulaManagerView(
         mgr, d, TestLogManager.getInstance());
-    semiCNFManager = new SemiCNFManager(mgrView, d);
+    RCNFManager = new RCNFManager(mgrView, d);
     bfmgr = mgrView.getBooleanFormulaManager();
   }
 
@@ -55,7 +57,7 @@ public class SemiCNFManagerTest extends SolverBasedTest0{
     );
     BooleanFormula c = bfmgr.or(a, b);
 
-    BooleanFormula converted = semiCNFManager.convert(c);
+    BooleanFormula converted = bfmgr.and(RCNFManager.toLemmas(c));
     assertThatFormula(converted).isEquivalentTo(c);
     assertThatFormula(converted).isEqualTo(
         bfmgr.and(
@@ -80,7 +82,7 @@ public class SemiCNFManagerTest extends SolverBasedTest0{
             )
         )
     );
-    BooleanFormula converted = semiCNFManager.convert(input);
+    BooleanFormula converted = bfmgr.and(RCNFManager.toLemmas(input));
     assertThatFormula(converted).isEquivalentTo(input);
     BooleanFormula expected =
         bfmgr.and(
@@ -100,7 +102,7 @@ public class SemiCNFManagerTest extends SolverBasedTest0{
         bfmgr.and(ImmutableList.of(v("a"), v("b"), v("c"))),
         bfmgr.and(ImmutableList.of(v("d"), v("e"), v("f")))
     );
-    BooleanFormula converted = semiCNFManager.convert(input);
+    BooleanFormula converted = bfmgr.and(RCNFManager.toLemmas(input));
     assertThatFormula(converted).isEquivalentTo(input);
     BooleanFormula expected =
         bfmgr.and(
@@ -114,9 +116,8 @@ public class SemiCNFManagerTest extends SolverBasedTest0{
             bfmgr.or(v("c"), v("e")),
             bfmgr.or(v("c"), v("f"))
         );
-    Truth.assertThat(bfmgr.toConjunctionArgs(converted, true)).isEqualTo(bfmgr.toConjunctionArgs(
-        expected, true
-    ));
+    Truth.assertThat(bfmgr.toConjunctionArgs(converted, true)).isEqualTo(
+        bfmgr.toConjunctionArgs(expected, true));
   }
 
   private BooleanFormula v(String name) {

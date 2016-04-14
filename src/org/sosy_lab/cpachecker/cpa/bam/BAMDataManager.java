@@ -23,10 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
@@ -36,7 +33,10 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
-import com.google.common.collect.Lists;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /** This class contains all additional data-structures needed to run BAM.
  * If possible, we should clear some data sometimes to avoid memory-leaks. */
@@ -95,9 +95,12 @@ public class BAMDataManager {
     initialStateToReachedSet.clear();
   }
 
-  ReachedSet createInitialReachedSet(AbstractState initialState, Precision initialPredicatePrecision) {
-    ReachedSet reached = reachedSetFactory.create();
-    reached.add(initialState, initialPredicatePrecision);
+  /** Create a new reached-set with the given state as root and register it in the cache. */
+  ReachedSet createAndRegisterNewReachedSet(
+      AbstractState initialState, Precision initialPrecision, Block context) {
+    final ReachedSet reached = reachedSetFactory.create();
+    reached.add(initialState, initialPrecision);
+    bamCache.put(initialState, initialPrecision, context, reached);
     return reached;
   }
 

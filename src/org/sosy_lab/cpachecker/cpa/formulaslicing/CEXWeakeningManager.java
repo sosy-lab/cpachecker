@@ -8,8 +8,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.log.NullLogManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.SolverException;
@@ -29,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import java.util.logging.Level;
 
 /**
  * Perform weakening using counter-examples to induction.
@@ -37,7 +35,7 @@ import java.util.logging.Level;
 @Options(prefix="cpa.slicing")
 public class CEXWeakeningManager {
   @Option(description="Strategy for abstracting children during CEX weakening", secure=true)
-  private SELECTION_STRATEGY removalSelectionStrategy = SELECTION_STRATEGY.FIRST;
+  private SELECTION_STRATEGY removalSelectionStrategy = SELECTION_STRATEGY.ALL;
 
   @Option(description="Depth limit for the 'LEAST_REMOVALS' strategy.")
   private int leastRemovalsDepthLimit = 2;
@@ -69,7 +67,6 @@ public class CEXWeakeningManager {
 
   private final BooleanFormulaManager bfmgr;
   private final Solver solver;
-  private final LogManager logger;
   private final InductiveWeakeningStatistics statistics;
   private final Random r = new Random();
   private final ShutdownNotifier shutdownNotifier;
@@ -77,19 +74,13 @@ public class CEXWeakeningManager {
   public CEXWeakeningManager(
       FormulaManagerView pFmgr,
       Solver pSolver,
-      LogManager pLogger,
       InductiveWeakeningStatistics pStatistics,
       Configuration config, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     config.inject(this);
     solver = pSolver;
-    logger = pLogger;
     statistics = pStatistics;
     bfmgr = pFmgr.getBooleanFormulaManager();
     shutdownNotifier = pShutdownNotifier;
-  }
-
-  public void setRemovalSelectionStrategy(SELECTION_STRATEGY strategy) {
-    removalSelectionStrategy = strategy;
   }
 
   /**
@@ -97,12 +88,16 @@ public class CEXWeakeningManager {
   */
   public Set<BooleanFormula> performWeakening(
       Map<BooleanFormula, BooleanFormula> selectionInfo,
-      BooleanFormula query,
-      BooleanFormula primed,
-      Set<BooleanFormula> pSelectorsWithIntermediate) throws SolverException, InterruptedException {
+      BooleanFormula fromState,
+      PathFormula transition,
+      BooleanFormula toState) throws SolverException, InterruptedException {
     try {
       statistics.cexWeakeningTime.start();
-      return counterexampleBasedWeakening0(selectionInfo, query, primed, pSelectorsWithIntermediate);
+      return counterexampleBasedWeakening0(
+          selectionInfo,
+          fromState,
+          transition,
+          toState);
     } finally {
       statistics.cexWeakeningTime.stop();
     }
@@ -111,22 +106,22 @@ public class CEXWeakeningManager {
    * Apply a weakening based on counterexamples derived from solver models.
    *
    * @param selectionInfo Mapping from selectors to literals which they annotate.
-   * @param query Inductiveness checking query
-   * @param primed \phi'
    *
    * @return A subset of selectors after abstracting which the query becomes inductive.
    */
   private Set<BooleanFormula> counterexampleBasedWeakening0(
       final Map<BooleanFormula, BooleanFormula> selectionInfo,
-      BooleanFormula query,
-      BooleanFormula primed,
-      Set<BooleanFormula> pSelectorsWithIntermediate) throws SolverException, InterruptedException {
+      BooleanFormula fromState,
+      PathFormula transition,
+      BooleanFormula toState) throws SolverException, InterruptedException {
 
-    final Set<BooleanFormula> toAbstract = new HashSet<>(pSelectorsWithIntermediate);
+    final Set<BooleanFormula> toAbstract = new HashSet<>();
     List<BooleanFormula> selectorConstraints = new ArrayList<>();
     for (BooleanFormula selector : selectionInfo.keySet()) {
       selectorConstraints.add(bfmgr.not(selector));
     }
+    BooleanFormula query = bfmgr.and(
+        fromState, transition.getFormula(), bfmgr.not(toState));
 
     int noIterations = 0;
     try (ProverEnvironment env = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
@@ -141,8 +136,7 @@ public class CEXWeakeningManager {
             ImmutableSet.copyOf(toAbstract),
             m,
             selectionInfo,
-            primed,
-            logger,
+            toState,
             0
         ));
 
@@ -165,7 +159,6 @@ public class CEXWeakeningManager {
       final Model m,
       final Map<BooleanFormula, BooleanFormula> selectionInfo,
       final BooleanFormula primed,
-      final LogManager usedLogger,
       final int depth
   ) {
     final List<BooleanFormula> newToAbstract = new ArrayList<>();
@@ -206,6 +199,9 @@ public class CEXWeakeningManager {
           return TraversalProcess.SKIP;
         } else {
 
+          // N.B.: This branch is *never* hit if we use
+          // conjunction-annotation mode.
+
           // OR- implies a difficult choice, unless a selector is present.
           return selectChildren(operands);
         }
@@ -215,9 +211,6 @@ public class CEXWeakeningManager {
         // Don't-care or evaluates-to-false.
         if (!toAbstract.contains(selector)) {
           newToAbstract.add(selector);
-
-          usedLogger.log(Level.FINE, "Model = " + m);
-          usedLogger.log(Level.FINE, "Abstracting away", selectionInfo.get(selector));
         }
       }
 
@@ -267,7 +260,7 @@ public class CEXWeakeningManager {
         // Doing recursion while doing recursion :P
         // Use NullLogManager to avoid log pollution.
         return getSelectorsToAbstract(
-            toAbstract, m, selectionInfo, f, NullLogManager.getInstance(), depth + 1);
+            toAbstract, m, selectionInfo, f, depth + 1);
       }
 
     }, primed);

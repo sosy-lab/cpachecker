@@ -23,11 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import java.math.BigInteger;
-import java.util.Iterator;
-
-import javax.annotation.Nullable;
-
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.solver.api.BitvectorFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -35,6 +30,11 @@ import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.Model;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
+
+import java.math.BigInteger;
+import java.util.Iterator;
+
+import javax.annotation.Nullable;
 
 /**
  * Wrapping for models.
@@ -93,5 +93,10 @@ public class ModelView implements Model {
   @Override
   public String toString() {
     return delegate.toString();
+  }
+
+  @Override
+  public void close() {
+    delegate.close();
   }
 }

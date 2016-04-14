@@ -14,6 +14,9 @@
         <!-- Dependencies needed for building or running tests. -->
         <conf name="test" />
 
+        <!-- Dependencies needed for running source-code auto-formatter. -->
+        <conf name="format-source" />
+
         <!-- Dependencies needed for benchmarking. -->
         <conf name="benchmark" />
 
@@ -28,7 +31,7 @@
     <dependencies>
 
         <!-- SoSy-Lab Common Library -->
-        <dependency org="org.sosy_lab" name="common" rev="0.2-6-g4ff4acf" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="org.sosy_lab" name="common" rev="0.2-9-g7acf906" conf="runtime->runtime; contrib->sources"/>
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
@@ -85,7 +88,7 @@
 
         <!-- google-java-format
              A source-code formatter for Java -->
-        <dependency org="com.google.google-java-format" name="google-java-format" rev="0.1-SNAPSHOT-104-g79b7f0f" conf="build->runtime"/>
+        <dependency org="com.google.googlejavaformat" name="google-java-format" rev="1.0" conf="format-source->default"/>
 
         <!-- FindBugs -->
         <dependency org="com.google.code.findbugs" name="findbugs" rev="3.0.1" conf="findbugs->default"/>
@@ -95,7 +98,7 @@
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
 
         <!-- JavaSMT -->
-        <dependency org="org.sosy_lab" name="javasmt" rev="0.51-9-g27175af" conf="runtime->runtime; contrib->sources" />
+        <dependency org="org.sosy_lab" name="javasmt" rev="0.51-63-gb79c816" conf="runtime->runtime; contrib->sources" />
 
         <!-- Guava has a dependency on error_prone_annotations without a revision number, need an override. -->
         <override org="com.google.errorprone" module="error_prone_annotations" rev="2.0.5"/>
