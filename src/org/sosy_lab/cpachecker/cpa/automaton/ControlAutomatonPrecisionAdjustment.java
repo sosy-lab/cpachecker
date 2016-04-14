@@ -176,7 +176,9 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
 
       // A property might have already been disabled!
       //    Handling of blacklisted (disabled) states:
-      if (pi.areBlackListed((Set<? extends SafetyProperty>) state.getViolatedProperties(), Optional.<Region>absent())) { // FIXME: Make it variability aware!
+      Set<SafetyProperty> violated = AbstractStates.extractViolatedProperties(state, SafetyProperty.class);
+
+      if (pi.areBlackListed(violated, Optional.<Region>absent())) { // FIXME: Make it variability aware!
         return Optional.of(PrecisionAdjustmentResult.create(
             stateOnHandledTarget,
             pi, Action.CONTINUE));
@@ -186,8 +188,6 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
       //    We might disable certain target states
       //      (they should not be considered as target states)
       if (onHandledTarget != TargetStateVisitBehaviour.SIGNAL) {
-        Set<SafetyProperty> violated = AbstractStates.extractViolatedProperties(state, SafetyProperty.class);
-
         for (SafetyProperty p: violated) {
           if (isPropertyBudgetExhausted(p)) {
             exhaustedProperties.put(p, Optional.<Region>absent());
