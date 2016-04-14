@@ -283,8 +283,6 @@ public class AssumptionToEdgeAllocator {
       List<AExpressionStatement> stmtAssumptions =
           handleStatement(pCFAEdge, ((AStatementEdge) pCFAEdge).getStatement(), pConcreteState);
       result.addAll(stmtAssumptions);
-    } else if (pCFAEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
-      throw new AssertionError("Multi-edges should be resolved by this point.");
     }
 
     if (pCFAEdge.getEdgeType() == CFAEdgeType.BlankEdge

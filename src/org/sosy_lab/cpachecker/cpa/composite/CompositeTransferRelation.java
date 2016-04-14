@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
@@ -65,12 +64,6 @@ import java.util.Set;
 
 @Options(prefix="cpa.composite")
 public final class CompositeTransferRelation implements TransferRelation {
-
-  @Option(secure=true,
-      description="Split MultiEdges and pass each inner edge to the component CPAs"
-          + " to allow strengthen calls after each single edge."
-          + " Does not work with backwards analysis!")
-  private boolean splitMultiEdges = false;
 
   @Option(secure=true, description="By enabling this option the CompositeTransferRelation"
       + " will compute abstract successors for as many edges as possible in one call. For"
@@ -147,9 +140,6 @@ public final class CompositeTransferRelation implements TransferRelation {
       Collection<CompositeState> compositeSuccessors) throws CPATransferException, InterruptedException {
 
     if (aggregateBasicBlocks) {
-
-      assert !(cfaEdge instanceof MultiEdge) : "Static and dynamic MultiEdges may not be mixed.";
-
       final CFANode startNode = cfaEdge.getPredecessor();
 
       // dynamic multiEdges may be used if the following conditions apply
@@ -191,30 +181,6 @@ public final class CompositeTransferRelation implements TransferRelation {
       } else {
         getAbstractSuccessorForSimpleEdge(compositeState, compositePrecision, cfaEdge, compositeSuccessors);
       }
-
-    } else if (splitMultiEdges && cfaEdge instanceof MultiEdge) {
-      // We want to resolve MultiEdges here such that for every edge along
-      // the MultiEdge there is a separate call to TransferRelation.getAbstractSuccessorsForEdge
-      // and especially to TransferRelation.strengthen.
-      // As there can be multiple successors at each step,
-      // we keep a list of "frontier states", handle one edge for each of them,
-      // and use the successors of all these states as the new frontier.
-      Collection<CompositeState> currentStates = new ArrayList<>(1);
-      currentStates.add(compositeState);
-
-      for (CFAEdge simpleEdge : ((MultiEdge)cfaEdge).getEdges()) {
-        Collection<CompositeState> successorStates = new ArrayList<>(currentStates.size());
-
-        for (CompositeState currentState : currentStates) {
-          getAbstractSuccessorForSimpleEdge(currentState, compositePrecision, simpleEdge, successorStates);
-        }
-
-        assert !from(successorStates).anyMatch(AbstractStates.IS_TARGET_STATE);
-        // make successor states the new to-be-handled states for the next edge
-        currentStates = Collections.unmodifiableCollection(successorStates);
-      }
-
-      compositeSuccessors.addAll(currentStates);
 
     } else {
       getAbstractSuccessorForSimpleEdge(compositeState, compositePrecision, cfaEdge, compositeSuccessors);

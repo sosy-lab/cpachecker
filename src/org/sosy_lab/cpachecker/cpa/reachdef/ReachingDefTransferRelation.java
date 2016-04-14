@@ -23,13 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.reachdef;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
@@ -43,7 +38,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
@@ -55,8 +49,13 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils.VariableExtractor;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
 
 
 public class ReachingDefTransferRelation implements TransferRelation {
@@ -151,10 +150,6 @@ public class ReachingDefTransferRelation implements TransferRelation {
     }
     case FunctionReturnEdge: {
       result = handleReturnEdge((ReachingDefState) pState);
-      break;
-    }
-    case MultiEdge: {
-      result = handleMultiEdge((ReachingDefState) pState, (MultiEdge) pCfaEdge);
       break;
     }
     case BlankEdge:
@@ -257,29 +252,6 @@ public class ReachingDefTransferRelation implements TransferRelation {
     logger.log(Level.FINE, "Return from internal function call. ",
         "Remove local variables and parameters of function from reaching definition.");
     return pState.pop();
-  }
-
-  private ReachingDefState handleMultiEdge(ReachingDefState pState, MultiEdge edge) throws CPATransferException {
-    for (CFAEdge simpleEdge : edge.getEdges()) {
-
-      switch (simpleEdge.getEdgeType()) {
-      case StatementEdge: {
-        pState = handleStatementEdge(pState, (CStatementEdge) simpleEdge);
-        break;
-      }
-      case DeclarationEdge: {
-        pState = handleDeclarationEdge(pState, (CDeclarationEdge) simpleEdge);
-        break;
-      }
-      case BlankEdge:
-        break;
-      case ReturnStatementEdge:
-        break;
-      default:
-        throw new CPATransferException("Unknown CFA edge type incorporated in MultiEdge.");
-      }
-    }
-    return pState;
   }
 
   @Override

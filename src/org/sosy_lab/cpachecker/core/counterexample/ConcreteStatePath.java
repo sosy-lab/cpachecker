@@ -23,13 +23,11 @@
  */
 package org.sosy_lab.cpachecker.core.counterexample;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcreteStatePathNode;
 
 import java.util.Iterator;
@@ -110,7 +108,6 @@ public final class ConcreteStatePath implements Iterable<ConcreteStatePathNode> 
 
     public SingleConcreteState(CFAEdge cfaEdge, ConcreteState pConcreteState) {
       super(cfaEdge);
-      Preconditions.checkArgument(cfaEdge.getEdgeType() != CFAEdgeType.MultiEdge);
       concreteState = pConcreteState;
       assert concreteState != null;
     }

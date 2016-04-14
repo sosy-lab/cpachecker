@@ -23,25 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.collect.FluentIterable.from;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.logging.Level;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -52,11 +44,14 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatIntHist;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.logging.Level;
 
 /** The TransferRelation of this CPA determines the AbstractSuccessor of a {@link AutomatonState}
  * and strengthens an {@link AutomatonState.AutomatonUnknownState}.
@@ -92,68 +87,10 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
       return Collections.singleton(top);
     }
 
-    if (!(pCfaEdge instanceof MultiEdge)) {
-      Collection<? extends AbstractState> result = getAbstractSuccessors0((AutomatonState)pElement, pCfaEdge);
-      automatonSuccessors.setNextValue(result.size());
-      return result;
-    }
-
-    final List<CFAEdge> edges = ((MultiEdge)pCfaEdge).getEdges();
-    checkArgument(!edges.isEmpty());
-
-    // As long as each transition produces only 0 or 1 successors,
-    // we can just iterate through the edges.
-    AutomatonState currentState = (AutomatonState)pElement;
-    Collection<AutomatonState> currentSuccessors = null;
-    int edgeIndex;
-    for (edgeIndex=0; edgeIndex<edges.size(); edgeIndex++) {
-      CFAEdge edge = edges.get(edgeIndex);
-      currentSuccessors = getAbstractSuccessors0(currentState, edge);
-      if (currentSuccessors.isEmpty()) {
-        automatonSuccessors.setNextValue(0);
-        return currentSuccessors; // bottom
-      } else if (currentSuccessors.size() == 1) {
-        automatonSuccessors.setNextValue(1);
-        currentState = Iterables.getOnlyElement(currentSuccessors);
-      } else { // currentSuccessors.size() > 1
-        break;
-      }
-    }
-
-    if (edgeIndex == edges.size()) {
-      automatonSuccessors.setNextValue(currentSuccessors.size());
-      return currentSuccessors;
-    }
-
-    // If there are two or more successors once, we use a waitlist algorithm.
-    Deque<Pair<AutomatonState, Integer>> queue = new ArrayDeque<>(1);
-    for (AutomatonState successor : currentSuccessors) {
-      queue.addLast(Pair.of(successor, edgeIndex));
-    }
-    currentSuccessors.clear();
-
-    List<AutomatonState> results = new ArrayList<>();
-    while (!queue.isEmpty()) {
-      Pair<AutomatonState, Integer> entry = queue.pollFirst();
-      AutomatonState state = entry.getFirst();
-      edgeIndex = entry.getSecond();
-      CFAEdge edge = edges.get(edgeIndex);
-      Integer successorIndex = edgeIndex+1;
-
-      if (successorIndex == edges.size()) {
-        // last iteration
-        results.addAll(getAbstractSuccessors0(state, edge));
-
-      } else {
-        for (AutomatonState successor : getAbstractSuccessors0(state, edge)) {
-          queue.addLast(Pair.of(successor, successorIndex));
-        }
-      }
-
-    }
-
-    automatonSuccessors.setNextValue(results.size());
-    return results;
+    Collection<? extends AbstractState> result =
+        getAbstractSuccessors0((AutomatonState) pElement, pCfaEdge);
+    automatonSuccessors.setNextValue(result.size());
+    return result;
   }
 
   private Collection<AutomatonState> getAbstractSuccessors0(

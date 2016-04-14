@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -186,12 +185,6 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       break;
     case StatementEdge:
       state = handleStatement(state, (CStatementEdge) pEdge, pPrecision);
-      break;
-    case MultiEdge:
-      Iterator<CFAEdge> edgeIterator = ((MultiEdge) pEdge).iterator();
-      while (state != null && edgeIterator.hasNext()) {
-        state = getSuccessor(edgeIterator.next(), pPrecision, state);
-      }
       break;
     default:
       throw new UnrecognizedCFAEdgeException(pEdge);
@@ -517,20 +510,6 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     }
 
     CFAEdge edge = pCfaEdge;
-    if (edge instanceof MultiEdge) {
-      for (CFAEdge subEdge : ((MultiEdge) edge)) {
-        InvariantsState current = state;
-        Collection<? extends AbstractState> next = strengthen(state, pOtherElements, subEdge, pPrecision);
-        if (next == null) {
-          state = current;
-        } else if (next.isEmpty()) {
-          return next;
-        } else {
-          state = (InvariantsState) Iterables.getOnlyElement(next);
-        }
-      }
-      return Collections.singleton(state);
-    }
     CLeftHandSide leftHandSide = getLeftHandSide(edge);
     if (leftHandSide instanceof CPointerExpression || leftHandSide instanceof CFieldReference && ((CFieldReference) leftHandSide).isPointerDereference()) {
       FluentIterable<PointerState> pointerStates = FluentIterable.from(pOtherElements).filter(PointerState.class);

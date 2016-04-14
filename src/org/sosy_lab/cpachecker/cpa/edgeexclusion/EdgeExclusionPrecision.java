@@ -23,16 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.edgeexclusion;
 
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
+
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Queue;
-
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableSet;
 
 /**
  * Instances of this class are precisions for the edge exclusion CPA. They
@@ -103,13 +102,7 @@ public class EdgeExclusionPrecision implements Precision {
     setBuilder.addAll(excludedEdges);
     Queue<CFAEdge> waitlist = new ArrayDeque<>(pAdditionalExcludedEdges);
     while (!waitlist.isEmpty()) {
-      CFAEdge current = waitlist.poll();
-      if (current instanceof MultiEdge) {
-        for (CFAEdge edge : (MultiEdge) current) {
-          waitlist.offer(edge);
-        }
-      }
-      setBuilder.add(current);
+      setBuilder.add(waitlist.poll());
     }
     return new EdgeExclusionPrecision(setBuilder.build());
   }
@@ -122,17 +115,7 @@ public class EdgeExclusionPrecision implements Precision {
    * @return {@code true} if the edge is excluded, {@code false} otherwise.
    */
   public boolean isExcluded(CFAEdge pEdge) {
-    if (excludedEdges.contains(pEdge)) {
-      return true;
-    }
-    if (pEdge instanceof MultiEdge) {
-      for (CFAEdge edge : (MultiEdge) pEdge) {
-        if (isExcluded(edge)) {
-          return true;
-        }
-      }
-    }
-    return false;
+    return excludedEdges.contains(pEdge);
   }
 
   @Override

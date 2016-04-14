@@ -23,10 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
-import com.google.common.base.Functions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Maps;
@@ -418,12 +416,7 @@ public class ValueAnalysisRefiner
   @Override
   protected CFAPathWithAssumptions createModel(ARGPath errorPath) throws InterruptedException, CPAException {
     List<Pair<ValueAnalysisState, List<CFAEdge>>> concretePath = checker.evaluate(errorPath);
-    if (FluentIterable.from(concretePath)
-            .transform(Pair.<List<CFAEdge>>getProjectionToSecond())
-            .transformAndConcat(Functions.<List<CFAEdge>>identity())
-            .size()
-        < errorPath.getFullPath().size()) {
-
+    if (concretePath.size() < errorPath.getInnerEdges().size()) {
       // If concretePath is shorter than errorPath, this means that errorPath is actually
       // infeasible and should have been ruled out during refinement.
       // This happens because the value analysis does not always perform fully-precise

@@ -48,7 +48,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CompoundIntervalFormulaManager;
@@ -172,10 +171,6 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
               while (!waitlist.isEmpty()) {
                 CFAEdge lastEdge = waitlist.poll();
                 checkedEdges.add(lastEdge);
-                if (lastEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
-                  Iterables.addAll(waitlist, (MultiEdge) lastEdge);
-                  continue;
-                }
                 if (lastEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
                   FunctionReturnEdge functionReturnEdge = (FunctionReturnEdge) lastEdge;
 

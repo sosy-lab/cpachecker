@@ -23,12 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.andersen;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.logging.Level;
-
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -46,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
@@ -58,7 +51,10 @@ import org.sosy_lab.cpachecker.cpa.andersen.util.SimpleConstraint;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
-import com.google.common.collect.Iterables;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.logging.Level;
 
 public class AndersenTransferRelation extends SingleEdgeTransferRelation {
 
@@ -98,13 +94,6 @@ public class AndersenTransferRelation extends SingleEdgeTransferRelation {
 
     case BlankEdge:
       successor = andersenState;
-      break;
-    case MultiEdge:
-      successor = andersenState;
-      Iterator<CFAEdge> edgeIterator = ((MultiEdge) pCfaEdge).iterator();
-      while (pElement != null && edgeIterator.hasNext()) {
-        successor = Iterables.getFirst(getAbstractSuccessorsForEdge(successor, pPrecision, edgeIterator.next()), null);
-      }
       break;
 
     case CallToReturnEdge:

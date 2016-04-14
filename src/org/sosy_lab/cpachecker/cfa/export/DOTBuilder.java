@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
@@ -144,16 +143,9 @@ public final class DOTBuilder {
 
       //the first call to replaceAll replaces \" with \ " to prevent a bug in dotty.
       //future updates of dotty may make this obsolete.
-      if (edge instanceof MultiEdge) {
-        for (CFAEdge inner : (MultiEdge) edge) {
-          sb.append(escapeGraphvizLabel(inner.getDescription(), " "));
-          sb.append("\\l");
-        }
-      } else {
-        sb.append(escapeGraphvizLabel(edge.getDescription(), " "));
-      }
-
+      sb.append(escapeGraphvizLabel(edge.getDescription(), " "));
       sb.append("\"");
+
       if (edge instanceof FunctionSummaryEdge) {
         sb.append(" style=\"dotted\" arrowhead=\"empty\"");
       }

@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -120,14 +119,7 @@ public class CoverageReport {
     //Add information about existing locations
     for (CFANode node : pCfa.getAllNodes()) {
       for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-        CFAEdge edge = node.getLeavingEdge(i);
-        if (edge instanceof MultiEdge) {
-          for (CFAEdge innerEdge : ((MultiEdge)edge).getEdges()) {
-            handleExistedEdge(innerEdge, infosPerFile);
-          }
-        } else {
-          handleExistedEdge(edge, infosPerFile);
-        }
+        handleExistedEdge(node.getLeavingEdge(i), infosPerFile);
       }
     }
 
@@ -161,13 +153,7 @@ public class CoverageReport {
         for (int i = 0; i < node.getNumLeavingEdges(); i++) {
           CFAEdge edge = node.getLeavingEdge(i);
           if (reachedNodes.contains(edge.getSuccessor())) {
-            if (edge instanceof MultiEdge) {
-              for (CFAEdge innerEdge : ((MultiEdge)edge).getEdges()) {
-                handleCoveredEdge(innerEdge, infosPerFile);
-              }
-            } else {
-              handleCoveredEdge(edge, infosPerFile);
-            }
+            handleCoveredEdge(edge, infosPerFile);
           }
         }
       }

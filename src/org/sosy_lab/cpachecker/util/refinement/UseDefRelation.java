@@ -23,17 +23,13 @@
  */
 package org.sosy_lab.cpachecker.util.refinement;
 
-import static com.google.common.base.Predicates.*;
+import static com.google.common.base.Predicates.in;
+import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.Collections2.filter;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
@@ -60,11 +56,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
@@ -74,10 +68,14 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.livevar.DeclarationCollectingVisitor;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class UseDefRelation {
 
@@ -90,7 +88,7 @@ public class UseDefRelation {
    * the use-def relation
    *
    * The key of the map has to be the {@link Pair} of {@link ARGState} and {@link CFAEdge}.
-   * {@link ARGState} alone would not be precise enough because of {@link MultiEdge}s,
+   * {@link ARGState} alone would not be precise enough because of multi edges,
    * and {@link CFAEdge}s alone would not be precise enough because one edge may occur
    * multiple times in a {@link ARGPath}.
    */
@@ -143,17 +141,8 @@ public class UseDefRelation {
       }
       CFAEdge currentEdge = it.getOutgoingEdge();
 
-      if(currentEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
-        for (CFAEdge singleEdge : Lists.reverse(((MultiEdge)currentEdge).getEdges())) {
-          unresolvedUses.removeAll(getDef(currentState, singleEdge));
-          unresolvedUses.addAll(getUses(currentState, singleEdge));
-        }
-
-      } else {
-        unresolvedUses.removeAll(getDef(currentState, currentEdge));
-        unresolvedUses.addAll(getUses(currentState, currentEdge));
-      }
-
+      unresolvedUses.removeAll(getDef(currentState, currentEdge));
+      unresolvedUses.addAll(getUses(currentState, currentEdge));
       expandedUses.put(currentState, new HashSet<>(unresolvedUses));
     }
 
@@ -188,13 +177,7 @@ public class UseDefRelation {
         state = iterator.getPreviousAbstractState();
       }
 
-      if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
-        for (CFAEdge singleEdge : Lists.reverse(((MultiEdge)edge).getEdges())) {
-          updateUseDefRelation(state, singleEdge);
-        }
-      } else {
-        updateUseDefRelation(state, edge);
-      }
+      updateUseDefRelation(state, edge);
 
       // stop the traversal once a fix-point is reached
       if(hasContradictingAssumeEdgeBeenHandled && unresolvedUses.isEmpty()) {

@@ -523,9 +523,6 @@ cfa.useCFACloningForMultiThreadedPrograms = false
 # unwind recursive functioncalls (bounded to max call stack size)
 cfa.useFunctionCallUnwinding = false
 
-# combine sequences of simple edges into a single edge
-cfa.useMultiEdges = false
-
 # Dump domain type statistics to a CSV file.
 cfa.variableClassification.domainTypeStatisticsFile = no default value
 
@@ -933,11 +930,6 @@ cpa.composite.inCPAEnabledAnalysis = false
 # cpas agree on this. This is probably what you want.
 cpa.composite.merge = "AGREE"
   allowed values: [PLAIN, AGREE]
-
-# Split MultiEdges and pass each inner edge to the component CPAs to allow
-# strengthen calls after each single edge. Does not work with backwards
-# analysis!
-cpa.composite.splitMultiEdges = false
 
 # Limit for Java heap memory used by CPAchecker (in MB, not MiB!; -1 for
 # infinite)

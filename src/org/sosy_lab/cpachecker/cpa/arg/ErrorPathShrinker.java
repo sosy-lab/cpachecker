@@ -64,7 +64,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -160,10 +159,6 @@ public final class ErrorPathShrinker {
 
         break;
 
-      case MultiEdge:
-        handleMultiEdge((MultiEdge) cfaEdge);
-        break;
-
       default:
         handleSimpleEdge(cfaEdge);
     }
@@ -203,14 +198,6 @@ public final class ErrorPathShrinker {
       default:
         throw new AssertionError("unknown edge type");
     }
-  }
-
-  private void handleMultiEdge(MultiEdge cfaEdge) {
-    for (final CFAEdge innerEdge : Lists.reverse(cfaEdge.getEdges())) {
-      currentCFAEdge = innerEdge;
-      handleSimpleEdge(innerEdge);
-    }
-    currentCFAEdge = cfaEdge; // reset edge
   }
 
   private void handleBlankEdge(BlankEdge cfaEdge) {

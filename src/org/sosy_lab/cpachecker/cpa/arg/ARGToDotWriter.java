@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
@@ -33,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -179,10 +177,6 @@ public class ARGToDotWriter {
         boolean colored = highlightEdge.apply(Pair.of(state, succesorState));
         if (colored) {
           builder.append("color=\"red\" ");
-        }
-
-        if (edges.size() == 1 && Iterables.getOnlyElement(edges) instanceof MultiEdge) {
-          edges = ((MultiEdge)Iterables.getOnlyElement(edges)).getEdges();
         }
 
         builder.append("label=\"");

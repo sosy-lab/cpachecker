@@ -383,10 +383,6 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
       result = IS_BLANK_EDGE_IMPORTANT;
       break;
 
-    case MultiEdge:
-      // TODO is support possible?
-      throw new AssertionError("multiEdge not supported: " + edge.getRawStatement());
-
     default:
       throw new AssertionError("unhandled edge: " + edge.getRawStatement());
     }

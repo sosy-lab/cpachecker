@@ -49,8 +49,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -83,7 +81,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -150,109 +147,61 @@ public class AssignmentToPathAllocator {
 
     int ssaMapIndex = 0;
 
+    /*We always look at the precise path, with resolved multi edges*/
     PathIterator pathIt = pPath.fullPathIterator();
 
     while (pathIt.hasNext()) {
       shutdownNotifier.shutdownIfNecessary();
       CFAEdge cfaEdge = pathIt.getOutgoingEdge();
 
-      /*We always look at the precise path, with resolved multi edges*/
-      if (cfaEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
-        Iterator<CFAEdge> it = ((MultiEdge) cfaEdge).iterator();
-        while (it.hasNext()) {
-          CFAEdge singleCfaEdge = it.next();
-          variableEnvironment = new HashMap<>(variableEnvironment);
-          functionEnvironment = HashMultimap.create(functionEnvironment);
-          Collection<ValueAssignment> terms =
-              assignableTerms.getAssignableTermsAtPosition().get(ssaMapIndex);
+      // TODO is all this copying really necessary?
+      variables = new HashMap<>(variables);
+      memory = new HashMap<>(memory);
+      variableEnvironment = new HashMap<>(variableEnvironment);
+      functionEnvironment = HashMultimap.create(functionEnvironment);
+      Collection<ValueAssignment> terms =
+          assignableTerms.getAssignableTermsAtPosition().get(ssaMapIndex);
 
-          SSAMap ssaMap = pSSAMaps.get(ssaMapIndex);
-          ConcreteStatePathNode concreteStatePathNode;
+      SSAMap ssaMap = pSSAMaps.get(ssaMapIndex);
 
-          // more edges to come
-          if (it.hasNext()) {
-            concreteStatePathNode =
-                createIntermediateConcreteStateNode(
-                    singleCfaEdge,
-                    ssaMap,
-                    variableEnvironment,
-                    variables,
-                    functionEnvironment,
-                    memory,
-                    addressOfVariables,
-                    terms,
-                    evaluator);
+      boolean hasNextPositionAState;
 
-            // last edge of multiedge we have to do the computation here
-          } else {
-            concreteStatePathNode =
-                createSingleConcreteStateNode(
-                    singleCfaEdge,
-                    ssaMap,
-                    variableEnvironment,
-                    variables,
-                    functionEnvironment,
-                    memory,
-                    addressOfVariables,
-                    terms,
-                    evaluator);
-          }
-
-          pathWithAssignments.add(concreteStatePathNode);
-          ssaMapIndex++;
-        }
-
-        // we are in an ARG hole (formerly known as multi-edge)
+      if (pathIt.hasNext()) {
+        pathIt.advance();
+        hasNextPositionAState = pathIt.isPositionWithState();
+        pathIt.rewind();
       } else {
-        // TODO is all this copying really necessary?
-        variables = new HashMap<>(variables);
-        memory = new HashMap<>(memory);
-        variableEnvironment = new HashMap<>(variableEnvironment);
-        functionEnvironment = HashMultimap.create(functionEnvironment);
-        Collection<ValueAssignment> terms =
-            assignableTerms.getAssignableTermsAtPosition().get(ssaMapIndex);
-
-        SSAMap ssaMap = pSSAMaps.get(ssaMapIndex);
-
-        boolean hasNextPositionAState;
-
-        if (pathIt.hasNext()) {
-          pathIt.advance();
-          hasNextPositionAState = pathIt.isPositionWithState();
-          pathIt.rewind();
-        } else {
-          hasNextPositionAState = false;
-        }
-
-        if (!hasNextPositionAState) {
-          pathWithAssignments.add(
-              createIntermediateConcreteStateNode(
-                  cfaEdge,
-                  pSSAMaps.get(ssaMapIndex),
-                  variableEnvironment,
-                  variables,
-                  functionEnvironment,
-                  memory,
-                  addressOfVariables,
-                  terms,
-                  evaluator));
-
-          // we are on a normal position in the ARG (state is available)
-        } else {
-          pathWithAssignments.add(
-              createSingleConcreteStateNode(
-                  cfaEdge,
-                  ssaMap,
-                  variableEnvironment,
-                  variables,
-                  functionEnvironment,
-                  memory,
-                  addressOfVariables,
-                  terms,
-                  evaluator));
-        }
-        ssaMapIndex++;
+        hasNextPositionAState = false;
       }
+
+      if (!hasNextPositionAState) {
+        pathWithAssignments.add(
+            createIntermediateConcreteStateNode(
+                cfaEdge,
+                pSSAMaps.get(ssaMapIndex),
+                variableEnvironment,
+                variables,
+                functionEnvironment,
+                memory,
+                addressOfVariables,
+                terms,
+                evaluator));
+
+        // we are on a normal position in the ARG (state is available)
+      } else {
+        pathWithAssignments.add(
+            createSingleConcreteStateNode(
+                cfaEdge,
+                ssaMap,
+                variableEnvironment,
+                variables,
+                functionEnvironment,
+                memory,
+                addressOfVariables,
+                terms,
+                evaluator));
+      }
+      ssaMapIndex++;
 
       pathIt.advance();
     }

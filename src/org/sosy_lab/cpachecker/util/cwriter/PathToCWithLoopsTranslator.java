@@ -23,22 +23,18 @@
  */
 package org.sosy_lab.cpachecker.util.cwriter;
 
-import static com.google.common.base.Predicates.*;
+import static com.google.common.base.Predicates.instanceOf;
+import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 import static java.util.Collections.singletonList;
-import static org.sosy_lab.common.Appenders.*;
+import static org.sosy_lab.common.Appenders.concat;
+import static org.sosy_lab.common.Appenders.forIterable;
 import static org.sosy_lab.cpachecker.util.cwriter.LoopCollectingEdgeVisitor.getLoopsOfNode;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Stack;
-import java.util.regex.Pattern;
+import com.google.common.base.Joiner;
+import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.configuration.Configuration;
@@ -62,10 +58,16 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Predicate;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableSet;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Stack;
+import java.util.regex.Pattern;
 
 /**
  * This class translates a given ARGpath into c-code. The created code consists
@@ -712,7 +714,6 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
     case StatementEdge:
     case ReturnStatementEdge:
     case DeclarationEdge:
-    case MultiEdge:
       return super.processSimpleEdge(edge, currentBlock) + "\n";
 
     case AssumeEdge: {

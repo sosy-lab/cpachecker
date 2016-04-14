@@ -28,7 +28,6 @@ import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcreteStatePathNode;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.IntermediateConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.SingleConcreteState;
@@ -96,20 +95,10 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
       CFAEdge edge = it.next();
       CFAEdgeWithAssumptions cfaWithAssignment = pathWithAssignments.get(index);
 
-      if (edge instanceof MultiEdge) {
-        for (CFAEdge innerEdge : (MultiEdge) edge) {
-          cfaWithAssignment = pathWithAssignments.get(index);
-          if (!innerEdge.equals(cfaWithAssignment.getCFAEdge())) {
-            return false;
-          }
-          index++;
-        }
-      } else {
-        if (!edge.equals(cfaWithAssignment.getCFAEdge())) {
-          return false;
-        }
-        index++;
+      if (!edge.equals(cfaWithAssignment.getCFAEdge())) {
+        return false;
       }
+      index++;
     }
 
     return true;
@@ -126,27 +115,15 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
       CFAEdgeWithAssumptions edgeWithAssignment = pathWithAssignments.get(pathIterator.getIndex() + multiEdgeOffset);
       CFAEdge argPathEdge = pathIterator.getOutgoingEdge();
 
-      if (argPathEdge instanceof MultiEdge) {
-        for (CFAEdge innerEdge : (MultiEdge) argPathEdge) {
-          edgeWithAssignment = pathWithAssignments.get(pathIterator.getIndex() + multiEdgeOffset);
-          if (!edgeWithAssignment.getCFAEdge().equals(innerEdge)) {
-            // path is not equivalent
-            return null;
-          }
-          result.put(pathIterator.getAbstractState(), edgeWithAssignment);
-          multiEdgeOffset++;
-        }
-        multiEdgeOffset--;
+      if (!edgeWithAssignment.getCFAEdge().equals(argPathEdge)) {
+        // path is not equivalent
+        return null;
+      }
+
+      if (pathIterator.isPositionWithState()) {
+        result.put(pathIterator.getAbstractState(), edgeWithAssignment);
       } else {
-        if (!edgeWithAssignment.getCFAEdge().equals(argPathEdge)) {
-          // path is not equivalent
-          return null;
-        }
-        if (pathIterator.isPositionWithState()) {
-          result.put(pathIterator.getAbstractState(), edgeWithAssignment);
-        } else {
-          result.put(pathIterator.getPreviousAbstractState(), edgeWithAssignment);
-        }
+        result.put(pathIterator.getPreviousAbstractState(), edgeWithAssignment);
       }
 
       pathIterator.advance();

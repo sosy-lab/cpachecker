@@ -23,9 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import com.google.common.base.Optional;
+import com.google.common.collect.Iterables;
 
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
@@ -64,7 +63,6 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
@@ -73,8 +71,9 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.Iterables;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 
 public class EdgeAnalyzer {
@@ -105,14 +104,6 @@ public class EdgeAnalyzer {
       AssumeEdge assumeEdge = (AssumeEdge) pCfaEdge;
       AExpression expression = assumeEdge.getExpression();
       return getInvolvedVariableTypes(expression, pCfaEdge);
-    }
-    case MultiEdge: {
-      MultiEdge multiEdge = (MultiEdge) pCfaEdge;
-      Map<MemoryLocation, CType> result = new HashMap<>();
-      for (CFAEdge edge : multiEdge) {
-        result.putAll(getInvolvedVariableTypes(edge));
-      }
-      return result;
     }
     case DeclarationEdge: {
       ADeclarationEdge declarationEdge = (ADeclarationEdge) pCfaEdge;

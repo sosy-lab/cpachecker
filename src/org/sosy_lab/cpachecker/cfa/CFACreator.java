@@ -72,7 +72,6 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFADeclarationMover;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFASimplifier;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFunctionPointerResolver;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.ExpandFunctionPointerArrayAssignments;
-import org.sosy_lab.cpachecker.cfa.postprocessing.function.MultiEdgeCreator;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.NullPointerChecks;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFAReduction;
@@ -152,10 +151,6 @@ public class CFACreator {
   @Option(secure=true, name="analysis.useGlobalVars",
       description="add declarations for global variables before entry function")
   private boolean useGlobalVars = true;
-
-  @Option(secure=true, name="cfa.useMultiEdges",
-      description="combine sequences of simple edges into a single edge")
-  private boolean useMultiEdges = false;
 
   @Option(secure=true, name="cfa.removeIrrelevantForSpecification",
       description="remove paths from CFA that cannot lead to a specification violation")
@@ -634,10 +629,6 @@ private boolean classifyNodes = false;
     if (useGlobalVars) {
       // add global variables at the beginning of main
       insertGlobalDeclarations(cfa, globalDeclarations);
-    }
-
-    if (useMultiEdges) {
-      MultiEdgeCreator.createMultiEdges(cfa);
     }
 
     return cfa;

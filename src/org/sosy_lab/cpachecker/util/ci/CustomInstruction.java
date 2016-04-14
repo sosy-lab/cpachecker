@@ -23,16 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.ci;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
+import com.google.common.base.Joiner;
+import com.google.common.collect.Iterables;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
@@ -70,7 +62,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -84,8 +75,16 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.Iterables;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
 
 // Note that this class is not complete yet. Most of the comments are just for me and my advisor, they will disappear later!
 public class CustomInstruction{
@@ -498,9 +497,6 @@ public class CustomInstruction{
       case FunctionReturnEdge:
         // no additional check needed.
         return;
-      case MultiEdge:
-        compareMultiEdge((MultiEdge) ciEdge, (MultiEdge) aciEdge, ciVarToAciVar, outVariables);
-        return;
       case CallToReturnEdge:
         compareStatementsOfStatementEdge(((CFunctionSummaryEdge) ciEdge).getExpression(), ((CFunctionSummaryEdge) aciEdge).getExpression(), ciVarToAciVar, outVariables);
         return;
@@ -713,17 +709,6 @@ public class CustomInstruction{
     }
     for (int i=0; i<ciArguments.size(); i++) {
       ciArguments.get(i).accept(new StructureComparisonVisitor(aciArguments.get(i), ciVarToAciVar));
-    }
-  }
-
-  private void compareMultiEdge(final MultiEdge ciEdge, final MultiEdge aciEdge,
-      final Map<String,String> ciVarToAciVar, final Collection<String> outVariables)
-      throws AppliedCustomInstructionParsingFailedException {
-    if (ciEdge.getEdges().size() != aciEdge.getEdges().size()) {
-      throw new AppliedCustomInstructionParsingFailedException("The MulitEdges of ci " + ciEdge + " and aci " + aciEdge + " have a different amount of edges");
-    }
-    for (int i=0; i<ciEdge.getEdges().size(); i++) {
-      computeMappingOfCiAndAci(ciEdge.getEdges().get(i), aciEdge.getEdges().get(i), ciVarToAciVar, outVariables);
     }
   }
 

@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -407,15 +406,6 @@ public abstract class PathTranslator {
         currentBlock.addDeclaration(lDeclarationEdge);
         return lDeclarationEdge.getCode();
       }
-    }
-
-    case MultiEdge: {
-      StringBuilder sb = new StringBuilder();
-
-      for (CFAEdge edge : (MultiEdge) pCFAEdge) {
-        sb.append(processSimpleEdge(edge, currentBlock));
-      }
-      return sb.toString();
     }
 
     default:

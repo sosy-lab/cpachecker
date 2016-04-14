@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -154,10 +153,6 @@ public class ValueAnalysisConcreteErrorPathAllocator {
 
       ValueAnalysisState valueState = edgeStatePair.getFirst();
       List<CFAEdge> edges = edgeStatePair.getSecond();
-
-      if (edges.size() == 1 && edges.get(0) instanceof MultiEdge) {
-        edges = ((MultiEdge)edges.get(0)).getEdges();
-      }
 
       if (edges.size() > 1) {
         Iterator<CFAEdge> it = Lists.reverse(edges).iterator();

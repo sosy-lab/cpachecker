@@ -23,16 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.pcc;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.Set;
+import com.google.common.collect.Maps;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -68,7 +59,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -87,7 +77,16 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import com.google.common.collect.Maps;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.Set;
 
 
 public class ProofSlicer {
@@ -281,20 +280,6 @@ public class ProofSlicer {
         } else {
           updatedVars.addAll(succVars);
         }
-        return;
-      case MultiEdge:
-        Set<String> sSet = new HashSet<>(succVars);
-        Set<String> pSet = new HashSet<>();
-
-        List<CFAEdge> edges = ((MultiEdge) edge).getEdges();
-        for (int i = edges.size() - 1; i >= 0; i--) {
-          addTransferSet(edges.get(i), sSet, pSet);
-
-          sSet = pSet;
-          pSet = new HashSet<>();
-        }
-
-        updatedVars.addAll(sSet);
         return;
       case CallToReturnEdge:
         assert (false);
