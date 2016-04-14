@@ -171,7 +171,8 @@ try:
         def _log_future_exception_and_fallback(self, result):
             if result.exception() is not None:
                 logging.warning('Error during result processing.', exc_info=True)
-                self._fall_back()
+                if not self._shutdown:
+                    self._fall_back()
 
         def _should_reconnect(self, error):
             if self._new_runs:
