@@ -3,6 +3,7 @@
 <benchmark tool="cpachecker" timelimit="90 s" hardtimelimit="100 s" memlimit="1500 MB" cpuCores="2">
 
   <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
+  <resultfiles></resultfiles>
 
   <option name="-noout"/>
   <option name="-heap">1000M</option>

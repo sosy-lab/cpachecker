@@ -8,6 +8,8 @@
   The rundefinition needs a runtime of 45 minutes.
   -->
 
+  <resultfiles></resultfiles>
+
   <option name="-noout"/>
   <option name="-heap">1800M</option>
 
