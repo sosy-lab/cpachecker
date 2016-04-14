@@ -72,13 +72,15 @@ public final class CompositeTransferRelation implements TransferRelation {
           + " Does not work with backwards analysis!")
   private boolean splitMultiEdges = false;
 
-  @Option(secure=true, description="Instead of introducing MultiEdges in the CFA"
-      + " the Composite CPA can handle all paths in the CFA where MultiEdges could"
-      + " be if they were there. This has the big advantage, that we can have"
-      + " error locations in the middle of multi edges, which is not possible with"
-      + "static MultiEdges.\n Note that while this option is set to true,"
-      + " cfa.useMultiEdges has to be set to false.")
-  private boolean useDynamicMultiEdges = false;
+  @Option(secure=true, description="By enabling this option the CompositeTransferRelation"
+      + " will compute abstract successors for as many edges as possible in one call. For"
+      + " any chain of edges in the CFA which does not have more than one outgoing or leaving"
+      + " edge the components of the CompositeCPA are called for each of the edges in this"
+      + " chain. Strengthening and PrecisionAdjustment are still computed after every edge."
+      + " The main difference is that while this option is enabled not every ARGState may"
+      + " have a single edge connecting to the child/parent ARGState but it may instead"
+      + " be a list.")
+  private boolean aggregateBasicBlocks = false;
 
   private final ImmutableList<TransferRelation> transferRelations;
   private final CFA cfa;
@@ -144,7 +146,7 @@ public final class CompositeTransferRelation implements TransferRelation {
   private void getAbstractSuccessorForEdge(CompositeState compositeState, CompositePrecision compositePrecision, CFAEdge cfaEdge,
       Collection<CompositeState> compositeSuccessors) throws CPATransferException, InterruptedException {
 
-    if (useDynamicMultiEdges) {
+    if (aggregateBasicBlocks) {
 
       assert !(cfaEdge instanceof MultiEdge) : "Static and dynamic MultiEdges may not be mixed.";
 
