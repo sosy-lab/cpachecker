@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.value.refiner;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -105,31 +106,39 @@ public class ValueAnalysisConcreteErrorPathAllocator {
 
   public ConcreteStatePath allocateAssignmentsToPath(ARGPath pPath) {
 
-    List<Pair<ValueAnalysisState, CFAEdge>> path = new ArrayList<>(pPath.size());
+    List<Pair<ValueAnalysisState, List<CFAEdge>>> path = new ArrayList<>(pPath.size());
 
-    PathIterator it = pPath.pathIterator();
+    PathIterator it = pPath.fullPathIterator();
 
     while (it.hasNext()) {
-      it.advance();
-      ValueAnalysisState state = AbstractStates.extractStateByType(it.getAbstractState(), ValueAnalysisState.class);
-      CFAEdge edge = it.getIncomingEdge();
+      List<CFAEdge> innerEdges = new ArrayList<>();
+
+      do {
+        it.advance();
+        innerEdges.add(it.getIncomingEdge());
+      } while (!it.isPositionWithState());
+
+      ValueAnalysisState state =
+          AbstractStates.extractStateByType(it.getAbstractState(), ValueAnalysisState.class);
 
       if (state == null) {
         return null;
       }
 
-      path.add(Pair.of(state, edge));
+      path.add(Pair.of(state, innerEdges));
     }
 
     return createConcreteStatePath(path);
   }
 
-  public CFAPathWithAssumptions allocateAssignmentsToPath(List<Pair<ValueAnalysisState, CFAEdge>> pPath) {
+  public CFAPathWithAssumptions allocateAssignmentsToPath(
+      List<Pair<ValueAnalysisState, List<CFAEdge>>> pPath) {
     ConcreteStatePath concreteStatePath = createConcreteStatePath(pPath);
     return CFAPathWithAssumptions.of(concreteStatePath, assumptionToEdgeAllocator);
   }
 
-  private ConcreteStatePath createConcreteStatePath(List<Pair<ValueAnalysisState, CFAEdge>> pPath) {
+  private ConcreteStatePath createConcreteStatePath(
+      List<Pair<ValueAnalysisState, List<CFAEdge>>> pPath) {
 
     List<ConcreteStatePathNode> result = new ArrayList<>(pPath.size());
 
@@ -141,13 +150,17 @@ public class ValueAnalysisConcreteErrorPathAllocator {
         generateVariableAddresses(
             FluentIterable.from(pPath).transform(Pair.<ValueAnalysisState>getProjectionToFirst()));
 
-    for (Pair<ValueAnalysisState, CFAEdge> edgeStatePair : pPath) {
+    for (Pair<ValueAnalysisState, List<CFAEdge>> edgeStatePair : pPath) {
 
       ValueAnalysisState valueState = edgeStatePair.getFirst();
-      CFAEdge edge = edgeStatePair.getSecond();
+      List<CFAEdge> edges = edgeStatePair.getSecond();
 
-      if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
-        Iterator<CFAEdge> it = ((MultiEdge) edge).getEdges().reverse().iterator();
+      if (edges.size() == 1 && edges.get(0) instanceof MultiEdge) {
+        edges = ((MultiEdge)edges.get(0)).getEdges();
+      }
+
+      if (edges.size() > 1) {
+        Iterator<CFAEdge> it = Lists.reverse(edges).iterator();
         List<SingleConcreteState> intermediateStates = new ArrayList<>();
         Set<CLeftHandSide> alreadyAssigned = new HashSet<>();
         boolean isFirstIteration = true;
@@ -172,7 +185,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
       } else {
         result.add(
             new SingleConcreteState(
-                edge,
+                Iterables.getOnlyElement(edges),
                 new ConcreteState(
                     ImmutableMap.<LeftHandSide, Object>of(),
                     allocateAddresses(valueState, variableAddresses),

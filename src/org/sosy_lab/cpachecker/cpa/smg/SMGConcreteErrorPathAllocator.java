@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -92,45 +93,55 @@ public class SMGConcreteErrorPathAllocator {
 
   public ConcreteStatePath allocateAssignmentsToPath(ARGPath pPath) {
 
-    List<Pair<SMGState, CFAEdge>> path = new ArrayList<>(pPath.size());
+    List<Pair<SMGState, List<CFAEdge>>> path = new ArrayList<>(pPath.size());
 
-    PathIterator it = pPath.pathIterator();
+    PathIterator it = pPath.fullPathIterator();
 
     while (it.hasNext()) {
-      it.advance();
+      List<CFAEdge> innerEdges = new ArrayList<>();
+
+      do {
+        it.advance();
+        innerEdges.add(it.getIncomingEdge());
+      } while (!it.isPositionWithState());
+
       SMGState state = AbstractStates.extractStateByType(it.getAbstractState(), SMGState.class);
-      CFAEdge edge = it.getIncomingEdge();
 
       if (state == null) {
         return null;
       }
 
-      path.add(Pair.of(state, edge));
+      path.add(Pair.of(state, innerEdges));
     }
 
     return createConcreteStatePath(path);
   }
 
-  public CFAPathWithAssumptions allocateAssignmentsToPath(List<Pair<SMGState, CFAEdge>> pPath) {
+  public CFAPathWithAssumptions allocateAssignmentsToPath(
+      List<Pair<SMGState, List<CFAEdge>>> pPath) {
     ConcreteStatePath concreteStatePath = createConcreteStatePath(pPath);
     return CFAPathWithAssumptions.of(concreteStatePath, assumptionToEdgeAllocator);
   }
 
-  private ConcreteStatePath createConcreteStatePath(List<Pair<SMGState, CFAEdge>> pPath) {
+  private ConcreteStatePath createConcreteStatePath(List<Pair<SMGState, List<CFAEdge>>> pPath) {
 
-    List<ConcreteStatePathNode> result = new ArrayList<>(pPath.size());
+    List<ConcreteStatePathNode> result = new ArrayList<>();
 
     // Until SMGObjects are comparable for persistant maps, this object is mutable
     // and depends on side effects
     SMGObjectAddressMap variableAddresses = new SMGObjectAddressMap();
 
-    for (Pair<SMGState, CFAEdge> edgeStatePair : pPath) {
+    for (Pair<SMGState, List<CFAEdge>> edgeStatePair : pPath) {
 
       SMGState pSMGState = edgeStatePair.getFirst();
-      CFAEdge edge = edgeStatePair.getSecond();
+      List<CFAEdge> edges = edgeStatePair.getSecond();
 
-      if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
-        Iterator<CFAEdge> it = ((MultiEdge) edge).getEdges().reverse().iterator();
+      if (edges.size() == 1 && edges.get(0) instanceof MultiEdge) {
+        edges = ((MultiEdge)edges.get(0)).getEdges();
+      }
+
+      if (edges.size() > 1) {
+        Iterator<CFAEdge> it = Lists.reverse(edges).iterator();
         List<SingleConcreteState> intermediateStates = new ArrayList<>();
         Set<CLeftHandSide> alreadyAssigned = new HashSet<>();
         while (it.hasNext()) {
@@ -153,7 +164,7 @@ public class SMGConcreteErrorPathAllocator {
       } else {
         result.add(
             new SingleConcreteState(
-                edge,
+                Iterables.getOnlyElement(edges),
                 new ConcreteState(
                     ImmutableMap.<LeftHandSide, Object>of(),
                     allocateAddresses(pSMGState, variableAddresses),
