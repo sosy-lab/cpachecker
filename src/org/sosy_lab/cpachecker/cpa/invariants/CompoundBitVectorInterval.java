@@ -46,7 +46,7 @@ import javax.annotation.Nullable;
 /**
  * Instances of this class represent compound states of intervals.
  */
-public class CompoundBitVectorInterval implements CompoundInterval, BitVectorType {
+public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitVectorType {
 
   private final BitVectorInfo info;
 
