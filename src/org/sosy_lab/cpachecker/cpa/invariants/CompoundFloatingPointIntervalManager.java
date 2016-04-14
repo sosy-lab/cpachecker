@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
+import com.ibm.icu.math.BigDecimal;
+
 import java.math.BigInteger;
 
 
@@ -116,6 +118,28 @@ public class CompoundFloatingPointIntervalManager implements CompoundIntervalMan
   public CompoundInterval singleton(BigInteger pValue) {
     // TODO Auto-generated method stub
     return new CompoundFloatingPointInterval(typeInfo);
+  }
+
+  @Override
+  public CompoundInterval singleton(Number pValue) {
+    if (pValue instanceof BigInteger) {
+      return singleton((BigInteger) pValue);
+    }
+    if (pValue instanceof Long
+        || pValue instanceof Integer
+        || pValue instanceof Short
+        || pValue instanceof Byte) {
+      return singleton(pValue.longValue());
+    }
+    if (pValue instanceof Float || pValue instanceof Double) {
+      // TODO something something pValue.doubleValue();
+      return new CompoundFloatingPointInterval(typeInfo);
+    }
+    if (pValue instanceof BigDecimal) {
+      // TODO
+      return new CompoundFloatingPointInterval(typeInfo);
+    }
+    throw new IllegalArgumentException("Unsupported number: " + pValue);
   }
 
   @Override

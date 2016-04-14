@@ -138,11 +138,11 @@ public class ToCodeFormulaVisitor
    * @return a bit vector formula representing the given value as a bit vector
    * with the given size.
    */
-  private String asFormulaString(TypeInfo pInfo, BigInteger pValue) {
-    if (pInfo instanceof BitVectorInfo) {
+  private String asFormulaString(TypeInfo pInfo, Number pValue) {
+    if (pInfo instanceof BitVectorInfo && pValue instanceof BigInteger) {
       BitVectorInfo bitVectorInfo = (BitVectorInfo) pInfo;
       int size = bitVectorInfo.getSize();
-      BigInteger value = pValue;
+      BigInteger value = (BigInteger) pValue;
       // Get only the [size] least significant bits
       BigInteger upperExclusive = BigInteger.valueOf(2).pow(size);
       boolean negative = value.signum() < 0;

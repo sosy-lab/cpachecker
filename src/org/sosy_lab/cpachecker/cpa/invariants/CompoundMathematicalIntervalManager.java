@@ -109,6 +109,20 @@ public enum CompoundMathematicalIntervalManager implements CompoundIntervalManag
   }
 
   @Override
+  public CompoundInterval singleton(Number pValue) {
+    if (pValue instanceof BigInteger) {
+      return singleton((BigInteger) pValue);
+    }
+    if (pValue instanceof Long
+        || pValue instanceof Integer
+        || pValue instanceof Short
+        || pValue instanceof Byte) {
+      return singleton((long) pValue);
+    }
+    throw new IllegalArgumentException("Unsupported number: " + pValue);
+  }
+
+  @Override
   public CompoundInterval castedSingleton(BigInteger pValue) {
     return singleton(pValue);
   }

@@ -32,6 +32,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
+import com.ibm.icu.math.BigDecimal;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
@@ -1384,11 +1385,21 @@ public class InvariantsState implements AbstractState,
         final CompoundInterval newValue;
         if (compoundIntervalManager.contains(oldExactValue, currentExactValue)) {
           newValue = oldExactValue;
-        } else if (compoundIntervalManager.lessEqual(oldExactValue, currentExactValue).isDefinitelyTrue()
-            || oldExactValue.hasUpperBound() && (!currentExactValue.hasUpperBound() || oldExactValue.getUpperBound().compareTo(currentExactValue.getUpperBound()) < 0)) {
+        } else if (compoundIntervalManager
+                .lessEqual(oldExactValue, currentExactValue)
+                .isDefinitelyTrue()
+            || oldExactValue.hasUpperBound()
+                && (!currentExactValue.hasUpperBound()
+                    || compare(oldExactValue.getUpperBound(), currentExactValue.getUpperBound())
+                        < 0)) {
           newValue = compoundIntervalManager.union(oldExactValue, currentExactValue).extendToMaxValue();
-        } else if (compoundIntervalManager.greaterEqual(oldExactValue, currentExactValue).isDefinitelyTrue()
-            || oldExactValue.hasLowerBound() && (!currentExactValue.hasLowerBound() || oldExactValue.getLowerBound().compareTo(currentExactValue.getLowerBound()) > 0)) {
+        } else if (compoundIntervalManager
+                .greaterEqual(oldExactValue, currentExactValue)
+                .isDefinitelyTrue()
+            || oldExactValue.hasLowerBound()
+                && (!currentExactValue.hasLowerBound()
+                    || compare(oldExactValue.getLowerBound(), currentExactValue.getLowerBound())
+                        > 0)) {
           newValue = compoundIntervalManager.union(oldExactValue, currentExactValue).extendToMinValue();
         } else {
           NumeralFormula<CompoundInterval> newFormula = resultEnvironment.get(memoryLocation);
@@ -1601,6 +1612,33 @@ public class InvariantsState implements AbstractState,
         && !pMemoryLocation.getIdentifier().contains("->")
         && !pMemoryLocation.getIdentifier().contains(".")
         && !pMemoryLocation.getIdentifier().contains("[");
+  }
+
+  private static int compare(Number pOp1, Number pOp2) {
+    if (pOp1 instanceof BigInteger && pOp2 instanceof BigInteger) {
+      return ((BigInteger) pOp1).compareTo((BigInteger) pOp2);
+    }
+    if (pOp1 instanceof BigDecimal && pOp2 instanceof BigDecimal) {
+      return ((BigDecimal) pOp1).compareTo((BigDecimal) pOp2);
+    }
+    if (isAssignableToLong(pOp1) && isAssignableToLong(pOp2)) {
+      return Long.compare(pOp1.longValue(), pOp2.longValue());
+    }
+    if (isAssignableToDouble(pOp1) && isAssignableToDouble(pOp2)) {
+      return Double.compare(pOp1.doubleValue(), pOp2.doubleValue());
+    }
+    throw new IllegalArgumentException("Unsupported comparsion: " + pOp1 + " to " + pOp2);
+  }
+
+  private static boolean isAssignableToLong(Number pNumber) {
+    return pNumber instanceof Long
+        || pNumber instanceof Integer
+        || pNumber instanceof Short
+        || pNumber instanceof Byte;
+  }
+
+  private static boolean isAssignableToDouble(Number pNumber) {
+    return pNumber instanceof Double || pNumber instanceof Float;
   }
 
 }

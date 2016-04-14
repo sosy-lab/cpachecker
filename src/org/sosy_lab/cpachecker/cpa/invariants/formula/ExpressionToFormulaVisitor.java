@@ -75,6 +75,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundBitVectorInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundBitVectorIntervalManagerFactory;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntegralInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManager;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
@@ -699,23 +700,23 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
     CompoundIntervalManager cim =
         pCompoundIntervalManagerFactory.createCompoundIntervalManager(typeInfo);
 
-    if (typeInfo instanceof BitVectorInfo) {
+    FormulaCompoundStateEvaluationVisitor evaluator =
+        new FormulaCompoundStateEvaluationVisitor(pCompoundIntervalManagerFactory);
+    CompoundInterval value = formula.accept(evaluator, pEnvironment);
+    if (value instanceof CompoundIntegralInterval && typeInfo instanceof BitVectorInfo) {
       BitVectorInfo bitVectorInfo = (BitVectorInfo) typeInfo;
       BigInteger lowerInclusiveBound = bitVectorInfo.getMinValue();
       BigInteger upperExclusiveBound = bitVectorInfo.getMaxValue().add(BigInteger.ONE);
-
-      FormulaCompoundStateEvaluationVisitor evaluator =
-          new FormulaCompoundStateEvaluationVisitor(pCompoundIntervalManagerFactory);
-      CompoundInterval value = formula.accept(evaluator, pEnvironment);
+      CompoundIntegralInterval integralValue = (CompoundIntegralInterval) value;
 
       if (typeInfo.isSigned()) {
         if (!value.hasLowerBound() || !value.hasUpperBound()) {
           return InvariantsFormulaManager.INSTANCE.asConstant(typeInfo, cim.allPossibleValues());
         }
-        if (value.getLowerBound().compareTo(lowerInclusiveBound) < 0) {
+        if (integralValue.getLowerBound().compareTo(lowerInclusiveBound) < 0) {
           return InvariantsFormulaManager.INSTANCE.asConstant(typeInfo, cim.allPossibleValues());
         }
-        if (value.getUpperBound().compareTo(upperExclusiveBound) >= 0) {
+        if (integralValue.getUpperBound().compareTo(upperExclusiveBound) >= 0) {
           return InvariantsFormulaManager.INSTANCE.asConstant(typeInfo, cim.allPossibleValues());
         }
         // Handle implementation-defined cast to signed
@@ -747,9 +748,9 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
         return InvariantsFormulaManager.INSTANCE.asConstant(typeInfo, cim.allPossibleValues());
       }
 
-      if (value.getLowerBound().compareTo(lowerInclusiveBound) >= 0
+      if (integralValue.getLowerBound().compareTo(lowerInclusiveBound) >= 0
           && value.hasUpperBound()
-          && value.getUpperBound().compareTo(upperExclusiveBound) < 0) {
+          && integralValue.getUpperBound().compareTo(upperExclusiveBound) < 0) {
         return formula;
       }
 

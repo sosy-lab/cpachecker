@@ -336,7 +336,7 @@ public class PartialEvaluator implements
     if (c != null && otherFactor != null) {
       CompoundInterval state = c.getValue();
       if (state.isSingleton()) {
-        BigInteger value = state.getValue();
+        Number value = state.getValue();
         if (value.equals(BigInteger.ONE)) {
           return otherFactor;
         }
