@@ -5,7 +5,7 @@
   <option name="-noout"/>
   <option name="-octagonAnalysis-refiner"/>
 
-  <resultfiles></resultfiles>
+  <resultfiles>dummy</resultfiles>
   <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
 
   <rundefinition>

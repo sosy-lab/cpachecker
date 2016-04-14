@@ -6,7 +6,7 @@
     <option name="-policy-refinement"/>
     <option name="-setprop">cpa.stator.policy.linearizePolicy=true</option>
 
-    <resultfiles></resultfiles>
+    <resultfiles>dummy</resultfiles>
     <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
 
     <tasks>

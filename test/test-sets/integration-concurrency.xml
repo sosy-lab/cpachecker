@@ -10,7 +10,7 @@
   <!-- result files are not needed for buildbot.
   <resultfiles>**.graphml</resultfiles>
   -->
-  <resultfiles></resultfiles>
+  <resultfiles>dummy</resultfiles>
 
   <tasks name="value-concurrency">
     <option name="-valueAnalysis-concurrency"/>
