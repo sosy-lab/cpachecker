@@ -146,7 +146,9 @@ public class CoverageReport {
               for (CFAEdge innerEdge : edges) {
                 handleCoveredEdge(innerEdge, infosPerFile);
               }
-            } else {
+
+              //BAM produces paths with no edge connection thus the list will be empty
+            } else if (!edges.isEmpty()) {
               handleCoveredEdge(Iterables.getOnlyElement(edges), infosPerFile);
             }
           }
@@ -205,11 +207,6 @@ public class CoverageReport {
   private void handleCoveredEdge(
       final CFAEdge pEdge,
       final Map<String, FileCoverageInformation> pCollectors) {
-
-    if (pEdge == null) {
-      //BAM is working
-      return;
-    }
 
     FileLocation loc = pEdge.getFileLocation();
     if (loc.getStartingLineNumber() == 0) {
