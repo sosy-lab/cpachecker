@@ -26,14 +26,8 @@ package org.sosy_lab.cpachecker.core.algorithm.impact;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -71,8 +65,16 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
+import java.io.PrintStream;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * This is an implementation of McMillan's algorithm which was presented in the
@@ -391,56 +393,63 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private boolean dfs(Vertex v, ReachedSet reached)
+  private boolean dfs(Vertex pVertex, ReachedSet reached)
       throws CPAException, InterruptedException, SolverException {
-    if (close(v, reached)) {
-      return true; // no need to expand
-    }
 
-    if (v.isTarget()) {
-      List<Vertex> changedElements = refine(v);
-      if (changedElements.isEmpty()) {
-        return false; // real counterexample
+    Deque<Vertex> stack = new ArrayDeque<>();
+    stack.push(pVertex);
+    while (!stack.isEmpty()) {
+      Vertex v = stack.pop();
+
+      if (close(v, reached)) {
+        return true; // no need to expand
       }
 
-      // optimization: instead of closing all ancestors of v,
-      // close only those that were strengthened during refine
-      for (Vertex w : changedElements) {
-        if (close(w, reached)) {
-          break; // all further elements are covered anyway
+      if (v.isTarget()) {
+        List<Vertex> changedElements = refine(v);
+        if (changedElements.isEmpty()) {
+          return false; // real counterexample
         }
-      }
 
-      assert bfmgr.isFalse(v.getStateFormula());
-      return true; // no need to expand further
-    }
-
-    if (!v.isLeaf()) {
-      return true; // no need to expand
-    }
-
-    if (useForcedCovering) {
-      forceCoverTime.start();
-      try {
-        Precision prec = reached.getPrecision(v);
-        for (AbstractState ae : reached.getReached(v)) {
-          Vertex w = (Vertex)ae;
-          if (mayCover(v, w, prec)) {
-            if (forceCover(v, w, prec)) {
-              assert v.isCovered();
-              return true; // no need to expand
-            }
+        // optimization: instead of closing all ancestors of v,
+        // close only those that were strengthened during refine
+        for (Vertex w : changedElements) {
+          if (close(w, reached)) {
+            break; // all further elements are covered anyway
           }
         }
-      } finally {
-        forceCoverTime.stop();
-      }
-    }
 
-    expand(v, reached);
-    for (Vertex w : v.getChildren()) {
-      if (!bfmgr.isFalse(w.getStateFormula())) {
-        dfs(w, reached);
+        assert bfmgr.isFalse(v.getStateFormula());
+        return true; // no need to expand further
+      }
+
+      if (!v.isLeaf()) {
+        return true; // no need to expand
+      }
+
+      if (useForcedCovering) {
+        forceCoverTime.start();
+        try {
+          Precision prec = reached.getPrecision(v);
+          for (AbstractState ae : reached.getReached(v)) {
+            Vertex w = (Vertex) ae;
+            if (mayCover(v, w, prec)) {
+              if (forceCover(v, w, prec)) {
+                assert v.isCovered();
+                return true; // no need to expand
+              }
+            }
+          }
+        } finally {
+          forceCoverTime.stop();
+        }
+      }
+
+      expand(v, reached);
+      for (Vertex w : v.getChildren()) {
+        if (!bfmgr.isFalse(w.getStateFormula())) {
+          stack.push(w);
+        }
       }
     }
 
