@@ -124,6 +124,9 @@ public class ARGPath extends AbstractAppender {
    * which are null while using getInnerEdges or the pathIterator will be resolved
    * and the complete path from the first {@link ARGState} to the last ARGState
    * is created. This is done by filling up the wholes in the path.
+   *
+   * If there is no path (null edges can not be filled up, may be happening when
+   * using bam) we return an empty list instead.
    */
   public List<CFAEdge> getFullPath() {
     if (fullPath != null) {
@@ -147,8 +150,9 @@ public class ARGPath extends AbstractAppender {
         CFANode curNode = extractLocation(prev);
         CFANode nextNode = extractLocation(succ);
         while (curNode != nextNode) {
-          assert curNode.getNumLeavingEdges() == 1
-                 && curNode.getLeavingSummaryEdge() == null;
+          if (!(curNode.getNumLeavingEdges() == 1 && curNode.getLeavingSummaryEdge() == null)) {
+            return Collections.emptyList();
+          }
 
           CFAEdge intermediateEdge = curNode.getLeavingEdge(0);
           fullPath.add(intermediateEdge);

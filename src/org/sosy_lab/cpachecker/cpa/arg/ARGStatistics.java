@@ -291,15 +291,21 @@ public class ARGStatistics implements IterationStatistics {
       CounterexampleInfo cex = probableCounterexample.get(s);
       if (cex == null) {
         ARGPath path = ARGUtils.getOnePathTo(s);
-
-        CFAPathWithAssumptions assignments = createAssignmentsForPath(path);
-        // we use the imprecise version of the CounterexampleInfo, due to the possible
-        // merges which are done in the used CPAs, but if we can compute a path with assignments,
-        // it is probably precise
-        if (!assignments.isEmpty()) {
-          cex = CounterexampleInfo.feasiblePrecise(path, assignments);
+        if (path.getFullPath().isEmpty()) {
+          // path is invalid,
+          // this might be a partial path in BAM, from an intermediate TargetState to root of its ReachedSet.
+          // TODO this check does not avoid dummy-paths in BAM, that might exist in main-reachedSet.
         } else {
-          cex = CounterexampleInfo.feasibleImprecise(path);
+
+          CFAPathWithAssumptions assignments = createAssignmentsForPath(path);
+          // we use the imprecise version of the CounterexampleInfo, due to the possible
+          // merges which are done in the used CPAs, but if we can compute a path with assignments,
+          // it is probably precise
+          if (!assignments.isEmpty()) {
+            cex = CounterexampleInfo.feasiblePrecise(path, assignments);
+          } else {
+            cex = CounterexampleInfo.feasibleImprecise(path);
+          }
         }
       }
       if (cex != null) {
