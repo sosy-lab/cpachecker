@@ -104,28 +104,6 @@ just run "scripts/cpa.sh -debug ..." and point your debugger to TCP port 5005
 of the respective machine.
 
 
-Develop CPAchecker as Eclipse Plugin for C projects
----------------------------------------------------
-This is currently broken as the plugin needs to be updated
-to work with a Java 7 compatible Eclipse version.
-
-1. Requires Eclipse 3.5 with CDT 6 or Eclipse 3.6 with CDT 7
-   and the Eclipse Plugin Development Environment.
-   If you have CDT 6, you need the package "Eclipse C/C++ Development Tools SDK"
-   (Eclipse update site: http://download.eclipse.org/tools/cdt/releases/galileo).
-   If you have CDT 7, you need the package "Eclipse C/C++ Development Tools".
-   Also install an SVN plugin, e.g. SubClipse (see above).
-
-2. Create an Eclipse project for CPAchecker as described above.
-
-3. Create an Eclipse project for CPAclipse from the SVN repository
-   URL: https://svn.sosy-lab.org/software/cpachecker/trunk/plugin/CPAclipse
-
-4. If there are warnings about missing bundles, you don't have CDT in the correct version.
-
-5. Run the CPAclipse project as an "Eclipse Application".
-
-
 Releasing a new Version
 -----------------------
 
