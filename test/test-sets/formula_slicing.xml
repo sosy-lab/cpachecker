@@ -57,14 +57,13 @@
 
     <rundefinition name="slicing-w-lpi">
         <option name="-policy-slicing"/>
-        <option name="-setprop">cpa.slicing.expansionResultSizeLimit=100</option>
         <tasks name="DeviceDriversHard">
             <includesfile>../programs/benchmarks/DeviceDriversHardNoRecursionLinux64.set</includesfile>
         </tasks>
     </rundefinition>
 
     <rundefinition name="slicing-k-induction">
-        <option name="-formula-slicing"/>
+        <option name="-formula-slicing-k-induction"/>
         <tasks name="DeviceDriversHard">
             <includesfile>../programs/benchmarks/DeviceDriversHardNoRecursionLinux64.set</includesfile>
         </tasks>
@@ -86,9 +85,7 @@
     </rundefinition>
 
     <rundefinition name="just-slicing">
-        <!-- Obtains ~67 -->
         <option name="-formula-slicing"/>
-        <option name="-setprop">cpa.slicing.expansionResultSizeLimit=100</option>
         <tasks name="DeviceDriversHard">
             <includesfile>../programs/benchmarks/DeviceDriversHardNoRecursionLinux64.set</includesfile>
         </tasks>
@@ -96,7 +93,6 @@
 
     <rundefinition name="just-slicing-syntactic">
         <option name="-formula-slicing"/>
-        <option name="-setprop">cpa.slicing.expansionResultSizeLimit=100</option>
         <option name="-setprop">cpa.slicing.weakeningStrategy=syntactic</option>
         <tasks name="DeviceDriversHard">
             <includesfile>../programs/benchmarks/DeviceDriversHardNoRecursionLinux64.set</includesfile>
@@ -105,7 +101,6 @@
 
     <rundefinition name="just-slicing-destructive">
         <option name="-formula-slicing"/>
-        <option name="-setprop">cpa.slicing.expansionResultSizeLimit=100</option>
         <option name="-setprop">cpa.slicing.weakeningStrategy=destructive</option>
         <tasks name="DeviceDriversHard">
             <includesfile>../programs/benchmarks/DeviceDriversHardNoRecursionLinux64.set</includesfile>
