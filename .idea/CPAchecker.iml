@@ -355,6 +355,42 @@
         </SOURCES>
       </library>
     </orderEntry>
+    <orderEntry type="module-library">
+      <library name="jgraph.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/jgraph.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="jgrapht-core.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/jgrapht-core.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="jgrapht-ext.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/jgrapht-ext.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="jgraphx.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/jgraphx.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
   </component>
   <component name="org.twodividedbyzero.idea.findbugs">
     <option name="_basePreferences">
