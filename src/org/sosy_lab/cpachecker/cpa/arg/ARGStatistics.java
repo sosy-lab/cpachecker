@@ -26,18 +26,13 @@ package org.sosy_lab.cpachecker.cpa.arg;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.SetMultimap;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -64,13 +59,18 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.SetMultimap;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 @Options(prefix="cpa.arg")
 public class ARGStatistics implements IterationStatistics {
@@ -291,21 +291,15 @@ public class ARGStatistics implements IterationStatistics {
       CounterexampleInfo cex = probableCounterexample.get(s);
       if (cex == null) {
         ARGPath path = ARGUtils.getOnePathTo(s);
-        if (path.getInnerEdges().contains(null)) {
-          // path is invalid,
-          // this might be a partial path in BAM, from an intermediate TargetState to root of its ReachedSet.
-          // TODO this check does not avoid dummy-paths in BAM, that might exist in main-reachedSet.
-        } else {
 
-          CFAPathWithAssumptions assignments = createAssignmentsForPath(path);
-          // we use the imprecise version of the CounterexampleInfo, due to the possible
-          // merges which are done in the used CPAs, but if we can compute a path with assignments,
-          // it is probably precise
-          if (!assignments.isEmpty()) {
-            cex = CounterexampleInfo.feasiblePrecise(path, assignments);
-          } else {
-            cex = CounterexampleInfo.feasibleImprecise(path);
-          }
+        CFAPathWithAssumptions assignments = createAssignmentsForPath(path);
+        // we use the imprecise version of the CounterexampleInfo, due to the possible
+        // merges which are done in the used CPAs, but if we can compute a path with assignments,
+        // it is probably precise
+        if (!assignments.isEmpty()) {
+          cex = CounterexampleInfo.feasiblePrecise(path, assignments);
+        } else {
+          cex = CounterexampleInfo.feasibleImprecise(path);
         }
       }
       if (cex != null) {
