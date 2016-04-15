@@ -26,27 +26,36 @@ package org.sosy_lab.cpachecker.core.waitlist;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
- * Delay expanding nodes which have edges to leaf states.
- * Attempts to delay target reachability checking, as error states are very
- * often leaf nodes of the CFA.
+ * Waitlist which delays expanding target states by emulating automaton
+ * transitions before they actually happen.
  */
-public class LeafSortedWaitlist extends AbstractSortedWaitlist<Integer>{
-  private LeafSortedWaitlist(WaitlistFactory pSecondaryStrategy) {
+public class DelayTargetWaitlist extends AbstractSortedWaitlist<Integer>{
+  private DelayTargetWaitlist(WaitlistFactory pSecondaryStrategy) {
     super(pSecondaryStrategy);
   }
 
   @Override
   protected Integer getSortKey(AbstractState pState) {
-    CFANode location = AbstractStates.extractLocation(pState);
-    for (CFAEdge edge : CFAUtils.leavingEdges(location)) {
-      if (edge.getSuccessor().getNumLeavingEdges() == 0) {
+    CFANode node = AbstractStates.extractLocation(pState);
+    if (node.getNumLeavingEdges() != 1) {
+      return 1;
+    }
+    CFAEdge edge = node.getLeavingEdge(0);
 
-        // Delay nodes which have edges to leaf nodes.
-        return 0;
+
+    for (AutomatonState a : AbstractStates.asIterable(pState).filter(AutomatonState.class)) {
+      try {
+        if (a.hasTargetSuccessors(edge)) {
+          return 0;
+        }
+      } catch (CPATransferException pE) {
+        throw new UnsupportedOperationException(
+            "Unexpected failure in automaton transfer relation", pE);
       }
     }
     return 1;
@@ -56,7 +65,7 @@ public class LeafSortedWaitlist extends AbstractSortedWaitlist<Integer>{
     return new WaitlistFactory() {
       @Override
       public Waitlist createWaitlistInstance() {
-        return new LeafSortedWaitlist(pSecondaryStrategy);
+        return new DelayTargetWaitlist(pSecondaryStrategy);
       }
     };
   }
