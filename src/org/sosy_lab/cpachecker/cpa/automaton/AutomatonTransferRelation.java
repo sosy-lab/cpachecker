@@ -27,6 +27,7 @@ import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -184,7 +185,9 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
 
           } else {
             // matching transitions, but unfulfilled assertions: goto error state
-            AutomatonSafetyProperty prop = new AutomatonSafetyProperty(state.getOwningAutomaton(), t);
+            final String desc = Strings.nullToEmpty(t.getViolatedPropertyDescription(exprArgs));
+            AutomatonSafetyProperty prop =
+                new AutomatonSafetyProperty(state.getOwningAutomaton(), t, desc);
 
             AutomatonState errorState = AutomatonState.automatonStateFactory(
                 Collections.<String, AutomatonVariable>emptyMap(), AutomatonInternalState.ERROR, cpa, 0, 0, prop);
@@ -219,7 +222,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
 
         AutomatonSafetyProperty violatedProperty = null;
         if (t.getFollowState().isTarget()) {
-          final String desc = t.getViolatedPropertyDescription(exprArgs);
+          final String desc = Strings.nullToEmpty(t.getViolatedPropertyDescription(exprArgs));
           violatedProperty = new AutomatonSafetyProperty(state.getOwningAutomaton(), t, desc);
         }
 
