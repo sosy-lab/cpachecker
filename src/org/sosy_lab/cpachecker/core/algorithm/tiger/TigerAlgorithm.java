@@ -101,6 +101,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
+import org.sosy_lab.cpachecker.cpa.automaton.MarkingAutomatonBuilder;
 import org.sosy_lab.cpachecker.cpa.automaton.PowersetAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.ReducedAutomatonProduct;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDCPA;
@@ -199,11 +200,11 @@ public class TigerAlgorithm
   @Option(secure = true, name = "printARGperGoal", description = "Print the ARG for each test goal")
   private boolean dumpARGperPartition = false;
 
-  @Option(
-      secure = true,
-      name = "useAutomataCrossProduct",
-      description = "Compute the cross product of the goal automata?")
+  @Option(secure = true, name = "useAutomataCrossProduct", description = "Compute the cross product of the goal automata?")
   private boolean useAutomataCrossProduct = false;
+
+  @Option(secure = true, name = "useMarkingAutomata", description = "Compute the cross product of the goal automata?")
+  private boolean useMarkingAutomata = false;
 
   @Option(
       secure = true,
@@ -1524,7 +1525,11 @@ public class TigerAlgorithm
         List<Automaton> goalAutomata = Lists.newArrayList();
 
         for (Goal goal : pGoalsToBeProcessed) {
-          final Automaton a = goal.createControlAutomaton();
+          Automaton a = goal.createControlAutomaton();
+          if (useMarkingAutomata) {
+            a = MarkingAutomatonBuilder.build(a);
+          }
+
           goalAutomata.add(a);
           dumpAutomaton(a);
         }
