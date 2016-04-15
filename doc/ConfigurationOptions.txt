@@ -244,6 +244,9 @@ analysis.traversal.useCallstack = false
 # ExplicitCPA)
 analysis.traversal.useExplicitInformation = false
 
+# delay handling abstract states which have edges to leafs
+analysis.traversal.useLeafInformation = false
+
 # handle states with a deeper loopstack first.
 analysis.traversal.useLoopstack = false
 
