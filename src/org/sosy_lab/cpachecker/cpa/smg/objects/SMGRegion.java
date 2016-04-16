@@ -86,12 +86,20 @@ public final class SMGRegion extends SMGObject implements SMGObjectTemplate {
       // know how to join with me
       return pOther.join(this, increaseLevel);
     } else if (getSize() == pOther.getSize()) {
-      if(increaseLevel) {
-        return new SMGRegion(this.getSize(), this.getLabel(), getLevel() + 1);
-      } else {
+
+      int level = Math.max(this.getLevel(), pOther.getLevel());
+
+      if (increaseLevel) {
+        level = level + 1;
+      }
+
+      if (level == getLevel()) {
         return this;
+      } else {
+        return new SMGRegion(getSize(), getLabel(), level);
       }
     }
+
     throw new UnsupportedOperationException("join() called on incompatible SMGObjects");
   }
 

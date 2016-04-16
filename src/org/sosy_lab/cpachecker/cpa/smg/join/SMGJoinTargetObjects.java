@@ -191,7 +191,7 @@ final class SMGJoinTargetObjects {
 
     SMGJoinSubSMGs jss = new SMGJoinSubSMGs(status, inputSMG1, inputSMG2, destSMG,
                                             mapping1, mapping2,
-                                            target1, target2, newObject, 0, false, identicalInputSmgs, pSmgState1, pSmgState2);
+                                            target1, target2, newObject, ldiff, false, identicalInputSmgs, pSmgState1, pSmgState2);
     if (jss.isDefined()) {
       defined = true;
       status = jss.getStatus();
