@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.core.waitlist.AutomatonFailedMatchesWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.AutomatonMatchesWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.CallstackSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ExplicitSortedWaitlist;
-import org.sosy_lab.cpachecker.core.waitlist.LeafSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.LoopstackSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.PostorderSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ReversePostorderSortedWaitlist;
@@ -92,10 +91,6 @@ public class ReachedSetFactory {
       description = "handle abstract states with fewer running threads first? (needs ThreadingCPA)")
   boolean useNumberOfThreads = false;
 
-  @Option(secure=true, name = "traversal.useLeafInformation",
-      description = "delay handling abstract states which have edges to leafs")
-  boolean useLeafInformation = false;
-
   @Option(secure=true, name = "reachedSet",
       description = "which reached set implementation to use?"
       + "\nNORMAL: just a simple set"
@@ -138,9 +133,6 @@ public class ReachedSetFactory {
     }
     if (useNumberOfThreads) {
       waitlistFactory = ThreadingSortedWaitlist.factory(waitlistFactory);
-    }
-    if (useLeafInformation) {
-      waitlistFactory = LeafSortedWaitlist.factory(waitlistFactory);
     }
 
     switch (reachedSet) {
