@@ -286,17 +286,17 @@ public class SMGStateTest {
 
     SMGAddressValueAndStateList add = smg1State.getPointerFromValue(6);
 
-    add.getValueAndStateList().get(0).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
-
     add.getValueAndStateList().get(1).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
 
-    SMGState newState = add.getValueAndStateList().get(0).getSmgState();
+    add.getValueAndStateList().get(0).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
+
+    SMGState newState = add.getValueAndStateList().get(1).getSmgState();
 
     SMGAddressValueAndStateList add2 = newState.getPointerFromValue(7);
 
-    add2.getValueAndStateList().get(0).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
-
     add2.getValueAndStateList().get(1).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
+
+    add2.getValueAndStateList().get(0).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
 
   }
 
