@@ -66,7 +66,7 @@ final class SMGJoinMapTargetAddress {
     for (SMGEdgePointsTo edge : edges) {
       if ((edge.getObject() == target) &&
           (edge.getOffset() == pt.getOffset())
-          && edge.getTargetSpecifier() == pt.getTargetSpecifier()) {
+          && edge.getTargetSpecifier() == tg) {
         value = edge.getValue();
         return;
       }

@@ -23,9 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import com.google.common.collect.Iterators;
 
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
@@ -34,7 +32,9 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGAbstractObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
 
-import com.google.common.collect.Iterators;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 final class SMGJoinMatchObjects {
   private boolean defined = false;
@@ -171,6 +171,7 @@ final class SMGJoinMatchObjects {
     } else if (pObj2.isMoreGeneral(pObj1)) {
       return SMGJoinStatus.updateStatus(pStatus, SMGJoinStatus.RIGHT_ENTAIL);
     }
+
     return pStatus;
   }
 

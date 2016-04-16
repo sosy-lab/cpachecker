@@ -70,10 +70,13 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
 
       SMGEdgeHasValue nextEdge = Iterables.getOnlyElement(pSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(prevObject).filterAtOffset(nfo)));
       SMGObject nextObject = pSMG.getPointer(nextEdge.getValue()).getObject();
+
       SMGJoinSubSMGsForAbstraction join =
           new SMGJoinSubSMGsForAbstraction(pSMG, prevObject, nextObject, candidate, pSmgState);
 
-      assert join.isDefined() : "Unexpected join failure while abstracting longest mergeable sequence";
+      if(!join.isDefined()) {
+        throw new AssertionError("Unexpected join failure while abstracting longest mergeable sequence");
+      }
 
       SMGObject newAbsObj = join.getNewAbstractObject();
 
@@ -138,8 +141,12 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
       pSMG.removeHeapObjectAndEdges(prevObject);
       prevObject = newAbsObj;
 
-      pSMG.addHasValueEdge(new SMGEdgeHasValue(nextObj2hve.getType(), nextObj2hve.getOffset(), newAbsObj, nextObj2hve.getValue()));
-      pSMG.addHasValueEdge(new SMGEdgeHasValue(prevObj1hve.getType(), prevObj1hve.getOffset(), newAbsObj, prevObj1hve.getValue()));
+      SMGEdgeHasValue nfoHve = new SMGEdgeHasValue(nextObj2hve.getType(), nextObj2hve.getOffset(), newAbsObj, nextObj2hve.getValue());
+      SMGEdgeHasValue pfoHve = new SMGEdgeHasValue(prevObj1hve.getType(), prevObj1hve.getOffset(), newAbsObj, prevObj1hve.getValue());
+      pSMG.addHasValueEdge(nfoHve);
+      pSMG.addHasValueEdge(pfoHve);
+
+      pSmgState.pruneUnreachable();
     }
 
     return pSMG;

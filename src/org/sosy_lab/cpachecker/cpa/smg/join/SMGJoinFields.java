@@ -23,10 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
-import java.util.BitSet;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import com.google.common.collect.Iterables;
 
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
@@ -35,14 +32,17 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
-import com.google.common.collect.Iterables;
+import java.util.BitSet;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 class SMGJoinFields {
   private final SMG newSMG1;
   private final SMG newSMG2;
   private SMGJoinStatus status = SMGJoinStatus.EQUAL;
 
-  public SMGJoinFields(SMG pSMG1, SMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
+  public SMGJoinFields(final SMG pSMG1, final SMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
     if (pObj1.getSize() != pObj2.getSize()) {
       throw new IllegalArgumentException("SMGJoinFields object arguments need to have identical size");
     }
@@ -50,8 +50,8 @@ class SMGJoinFields {
       throw new IllegalArgumentException("SMGJoinFields object arguments need to be included in parameter SMGs");
     }
 
-    SMG origSMG1 = new SMG(pSMG1);
-    SMG origSMG2 = new SMG(pSMG2);
+    final SMG origSMG1 = new SMG(pSMG1);
+    final SMG origSMG2 = new SMG(pSMG2);
 
     Set<SMGEdgeHasValue> H1Prime = getCompatibleHVEdgeSet(pSMG1, pSMG2, pObj1, pObj2);
     pSMG1.replaceHVSet(H1Prime);
@@ -95,7 +95,6 @@ class SMGJoinFields {
 
     for (SMGEdgeHasValue edge : pSMG1.getHVEdges(filterForSMG1)) {
       filterForSMG2.filterAtOffset(edge.getOffset());
-      filterForSMG2.filterByType(edge.getType());
       if (pSMG2.getHVEdges(filterForSMG2).size() == 0) {
         returnSet.add(new SMGEdgeHasValue(edge.getType(), edge.getOffset(), pObj2, SMGValueFactory.getNewValue()));
       }

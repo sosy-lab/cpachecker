@@ -66,6 +66,7 @@ final class SMGJoinSubSMGs {
       int pLDiff, boolean pIncreaseLevel, boolean identicalInputSmg, SMGState pSmgState1, SMGState pSmgState2) throws SMGInconsistentException {
 
     SMGJoinFields joinFields = new SMGJoinFields(pSMG1, pSMG2, pObj1, pObj2);
+
     subSmgAbstractionCandidates = ImmutableList.of();
     inputSMG1 = joinFields.getSMG1();
     inputSMG2 = joinFields.getSMG2();
@@ -94,7 +95,6 @@ final class SMGJoinSubSMGs {
     Map<Integer, List<SMGGenericAbstractionCandidate>> valueAbstractionCandidates = new HashMap<>();
     boolean allValuesDefined = true;
 
-    int lDiff = pLDiff;
     boolean object1IsDLS = pObj1 instanceof SMGDoublyLinkedList;
     boolean object2IsDLS = pObj2 instanceof SMGDoublyLinkedList;
 
@@ -117,7 +117,9 @@ final class SMGJoinSubSMGs {
 
     for (SMGEdgeHasValue hvIn1 : edgesOnObject1) {
       filterOnSMG2.filterAtOffset(hvIn1.getOffset());
-      filterOnSMG2.filterByType(hvIn1.getType());
+
+      int lDiff = pLDiff;
+
       SMGEdgeHasValue hvIn2 = Iterables.getOnlyElement(inputSMG2.getHVEdges(filterOnSMG2));
 
       if (object1IsDLS && hvIn1.getOffset() != nfo1 && hvIn1.getOffset() != pfo1) {
@@ -146,7 +148,7 @@ final class SMGJoinSubSMGs {
       }
 
       SMGJoinValues joinValues = new SMGJoinValues(status, inputSMG1, inputSMG2, destSMG,
-          mapping1, mapping2, hvIn1.getValue(), hvIn2.getValue(), pLDiff, pIncreaseLevel, identicalInputSmg, value1Level, value2Level, pSmgState1, pSmgState2);
+          mapping1, mapping2, hvIn1.getValue(), hvIn2.getValue(), lDiff, pIncreaseLevel, identicalInputSmg, value1Level, value2Level, pSmgState1, pSmgState2);
 
       /* If the join of the values is not defined and can't be
        * recovered through abstraction, the join fails.*/

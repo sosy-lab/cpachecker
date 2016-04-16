@@ -83,9 +83,6 @@ public class SMGAbstractionManager {
       SMGAbstractionCandidate best = getBestCandidate();
       best.execute(smg, smgState);
       invalidateCandidates();
-
-      // remove garbage created by abstraction
-      smgState.pruneUnreachable();
     }
   }
 

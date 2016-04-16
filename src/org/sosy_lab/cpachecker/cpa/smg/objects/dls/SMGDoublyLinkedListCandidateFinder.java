@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinSubSMGsForAbstraction;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
@@ -51,7 +52,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
   private CLangSMG smg;
   private  Map<SMGObject, Map<Pair<Integer, Integer>, SMGDoublyLinkedListCandidate>> candidates = new HashMap<>();
   private  Map<SMGDoublyLinkedListCandidate, Integer> candidateLength = new HashMap<>();
-  private  Map<SMGDoublyLinkedListCandidate, Boolean> candidateSeqContainsDll = new HashMap<>();
+  private  Map<SMGDoublyLinkedListCandidate, Boolean> candidateSeqJoinGood = new HashMap<>();
 
   private final int seqLengthThreshold;
 
@@ -73,7 +74,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
 
     candidateLength.clear();
     candidates.clear();
-    candidateSeqContainsDll.clear();
+    candidateSeqJoinGood.clear();
 
     for (SMGObject object : smg.getHeapObjects()) {
       startTraversal(object, pSMGState);
@@ -83,7 +84,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
     for (Map<Pair<Integer, Integer>, SMGDoublyLinkedListCandidate> objCandidates : candidates
         .values()) {
       for (SMGDoublyLinkedListCandidate candidate : objCandidates.values()) {
-        if (candidateLength.get(candidate) >= seqLengthThreshold || (candidateSeqContainsDll.get(candidate) &&  candidateLength.get(candidate) > 0)) {
+        if (candidateLength.get(candidate) >= seqLengthThreshold || (candidateSeqJoinGood.get(candidate) &&  candidateLength.get(candidate) > 0)) {
           returnSet.add(new SMGDoublyLinkedListCandidateSequence(candidate, candidateLength.get(candidate)));
         }
       }
@@ -180,7 +181,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
             new SMGDoublyLinkedListCandidate(pObject, hfo, pfo, nfo);
         candidates.get(pObject).put(Pair.of(nfo, pfo), candidate);
         candidateLength.put(candidate, 0);
-        candidateSeqContainsDll.put(candidate, candidate.getObject() instanceof SMGDoublyLinkedList);
+        candidateSeqJoinGood.put(candidate, true);
         continueTraversal(nextPointer, candidate, pSMGState);
       }
     }
@@ -216,7 +217,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
        */
       candidate = new SMGDoublyLinkedListCandidate(nextObject, hfo, pfo, nfo);
       candidateLength.put(candidate, 0);
-      candidateSeqContainsDll.put(candidate, candidate.getObject() instanceof SMGDoublyLinkedList);
+      candidateSeqJoinGood.put(candidate, true);
     } else {
       candidate = objectCandidates.get(Pair.of(nfo, pfo));
     }
@@ -321,7 +322,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
     }
 
     candidateLength.put(pPrevCandidate, candidateLength.get(candidate) + 1);
-    candidateSeqContainsDll.put(pPrevCandidate, candidateSeqContainsDll.get(candidate) || candidateSeqContainsDll.get(pPrevCandidate));
+    candidateSeqJoinGood.put(pPrevCandidate, candidateSeqJoinGood.get(candidate) && !(join.getStatus() == SMGJoinStatus.INCOMPARABLE));
   }
 
   private boolean isSubSmgSeperate(Set<SMGObject> nonSharedObject, Set<Integer> nonSharedValues,

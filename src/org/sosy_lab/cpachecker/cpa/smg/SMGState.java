@@ -421,7 +421,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * means "perform the check if the setting is HALF or finer.
    */
   final public void performConsistencyCheck(SMGRuntimeCheck pLevel) throws SMGInconsistentException {
-    if (runtimeCheckLevel.isFinerOrEqualThan(pLevel)) {
+    if (pLevel == null  || runtimeCheckLevel.isFinerOrEqualThan(pLevel)) {
       if ( ! CLangSMGConsistencyVerifier.verifyCLangSMG(logger, heap) ) {
         throw new SMGInconsistentException("SMG was found inconsistent during a check");
       }

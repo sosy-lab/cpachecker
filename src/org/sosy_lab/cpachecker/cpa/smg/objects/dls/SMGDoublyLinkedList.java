@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects.dls;
 
+import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGAbstractObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectVisitor;
@@ -39,6 +40,7 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
   private final int hfo;
   private final int nfo;
   private final int pfo;
+  private final int id = SMGValueFactory.getNewValue();
 
   public SMGDoublyLinkedList(int pSize, int pHfo, int pNfo, int pPfo,
       int pMinLength, int level) {
@@ -113,7 +115,7 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
     }
 
     if (pOther instanceof SMGRegion) {
-      return minimumLength > 0;
+      return true;
     }
 
     return false;
@@ -181,7 +183,8 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
 
   @Override
   public String toString() {
-    return "DLL(size=" + getSize() + ", hfo=" + hfo + ", nfo=" + nfo + ", pfo=" + pfo + ", len=" + minimumLength + ", level=" + getLevel() +")";
+    return "DLL(id=" + id + " size=" + getSize() + ", hfo=" + hfo + ", nfo=" + nfo + ", pfo=" + pfo
+        + ", len=" + minimumLength + ", level=" + getLevel() + ")";
   }
 
   @Override
