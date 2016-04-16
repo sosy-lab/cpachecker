@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects.dls;
 
-import java.util.HashMap;
-import java.util.Map;
+import com.google.common.collect.Iterables;
 
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
@@ -38,7 +37,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinSubSMGsForAbstraction;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
-import com.google.common.collect.Iterables;
+import java.util.HashMap;
+import java.util.Map;
 
 public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandidate {
 
@@ -72,6 +72,8 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
       SMGObject nextObject = pSMG.getPointer(nextEdge.getValue()).getObject();
       SMGJoinSubSMGsForAbstraction join =
           new SMGJoinSubSMGsForAbstraction(pSMG, prevObject, nextObject, candidate, pSmgState);
+
+      assert join.isDefined() : "Unexpected join failure while abstracting longest mergeable sequence";
 
       SMGObject newAbsObj = join.getNewAbstractObject();
 

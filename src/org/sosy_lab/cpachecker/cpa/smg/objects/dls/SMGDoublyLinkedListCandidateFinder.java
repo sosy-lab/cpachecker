@@ -55,7 +55,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
   private final int seqLengthThreshold;
 
   public SMGDoublyLinkedListCandidateFinder() {
-    seqLengthThreshold = 1;
+    seqLengthThreshold = 2;
   }
 
   public SMGDoublyLinkedListCandidateFinder(int pSeqLengthThreshold) {

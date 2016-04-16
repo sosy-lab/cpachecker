@@ -128,8 +128,25 @@ final class SMGJoinSubSMGs {
         lDiff = lDiff - 1;
       }
 
+      int value1Level;
+      int value2Level;
+
+      if (pObj1 instanceof SMGDoublyLinkedList && hvIn1.getOffset() != pfo1
+          && hvIn1.getOffset() != nfo1) {
+        value1Level = pObj1.getLevel() + 1;
+      } else {
+        value1Level = pObj1.getLevel();
+      }
+
+      if (pObj2 instanceof SMGDoublyLinkedList && hvIn2.getOffset() != pfo2
+          && hvIn2.getOffset() != nfo2) {
+        value2Level = pObj2.getLevel() + 1;
+      } else {
+        value2Level = pObj2.getLevel();
+      }
+
       SMGJoinValues joinValues = new SMGJoinValues(status, inputSMG1, inputSMG2, destSMG,
-          mapping1, mapping2, hvIn1.getValue(), hvIn2.getValue(), pLDiff, pIncreaseLevel, identicalInputSmg, pObj1.getLevel(), pObj2.getLevel(), pSmgState1, pSmgState2);
+          mapping1, mapping2, hvIn1.getValue(), hvIn2.getValue(), pLDiff, pIncreaseLevel, identicalInputSmg, value1Level, value2Level, pSmgState1, pSmgState2);
 
       /* If the join of the values is not defined and can't be
        * recovered through abstraction, the join fails.*/
