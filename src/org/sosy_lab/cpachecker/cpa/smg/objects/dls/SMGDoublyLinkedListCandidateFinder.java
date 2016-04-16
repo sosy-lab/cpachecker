@@ -140,6 +140,10 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
         continue;
       }
 
+      if (pObject.getSize() != nextObject.getSize()) {
+        continue;
+      }
+
       for (SMGEdgeHasValue hvePrev : nextObjectHves) {
 
         int pfo = hvePrev.getOffset();
