@@ -51,6 +51,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
   private CLangSMG smg;
   private  Map<SMGObject, Map<Pair<Integer, Integer>, SMGDoublyLinkedListCandidate>> candidates = new HashMap<>();
   private  Map<SMGDoublyLinkedListCandidate, Integer> candidateLength = new HashMap<>();
+  private  Map<SMGDoublyLinkedListCandidate, Boolean> candidateSeqContainsDll = new HashMap<>();
 
   private final int seqLengthThreshold;
 
@@ -72,6 +73,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
 
     candidateLength.clear();
     candidates.clear();
+    candidateSeqContainsDll.clear();
 
     for (SMGObject object : smg.getHeapObjects()) {
       startTraversal(object, pSMGState);
@@ -81,7 +83,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
     for (Map<Pair<Integer, Integer>, SMGDoublyLinkedListCandidate> objCandidates : candidates
         .values()) {
       for (SMGDoublyLinkedListCandidate candidate : objCandidates.values()) {
-        if (candidateLength.get(candidate) >= seqLengthThreshold) {
+        if (candidateLength.get(candidate) >= seqLengthThreshold || candidateSeqContainsDll.get(candidate)) {
           returnSet.add(new SMGDoublyLinkedListCandidateSequence(candidate, candidateLength.get(candidate)));
         }
       }
@@ -178,6 +180,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
             new SMGDoublyLinkedListCandidate(pObject, hfo, pfo, nfo);
         candidates.get(pObject).put(Pair.of(nfo, pfo), candidate);
         candidateLength.put(candidate, 0);
+        candidateSeqContainsDll.put(candidate, candidate.getObject() instanceof SMGDoublyLinkedList);
         continueTraversal(nextPointer, candidate, pSMGState);
       }
     }
@@ -213,6 +216,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
        */
       candidate = new SMGDoublyLinkedListCandidate(nextObject, hfo, pfo, nfo);
       candidateLength.put(candidate, 0);
+      candidateSeqContainsDll.put(candidate, candidate.getObject() instanceof SMGDoublyLinkedList);
     } else {
       candidate = objectCandidates.get(Pair.of(nfo, pfo));
     }
@@ -317,6 +321,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
     }
 
     candidateLength.put(pPrevCandidate, candidateLength.get(candidate) + 1);
+    candidateSeqContainsDll.put(pPrevCandidate, candidateSeqContainsDll.get(candidate) || candidateSeqContainsDll.get(pPrevCandidate));
   }
 
   private boolean isSubSmgSeperate(Set<SMGObject> nonSharedObject, Set<Integer> nonSharedValues,
