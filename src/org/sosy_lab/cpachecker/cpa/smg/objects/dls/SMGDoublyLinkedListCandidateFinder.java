@@ -83,7 +83,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
     for (Map<Pair<Integer, Integer>, SMGDoublyLinkedListCandidate> objCandidates : candidates
         .values()) {
       for (SMGDoublyLinkedListCandidate candidate : objCandidates.values()) {
-        if (candidateLength.get(candidate) >= seqLengthThreshold || candidateSeqContainsDll.get(candidate)) {
+        if (candidateLength.get(candidate) >= seqLengthThreshold || (candidateSeqContainsDll.get(candidate) &&  candidateLength.get(candidate) > 0)) {
           returnSet.add(new SMGDoublyLinkedListCandidateSequence(candidate, candidateLength.get(candidate)));
         }
       }
