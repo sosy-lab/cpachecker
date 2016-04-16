@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects.dls;
 
+import com.google.common.collect.Iterables;
+
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionFinder;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
@@ -233,6 +235,17 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
 
     objectsOfSubSmg1.remove(startObject);
     objectsOfSubSmg2.remove(nextObject);
+
+    // TODO Investigate, is this okay?
+    if(nonSharedValues2.contains(pValue)) {
+      nonSharedValues2.remove(pValue);
+    }
+
+    int prevValue = Iterables.getOnlyElement(smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(pfo))).getValue();
+
+    if(nonSharedValues1.contains(prevValue)) {
+      nonSharedValues1.remove(prevValue);
+    }
 
     // Third, calculate if the respective nfo,pfo restricted subsmgs are only reachable from their candidate objects
     if (!isSubSmgSeperate(nonSharedObject1, nonSharedValues1, smg, objectsOfSubSmg1,

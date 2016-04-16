@@ -612,6 +612,14 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     heap.addHeapObject(newDll);
     heap.setValidity(newDll, true);
 
+    /*Check if pointer was already created due to All target Specifier*/
+    Integer newPointerToNewRegion = getAddress(newConcreteRegion, hfo);
+
+    if (newPointerToNewRegion != null) {
+      heap.removePointsToEdge(newPointerToNewRegion);
+      heap.mergeValues(oldPointerToDll, newPointerToNewRegion);
+    }
+
     SMGEdgePointsTo newPtEdgeToNewRegionFromOutsideSMG = new SMGEdgePointsTo(oldPointerToDll, newConcreteRegion, hfo);
     SMGEdgeHasValue newFieldFromNewRegionToOutsideSMG = new SMGEdgeHasValue(oldDllFieldToOldRegion.getType(), offsetPointingToRegion, newConcreteRegion, oldDllFieldToOldRegion.getValue());
 
