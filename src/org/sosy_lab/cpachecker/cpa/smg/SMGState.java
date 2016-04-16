@@ -516,7 +516,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
         SMGState removalState = new SMGState(this);
         SMGAddressValueAndState resultOfRemoval = removalState.removeDls(listSeg, pointerToAbstractObject);
         SMGAddressValueAndState resultOfMaterilisation = materialiseDls(listSeg, pointerToAbstractObject);
-        return SMGAddressValueAndStateList.copyOfAddressValueList(ImmutableList.of(resultOfMaterilisation, resultOfRemoval));
+        return SMGAddressValueAndStateList.copyOfAddressValueList(ImmutableList.of(resultOfRemoval, resultOfMaterilisation));
       } else {
         SMGAddressValueAndState result = materialiseDls(listSeg, pointerToAbstractObject);
         return SMGAddressValueAndStateList.of(result);
