@@ -154,7 +154,7 @@ public class RCNFManager implements StatisticsProvider {
     }
   }
 
-  private BooleanFormula factorize(BooleanFormula input) {
+  public BooleanFormula factorize(BooleanFormula input) {
     return bfmgr.transformRecursively(new BooleanFormulaTransformationVisitor(fmgr) {
 
       /**
@@ -232,7 +232,7 @@ public class RCNFManager implements StatisticsProvider {
           Set<List<BooleanFormula>> product = Sets.cartesianProduct(asConjunctions);
           Set<BooleanFormula> newArgs = new HashSet<>(product.size());
           for (List<BooleanFormula> l : product) {
-            newArgs.add(disjunctionToImplication(l));
+            newArgs.add(bfmgr.or(l));
           }
           return bfmgr.and(newArgs);
         } else {
@@ -255,15 +255,6 @@ public class RCNFManager implements StatisticsProvider {
     }
     return out;
   }
-
-
-  private BooleanFormula disjunctionToImplication(List<BooleanFormula> disjunctionArguments) {
-    return bfmgr.implication(
-        bfmgr.not(disjunctionArguments.get(0)),
-        fmgr.simplify(bfmgr.or(disjunctionArguments.subList(1, disjunctionArguments.size())))
-    );
-  }
-
 
   private boolean hasBoundVariables(BooleanFormula input) {
     final AtomicBoolean hasBound = new AtomicBoolean(false);

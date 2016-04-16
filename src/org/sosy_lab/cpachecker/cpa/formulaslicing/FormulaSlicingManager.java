@@ -56,6 +56,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
 
 @Options(prefix="cpa.slicing")
 public class FormulaSlicingManager implements IFormulaSlicingManager {
@@ -159,7 +160,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
         AbstractStates.IS_TARGET_STATE).iterator().hasNext();
     boolean shouldPerformAbstraction = shouldPerformAbstraction(
         iState.getNode(), pFullState);
-    if (hasTargetState && checkTargetStates && isUnreachable(iState)) {
+    if (hasTargetState && checkTargetStates && isUnreachableTarget(iState)) {
       return Optional.absent();
     }
 
@@ -337,7 +338,11 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     return Optional.of(out);
   }
 
-
+  private boolean isUnreachableTarget(SlicingIntermediateState iState)
+      throws InterruptedException, CPAException {
+    statistics.reachabilityTargetChecks++;
+    return isUnreachable(iState);
+  }
 
   private boolean isUnreachable(SlicingIntermediateState iState)
       throws InterruptedException, CPAException {
@@ -346,7 +351,6 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     BooleanFormula instantiatedFormula =
         fmgr.instantiate(prevSlice, iState.getAbstractParent().getSSA());
     BooleanFormula reachabilityQuery = bfmgr.and(
-        // TODO: apply factorization to formulas.
         iState.getPathFormula().getFormula(), instantiatedFormula);
 
     Set<BooleanFormula> constraints = ImmutableSet.copyOf(
@@ -360,7 +364,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
       for (Entry<Set<BooleanFormula>, Boolean> isUnsatResults : stored
           .entrySet()) {
         Set<BooleanFormula> cachedConstraints = isUnsatResults.getKey();
-        Boolean cachedIsUnsat = isUnsatResults.getValue();
+        boolean cachedIsUnsat = isUnsatResults.getValue();
 
         if (cachedIsUnsat && constraints.containsAll(cachedConstraints)) {
           statistics.cachedSatChecks++;
@@ -393,7 +397,16 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
         return false;
       }
     } catch (SolverException pE) {
-      throw new CPAException("Solver exception suppressed: ", pE);
+      try {
+
+        // Re-try without unsat core.
+        logger.log(Level.FINE,
+            "Got solver exception while obtaining unsat core;"
+                + "Re-trying a simple query", pE);
+        return solver.isUnsat(reachabilityQuery);
+      } catch (SolverException pE1) {
+        throw new CPAException("Solver exception suppressed: ", pE1);
+      }
     } finally {
       unsatCache.put(node, ImmutableMap.copyOf(stored));
       statistics.reachabilityCheck.stop();
