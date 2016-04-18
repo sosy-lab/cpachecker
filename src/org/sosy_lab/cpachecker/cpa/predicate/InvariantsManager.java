@@ -623,9 +623,14 @@ class InvariantsManager implements StatisticsProvider {
       refinementCache.clear();
       for (CFANode node : nodes) {
 
+        Set<BooleanFormula> oldInvariants = locationInvariantsCache.getIfPresent(node);
+        if (oldInvariants == null) {
+          oldInvariants = Collections.singleton(bfmgr.makeBoolean(true));
+        }
+
         // fill nodes without invariants with TRUE
         Set<BooleanFormula> invariantParts =
-            from(locationInvariantsCache.getIfPresent(node))
+            from(oldInvariants)
                 .transform(
                     new Function<BooleanFormula, BooleanFormula>() {
                       @Override
