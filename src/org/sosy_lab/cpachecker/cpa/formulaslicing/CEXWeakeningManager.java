@@ -130,15 +130,16 @@ public class CEXWeakeningManager {
       while (!env.isUnsatWithAssumptions(selectorConstraints)) {
         noIterations++;
         shutdownNotifier.shutdownIfNecessary();
-        Model m = env.getModel();
+        try (Model m = env.getModel()) {
 
-        toAbstract.addAll(getSelectorsToAbstract(
-            ImmutableSet.copyOf(toAbstract),
-            m,
-            selectionInfo,
-            toState,
-            0
-        ));
+          toAbstract.addAll(getSelectorsToAbstract(
+              ImmutableSet.copyOf(toAbstract),
+              m,
+              selectionInfo,
+              toState,
+              0
+          ));
+        }
 
         selectorConstraints.clear();
         for (BooleanFormula selector : selectionInfo.keySet()) {

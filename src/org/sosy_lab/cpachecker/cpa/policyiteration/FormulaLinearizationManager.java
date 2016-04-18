@@ -34,9 +34,6 @@ public class FormulaLinearizationManager {
   private final NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifmgr;
   private final PolicyIterationStatistics statistics;
 
-  // Opt environment cached to perform evaluation queries on the model.
-  private Model model;
-
   public static final String CHOICE_VAR_NAME = "__POLICY_CHOICE_";
   private final UniqueIdGenerator choiceVarCounter = new UniqueIdGenerator();
 
@@ -127,16 +124,14 @@ public class FormulaLinearizationManager {
   public BooleanFormula convertToPolicy(BooleanFormula f,
       Model pModel) throws InterruptedException {
 
-    model = pModel;
-
     statistics.ackermannizationTimer.start();
     f = fmgr.applyTactic(f, Tactic.NNF);
 
     // Get rid of UFs.
-    BooleanFormula noUFs = processUFs(f);
+    BooleanFormula noUFs = processUFs(f, pModel);
 
     // Get rid of ite-expressions.
-    BooleanFormula out = bfmgr.visit(new ReplaceITEVisitor(), noUFs);
+    BooleanFormula out = bfmgr.visit(new ReplaceITEVisitor(pModel), noUFs);
     statistics.ackermannizationTimer.stop();
 
     return out;
@@ -149,8 +144,11 @@ public class FormulaLinearizationManager {
   private class ReplaceITEVisitor
       extends BooleanFormulaManagerView.BooleanFormulaTransformationVisitor {
 
-    private ReplaceITEVisitor() {
+    private final Model model;
+
+    private ReplaceITEVisitor(Model pModel) {
       super(fmgr);
+      model = pModel;
     }
 
     @Override
@@ -171,7 +169,7 @@ public class FormulaLinearizationManager {
    * Requires a fixpoint computation as UFs can take other UFs as arguments.
    * First removes UFs with no arguments, etc.
    */
-  private BooleanFormula processUFs(BooleanFormula f) {
+  private BooleanFormula processUFs(BooleanFormula f, Model model) {
     Multimap<String, Pair<Formula, List<Formula>>> UFs = findUFs(f);
 
     Map<Formula, Formula> substitution = new HashMap<>();

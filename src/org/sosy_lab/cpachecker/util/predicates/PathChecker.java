@@ -303,7 +303,7 @@ public class PathChecker {
 
   private List<ValueAssignment> getModel(ProverEnvironment thmProver) {
     try {
-      return ImmutableList.copyOf(thmProver.getModel());
+      return thmProver.getModelAssignments();
     } catch (SolverException e) {
       logger.log(Level.WARNING, "Solver could not produce model, variable assignment of error path can not be dumped.");
       logger.logDebugException(e);

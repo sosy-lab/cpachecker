@@ -778,7 +778,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         switch (status) {
           case OPT:
             Optional<Rational> bound = optEnvironment.upper(handle, EPSILON);
-            Model model = optEnvironment.getModel();
 
             // Lower bound on unsigned variables is at least zero.
             boolean unsignedAndLower = template.isUnsigned() &&
@@ -796,16 +795,18 @@ public class PolicyIterationManager implements IPolicyIterationManager {
                 boundValue = Rational.ZERO;
               }
 
-              if (linearizePolicy) {
-                statistics.linearizationTimer.start();
-                annotatedFormula = linearizationManager.convertToPolicy(
-                    annotatedFormula, model);
-                statistics.linearizationTimer.stop();
-              }
+              try (Model model = optEnvironment.getModel()) {
+                if (linearizePolicy) {
+                  statistics.linearizationTimer.start();
+                  annotatedFormula = linearizationManager.convertToPolicy(
+                      annotatedFormula, model);
+                  statistics.linearizationTimer.stop();
+                }
 
-              PolicyBound policyBound = modelToPolicyBound(
-                  objective, state, p, annotatedFormula, model, boundValue);
-              abstraction.put(template, policyBound);
+                PolicyBound policyBound = modelToPolicyBound(
+                    objective, state, p, annotatedFormula, model, boundValue);
+                abstraction.put(template, policyBound);
+              }
             }
             logger.log(Level.FINE, "Got bound: ", bound);
             break;

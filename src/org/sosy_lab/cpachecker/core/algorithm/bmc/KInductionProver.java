@@ -26,12 +26,13 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.logging.Level;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
@@ -69,13 +70,12 @@ import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.logging.Level;
 
 /**
  * Instances of this class are used to prove the safety of a program by
@@ -477,7 +477,7 @@ class KInductionProver implements AutoCloseable {
       boolean isInvariant = prover.isUnsat();
 
       if (!isInvariant && logger.wouldBeLogged(Level.ALL)) {
-        logger.log(Level.ALL, "Model returned for induction check:", prover.getModel());
+        logger.log(Level.ALL, "Model returned for induction check:", prover.getModelAssignments());
       }
 
       // Re-attempt the proof immediately, if new invariants are available
@@ -497,7 +497,7 @@ class KInductionProver implements AutoCloseable {
         isInvariant = prover.isUnsat();
 
         if (!isInvariant && logger.wouldBeLogged(Level.ALL)) {
-          logger.log(Level.ALL, "Model returned for induction check:", prover.getModel());
+          logger.log(Level.ALL, "Model returned for induction check:", prover.getModelAssignments());
         }
 
         pop();

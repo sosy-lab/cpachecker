@@ -35,7 +35,6 @@ import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BasicProverEnvironment;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
-import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.Model;
 import org.sosy_lab.solver.api.Model.ValueAssignment;
 
@@ -142,25 +141,26 @@ public class UFCheckingBasicProverEnvironment<T> implements BasicProverEnvironme
     int additionalConstraints = 0;
     while (!unsat) {
 
+      final List<BooleanFormula> constraints = new ArrayList<>();
+
       // next line only succeeds if the solver supports the generation of a model.
       // TODO enable by default for MathSat?
 
-      final Model model = getModel();
-      final List<BooleanFormula> constraints = new ArrayList<>();
+      try (final Model model = getModel()) {
+        for (ValueAssignment entry : model) {
 
-      for (ValueAssignment entry : model) {
-        Formula f = entry.getKey();
-        if (!entry.isFunction()) {
+          if (!entry.isFunction()) {
 
-          // We are only interested in UFs.
-          continue;
-        }
+            // We are only interested in UFs.
+            continue;
+          }
 
-        final Object value = model.evaluate(f);
-        final BooleanFormula newAssignment = faMgr.evaluate(entry, value);
+          final Object value = entry.getValue();
+          final BooleanFormula newAssignment = faMgr.evaluate(entry, value);
 
-        if (!bfmgr.isTrue(newAssignment)) {
-          constraints.add(newAssignment);
+          if (!bfmgr.isTrue(newAssignment)) {
+            constraints.add(newAssignment);
+          }
         }
       }
       if (constraints.isEmpty()) {

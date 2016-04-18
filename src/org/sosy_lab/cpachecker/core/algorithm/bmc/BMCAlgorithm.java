@@ -26,14 +26,11 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Optional;
+import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -84,11 +81,14 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Model.ValueAssignment;
 import org.sosy_lab.solver.api.ProverEnvironment;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
 
 @Options(prefix="bmc")
 public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
@@ -237,7 +237,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           return;
         }
 
-        model = ImmutableList.copyOf(pProver.getModel());
+        model = pProver.getModelAssignments();
 
       } catch (SolverException e) {
         logger.log(Level.WARNING, "Solver could not produce model, cannot create error path.");
