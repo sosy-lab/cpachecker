@@ -16,6 +16,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
@@ -97,34 +98,30 @@ public class RCNFManager implements StatisticsProvider {
     }
 
     BooleanFormula result;
-    try {
-      switch (boundVarsHandling) {
-        case QE_LIGHT_THEN_DROP:
-          try {
-            statistics.lightQuantifierElimination.start();
-            result = fmgr.applyTactic(input, Tactic.QE_LIGHT);
-          } finally {
-            statistics.lightQuantifierElimination.stop();
-          }
-          break;
-        case QE:
-          try {
-            statistics.quantifierElimination.start();
-            result = fmgr.applyTactic(input, Tactic.QE);
-          } finally {
-            statistics.quantifierElimination.stop();
-          }
-          break;
-        case DROP:
-          result = input;
-          break;
-        default:
-          throw new AssertionError("Unhandled case statement: " + boundVarsHandling);
-      }
-    } catch (UnsupportedOperationException e) {
-      // chosen quantifier elimination tactic didn't work, so fallback to
-      // method without elimination
-      result = input;
+    switch (boundVarsHandling) {
+      case QE_LIGHT_THEN_DROP:
+        try {
+          statistics.lightQuantifierElimination.start();
+          result = fmgr.applyTactic(input, Tactic.QE_LIGHT);
+        } finally {
+          statistics.lightQuantifierElimination.stop();
+        }
+        break;
+      case QE:
+        try {
+          statistics.quantifierElimination.start();
+          result = fmgr.getQuantifiedFormulaManager().eliminateQuantifiers(input);
+        } catch (SolverException pE) {
+          throw new UnsupportedOperationException("Unexpected solver error", pE);
+        } finally {
+          statistics.quantifierElimination.stop();
+        }
+        break;
+      case DROP:
+        result = input;
+        break;
+      default:
+        throw new AssertionError("Unhandled case statement: " + boundVarsHandling);
     }
     BooleanFormula noBoundVars = dropBoundVariables(result);
 
