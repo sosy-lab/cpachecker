@@ -1112,7 +1112,7 @@ class InvariantsManager implements StatisticsProvider {
         // with the (allowed) declared exceptions for the caller of this method
         // CPA#getInitialState so we just log a warning and swallow the exception
         // such that the analysis cane move on without invariants
-        logger.logException(Level.SEVERE, e, "Asynchronous invariant generation skipped.");
+        logger.logUserException(Level.SEVERE, e, "Asynchronous invariant generation skipped.");
 
       }
     }
