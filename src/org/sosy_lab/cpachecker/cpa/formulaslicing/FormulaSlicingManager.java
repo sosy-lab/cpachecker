@@ -258,6 +258,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
       final SlicingIntermediateState iState,
       final SlicingAbstractedState prevToMerge
   ) throws CPAException, InterruptedException {
+
     SlicingAbstractedState out = slicingCache.get(Pair.of(iState, prevToMerge));
     if (out != null) {
       return Optional.of(out);
@@ -313,9 +314,13 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
             iState.getPathFormula(),
             candidateLemmas
         );
-        inductiveUnder = Sets.union(
-            parentState.getInductiveUnder(), ImmutableSet.of(path)
-        );
+
+        if (finalClauses.equals(candidateLemmas)) {
+          inductiveUnder = Sets.union(prevToMerge.getInductiveUnder(),
+              ImmutableSet.of(path));
+        } else {
+          inductiveUnder = ImmutableSet.of(path);
+        }
       }
     } catch (SolverException pE) {
       throw new CPAException("Solver call failed", pE);
