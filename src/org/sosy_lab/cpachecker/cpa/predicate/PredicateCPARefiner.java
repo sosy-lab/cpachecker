@@ -28,14 +28,10 @@ import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getAllStatesOnPathsTo;
 import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
-import java.io.PrintStream;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Optional;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -74,10 +70,14 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.Lists;
+import java.io.PrintStream;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * This class provides a basic refiner implementation for predicate analysis.
@@ -425,7 +425,6 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
    * ARGPath.
    */
   private Set<Loop> getRelevantLoops(final ARGPath allStatesTrace) {
-    PathIterator pathIt = allStatesTrace.pathIterator();
     LoopCollectingEdgeVisitor loopFinder = null;
 
     try {
@@ -439,8 +438,13 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       return Collections.emptySet();
     }
 
+    PathIterator pathIt = allStatesTrace.fullPathIterator();
     while (pathIt.hasNext()) {
-      loopFinder.visit(pathIt.getAbstractState(), pathIt.getOutgoingEdge(), null);
+      if (pathIt.isPositionWithState()) {
+        loopFinder.visit(pathIt.getAbstractState(), pathIt.getOutgoingEdge(), null);
+      } else {
+        loopFinder.visit(pathIt.getPreviousAbstractState(), pathIt.getOutgoingEdge(), null);
+      }
       pathIt.advance();
     }
 
