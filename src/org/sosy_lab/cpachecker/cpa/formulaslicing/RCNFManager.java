@@ -97,28 +97,34 @@ public class RCNFManager implements StatisticsProvider {
     }
 
     BooleanFormula result;
-    switch (boundVarsHandling) {
-      case QE_LIGHT_THEN_DROP:
-        try {
-          statistics.lightQuantifierElimination.start();
-          result = fmgr.applyTactic(input, Tactic.QE_LIGHT);
-        } finally {
-          statistics.lightQuantifierElimination.stop();
-        }
-        break;
-      case QE:
-        try {
-          statistics.quantifierElimination.start();
-          result = fmgr.applyTactic(input, Tactic.QE);
-        } finally {
-          statistics.quantifierElimination.stop();
-        }
-        break;
-      case DROP:
-        result = input;
-        break;
-      default:
-        throw new UnsupportedOperationException("Unexpected state");
+    try {
+      switch (boundVarsHandling) {
+        case QE_LIGHT_THEN_DROP:
+          try {
+            statistics.lightQuantifierElimination.start();
+            result = fmgr.applyTactic(input, Tactic.QE_LIGHT);
+          } finally {
+            statistics.lightQuantifierElimination.stop();
+          }
+          break;
+        case QE:
+          try {
+            statistics.quantifierElimination.start();
+            result = fmgr.applyTactic(input, Tactic.QE);
+          } finally {
+            statistics.quantifierElimination.stop();
+          }
+          break;
+        case DROP:
+          result = input;
+          break;
+        default:
+          throw new AssertionError("Unhandled case statement: " + boundVarsHandling);
+      }
+    } catch (UnsupportedOperationException e) {
+      // chosen quantifier elimination tactic didn't work, so fallback to
+      // method without elimination
+      result = input;
     }
     BooleanFormula noBoundVars = dropBoundVariables(result);
 
