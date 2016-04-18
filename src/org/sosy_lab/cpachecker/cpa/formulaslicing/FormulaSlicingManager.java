@@ -182,7 +182,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
           return Optional.absent();
         }
       } else {
-        if (isUnreachable(iState)) {
+        if (isUnreachable(iState, false)) {
           return Optional.absent();
         }
         out = SlicingAbstractedState.ofClauses(
@@ -292,7 +292,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
     Set<BooleanFormula> finalClauses;
     Set<PathFormulaWithStartSSA> inductiveUnder;
-    if (isUnreachable(iState)) {
+    if (isUnreachable(iState, false)) {
       return Optional.absent();
     }
     try {
@@ -337,15 +337,20 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     slicingCache.put(Pair.of(iState, prevToMerge), out);
     return Optional.of(out);
   }
-
   private boolean isUnreachableTarget(SlicingIntermediateState iState)
-      throws InterruptedException, CPAException {
-    statistics.reachabilityTargetChecks++;
-    return isUnreachable(iState);
+  throws InterruptedException, CPAException {
+    try {
+      statistics.reachabilityTargetTimer.start();
+      statistics.reachabilityTargetChecks++;
+      return isUnreachable(iState, true);
+    } finally {
+      statistics.reachabilityTargetTimer.stop();
+    }
   }
 
-  private boolean isUnreachable(SlicingIntermediateState iState)
+  private boolean isUnreachable(SlicingIntermediateState iState, boolean isTarget)
       throws InterruptedException, CPAException {
+    // TODO: refactor statistics.
 
     BooleanFormula prevSlice = bfmgr.and(iState.getAbstractParent().getAbstraction());
     BooleanFormula instantiatedFormula =
@@ -368,6 +373,9 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
         if (cachedIsUnsat && constraints.containsAll(cachedConstraints)) {
           statistics.cachedSatChecks++;
+          if (isTarget) {
+            statistics.reachabilityTargetChecksCached++;
+          }
           return true;
         } else if (!cachedIsUnsat &&
             cachedConstraints.containsAll(constraints)) {
@@ -489,15 +497,12 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
   }
 
   private boolean shouldPerformAbstraction(CFANode node, AbstractState pFullState) {
-
     LoopstackState loopState = AbstractStates.extractStateByType(pFullState,
         LoopstackState.class);
-    Preconditions.checkState(loopState != null, "LoopstackCPA must be enabled for formula slicing"
-        + " to work.");
 
     // Slicing is only performed on the loop heads.
-    return loopStructure.getAllLoopHeads().contains(node)
-        && loopState.isLoopCounterAbstracted();
+    return loopStructure.getAllLoopHeads().contains(node) &&
+        (loopState == null || loopState.isLoopCounterAbstracted());
   }
 
   @Override

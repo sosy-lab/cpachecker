@@ -46,6 +46,8 @@ class FormulaSlicingStatistics implements Statistics {
   final Multiset<CFANode> satChecksLocations = HashMultiset.create();
   int abstractionLocations = 0;
   int reachabilityTargetChecks = 0;
+  int reachabilityTargetChecksCached = 0;
+  final Timer reachabilityTargetTimer = new Timer();
 
   @Override
   public void printStatistics(PrintStream out,
@@ -54,10 +56,13 @@ class FormulaSlicingStatistics implements Statistics {
     printTimer(out, propagation, "propagating formulas");
     printTimer(out, reachabilityCheck, "checking reachability");
     printTimer(out, inductiveWeakening, "inductive weakening");
+    printTimer(out, reachabilityTargetTimer, "checking reachability for "
+        + "target states");
     out.printf("# uncached SAT checks: %d%n",
         reachabilityCheck.getNumberOfIntervals());
     out.printf("# cached SAT checks: %d%n", cachedSatChecks);
-    out.printf("# SAT checks due to isTarget checks: %d%n", reachabilityTargetChecks);
+    out.printf("# SAT checks due to isTarget: %d, cached: %d%n",
+        reachabilityTargetChecks, reachabilityTargetChecksCached);
     out.printf("SAT locations: %s%n", satChecksLocations);
     out.printf("# abstractions: %d%n", abstractionLocations);
   }
