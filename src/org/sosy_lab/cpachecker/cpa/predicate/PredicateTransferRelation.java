@@ -27,12 +27,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
+import com.google.common.collect.Iterables;
 
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
@@ -65,6 +60,13 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
 
 /**
  * Transfer relation for symbolic predicate abstraction. First it computes
@@ -312,6 +314,9 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
         return Collections.singleton(element);
       }
 
+      final CFANode currentLocation =
+          Iterables.getOnlyElement(AbstractStates.extractLocations(otherElements));
+
       boolean errorFound = false;
       for (AbstractState lElement : otherElements) {
         if (lElement instanceof AssumptionStorageState) {
@@ -322,7 +327,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
          * Add additional assumptions from an automaton state.
          */
         if (!ignoreStateAssumptions && lElement instanceof AbstractStateWithAssumptions) {
-          element = strengthen(edge.getSuccessor(), element, (AbstractStateWithAssumptions) lElement);
+          element = strengthen(currentLocation, element, (AbstractStateWithAssumptions) lElement);
         }
 
         if (strengthenWithFormulaReportingStates && lElement instanceof FormulaReportingState) {
@@ -337,7 +342,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       // check satisfiability in case of error
       // (not necessary for abstraction elements)
       if (errorFound && targetStateSatCheck) {
-        element = strengthenSatCheck(element, getAnalysisSuccesor(edge));
+        element = strengthenSatCheck(element, currentLocation);
         if (element == null) {
           // successor not reachable
           return Collections.emptySet();

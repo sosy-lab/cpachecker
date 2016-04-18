@@ -130,6 +130,10 @@ public final class AbstractStates {
     return e == null ? ImmutableList.<CFANode>of() : e.getLocationNodes();
   }
 
+  public static FluentIterable<CFANode> extractLocations(Iterable<AbstractState> pStates) {
+    return from(pStates).transformAndConcat(EXTRACT_LOCATIONS);
+  }
+
   public static Iterable<CFAEdge> getOutgoingEdges(AbstractState pState) {
     return extractStateByType(pState, AbstractStateWithLocation.class).getOutgoingEdges();
   }
