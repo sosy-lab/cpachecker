@@ -27,8 +27,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula;
 
-import com.google.common.collect.Iterables;
-
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -314,8 +312,10 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
         return Collections.singleton(element);
       }
 
-      final CFANode currentLocation =
-          Iterables.getOnlyElement(AbstractStates.extractLocations(otherElements));
+      // TODO: replace with Iterables.getOnlyElement(AbstractStates.extractLocations(otherElements));
+      // when the special case for PredicateCPA in CompositeTransferRelation#callStrengthen
+      // is removed.
+      final CFANode currentLocation = getAnalysisSuccesor(edge);
 
       boolean errorFound = false;
       for (AbstractState lElement : otherElements) {
