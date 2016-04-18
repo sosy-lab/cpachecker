@@ -3,6 +3,8 @@ package org.sosy_lab.cpachecker.cpa.formulaslicing;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
+import java.util.Objects;
+
 /**
  * Intermediate state: a formula describing all possible executions at a point.
  */
@@ -58,5 +60,24 @@ public class SlicingIntermediateState extends SlicingState {
   @Override
   public boolean isAbstracted() {
     return false;
+  }
+
+  @Override
+  public boolean equals(Object pO) {
+    if (this == pO) {
+      return true;
+    }
+    if (pO == null || getClass() != pO.getClass()) {
+      return false;
+    }
+    SlicingIntermediateState that = (SlicingIntermediateState) pO;
+    return Objects.equals(node, that.node) &&
+        Objects.equals(pathFormula, that.pathFormula) &&
+        Objects.equals(start, that.start);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(node, pathFormula, start);
   }
 }

@@ -14,6 +14,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -154,6 +155,25 @@ public class SlicingAbstractedState
         Optional.<SlicingIntermediateState>absent(),
         startingNode,
         ImmutableSet.<PathFormulaWithStartSSA>of());
+  }
+
+  @Override
+  public boolean equals(Object pO) {
+    if (this == pO) {
+      return true;
+    }
+    if (pO == null || getClass() != pO.getClass()) {
+      return false;
+    }
+    SlicingAbstractedState that = (SlicingAbstractedState) pO;
+    return Objects.equals(semiClauses, that.semiClauses) &&
+        Objects.equals(ssaMap, that.ssaMap) &&
+        Objects.equals(pointerTargetSet, that.pointerTargetSet);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(semiClauses, ssaMap, pointerTargetSet);
   }
 
   @Override
