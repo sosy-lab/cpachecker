@@ -23,10 +23,17 @@
  */
 package org.sosy_lab.cpachecker.util;
 
-import static com.google.common.base.Predicates.*;
+import static com.google.common.base.Predicates.equalTo;
+import static com.google.common.base.Predicates.in;
+import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 
-import java.util.Set;
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.TreeTraverser;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -43,12 +50,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.TreeTraverser;
+import java.util.Set;
 
 /**
  * Helper class that provides several useful methods for handling AbstractStates.
@@ -125,7 +127,7 @@ public final class AbstractStates {
 
   public static Iterable<CFANode> extractLocations(AbstractState pState) {
     AbstractStateWithLocations e = extractStateByType(pState, AbstractStateWithLocations.class);
-    return e == null ? null : e.getLocationNodes();
+    return e == null ? ImmutableList.<CFANode>of() : e.getLocationNodes();
   }
 
   public static Iterable<CFAEdge> getOutgoingEdges(AbstractState pState) {

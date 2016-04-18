@@ -302,21 +302,16 @@ public class ARGToDotWriter {
 
     builder.append(currentElement.getStateId());
 
-    Iterable<CFANode> locs = AbstractStates.extractLocations(currentElement);
-    if (locs != null) {
-      for (CFANode loc : AbstractStates.extractLocations(currentElement)) {
-        builder.append(" @ ");
-        builder.append(loc.toString());
-        builder.append("\\n");
-        builder.append(loc.getFunctionName());
-        if (loc instanceof FunctionEntryNode) {
-          builder.append(" entry");
-        } else if (loc instanceof FunctionExitNode) {
-          builder.append(" exit");
-        }
-        builder.append("\\n");
+    for (CFANode loc : AbstractStates.extractLocations(currentElement)) {
+      builder.append(" @ ");
+      builder.append(loc.toString());
+      builder.append("\\n");
+      builder.append(loc.getFunctionName());
+      if (loc instanceof FunctionEntryNode) {
+        builder.append(" entry");
+      } else if (loc instanceof FunctionExitNode) {
+        builder.append(" exit");
       }
-    } else {
       builder.append("\\n");
     }
 

@@ -28,14 +28,11 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.PeekingIterator;
 
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -71,11 +68,14 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
-import com.google.common.base.Splitter;
-import com.google.common.base.Strings;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.PeekingIterator;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 @Options(prefix="restartAlgorithm")
 public class RestartAlgorithm implements Algorithm, StatisticsProvider {
@@ -186,7 +186,6 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     ForwardingReachedSet reached = (ForwardingReachedSet)pReached;
 
     Iterable<CFANode> initialNodes = AbstractStates.extractLocations(pReached.getFirstState());
-    assert initialNodes != null : "Location information needed";
     CFANode mainFunction = Iterables.getOnlyElement(initialNodes);
 
     PeekingIterator<Path> configFilesIterator = Iterators.peekingIterator(configFiles.iterator());
