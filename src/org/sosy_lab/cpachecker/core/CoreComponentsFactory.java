@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtra
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithmWithARGReplay;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.RestrictedProgramDomainAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
@@ -132,6 +133,10 @@ public class CoreComponentsFactory {
       description = "run a sequence of analysis, where the previous ARG is inserted into the current ARGReplayCPA.")
   private boolean useRestartAlgorithmWithARGReplay = false;
 
+  @Option(secure=true, name="unknownIfUnrestrictedProgram",
+      description="stop the analysis with the result unknown if the program does not satisfies certain restrictions.")
+  private boolean unknownIfUnrestrictedProgram = false;
+
   private final Configuration config;
   private final LogManager logger;
   private final ShutdownManager shutdownManager;
@@ -221,6 +226,10 @@ public class CoreComponentsFactory {
 
       if (useCustomInstructionRequirementExtraction) {
         algorithm = new CustomInstructionRequirementsExtractingAlgorithm(algorithm, cpa, config, logger, shutdownNotifier, cfa);
+      }
+
+      if (unknownIfUnrestrictedProgram) {
+        algorithm = new RestrictedProgramDomainAlgorithm(algorithm, cfa);
       }
     }
 
