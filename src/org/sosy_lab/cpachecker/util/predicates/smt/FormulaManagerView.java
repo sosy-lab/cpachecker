@@ -1610,4 +1610,9 @@ public class FormulaManagerView {
           }
         }, nnfNotTransformed);
   }
+
+  public BooleanFormula translateFrom(BooleanFormula other,
+                                      FormulaManagerView otherManager) {
+    return manager.translateFrom(other, otherManager.manager);
+  }
 }
