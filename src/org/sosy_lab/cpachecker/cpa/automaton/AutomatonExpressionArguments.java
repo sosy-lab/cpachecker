@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor.SubstituteProvider;
@@ -226,14 +227,15 @@ public class AutomatonExpressionArguments {
    * original expression.</p>
    *
    * @param pExpression The expression to fix.
-   * @return An expression with a fixed expression type.
+   * @return An expression with a fixed expression type, if one could be found. Otherwise, the
+   * original expression will be returned.
    */
-  private CBinaryExpression fixBinaryExpressionType(CBinaryExpression pExpression) {
-    if (cfa == null) {
-      throw new IllegalStateException("Unable to fix a expression type with out a CFA. Inject a "
-          + "CFA with \"AutomatonExpressionArguments.setCFA(CFA)\" before calling the method "
-          + "\"fixBinaryExpressionType(CBinaryExpression)\"!");
-    }
+  private CBinaryExpression fixBinaryExpressionType(final CBinaryExpression pExpression) {
+    Preconditions.checkNotNull(
+        cfa,
+        "Unable to fix a expression type with out a CFA. Inject a CFA with "
+            + "\"AutomatonExpressionArguments.setCFA(CFA)\" before calling the method "
+            + "\"fixBinaryExpressionType(CBinaryExpression)\"!");
 
     SearchDeclarationVisitor visitor = new SearchDeclarationVisitor(
         pExpression.getOperand2().toASTString());
@@ -250,18 +252,20 @@ public class AutomatonExpressionArguments {
     CType newType = visitor.getMatching().get(0).getDeclaration().getType();
     CIdExpression oldOperand1 = (CIdExpression) pExpression.getOperand1();
     CIdExpression oldOperand2 = (CIdExpression) pExpression.getOperand2();
-    CIdExpression newOperand1 = new CIdExpression(
-        oldOperand1.getFileLocation(),
-        newType,
-        oldOperand1.toASTString(),
-        oldOperand1.getDeclaration());  // TODO Might need a proper declaration here if it's null.
-                                        // Fails in BaseVisitor.java:91
-    CIdExpression newOperand2 = new CIdExpression(
-        oldOperand2.getFileLocation(),
-        newType,
-        oldOperand2.toASTString(),
-        oldOperand2.getDeclaration() == null ? visitor.getMatching().get(0).getDeclaration()
-                                             : oldOperand2.getDeclaration());
+    CIdExpression newOperand1 =
+        new CIdExpression(
+            oldOperand1.getFileLocation(),
+            newType,
+            oldOperand1.toASTString(),
+            getDeclarationForTransitionVariable(oldOperand1.getName()));
+    CIdExpression newOperand2 =
+        new CIdExpression(
+            oldOperand2.getFileLocation(),
+            newType,
+            oldOperand2.toASTString(),
+            oldOperand2.getDeclaration() == null
+                ? visitor.getMatching().get(0).getDeclaration()
+                : oldOperand2.getDeclaration());
 
     return new CBinaryExpression(
         pExpression.getFileLocation(),
@@ -270,6 +274,23 @@ public class AutomatonExpressionArguments {
         newOperand1,
         newOperand2,
         pExpression.getOperator());
+  }
+
+  /**
+   * Searches for a declaration of an expression in the set of transition variables.
+   *
+   * @param pExpressionName The name of the expression.
+   * @return The declaration of a transition variable if one could be found, {@code null} otherwise.
+   */
+  private CSimpleDeclaration getDeclarationForTransitionVariable(final String pExpressionName) {
+    final int index =
+        Integer.parseInt(pExpressionName.replace(AutomatonASTComparator.NUMBERED_JOKER_EXPR, ""));
+    if (transitionVariables.containsKey(index)
+        && transitionVariables.get(index) instanceof CIdExpression) {
+      return ((CIdExpression) transitionVariables.get(index)).getDeclaration();
+    }
+
+    return null;
   }
 
   ImmutableList<Pair<AStatement, Boolean>> instantiateAssumptions(
