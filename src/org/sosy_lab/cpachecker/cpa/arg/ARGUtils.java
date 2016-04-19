@@ -75,6 +75,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -684,6 +685,8 @@ public class ARGUtils {
    * point.
    * If there is a target state, it is signaled as an error state in the automaton.
    *
+   * This method does not work if the path has recursive elements.
+   *
    * @param sb Where to write the automaton to
    * @param pRootState The root of the ARG
    * @param pPathStates The states along the path
@@ -700,10 +703,28 @@ public class ARGUtils {
 
     ARGState inLoopState = null;
     ARGState outLoopState = null;
+    ARGState inFunctionState = null;
+    ARGState outFunctionState = null;
     Map<ARGState, ARGState> inToOutLoopMap = new HashMap<>();
-    CFANode inLoopNode = null;
-    for (ARGState s : Ordering.natural().immutableSortedCopy(pPathStates)) {
+    Map<ARGState, ARGState> inToOutFunctionsMap = new HashMap<>();
 
+    CFANode inLoopNode = null;
+    CFANode inFunctionNode = null;
+
+    ImmutableList<ARGState> sortedStates = Ordering.natural().immutableSortedCopy(pPathStates);
+
+    LinkedList<String> sortedFunctionOccurrence = new LinkedList<>();
+    for (ARGState s : sortedStates) {
+      CFANode node = extractLocation(s);
+      if (!sortedFunctionOccurrence.isEmpty()
+          && sortedFunctionOccurrence.getLast().equals(node.getFunctionName())) {
+        continue;
+      } else {
+        sortedFunctionOccurrence.add(node.getFunctionName());
+      }
+    }
+
+    for (ARGState s : sortedStates) {
       CFANode loc = AbstractStates.extractLocation(s);
 
       boolean loopFound = false;
@@ -726,12 +747,41 @@ public class ARGUtils {
                  && !inLoopNode.getFunctionName().equals(extractLocation(s).getFunctionName())) {
         continue;
 
+        // function call in the path we want to uproll
+      } else if (!loopFound
+          && inLoopNode == null
+          && loc.getLeavingSummaryEdge() != null
+          && inFunctionState == null
+          // we have found the function where the error is, as we do not support
+          // direct and indirect recursion we know that we can skip all other function
+          // calls right now
+          && sortedFunctionOccurrence.getFirst().equals(sortedFunctionOccurrence.getLast())
+          && sortedFunctionOccurrence.size() > 1) {
+        inFunctionState = s;
+        inFunctionNode = extractLocation(inFunctionState);
+        outFunctionState = null;
+
+      } else if (inFunctionNode != null
+          // as long as we are in the other function we can just continue, this
+          // is handled later on
+          && !inFunctionNode.getFunctionName().equals(extractLocation(s).getFunctionName())) {
+        continue;
+
       } else if (!loopFound) {
         if (inLoopState != null && outLoopState == null) {
           outLoopState = s;
           inToOutLoopMap.put(inLoopState, outLoopState);
           inLoopNode = null;
           inLoopState = null;
+        }
+        if (inFunctionState != null && outFunctionState == null) {
+          outFunctionState = s;
+          inToOutFunctionsMap.put(inFunctionState, outFunctionState);
+          inFunctionNode = null;
+          inFunctionState = null;
+        }
+        if (!sortedFunctionOccurrence.getFirst().equals(extractLocation(s).getFunctionName())) {
+          sortedFunctionOccurrence.removeFirst();
         }
 
         sb.append("STATE USEFIRST ARG" + s.getStateId() + " :\n");
@@ -805,12 +855,41 @@ public class ARGUtils {
       handleLoop(sb, loopsToUproll, intoLoopState, outOfLoopState);
     }
 
+    for (Entry<ARGState, ARGState> entry : inToOutFunctionsMap.entrySet()) {
+      ARGState intoFunctionState = entry.getKey();
+      ARGState outOfFunctionState = entry.getValue();
+      handleFunctionCall(sb, intoFunctionState, outOfFunctionState);
+    }
+
     // last loop encountered has no outgoing edge
     if (inLoopState != null) {
       handleLoop(sb, loopsToUproll, inLoopState, null);
     }
 
     sb.append("END AUTOMATON\n");
+  }
+
+  private static void handleFunctionCall(Appendable sb, ARGState callState, ARGState returnState)
+      throws IOException {
+    FunctionSummaryEdge sumEdge = extractLocation(callState).getLeavingSummaryEdge();
+    CFANode sumEdgePredecessor = sumEdge.getPredecessor();
+
+    sb.append("STATE USEFIRST ARG")
+        .append(Integer.toString(callState.getStateId()))
+        .append(" :\n")
+        .append("    TRUE -> ");
+    handleGotoNode(sb, sumEdgePredecessor, true);
+
+    handleUseFirstNode(sb, sumEdgePredecessor, true);
+
+    sb.append("    ( CHECK(location, \"functionname==")
+        .append(sumEdgePredecessor.getFunctionName())
+        .append("\")) -> ");
+    handleGotoArg(sb, returnState); // edge from function back to path
+
+    sb.append("    TRUE -> ");
+    handleGotoNode(sb, sumEdgePredecessor, true);
+    sb.append("\n");
   }
 
   private static void handleLoop(Appendable sb, Set<Loop> loopsToUproll, ARGState intoLoopState,
