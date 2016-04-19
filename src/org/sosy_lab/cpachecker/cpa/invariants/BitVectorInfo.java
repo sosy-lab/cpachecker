@@ -125,7 +125,11 @@ public class BitVectorInfo implements TypeInfo {
           return FloatingPointTypeInfo.DOUBLE;
         }
       }
-      int sizeInChars = ((CType) type).accept(new BaseSizeofVisitor(pMachineModel));
+      int sizeInChars = 0;
+      CType cType = (CType) type;
+      if (!cType.isIncomplete()) {
+        sizeInChars = cType.accept(new BaseSizeofVisitor(pMachineModel));
+      }
       if (sizeInChars == 0) {
         sizeInChars = pMachineModel.getSizeofPtr();
       }
@@ -180,6 +184,9 @@ public class BitVectorInfo implements TypeInfo {
       type = ((CType) type).getCanonicalType();
     }
     if (type instanceof CType) {
+      if (((CType) type).isIncomplete()) {
+        return false;
+      }
       if (!(type instanceof CSimpleType)) {
         return type instanceof CPointerType;
       }
