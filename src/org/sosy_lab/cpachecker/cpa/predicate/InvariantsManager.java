@@ -909,7 +909,7 @@ class InvariantsManager implements StatisticsProvider {
                 .allMatch(equalTo(fmgr.getBooleanFormulaManager().makeBoolean(true)));
         if (wasSuccessful) {
           for (Pair<BooleanFormula, CFANode> invariant : invariants) {
-            addResultToCache(invariant.getFirst(), invariant.getSecond());
+            addResultToCache(fmgr.uninstantiate(invariant.getFirst()), invariant.getSecond());
           }
         }
 
