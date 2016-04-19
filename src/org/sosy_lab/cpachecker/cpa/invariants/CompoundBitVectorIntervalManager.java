@@ -287,9 +287,12 @@ public class CompoundBitVectorIntervalManager implements CompoundIntervalManager
       throw new IllegalArgumentException(
           "Unsupported target type: Not a compound bit vector interval.");
     }
-    checkOperand(pToCast);
-    return ((CompoundBitVectorInterval) pToCast)
-        .cast((BitVectorInfo) pInfo, allowSignedWrapAround, OverflowEventHandler.EMPTY);
+    if (pToCast instanceof CompoundBitVectorInterval) {
+      return ((CompoundBitVectorInterval) pToCast)
+          .cast((BitVectorInfo) pInfo, allowSignedWrapAround, OverflowEventHandler.EMPTY);
+    }
+    // TODO be more precise
+    return allPossibleValues();
   }
 
   private static void checkOperand(CompoundInterval pOperand) {

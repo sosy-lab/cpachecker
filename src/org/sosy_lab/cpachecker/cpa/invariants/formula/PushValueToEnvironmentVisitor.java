@@ -416,8 +416,8 @@ public class PushValueToEnvironmentVisitor implements ParameterizedNumeralFormul
       }
       return targetManager.doIntersect(evaluate(pCast), pParameter);
     }
-    throw new AssertionError(
-        "Unsupported cast from " + sourceInfo.abbrev() + " to " + targetInfo.abbrev());
+    // TODO try to gain more information from casts between other types
+    return true;
   }
 
   /**

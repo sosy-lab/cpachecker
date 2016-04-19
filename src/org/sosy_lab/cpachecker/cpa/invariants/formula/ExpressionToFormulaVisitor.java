@@ -723,21 +723,25 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
         if (pCompoundIntervalManagerFactory instanceof CompoundBitVectorIntervalManagerFactory
             && !((CompoundBitVectorIntervalManagerFactory) pCompoundIntervalManagerFactory)
                 .isSignedWrapAroundAllowed()) {
-          CompoundBitVectorInterval cbvi =
-              (CompoundBitVectorInterval) pFormula.accept(evaluator, pEnvironment);
-          final AtomicBoolean overflows = new AtomicBoolean();
-          OverflowEventHandler overflowEventHandler =
-              new OverflowEventHandler() {
+          CompoundInterval ci = pFormula.accept(evaluator, pEnvironment);
+          if (ci instanceof CompoundBitVectorInterval) {
+            CompoundBitVectorInterval cbvi = (CompoundBitVectorInterval) ci;
+            final AtomicBoolean overflows = new AtomicBoolean();
+            OverflowEventHandler overflowEventHandler =
+                new OverflowEventHandler() {
 
-                @Override
-                public void signedOverflow() {
-                  overflows.set(true);
-                }
-              };
-          cbvi.cast(bitVectorInfo, false, overflowEventHandler);
-          if (overflows.get()) {
-            return InvariantsFormulaManager.INSTANCE.asConstant(typeInfo, cim.allPossibleValues());
+                  @Override
+                  public void signedOverflow() {
+                    overflows.set(true);
+                  }
+                };
+            cbvi.cast(bitVectorInfo, false, overflowEventHandler);
+            if (overflows.get()) {
+              return InvariantsFormulaManager.INSTANCE.asConstant(
+                  typeInfo, cim.allPossibleValues());
+            }
           }
+          // TODO handle floats
         }
         return formula;
       }
