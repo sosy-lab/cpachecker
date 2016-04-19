@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.core.algorithm.BDDCPARestrictionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtractingAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithmWithARGReplay;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
@@ -137,6 +138,13 @@ public class CoreComponentsFactory {
       description="stop the analysis with the result unknown if the program does not satisfies certain restrictions.")
   private boolean unknownIfUnrestrictedProgram = false;
 
+  @Option(
+    secure = true,
+    name = "algorithm.CBMC",
+    description = "use CBMC as an external tool from CPAchecker"
+  )
+  boolean runCBMCasExternalTool = false;
+
   private final Configuration config;
   private final LogManager logger;
   private final ShutdownManager shutdownManager;
@@ -179,6 +187,9 @@ public class CoreComponentsFactory {
 
     } else if (useRestartAlgorithmWithARGReplay) {
       algorithm = new RestartAlgorithmWithARGReplay(config, logger, shutdownNotifier, cfa);
+
+    } else if (runCBMCasExternalTool) {
+      algorithm = new ExternalCBMCAlgorithm(programDenotation, config, logger);
 
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier, stats);
