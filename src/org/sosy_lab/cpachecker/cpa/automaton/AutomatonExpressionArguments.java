@@ -74,6 +74,13 @@ public class AutomatonExpressionArguments {
   private CFA cfa;
 
   /**
+   * A cache for binary expressions containing {@code CProblemType}s.
+   *
+   * @see #fixBinaryExpressionType(CBinaryExpression)
+   */
+  private static Map<String, CBinaryExpression> problemTypeExpressionCache = new HashMap<>();
+
+  /**
    * In this String all print messages of the Transition are collected.
    * They are logged (INFO-level) together at the end of the transition actions.
    */
@@ -224,11 +231,13 @@ public class AutomatonExpressionArguments {
    *
    * <p>Traverses the CFA searching for a declaration statement that matches the missing type in
    * the binary expression. If no matching type declaration can be found, it returns the
-   * original expression.</p>
+   * original expression. The CFA will only be traversed, if no matching expression could be
+   * found in the cache.</p>
    *
    * @param pExpression The expression to fix.
    * @return An expression with a fixed expression type, if one could be found. Otherwise, the
    * original expression will be returned.
+   * @see #problemTypeExpressionCache
    */
   private CBinaryExpression fixBinaryExpressionType(final CBinaryExpression pExpression) {
     Preconditions.checkNotNull(
@@ -237,10 +246,14 @@ public class AutomatonExpressionArguments {
             + "\"AutomatonExpressionArguments.setCFA(CFA)\" before calling the method "
             + "\"fixBinaryExpressionType(CBinaryExpression)\"!");
 
-    SearchDeclarationVisitor visitor = new SearchDeclarationVisitor(
-        pExpression.getOperand2().toASTString());
-    CFATraversal traversal = CFATraversal.dfs();
-    traversal.traverseOnce(cfa.getMainFunction(), visitor);
+    if (problemTypeExpressionCache.containsKey(pExpression.getOperand2().toASTString())) {
+      // Use the cache if possible in order to avoid CFA traversal
+      return problemTypeExpressionCache.get(pExpression.getOperand2().toASTString());
+    }
+
+    final SearchDeclarationVisitor visitor =
+        new SearchDeclarationVisitor(pExpression.getOperand2().toASTString());
+    CFATraversal.dfs().traverseOnce(cfa.getMainFunction(), visitor);
 
     if (visitor.getMatching().size() == 0) {
       return pExpression;
@@ -249,16 +262,16 @@ public class AutomatonExpressionArguments {
     assert visitor.getMatching().size() == 1 : "More than one matching edge found, result might "
         + "be ambiguous!";
 
-    CType newType = visitor.getMatching().get(0).getDeclaration().getType();
-    CIdExpression oldOperand1 = (CIdExpression) pExpression.getOperand1();
-    CIdExpression oldOperand2 = (CIdExpression) pExpression.getOperand2();
-    CIdExpression newOperand1 =
+    final CType newType = visitor.getMatching().get(0).getDeclaration().getType();
+    final CIdExpression oldOperand1 = (CIdExpression) pExpression.getOperand1();
+    final CIdExpression oldOperand2 = (CIdExpression) pExpression.getOperand2();
+    final CIdExpression newOperand1 =
         new CIdExpression(
             oldOperand1.getFileLocation(),
             newType,
             oldOperand1.toASTString(),
             getDeclarationForTransitionVariable(oldOperand1.getName()));
-    CIdExpression newOperand2 =
+    final CIdExpression newOperand2 =
         new CIdExpression(
             oldOperand2.getFileLocation(),
             newType,
@@ -267,13 +280,16 @@ public class AutomatonExpressionArguments {
                 ? visitor.getMatching().get(0).getDeclaration()
                 : oldOperand2.getDeclaration());
 
-    return new CBinaryExpression(
-        pExpression.getFileLocation(),
-        newType/*expression type*/,
-        newType/*calculation type*/,
-        newOperand1,
-        newOperand2,
-        pExpression.getOperator());
+    final CBinaryExpression expression =
+        new CBinaryExpression(
+            pExpression.getFileLocation(),
+            newType /*expression type*/,
+            newType /*calculation type*/,
+            newOperand1,
+            newOperand2,
+            pExpression.getOperator());
+    problemTypeExpressionCache.put(pExpression.getOperand2().toASTString(), expression);
+    return expression;
   }
 
   /**
@@ -328,7 +344,7 @@ public class AutomatonExpressionArguments {
           // the type information needs to be inferred from information in a C header file; this
           // information is not present during automaton parsing, hence we have to adjust this
           // afterwards.
-          CBinaryExpression expression = (CBinaryExpression) pNode;
+          final CBinaryExpression expression = (CBinaryExpression) pNode;
           if (expression.getCalculationType() instanceof CProblemType
               || expression.getExpressionType() instanceof CProblemType) {
 
@@ -378,7 +394,7 @@ public class AutomatonExpressionArguments {
         return TraversalProcess.CONTINUE;
       }
 
-      CDeclarationEdge edge = (CDeclarationEdge) pEdge;
+      final CDeclarationEdge edge = (CDeclarationEdge) pEdge;
       if (searchPattern.equals(edge.getDeclaration().getQualifiedName())) {
         matchingEdges.add(edge);
       }
