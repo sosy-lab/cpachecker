@@ -530,11 +530,11 @@ class InvariantsManager implements StatisticsProvider {
           case ASYNC:
             for (Pair<PathFormula, CFANode> pair : argForPathFormulaBasedGeneration) {
               if (pair.getFirst() != null) {
-                wasSuccessful = true;
-                addResultToCache(
+                BooleanFormula invariant =
                     asyncInvariantSupplierSingleton.getInvariantFor(
-                        pair.getSecond(), fmgr, pfmgr, pair.getFirst()),
-                    pair.getSecond());
+                        pair.getSecond(), fmgr, pfmgr, pair.getFirst());
+                wasSuccessful = wasSuccessful || !bfmgr.isTrue(invariant);
+                addResultToCache(invariant, pair.getSecond());
               } else {
                 addResultToCache(bfmgr.makeBoolean(true), pair.getSecond());
               }
@@ -1118,7 +1118,7 @@ class InvariantsManager implements StatisticsProvider {
         // CPA#getInitialState so we just log a warning and swallow the exception
         // such that the analysis cane move on without invariants
         logger.logUserException(Level.SEVERE, e, "Asynchronous invariant generation skipped.");
-
+        invSup = TrivialInvariantSupplier.INSTANCE;
       }
     }
 
