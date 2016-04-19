@@ -23,10 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core;
 
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
-
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -49,7 +45,6 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.AlgorithmWithPropertyCheck;
-import org.sosy_lab.cpachecker.core.algorithm.pcc.PartialARGsCombiner;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -61,6 +56,10 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+
+import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 /**
  * Factory class for the three core components of CPAchecker:
@@ -107,10 +106,6 @@ public class CoreComponentsFactory {
   @Option(secure=true,
       description="memorize previously used (incomplete) reached sets after a restart of the analysis")
   private boolean memorizeReachedAfterRestart = false;
-
-  @Option(secure=true, name="combineARGsAfterRestart",
-      description="combine (partial) ARGs obtained by restarts of the analysis after an unknown result with a different configuration")
-  private boolean useARGCombiningAlgorithm = false;
 
   @Option(secure=true, name="algorithm.analysisWithEnabler",
       description="use a analysis which proves if the program satisfies a specified property"
@@ -169,13 +164,11 @@ public class CoreComponentsFactory {
     if (useProofCheckAlgorithm) {
       logger.log(Level.INFO, "Using Proof Check Algorithm");
       algorithm = new ProofCheckAlgorithm(cpa, config, logger, shutdownNotifier, cfa);
+
     } else if (useRestartingAlgorithm) {
       logger.log(Level.INFO, "Using Restarting Algorithm");
-      algorithm = new RestartAlgorithm(config, logger, shutdownNotifier, programDenotation, cfa);
+      algorithm = RestartAlgorithm.create(config, logger, shutdownNotifier, programDenotation, cfa);
 
-      if (useARGCombiningAlgorithm) {
-        algorithm = new PartialARGsCombiner(algorithm, config, logger, shutdownNotifier);
-      }
     } else if (useImpactAlgorithm) {
       algorithm = new ImpactAlgorithm(config, logger, shutdownNotifier, cpa, cfa);
 

@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.pcc.PartialARGsCombiner;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -152,6 +153,14 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> configFiles;
 
+  @Option(
+    secure = true,
+    name = "combineARGsAfterRestart",
+    description =
+        "combine (partial) ARGs obtained by restarts of the analysis after an unknown result with a different configuration"
+  )
+  private boolean useARGCombiningAlgorithm = false;
+
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final RestartAlgorithmStatistics stats;
@@ -161,8 +170,13 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
   private Algorithm currentAlgorithm;
 
-  public RestartAlgorithm(Configuration config, LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier, String pFilename, CFA pCfa) throws InvalidConfigurationException {
+  private RestartAlgorithm(
+      Configuration config,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      String pFilename,
+      CFA pCfa)
+      throws InvalidConfigurationException {
     config.inject(this);
 
     if (configFiles.isEmpty()) {
@@ -175,6 +189,21 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     this.filename = pFilename;
     this.cfa = pCfa;
     this.globalConfig = config;
+  }
+
+  public static Algorithm create(
+      Configuration pConfig,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      String pFilename,
+      CFA pCfa)
+      throws InvalidConfigurationException {
+    RestartAlgorithm algorithm =
+        new RestartAlgorithm(pConfig, pLogger, pShutdownNotifier, pFilename, pCfa);
+    if (algorithm.useARGCombiningAlgorithm) {
+      return new PartialARGsCombiner(algorithm, pConfig, pLogger, pShutdownNotifier);
+    }
+    return algorithm;
   }
 
   @Override
