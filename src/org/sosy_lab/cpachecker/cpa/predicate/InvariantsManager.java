@@ -1111,7 +1111,7 @@ class InvariantsManager implements StatisticsProvider {
       try {
         invSup = invGen.get();
 
-      } catch (Exception e) {
+      } catch (InterruptedException | CPAException e) {
         invGen.cancel();
         // we cannot throw any checked exception here as this is not compatible
         // with the (allowed) declared exceptions for the caller of this method
