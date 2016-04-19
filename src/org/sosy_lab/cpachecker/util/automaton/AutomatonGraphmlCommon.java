@@ -98,12 +98,12 @@ public class AutomatonGraphmlCommon {
     INVARIANT("invariant", ElementType.NODE, "invariant", "string"),
     INVARIANTSCOPE("invariant.scope", ElementType.NODE, "invariant.scope", "string"),
     NAMED("named", ElementType.NODE, "namedValue", "string"),
-    NODETYPE("nodetype", ElementType.NODE, "nodeType", "string"),
-    ISFRONTIERNODE("frontier", ElementType.NODE, "isFrontierNode", "boolean"),
-    ISVIOLATIONNODE("violation", ElementType.NODE, "isViolationNode", "boolean"),
-    ISENTRYNODE("entry", ElementType.NODE, "isEntryNode", "boolean"),
-    ISSINKNODE("sink", ElementType.NODE, "isSinkNode", "boolean"),
-    ISLOOPSTART("loopHead", ElementType.NODE, "isLoopHead", "boolean"),
+    NODETYPE("nodetype", ElementType.NODE, "nodeType", "string", NodeType.ONPATH),
+    ISFRONTIERNODE("frontier", ElementType.NODE, "isFrontierNode", "boolean", false),
+    ISVIOLATIONNODE("violation", ElementType.NODE, "isViolationNode", "boolean", false),
+    ISENTRYNODE("entry", ElementType.NODE, "isEntryNode", "boolean", false),
+    ISSINKNODE("sink", ElementType.NODE, "isSinkNode", "boolean", false),
+    ISLOOPSTART("loopHead", ElementType.NODE, "isLoopHead", "boolean", false),
     VIOLATEDPROPERTY("violatedProperty", ElementType.NODE, "violatedProperty", "string"),
     SOURCECODELANGUAGE("sourcecodelang", ElementType.GRAPH, "sourcecodeLanguage", "string"),
     PROGRAMFILE("programfile", ElementType.GRAPH, "programFile", "string"),
@@ -131,11 +131,23 @@ public class AutomatonGraphmlCommon {
     public final String attrName;
     public final String attrType;
 
+    /** The defaultValue is non-null, iff existent. */
+    @Nullable public final String defaultValue;
+
     private KeyDef(String id, ElementType pKeyFor, String attrName, String attrType) {
       this.id = id;
       this.keyFor = pKeyFor;
       this.attrName = attrName;
       this.attrType = attrType;
+      this.defaultValue = null;
+    }
+
+    private KeyDef(String id, ElementType pKeyFor, String attrName, String attrType, Object defaultValue) {
+      this.id = id;
+      this.keyFor = pKeyFor;
+      this.attrName = attrName;
+      this.attrType = attrType;
+      this.defaultValue = defaultValue.toString();
     }
 
     @Override
@@ -289,17 +301,10 @@ public class AutomatonGraphmlCommon {
       root.setAttribute("xmlns", "http://graphml.graphdrawing.org/xmlns");
 
       EnumSet<KeyDef> keyDefs = EnumSet.allOf(KeyDef.class);
-      root.appendChild(
-          createKeyDefElement(KeyDef.NODETYPE, AutomatonGraphmlCommon.defaultNodeType.text));
-      keyDefs.remove(KeyDef.NODETYPE);
       root.appendChild(createKeyDefElement(KeyDef.ORIGINFILE, pDefaultSourceFileName));
       keyDefs.remove(KeyDef.ORIGINFILE);
-      for (NodeFlag f : NodeFlag.values()) {
-        keyDefs.remove(f.key);
-        root.appendChild(createKeyDefElement(f.key, "false"));
-      }
       for (KeyDef keyDef : keyDefs) {
-        root.appendChild(createKeyDefElement(keyDef, null));
+        root.appendChild(createKeyDefElement(keyDef, keyDef.defaultValue));
       }
 
       graph = doc.createElement("graph");
