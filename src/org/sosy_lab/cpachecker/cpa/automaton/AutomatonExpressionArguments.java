@@ -79,10 +79,10 @@ public class AutomatonExpressionArguments {
   private String transitionLogMessages = "";
 
   // the pattern \$\$\d+ matches Expressions like $$x $$y23rinnksd $$AutomatonVar (all terminated by a non-word-character)
-  static Pattern AUTOMATON_VARS_PATTERN = Pattern.compile("\\$\\$[a-zA-Z]\\w*");
+  private static Pattern AUTOMATON_VARS_PATTERN = Pattern.compile("\\$\\$[a-zA-Z]\\w*");
   // the pattern \$\d+ matches Expressions like $1 $2 $3 $201
   // If this pattern is changed the pattern in AutomatonASTcomparison should be changed too!
-  static Pattern TRANSITION_VARS_PATTERN = Pattern.compile("\\$\\d+");
+  private static Pattern TRANSITION_VARS_PATTERN = Pattern.compile("\\$\\d+");
 
   public AutomatonExpressionArguments(AutomatonState pState,
       Map<String, AutomatonVariable> pAutomatonVariables,
@@ -137,7 +137,7 @@ public class AutomatonExpressionArguments {
   String getLogMessage() {
     return transitionLogMessages;
   }
-  public void clearLogMessage() {
+  void clearLogMessage() {
     transitionLogMessages = "";
   }
 
@@ -147,7 +147,7 @@ public class AutomatonExpressionArguments {
 
   AAstNode getTransitionVariable(final int pKey) {
     // this is the variable adressed with $<key> in the automaton definition
-    return this.transitionVariables.get(Integer.valueOf(pKey));
+    return this.transitionVariables.get(pKey);
   }
 
   void putTransitionVariable(int pKey, AAstNode pValue) {
@@ -209,11 +209,11 @@ public class AutomatonExpressionArguments {
     return state;
   }
 
-  public Map<Integer, AAstNode> getTransitionVariables() {
+  Map<Integer, AAstNode> getTransitionVariables() {
     return this.transitionVariables;
   }
 
-  public void putTransitionVariables(Map<Integer, AAstNode> pTransitionVariables) {
+  void putTransitionVariables(Map<Integer, AAstNode> pTransitionVariables) {
     this.transitionVariables.putAll(pTransitionVariables);
   }
 
@@ -339,7 +339,7 @@ public class AutomatonExpressionArguments {
    * A visitor to iterate over the CFA in order to find a declaration edge whose qualified name
    * matches a given search pattern.
    *
-   * @see #fixBinaryExpressionType(CBinaryExpression) 
+   * @see #fixBinaryExpressionType(CBinaryExpression)
    */
   private final static class SearchDeclarationVisitor extends ForwardingCFAVisitor {
 
