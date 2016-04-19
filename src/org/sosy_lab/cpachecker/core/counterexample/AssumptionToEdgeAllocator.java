@@ -1080,7 +1080,7 @@ public class AssumptionToEdgeAllocator {
       public Value visit(CCastExpression cast) throws UnrecognizedCCodeException {
 
         if (concreteState.getAnalysisConcreteExpressionEvaluation().shouldEvaluateExpressionWithThisEvaluator(cast)) {
-          Value op = cast.accept(this);
+          Value op = cast.getOperand().accept(this);
 
           if (op.isUnknown()) {
             return op;
