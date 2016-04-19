@@ -422,7 +422,9 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
         // The assumptions might reference to the current automata variables!
         //  --> We have to instantiate them!
         ImmutableList<Pair<AStatement, Boolean>> symbolicAssumes = t.getAssumptionWithTruth();
-        ImmutableList<Pair<AStatement, Boolean>> instantiatedAssumes = exprArgs.instantiateAssumtions(symbolicAssumes);
+        exprArgs.setCFA(cpa.getCfa());
+        ImmutableList<Pair<AStatement, Boolean>> instantiatedAssumes =
+            exprArgs.instantiateAssumptions(symbolicAssumes);
         List<AAstNode> shadowCode = t.getShadowCode();
 
         // Create the new successor state of the automaton state

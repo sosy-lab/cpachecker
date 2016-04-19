@@ -310,6 +310,10 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
     return cfa.getMachineModel();
   }
 
+  CFA getCfa() {
+    return cfa;
+  }
+
   LogManager getLogManager() {
     return logger;
   }

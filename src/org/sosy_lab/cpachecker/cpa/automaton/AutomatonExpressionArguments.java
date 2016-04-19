@@ -28,20 +28,30 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor.SubstituteProvider;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFATraversal.ForwardingCFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.Pair;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -60,6 +70,7 @@ public class AutomatonExpressionArguments {
   private AutomatonState state;
   private CFAEdge cfaEdge;
   private LogManager logger;
+  private CFA cfa;
 
   /**
    * In this String all print messages of the Transition are collected.
@@ -91,10 +102,15 @@ public class AutomatonExpressionArguments {
     cfaEdge = pCfaEdge;
     logger = pLogger;
     state = pState;
+    cfa = null;
   }
 
   void setAutomatonVariables(Map<String, AutomatonVariable> pAutomatonVariables) {
     automatonVariables = pAutomatonVariables;
+  }
+
+  void setCFA(final CFA pCFA) {
+    cfa = pCFA;
   }
 
   Map<String, AutomatonVariable> getAutomatonVariables() {
@@ -201,7 +217,63 @@ public class AutomatonExpressionArguments {
     this.transitionVariables.putAll(pTransitionVariables);
   }
 
-  public ImmutableList<Pair<AStatement, Boolean>> instantiateAssumtions (ImmutableList<Pair<AStatement, Boolean>> pSymbolicAssumes) {
+  /**
+   * For a {@code CBinaryExpression} of type {@code CProblemType} try to find an appropriate
+   * definition edge in the CFA and return a fixed expression.
+   *
+   * <p>Traverses the CFA searching for a declaration statement that matches the missing type in
+   * the binary expression. If no matching type declaration can be found, it returns the
+   * original expression.</p>
+   *
+   * @param pExpression The expression to fix.
+   * @return An expression with a fixed expression type.
+   */
+  private CBinaryExpression fixBinaryExpressionType(CBinaryExpression pExpression) {
+    if (cfa == null) {
+      throw new IllegalStateException("Unable to fix a expression type with out a CFA. Inject a "
+          + "CFA with \"AutomatonExpressionArguments.setCFA(CFA)\" before calling the method "
+          + "\"fixBinaryExpressionType(CBinaryExpression)\"!");
+    }
+
+    SearchDeclarationVisitor visitor = new SearchDeclarationVisitor(
+        pExpression.getOperand2().toASTString());
+    CFATraversal traversal = CFATraversal.dfs();
+    traversal.traverseOnce(cfa.getMainFunction(), visitor);
+
+    if (visitor.getMatching().size() == 0) {
+      return pExpression;
+    }
+
+    assert visitor.getMatching().size() == 1 : "More than one matching edge found, result might "
+        + "be ambiguous!";
+
+    CType newType = visitor.getMatching().get(0).getDeclaration().getType();
+    CIdExpression oldOperand1 = (CIdExpression) pExpression.getOperand1();
+    CIdExpression oldOperand2 = (CIdExpression) pExpression.getOperand2();
+    CIdExpression newOperand1 = new CIdExpression(
+        oldOperand1.getFileLocation(),
+        newType,
+        oldOperand1.toASTString(),
+        oldOperand1.getDeclaration());  // TODO Might need a proper declaration here if it's null.
+                                        // Fails in BaseVisitor.java:91
+    CIdExpression newOperand2 = new CIdExpression(
+        oldOperand2.getFileLocation(),
+        newType,
+        oldOperand2.toASTString(),
+        oldOperand2.getDeclaration() == null ? visitor.getMatching().get(0).getDeclaration()
+                                             : oldOperand2.getDeclaration());
+
+    return new CBinaryExpression(
+        pExpression.getFileLocation(),
+        newType/*expression type*/,
+        newType/*calculation type*/,
+        newOperand1,
+        newOperand2,
+        pExpression.getOperator());
+  }
+
+  ImmutableList<Pair<AStatement, Boolean>> instantiateAssumptions(
+      final ImmutableList<Pair<AStatement, Boolean>> pSymbolicAssumes) {
 
     Builder<Pair<AStatement, Boolean>> builder = ImmutableList.<Pair<AStatement, Boolean>>builder();
     final SubstitutingCAstNodeVisitor visitor = new SubstitutingCAstNodeVisitor(new SubstituteProvider() {
@@ -230,6 +302,17 @@ public class AutomatonExpressionArguments {
             return new CIntegerLiteralExpression(pNode.getFileLocation(),
                 CNumericTypes.INT, BigInteger.valueOf(var.getValue()));
           }
+        } else if (pNode instanceof CBinaryExpression) {
+          // Fix assume expressions where the type could not be determined during parsing because
+          // the type information needs to be inferred from information in a C header file; this
+          // information is not present during automaton parsing, hence we have to adjust this
+          // afterwards.
+          CBinaryExpression expression = (CBinaryExpression) pNode;
+          if (expression.getCalculationType() instanceof CProblemType
+              || expression.getExpressionType() instanceof CProblemType) {
+
+            return fixBinaryExpressionType(expression);
+          }
         }
 
         return null;
@@ -250,5 +333,39 @@ public class AutomatonExpressionArguments {
     }
 
     return builder.build();
+  }
+
+  /**
+   * A visitor to iterate over the CFA in order to find a declaration edge whose qualified name
+   * matches a given search pattern.
+   *
+   * @see #fixBinaryExpressionType(CBinaryExpression) 
+   */
+  private final static class SearchDeclarationVisitor extends ForwardingCFAVisitor {
+
+    private final List<CDeclarationEdge> matchingEdges = new ArrayList<>();
+    private final String searchPattern;
+
+    SearchDeclarationVisitor(final String pSearchPattern) {
+      super(new NodeCollectingCFAVisitor());
+      searchPattern = pSearchPattern;
+    }
+
+    @Override
+    public TraversalProcess visitEdge(final CFAEdge pEdge) {
+      if (!(pEdge instanceof CDeclarationEdge)) {
+        return TraversalProcess.CONTINUE;
+      }
+
+      CDeclarationEdge edge = (CDeclarationEdge) pEdge;
+      if (searchPattern.equals(edge.getDeclaration().getQualifiedName())) {
+        matchingEdges.add(edge);
+      }
+      return TraversalProcess.CONTINUE;
+    }
+
+    List<CDeclarationEdge> getMatching() {
+      return matchingEdges;
+    }
   }
 }
