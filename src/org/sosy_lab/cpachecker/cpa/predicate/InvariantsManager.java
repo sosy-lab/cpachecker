@@ -1191,19 +1191,19 @@ class InvariantsManager implements StatisticsProvider {
 
     @Override
     public boolean wouldBeLogged(Level pPriority) {
-      return pPriority == Level.WARNING || pPriority == Level.SEVERE;
+      return pPriority.intValue() >= Level.WARNING.intValue() && logger.wouldBeLogged(pPriority);
     }
 
     @Override
     public void log(Level pPriority, Object... pArgs) {
-      if (pPriority == Level.WARNING || pPriority == Level.SEVERE) {
+      if (wouldBeLogged(pPriority)) {
         logger.log(pPriority, pArgs);
       }
     }
 
     @Override
     public void logf(Level pPriority, String pFormat, Object... pArgs) {
-      if (pPriority == Level.WARNING || pPriority == Level.SEVERE) {
+      if (wouldBeLogged(pPriority)) {
         logger.logf(pPriority, pFormat, pArgs);
       }
     }
@@ -1211,14 +1211,14 @@ class InvariantsManager implements StatisticsProvider {
     @Override
     public void logUserException(
         Level pPriority, Throwable pE, @Nullable String pAdditionalMessage) {
-      if (pPriority == Level.WARNING || pPriority == Level.SEVERE) {
+      if (wouldBeLogged(pPriority)) {
         logger.logUserException(pPriority, pE, pAdditionalMessage);
       }
     }
 
     @Override
     public void logException(Level pPriority, Throwable pE, @Nullable String pAdditionalMessage) {
-      if (pPriority == Level.WARNING || pPriority == Level.SEVERE) {
+      if (wouldBeLogged(pPriority)) {
         logger.logException(pPriority, pE, pAdditionalMessage);
       }
     }
