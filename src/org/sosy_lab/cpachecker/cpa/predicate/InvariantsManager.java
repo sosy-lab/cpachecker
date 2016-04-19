@@ -793,7 +793,8 @@ class InvariantsManager implements StatisticsProvider {
           "invGen",
           pLoopsInPath);
 
-      if (dumpInvariantGenerationAutomata) {
+      // may be null when -noout is specified
+      if (dumpInvariantGenerationAutomata && dumpInvariantGenerationAutomataFile != null) {
         Path logPath = dumpInvariantGenerationAutomataFile.getFreshPath();
         CharSink file = logPath.asCharSink(Charset.defaultCharset(), FileWriteMode.APPEND);
         file.openStream().append(spc).close();
