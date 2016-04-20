@@ -8,6 +8,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cpa.formulaslicing.InductiveWeakeningManager.InductiveWeakeningStatistics;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -31,22 +32,22 @@ public class DestructiveWeakeningManager {
   @Option(secure=true, description="Pre-run syntactic weakening")
   private boolean preRunSyntacticWeakening = true;
 
-  private final InductiveWeakeningStatistics statistics;
   private final Solver solver;
   private final BooleanFormulaManager bfmgr;
   private final SyntacticWeakeningManager swmgr;
+  private final InductiveWeakeningStatistics statistics;
 
   public DestructiveWeakeningManager(
-      InductiveWeakeningStatistics pStatistics,
       Solver pSolver,
       FormulaManagerView pFmgr,
-      Configuration pConfiguration) throws InvalidConfigurationException {
+      Configuration pConfiguration,
+      InductiveWeakeningStatistics pStatistics) throws InvalidConfigurationException {
     pConfiguration.inject(this);
 
-    statistics = pStatistics;
     solver = pSolver;
     bfmgr = pFmgr.getBooleanFormulaManager();
     swmgr = new SyntacticWeakeningManager(pFmgr);
+    statistics = pStatistics;
   }
 
   /**
@@ -75,20 +76,6 @@ public class DestructiveWeakeningManager {
         selectorsToAbstractOverApproximation,
         query
     );
-  }
-
-  private Set<BooleanFormula> destructiveWeakening(
-      Map<BooleanFormula, BooleanFormula> selectionVarsInfo,
-      Set<BooleanFormula> selectorsToAbstractOverApproximation,
-      BooleanFormula query) throws SolverException, InterruptedException {
-
-    try {
-      statistics.destructiveWeakeningTime.start();
-      return destructiveWeakening0(
-          selectionVarsInfo, selectorsToAbstractOverApproximation, query);
-    } finally {
-      statistics.destructiveWeakeningTime.stop();
-    }
   }
 
   private BooleanFormula generateNegations(
@@ -122,7 +109,7 @@ public class DestructiveWeakeningManager {
    * @return Set of selectors which correspond to atoms which *should*
    *   be abstracted.
    */
-  private Set<BooleanFormula> destructiveWeakening0(
+  public Set<BooleanFormula> destructiveWeakening(
       Map<BooleanFormula, BooleanFormula> selectionInfo,
       Set<BooleanFormula> selectionVars,
       BooleanFormula query) throws SolverException, InterruptedException {
@@ -148,6 +135,8 @@ public class DestructiveWeakeningManager {
         throw new IllegalStateException("Unexpected state");
       }
 
+      int noIterations = 1;
+
       while (!walked.containsAll(toWalk)) {
         BooleanFormula toTest = toWalk.iterator().next();
         toAbstract.remove(toTest);
@@ -157,6 +146,7 @@ public class DestructiveWeakeningManager {
         pe.addConstraint(generateNegations(selectionInfo.keySet(), toAbstract));
 
         core = pe.unsatCoreOverAssumptions(toAbstract);
+        noIterations++;
 
         if (core.isPresent()) {
 
@@ -170,6 +160,7 @@ public class DestructiveWeakeningManager {
 
         pe.pop();
       }
+      statistics.iterationsNo.add(noIterations);
     }
 
     return toAbstract;

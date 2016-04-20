@@ -67,14 +67,15 @@ public class CEXWeakeningManager {
 
   private final BooleanFormulaManager bfmgr;
   private final Solver solver;
-  private final InductiveWeakeningStatistics statistics;
+  private final InductiveWeakeningManager.InductiveWeakeningStatistics
+      statistics;
   private final Random r = new Random();
   private final ShutdownNotifier shutdownNotifier;
 
   public CEXWeakeningManager(
       FormulaManagerView pFmgr,
       Solver pSolver,
-      InductiveWeakeningStatistics pStatistics,
+      InductiveWeakeningManager.InductiveWeakeningStatistics pStatistics,
       Configuration config, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     config.inject(this);
     solver = pSolver;
@@ -84,32 +85,13 @@ public class CEXWeakeningManager {
   }
 
   /**
-  * @return A subset of selectors after abstracting which the query becomes inductive.
-  */
-  public Set<BooleanFormula> performWeakening(
-      Map<BooleanFormula, BooleanFormula> selectionInfo,
-      BooleanFormula fromState,
-      PathFormula transition,
-      BooleanFormula toState) throws SolverException, InterruptedException {
-    try {
-      statistics.cexWeakeningTime.start();
-      return counterexampleBasedWeakening0(
-          selectionInfo,
-          fromState,
-          transition,
-          toState);
-    } finally {
-      statistics.cexWeakeningTime.stop();
-    }
-  }
-  /**
    * Apply a weakening based on counterexamples derived from solver models.
    *
    * @param selectionInfo Mapping from selectors to literals which they annotate.
    *
    * @return A subset of selectors after abstracting which the query becomes inductive.
    */
-  private Set<BooleanFormula> counterexampleBasedWeakening0(
+  public Set<BooleanFormula> performWeakening(
       final Map<BooleanFormula, BooleanFormula> selectionInfo,
       BooleanFormula fromState,
       PathFormula transition,
@@ -123,7 +105,7 @@ public class CEXWeakeningManager {
     BooleanFormula query = bfmgr.and(
         fromState, transition.getFormula(), bfmgr.not(toState));
 
-    int noIterations = 0;
+    int noIterations = 1;
     try (ProverEnvironment env = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       env.push(query);
 
@@ -151,7 +133,7 @@ public class CEXWeakeningManager {
         }
       }
     }
-    statistics.noCexIterations.setNextValue(noIterations);
+    statistics.iterationsNo.add(noIterations);
     return toAbstract;
   }
 

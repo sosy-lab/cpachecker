@@ -93,6 +93,7 @@ class FormulaSlicingStatistics implements Statistics {
     printTimer(out, reachabilityAbstractionTimer,
         "checking reachability for abstraction states",
         cachedAbstractionReachabilityChecks);
+    out.printf("Locations for checking reachability: %s%n", satChecksLocations);
   }
 
   @Override

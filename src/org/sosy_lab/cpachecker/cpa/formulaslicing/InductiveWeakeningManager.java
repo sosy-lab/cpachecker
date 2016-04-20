@@ -6,7 +6,9 @@ import static org.sosy_lab.cpachecker.cpa.formulaslicing.InductiveWeakeningManag
 import com.google.common.base.Predicate;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.ShutdownNotifier;
@@ -15,8 +17,10 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -25,6 +29,7 @@ import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -88,8 +93,8 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     logger = pLogger;
     bfmgr = fmgr.getBooleanFormulaManager();
     syntacticWeakeningManager = new SyntacticWeakeningManager(fmgr);
-    destructiveWeakeningManager = new DestructiveWeakeningManager(
-        statistics, pSolver, fmgr, config);
+    destructiveWeakeningManager = new DestructiveWeakeningManager(pSolver,
+        fmgr, config, statistics);
     solver = pSolver;
     cexWeakeningManager = new CEXWeakeningManager(
         fmgr, pSolver, statistics, config, pShutdownNotifier);
@@ -200,7 +205,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
   }
 
   /**
-   * Sanity checking on output.
+   * Sanity checking on output, whether it is indeed inductive.
    */
   private boolean checkAllMapsTo(
       Set<BooleanFormula> from,
@@ -238,7 +243,6 @@ public class InductiveWeakeningManager implements StatisticsProvider {
       SSAMap fromSSA,
       Set<BooleanFormula> pFromStateLemmas) throws SolverException, InterruptedException {
     switch (weakeningStrategy) {
-
       case SYNTACTIC:
         return syntacticWeakeningManager.performWeakening(
                 fromSSA, selectionVarsInfo, transition, pFromStateLemmas);
@@ -280,5 +284,25 @@ public class InductiveWeakeningManager implements StatisticsProvider {
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
     statsCollection.add(statistics);
+  }
+
+  public static class InductiveWeakeningStatistics implements Statistics {
+
+    /**
+     * Number of iterations required for convergence.
+     */
+    final Multiset<Integer> iterationsNo = HashMultiset.create();
+
+    @Override
+    public void printStatistics(
+        PrintStream out, Result result, ReachedSet reached) {
+      out.printf("Histogram of number of iterations required for convergence: "
+          + "%s %n", iterationsNo);
+    }
+
+    @Override
+    public String getName() {
+      return "Inductive Weakening";
+    }
   }
 }
