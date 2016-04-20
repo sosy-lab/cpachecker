@@ -8,7 +8,7 @@ import java.util.Objects;
 /**
  * Intermediate state: a formula describing all possible executions at a point.
  */
-public class SlicingIntermediateState extends SlicingState {
+class SlicingIntermediateState extends SlicingState {
 
   private final CFANode node;
 
@@ -20,6 +20,8 @@ public class SlicingIntermediateState extends SlicingState {
 
   /** Checking coverage */
   private transient SlicingIntermediateState mergedInto;
+
+  private transient int hashCache = 0;
 
   private SlicingIntermediateState(CFANode pNode, PathFormula pPathFormula,
       SlicingAbstractedState pStart) {
@@ -78,6 +80,9 @@ public class SlicingIntermediateState extends SlicingState {
 
   @Override
   public int hashCode() {
-    return Objects.hash(node, pathFormula, start);
+    if (hashCache == 0) {
+      hashCache = Objects.hash(node, pathFormula, start);
+    }
+    return hashCache;
   }
 }

@@ -23,7 +23,7 @@ import java.util.Set;
  * The invariant is universally true wrt the intermediate state
  * which was used for the abstraction.
  */
-public class SlicingAbstractedState
+class SlicingAbstractedState
     extends SlicingState implements FormulaReportingState, Graphable {
 
   /**
@@ -55,6 +55,8 @@ public class SlicingAbstractedState
    * Under which paths this state is inductive.
    */
   private final ImmutableSet<PathFormulaWithStartSSA> inductiveUnder;
+
+  private transient int hashCache = 0;
 
   private SlicingAbstractedState(
       Set<BooleanFormula> pSlice,
@@ -155,24 +157,6 @@ public class SlicingAbstractedState
         ImmutableSet.<PathFormulaWithStartSSA>of());
   }
 
-  @Override
-  public boolean equals(Object pO) {
-    if (this == pO) {
-      return true;
-    }
-    if (pO == null || getClass() != pO.getClass()) {
-      return false;
-    }
-    SlicingAbstractedState that = (SlicingAbstractedState) pO;
-    return Objects.equals(lemmas, that.lemmas) &&
-        Objects.equals(ssaMap, that.ssaMap) &&
-        Objects.equals(pointerTargetSet, that.pointerTargetSet);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(lemmas, ssaMap, pointerTargetSet);
-  }
 
   @Override
   public boolean isAbstracted() {
@@ -199,5 +183,27 @@ public class SlicingAbstractedState
   @Override
   public String toString() {
     return lemmas.toString();
+  }
+
+  @Override
+  public boolean equals(Object pO) {
+    if (this == pO) {
+      return true;
+    }
+    if (pO == null || getClass() != pO.getClass()) {
+      return false;
+    }
+    SlicingAbstractedState that = (SlicingAbstractedState) pO;
+    return Objects.equals(lemmas, that.lemmas) &&
+        Objects.equals(ssaMap, that.ssaMap) &&
+        Objects.equals(pointerTargetSet, that.pointerTargetSet);
+  }
+
+  @Override
+  public int hashCode() {
+    if (hashCache == 0) {
+      hashCache = Objects.hash(lemmas, ssaMap, pointerTargetSet);
+    }
+    return hashCache;
   }
 }

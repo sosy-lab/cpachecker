@@ -6,7 +6,6 @@ import com.google.common.base.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -54,10 +53,6 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
     PrecisionAdjustment,
     StatisticsProvider, MergeOperator {
 
-  @Option(secure=true,
-      description="Cache formulas produced by path formula manager")
-  private boolean useCachingPathFormulaManager = true;
-
   private final StopOperator stopOperator;
   private final IFormulaSlicingManager manager;
   private final MergeOperator mergeOperator;
@@ -74,13 +69,12 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
 
     Solver solver = Solver.create(pConfiguration, pLogger, pShutdownNotifier);
     FormulaManagerView formulaManager = solver.getFormulaManager();
-    PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(
+    PathFormulaManager origPathFormulaManager = new PathFormulaManagerImpl(
         formulaManager, pConfiguration, pLogger, pShutdownNotifier, cfa,
         AnalysisDirection.FORWARD);
 
-    if (useCachingPathFormulaManager) {
-      pathFormulaManager = new CachingPathFormulaManager(pathFormulaManager);
-    }
+    CachingPathFormulaManager pathFormulaManager = new CachingPathFormulaManager
+        (origPathFormulaManager);
 
     inductiveWeakeningManager = new InductiveWeakeningManager(pConfiguration, solver, pLogger,
         pShutdownNotifier);
