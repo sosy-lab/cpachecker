@@ -455,172 +455,8 @@ public class ARGPathExporter {
         }
       }
 
-      String functionName = pEdge.getPredecessor().getFunctionName();
       if (pFromState.isPresent()) {
-
-        List<ExpressionTree<Object>> code = new ArrayList<>();
-        boolean isFunctionScope = this.isFunctionScope;
-
-        Collection<ARGState> states = pFromState.get();
-        for (ARGState state : states) {
-
-          DelayedAssignmentsKey key = new DelayedAssignmentsKey(pFrom, pEdge, state);
-          CFAEdgeWithAssumptions cfaEdgeWithAssignments = delayedAssignments.get(key);
-
-          final CFAEdgeWithAssumptions currentEdgeWithAssignments;
-          if (pValueMap != null && (currentEdgeWithAssignments = pValueMap.get(state)) != null) {
-            if (cfaEdgeWithAssignments == null) {
-              cfaEdgeWithAssignments = currentEdgeWithAssignments;
-
-            } else {
-              Builder<AExpressionStatement> allAssignments = ImmutableList.builder();
-              allAssignments.addAll(cfaEdgeWithAssignments.getExpStmts());
-              allAssignments.addAll(currentEdgeWithAssignments.getExpStmts());
-              cfaEdgeWithAssignments =
-                  new CFAEdgeWithAssumptions(
-                      pEdge, allAssignments.build(), currentEdgeWithAssignments.getComment());
-            }
-          }
-
-          if (cfaEdgeWithAssignments != null) {
-
-            Collection<AExpressionStatement> assignments = cfaEdgeWithAssignments.getExpStmts();
-            Predicate<AExpressionStatement> assignsParameterOfOtherFunction =
-                new AssignsParameterOfOtherFunction(pEdge);
-            Collection<AExpressionStatement> functionValidAssignments =
-                FluentIterable.from(assignments).filter(assignsParameterOfOtherFunction).toList();
-
-            if (functionValidAssignments.size() < assignments.size()) {
-              cfaEdgeWithAssignments =
-                  new CFAEdgeWithAssumptions(
-                      pEdge, functionValidAssignments, cfaEdgeWithAssignments.getComment());
-              FluentIterable<CFAEdge> nextEdges = CFAUtils.leavingEdges(pEdge.getSuccessor());
-
-              if (nextEdges.size() == 1 && state.getChildren().size() == 1) {
-                String keyFrom = pTo;
-                CFAEdge keyEdge = Iterables.getOnlyElement(nextEdges);
-                ARGState keyState = Iterables.getOnlyElement(state.getChildren());
-                List<AExpressionStatement> valueAssignments =
-                    FluentIterable.from(assignments)
-                        .filter(Predicates.not(assignsParameterOfOtherFunction))
-                        .toList();
-                CFAEdgeWithAssumptions valueCFAEdgeWithAssignments =
-                    new CFAEdgeWithAssumptions(keyEdge, valueAssignments, "");
-                delayedAssignments.put(
-                    new DelayedAssignmentsKey(keyFrom, keyEdge, keyState),
-                    valueCFAEdgeWithAssignments);
-              }
-            }
-
-            // Do not export our own temporary variables
-            assignments =
-                FluentIterable.from(cfaEdgeWithAssignments.getExpStmts())
-                    .filter(
-                        new Predicate<AExpressionStatement>() {
-
-                          @Override
-                          public boolean apply(AExpressionStatement statement) {
-                            if (statement.getExpression() instanceof CExpression) {
-                              CExpression expression = (CExpression) statement.getExpression();
-                              for (CIdExpression idExpression :
-                                  expression.accept(new CIdExpressionCollectingVisitor())) {
-                                if (idExpression
-                                    .getDeclaration()
-                                    .getQualifiedName()
-                                    .toUpperCase()
-                                    .contains("__CPACHECKER_TMP")) {
-                                  return false;
-                                }
-                              }
-                              return true;
-                            }
-                            return false;
-                          }
-                        })
-                    .toList();
-
-            // Determine the scope for static local variables
-            for (AExpressionStatement functionValidAssignment : functionValidAssignments) {
-              if (functionValidAssignment instanceof CExpressionStatement) {
-                CExpression expression = (CExpression) functionValidAssignment.getExpression();
-                for (CIdExpression idExpression :
-                    expression.accept(new CIdExpressionCollectingVisitor())) {
-                  CSimpleDeclaration declaration = idExpression.getDeclaration();
-                  if (declaration.getName().contains("static")
-                      && !declaration.getOrigName().contains("static")
-                      && declaration.getQualifiedName().contains("::")) {
-                    isFunctionScope = true;
-                    functionName =
-                        declaration
-                            .getQualifiedName()
-                            .substring(0, declaration.getQualifiedName().indexOf("::"));
-                  }
-                }
-              }
-            }
-
-            if (!assignments.isEmpty()) {
-              code.add(factory.and(
-                  FluentIterable.from(assignments)
-                  .transform(
-                      new Function<AExpressionStatement, ExpressionTree<Object>>() {
-
-                        @Override
-                        public ExpressionTree<Object> apply(
-                            AExpressionStatement pExpressionStatement) {
-                          return LeafExpression.of(
-                              (Object) pExpressionStatement.getExpression());
-                        }
-                      })
-                  .toList()));
-            }
-          }
-        }
-
-        if (graphType != GraphType.PROOF_WITNESS && exportAssumptions && !code.isEmpty()) {
-          ExpressionTree<Object> invariant = factory.or(code);
-          final Function<Object, String> converter =
-              new Function<Object, String>() {
-
-                @Override
-                public String apply(Object pLeafExpression) {
-                  if (pLeafExpression instanceof CExpression) {
-                    return ((CExpression) pLeafExpression)
-                        .accept(CExpressionToOrinalCodeVisitor.INSTANCE);
-                  }
-                  if (pLeafExpression == null) {
-                    return "(0)";
-                  }
-                  return pLeafExpression.toString();
-                }
-              };
-          final String assumptionCode;
-
-          // If there are only conjunctions, use multiple statements
-          // instead of the "&&" operator that is harder to parse.
-          if (ExpressionTrees.isAnd(invariant)) {
-            assumptionCode =
-                Joiner.on("; ")
-                    .join(
-                        ExpressionTrees.getChildren(invariant)
-                            .transform(
-                                new Function<ExpressionTree<Object>, ExpressionTree<String>>() {
-
-                                  @Override
-                                  public ExpressionTree<String> apply(
-                                      ExpressionTree<Object> pTree) {
-                                    return ExpressionTrees.convert(pTree, converter);
-                                  }
-                                }));
-          } else {
-            assumptionCode = ExpressionTrees.convert(invariant, converter).toString();
-          }
-
-          result.put(KeyDef.ASSUMPTION, assumptionCode + ";");
-          if (isFunctionScope) {
-            result.put(KeyDef.ASSUMPTIONSCOPE, functionName);
-          }
-        }
+        extractTransitionForStates(pFrom, pTo, pEdge, pFromState.get(), pValueMap, result);
       }
 
       if (exportAssumeCaseInfo) {
@@ -678,6 +514,175 @@ public class ARGPathExporter {
       }
 
       return result;
+    }
+
+    private void extractTransitionForStates(final String pFrom, final String pTo,
+        final CFAEdge pEdge, final Collection<ARGState> pFromStates,
+        final Map<ARGState, CFAEdgeWithAssumptions> pValueMap, final TransitionCondition result) {
+
+      List<ExpressionTree<Object>> code = new ArrayList<>();
+      String functionName = pEdge.getPredecessor().getFunctionName();
+      boolean isFunctionScope = this.isFunctionScope;
+
+      for (ARGState state : pFromStates) {
+
+        DelayedAssignmentsKey key = new DelayedAssignmentsKey(pFrom, pEdge, state);
+        CFAEdgeWithAssumptions cfaEdgeWithAssignments = delayedAssignments.get(key);
+
+        final CFAEdgeWithAssumptions currentEdgeWithAssignments;
+        if (pValueMap != null && (currentEdgeWithAssignments = pValueMap.get(state)) != null) {
+          if (cfaEdgeWithAssignments == null) {
+            cfaEdgeWithAssignments = currentEdgeWithAssignments;
+
+          } else {
+            Builder<AExpressionStatement> allAssignments = ImmutableList.builder();
+            allAssignments.addAll(cfaEdgeWithAssignments.getExpStmts());
+            allAssignments.addAll(currentEdgeWithAssignments.getExpStmts());
+            cfaEdgeWithAssignments =
+                new CFAEdgeWithAssumptions(
+                    pEdge, allAssignments.build(), currentEdgeWithAssignments.getComment());
+          }
+        }
+
+        if (cfaEdgeWithAssignments != null) {
+
+          Collection<AExpressionStatement> assignments = cfaEdgeWithAssignments.getExpStmts();
+          Predicate<AExpressionStatement> assignsParameterOfOtherFunction =
+              new AssignsParameterOfOtherFunction(pEdge);
+          Collection<AExpressionStatement> functionValidAssignments =
+              FluentIterable.from(assignments).filter(assignsParameterOfOtherFunction).toList();
+
+          if (functionValidAssignments.size() < assignments.size()) {
+            cfaEdgeWithAssignments =
+                new CFAEdgeWithAssumptions(
+                    pEdge, functionValidAssignments, cfaEdgeWithAssignments.getComment());
+            FluentIterable<CFAEdge> nextEdges = CFAUtils.leavingEdges(pEdge.getSuccessor());
+
+            if (nextEdges.size() == 1 && state.getChildren().size() == 1) {
+              String keyFrom = pTo;
+              CFAEdge keyEdge = Iterables.getOnlyElement(nextEdges);
+              ARGState keyState = Iterables.getOnlyElement(state.getChildren());
+              List<AExpressionStatement> valueAssignments =
+                  FluentIterable.from(assignments)
+                      .filter(Predicates.not(assignsParameterOfOtherFunction))
+                      .toList();
+              CFAEdgeWithAssumptions valueCFAEdgeWithAssignments =
+                  new CFAEdgeWithAssumptions(keyEdge, valueAssignments, "");
+              delayedAssignments.put(
+                  new DelayedAssignmentsKey(keyFrom, keyEdge, keyState),
+                  valueCFAEdgeWithAssignments);
+            }
+          }
+
+          // Do not export our own temporary variables
+          assignments =
+              FluentIterable.from(cfaEdgeWithAssignments.getExpStmts())
+                  .filter(
+                      new Predicate<AExpressionStatement>() {
+
+                        @Override
+                        public boolean apply(AExpressionStatement statement) {
+                          if (statement.getExpression() instanceof CExpression) {
+                            CExpression expression = (CExpression) statement.getExpression();
+                            for (CIdExpression idExpression :
+                                expression.accept(new CIdExpressionCollectingVisitor())) {
+                              if (idExpression
+                                  .getDeclaration()
+                                  .getQualifiedName()
+                                  .toUpperCase()
+                                  .contains("__CPACHECKER_TMP")) {
+                                return false;
+                              }
+                            }
+                            return true;
+                          }
+                          return false;
+                        }
+                      })
+                  .toList();
+
+          // Determine the scope for static local variables
+          for (AExpressionStatement functionValidAssignment : functionValidAssignments) {
+            if (functionValidAssignment instanceof CExpressionStatement) {
+              CExpression expression = (CExpression) functionValidAssignment.getExpression();
+              for (CIdExpression idExpression :
+                  expression.accept(new CIdExpressionCollectingVisitor())) {
+                CSimpleDeclaration declaration = idExpression.getDeclaration();
+                if (declaration.getName().contains("static")
+                    && !declaration.getOrigName().contains("static")
+                    && declaration.getQualifiedName().contains("::")) {
+                  isFunctionScope = true;
+                  functionName =
+                      declaration
+                          .getQualifiedName()
+                          .substring(0, declaration.getQualifiedName().indexOf("::"));
+                }
+              }
+            }
+          }
+
+          if (!assignments.isEmpty()) {
+            code.add(factory.and(
+                FluentIterable.from(assignments)
+                .transform(
+                    new Function<AExpressionStatement, ExpressionTree<Object>>() {
+
+                      @Override
+                      public ExpressionTree<Object> apply(
+                          AExpressionStatement pExpressionStatement) {
+                        return LeafExpression.of(
+                            (Object) pExpressionStatement.getExpression());
+                      }
+                    })
+                .toList()));
+          }
+        }
+      }
+
+      if (graphType != GraphType.PROOF_WITNESS && exportAssumptions && !code.isEmpty()) {
+        ExpressionTree<Object> invariant = factory.or(code);
+        final Function<Object, String> converter =
+            new Function<Object, String>() {
+
+              @Override
+              public String apply(Object pLeafExpression) {
+                if (pLeafExpression instanceof CExpression) {
+                  return ((CExpression) pLeafExpression)
+                      .accept(CExpressionToOrinalCodeVisitor.INSTANCE);
+                }
+                if (pLeafExpression == null) {
+                  return "(0)";
+                }
+                return pLeafExpression.toString();
+              }
+            };
+        final String assumptionCode;
+
+        // If there are only conjunctions, use multiple statements
+        // instead of the "&&" operator that is harder to parse.
+        if (ExpressionTrees.isAnd(invariant)) {
+          assumptionCode =
+              Joiner.on("; ")
+                  .join(
+                      ExpressionTrees.getChildren(invariant)
+                          .transform(
+                              new Function<ExpressionTree<Object>, ExpressionTree<String>>() {
+
+                                @Override
+                                public ExpressionTree<String> apply(
+                                    ExpressionTree<Object> pTree) {
+                                  return ExpressionTrees.convert(pTree, converter);
+                                }
+                              }));
+        } else {
+          assumptionCode = ExpressionTrees.convert(invariant, converter).toString();
+        }
+
+        result.put(KeyDef.ASSUMPTION, assumptionCode + ";");
+        if (isFunctionScope) {
+          result.put(KeyDef.ASSUMPTIONSCOPE, functionName);
+        }
+      }
     }
 
     /**
