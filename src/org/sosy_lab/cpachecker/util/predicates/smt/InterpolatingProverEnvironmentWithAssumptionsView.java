@@ -37,13 +37,13 @@ import java.util.Set;
 /**
  * Model wrapping for InterpolatingProverEnvironment
  */
-public class InterpolatingProverEnvironmentWithAssumptionsView<E> implements
+class InterpolatingProverEnvironmentWithAssumptionsView<E> implements
     InterpolatingProverEnvironmentWithAssumptions<E> {
 
   private final InterpolatingProverEnvironmentWithAssumptions<E> delegate;
   private final FormulaWrappingHandler wrappingHandler;
 
-  public InterpolatingProverEnvironmentWithAssumptionsView(
+  InterpolatingProverEnvironmentWithAssumptionsView(
       InterpolatingProverEnvironmentWithAssumptions<E> pDelegate,
       FormulaWrappingHandler pWrappingHandler) {
     delegate = pDelegate;

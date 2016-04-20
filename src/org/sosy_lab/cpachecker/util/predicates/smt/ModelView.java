@@ -39,11 +39,11 @@ import javax.annotation.Nullable;
 /**
  * Wrapping for models.
  */
-public class ModelView implements Model {
+class ModelView implements Model {
   private final Model delegate;
   private final FormulaWrappingHandler wrappingHandler;
 
-  public ModelView(Model pDelegate, FormulaWrappingHandler pWrappingHandler) {
+  ModelView(Model pDelegate, FormulaWrappingHandler pWrappingHandler) {
     delegate = pDelegate;
     wrappingHandler = pWrappingHandler;
   }

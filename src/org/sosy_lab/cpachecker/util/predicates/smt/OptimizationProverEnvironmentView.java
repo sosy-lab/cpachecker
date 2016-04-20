@@ -37,7 +37,7 @@ import org.sosy_lab.solver.api.OptimizationProverEnvironment;
 /**
  * Wrapper for {@link OptimizationProverEnvironment} which unwraps the objective formula.
  */
-public class OptimizationProverEnvironmentView implements OptimizationProverEnvironment {
+class OptimizationProverEnvironmentView implements OptimizationProverEnvironment {
 
   private final OptimizationProverEnvironment delegate;
   private final FormulaWrappingHandler wrappingHandler;

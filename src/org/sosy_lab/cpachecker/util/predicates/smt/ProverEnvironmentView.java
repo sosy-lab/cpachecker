@@ -40,7 +40,7 @@ import javax.annotation.Nullable;
 /**
  * Wrapping handler for ProverEnvironment.
  */
-public class ProverEnvironmentView implements ProverEnvironment{
+class ProverEnvironmentView implements ProverEnvironment{
   private final ProverEnvironment delegate;
   private final FormulaWrappingHandler wrappingHandler;
 
