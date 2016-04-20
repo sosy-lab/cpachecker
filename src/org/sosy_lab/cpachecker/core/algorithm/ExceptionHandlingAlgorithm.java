@@ -88,7 +88,7 @@ public class ExceptionHandlingAlgorithm implements Algorithm {
   private final ARGCPA cpa;
   private final ExceptionHandlingOptions options;
 
-  public ExceptionHandlingAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
+  private ExceptionHandlingAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
       ExceptionHandlingOptions pOptions, LogManager pLogger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     options = pOptions;
     algorithm = pAlgorithm;
