@@ -1730,16 +1730,8 @@ cpa.sign.stop = "SEP"
 # Apply AND- LBE transformation to loop transition relation.
 cpa.slicing.applyLBETransformation = true
 
-# Quantifier elimination strategy
-cpa.slicing.boundVarsHandling = QE_LIGHT_THEN_DROP
-  enum:     [QE_LIGHT_THEN_DROP, QE, DROP]
-
 # Check target states reachability
 cpa.slicing.checkTargetStates = true
-
-# Limit on the size of the resulting number of lemmas from the explicit
-# expansion
-cpa.slicing.expansionResultSizeLimit = 1000
 
 # Filter lemmas by liveness
 cpa.slicing.filterByLiveness = true
@@ -2529,6 +2521,14 @@ precision.variableWhitelist = ""
 
 # List of property files (INTERNAL USAGE ONLY - DO NOT USE)
 properties = []
+
+# Quantifier elimination strategy
+rcnf.boundVarsHandling = QE_LIGHT_THEN_DROP
+  enum:     [QE_LIGHT_THEN_DROP, QE, DROP]
+
+# Limit on the size of the resulting number of lemmas from the explicit
+# expansion
+rcnf.expansionResultSizeLimit = 100
 
 # print reached set to graph file
 reachedSet.dot = "reached.dot"
