@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2016  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,26 +25,28 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.SINK_NODE_ID;
 
-import java.io.IOException;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Objects;
-import java.util.Queue;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
-import javax.xml.parsers.ParserConfigurationException;
+import com.google.common.base.Charsets;
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.base.Strings;
+import com.google.common.base.Supplier;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.MapDifference.ValueDifference;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Queues;
+import com.google.common.collect.Sets;
+import com.google.common.collect.SortedMapDifference;
+import com.google.common.collect.TreeMultimap;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -115,28 +117,26 @@ import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Simplifier;
 import org.w3c.dom.Element;
 
-import com.google.common.base.Charsets;
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.base.Strings;
-import com.google.common.base.Supplier;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.MapDifference.ValueDifference;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Queues;
-import com.google.common.collect.Sets;
-import com.google.common.collect.SortedMapDifference;
-import com.google.common.collect.TreeMultimap;
+import java.io.IOException;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Objects;
+import java.util.Queue;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.logging.Level;
+
+import javax.annotation.Nullable;
+import javax.xml.parsers.ParserConfigurationException;
 
 @Options(prefix="cpa.arg.witness")
 public class ARGPathExporter {
@@ -158,22 +158,22 @@ public class ARGPathExporter {
   };
 
   @Option(secure=true, description="Verification witness: Include function calls and function returns?")
-  boolean exportFunctionCallsAndReturns = true;
+  private boolean exportFunctionCallsAndReturns = true;
 
   @Option(secure=true, description="Verification witness: Include assumptions (C statements)?")
-  boolean exportAssumptions = true;
+  private boolean exportAssumptions = true;
 
   @Option(secure=true, description="Verification witness: Include the considered case of an assume?")
-  boolean exportAssumeCaseInfo = true;
+  private boolean exportAssumeCaseInfo = true;
 
   @Option(secure=true, description="Verification witness: Include the (starting) line numbers of the operations on the transitions?")
-  boolean exportLineNumbers = true;
+  private boolean exportLineNumbers = true;
 
   @Option(secure=true, description="Verification witness: Include the sourcecode of the operations?")
-  boolean exportSourcecode = true;
+  private boolean exportSourcecode = true;
 
   @Option(secure=true, description="Verification witness: Include the offset within the file?")
-  boolean exportOffset = true;
+  private boolean exportOffset = true;
 
   private final LogManager logger;
 
