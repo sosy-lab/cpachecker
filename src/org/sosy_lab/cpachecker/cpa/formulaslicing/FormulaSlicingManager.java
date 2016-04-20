@@ -46,6 +46,7 @@ import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FunctionDeclaration;
 import org.sosy_lab.solver.api.FunctionDeclarationKind;
 import org.sosy_lab.solver.api.ProverEnvironment;
+import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
 import org.sosy_lab.solver.visitors.TraversalProcess;
 
@@ -90,6 +91,10 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
   @Option(secure=true, description="Filter lemmas by liveness")
   private boolean filterByLiveness = true;
+
+  @Option(secure=true, description="Extract and cache unsat cores for "
+      + "satisfiability checking")
+  private boolean cacheUnsatCores = true;
 
   FormulaSlicingManager(
       Configuration config,
@@ -374,10 +379,10 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
   private boolean isUnreachable(SlicingIntermediateState iState, boolean isTarget)
       throws InterruptedException, CPAException {
     BooleanFormula prevSlice = bfmgr.and(iState.getAbstractParent().getAbstraction());
-    BooleanFormula instantiatedFormula =
+    BooleanFormula instantiatedParent =
         fmgr.instantiate(prevSlice, iState.getAbstractParent().getSSA());
     BooleanFormula reachabilityQuery = bfmgr.and(
-        iState.getPathFormula().getFormula(), instantiatedFormula);
+        iState.getPathFormula().getFormula(), instantiatedParent);
 
     Set<BooleanFormula> constraints = ImmutableSet.copyOf(
         bfmgr.toConjunctionArgs(reachabilityQuery, true));
@@ -393,10 +398,14 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
         boolean cachedIsUnsat = isUnsatResults.getValue();
 
         if (cachedIsUnsat && constraints.containsAll(cachedConstraints)) {
+
+          // Any superset of unreachable constraints is unreachable.
           statistics.recordReachabilityCacheHit(isTarget);
           return true;
         } else if (!cachedIsUnsat &&
             cachedConstraints.containsAll(constraints)) {
+
+          // Any subset of reachable constraints is reachable.
           statistics.recordReachabilityCacheHit(isTarget);
           return false;
         }
@@ -409,13 +418,23 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
       stored = new HashMap<>(stored);
     }
 
-    try (ProverEnvironment pe = solver.newProverEnvironment(GENERATE_UNSAT_CORE)){
+    ProverOptions opts[];
+    if (cacheUnsatCores) {
+      opts = new ProverOptions[]{GENERATE_UNSAT_CORE};
+    } else {
+      opts = new ProverOptions[0];
+    }
+
+    try (ProverEnvironment pe = solver.newProverEnvironment(opts)){
       for (BooleanFormula f : constraints) {
         pe.addConstraint(f);
       }
       if (pe.isUnsat()) {
-        Set<BooleanFormula> unsatCore = ImmutableSet.copyOf(pe.getUnsatCore());
-        stored.put(unsatCore, true);
+        if (cacheUnsatCores) {
+          stored.put(ImmutableSet.copyOf(pe.getUnsatCore()), true);
+        } else {
+          stored.put(ImmutableSet.copyOf(constraints), true);
+        }
         return true;
       } else {
         stored.put(constraints, false);
@@ -465,7 +484,9 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
       SlicingAbstractedState pState1,
       SlicingAbstractedState pState2
   ) {
-    // More clauses => more constraints => the state is *smaller*.
+
+    // Has at least all the constraints other state does => the state is
+    // smaller-or-equal.
     return pState1.getAbstraction().containsAll(pState2.getAbstraction());
   }
 
