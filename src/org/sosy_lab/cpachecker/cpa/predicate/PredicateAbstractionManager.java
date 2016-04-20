@@ -75,6 +75,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -206,7 +207,7 @@ public class PredicateAbstractionManager {
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      LocationInvariantSupplier pRegionInvariantsSupplier)
+      @Nullable LocationInvariantSupplier invariantsSupplier)
       throws InvalidConfigurationException, PredicateParsingFailedException {
     shutdownNotifier = pShutdownNotifier;
     config = pConfig;
@@ -220,7 +221,7 @@ public class PredicateAbstractionManager {
     rmgr = amgr.getRegionCreator();
     pfmgr = pPfmgr;
     solver = pSolver;
-    locationBasedInvariantSupplier = pRegionInvariantsSupplier;
+    locationBasedInvariantSupplier = invariantsSupplier;
 
     if (cartesianAbstraction) {
       abstractionType = AbstractionType.CARTESIAN;
@@ -349,7 +350,13 @@ public class PredicateAbstractionManager {
     }
 
     // add invariants to abstraction formula if available
-    Set<BooleanFormula> invariants = locationBasedInvariantSupplier.getInvariantFor(location);
+    Set<BooleanFormula> invariants;
+    if (locationBasedInvariantSupplier != null) {
+      invariants = locationBasedInvariantSupplier.getInvariantFor(location);
+    } else {
+      invariants = Collections.emptySet();
+    }
+
     if (!invariants.isEmpty()) {
       Collection<AbstractionPredicate> invPredicates = new ArrayList<>();
       for (BooleanFormula inv : invariants) {

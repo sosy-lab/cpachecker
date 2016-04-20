@@ -191,7 +191,9 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
             config,
             logger,
             pShutdownNotifier,
-            invariantsManager.asInvariantsSupplier());
+            invariantsManager.shouldInvariantsBeUsedForAbstraction()
+                ? invariantsManager.asInvariantsSupplier()
+                : null);
 
     transfer =
         new PredicateTransferRelation(
