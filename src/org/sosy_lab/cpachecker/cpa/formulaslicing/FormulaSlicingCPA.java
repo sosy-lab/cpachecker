@@ -63,8 +63,6 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
       ShutdownNotifier pShutdownNotifier,
       CFA cfa
   ) throws InvalidConfigurationException {
-    pConfiguration.inject(this);
-
     Solver solver = Solver.create(pConfiguration, pLogger, pShutdownNotifier);
     FormulaManagerView formulaManager = solver.getFormulaManager();
     PathFormulaManager origPathFormulaManager = new PathFormulaManagerImpl(
