@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -61,13 +62,20 @@ public class ExceptionHandlingAlgorithm implements Algorithm {
     private boolean removeInfeasibleErrors = false;
 
     @Option(
-        secure = true,
-        name = "counterexample.continueAfterInfeasibleError",
-        description =
-            "continue analysis after an counterexample was found that was denied by"
-                + " the second check"
-      )
-      private boolean continueAfterInfeasibleError = true;
+      secure = true,
+      name = "counterexample.continueAfterInfeasibleError",
+      description =
+          "continue analysis after an counterexample was found that was denied by the second check"
+    )
+    private boolean continueAfterInfeasibleError = true;
+
+    @Option(
+      secure = true,
+      name = "cegar.continueAfterFailedRefinement",
+      description = "continue analysis after a failed refinement (e.g. due to interpolation) other paths"
+          + " may still contain errors that could be found"
+    )
+    private boolean continueAfterFailedRefinement = false;
 
     private ExceptionHandlingOptions(Configuration pConfig) throws InvalidConfigurationException {
       pConfig.inject(this);
@@ -93,13 +101,20 @@ public class ExceptionHandlingAlgorithm implements Algorithm {
     cpa = (ARGCPA)pCpa;
   }
 
-  public static Algorithm create(Configuration pConfig, Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa, LogManager pLogger, ShutdownNotifier pShutdownNotifier, boolean pCheckCounterexamples) throws InvalidConfigurationException {
-    if (!pCheckCounterexamples) {
-      return pAlgorithm;
-    }
+  public static Algorithm create(
+      Configuration pConfig,
+      Algorithm pAlgorithm,
+      ConfigurableProgramAnalysis pCpa,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      boolean pCheckCounterexamples,
+      boolean pUseCEGAR)
+      throws InvalidConfigurationException {
 
     ExceptionHandlingOptions options = new ExceptionHandlingOptions(pConfig);
-    if (options.continueAfterInfeasibleError) {
+
+    if ((options.continueAfterInfeasibleError && pCheckCounterexamples)
+        || (options.continueAfterFailedRefinement && pUseCEGAR)) {
       return new ExceptionHandlingAlgorithm(pAlgorithm, pCpa, options, pLogger, pShutdownNotifier);
     }
 
@@ -123,13 +138,34 @@ public class ExceptionHandlingAlgorithm implements Algorithm {
         // no exception occurred so we are finished
         break;
 
+
+        // if we find an infeasible counterexample we handle it depending on the
+        // configuration options. If specified we just ignore the path later on
+        // mark the analysis as unsound and continue searching for errors on other
+        // paths through the program
       } catch (InfeasibleCounterexampleException e) {
         // we don't want to continue, so no handling is necessary
         if (!options.continueAfterInfeasibleError) {
           throw e;
         }
-
         status = handleExceptionWithErrorPath(reached, status, e.getErrorPath().getLastState());
+
+        // Handle failed refinements if specified by the configuration
+        // we can do exactly the same as for infeasible counterexamples
+      } catch (RefinementFailedException e) {
+        // we don't want to continue, so no handling is necessary
+        if (!options.continueAfterFailedRefinement) {
+          throw e;
+        }
+
+        ARGState lastState;
+        if (e.getErrorPath() != null) {
+          lastState = e.getErrorPath().getLastState();
+        } else {
+          lastState = (ARGState) reached.getLastState();
+        }
+
+        status = handleExceptionWithErrorPath(reached, status, lastState);
       }
     }
     return status;

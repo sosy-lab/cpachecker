@@ -211,7 +211,9 @@ public class CoreComponentsFactory {
         algorithm = new CounterexampleCheckAlgorithm(algorithm, cpa, config, logger, shutdownNotifier, cfa, programDenotation);
       }
 
-      algorithm = ExceptionHandlingAlgorithm.create(config, algorithm, cpa, logger, shutdownNotifier, checkCounterexamples);
+      algorithm =
+          ExceptionHandlingAlgorithm.create(
+              config, algorithm, cpa, logger, shutdownNotifier, checkCounterexamples, useCEGAR);
 
       if (useBDDCPARestriction) {
         algorithm = new BDDCPARestrictionAlgorithm(algorithm, cpa, config, logger);

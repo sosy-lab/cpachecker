@@ -397,6 +397,10 @@ cbmc.options.unwindings = 0
 cbmc.timelimit = 0
 cbmc.timelimit = 0ms
 
+# continue analysis after a failed refinement (e.g. due to interpolation)
+# other paths may still contain errors that could be found
+cegar.continueAfterFailedRefinement = false
+
 # if this score is exceeded by the first analysis, the auxilliary analysis
 # will be refined
 cegar.domainScoreThreshold = 1024
