@@ -1033,6 +1033,10 @@ public class ARGPathExporter {
           }
         };
 
+    /** Merge two consecutive nodes into one new node,
+     * if the edge between the nodes is redundant.
+     * The merge also merges the information of the nodes,
+     * e.g. disjuncts their invariants. */
     private void mergeNodes(final Edge pEdge) {
       Preconditions.checkArgument(isEdgeRedundant.apply(pEdge));
 
@@ -1087,7 +1091,7 @@ public class ARGPathExporter {
       // Remove the edges from their predecessors
       for (Edge enteringEdge : enteringEdges) {
         boolean removed = removeEdge(enteringEdge);
-        assert removed;
+        assert removed : "edge was not removed";
       }
       // Create the replacement edges
       enteringEdges =
@@ -1112,6 +1116,8 @@ public class ARGPathExporter {
 
     }
 
+    /** Merge two expressionTrees for source and target.
+     * We also perform some kind of simplification. */
     private void mergeExpressionTrees(final String source, final String target) {
       ExpressionTree<Object> sourceTree = getStateInvariant(source);
       ExpressionTree<Object> targetTree = getStateInvariant(target);
