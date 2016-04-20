@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Predicates.equalTo;
+import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.concat;
 import static com.google.common.collect.Iterables.getOnlyElement;
@@ -73,6 +74,7 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.StaticCandidateProvider;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator.CPAInvariantGeneratorStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantChecker;
@@ -1249,6 +1251,20 @@ class InvariantsManager implements StatisticsProvider {
     public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
       StatisticsWriter w0 = writingStatisticsTo(out);
 
+      TimeSpan asyncTime;
+      if (asyncInvariantSupplierSingleton != null
+          && asyncInvariantSupplierSingleton.invGen instanceof StatisticsProvider) {
+        Collection<Statistics> st = new ArrayList<>();
+        ((StatisticsProvider) asyncInvariantSupplierSingleton.invGen).collectStatistics(st);
+        asyncTime =
+            ((CPAInvariantGeneratorStatistics)
+                    getOnlyElement(
+                        from(st).filter(instanceOf(CPAInvariantGeneratorStatistics.class))))
+                .getConsumedTime();
+      } else {
+        asyncTime = TimeSpan.ofSeconds(0);
+      }
+
       int numberOfInvGenTries = totalInvGenTries.getUpdateCount();
       if (numberOfInvGenTries > 0) {
         w0.put(totalInvGenTries)
@@ -1264,12 +1280,13 @@ class InvariantsManager implements StatisticsProvider {
                     usedStrategiesPerTrie.getMin()))
             .endLevel()
             .spacer()
-            .put(invgenTime)
+            .put(invgenTime.getTitle(), TimeSpan.sum(invgenTime.getConsumedTime(), asyncTime))
             .beginLevel()
             .put(rfKindTime)
             .put(rfInvGenTime)
             .put(pfKindTime)
             .put(pfWeakeningTime)
+            .put("Time for asynchronous invariant generation", asyncTime)
             .endLevel()
             .spacer()
             .put(
