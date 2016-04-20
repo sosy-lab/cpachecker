@@ -1,4 +1,27 @@
-package org.sosy_lab.cpachecker.cpa.formulaslicing;
+/*
+ * CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2016  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
+package org.sosy_lab.cpachecker.util.predicates;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
@@ -37,17 +60,17 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Convert the formula to form *resembling* CNF, but without exponential
- * explosion and without introducing extra existential quantifiers.
- *
- * // TODO: move to a different package.
+ * Convert the formula to a quantifier-free form *resembling* CNF (relaxed
+ * conjunctive normal
+ * form), but without exponential explosion and without introducing extra
+ * existential quantifiers.
  */
-@Options(prefix="cpa.slicing")
+@Options(prefix="rcnf")
 public class RCNFManager implements StatisticsProvider {
 
   @Option(description="Limit on the size of the resulting number of lemmas "
       + "from the explicit expansion", secure=true)
-  private int expansionResultSizeLimit = 1000;
+  private int expansionResultSizeLimit = 100;
 
   @Option(secure=true, description="Quantifier elimination strategy",
       toUppercase=true)
@@ -157,7 +180,7 @@ public class RCNFManager implements StatisticsProvider {
     }
   }
 
-  public BooleanFormula factorize(BooleanFormula input) {
+  private BooleanFormula factorize(BooleanFormula input) {
     return bfmgr.transformRecursively(new BooleanFormulaTransformationVisitor(fmgr) {
 
       /**

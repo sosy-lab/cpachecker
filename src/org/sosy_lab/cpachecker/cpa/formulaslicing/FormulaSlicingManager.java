@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.RCNFManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -66,7 +67,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
   private final InductiveWeakeningManager inductiveWeakeningManager;
   private final Solver solver;
   private final FormulaSlicingStatistics statistics;
-  private final RCNFManager rcnfManager;
+  private final RCNFManager RCNFManager;
   private final LiveVariables liveVariables;
   private final LoopStructure loopStructure;
 
@@ -95,7 +96,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
       FormulaManagerView pFmgr,
       CFA pCfa,
       InductiveWeakeningManager pInductiveWeakeningManager,
-      RCNFManager pRcnfManager,
+      RCNFManager pRCNFManager,
       Solver pSolver,
       LogManager pLogger)
       throws InvalidConfigurationException {
@@ -106,7 +107,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     inductiveWeakeningManager = pInductiveWeakeningManager;
     solver = pSolver;
     bfmgr = pFmgr.getBooleanFormulaManager();
-    rcnfManager = pRcnfManager;
+    RCNFManager = pRCNFManager;
     statistics = new FormulaSlicingStatistics();
     unsatCache = new HashMap<>();
     Preconditions.checkState(pCfa.getLiveVariables().isPresent() &&
@@ -231,7 +232,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     BooleanFormula quantified = fmgr.quantifyDeadVariables(
         transition, ssa);
 
-    Set<BooleanFormula> lemmas = rcnfManager.toLemmas(quantified);
+    Set<BooleanFormula> lemmas = RCNFManager.toLemmas(quantified);
 
     Set<BooleanFormula> finalLemmas = new HashSet<>();
     for (BooleanFormula lemma : lemmas) {

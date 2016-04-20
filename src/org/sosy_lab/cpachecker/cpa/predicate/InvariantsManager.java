@@ -87,7 +87,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 import org.sosy_lab.cpachecker.cpa.formulaslicing.InductiveWeakeningManager;
 import org.sosy_lab.cpachecker.cpa.formulaslicing.LoopTransitionFinder;
-import org.sosy_lab.cpachecker.cpa.formulaslicing.RCNFManager;
+import org.sosy_lab.cpachecker.util.predicates.RCNFManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;

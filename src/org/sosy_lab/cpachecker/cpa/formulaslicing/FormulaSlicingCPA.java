@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.predicates.RCNFManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
@@ -61,7 +62,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   private final IFormulaSlicingManager manager;
   private final MergeOperator mergeOperator;
   private final InductiveWeakeningManager inductiveWeakeningManager;
-  private final RCNFManager rcnfManager;
+  private final RCNFManager RCNFManager;
 
   private FormulaSlicingCPA(
       Configuration pConfiguration,
@@ -83,14 +84,14 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
 
     inductiveWeakeningManager = new InductiveWeakeningManager(pConfiguration, solver, pLogger,
         pShutdownNotifier);
-    rcnfManager = new RCNFManager(formulaManager, pConfiguration);
+    RCNFManager = new RCNFManager(formulaManager, pConfiguration);
     manager = new FormulaSlicingManager(
         pConfiguration,
         pathFormulaManager,
         formulaManager,
         cfa,
         inductiveWeakeningManager,
-        rcnfManager,
+        RCNFManager,
         solver,
         pLogger);
     stopOperator = new StopSepOperator(this);
@@ -179,7 +180,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   public void collectStatistics(Collection<Statistics> statsCollection) {
     manager.collectStatistics(statsCollection);
     inductiveWeakeningManager.collectStatistics(statsCollection);
-    rcnfManager.collectStatistics(statsCollection);
+    RCNFManager.collectStatistics(statsCollection);
   }
 
   @Override
