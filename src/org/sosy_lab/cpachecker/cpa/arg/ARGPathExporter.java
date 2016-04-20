@@ -1049,52 +1049,7 @@ public class ARGPathExporter {
       nodeFlags.putAll(source, nodeFlags.removeAll(target));
 
       // Merge the trees
-      ExpressionTree<Object> sourceTree = getStateInvariant(source);
-      ExpressionTree<Object> targetTree = getStateInvariant(target);
-      String sourceScope = stateScopes.get(source);
-      String targetScope = stateScopes.get(target);
-
-      if (ExpressionTrees.getTrue().equals(targetTree)
-          && !ExpressionTrees.getTrue().equals(sourceTree)
-          && (targetScope == null || targetScope.equals(sourceScope))) {
-        ExpressionTree<Object> newTargetTree = ExpressionTrees.getFalse();
-        for (Edge e : enteringEdges.get(target)) {
-          newTargetTree = factory.or(newTargetTree, getStateInvariant(e.source));
-        }
-        newTargetTree = simplifier.simplify(factory.and(targetTree, newTargetTree));
-        stateInvariants.put(target, newTargetTree);
-        targetTree = newTargetTree;
-      } else if (!ExpressionTrees.getTrue().equals(targetTree)
-          && ExpressionTrees.getTrue().equals(sourceTree)
-          && (sourceScope == null || sourceScope.equals(targetScope))
-          && enteringEdges.get(source).size() <= 1) {
-        ExpressionTree<Object> newSourceTree = ExpressionTrees.getFalse();
-        for (Edge e : enteringEdges.get(source)) {
-          newSourceTree = factory.or(newSourceTree, getStateInvariant(e.source));
-        }
-        newSourceTree = simplifier.simplify(factory.and(targetTree, newSourceTree));
-        stateInvariants.put(source, newSourceTree);
-        sourceTree = newSourceTree;
-      }
-
-      final String newScope;
-      if (ExpressionTrees.isConstant(sourceTree)
-          || Objects.equals(sourceScope, targetScope)) {
-        newScope = targetScope;
-      } else if (ExpressionTrees.isConstant(targetTree)) {
-        newScope = sourceScope;
-      } else {
-        newScope = null;
-      }
-      ExpressionTree<Object> newTree = mergeStateInvariantsIntoFirst(source, target);
-      if (newTree != null) {
-        if (newScope == null && !ExpressionTrees.isConstant(newTree)) {
-          putStateInvariant(source, ExpressionTrees.getTrue());
-          stateScopes.remove(source);
-        } else {
-          stateScopes.put(source, newScope);
-        }
-      }
+      mergeExpressionTrees(source, target);
 
       // Merge the violated properties
       violatedProperties.putAll(source, violatedProperties.removeAll(target));
@@ -1155,6 +1110,55 @@ public class ARGPathExporter {
         putEdge(enteringEdge);
       }
 
+    }
+
+    private void mergeExpressionTrees(final String source, final String target) {
+      ExpressionTree<Object> sourceTree = getStateInvariant(source);
+      ExpressionTree<Object> targetTree = getStateInvariant(target);
+      String sourceScope = stateScopes.get(source);
+      String targetScope = stateScopes.get(target);
+
+      if (ExpressionTrees.getTrue().equals(targetTree)
+          && !ExpressionTrees.getTrue().equals(sourceTree)
+          && (targetScope == null || targetScope.equals(sourceScope))) {
+        ExpressionTree<Object> newTargetTree = ExpressionTrees.getFalse();
+        for (Edge e : enteringEdges.get(target)) {
+          newTargetTree = factory.or(newTargetTree, getStateInvariant(e.source));
+        }
+        newTargetTree = simplifier.simplify(factory.and(targetTree, newTargetTree));
+        stateInvariants.put(target, newTargetTree);
+        targetTree = newTargetTree;
+      } else if (!ExpressionTrees.getTrue().equals(targetTree)
+          && ExpressionTrees.getTrue().equals(sourceTree)
+          && (sourceScope == null || sourceScope.equals(targetScope))
+          && enteringEdges.get(source).size() <= 1) {
+        ExpressionTree<Object> newSourceTree = ExpressionTrees.getFalse();
+        for (Edge e : enteringEdges.get(source)) {
+          newSourceTree = factory.or(newSourceTree, getStateInvariant(e.source));
+        }
+        newSourceTree = simplifier.simplify(factory.and(targetTree, newSourceTree));
+        stateInvariants.put(source, newSourceTree);
+        sourceTree = newSourceTree;
+      }
+
+      final String newScope;
+      if (ExpressionTrees.isConstant(sourceTree)
+          || Objects.equals(sourceScope, targetScope)) {
+        newScope = targetScope;
+      } else if (ExpressionTrees.isConstant(targetTree)) {
+        newScope = sourceScope;
+      } else {
+        newScope = null;
+      }
+      ExpressionTree<Object> newTree = mergeStateInvariantsIntoFirst(source, target);
+      if (newTree != null) {
+        if (newScope == null && !ExpressionTrees.isConstant(newTree)) {
+          putStateInvariant(source, ExpressionTrees.getTrue());
+          stateScopes.remove(source);
+        } else {
+          stateScopes.put(source, newScope);
+        }
+      }
     }
 
     private void putEdge(Edge pEdge) {
