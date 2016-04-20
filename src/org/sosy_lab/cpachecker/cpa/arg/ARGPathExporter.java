@@ -96,6 +96,7 @@ import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -174,6 +175,9 @@ public class ARGPathExporter {
 
   @Option(secure=true, description="Verification witness: Include the offset within the file?")
   private boolean exportOffset = true;
+
+  @Option(secure=true, description="Verification witness: Include an thread-identifier within the file?")
+  private boolean exportThreadId = false;
 
   private final LogManager logger;
 
@@ -637,6 +641,11 @@ public class ARGPathExporter {
                 .toList()));
           }
         }
+
+        if (exportThreadId) {
+          exportThreadId(result, pEdge, state);
+        }
+
       }
 
       if (graphType != GraphType.PROOF_WITNESS && exportAssumptions && !code.isEmpty()) {
@@ -681,6 +690,21 @@ public class ARGPathExporter {
         result.put(KeyDef.ASSUMPTION, assumptionCode + ";");
         if (isFunctionScope) {
           result.put(KeyDef.ASSUMPTIONSCOPE, functionName);
+        }
+      }
+    }
+
+    /** export the id of the executed thread into the witness.
+     * We assume that the edge can be assigned to exactly one thread. */
+    private void exportThreadId(final TransitionCondition result, final CFAEdge pEdge,
+        ARGState state) {
+      ThreadingState threadingState = AbstractStates.extractStateByType(state, ThreadingState.class);
+      if (threadingState != null) {
+        for (String threadId : threadingState.getThreadIds()) {
+          if (threadingState.getThreadLocation(threadId).getLocationNode().equals(pEdge.getPredecessor())) {
+            result.put(KeyDef.THREADID, threadId);
+            break;
+          }
         }
       }
     }

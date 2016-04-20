@@ -105,6 +105,7 @@ public class AutomatonGraphmlCommon {
     ISSINKNODE("sink", ElementType.NODE, "isSinkNode", "boolean", false),
     ISLOOPSTART("loopHead", ElementType.NODE, "isLoopHead", "boolean", false),
     VIOLATEDPROPERTY("violatedProperty", ElementType.NODE, "violatedProperty", "string"),
+    THREADID("threadId", ElementType.EDGE, "threadId", "string"),
     SOURCECODELANGUAGE("sourcecodelang", ElementType.GRAPH, "sourcecodeLanguage", "string"),
     PROGRAMFILE("programfile", ElementType.GRAPH, "programFile", "string"),
     PROGRAMHASH("programhash", ElementType.GRAPH, "programHash", "string"),
