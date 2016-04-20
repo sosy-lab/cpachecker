@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.core.algorithm.BDDCPARestrictionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtractingAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithmWithARGReplay;
@@ -209,6 +210,8 @@ public class CoreComponentsFactory {
       if (checkCounterexamples) {
         algorithm = new CounterexampleCheckAlgorithm(algorithm, cpa, config, logger, shutdownNotifier, cfa, programDenotation);
       }
+
+      algorithm = ExceptionHandlingAlgorithm.create(config, algorithm, cpa, logger, shutdownNotifier, checkCounterexamples);
 
       if (useBDDCPARestriction) {
         algorithm = new BDDCPARestrictionAlgorithm(algorithm, cpa, config, logger);
