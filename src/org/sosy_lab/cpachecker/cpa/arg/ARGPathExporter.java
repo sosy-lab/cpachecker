@@ -1059,59 +1059,39 @@ public class ARGPathExporter {
       violatedProperties.putAll(source, violatedProperties.removeAll(target));
 
       // Move the leaving edges
-      FluentIterable<Edge> leavingEdges =
-          FluentIterable.from(Lists.newArrayList(this.leavingEdges.get(target)));
+      List<Edge> leavingEdges = Lists.newArrayList(this.leavingEdges.get(target));
       // Remove the edges from their successors
       for (Edge leavingEdge : leavingEdges) {
         boolean removed = removeEdge(leavingEdge);
         assert removed;
       }
-      // Create the replacement edges
-      leavingEdges =
-          leavingEdges.transform(
-              new Function<Edge, Edge>() {
-
-                @Override
-                public Edge apply(Edge pOldEdge) {
-                  TransitionCondition label = new TransitionCondition();
-                  label.keyValues.putAll(pEdge.label.keyValues);
-                  label.keyValues.putAll(pOldEdge.label.keyValues);
-                  return new Edge(source, pOldEdge.target, label);
-                }
-              });
-      // Add them as leaving edges to the source node
-      // and them as entering edges to their target nodes
+      // Create the replacement edges,
+      // Add them as leaving edges to the source node,
+      // Add them as entering edges to their target nodes
       for (Edge leavingEdge : leavingEdges) {
-        putEdge(leavingEdge);
+        TransitionCondition label = new TransitionCondition();
+        label.keyValues.putAll(pEdge.label.keyValues);
+        label.keyValues.putAll(leavingEdge.label.keyValues);
+        putEdge(new Edge(source, leavingEdge.target, label));
       }
 
       // Move the entering edges
-      FluentIterable<Edge> enteringEdges =
-          FluentIterable.from(Lists.newArrayList(this.enteringEdges.get(target)));
+      List<Edge> enteringEdges = Lists.newArrayList(this.enteringEdges.get(target));
       // Remove the edges from their predecessors
       for (Edge enteringEdge : enteringEdges) {
         boolean removed = removeEdge(enteringEdge);
         assert removed : "edge was not removed";
       }
-      // Create the replacement edges
-      enteringEdges =
-          enteringEdges
-              .filter(Predicates.not(Predicates.equalTo(pEdge)))
-              .transform(
-                  new Function<Edge, Edge>() {
-
-                    @Override
-                    public Edge apply(Edge pOldEdge) {
-                      TransitionCondition label = new TransitionCondition();
-                      label.keyValues.putAll(pEdge.label.keyValues);
-                      label.keyValues.putAll(pOldEdge.label.keyValues);
-                      return new Edge(pOldEdge.source, source, label);
-                    }
-                  });
-      // Add them as entering edges to the source node
-      // and add them as leaving edges to their source nodes
+      // Create the replacement edges,
+      // Add them as entering edges to the source node,
+      // Add add them as leaving edges to their source nodes
       for (Edge enteringEdge : enteringEdges) {
-        putEdge(enteringEdge);
+        if (!pEdge.equals(enteringEdge)) {
+          TransitionCondition label = new TransitionCondition();
+          label.keyValues.putAll(pEdge.label.keyValues);
+          label.keyValues.putAll(enteringEdge.label.keyValues);
+          putEdge(new Edge(enteringEdge.source, source, label));
+        }
       }
 
     }
