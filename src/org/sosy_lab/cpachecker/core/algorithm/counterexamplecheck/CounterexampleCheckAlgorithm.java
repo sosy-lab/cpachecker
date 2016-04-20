@@ -27,17 +27,9 @@ import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.ImmutableList.copyOf;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.toPercent;
 
-import java.io.PrintStream;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.WeakHashMap;
-import java.util.logging.Level;
+import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -58,13 +50,21 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
+import java.io.PrintStream;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.WeakHashMap;
+import java.util.logging.Level;
 
 @Options(prefix="counterexample")
 public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvider, Statistics {
@@ -227,7 +227,8 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
 
       } else {
         ARGPath path = ARGUtils.getOnePathTo(errorState);
-        throw new RefinementFailedException(Reason.InfeasibleCounterexample, path);
+        throw new InfeasibleCounterexampleException(
+            "Counterexample check identified given counterexample as infeasible", path);
       }
     }
     return sound;
