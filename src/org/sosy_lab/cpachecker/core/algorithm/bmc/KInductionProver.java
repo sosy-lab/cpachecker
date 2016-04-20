@@ -353,8 +353,8 @@ class KInductionProver implements AutoCloseable {
   /**
    * Attempts to perform the inductive check over all candidate invariants.
    *
-   * @param k The k value to use in the check.
-   * @param candidateInvariants What should be checked.
+   * @param pK The k value to use in the check.
+   * @param pCandidateInvariants What should be checked.
    * @return <code>true</code> if k-induction successfully proved the
    * correctness of all candidate invariants.
    *
@@ -363,8 +363,10 @@ class KInductionProver implements AutoCloseable {
    * @throws InterruptedException if the bounded analysis constructing the
    * step case was interrupted.
    */
-  public final boolean check(final int k,
-      final Set<CandidateInvariant> candidateInvariants)
+  public final boolean check(
+      final int pK,
+      final Set<CandidateInvariant> pCandidateInvariants,
+      final Set<CFANode> pImmediateLoopHeads)
       throws CPAException, InterruptedException, SolverException {
     stats.inductionPreparation.start();
 
@@ -390,23 +392,29 @@ class KInductionProver implements AutoCloseable {
      */
     Map<CandidateInvariant, BooleanFormula> assertions = new HashMap<>();
     ReachedSet predecessorReachedSet = null;
-    for (CandidateInvariant candidateInvariant : candidateInvariants) {
+
+    for (CandidateInvariant candidateInvariant : pCandidateInvariants) {
+
+      if (!canBeAsserted(candidateInvariant, pImmediateLoopHeads)) {
+        assertions.put(candidateInvariant, bfmgr.makeBoolean(true));
+        continue;
+      }
 
       final BooleanFormula predecessorAssertion;
 
       // If we already built a formula for the violation of the invariant for
       // k (previous attempt), we can negate and reuse it here as an assertion
       BooleanFormula previousViolation = violationFormulas.get(candidateInvariant);
-      if (previousViolation != null && previousK == k) {
+      if (previousViolation != null && previousK == pK) {
         predecessorAssertion = bfmgr.not(previousViolation);
       } else {
         // Build the formula
         if (predecessorReachedSet == null) {
-          if (k < 1) {
+          if (pK < 1) {
             predecessorReachedSet = reachedSetFactory.create();
           } else {
             predecessorReachedSet = reached;
-            stepCaseBoundsCPA.setMaxLoopIterations(k);
+            stepCaseBoundsCPA.setMaxLoopIterations(pK);
             BMCHelper.unroll(logger, predecessorReachedSet, reachedSetInitializer, algorithm, cpa);
           }
         }
@@ -442,18 +450,18 @@ class KInductionProver implements AutoCloseable {
     }
 
     // Create the formula asserting the faultiness of the successor
-    stepCaseBoundsCPA.setMaxLoopIterations(k + 1);
+    stepCaseBoundsCPA.setMaxLoopIterations(pK + 1);
     BMCHelper.unroll(logger, reached, reachedSetInitializer, algorithm, cpa);
     stopLocations = Sets.intersection(getStopLocations(reached), loopHeads);
 
-    this.previousK = k + 1;
+    this.previousK = pK + 1;
 
     // Attempt the induction proofs
     ProverEnvironment prover = getProver();
     int numberOfSuccessfulProofs = 0;
     stats.inductionPreparation.stop();
     push(invariants); // Assert the known invariants
-    for (CandidateInvariant candidateInvariant : candidateInvariants) {
+    for (CandidateInvariant candidateInvariant : pCandidateInvariants) {
 
       // Obtain the predecessor assertion created earlier
       BooleanFormula predecessorAssertion = assertions.get(candidateInvariant);
@@ -538,7 +546,32 @@ class KInductionProver implements AutoCloseable {
 
     pop(); // Pop loop head invariants
 
-    return numberOfSuccessfulProofs == candidateInvariants.size();
+    return numberOfSuccessfulProofs == pCandidateInvariants.size();
+  }
+
+  /**
+   * Check if the given invariant may be asserted at k predecessors,
+   * given all loop heads reachable without unrolling any loops.
+   *
+   * @param pCandidateInvariant the candidate invariant.
+   * @param pImmediateLoopHeads all loop heads reachable without unrolling any loops.
+   * @return {@code true} if the invariant may be asserted for k predecessors,
+   * @{code false} otherwise.
+   */
+  private boolean canBeAsserted(
+      CandidateInvariant pCandidateInvariant, Set<CFANode> pImmediateLoopHeads) {
+    if (pCandidateInvariant instanceof LocationFormulaInvariant) {
+      for (CFANode immediateLoopHead : pImmediateLoopHeads) {
+        for (Loop loop : cfa.getLoopStructure().get().getLoopsForLoopHead(immediateLoopHead)) {
+          if (loop.getLoopNodes()
+              .containsAll(((LocationFormulaInvariant) pCandidateInvariant).getLocations())) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+    return true;
   }
 
   private void ensureReachedSetInitialized(ReachedSet pReachedSet) {
