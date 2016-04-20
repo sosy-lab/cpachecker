@@ -1730,6 +1730,9 @@ cpa.sign.stop = "SEP"
 # Apply AND- LBE transformation to loop transition relation.
 cpa.slicing.applyLBETransformation = true
 
+# Extract and cache unsat cores for satisfiability checking
+cpa.slicing.cacheUnsatCores = true
+
 # Check target states reachability
 cpa.slicing.checkTargetStates = true
 
@@ -1753,9 +1756,6 @@ cpa.slicing.removalSelectionStrategy = ALL
 # Time for loop generation before aborting.
 # (Use seconds or specify a unit; 0 for infinite)
 cpa.slicing.timeForLoopGeneration = 0s
-
-# Cache formulas produced by path formula manager
-cpa.slicing.useCachingPathFormulaManager = true
 
 # Inductive weakening strategy
 cpa.slicing.weakeningStrategy = CEX
