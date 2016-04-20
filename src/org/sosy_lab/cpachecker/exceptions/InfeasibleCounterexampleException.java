@@ -39,12 +39,12 @@ public class InfeasibleCounterexampleException extends CPAException {
 
   private final ARGPath path;
 
-  public InfeasibleCounterexampleException(String msg, @Nullable ARGPath p) {
+  public InfeasibleCounterexampleException(String msg, ARGPath p) {
     super(msg);
     path = p;
   }
 
-  public InfeasibleCounterexampleException(String msg, @Nullable ARGPath p, Throwable t) {
+  public InfeasibleCounterexampleException(String msg, ARGPath p, Throwable t) {
     super(msg, checkNotNull(t));
     path = p;
   }
