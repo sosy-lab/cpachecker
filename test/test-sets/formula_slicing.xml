@@ -5,105 +5,58 @@
 
     <option name="-heap">8000m</option>
     <option name="-64" /> <!-- 64-bit -->
-
+    <option name="-disable-java-assertions"/> <!-- Speed-up -->
 
     <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
 
+    <tasks name="DeviceDriversHard">
+        <includesfile>../programs/benchmarks/DeviceDriversHardNoRecursionLinux64.set</includesfile>
+    </tasks>
 
     <rundefinition name="intervals">
         <option name="-policy-intervals"/>
-        <tasks name="DeviceDriversHard">
-            <!-- Hard instances: everything which couldn't be solved fast w/ PAGAI -->
-            <includesfile>../programs/benchmarks/DeviceDriversHardNoRecursionLinux64.set</includesfile>
-        </tasks>
     </rundefinition>
 
     <rundefinition name="intervals_w_slicing">
         <option name="-policy-slicing"/>
-        <tasks name="DeviceDriversHard">
-            <includesfile>../programs/benchmarks/DeviceDriversHardNoRecursionLinux64.set</includesfile>
-        </tasks>
     </rundefinition>
 
     <rundefinition name="intervals_w_syntactic_slicing">
         <option name="-policy-slicing"/>
         <option name="-setprop">cpa.slicing.weakeningStrategy=syntactic</option>
-        <tasks name="DeviceDriversHard">
-            <includesfile>../programs/benchmarks/DeviceDriversHardNoRecursionLinux64.set</includesfile>
-        </tasks>
-    </rundefinition>
-
-    <rundefinition name="intervals_w_slicing_loops">
-        <option name="-policy-slicing"/> <!-- currently ~38 -->
-        <tasks name="Loops">
-            <includesfile>../programs/benchmarks/Loops.set</includesfile>
-        </tasks>
-    </rundefinition>
-
-    <rundefinition name="intervals_loops">
-        <option name="-policy-intervals"/>
-        <tasks name="Loops">
-            <includesfile>../programs/benchmarks/Loops.set</includesfile>
-        </tasks>
-    </rundefinition>
-
-    <rundefinition name="intervals_loops">
-        <option name="-policy-intervals"/>
-        <tasks name="Loops">
-            <includesfile>../programs/benchmarks/Loops.set</includesfile>
-        </tasks>
-    </rundefinition>
-
-
-    <rundefinition name="slicing-w-lpi">
-        <option name="-policy-slicing"/>
-        <tasks name="DeviceDriversHard">
-            <includesfile>../programs/benchmarks/DeviceDriversHardNoRecursionLinux64.set</includesfile>
-        </tasks>
     </rundefinition>
 
     <rundefinition name="slicing-k-induction">
         <option name="-formula-slicing-k-induction"/>
-        <tasks name="DeviceDriversHard">
-            <includesfile>../programs/benchmarks/DeviceDriversHardNoRecursionLinux64.set</includesfile>
-        </tasks>
+        <option name="-setprop">solver.solver=z3</option>
+        <option name="-setprop">invariantGeneration.async=false</option>
+        <option name="-setprop">cpa.callstack.skipRecursion=true</option>
+    </rundefinition>
+
+    <rundefinition name="k-induction-w-invariants">
+        <!-- Proves 45 programs, 13 of which -formula-slicing can not prove -->
+        <option name="-bmc-induction" />
     </rundefinition>
 
     <rundefinition name="predicateAnalysis">
-        <!-- Obtains ~100 -->
         <option name="-predicateAnalysis"/>
-        <tasks name="DeviceDriversHard">
-            <includesfile>../programs/benchmarks/DeviceDriversHardNoRecursionLinux64.set</includesfile>
-        </tasks>
     </rundefinition>
 
     <rundefinition name="predicateAnalysis-w-slicing-invariants">
         <option name="-formula-slicing-w-predicate"/>
-        <tasks name="DeviceDriversHard">
-            <includesfile>../programs/benchmarks/DeviceDriversHardNoRecursionLinux64.set</includesfile>
-        </tasks>
     </rundefinition>
 
     <rundefinition name="just-slicing">
         <option name="-formula-slicing"/>
-        <tasks name="DeviceDriversHard">
-            <includesfile>../programs/benchmarks/DeviceDriversHardNoRecursionLinux64.set</includesfile>
-        </tasks>
     </rundefinition>
 
     <rundefinition name="just-slicing-syntactic">
         <option name="-formula-slicing"/>
         <option name="-setprop">cpa.slicing.weakeningStrategy=syntactic</option>
-        <tasks name="DeviceDriversHard">
-            <includesfile>../programs/benchmarks/DeviceDriversHardNoRecursionLinux64.set</includesfile>
-        </tasks>
     </rundefinition>
 
     <rundefinition name="just-slicing-destructive">
         <option name="-formula-slicing"/>
         <option name="-setprop">cpa.slicing.weakeningStrategy=destructive</option>
-        <tasks name="DeviceDriversHard">
-            <includesfile>../programs/benchmarks/DeviceDriversHardNoRecursionLinux64.set</includesfile>
-        </tasks>
     </rundefinition>
 </benchmark>
