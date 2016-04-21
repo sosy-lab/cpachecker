@@ -70,6 +70,9 @@ public class WeightedGraph implements Iterable<WeightedNode> {
         WeightedEdge edge = new WeightedEdge(start, end, weight);
         addEdge(edge);
       }
+      if(nodes[actualNode] == null) {
+        nodes[actualNode] = start;
+      }
     }
   }
 
@@ -339,6 +342,7 @@ public class WeightedGraph implements Iterable<WeightedNode> {
     int currentPartition=0;
     for (WeightedNode node : nodes) {
       Set<Integer> partition = new HashSet<>(1);
+
       partition.add(node.getNodeNumber());
       partitioning.add(partition);
       currentPartition++;
