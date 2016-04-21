@@ -145,6 +145,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatCpuTime;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.NoTimeMeasurement;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.StatCpuTimer;
 import org.sosy_lab.solver.AssignableTerm;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -339,12 +340,23 @@ public class TigerAlgorithm
       description = "Prints labels reached with the error path of a test case.")
   private boolean printLabels = false;
 
+  @Option(
+      secure = true,
+      name = "printPathFormulasPerGoal",
+      description = "Writes all target state path formulas for a goal in a file.")
+  private boolean printPathFormulasPerGoal = false;
+
+  @Option(secure = true, name = "pathFormulasFile", description = "Filename for output of path formulas")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path pathFormulaFile = Paths.get("pathFormulas.txt");
+
   private final Configuration config;
   private final LogManager logger;
   final private ShutdownManager mainShutdownManager;
   private final CFA cfa;
 
   private ConfigurableProgramAnalysis cpa;
+  private Refiner refiner;
 
   private CoverageSpecificationTranslator mCoverageSpecificationTranslator;
   private FQLSpecification fqlSpecification;
@@ -373,6 +385,8 @@ public class TigerAlgorithm
   private int testCaseId = 0;
 
   NamedRegionManager bddCpaNamedRegionManager = null;
+
+  private Map<Goal, List<List<BooleanFormula>>> targetStateFormulas;
 
   private TestGoalUtils testGoalUtils = null;
   private Map<CFAEdge, List<NondeterministicFiniteAutomaton<GuardedEdgeLabel>>> edgeToTgaMapping;
@@ -420,7 +434,8 @@ public class TigerAlgorithm
     mInverseAlphaLabel = new InverseGuardedEdgeLabel(mAlphaLabel);
     mOmegaLabel = new GuardedEdgeLabel(new SingletonECPEdgeSet(wrapper.getOmegaEdge()));
 
-   edgeToTgaMapping = new HashMap<>();
+    edgeToTgaMapping = new HashMap<>();
+    targetStateFormulas = new HashMap<>();
 
     testGoalUtils = new TestGoalUtils(logger, useTigerAlgorithm_with_pc, bddCpaNamedRegionManager, mAlphaLabel,
         mInverseAlphaLabel, mOmegaLabel);
@@ -751,6 +766,30 @@ public class TigerAlgorithm
       Set<Goal> goalsCoveredByLastState = Sets.newLinkedHashSet();
 
       ARGState lastState = pTestcase.getArgPath().getLastState();
+
+      if (printPathFormulasPerGoal) {
+        try {
+          List<BooleanFormula> formulas = getPathFormula(pTestcase.getArgPath());
+
+          Set<Property> violatedProperties = lastState.getViolatedProperties();
+
+          for (Property property : violatedProperties) {
+            Preconditions.checkState(property instanceof Goal);
+            Goal g = (Goal) property;
+            List<List<BooleanFormula>> f = targetStateFormulas.get(g);
+            if (f == null) {
+              f = new ArrayList<>();
+              targetStateFormulas.put(g, f);
+            }
+
+            f.add(formulas);
+          }
+        } catch (CPAException | InterruptedException e) {
+        }
+
+        return new HashSet<>();
+      }
+
       for (Property p : lastState.getViolatedProperties()) {
         Preconditions.checkState(p instanceof Goal);
         goalsCoveredByLastState.add((Goal) p);
@@ -850,6 +889,19 @@ public class TigerAlgorithm
 
       return coveredGoals;
     }
+  }
+
+  private List<BooleanFormula> getPathFormula(ARGPath pPath) throws CPAException, InterruptedException {
+    List<BooleanFormula> formulas = null;
+
+    Refiner refiner = this.refiner;
+
+    if (refiner instanceof PredicateCPARefiner) {
+      final List<ARGState> abstractionStatesTrace = PredicateCPARefiner.transformPath(pPath);
+      formulas = ((PredicateCPARefiner) refiner).createFormulasOnPath(pPath, abstractionStatesTrace);
+    }
+
+    return formulas;
   }
 
   private class AcceptStatus {
@@ -1202,6 +1254,7 @@ public class TigerAlgorithm
         if (algorithm instanceof CEGARAlgorithm) {
           CEGARAlgorithm cegarAlg = (CEGARAlgorithm) algorithm;
 
+          this.refiner = cegarAlg.getRefiner();
           Refiner refiner = cegarAlg.getRefiner();
           if (refiner instanceof PredicateCPARefiner) {
             PredicateCPARefiner predicateRefiner = (PredicateCPARefiner) refiner;
@@ -1749,6 +1802,10 @@ public class TigerAlgorithm
 
     dumpTestSuite();
 
+    if (printPathFormulasPerGoal) {
+      dumpPathFormulas();
+    }
+
     // write test case generation times to file system
     if (testcaseGenerationTimesFile != null) {
       try (Writer writer = new BufferedWriter(
@@ -1808,6 +1865,28 @@ public class TigerAlgorithm
             writer.write(testCase.getId() + ";" + testCase.getGenerationTime() + ";" + coveredGoals.size() + "\n");
           }
         }
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    }
+  }
+
+  private void dumpPathFormulas() {
+    if (pathFormulaFile != null) {
+      StringBuffer buffer = new StringBuffer();
+      for (Goal goal : targetStateFormulas.keySet()) {
+        buffer.append("GOAL " + goal + "\n");
+        for (List<BooleanFormula> formulas : targetStateFormulas.get(goal)) {
+          buffer.append("FORMULA\n");
+          for (BooleanFormula formula : formulas) {
+            buffer.append(formula + "\n");
+          }
+        }
+      }
+
+      try (Writer writer =
+          new BufferedWriter(new OutputStreamWriter(new FileOutputStream(pathFormulaFile.getAbsolutePath()), "utf-8"))) {
+        writer.write(buffer.toString());
       } catch (IOException e) {
         throw new RuntimeException(e);
       }

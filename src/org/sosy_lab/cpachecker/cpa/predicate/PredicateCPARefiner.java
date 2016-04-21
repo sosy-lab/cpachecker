@@ -208,7 +208,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   /**
    * Create list of formulas on path.
    */
-  protected List<BooleanFormula> createFormulasOnPath(final ARGPath allStatesTrace,
+  public List<BooleanFormula> createFormulasOnPath(final ARGPath allStatesTrace,
                                                       final List<ARGState> abstractionStatesTrace)
                                                       throws CPAException, InterruptedException {
     List<BooleanFormula> formulas;
@@ -357,7 +357,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     return prefixPreference != PrefixPreference.NONE;
   }
 
-  static List<ARGState> transformPath(ARGPath pPath) {
+  public static List<ARGState> transformPath(ARGPath pPath) {
     List<ARGState> result = from(pPath.asStatesList())
       .skip(1)
       .filter(Predicates.compose(PredicateAbstractState.FILTER_ABSTRACTION_STATES,
