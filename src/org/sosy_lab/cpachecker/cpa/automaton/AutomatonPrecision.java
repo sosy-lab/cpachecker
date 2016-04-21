@@ -77,7 +77,11 @@ public class AutomatonPrecision implements Precision {
     for (Entry<SafetyProperty, Optional<Region>> e: this.blacklist.entrySet()) {
       SafetyProperty prop = e.getKey();
       Optional<Region> thisPresenceCond = e.getValue();
+
       Optional<Region> otherPresenceCond = pProperties.get(prop);
+      if (otherPresenceCond == null) {
+        otherPresenceCond = Optional.absent();
+      }
 
       final Optional<Region> presenceCondUnion =
           makeDisjunctionOfConditions(pRegionManager, thisPresenceCond, otherPresenceCond);
@@ -97,11 +101,16 @@ public class AutomatonPrecision implements Precision {
   private Optional<Region> makeDisjunctionOfConditions(RegionManager pRegionManager,
       Optional<Region> thisPresenceCond, Optional<Region> otherPresenceCond) {
 
+    Preconditions.checkNotNull(thisPresenceCond);
+    Preconditions.checkNotNull(otherPresenceCond);
+
     if (!otherPresenceCond.isPresent()) {
       return thisPresenceCond;
     } else if (!thisPresenceCond.isPresent()) {
       return otherPresenceCond;
     } else {
+      Preconditions.checkNotNull(pRegionManager);
+
       return Optional.of(pRegionManager.makeOr(
           otherPresenceCond.get(),
           thisPresenceCond.get()
