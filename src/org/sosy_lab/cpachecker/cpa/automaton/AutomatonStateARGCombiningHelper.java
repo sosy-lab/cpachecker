@@ -23,7 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import java.util.Map;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -32,8 +33,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Maps;
+import java.util.Map;
 
 
 public class AutomatonStateARGCombiningHelper {
@@ -71,7 +71,7 @@ public class AutomatonStateARGCombiningHelper {
     if (qualifiedAutomatonStateNameToInternalState.containsKey(qualifiedName)) {
       AutomatonSafetyProperty violatedProp = null;
 
-      if (toReplace.getViolatedProperties().size() > 0) {
+      if (toReplace.isTarget() && toReplace.getViolatedProperties().size() > 0) {
         Property prop = toReplace.getViolatedProperties().iterator().next();
         assert prop instanceof AutomatonSafetyProperty;
         violatedProp = (AutomatonSafetyProperty) prop;
