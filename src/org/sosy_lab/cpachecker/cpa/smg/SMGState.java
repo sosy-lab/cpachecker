@@ -612,9 +612,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       heap.mergeValues(prevEdge.getValue(), lastPointer);
     }
 
-    if(firstPointer == pPointerToAbstractObject.getValue()) {
+    if(firstPointer != null && firstPointer == pPointerToAbstractObject.getValue()) {
       return SMGAddressValueAndState.of(this, SMGKnownAddVal.valueOf(nextPointerEdge.getValue(), nextPointerEdge.getObject(), nextPointerEdge.getOffset()));
-    } else if(lastPointer == pPointerToAbstractObject.getValue()) {
+    } else if(lastPointer != null && lastPointer == pPointerToAbstractObject.getValue()) {
       return SMGAddressValueAndState.of(this, SMGKnownAddVal.valueOf(prevPointerEdge.getValue(), prevPointerEdge.getObject(), prevPointerEdge.getOffset()));
     } else {
       throw new AssertionError("Unexpected dereference of pointer " + pPointerToAbstractObject.getValue() + " pointing to abstraction " + pListSeg.toString());
