@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGGenericAbstractionCandidate;
 
 import java.util.HashSet;
@@ -127,15 +126,15 @@ final class SMGJoinTargetObjects {
       return;
     }
 
-    if (target1.getClass() != target2.getClass() && mapping1.containsKey(pAddress1)
-        && mapping2.containsKey(pAddress2)
+    if (target1.getKind() != target2.getKind() && mapping1.containsKey(target1)
+        && mapping2.containsKey(target2)
         && !mapping1.get(target1).equals(mapping2.get(target2))) {
       recoverable = true;
       defined = false;
       return;
     }
 
-    if (target1.getClass() == target2.getClass()
+    if (target1.getKind() == target2.getKind()
         && pt1.getTargetSpecifier() != pt2.getTargetSpecifier()) {
       recoverable = true;
       defined = false;
@@ -154,11 +153,11 @@ final class SMGJoinTargetObjects {
      * as join Object, a new object has to be created.
      */
     if (destSMG.getObjects().contains(target1)
-        && (target1 instanceof SMGDoublyLinkedList || !(target2 instanceof SMGDoublyLinkedList))) {
+        && (target1.isAbstract() || !(target2.isAbstract()))) {
       objectToJoin1 = target1.copy();
       objectToJoin2 = target2;
-    } else if (destSMG.getObjects().contains(target2) && target2 instanceof SMGDoublyLinkedList
-        && !(target1 instanceof SMGDoublyLinkedList)) {
+    } else if (destSMG.getObjects().contains(target2) && target2.isAbstract()
+        && !(target1.isAbstract())) {
       objectToJoin2 = target2.copy();
       objectToJoin1 = target1;
     } else {
@@ -174,9 +173,7 @@ final class SMGJoinTargetObjects {
       destSMG.addObject(newObject);
     }
 
-    if (mapping1.containsKey(target1)) {
-      throw new UnsupportedOperationException("Delayed join not yet implemented");
-    }
+    destSMG.setValidity(newObject, inputSMG1.isObjectValid(target1));
 
     delayedJoin(target1, target2);
 

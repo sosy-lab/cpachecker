@@ -860,11 +860,13 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         plotWhenConfigured(SMGExportLevel.EVERY, name, successor, cfaEdge.getDescription());
         successor.executeHeapAbstraction();
         plotWhenConfigured(SMGExportLevel.EVERY, name2, successor, cfaEdge.getDescription());
+        logger.log(Level.ALL, "Heap abstraction on node " + cfaEdge.getPredecessor().getNodeNumber() + " with state id: " + successor.getId());
       }
     }
 
     for (SMGState smg : successors) {
       plotWhenConfigured(SMGExportLevel.EVERY, null, smg, cfaEdge.getDescription());
+      logger.log(Level.ALL, "state id " + smg.getId() + " -> state id " + state.getId());
     }
 
     return successors;

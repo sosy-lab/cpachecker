@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedListCandidateFinder;
 import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedListFinder;
@@ -30,23 +31,29 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedListFinder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 
 public class SMGAbstractionManager {
+
+  private final LogManager logger;
+
   private final CLangSMG smg;
   private final SMGState smgState;
   private List<SMGAbstractionCandidate> abstractionCandidates = new ArrayList<>();
   private final boolean onlyDll;
 
-  public SMGAbstractionManager(CLangSMG pSMG, SMGState pSMGstate) {
+  public SMGAbstractionManager(LogManager pLogger, CLangSMG pSMG, SMGState pSMGstate) {
     smg = pSMG;
     onlyDll = false;
     smgState = pSMGstate;
+    logger = pLogger;
   }
 
-  public SMGAbstractionManager(CLangSMG pSMG, boolean pOnlyDll, SMGState pSMGstate) {
+  public SMGAbstractionManager(LogManager pLogger, CLangSMG pSMG, boolean pOnlyDll, SMGState pSMGstate) {
     smg = pSMG;
     onlyDll = pOnlyDll;
     smgState = pSMGstate;
+    logger = pLogger;
   }
 
   private boolean hasCandidates() throws SMGInconsistentException {
@@ -81,8 +88,10 @@ public class SMGAbstractionManager {
   public void execute() throws SMGInconsistentException {
     while (hasCandidates()) {
       SMGAbstractionCandidate best = getBestCandidate();
+      logger.log(Level.ALL, "Execute abstraction of " + best.toString());
       best.execute(smg, smgState);
       invalidateCandidates();
+      logger.log(Level.ALL, "Finish executing abstraction of " + best.toString());
     }
   }
 

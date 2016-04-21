@@ -33,21 +33,20 @@ public class SMGSingleLinkedListTest {
 
   @Test
   public void basicsTest() {
-    SMGRegion prototype = new SMGRegion(16, "prototype");
-    SMGSingleLinkedList sll = new SMGSingleLinkedList(prototype, 2, 4);
+    SMGSingleLinkedList sll = new SMGSingleLinkedList(16, 0, 2, 4, 0);
 
     Assert.assertTrue(sll.isAbstract());
-    Assert.assertEquals(4, sll.getLength());
+    Assert.assertEquals(4, sll.getMinimumLength());
     Assert.assertEquals(16, sll.getSize());
-    Assert.assertEquals(2, sll.getOffset());
+    Assert.assertEquals(2, sll.getNfo());
   }
 
   @Test
   public void matchGenericShapeTest() {
     SMGRegion prototype = new SMGRegion(16, "prototype");
-    SMGSingleLinkedList sll1 = new SMGSingleLinkedList(prototype, 0, 4);
-    SMGSingleLinkedList sll2 = new SMGSingleLinkedList(prototype, 0, 7);
-    SMGSingleLinkedList sll3 = new SMGSingleLinkedList(prototype, 8, 4);
+    SMGSingleLinkedList sll1 = new SMGSingleLinkedList(16, 0, 0, 4, 0);
+    SMGSingleLinkedList sll2 = new SMGSingleLinkedList(16, 0, 0, 7, 0);
+    SMGSingleLinkedList sll3 = new SMGSingleLinkedList(16, 0, 8, 4, 0);
 
     DummyAbstraction dummy = new DummyAbstraction(prototype);
 
@@ -60,9 +59,9 @@ public class SMGSingleLinkedListTest {
   @Test
   public void matchSpecificShapeTest() {
     SMGRegion prototype = new SMGRegion(16, "prototype");
-    SMGSingleLinkedList sll1 = new SMGSingleLinkedList(prototype, 0, 4);
-    SMGSingleLinkedList sll2 = new SMGSingleLinkedList(prototype, 0, 7);
-    SMGSingleLinkedList sll3 = new SMGSingleLinkedList(prototype, 8, 4);
+    SMGSingleLinkedList sll1 = new SMGSingleLinkedList(16, 0, 0, 4, 0);
+    SMGSingleLinkedList sll2 = new SMGSingleLinkedList(16, 0, 0, 7, 0);
+    SMGSingleLinkedList sll3 = new SMGSingleLinkedList(16, 0, 8, 4, 0);
 
     DummyAbstraction dummy = new DummyAbstraction(prototype);
 

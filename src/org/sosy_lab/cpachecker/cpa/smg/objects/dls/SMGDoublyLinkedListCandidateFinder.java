@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinSubSMGsForAbstraction;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectKind;
 import org.sosy_lab.cpachecker.util.Pair;
 
 import java.util.Collections;
@@ -107,6 +107,10 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
       return;
     }
 
+    if(!(pObject.getKind() == SMGObjectKind.DLL || pObject.getKind() == SMGObjectKind.REG)) {
+      return;
+    }
+
     Set<SMGEdgeHasValue> hvesOfObject = smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject));
 
     if (hvesOfObject.size() < 2) {
@@ -147,6 +151,14 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
         continue;
       }
 
+      if (!smg.isObjectValid(nextObject) || !(nextObject.getLevel() == 0)) {
+        continue;
+      }
+
+      if(!(nextObject.getKind() == SMGObjectKind.DLL || nextObject.getKind() == SMGObjectKind.REG)) {
+        continue;
+      }
+
       for (SMGEdgeHasValue hvePrev : nextObjectHves) {
 
         int pfo = hvePrev.getOffset();
@@ -177,6 +189,13 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
           continue;
         }
 
+        //TODO At the moment, we still demand that a value is found at prev or next.
+
+        if (smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject).filterAtOffset(pfo))
+            .isEmpty()) {
+          continue;
+        }
+
         SMGDoublyLinkedListCandidate candidate =
             new SMGDoublyLinkedListCandidate(pObject, hfo, pfo, nfo);
         candidates.get(pObject).put(Pair.of(nfo, pfo), candidate);
@@ -186,7 +205,6 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
       }
     }
   }
-
 
   private void continueTraversal(int pValue, SMGDoublyLinkedListCandidate pPrevCandidate, SMGState pSmgState) throws SMGInconsistentException {
 
@@ -215,11 +233,30 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
       /* candidate not doubly linked with next object,
        * last object in sequence.
        */
+
+      if (!smg.isObjectValid(nextObject) || !(nextObject.getLevel() == 0)) {
+        return;
+      }
+
+      if(!(nextObject.getKind() == SMGObjectKind.DLL || nextObject.getKind() == SMGObjectKind.REG)) {
+        return;
+      }
+
+      //TODO At the moment, we still demand that a value is found at prev or next.
+      if (smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(nfo))
+          .isEmpty()) {
+        return;
+      }
+
       candidate = new SMGDoublyLinkedListCandidate(nextObject, hfo, pfo, nfo);
       candidateLength.put(candidate, 0);
       candidateSeqJoinGood.put(candidate, true);
     } else {
       candidate = objectCandidates.get(Pair.of(nfo, pfo));
+    }
+
+    if (candidate.getHfo() != pPrevCandidate.getHfo()) {
+      return;
     }
 
     // Second, find out if the subsmgs are mergeable
@@ -277,7 +314,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
         if (!nonSharedValues1.contains(pte.getValue())) {
           return;
         }
-      } else if (startObject instanceof SMGDoublyLinkedList
+      } else if (startObject.getKind() == SMGObjectKind.DLL
           && pte.getTargetSpecifier() == SMGTargetSpecifier.LAST) {
         Set<SMGEdgeHasValue> prevs = smg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pte.getValue()));
 
@@ -292,7 +329,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
         if (!nonSharedValues2.contains(pte.getValue())) {
           return;
         }
-      } else if (nextObject instanceof SMGDoublyLinkedList
+      } else if (nextObject.getKind() == SMGObjectKind.DLL
           && pte.getTargetSpecifier() == SMGTargetSpecifier.FIRST) {
         Set<SMGEdgeHasValue> prevs =
             smg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pte.getValue()));
@@ -300,7 +337,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
         if (prevs.size() != 1) {
           return;
         }
-      } else if (nextObject instanceof SMGRegion) {
+      } else if (nextObject.getKind() == SMGObjectKind.REG) {
         if (candidateLength.get(candidate) != 0) {
           Set<SMGEdgeHasValue> hves =
               smg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pte.getValue()));

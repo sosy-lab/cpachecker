@@ -23,104 +23,36 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects.sll;
 
-import java.util.Set;
-
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
-import org.sosy_lab.cpachecker.cpa.smg.SMGState;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.SMGListCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
-public class SMGSingleLinkedListCandidate implements SMGAbstractionCandidate {
-  private final SMGObject start;
-  private final int offset;
-  private int length;
+public class SMGSingleLinkedListCandidate implements SMGListCandidate {
 
-  public SMGSingleLinkedListCandidate(SMGObject pStart, int pOffset, int pLength) {
-    start = pStart;
-    offset = pOffset;
-    length = pLength;
+  private final SMGObject startObject;
+  private final int nfo;
+  private final int hfo;
+
+  public SMGSingleLinkedListCandidate(SMGObject pStartObject, int pNfo, int pHfo) {
+    startObject = pStartObject;
+    nfo = pNfo;
+    hfo = pHfo;
   }
 
-  @Override
-  public CLangSMG execute(CLangSMG pSMG, SMGState pSMGState) {
-    CLangSMG newSMG = pSMG;
-    SMGSingleLinkedList sll = new SMGSingleLinkedList((SMGRegion)start, offset, length);
-    newSMG.addHeapObject(sll);
-
-    //TODO: Better filtering of the pointers!!!
-    for (SMGEdgePointsTo pt : newSMG.getPTEdges().values()) {
-      if (pt.getObject().equals(start)) {
-        SMGEdgePointsTo newPt = new SMGEdgePointsTo(pt.getValue(), sll, pt.getOffset());
-        newSMG.removePointsToEdge(pt.getValue());
-        newSMG.addPointsToEdge(newPt);
-      }
-    }
-
-    SMGObject node = start;
-    Integer value = null;
-    SMGEdgeHasValue edgeToFollow = null;
-    for (int i = 0; i < length; i++) {
-      if (value != null) {
-        newSMG.removeValue(value);
-        newSMG.removePointsToEdge(value);
-      }
-
-      Set<SMGEdgeHasValue> outboundEdges = newSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(node).filterAtOffset(offset));
-      edgeToFollow = null;
-      for (SMGEdgeHasValue outbound : outboundEdges) {
-        CType fieldType = outbound.getType();
-        if (fieldType instanceof CPointerType) {
-          edgeToFollow = outbound;
-          break;
-        }
-      }
-      if (edgeToFollow == null) {
-        edgeToFollow = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, offset, node, newSMG.getNullValue());
-      }
-
-      value = edgeToFollow.getValue();
-      newSMG.removeHeapObjectAndEdges(node);
-      node = newSMG.getPointer(value).getObject();
-    }
-    SMGEdgeHasValue newOutbound = new SMGEdgeHasValue(edgeToFollow.getType(), offset, sll, value);
-    newSMG.addHasValueEdge(newOutbound);
-
-    return newSMG;
+  public SMGObject getStartObject() {
+    return startObject;
   }
 
-  public int getOffset() {
-    return offset;
+  public int getHfo() {
+    return hfo;
   }
 
-  public int getLength() {
-    return length;
-  }
-
-  public void addLength(int pLength) {
-    length += pLength;
-  }
-
-  public boolean isCompatibleWith(SMGSingleLinkedListCandidate pOther) {
-    return (offset == pOther.offset) && (start.getSize() == pOther.start.getSize());
-  }
-
-  public SMGObject getStart() {
-    return start;
+  public int getNfo() {
+    return nfo;
   }
 
   @Override
   public String toString() {
-    return "SLL CANDIDATE(start=" + start + ", offset=" + offset + ", length=" + length + ")";
-  }
-
-  @Override
-  public int getScore() {
-    return length;
+    return "SMGSingleLinkedListCandidate [startObject=" + startObject + ", nfo=" + nfo + ", hfo="
+        + hfo + "]";
   }
 }

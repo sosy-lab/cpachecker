@@ -26,13 +26,9 @@ package org.sosy_lab.cpachecker.cpa.smg.objects.dls;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGAbstractObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectKind;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectVisitor;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
-
-/**
- *
- */
 public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject {
 
   private final int minimumLength;
@@ -44,7 +40,7 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
 
   public SMGDoublyLinkedList(int pSize, int pHfo, int pNfo, int pPfo,
       int pMinLength, int level) {
-    super(pSize, "dls", level);
+    super(pSize, "dls", level, SMGObjectKind.DLL);
 
     hfo = pHfo;
     nfo = pNfo;
@@ -53,7 +49,7 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
   }
 
   public SMGDoublyLinkedList(SMGDoublyLinkedList other) {
-    super(other.getSize(), other.getLabel(), other.getLevel());
+    super(other.getSize(), other.getLabel(), other.getLevel(), SMGObjectKind.DLL);
 
     hfo = other.hfo;
     nfo = other.nfo;
@@ -66,7 +62,7 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
    */
   @Override
   public boolean matchGenericShape(SMGAbstractObject pOther) {
-    return matchSpecificShape(pOther);
+    return pOther.getKind() == SMGObjectKind.DLL;
   }
 
   /* (non-Javadoc)
@@ -94,6 +90,7 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
     if (pfo != other.pfo) {
       return false;
     }
+
     return true;
   }
 
@@ -108,14 +105,13 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
 
   @Override
   public boolean isMoreGeneral(SMGObject pOther) {
-    super.isMoreGeneral(pOther);
 
-    if (pOther instanceof SMGDoublyLinkedList) {
+    if (pOther.getKind() == SMGObjectKind.DLL && matchSpecificShape((SMGDoublyLinkedList) pOther)) {
       return minimumLength < ((SMGDoublyLinkedList) pOther).getMinimumLength();
     }
 
-    if (pOther instanceof SMGRegion) {
-      return true;
+    if (pOther.getKind() == SMGObjectKind.REG) {
+      return minimumLength < 2;
     }
 
     return false;
@@ -138,7 +134,7 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
 
     int maxLevel = Math.max(getLevel(), pOther.getLevel());
 
-    if(pOther instanceof SMGDoublyLinkedList) {
+    if(pOther.getKind() == SMGObjectKind.DLL) {
 
       SMGDoublyLinkedList otherLinkedList = (SMGDoublyLinkedList) pOther;
       assert getSize() == otherLinkedList.getSize();
@@ -147,7 +143,6 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
       assert getPfo() == otherLinkedList.getPfo();
 
       int minlength = Math.min(getMinimumLength(), otherLinkedList.getMinimumLength());
-
 
       if (pIncreaseLevel) {
         return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), minlength,
@@ -162,22 +157,24 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
         }
       }
 
-    } else if(pOther instanceof SMGRegion) {
+    } else if(pOther.getKind() == SMGObjectKind.REG) {
       assert getSize() == pOther.getSize();
 
+      int minlength = Math.min(getMinimumLength(), 1);
+
       if(pIncreaseLevel) {
-        return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), 1, maxLevel + 1);
+        return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), minlength, maxLevel + 1);
       } else {
-        if (minimumLength == 1 && maxLevel == getLevel()) {
+        if (minlength == getMinimumLength() && maxLevel == getLevel()) {
           return this;
         } else {
-          return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), 1,
+          return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), minlength,
               maxLevel);
         }
       }
 
     } else {
-      throw new AssertionError();
+      throw new IllegalArgumentException("join called on unjoinable Objects");
     }
   }
 

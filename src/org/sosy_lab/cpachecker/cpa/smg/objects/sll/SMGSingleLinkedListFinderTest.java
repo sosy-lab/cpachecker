@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects.sll;
 
-import java.util.Set;
+import com.google.common.collect.Iterables;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -33,35 +33,50 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
-import com.google.common.collect.Iterables;
+import java.util.Collection;
+import java.util.Set;
 
 
 public class SMGSingleLinkedListFinderTest {
   @Test
-  public void simpleListTest() {
+  public void simpleListTest() throws SMGInconsistentException {
     CLangSMG smg = new CLangSMG(MachineModel.LINUX64);
 
     SMGEdgeHasValue root = TestHelpers.createGlobalList(smg, 5, 16, 8, "pointer");
 
-    SMGSingleLinkedListFinder finder = new SMGSingleLinkedListFinder(1);
+    SMGSingleLinkedListFinder finder = new SMGSingleLinkedListFinder();
     Set<SMGAbstractionCandidate> candidates = finder.traverse(smg, null);
-    Assert.assertEquals(1, candidates.size());
-    SMGAbstractionCandidate candidate = Iterables.getOnlyElement(candidates);
-    Assert.assertTrue(candidate instanceof SMGSingleLinkedListCandidate);
-    SMGSingleLinkedListCandidate sllCandidate = (SMGSingleLinkedListCandidate)candidate;
-    Assert.assertEquals(5, sllCandidate.getLength());
-    Assert.assertEquals(8, sllCandidate.getOffset());
+    Assert.assertTrue(!candidates.isEmpty());
+    SMGAbstractionCandidate candidate = getBestCandidate(candidates);
+    Assert.assertTrue(candidate instanceof SMGSingleLinkedListCandidateSequence);
+    SMGSingleLinkedListCandidateSequence sllCandidate = (SMGSingleLinkedListCandidateSequence)candidate;
+    Assert.assertEquals(4, sllCandidate.getLength());
+    Assert.assertEquals(8, sllCandidate.getCandidate().getNfo());
     SMGRegion expectedStart = (SMGRegion) smg.getPointer(root.getValue()).getObject();
-    Assert.assertSame(expectedStart, sllCandidate.getStart());
+    Assert.assertSame(expectedStart, sllCandidate.getCandidate().getStartObject());
+  }
+
+  private SMGAbstractionCandidate getBestCandidate(Collection<SMGAbstractionCandidate> candidates) {
+
+    SMGAbstractionCandidate bestCandidate = candidates.iterator().next();
+
+    for (SMGAbstractionCandidate candidate : candidates) {
+      if (candidate.getScore() > bestCandidate.getScore()) {
+        bestCandidate = candidate;
+      }
+    }
+
+    return bestCandidate;
   }
 
   @Test
-  public void nullifiedPointerInferenceTest() {
+  public void nullifiedPointerInferenceTest() throws SMGInconsistentException {
     CLangSMG smg = new CLangSMG(MachineModel.LINUX64);
 
     TestHelpers.createGlobalList(smg, 2, 16, 8, "pointer");
@@ -72,7 +87,7 @@ public class SMGSingleLinkedListFinderTest {
   }
 
   @Test
-  public void listWithInboundPointersTest() {
+  public void listWithInboundPointersTest() throws SMGInconsistentException {
     CLangSMG smg = new CLangSMG(MachineModel.LINUX64);
     Integer tail = TestHelpers.createList(smg, 4, 16, 8, "tail");
 
@@ -120,24 +135,12 @@ public class SMGSingleLinkedListFinderTest {
     smg.addHasValueEdge(tailConnection);
     smg.addHasValueEdge(headConnection);
 
-    SMGSingleLinkedListFinder finder = new SMGSingleLinkedListFinder(1);
+    SMGSingleLinkedListFinder finder = new SMGSingleLinkedListFinder();
     Set<SMGAbstractionCandidate> candidates = finder.traverse(smg, null);
-    Assert.assertEquals(2, candidates.size());
+    Assert.assertTrue(!candidates.isEmpty());
 
-    boolean sawHead = false;
-    boolean sawTail = false;
     for (SMGAbstractionCandidate candidate : candidates) {
-      SMGSingleLinkedListCandidate sllCandidate = (SMGSingleLinkedListCandidate)candidate;
-      if (sllCandidate.getLength() == 3) {
-        Assert.assertSame(smg.getPointer(head.getValue()).getObject(), sllCandidate.getStart());
-        Assert.assertFalse(sawHead);
-        sawHead = true;
-      } else if (sllCandidate.getLength() == 4) {
-        Assert.assertSame(smg.getPointer(tail).getObject(), sllCandidate.getStart());
-        Assert.assertFalse(sawTail);
-      } else {
-        Assert.fail("We should not see any candidates with length other than 3 or 4");
-      }
+      Assert.assertTrue(((SMGSingleLinkedListCandidateSequence)candidate).getLength() + 1 == 3 || ((SMGSingleLinkedListCandidateSequence)candidate).getLength() + 1 == 4 );
     }
   }
 }

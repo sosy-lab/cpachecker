@@ -573,9 +573,21 @@ public class SMG {
   }
 
   public void mergeValues(int pV1, int pV2) {
+
+    if (!values.contains(pV2)) {
+      /*Might merge predicates?*/
+      addValue(pV2);
+    }
+
+    /* Value might not have been added yet */
+    if (!values.contains(pV1)) {
+      addValue(pV1);
+    }
+
     if (pV1 == pV2) {
       return;
     }
+
     if (pV2 == nullAddress) {
       int tmp = pV1;
       pV1 = pV2;

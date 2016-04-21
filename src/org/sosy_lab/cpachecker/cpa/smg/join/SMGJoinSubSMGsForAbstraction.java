@@ -30,14 +30,17 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.smg.SMGListCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectKind;
 import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedListCandidate;
+import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedList;
+import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedListCandidate;
 
 import java.util.HashSet;
 import java.util.Map.Entry;
@@ -46,54 +49,97 @@ import java.util.Set;
 
 final public class SMGJoinSubSMGsForAbstraction {
 
-  private SMGJoinStatus status = null;
-  private CLangSMG resultSMG = null;
-  private SMGObject newAbstractObject = null;
-  private Set<Integer> nonSharedValuesFromSMG1 = null;
-  private Set<Integer> nonSharedValuesFromSMG2 = null;
-  private Set<SMGObject> nonSharedObjectsFromSMG1 = null;
-  private Set<SMGObject> nonSharedObjectsFromSMG2 = null;
-  private boolean defined = false;
+  private final SMGJoinStatus status;
+  private final CLangSMG resultSMG;
+  private final SMGObject newAbstractObject;
+  private final Set<Integer> nonSharedValuesFromSMG1;
+  private final Set<Integer> nonSharedValuesFromSMG2;
+  private final Set<SMGObject> nonSharedObjectsFromSMG1;
+  private final Set<SMGObject> nonSharedObjectsFromSMG2;
+  private final boolean defined;
 
-  public SMGJoinSubSMGsForAbstraction(CLangSMG pInputSMG, SMGObject obj1, SMGObject obj2, SMGDoublyLinkedListCandidate dlsc, SMGState pStateOfSmg) throws SMGInconsistentException {
+  public SMGJoinSubSMGsForAbstraction(CLangSMG pInputSMG, SMGObject obj1, SMGObject obj2, SMGListCandidate pListCandidate, SMGState pStateOfSmg) throws SMGInconsistentException {
 
     CLangSMG smg = pInputSMG;
     Set<SMGObject> origObjects = ImmutableSet.copyOf(smg.getObjects());
     Set<Integer> origValues = ImmutableSet.copyOf(smg.getValues());
 
-    SMGEdgeHasValue prevObj1hve = Iterables.getOnlyElement(smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj1).filterAtOffset(dlsc.getPfo())));
-    SMGEdgeHasValue nextObj1hve = Iterables.getOnlyElement(smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj1).filterAtOffset(dlsc.getNfo())));
-    SMGEdgeHasValue prevObj2hve = Iterables.getOnlyElement(smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2).filterAtOffset(dlsc.getPfo())));
-    SMGEdgeHasValue nextObj2hve = Iterables.getOnlyElement(smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2).filterAtOffset(dlsc.getNfo())));
+    int nfo;
+    int pfo;
+    int hfo;
 
-    smg.removeHasValueEdge(prevObj1hve);
-    smg.removeHasValueEdge(nextObj1hve);
-    smg.removeHasValueEdge(prevObj2hve);
-    smg.removeHasValueEdge(nextObj2hve);
+    SMGEdgeHasValue prevObj1hve = null;
+    SMGEdgeHasValue nextObj1hve = null;
+    SMGEdgeHasValue prevObj2hve = null;
+    SMGEdgeHasValue nextObj2hve = null;
 
-    int lengthObj1 = obj1 instanceof SMGDoublyLinkedList ? ((SMGDoublyLinkedList)obj1).getMinimumLength() : 1;
-    int lengthObj2 = obj2 instanceof SMGDoublyLinkedList ? ((SMGDoublyLinkedList)obj2).getMinimumLength() : 1;
+    if (pListCandidate instanceof SMGDoublyLinkedListCandidate) {
+      SMGDoublyLinkedListCandidate dllc = (SMGDoublyLinkedListCandidate) pListCandidate;
+      nfo = dllc.getNfo();
+      pfo = dllc.getPfo();
+      hfo = dllc.getHfo();
 
-    int length = lengthObj1 + lengthObj2;
-    SMGDoublyLinkedList dls = new SMGDoublyLinkedList(obj1.getSize(), dlsc.getHfo(), dlsc.getNfo(), dlsc.getPfo(), length, obj1.getLevel());
-    smg.addHeapObject(dls);
+      int lengthObj1 = obj1.getKind() == SMGObjectKind.DLL ? ((SMGDoublyLinkedList)obj1).getMinimumLength() : 1;
+      int lengthObj2 = obj2.getKind() == SMGObjectKind.DLL ? ((SMGDoublyLinkedList)obj2).getMinimumLength() : 1;
+
+      int length = lengthObj1 + lengthObj2;
+      SMGObject dll = new SMGDoublyLinkedList(obj1.getSize(), hfo, nfo, pfo, length, obj1.getLevel());
+      smg.addHeapObject(dll);
+      newAbstractObject = dll;
+
+      prevObj1hve = Iterables.getOnlyElement(smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj1).filterAtOffset(pfo)));
+      nextObj1hve = Iterables.getOnlyElement(smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj1).filterAtOffset(nfo)));
+      prevObj2hve = Iterables.getOnlyElement(smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2).filterAtOffset(pfo)));
+      nextObj2hve = Iterables.getOnlyElement(smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2).filterAtOffset(nfo)));
+
+      smg.removeHasValueEdge(prevObj1hve);
+      smg.removeHasValueEdge(nextObj1hve);
+      smg.removeHasValueEdge(prevObj2hve);
+      smg.removeHasValueEdge(nextObj2hve);
+
+    } else {
+      SMGSingleLinkedListCandidate sllc = (SMGSingleLinkedListCandidate) pListCandidate;
+      hfo = sllc.getHfo();
+      nfo = sllc.getNfo();
+
+      int lengthObj1 = obj1.getKind() == SMGObjectKind.SLL ? ((SMGSingleLinkedList)obj1).getMinimumLength() : 1;
+      int lengthObj2 = obj2.getKind() == SMGObjectKind.SLL ? ((SMGSingleLinkedList)obj2).getMinimumLength() : 1;
+
+      int length = lengthObj1 + lengthObj2;
+      SMGObject sll = new SMGSingleLinkedList(obj1.getSize(), hfo, nfo, length, obj1.getLevel());
+      smg.addHeapObject(sll);
+      newAbstractObject = sll;
+
+      nextObj1hve = Iterables.getOnlyElement(smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj1).filterAtOffset(nfo)));
+      nextObj2hve = Iterables.getOnlyElement(smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2).filterAtOffset(nfo)));
+
+      smg.removeHasValueEdge(nextObj1hve);
+      smg.removeHasValueEdge(nextObj2hve);
+    }
 
     int lDiff = 0;
 
     SMGNodeMapping mapping1 = new SMGNodeMapping();
     SMGNodeMapping mapping2 = new SMGNodeMapping();
 
-    mapping1.map(obj1, dls);
-    mapping2.map(obj2, dls);
+    mapping1.map(obj1, newAbstractObject);
+    mapping2.map(obj2, newAbstractObject);
 
     boolean increaseLevel =
-        obj1 instanceof SMGRegion && obj2 instanceof SMGRegion;
+        obj1.getKind() == SMGObjectKind.REG && obj2.getKind() == SMGObjectKind.REG;
 
     CLangSMG inputSMG = new CLangSMG(smg);
 
-    SMGJoinSubSMGs jss = new SMGJoinSubSMGs(SMGJoinStatus.EQUAL, inputSMG, inputSMG, smg, mapping1, mapping2, obj1, obj2, dls, lDiff, increaseLevel, true, pStateOfSmg, pStateOfSmg);
+    SMGJoinSubSMGs jss = new SMGJoinSubSMGs(SMGJoinStatus.EQUAL, inputSMG, inputSMG, smg, mapping1, mapping2, obj1, obj2, newAbstractObject, lDiff, increaseLevel, true, pStateOfSmg, pStateOfSmg);
 
     if(!jss.isDefined()) {
+      status = SMGJoinStatus.INCOMPLETE;
+      defined = false;
+      resultSMG = null;
+      nonSharedObjectsFromSMG1 = null;
+      nonSharedObjectsFromSMG2 = null;
+      nonSharedValuesFromSMG1 = null;
+      nonSharedValuesFromSMG2 = null;
       return;
     }
 
@@ -101,27 +147,29 @@ final public class SMGJoinSubSMGsForAbstraction {
     mapping1 = jss.getMapping1();
     mapping2 = jss.getMapping2();
 
-    //TODO Contains dls0Cycle?
+    //TODO Contains abstract 0Cycle?
 
     /* increase level hold already calculated value for
      * obj1 instanceof SMGRegion && obj2 instanceof SMGRegion
      */
     if (increaseLevel) {
-      for (SMGEdgePointsTo pte : SMGUtils.getPointerToThisObject(dls, smg)) {
+      for (SMGEdgePointsTo pte : SMGUtils.getPointerToThisObject(newAbstractObject, smg)) {
         smg.removePointsToEdge(pte.getValue());
         smg.addPointsToEdge(new SMGEdgePointsTo(pte.getValue(), pte.getObject(), pte.getOffset(), SMGTargetSpecifier.ALL));
       }
     }
 
-    smg.addHasValueEdge(prevObj1hve);
+    if (newAbstractObject.getKind() == SMGObjectKind.DLL) {
+      smg.addHasValueEdge(prevObj1hve);
+      smg.addHasValueEdge(prevObj2hve);
+    }
+
     smg.addHasValueEdge(nextObj1hve);
-    smg.addHasValueEdge(prevObj2hve);
     smg.addHasValueEdge(nextObj2hve);
 
     defined = true;
     status = s;
     resultSMG = smg;
-    newAbstractObject = dls;
 
     nonSharedObjectsFromSMG1 = new HashSet<>();
     nonSharedObjectsFromSMG2 = new HashSet<>();

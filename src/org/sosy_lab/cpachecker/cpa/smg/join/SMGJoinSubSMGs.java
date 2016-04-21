@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGGenericAbstractionCandidate;
+import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedList;
 
 import java.util.HashMap;
 import java.util.List;
@@ -95,56 +96,63 @@ final class SMGJoinSubSMGs {
     Map<Integer, List<SMGGenericAbstractionCandidate>> valueAbstractionCandidates = new HashMap<>();
     boolean allValuesDefined = true;
 
-    boolean object1IsDLS = pObj1 instanceof SMGDoublyLinkedList;
-    boolean object2IsDLS = pObj2 instanceof SMGDoublyLinkedList;
+    boolean object1IsAbstract = pObj1.isAbstract();
+    boolean object2IsAbstract = pObj2.isAbstract();
 
     int nfo1 = -1;
     int pfo1 = -1;
     int nfo2 = -1;
     int pfo2 = -1;
 
-    if(object1IsDLS) {
-      SMGDoublyLinkedList dls = (SMGDoublyLinkedList) pObj1;
-      nfo1 = dls.getNfo();
-      pfo1 = dls.getPfo();
+    if (object1IsAbstract) {
+      switch (pObj1.getKind()) {
+        case SLL:
+          nfo1 = ((SMGSingleLinkedList)pObj1).getNfo();
+          break;
+        case DLL:
+          nfo1 = ((SMGDoublyLinkedList)pObj1).getNfo();
+          pfo1 = ((SMGDoublyLinkedList)pObj1).getPfo();
+          break;
+        default:
+          throw new AssertionError();
+      }
     }
 
-    if(object2IsDLS) {
-      SMGDoublyLinkedList dls = (SMGDoublyLinkedList) pObj2;
-      nfo2 = dls.getNfo();
-      pfo2 = dls.getPfo();
+    if (object2IsAbstract) {
+      switch (pObj2.getKind()) {
+        case SLL:
+          nfo2 = ((SMGSingleLinkedList)pObj2).getNfo();
+          break;
+        case DLL:
+          nfo2 = ((SMGDoublyLinkedList)pObj2).getNfo();
+          pfo2 = ((SMGDoublyLinkedList)pObj2).getPfo();
+          break;
+        default:
+          throw new AssertionError();
+      }
     }
 
     for (SMGEdgeHasValue hvIn1 : edgesOnObject1) {
       filterOnSMG2.filterAtOffset(hvIn1.getOffset());
 
+      int value1Level;
+      int value2Level;
+
+      value1Level = pObj1.getLevel();
+      value2Level = pObj2.getLevel();
+
       int lDiff = pLDiff;
 
       SMGEdgeHasValue hvIn2 = Iterables.getOnlyElement(inputSMG2.getHVEdges(filterOnSMG2));
 
-      if (object1IsDLS && hvIn1.getOffset() != nfo1 && hvIn1.getOffset() != pfo1) {
+      if (object1IsAbstract && hvIn1.getOffset() != nfo1 && hvIn1.getOffset() != pfo1) {
         lDiff = lDiff + 1;
+        value1Level = value1Level + 1;
       }
 
-      if (object2IsDLS && hvIn1.getOffset() != nfo2 && hvIn1.getOffset() != pfo2) {
+      if (object2IsAbstract && hvIn1.getOffset() != nfo2 && hvIn1.getOffset() != pfo2) {
         lDiff = lDiff - 1;
-      }
-
-      int value1Level;
-      int value2Level;
-
-      if (pObj1 instanceof SMGDoublyLinkedList && hvIn1.getOffset() != pfo1
-          && hvIn1.getOffset() != nfo1) {
-        value1Level = pObj1.getLevel() + 1;
-      } else {
-        value1Level = pObj1.getLevel();
-      }
-
-      if (pObj2 instanceof SMGDoublyLinkedList && hvIn2.getOffset() != pfo2
-          && hvIn2.getOffset() != nfo2) {
-        value2Level = pObj2.getLevel() + 1;
-      } else {
-        value2Level = pObj2.getLevel();
+        value2Level = value2Level + 1;
       }
 
       SMGJoinValues joinValues = new SMGJoinValues(status, inputSMG1, inputSMG2, destSMG,

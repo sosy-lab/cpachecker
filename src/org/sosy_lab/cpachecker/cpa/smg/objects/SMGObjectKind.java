@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2016  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,39 +24,24 @@
 package org.sosy_lab.cpachecker.cpa.smg.objects;
 
 
-public class DummyAbstraction extends SMGObject implements SMGAbstractObject {
+public enum SMGObjectKind {
 
-  public DummyAbstraction(SMGObject pPrototype) {
-    super(pPrototype);
+  REG("Region"),
+  DLL("DoublyLinkedList"),
+  SLL("SingleyLinkedList"),
+  NULL("NullObject"),
+  GENERIC("GenericAbstraction");
+
+  private final String name;
+
+
+  private SMGObjectKind(String pName) {
+    name = pName;
   }
 
   @Override
-  public boolean matchGenericShape(SMGAbstractObject pOther) {
-    return pOther instanceof DummyAbstraction;
+  public String toString() {
+    return name;
   }
 
-  @Override
-  public boolean matchSpecificShape(SMGAbstractObject pOther) {
-    return true;
-  }
-
-  @Override
-  public boolean isAbstract() {
-    return true;
-  }
-
-  @Override
-  public SMGObject copy() {
-    return new DummyAbstraction(this);
-  }
-
-  @Override
-  public SMGObject copy(int pNewLevel) {
-    return copy();
-  }
-
-  @Override
-  public boolean isMoreGeneral(SMGObject pOther) {
-    return false;
-  }
 }

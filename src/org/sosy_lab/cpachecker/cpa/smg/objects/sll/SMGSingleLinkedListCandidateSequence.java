@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.smg.objects.dls;
+package org.sosy_lab.cpachecker.cpa.smg.objects.sll;
 
 import com.google.common.collect.Iterables;
 
@@ -40,31 +40,21 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import java.util.HashMap;
 import java.util.Map;
 
-public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandidate {
+public class SMGSingleLinkedListCandidateSequence implements SMGAbstractionCandidate {
 
-  private final SMGDoublyLinkedListCandidate candidate;
+  private final SMGSingleLinkedListCandidate candidate;
   private final int length;
 
-  public SMGDoublyLinkedListCandidateSequence(SMGDoublyLinkedListCandidate pCandidate,
+  public SMGSingleLinkedListCandidateSequence(SMGSingleLinkedListCandidate pCandidate,
       int pLength) {
     candidate = pCandidate;
     length = pLength;
   }
 
-  public SMGDoublyLinkedListCandidate getCandidate() {
-    return candidate;
-  }
-
-  public int getLength() {
-    return length;
-  }
-
   @Override
   public CLangSMG execute(CLangSMG pSMG, SMGState pSmgState) throws SMGInconsistentException {
-
-    SMGObject prevObject = candidate.getObject();
+    SMGObject prevObject = candidate.getStartObject();
     int nfo = candidate.getNfo();
-    int pfo = candidate.getPfo();
 
     pSmgState.pruneUnreachable();
 
@@ -96,17 +86,6 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
           SMGEdgePointsTo newPte = new SMGEdgePointsTo(pte.getValue(), newAbsObj, pte.getOffset(),
               SMGTargetSpecifier.ALL);
           pSMG.addPointsToEdge(newPte);
-        } else {
-
-          if (reached.containsKey(pte.getOffset())) {
-            int val = reached.get(pte.getOffset());
-            pSMG.mergeValues(val, pte.getValue());
-          } else {
-            SMGEdgePointsTo newPte = new SMGEdgePointsTo(pte.getValue(), newAbsObj, pte.getOffset(),
-                SMGTargetSpecifier.LAST);
-            pSMG.addPointsToEdge(newPte);
-            reached.put(newPte.getOffset(), newPte.getValue());
-          }
         }
       }
 
@@ -133,7 +112,6 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
         }
       }
 
-      SMGEdgeHasValue prevObj1hve = Iterables.getOnlyElement(pSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(prevObject).filterAtOffset(pfo)));
       SMGEdgeHasValue nextObj2hve = Iterables.getOnlyElement(pSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(nfo)));
 
       for (SMGObject obj : join.getNonSharedObjectsFromSMG1()) {
@@ -149,9 +127,7 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
       prevObject = newAbsObj;
 
       SMGEdgeHasValue nfoHve = new SMGEdgeHasValue(nextObj2hve.getType(), nextObj2hve.getOffset(), newAbsObj, nextObj2hve.getValue());
-      SMGEdgeHasValue pfoHve = new SMGEdgeHasValue(prevObj1hve.getType(), prevObj1hve.getOffset(), newAbsObj, prevObj1hve.getValue());
       pSMG.addHasValueEdge(nfoHve);
-      pSMG.addHasValueEdge(pfoHve);
 
       pSmgState.pruneUnreachable();
     }
@@ -161,12 +137,20 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
 
   @Override
   public String toString() {
-    return "SMGDoublyLinkedListCandidateSequence [candidate=" + candidate + ", length=" + length
+    return "SMGSingleLinkedListCandidateSequence [candidate=" + candidate + ", length=" + length
         + "]";
   }
 
   @Override
   public int getScore() {
-    return getLength();
+    return length;
+  }
+
+  public SMGSingleLinkedListCandidate getCandidate() {
+    return candidate;
+  }
+
+  public int getLength() {
+    return length;
   }
 }

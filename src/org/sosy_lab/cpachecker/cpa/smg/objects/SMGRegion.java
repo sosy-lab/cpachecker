@@ -31,7 +31,7 @@ import java.util.Map;
 public final class SMGRegion extends SMGObject implements SMGObjectTemplate {
 
   public SMGRegion(int pSize, String pLabel) {
-    super(pSize, pLabel);
+    super(pSize, pLabel, SMGObjectKind.REG);
   }
 
   public SMGRegion(SMGRegion pOther) {
@@ -39,7 +39,7 @@ public final class SMGRegion extends SMGObject implements SMGObjectTemplate {
   }
 
   public SMGRegion(int pSize, String pLabel, int pLevel) {
-    super(pSize, pLabel, pLevel);
+    super(pSize, pLabel, pLevel, SMGObjectKind.REG);
   }
 
   @Override
@@ -116,5 +116,11 @@ public final class SMGRegion extends SMGObject implements SMGObjectTemplate {
   @Override
   public SMGObject copy(int pNewLevel) {
     return new SMGRegion(getSize(), "ID" + SMGValueFactory.getNewValue() + " Copy of : " + getLabel(), pNewLevel);
+  }
+
+  @Override
+  public boolean isMoreGeneral(SMGObject pOther) {
+    /*There exists no object that is less general than a region.*/
+    return false;
   }
 }

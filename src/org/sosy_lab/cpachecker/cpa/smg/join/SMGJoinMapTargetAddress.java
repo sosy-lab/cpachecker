@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
 
 import java.util.Collection;
 
@@ -55,7 +54,7 @@ final class SMGJoinMapTargetAddress {
 
     SMGTargetSpecifier tg;
 
-    if(pt.getObject() instanceof SMGDoublyLinkedList || pt2 == null) {
+    if(pt.getObject().isAbstract() || pt2 == null) {
       tg = pt.getTargetSpecifier();
     } else {
       tg = pt2.getTargetSpecifier();
