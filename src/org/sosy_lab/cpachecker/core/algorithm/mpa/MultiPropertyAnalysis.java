@@ -44,7 +44,6 @@ import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.PartitionBudgeting;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.InitOperator;
@@ -81,14 +80,10 @@ import org.sosy_lab.cpachecker.util.resources.ProcessCpuTimeLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
-import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
-import org.sosy_lab.cpachecker.util.statistics.StatCpuTime;
-import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.NoTimeMeasurement;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.StatCpuTimer;
 import org.sosy_lab.cpachecker.util.statistics.Stats;
 import org.sosy_lab.cpachecker.util.statistics.Stats.Contexts;
 
-import java.io.PrintStream;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -137,81 +132,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
       min=-1)
   private TimeSpan cpuTimeStep3 = TimeSpan.ofNanos(-1); // TODO: implement as Budgeting operator
 
-  private class MPAStatistics extends AbstractStatistics {
-    int numberOfRestarts = 0;
-    int numberOfPartitionExhaustions = 0;
-    final StatCpuTime pureAnalysisTime = new StatCpuTime();
-    final Set<Property> consideredProperties = Sets.newLinkedHashSet();
-    final List<Integer> reachedStates = Lists.newArrayList();
-    final List<Integer> reachedStatesWithFixpoint = Lists.newArrayList();
-    final List<Integer> reachedStatesForRelPropsWithFixpoint = Lists.newArrayList();
-
-    @Override
-    public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
-      super.printStatistics(pOut, pResult, pReached);
-
-      put(pOut, 0, "Number of restarts", numberOfRestarts);
-      put(pOut, 0, "Number of exhaustions", numberOfPartitionExhaustions);
-      put(pOut, 0, "Number of analysis runs", pureAnalysisTime.getIntervals());
-      pOut.println("");
-
-      try {
-        put(pOut, 0, "Min. analysis CPU time", pureAnalysisTime.getMinCpuTimeSum().formatAs(TimeUnit.SECONDS));
-        put(pOut, 0, "Max. analysis CPU time", pureAnalysisTime.getMaxCpuTimeSum().formatAs(TimeUnit.SECONDS));
-        put(pOut, 0, "Avg. analysis CPU time", pureAnalysisTime.getAvgCpuTimeSum().formatAs(TimeUnit.SECONDS));
-        put(pOut, 0, "(Total) Single analysis CPU time", pureAnalysisTime.getCpuTimeSum().formatAs(TimeUnit.SECONDS));
-        pOut.println("");
-      } catch (NoTimeMeasurement e) {
-      }
-
-      // Statistics on the reached-sets
-      final String fpOnly = "(fix-points only)";
-      final String fpRelPropsOnly = "(fix-points with relevant props. only)";
-      final String fpAlso = "(exhausted only)";
-
-      put(pOut, 0, "Statistics on the set 'reached' " + fpOnly);
-      printStatisticsOnReachedStates(pOut, 1, fpOnly, reachedStatesWithFixpoint);
-      pOut.println("");
-
-      put(pOut, 0, "Statistics on the set 'reached' " + fpAlso);
-      printStatisticsOnReachedStates(pOut, 1, fpAlso, reachedStates);
-      pOut.println("");
-
-      put(pOut, 0, "Statistics on the set 'reached' " + fpRelPropsOnly);
-      printStatisticsOnReachedStates(pOut, 1, fpRelPropsOnly, reachedStatesForRelPropsWithFixpoint);
-      pOut.println("");
-
-      PropertyStats.INSTANCE.printStatistics(pOut, pResult, pReached);
-    }
-
-    private void printStatisticsOnReachedStates(PrintStream pOut, int pLevel, String pStatPostfix,
-        List<Integer> pReachedStates) {
-
-        int maxStates = Integer.MIN_VALUE;
-        int minStates = Integer.MAX_VALUE;
-        int totalStates = 0;
-        int setCount = 0;
-
-        for (Integer numStates: pReachedStates) {
-          setCount = setCount + 1;
-          totalStates = totalStates + numStates;
-          maxStates = Math.max(maxStates, numStates);
-          minStates = Math.min(minStates, numStates);
-        }
-
-        if (setCount > 0) {
-          int setRange = maxStates - minStates;
-          int avgStates = totalStates / setCount;
-          put(pOut, pLevel, "Number of sets" + " " + pStatPostfix, setCount);
-          put(pOut, pLevel, "Max. states reached" + " " + pStatPostfix, maxStates);
-          put(pOut, pLevel, "Min. states reached" + " " + pStatPostfix, minStates);
-          put(pOut, pLevel, "Range of states reached" + " " + pStatPostfix, setRange);
-          put(pOut, pLevel, "Avg. states reached" + " " + pStatPostfix, avgStates);
-        }
-    }
-  }
-
-  private final MPAStatistics stats = new MPAStatistics();
+  private final DecompositionStatistics stats = new DecompositionStatistics();
 
   private Optional<PropertySummary> lastRunPropertySummary = Optional.absent();
   private ResourceLimitChecker reschecker = null;

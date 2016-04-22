@@ -23,13 +23,12 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.mpa;
 
-import java.io.PrintStream;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
+import com.google.common.base.Optional;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -44,12 +43,13 @@ import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.NoTimeMeasurement;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.StatCpuTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
+import java.io.PrintStream;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 public enum PropertyStats implements Statistics {
   INSTANCE;
@@ -175,9 +175,6 @@ public enum PropertyStats implements Statistics {
 
   /**
    * Percent of cases where there was no coverage for the automaton state.
-   *
-   * @param pProperty
-   * @return
    */
   public synchronized double getExplosionPercent(Property pProperty) {
     final StatCounter covCount = coverageCount.get(pProperty);
