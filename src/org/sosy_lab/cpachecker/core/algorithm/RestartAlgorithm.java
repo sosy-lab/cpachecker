@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 import java.io.IOException;
@@ -399,12 +400,14 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     singleLimits.start();
 
     CoreComponentsFactory coreComponents =
-        new CoreComponentsFactory(singleConfig, logger, shutdownNotifier);
+        new CoreComponentsFactory(singleConfig, logger, singleShutdownManager.getNotifier());
     cpa = coreComponents.createCPA(cfa, null, SpecAutomatonCompositionType.TARGET_SPEC);
 
     if (cpa instanceof StatisticsProvider) {
       ((StatisticsProvider) cpa).collectStatistics(stats.getSubStatistics());
     }
+
+    GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
     algorithm = coreComponents.createAlgorithm(cpa, filename, cfa, null);
     reached =
