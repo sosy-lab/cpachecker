@@ -40,12 +40,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.MapDifference.ValueDifference;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
-import com.google.common.collect.SortedMapDifference;
 import com.google.common.collect.TreeMultimap;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -96,6 +94,8 @@ import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.cpa.arg.graphExport.Edge;
+import org.sosy_lab.cpachecker.cpa.arg.graphExport.TransitionCondition;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathAllocator;
@@ -133,7 +133,6 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
@@ -427,7 +426,7 @@ public class ARGPathExporter {
         final Optional<Collection<ARGState>> pFromState,
         final Map<ARGState, CFAEdgeWithAssumptions> pValueMap) {
 
-      final TransitionCondition result = new TransitionCondition();
+      TransitionCondition result = new TransitionCondition();
 
       if (graphType != GraphType.ERROR_WITNESS) {
         ExpressionTree<Object> invariant = ExpressionTrees.getTrue();
@@ -450,12 +449,12 @@ public class ARGPathExporter {
       if (exportFunctionCallsAndReturns) {
         if (pEdge.getSuccessor() instanceof FunctionEntryNode) {
           FunctionEntryNode in = (FunctionEntryNode) pEdge.getSuccessor();
-          result.put(KeyDef.FUNCTIONENTRY, in.getFunctionName());
+          result = result.putAndCopy(KeyDef.FUNCTIONENTRY, in.getFunctionName());
 
         }
         if (pEdge.getSuccessor() instanceof FunctionExitNode) {
           FunctionExitNode out = (FunctionExitNode) pEdge.getSuccessor();
-          result.put(KeyDef.FUNCTIONEXIT, out.getFunctionName());
+          result = result.putAndCopy(KeyDef.FUNCTIONEXIT, out.getFunctionName());
         }
       }
 
@@ -483,11 +482,11 @@ public class ARGPathExporter {
             }
 
           })) {
-            result.keyValues.clear();
-            return result;
+            // remove all info from transitionCondition
+            return new TransitionCondition();
           }
           AssumeCase assumeCase = a.getTruthAssumption() ? AssumeCase.THEN : AssumeCase.ELSE;
-          result.put(KeyDef.CONTROLCASE, assumeCase.toString());
+          result = result.putAndCopy(KeyDef.CONTROLCASE, assumeCase.toString());
         }
       }
 
@@ -496,9 +495,9 @@ public class ARGPathExporter {
         if (locations.size() > 0) {
           FileLocation l = locations.iterator().next();
           if (!l.getFileName().equals(defaultSourcefileName)) {
-            result.put(KeyDef.ORIGINFILE, l.getFileName());
+            result = result.putAndCopy(KeyDef.ORIGINFILE, l.getFileName());
           }
-          result.put(KeyDef.ORIGINLINE, Integer.toString(l.getStartingLineInOrigin()));
+          result = result.putAndCopy(KeyDef.ORIGINLINE, Integer.toString(l.getStartingLineInOrigin()));
         }
       }
 
@@ -507,22 +506,22 @@ public class ARGPathExporter {
         if (locations.size() > 0) {
           FileLocation l = locations.iterator().next();
           if (!l.getFileName().equals(defaultSourcefileName)) {
-            result.put(KeyDef.ORIGINFILE, l.getFileName());
+            result = result.putAndCopy(KeyDef.ORIGINFILE, l.getFileName());
           }
-          result.put(KeyDef.OFFSET, Integer.toString(l.getNodeOffset()));
+          result = result.putAndCopy(KeyDef.OFFSET, Integer.toString(l.getNodeOffset()));
         }
       }
 
       if (exportSourcecode && !pEdge.getRawStatement().trim().isEmpty()) {
-        result.put(KeyDef.SOURCECODE, pEdge.getRawStatement());
+        result = result.putAndCopy(KeyDef.SOURCECODE, pEdge.getRawStatement());
       }
 
       return result;
     }
 
-    private void extractTransitionForStates(final String pFrom, final String pTo,
+    private TransitionCondition extractTransitionForStates(final String pFrom, final String pTo,
         final CFAEdge pEdge, final Collection<ARGState> pFromStates,
-        final Map<ARGState, CFAEdgeWithAssumptions> pValueMap, final TransitionCondition result) {
+        final Map<ARGState, CFAEdgeWithAssumptions> pValueMap, TransitionCondition result) {
 
       List<ExpressionTree<Object>> code = new ArrayList<>();
       String functionName = pEdge.getPredecessor().getFunctionName();
@@ -643,7 +642,7 @@ public class ARGPathExporter {
         }
 
         if (exportThreadId) {
-          exportThreadId(result, pEdge, state);
+          result = exportThreadId(result, pEdge, state);
         }
 
       }
@@ -687,26 +686,29 @@ public class ARGPathExporter {
           assumptionCode = ExpressionTrees.convert(invariant, converter).toString();
         }
 
-        result.put(KeyDef.ASSUMPTION, assumptionCode + ";");
+        result = result.putAndCopy(KeyDef.ASSUMPTION, assumptionCode + ";");
         if (isFunctionScope) {
-          result.put(KeyDef.ASSUMPTIONSCOPE, functionName);
+          result = result.putAndCopy(KeyDef.ASSUMPTIONSCOPE, functionName);
         }
       }
+
+      return result;
     }
 
     /** export the id of the executed thread into the witness.
      * We assume that the edge can be assigned to exactly one thread. */
-    private void exportThreadId(final TransitionCondition result, final CFAEdge pEdge,
+    private TransitionCondition exportThreadId(TransitionCondition result, final CFAEdge pEdge,
         ARGState state) {
       ThreadingState threadingState = AbstractStates.extractStateByType(state, ThreadingState.class);
       if (threadingState != null) {
         for (String threadId : threadingState.getThreadIds()) {
           if (threadingState.getThreadLocation(threadId).getLocationNode().equals(pEdge.getPredecessor())) {
-            result.put(KeyDef.THREADID, threadId);
+            result = result.putAndCopy(KeyDef.THREADID, threadId);
             break;
           }
         }
       }
+      return result;
     }
 
     /**
@@ -967,7 +969,7 @@ public class ARGPathExporter {
               return false;
             }
             for (Edge edge : enteringEdges.get(pNode)) {
-              if (!edge.label.keyValues.isEmpty()) {
+              if (!edge.label.getMapping().isEmpty()) {
                 return false;
               }
             }
@@ -984,7 +986,7 @@ public class ARGPathExporter {
               return true;
             }
 
-            if (pEdge.label.keyValues.isEmpty()) {
+            if (pEdge.label.getMapping().isEmpty()) {
               return true;
             }
 
@@ -1011,8 +1013,8 @@ public class ARGPathExporter {
 
             if ((!pEdge.label.hasTransitionRestrictions()
                         || summarizedByPrecedingEdge
-                        || pEdge.label.keyValues.size() == 1
-                            && pEdge.label.keyValues.containsKey(KeyDef.FUNCTIONEXIT))
+                        || pEdge.label.getMapping().size() == 1
+                            && pEdge.label.getMapping().containsKey(KeyDef.FUNCTIONEXIT))
                     && (leavingEdges.get(pEdge.source).size() == 1)) {
               return true;
             }
@@ -1021,7 +1023,7 @@ public class ARGPathExporter {
 
                           @Override
                           public boolean apply(Edge pLeavingEdge) {
-                            return pLeavingEdge.label.keyValues.isEmpty();
+                            return pLeavingEdge.label.getMapping().isEmpty();
                           }
                         })) {
               return true;
@@ -1066,9 +1068,7 @@ public class ARGPathExporter {
       // Add them as leaving edges to the source node,
       // Add them as entering edges to their target nodes
       for (Edge leavingEdge : leavingEdgesToMove) {
-        TransitionCondition label = new TransitionCondition();
-        label.keyValues.putAll(pEdge.label.keyValues);
-        label.keyValues.putAll(leavingEdge.label.keyValues);
+        TransitionCondition label = pEdge.label.putAllAndCopy(leavingEdge.label);
         putEdge(new Edge(source, leavingEdge.target, label));
       }
 
@@ -1084,9 +1084,7 @@ public class ARGPathExporter {
       // Add add them as leaving edges to their source nodes
       for (Edge enteringEdge : enteringEdgesToMove) {
         if (!pEdge.equals(enteringEdge)) {
-          TransitionCondition label = new TransitionCondition();
-          label.keyValues.putAll(pEdge.label.keyValues);
-          label.keyValues.putAll(enteringEdge.label.keyValues);
+          TransitionCondition label = pEdge.label.putAllAndCopy(enteringEdge.label);
           putEdge(new Edge(enteringEdge.source, source, label));
         }
       }
@@ -1164,7 +1162,7 @@ public class ARGPathExporter {
 
     private Element createNewEdge(GraphMlBuilder pDoc, Edge pEdge, Element pTargetNode) {
       Element edge = pDoc.createEdgeElement(pEdge.source, pEdge.target);
-      for (Map.Entry<KeyDef, String> entry : pEdge.label.keyValues.entrySet()) {
+      for (Map.Entry<KeyDef, String> entry : pEdge.label.getMapping().entrySet()) {
         KeyDef keyDef = entry.getKey();
         String value = entry.getValue();
         if (keyDef.keyFor.equals(ElementType.EDGE)) {
@@ -1336,9 +1334,7 @@ public class ARGPathExporter {
       }
       return false;
     }
-
   }
-
   private static class AssignsParameterOfOtherFunction implements Predicate<AExpressionStatement> {
 
     private final CFAEdge edge;
@@ -1443,137 +1439,6 @@ public class ARGPathExporter {
       });
     }
 
-  }
-
-  private static class TransitionCondition implements Comparable<TransitionCondition> {
-
-    public final SortedMap<KeyDef, String> keyValues = Maps.newTreeMap();
-
-    public void put(final KeyDef pKey, final String pValue) {
-      keyValues.put(pKey, pValue);
-    }
-
-    @Override
-    public boolean equals(Object pOther) {
-      if (this == pOther) {
-        return true;
-      }
-      return pOther instanceof TransitionCondition
-          && this.keyValues.equals(((TransitionCondition)pOther).keyValues);
-    }
-
-    public boolean hasTransitionRestrictions() {
-      return !keyValues.isEmpty();
-    }
-
-    @Override
-    public int hashCode() {
-      return keyValues.hashCode();
-    }
-
-    @Override
-    public String toString() {
-      return keyValues.toString();
-    }
-
-    public boolean summarizes(TransitionCondition pLabel) {
-      if (equals(pLabel)) {
-        return true;
-      }
-      boolean ignoreAssumptionScope =
-          !keyValues.keySet().contains(KeyDef.ASSUMPTION)
-              || !pLabel.keyValues.keySet().contains(KeyDef.ASSUMPTION);
-      boolean ignoreInvariantScope =
-          !keyValues.keySet().contains(KeyDef.INVARIANT)
-          || !pLabel.keyValues.keySet().contains(KeyDef.INVARIANT);
-      for (KeyDef keyDef : KeyDef.values()) {
-        if (!keyDef.equals(KeyDef.ASSUMPTION)
-            && !keyDef.equals(KeyDef.INVARIANT)
-            && !(ignoreAssumptionScope && keyDef.equals(KeyDef.ASSUMPTIONSCOPE))
-            && !(ignoreInvariantScope && keyDef.equals(KeyDef.INVARIANTSCOPE))
-            && !Objects.equals(keyValues.get(keyDef), pLabel.keyValues.get(keyDef))) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    @Override
-    public int compareTo(TransitionCondition pO) {
-      if (this == pO) {
-        return 0;
-      }
-      SortedMapDifference<KeyDef, String> differences = Maps.difference(keyValues, pO.keyValues);
-      if (differences.areEqual()) {
-        return 0;
-      }
-      if (differences.entriesOnlyOnLeft().isEmpty()) {
-        return -1;
-      } else if (differences.entriesOnlyOnRight().isEmpty()) {
-        return 1;
-      }
-      ValueDifference<String> difference =
-          differences.entriesDiffering().values().iterator().next();
-      return difference.leftValue().compareTo(difference.rightValue());
-    }
-  }
-
-  private static class Edge implements Comparable<Edge> {
-
-    private final String source;
-
-    private final String target;
-
-    private final TransitionCondition label;
-
-    public Edge(String pSource, String pTarget, TransitionCondition pLabel) {
-      Preconditions.checkNotNull(pSource);
-      Preconditions.checkNotNull(pTarget);
-      Preconditions.checkNotNull(pLabel);
-      this.source = pSource;
-      this.target = pTarget;
-      this.label = pLabel;
-    }
-
-    @Override
-    public String toString() {
-      return String.format("{%s -- %s --> %s}", source, label, target);
-    }
-
-    @Override
-    public int compareTo(Edge pO) {
-      if (pO == this) {
-        return 0;
-      }
-      int comp = source.compareTo(pO.source);
-      if (comp != 0) {
-        return comp;
-      }
-      comp = target.compareTo(pO.target);
-      if (comp != 0) {
-        return comp;
-      }
-      return label.compareTo(pO.label);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(source, target, label);
-    }
-
-    @Override
-    public boolean equals(Object pOther) {
-      if (this == pOther) {
-        return true;
-      }
-      if (pOther instanceof Edge) {
-        Edge other = (Edge) pOther;
-        return source.equals(other.source)
-            && target.equals(other.target)
-            && label.equals(other.label);
-      }
-      return false;
-    }
   }
 
 }
