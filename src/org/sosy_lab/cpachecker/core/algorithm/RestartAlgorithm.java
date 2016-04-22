@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 import com.google.common.base.Splitter;
@@ -441,6 +442,8 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     if (cpa instanceof StatisticsProvider) {
       ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());
     }
+    GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
+
     return cpa;
   }
 
