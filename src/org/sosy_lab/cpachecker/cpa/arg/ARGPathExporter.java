@@ -875,20 +875,18 @@ public class ARGPathExporter {
       pGraphBuilder.buildGraph(pRootState, pIsRelevantState, pIsRelevantEdge, valueMap, doc, collectPathEdges(pRootState, successorFunction, pIsRelevantState), this);
 
       // Remove edges that lead to the sink but have a sibling edge that has the same label
-      Collection<Edge> toRemove = FluentIterable.from(leavingEdges.values()).filter(new Predicate<Edge>() {
-
-        @Override
-        public boolean apply(final Edge pEdge) {
-          return pEdge.target.equals(SINK_NODE_ID)
-              && FluentIterable.from(leavingEdges.get(pEdge.source)).filter(Predicates.not(Predicates.equalTo(pEdge))).anyMatch(new Predicate<Edge>() {
-
-                @Override
-                public boolean apply(Edge pArg0) {
-                  return pArg0.label.equals(pEdge.label);
-                }});
+      // TODO if there are two edges with two sinks, edge and sibling are both removed --> correct? FIXME
+      Collection<Edge> toRemove = new ArrayList<>();
+      for (Edge edge : leavingEdges.values()) {
+        if (edge.target.equals(SINK_NODE_ID)) {
+          for (Edge otherEdge : leavingEdges.get(edge.source)) {
+            if (!edge.equals(otherEdge) && edge.label.equals(otherEdge.label)) {
+              toRemove.add(edge);
+              break;
+            }
+          }
         }
-
-      }).toList();
+      }
       for (Edge edge : toRemove) {
         boolean removed = removeEdge(edge);
         assert removed;
