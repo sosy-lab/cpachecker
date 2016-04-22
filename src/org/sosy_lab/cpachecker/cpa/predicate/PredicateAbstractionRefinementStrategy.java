@@ -27,19 +27,20 @@ import static com.google.common.base.Preconditions.*;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision.*;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.MultimapBuilder;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -88,20 +89,19 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.MultimapBuilder;
-import com.google.common.collect.Sets;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * This class provides the refinement strategy for the classical predicate
@@ -190,6 +190,8 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
   private StatTimer staticRefinerTime = new StatTimer(StatKind.SUM, "Static refinement time");
 
+  private StatTimer basePredicatesTime = new StatTimer(StatKind.SUM, "Base predicate collection time");
+
   private StatTimer predicateCreation = new StatTimer(StatKind.SUM, "Predicate creation");
   private StatTimer precisionUpdate = new StatTimer(StatKind.SUM, "Precision update");
   private StatTimer argUpdate = new StatTimer(StatKind.SUM, "ARG update");
@@ -231,6 +233,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
       w1.put(precisionUpdate)
         .put(argUpdate)
+        .put(basePredicatesTime)
         .spacer();
 
       w0.put(numberOfRefinementRootsWithSiblings)
@@ -420,7 +423,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   protected void finishRefinementOfPath(ARGState pUnreachableState,
       List<ARGState> pAffectedStates, ARGReachedSet pReached,
       boolean pRepeatedCounterexample, Set<Property> pPropertiesAtTarget)
-      throws CPAException {
+      throws CPAException, InterruptedException {
 
     Pair<PredicatePrecision, ARGState> newPrecAndRefinementRoot =
         computeNewPrecision(pUnreachableState, pAffectedStates, pReached, pRepeatedCounterexample, pPropertiesAtTarget);
@@ -472,7 +475,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   protected Pair<PredicatePrecision, ARGState> computeNewPrecision(ARGState pUnreachableState,
       List<ARGState> pAffectedStates, ARGReachedSet pReached,
       boolean pRepeatedCounterexample, Set<Property> pPropertiesAtTarget)
-      throws RefinementFailedException {
+      throws RefinementFailedException, InterruptedException {
 
     { // Add predicate "false" to unreachable location
       CFANode loc = AbstractStates.extractLocationMaybeWeaved(pUnreachableState);
@@ -512,19 +515,24 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     // now create new precision
     precisionUpdate.start();
+    basePredicatesTime.start();
     PredicatePrecision basePrecision;
-    switch(predicateBasisStrategy) {
-    case ALL:
-      basePrecision = findAllPredicatesFromSubgraph(refinementRoot, reached);
-      break;
-    case TARGET:
-      basePrecision = targetStatePrecision;
-      break;
-    case CUTPOINT:
-      basePrecision = extractPredicatePrecision(reached.getPrecision(refinementRoot));
-      break;
-    default:
-      throw new AssertionError("unknown strategy for predicate basis.");
+    try {
+      switch(predicateBasisStrategy) {
+      case ALL:
+        basePrecision = findAllPredicatesFromSubgraph(refinementRoot, reached);
+        break;
+      case TARGET:
+        basePrecision = targetStatePrecision;
+        break;
+      case CUTPOINT:
+        basePrecision = extractPredicatePrecision(reached.getPrecision(refinementRoot));
+        break;
+      default:
+        throw new AssertionError("unknown strategy for predicate basis.");
+      }
+    } finally {
+      basePredicatesTime.stop();
     }
 
     logger.log(Level.ALL, "Old predicate map is", basePrecision);
@@ -687,9 +695,10 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
    * Collect all precisions in the subgraph below refinementRoot and merge
    * their predicates.
    * @return a new precision with all these predicates.
+   * @throws InterruptedException
    */
   private PredicatePrecision findAllPredicatesFromSubgraph(
-      ARGState refinementRoot, UnmodifiableReachedSet reached) {
+      ARGState refinementRoot, UnmodifiableReachedSet reached) throws InterruptedException {
 
     PredicatePrecision newPrecision = PredicatePrecision.empty();
 
@@ -703,6 +712,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     }
 
     for (Precision prec : precisions) {
+      shutdownNotifier.shutdownIfNecessary();
       newPrecision = newPrecision.mergeWith(extractPredicatePrecision(prec));
     }
     return newPrecision;
