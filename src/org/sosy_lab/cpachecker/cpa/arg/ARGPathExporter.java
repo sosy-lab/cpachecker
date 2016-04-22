@@ -862,7 +862,7 @@ public class ARGPathExporter {
         String sourceStateNodeId = pGraphBuilder.getId(s);
         EnumSet<NodeFlag> sourceNodeFlags = EnumSet.noneOf(NodeFlag.class);
         if (sourceStateNodeId.equals(entryStateNodeId)) {
-          sourceNodeFlags = EnumSet.of(NodeFlag.ISENTRY);
+          sourceNodeFlags.add(NodeFlag.ISENTRY);
         }
         sourceNodeFlags.addAll(extractNodeFlags(s));
         nodeFlags.putAll(sourceStateNodeId, sourceNodeFlags);
@@ -1057,16 +1057,16 @@ public class ARGPathExporter {
       violatedProperties.putAll(source, violatedProperties.removeAll(target));
 
       // Move the leaving edges
-      List<Edge> leavingEdges = Lists.newArrayList(this.leavingEdges.get(target));
+      Set<Edge> leavingEdgesToMove = new HashSet<>(this.leavingEdges.get(target));
       // Remove the edges from their successors
-      for (Edge leavingEdge : leavingEdges) {
+      for (Edge leavingEdge : leavingEdgesToMove) {
         boolean removed = removeEdge(leavingEdge);
         assert removed;
       }
       // Create the replacement edges,
       // Add them as leaving edges to the source node,
       // Add them as entering edges to their target nodes
-      for (Edge leavingEdge : leavingEdges) {
+      for (Edge leavingEdge : leavingEdgesToMove) {
         TransitionCondition label = new TransitionCondition();
         label.keyValues.putAll(pEdge.label.keyValues);
         label.keyValues.putAll(leavingEdge.label.keyValues);
@@ -1074,16 +1074,16 @@ public class ARGPathExporter {
       }
 
       // Move the entering edges
-      List<Edge> enteringEdges = Lists.newArrayList(this.enteringEdges.get(target));
+      Set<Edge> enteringEdgesToMove = new HashSet<>(this.enteringEdges.get(target));
       // Remove the edges from their predecessors
-      for (Edge enteringEdge : enteringEdges) {
+      for (Edge enteringEdge : enteringEdgesToMove) {
         boolean removed = removeEdge(enteringEdge);
-        assert removed : "edge was not removed";
+        assert removed : "could not remove edge: " + enteringEdge;
       }
       // Create the replacement edges,
       // Add them as entering edges to the source node,
       // Add add them as leaving edges to their source nodes
-      for (Edge enteringEdge : enteringEdges) {
+      for (Edge enteringEdge : enteringEdgesToMove) {
         if (!pEdge.equals(enteringEdge)) {
           TransitionCondition label = new TransitionCondition();
           label.keyValues.putAll(pEdge.label.keyValues);
@@ -1146,14 +1146,18 @@ public class ARGPathExporter {
     }
 
     private void putEdge(Edge pEdge) {
+      assert leavingEdges.size() == enteringEdges.size();
       leavingEdges.put(pEdge.source, pEdge);
       enteringEdges.put(pEdge.target, pEdge);
+      assert leavingEdges.size() == enteringEdges.size();
     }
 
     private boolean removeEdge(Edge pEdge) {
+      assert leavingEdges.size() == enteringEdges.size();
       if (leavingEdges.remove(pEdge.source, pEdge)) {
         boolean alsoRemoved = enteringEdges.remove(pEdge.target, pEdge);
-        assert alsoRemoved;
+        assert alsoRemoved : "edge was not removed: " + pEdge;
+        assert leavingEdges.size() == enteringEdges.size();
         return true;
       }
       return false;
@@ -1455,13 +1459,8 @@ public class ARGPathExporter {
       if (this == pOther) {
         return true;
       }
-      if (!(pOther instanceof TransitionCondition)) {
-        return false;
-      }
-
-      TransitionCondition oT = (TransitionCondition) pOther;
-
-      return this.keyValues.equals(oT.keyValues);
+      return pOther instanceof TransitionCondition
+          && this.keyValues.equals(((TransitionCondition)pOther).keyValues);
     }
 
     public boolean hasTransitionRestrictions() {
