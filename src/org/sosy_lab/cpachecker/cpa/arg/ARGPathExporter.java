@@ -1001,24 +1001,23 @@ public class ARGPathExporter {
             // An edge is redundant if it is the only leaving edge of a
             // node and it is empty or all its non-assumption contents
             // are summarized by a preceding edge
-            boolean hasTransistionRestrictions = pEdge.label.hasTransitionRestrictions();
-            boolean summarizedByPrecedingEdge = FluentIterable.from(enteringEdges.get(pEdge.source))
-                .anyMatch(
+            boolean summarizedByPrecedingEdge = Iterables.any(enteringEdges.get(pEdge.source),
                     new Predicate<Edge>() {
-
                       @Override
                       public boolean apply(Edge pPrecedingEdge) {
                         return pPrecedingEdge.label.summarizes(pEdge.label);
                       }
                     });
-            if ((!hasTransistionRestrictions
+
+            if ((!pEdge.label.hasTransitionRestrictions()
                         || summarizedByPrecedingEdge
                         || pEdge.label.keyValues.size() == 1
                             && pEdge.label.keyValues.containsKey(KeyDef.FUNCTIONEXIT))
-                    && (leavingEdges.get(pEdge.source).size() == 1)
-                || FluentIterable.from(leavingEdges.get(pEdge.source))
-                    .allMatch(
-                        new Predicate<Edge>() {
+                    && (leavingEdges.get(pEdge.source).size() == 1)) {
+              return true;
+            }
+
+            if (Iterables.all(leavingEdges.get(pEdge.source), new Predicate<Edge>() {
 
                           @Override
                           public boolean apply(Edge pLeavingEdge) {
