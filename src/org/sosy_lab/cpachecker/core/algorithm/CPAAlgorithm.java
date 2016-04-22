@@ -237,185 +237,182 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         cpa.getPrecisionAdjustment();
 
     while (reachedSet.hasWaitingState()) {
-      try {
-        shutdownNotifier.shutdownIfNecessary();
+      shutdownNotifier.shutdownIfNecessary();
 
-        stats.countIterations++;
+      stats.countIterations++;
 
-        // Pick next state using strategy
-        // BFS, DFS or top sort according to the configuration
-        int size = reachedSet.getWaitlist().size();
-        if (size >= stats.maxWaitlistSize) {
-          stats.maxWaitlistSize = size;
-        }
-        stats.countWaitlistSize += size;
+      // Pick next state using strategy
+      // BFS, DFS or top sort according to the configuration
+      int size = reachedSet.getWaitlist().size();
+      if (size >= stats.maxWaitlistSize) {
+        stats.maxWaitlistSize = size;
+      }
+      stats.countWaitlistSize += size;
 
-        stats.chooseTimer.start();
-        final AbstractState state = reachedSet.popFromWaitlist();
-        final Precision precision = reachedSet.getPrecision(state);
-        stats.chooseTimer.stop();
+      stats.chooseTimer.start();
+      final AbstractState state = reachedSet.popFromWaitlist();
+      final Precision precision = reachedSet.getPrecision(state);
+      stats.chooseTimer.stop();
 
-        logger.log(Level.FINER, "Retrieved state from waitlist");
-        logger.log(Level.ALL, "Current state is", state, "with precision",
-            precision);
+      logger.log(Level.FINER, "Retrieved state from waitlist");
+      logger.log(Level.ALL, "Current state is", state, "with precision",
+          precision);
 
-        if (forcedCovering != null) {
-          stats.forcedCoveringTimer.start();
-          try {
-            boolean stop = forcedCovering.tryForcedCovering(state, precision, reachedSet);
-
-            if (stop) {
-              // TODO: remove state from reached set?
-              continue;
-            }
-          } finally {
-            stats.forcedCoveringTimer.stop();
-          }
-        }
-
-        stats.transferTimer.start();
-        Collection<? extends AbstractState> successors;
+      if (forcedCovering != null) {
+        stats.forcedCoveringTimer.start();
         try {
-          successors = transferRelation.getAbstractSuccessors(state, precision);
+          boolean stop = forcedCovering.tryForcedCovering(state, precision, reachedSet);
+
+          if (stop) {
+            // TODO: remove state from reached set?
+            continue;
+          }
         } finally {
-          stats.transferTimer.stop();
+          stats.forcedCoveringTimer.stop();
         }
-        // TODO When we have a nice way to mark the analysis result as incomplete,
-        // we could continue analysis on a CPATransferException with the next state from waitlist.
+      }
 
-        int numSuccessors = successors.size();
-        logger.log(Level.FINER, "Current state has", numSuccessors,
-            "successors");
-        stats.countSuccessors += numSuccessors;
-        stats.maxSuccessors = Math.max(numSuccessors, stats.maxSuccessors);
+      stats.transferTimer.start();
+      Collection<? extends AbstractState> successors;
+      try {
+        successors = transferRelation.getAbstractSuccessors(state, precision);
+      } finally {
+        stats.transferTimer.stop();
+      }
+      // TODO When we have a nice way to mark the analysis result as incomplete,
+      // we could continue analysis on a CPATransferException with the next state from waitlist.
 
-        for (AbstractState successor : Iterables.consumingIterable(successors)) {
-          logger.log(Level.FINER, "Considering successor of current state");
-          logger.log(Level.ALL, "Successor of", state, "\nis", successor);
+      int numSuccessors = successors.size();
+      logger.log(Level.FINER, "Current state has", numSuccessors,
+          "successors");
+      stats.countSuccessors += numSuccessors;
+      stats.maxSuccessors = Math.max(numSuccessors, stats.maxSuccessors);
 
-          stats.precisionTimer.start();
-          PrecisionAdjustmentResult precAdjustmentResult;
-          try {
-            Optional<PrecisionAdjustmentResult> precAdjustmentOptional =
-                precisionAdjustment.prec(
-                    successor, precision, reachedSet,
-                    Functions.<AbstractState>identity(),
-                    successor);
-            if (!precAdjustmentOptional.isPresent()) {
-              continue;
-            }
-            precAdjustmentResult = precAdjustmentOptional.get();
-          } finally {
-            stats.precisionTimer.stop();
+      for (AbstractState successor : Iterables.consumingIterable(successors)) {
+        logger.log(Level.FINER, "Considering successor of current state");
+        logger.log(Level.ALL, "Successor of", state, "\nis", successor);
+
+        stats.precisionTimer.start();
+        PrecisionAdjustmentResult precAdjustmentResult;
+        try {
+          Optional<PrecisionAdjustmentResult> precAdjustmentOptional =
+              precisionAdjustment.prec(
+                  successor, precision, reachedSet,
+                  Functions.<AbstractState>identity(),
+                  successor);
+          if (!precAdjustmentOptional.isPresent()) {
+            continue;
           }
+          precAdjustmentResult = precAdjustmentOptional.get();
+        } finally {
+          stats.precisionTimer.stop();
+        }
 
-          successor = precAdjustmentResult.abstractState();
-          Precision successorPrecision = precAdjustmentResult.precision();
-          Action action = precAdjustmentResult.action();
+        successor = precAdjustmentResult.abstractState();
+        Precision successorPrecision = precAdjustmentResult.precision();
+        Action action = precAdjustmentResult.action();
 
-          if (action == Action.BREAK) {
-            stats.stopTimer.start();
-            boolean stop;
-            try {
-              stop = stopOperator.stop(successor, reachedSet.getReached(successor), successorPrecision);
-            } finally {
-              stats.stopTimer.stop();
-            }
-
-            if (AbstractStates.isTargetState(successor) && stop) {
-              // don't signal BREAK for covered states
-              // no need to call merge and stop either, so just ignore this state
-              // and handle next successor
-              stats.countStop++;
-              logger.log(Level.FINER,
-                  "Break was signalled but ignored because the state is covered.");
-              continue;
-
-            } else {
-              stats.countBreak++;
-              logger.log(Level.FINER, "Break signalled, CPAAlgorithm will stop.");
-
-              // add the new state
-              reachedSet.add(successor, successorPrecision);
-
-              if (!successors.isEmpty()) {
-                // re-add the old state to the waitlist, there are unhandled
-                // successors left that otherwise would be forgotten
-                reachedSet.reAddToWaitlist(state);
-              }
-
-              return status;
-            }
-          }
-          assert action == Action.CONTINUE : "Enum Action has unhandled values!";
-
-          Collection<AbstractState> reached = reachedSet.getReached(successor);
-
-          // An optimization, we don't bother merging if we know that the
-          // merge operator won't do anything (i.e., it is merge-sep).
-          if (mergeOperator != MergeSepOperator.getInstance() && !reached.isEmpty()) {
-            stats.mergeTimer.start();
-            try {
-              List<AbstractState> toRemove = new ArrayList<>();
-              List<Pair<AbstractState, Precision>> toAdd = new ArrayList<>();
-
-              logger.log(Level.FINER, "Considering", reached.size(),
-                  "states from reached set for merge");
-              for (AbstractState reachedState : reached) {
-                AbstractState mergedState =
-                    mergeOperator.merge(successor, reachedState,
-                        successorPrecision);
-
-                if (!mergedState.equals(reachedState)) {
-                  logger.log(Level.FINER,
-                      "Successor was merged with state from reached set");
-                  logger.log(Level.ALL, "Merged", successor, "\nand",
-                      reachedState, "\n-->", mergedState);
-                  stats.countMerge++;
-
-                  toRemove.add(reachedState);
-                  toAdd.add(Pair.of(mergedState, successorPrecision));
-                }
-              }
-              reachedSet.removeAll(toRemove);
-              reachedSet.addAll(toAdd);
-
-              if (mergeOperator instanceof ARGMergeJoinCPAEnabledAnalysis) {
-                ((ARGMergeJoinCPAEnabledAnalysis)mergeOperator).cleanUp(reachedSet);
-              }
-
-            } finally {
-              stats.mergeTimer.stop();
-            }
-          }
-
+        if (action == Action.BREAK) {
           stats.stopTimer.start();
           boolean stop;
           try {
-            stop = stopOperator.stop(successor, reached, successorPrecision);
+            stop = stopOperator.stop(successor, reachedSet.getReached(successor), successorPrecision);
           } finally {
             stats.stopTimer.stop();
           }
 
-          if (stop) {
-            logger.log(Level.FINER,
-                "Successor is covered or unreachable, not adding to waitlist");
+          if (AbstractStates.isTargetState(successor) && stop) {
+            // don't signal BREAK for covered states
+            // no need to call merge and stop either, so just ignore this state
+            // and handle next successor
             stats.countStop++;
+            logger.log(Level.FINER,
+                "Break was signalled but ignored because the state is covered.");
+            continue;
 
           } else {
-            logger.log(Level.FINER,
-                "No need to stop, adding successor to waitlist");
+            stats.countBreak++;
+            logger.log(Level.FINER, "Break signalled, CPAAlgorithm will stop.");
 
-            stats.addTimer.start();
+            // add the new state
             reachedSet.add(successor, successorPrecision);
-            stats.addTimer.stop();
+
+            if (!successors.isEmpty()) {
+              // re-add the old state to the waitlist, there are unhandled
+              // successors left that otherwise would be forgotten
+              reachedSet.reAddToWaitlist(state);
+            }
+
+            return status;
+          }
+        }
+        assert action == Action.CONTINUE : "Enum Action has unhandled values!";
+
+        Collection<AbstractState> reached = reachedSet.getReached(successor);
+
+        // An optimization, we don't bother merging if we know that the
+        // merge operator won't do anything (i.e., it is merge-sep).
+        if (mergeOperator != MergeSepOperator.getInstance() && !reached.isEmpty()) {
+          stats.mergeTimer.start();
+          try {
+            List<AbstractState> toRemove = new ArrayList<>();
+            List<Pair<AbstractState, Precision>> toAdd = new ArrayList<>();
+
+            logger.log(Level.FINER, "Considering", reached.size(),
+                "states from reached set for merge");
+            for (AbstractState reachedState : reached) {
+              AbstractState mergedState =
+                  mergeOperator.merge(successor, reachedState,
+                      successorPrecision);
+
+              if (!mergedState.equals(reachedState)) {
+                logger.log(Level.FINER,
+                    "Successor was merged with state from reached set");
+                logger.log(Level.ALL, "Merged", successor, "\nand",
+                    reachedState, "\n-->", mergedState);
+                stats.countMerge++;
+
+                toRemove.add(reachedState);
+                toAdd.add(Pair.of(mergedState, successorPrecision));
+              }
+            }
+            reachedSet.removeAll(toRemove);
+            reachedSet.addAll(toAdd);
+
+            if (mergeOperator instanceof ARGMergeJoinCPAEnabledAnalysis) {
+              ((ARGMergeJoinCPAEnabledAnalysis)mergeOperator).cleanUp(reachedSet);
+            }
+
+          } finally {
+            stats.mergeTimer.stop();
           }
         }
 
-      } finally {
-        if (iterationListener != null) {
-          iterationListener.afterAlgorithmIteration(this, reachedSet);
+        stats.stopTimer.start();
+        boolean stop;
+        try {
+          stop = stopOperator.stop(successor, reached, successorPrecision);
+        } finally {
+          stats.stopTimer.stop();
         }
+
+        if (stop) {
+          logger.log(Level.FINER,
+              "Successor is covered or unreachable, not adding to waitlist");
+          stats.countStop++;
+
+        } else {
+          logger.log(Level.FINER,
+              "No need to stop, adding successor to waitlist");
+
+          stats.addTimer.start();
+          reachedSet.add(successor, successorPrecision);
+          stats.addTimer.stop();
+        }
+      }
+
+      if (iterationListener != null) {
+        iterationListener.afterAlgorithmIteration(this, reachedSet);
       }
     }
     return status;
