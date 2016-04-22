@@ -400,7 +400,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     singleLimits.start();
 
     CoreComponentsFactory coreComponents =
-        new CoreComponentsFactory(singleConfig, logger, singleShutdownManager.getNotifier());
+        new CoreComponentsFactory(singleConfig, singleLogger, singleShutdownManager.getNotifier());
     cpa = coreComponents.createCPA(cfa, null, SpecAutomatonCompositionType.TARGET_SPEC);
 
     if (cpa instanceof StatisticsProvider) {
