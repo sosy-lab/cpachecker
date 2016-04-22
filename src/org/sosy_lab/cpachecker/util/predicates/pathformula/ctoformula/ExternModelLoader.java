@@ -23,11 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
+import com.google.common.collect.Maps;
 
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
@@ -38,6 +34,12 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
 
 
 public class ExternModelLoader {
@@ -74,9 +76,9 @@ public class ExternModelLoader {
       throw new UnsupportedOperationException("Sorry, we can only load dimacs models.");
     }
     try (BufferedReader br =  pModelFile.asCharSource(StandardCharsets.UTF_8).openBufferedStream()) {
-      ArrayList<String> predicates = new ArrayList<>(10000);
+      Map<Integer, String> predicates = Maps.newHashMap();
       //var ids in dimacs files start with 1, so we want the first var at position 1
-      predicates.add("RheinDummyVar");
+      predicates.put(0, "RheinDummyVar");
       BooleanFormula externalModel = bfmgr.makeBoolean(true);
       Formula zero = fmgr.makeNumber(FormulaType.getBitvectorTypeWithSize(32), 0);
 
@@ -89,15 +91,13 @@ public class ExternModelLoader {
           // starting with id1
           String[] parts = line.split(" ");
           int varID = Integer.parseInt(parts[1].replace("$", ""));
-          assert predicates.size() == varID : "messed up the dimacs parsing!";
-          predicates.add(parts[2]);
+          predicates.put(varID, parts[2]);
         } else if (line.startsWith("p ")) {
           //p cnf 80258 388816
           // 80258 vars
           // 388816 cnf constraints
           String[] parts = line.split(" ");
           // +1 because of the dummy var
-          assert predicates.size()==Integer.parseInt(parts[2])+1: "did not get all dimcas variables?";
         } else if (line.trim().length()>0) {
           //-17552 -11882 1489 48905 0
           // constraints
@@ -107,10 +107,10 @@ public class ExternModelLoader {
             if (!elementStr.equals("0") && !elementStr.isEmpty()) {
               int elem = Integer.parseInt(elementStr);
               String predName = "";
-              if (elem > 0) {
-                predName = predicates.get(elem);
+              if (predicates.containsKey(Math.abs(elem))) {
+                predName = predicates.get(Math.abs(elem));
               } else {
-                predName = predicates.get(-elem);
+                predName = "RheinDummyVar_" + Math.abs(elem);
               }
               int ssaIndex = ssa.getIndex(predName);
               BooleanFormula constraintPart = null;
