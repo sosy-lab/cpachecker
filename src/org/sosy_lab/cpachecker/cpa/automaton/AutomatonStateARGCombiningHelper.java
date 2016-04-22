@@ -71,7 +71,7 @@ public class AutomatonStateARGCombiningHelper {
     if (qualifiedAutomatonStateNameToInternalState.containsKey(qualifiedName)) {
       AutomatonSafetyProperty violatedProp = null;
 
-      if (toReplace.getViolatedProperties().size() > 0) {
+      if (toReplace.isTarget() && toReplace.getViolatedProperties().size() > 0) {
         Property prop = toReplace.getViolatedProperties().iterator().next();
         assert prop instanceof AutomatonSafetyProperty;
         violatedProp = (AutomatonSafetyProperty) prop;
@@ -87,6 +87,7 @@ public class AutomatonStateARGCombiningHelper {
           toReplace.getFailedMatches(),
           violatedProp);
     }
+
 
     throw new CPAException("Changing state failed, unknown state.");
   }
