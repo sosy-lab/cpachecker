@@ -668,11 +668,9 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
         if (partitionOperator.getClass().equals(RelevanceThenIrrelevantThenRelevantOperator.class)) {
           if (pPartitions.getStatus().equals(PartitioningStatus.ALL_IN_ONE)) {
             limits.add(ProcessCpuTimeLimit.fromNowOn(cpuTimeStep2));
-          }
-          else if (pPartitions.getStatus().equals(PartitioningStatus.ONE_FOR_EACH)) {
+          } else if (pPartitions.getStatus().equals(PartitioningStatus.ONE_FOR_EACH)) {
             limits.add(ProcessCpuTimeLimit.fromNowOn(cpuTimeStep3));
-          }
-          else {
+          } else {
             limits.add(ProcessCpuTimeLimit.fromNowOn(partCpuTimeLimit.get()));
           }
         }
