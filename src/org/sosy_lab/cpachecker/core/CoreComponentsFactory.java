@@ -218,7 +218,9 @@ public class CoreComponentsFactory {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier, new AlgorithmIterationListener() {
         @Override
         public void afterAlgorithmIteration(Algorithm pAlg, ReachedSet pReached) throws InterruptedException {
-          stats.afterAlgorithmIteration(pAlg, pReached);
+          if (stats != null) {
+            stats.afterAlgorithmIteration(pAlg, pReached);
+          }
           interruptProvider.canInterrupt();
         }
       });
