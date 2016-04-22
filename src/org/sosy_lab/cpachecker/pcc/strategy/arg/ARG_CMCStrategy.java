@@ -74,7 +74,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
   public ARG_CMCStrategy(Configuration pConfig, LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
       final CFA pCfa) throws InvalidConfigurationException {
     super(pConfig, pLogger);
-    pConfig.inject(this);
+    //pConfig.inject(this);
     globalConfig = pConfig;
     shutdown = pShutdownNotifier;
     cpaBuilder = new PartialCPABuilder(pConfig, pLogger, pShutdownNotifier, pCfa);
