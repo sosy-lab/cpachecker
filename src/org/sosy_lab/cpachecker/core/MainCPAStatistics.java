@@ -91,11 +91,15 @@ import javax.management.JMException;
 public class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
 
   // Beyond this many states, we omit some statistics because they are costly.
-  private static final int MAX_SIZE_FOR_REACHED_STATISTICS = 1000000;
+  private static final int MAX_SIZE_FOR_REACHED_STATISTICS = 100000;
 
   @Option(secure=true, name="reachedSet.export",
       description="print reached set to text file")
   private boolean exportReachedSet = false;
+
+  @Option(secure=true, name="reachedSet.printDetailedStatistics",
+      description="print detailed statistics on the reached set?")
+  private boolean reachedSetStatistics = true;
 
   @Option(secure=true, name="reachedSet.file",
       description="print reached set to text file")
@@ -386,8 +390,10 @@ public class MainCPAStatistics implements Statistics, AlgorithmIterationListener
     out.println("Size of reached set:             " + reachedSize);
 
     if (!reached.isEmpty()) {
-      if (reachedSize < MAX_SIZE_FOR_REACHED_STATISTICS) {
-        printReachedSetStatisticsDetails(reached, out);
+      if (reachedSetStatistics) {
+        if (reachedSize < MAX_SIZE_FOR_REACHED_STATISTICS) {
+          printReachedSetStatisticsDetails(reached, out);
+        }
       }
 
       if (reached.hasWaitingState()) {

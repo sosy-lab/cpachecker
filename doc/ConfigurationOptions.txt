@@ -252,7 +252,7 @@ analysis.mpa.partition.property.time.cpu = -1ns
 # infinite)
 analysis.mpa.partition.property.time.wall = -1ns
 
-# 1st partition limit for cpu time used by CPAchecker (use seconds or specify
+# 2nd partition limit for cpu time used by CPAchecker (use seconds or specify
 # a unit; -1 for infinite)
 analysis.mpa.partition.second.time.cpu = -1ns
 
@@ -2583,6 +2583,9 @@ reachedSet.dot = "reached.dot"
 # print reached set to text file
 reachedSet.export = false
 reachedSet.file = "reached.txt"
+
+# print detailed statistics on the reached set?
+reachedSet.printDetailedStatistics = true
 
 # List of files with configurations to use. A filename can be suffixed with
 # :if-interrupted, :if-failed, and :if-terminated which means that this
