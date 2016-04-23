@@ -46,7 +46,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 @Options(prefix="analysis.mpa.partition")
-public class AllThenIrrelevantThanRelevantSepOperator extends PartitioningBudgetOperator {
+public class AllThenIrrelevantThenRelevantSepOperator extends PartitioningBudgetOperator {
 
   @Option(secure=true, name="first.time.cpu",
       description="1st partition limit for cpu time used by CPAchecker (use seconds or specify a unit; -1 for infinite)")
@@ -61,7 +61,7 @@ public class AllThenIrrelevantThanRelevantSepOperator extends PartitioningBudget
   private final PartitionBudgeting firstPartitionBudgeting;
   private final PartitionBudgeting secondPartitionBudgeting;
 
-  public AllThenIrrelevantThanRelevantSepOperator(Configuration pConfig, LogManager pLogger)
+  public AllThenIrrelevantThenRelevantSepOperator(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
     super(pConfig, pLogger);
 
