@@ -99,10 +99,14 @@ public class AllThenIrrelevantThenRelevantSepOperator extends PartitioningBudget
       case ALL_IN_ONE:
         final Set<Property> irrelevantProperties = Sets.difference(pToCheck, PropertyStats.INSTANCE.getRelevantProperties());
 
-        return create(PartitioningStatus.IRRELEVANT,
-            getPropertyBudgetingOperator(),
-            secondPartitionBudgeting,
-            ImmutableList.of(ImmutableSet.copyOf(irrelevantProperties)));
+        if (pToCheck.size() > 1) {
+          return create(PartitioningStatus.IRRELEVANT,
+              getPropertyBudgetingOperator(),
+              secondPartitionBudgeting,
+              ImmutableList.of(ImmutableSet.copyOf(irrelevantProperties)));
+        }
+
+        //$FALL-THROUGH$
 
       case IRRELEVANT:
         final Set<Property> relevantToCheck = Sets.intersection(pToCheck, PropertyStats.INSTANCE.getRelevantProperties());
