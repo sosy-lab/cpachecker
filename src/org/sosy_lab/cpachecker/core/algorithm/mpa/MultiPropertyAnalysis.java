@@ -552,7 +552,8 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
     Partitioning result = partitionOperator.partition(pLastPartitioning, pToCheck,
         pDisabledProperties, PropertyStats.INSTANCE.getPropertyRefinementComparator());
 
-    logger.log(Level.WARNING, String.format("New partitioning with %d partitions.", result.partitionCount()));
+    logger.log(Level.WARNING, String.format("New partitioning (%s) with %d partitions.",
+        result.getStatus(), result.partitionCount()));
     {
       int nth = 0;
       for (ImmutableSet<Property> p: result) {
