@@ -39,6 +39,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 class DecompositionStatistics extends AbstractStatistics {
+
   int numberOfRestarts = 0;
   int numberOfPartitionExhaustions = 0;
   final StatCpuTime pureAnalysisTime = new StatCpuTime();

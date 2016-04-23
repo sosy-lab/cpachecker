@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting;
 
-import java.util.concurrent.TimeUnit;
+import com.google.common.base.Optional;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -33,7 +33,7 @@ import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 
-import com.google.common.base.Optional;
+import java.util.concurrent.TimeUnit;
 
 @Options(prefix="analysis.mpa.partition")
 public class BasicPartitionBudgeting implements PartitionBudgeting {
@@ -77,7 +77,7 @@ public class BasicPartitionBudgeting implements PartitionBudgeting {
     budgetFactor = 1;
   }
 
-  protected BasicPartitionBudgeting(LogManager pLogger, TimeSpan pCpuTime, TimeSpan pWallTime, int pBudgetFactor) {
+  public BasicPartitionBudgeting(LogManager pLogger, TimeSpan pCpuTime, TimeSpan pWallTime, int pBudgetFactor) {
     logger = pLogger;
     cpuTime = pCpuTime;
     wallTime = pWallTime;

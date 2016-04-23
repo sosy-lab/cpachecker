@@ -23,14 +23,14 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces;
 
-import java.util.Set;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.PartitionBudgeting;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.PropertyBudgeting;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
+import java.util.Set;
 
 public interface Partitioning extends Iterable<ImmutableSet<Property>> {
 
@@ -41,6 +41,7 @@ public interface Partitioning extends Iterable<ImmutableSet<Property>> {
     ALL_IN_ONE_SHORT,
     ONE_FOR_EACH,
     K_FOR_EACH,
+    IRRELEVANT,
     CHEAPEST_BISECT,
     NOT_EXHAUSTED_ONLY,
     MORE_PARTITIONS

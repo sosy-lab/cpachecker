@@ -23,10 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning;
 
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -38,8 +36,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning.PartitioningStatus;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.logging.Level;
 
 @Options
 public class RelevanceThenIrrelevantThenRelevantOperator extends PartitioningBudgetOperator {
@@ -95,6 +95,7 @@ public class RelevanceThenIrrelevantThenRelevantOperator extends PartitioningBud
           irrelevantProperties.add(propertyToCheck);
         }
       }
+
       int newRelevantProperties = relevantProperties.size();
       int newIrrelevantProperties = irrelevantProperties.size();
       boolean isMoreIrrelevantProperties = (newIrrelevantProperties > 0);

@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning;
 
-import javax.annotation.Nonnull;
-
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
@@ -32,10 +30,13 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.BasicPartitionBudgeting;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.DefaultPropertyBudgeting;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.PartitionBudgeting;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.PropertyBudgeting;
+
+import javax.annotation.Nonnull;
 
 @Options
 abstract class PartitioningBudgetOperator extends AbstractPartitioningOperator {
@@ -78,6 +79,12 @@ abstract class PartitioningBudgetOperator extends AbstractPartitioningOperator {
         new Class[] { Configuration.class, LogManager.class },
         new Object[] { pConfig, pLogger },
         InvalidConfigurationException.class);
+  }
+
+  protected PartitionBudgeting createPartitionBudgetingOperator(final TimeSpan pCpuTimeLimit,
+      final TimeSpan pWallTimeLimit, LogManager pLogger) {
+
+    return new BasicPartitionBudgeting(pLogger, pCpuTimeLimit, pWallTimeLimit, 1);
   }
 
   protected PropertyBudgeting getPropertyBudgetingOperator() {

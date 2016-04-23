@@ -338,14 +338,13 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
             }
 
           } catch (InterruptedException ie) {
-            // The shutdown notifier might trigger the interrupted exception
-            // either because ...
+            // The shutdown notifier might trigger the interrupted exception either because ...
             wasInterrutped = true;
 
             if (interruptNotifier.hasTemporaryInterruptRequest()) {
               interruptNotifier.reset();
 
-              // A) the resource limit for the analysis run has exceeded
+              // ... A) the resource limit for the analysis run has exceeded
               logger.log(Level.WARNING, "Resource limit for properties exceeded!");
 
               // Stop the checker
@@ -363,7 +362,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
               }
 
             } else {
-              // B) the user (or the operating system) requested a stop of the verifier.
+              // ... B) the user (or the operating system) requested a stop of the verifier.
 
               throw ie;
             }
