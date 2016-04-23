@@ -46,7 +46,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 @Options(prefix="analysis.mpa.partition")
-public class AllThenIrrelevantThenRelevantSepOperator extends PartitioningBudgetOperator {
+public class AllThenIrrelevanceThenRelevantSepOperator extends PartitioningBudgetOperator {
 
   @Option(secure=true, name="first.time.cpu",
       description="1st partition limit for cpu time used by CPAchecker (use seconds or specify a unit; -1 for infinite)")
@@ -61,7 +61,7 @@ public class AllThenIrrelevantThenRelevantSepOperator extends PartitioningBudget
   private final PartitionBudgeting firstPartitionBudgeting;
   private final PartitionBudgeting secondPartitionBudgeting;
 
-  public AllThenIrrelevantThenRelevantSepOperator(Configuration pConfig, LogManager pLogger)
+  public AllThenIrrelevanceThenRelevantSepOperator(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
     super(pConfig, pLogger);
 
@@ -89,36 +89,28 @@ public class AllThenIrrelevantThenRelevantSepOperator extends PartitioningBudget
 
     final PartitioningStatus lastType = pLastCheckedPartitioning.getStatus();
 
-    switch (lastType) {
-      case NONE:
+    if (lastType.equals(PartitioningStatus.NONE)) {
         return create(PartitioningStatus.ALL_IN_ONE,
             getPropertyBudgetingOperator(),
             firstPartitionBudgeting,
             ImmutableList.of(ImmutableSet.copyOf(pToCheck)));
-
-      case ALL_IN_ONE:
-        final Set<Property> irrelevantProperties = Sets.difference(pToCheck, PropertyStats.INSTANCE.getRelevantProperties());
-
-        if (pToCheck.size() > 1) {
-          return create(PartitioningStatus.IRRELEVANT,
-              getPropertyBudgetingOperator(),
-              secondPartitionBudgeting,
-              ImmutableList.of(ImmutableSet.copyOf(irrelevantProperties)));
-        }
-
-        //$FALL-THROUGH$
-
-      case IRRELEVANT:
-        final Set<Property> relevantToCheck = Sets.intersection(pToCheck, PropertyStats.INSTANCE.getRelevantProperties());
-
-        return create(PartitioningStatus.ONE_FOR_EACH,
-            InfinitePropertyBudgeting.INSTANCE,
-            getPartitionBudgetingOperator(),
-            singletonPartitions(relevantToCheck, pPropertyExpenseComparator));
-
-      default:
-        throw new IllegalStateException("This case should not be entered. Bug!");
     }
+
+    final Set<Property> maybeIrrelevantToCheck = Sets.difference(pToCheck, PropertyStats.INSTANCE.getRelevantProperties());
+
+    if (pToCheck.size() > 1 && maybeIrrelevantToCheck.size() > 1) {
+      return create(PartitioningStatus.CHECK_IRRELEVANCE,
+          getPropertyBudgetingOperator(),
+          secondPartitionBudgeting,
+          ImmutableList.of(ImmutableSet.copyOf(maybeIrrelevantToCheck)));
+    }
+
+    final Set<Property> relevantToCheck = Sets.intersection(pToCheck, PropertyStats.INSTANCE.getRelevantProperties());
+
+    return create(PartitioningStatus.ONE_FOR_EACH,
+        InfinitePropertyBudgeting.INSTANCE,
+        getPartitionBudgetingOperator(),
+        singletonPartitions(relevantToCheck, pPropertyExpenseComparator));
 
   }
 
