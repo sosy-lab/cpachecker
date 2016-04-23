@@ -27,6 +27,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 
+import java.util.List;
+
 import javax.annotation.Nullable;
 
 /**
@@ -37,20 +39,20 @@ public class InfeasibleCounterexampleException extends CPAException {
 
   private static final long serialVersionUID = 513019120577549278L;
 
-  private final ARGPath path;
+  private final List<ARGPath> paths;
 
-  public InfeasibleCounterexampleException(String msg, ARGPath p) {
+  public InfeasibleCounterexampleException(String msg, List<ARGPath> pInfeasibleErrorPaths) {
     super(msg);
-    path = p;
+    paths = pInfeasibleErrorPaths;
   }
 
-  public InfeasibleCounterexampleException(String msg, ARGPath p, Throwable t) {
+  public InfeasibleCounterexampleException(String msg, List<ARGPath> p, Throwable t) {
     super(msg, checkNotNull(t));
-    path = p;
+    paths = p;
   }
 
   /** Return the path that caused the failure */
-  public @Nullable ARGPath getErrorPath() {
-    return path;
+  public @Nullable List<ARGPath> getErrorPaths() {
+    return paths;
   }
 }

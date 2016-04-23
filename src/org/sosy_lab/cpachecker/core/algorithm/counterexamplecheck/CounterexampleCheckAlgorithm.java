@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.toPercent;
 
+import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 
 import org.sosy_lab.common.ShutdownNotifier;
@@ -43,18 +44,20 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import java.io.PrintStream;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.List;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.logging.Level;
@@ -138,6 +141,8 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
       // check counterexample
       checkTime.start();
       try {
+        List<ARGState> infeasibleErrorPaths = new ArrayList<>();
+
         boolean foundCounterexample = false;
         while (!errorStates.isEmpty()) {
           ARGState errorState = errorStates.pollFirst();
@@ -146,9 +151,10 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
             continue;
           }
 
-          status = AlgorithmStatus.SOUND_AND_PRECISE.withSound(
-              checkCounterexample(errorState, reached, status.isSound()));
-          if (reached.contains(errorState)) {
+          status =
+              AlgorithmStatus.SOUND_AND_PRECISE.withSound(
+                  checkCounterexample(errorState, reached, status.isSound(), infeasibleErrorPaths));
+          if (!infeasibleErrorPaths.contains(errorState)) {
             checkedTargetStates.add(errorState);
             foundCounterexample = true;
           }
@@ -156,6 +162,20 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
 
         if (foundCounterexample) {
           break;
+        } else if (!infeasibleErrorPaths.isEmpty()) {
+          throw new InfeasibleCounterexampleException(
+              "Error path found, but identified as infeasible by counterexample check with "
+                  + checkerType
+                  + ".",
+              from(infeasibleErrorPaths)
+                  .transform(
+                      new Function<ARGState, ARGPath>() {
+                        @Override
+                        public ARGPath apply(ARGState pInput) {
+                          return ARGUtils.getOnePathTo(pInput);
+                        }
+                      })
+                  .toList());
         }
       } finally {
         checkTime.stop();
@@ -164,8 +184,9 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
     return status;
   }
 
-  private boolean checkCounterexample(ARGState errorState, ReachedSet reached,
-      boolean sound) throws InterruptedException, CPAException, RefinementFailedException {
+  private boolean checkCounterexample(
+      ARGState errorState, ReachedSet reached, boolean sound, List<ARGState> pInfeasibleErrorStates)
+      throws InterruptedException {
     ARGState rootState = (ARGState)reached.getFirstState();
 
     Set<ARGState> statesOnErrorPath = ARGUtils.getAllStatesOnPathsTo(errorState);
@@ -176,8 +197,8 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
       feasibility = checker.checkCounterexample(rootState, errorState, statesOnErrorPath);
     } catch (CPAException e) {
       logger.logUserException(Level.WARNING, e, "Counterexample found, but feasibility could not be verified");
-      //return false;
-      throw e;
+      pInfeasibleErrorStates.add(errorState);
+      return false;
     }
 
     if (feasibility) {
@@ -186,12 +207,11 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
 
     } else {
       numberOfInfeasiblePaths++;
-      throw new InfeasibleCounterexampleException(
-          "Error path found, but identified as infeasible by counterexample check with "
-              + checkerType
-              + ".",
-          ARGUtils.getOnePathTo(errorState));
+      logger.log(Level.INFO, "Error path found but identified as infeasible.");
+      pInfeasibleErrorStates.add(errorState);
     }
+
+    return false;
   }
 
   @Override

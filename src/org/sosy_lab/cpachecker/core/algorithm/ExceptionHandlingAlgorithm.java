@@ -37,6 +37,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
@@ -148,7 +149,11 @@ public class ExceptionHandlingAlgorithm implements Algorithm {
         if (!options.continueAfterInfeasibleError) {
           throw e;
         }
-        status = handleExceptionWithErrorPath(reached, status, e.getErrorPath().getLastState());
+
+        // there can be more than one error path which needs to be handled
+        for (ARGPath errorPath : e.getErrorPaths()) {
+          status = handleExceptionWithErrorPath(reached, status, errorPath.getLastState());
+        }
 
         // Handle failed refinements if specified by the configuration
         // we can do exactly the same as for infeasible counterexamples
