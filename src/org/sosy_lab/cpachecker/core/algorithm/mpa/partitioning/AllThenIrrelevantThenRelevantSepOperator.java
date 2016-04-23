@@ -54,7 +54,7 @@ public class AllThenIrrelevantThenRelevantSepOperator extends PartitioningBudget
   protected TimeSpan firstCpuTime = TimeSpan.ofNanos(-1);
 
   @Option(secure=true, name="second.time.cpu",
-      description="1st partition limit for cpu time used by CPAchecker (use seconds or specify a unit; -1 for infinite)")
+      description="2nd partition limit for cpu time used by CPAchecker (use seconds or specify a unit; -1 for infinite)")
   @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS, defaultUserUnit=TimeUnit.SECONDS, min=-1)
   protected TimeSpan secondCpuTime = TimeSpan.ofNanos(-1);
 
@@ -64,6 +64,8 @@ public class AllThenIrrelevantThenRelevantSepOperator extends PartitioningBudget
   public AllThenIrrelevantThenRelevantSepOperator(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
     super(pConfig, pLogger);
+
+    pConfig.inject(this);
 
     if (firstCpuTime.isEmpty()) {
       firstPartitionBudgeting = getPartitionBudgetingOperator();
