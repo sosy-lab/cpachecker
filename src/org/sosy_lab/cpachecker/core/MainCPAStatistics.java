@@ -28,17 +28,16 @@ import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-
-import javax.management.JMException;
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Multimaps;
+import com.google.common.collect.Multiset;
+import com.google.common.collect.Ordering;
 
 import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
@@ -74,16 +73,19 @@ import org.sosy_lab.cpachecker.util.resources.MemoryStatistics;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
-import com.google.common.collect.HashMultiset;
-import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Multimaps;
-import com.google.common.collect.Multiset;
-import com.google.common.collect.Ordering;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.io.Writer;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+
+import javax.management.JMException;
 
 @Options
 public class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
@@ -100,6 +102,11 @@ public class MainCPAStatistics implements Statistics, AlgorithmIterationListener
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path reachedSetFile = Paths.get("reached.txt");
 
+  @Option(secure=true, name="statistics.iteration.file",
+      description="Dump statistics on the progress of the analysis to...")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path iterationStatsFile = Paths.get("iteration-stats.csv");
+
   @Option(secure=true, name="reachedSet.dot",
       description="print reached set to graph file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -115,6 +122,8 @@ public class MainCPAStatistics implements Statistics, AlgorithmIterationListener
   private final CoverageReport coverageReport;
   private Thread memStatsThread;
 
+  private PrintWriter iterationStatsTarget = null;
+  private int iterationStatsCounter = 0;
   private Collection<IterationStatistics> iterationStats;
 
   private final Timer programTime = new Timer();
@@ -141,6 +150,14 @@ public class MainCPAStatistics implements Statistics, AlgorithmIterationListener
       memStatsThread.start();
     } else {
       memStats = null;
+    }
+
+    if (iterationStatsFile != null) {
+      try {
+        iterationStatsTarget = new PrintWriter(iterationStatsFile.toFile());
+      } catch (FileNotFoundException e) {
+        logger.log(Level.WARNING, "Iteration statistics cannot be opened!", e);
+      }
     }
 
     programTime.start();
@@ -516,6 +533,21 @@ public class MainCPAStatistics implements Statistics, AlgorithmIterationListener
 
     for(IterationStatistics s: iterationStats) {
       s.printIterationStatistics(System.out, pReached);
+    }
+
+    if (iterationStatsTarget != null) {
+      StringBuilder line = new StringBuilder();
+
+      iterationStatsCounter++;
+      line.append(Integer.toString(iterationStatsCounter));
+      line.append("\t");
+      line.append(pReached.size());
+      line.append("\t");
+      line.append(pReached.getWaitlist().size());
+      line.append("\t");
+
+      iterationStatsTarget.println(line.toString());
+      iterationStatsTarget.flush();
     }
   }
 }
