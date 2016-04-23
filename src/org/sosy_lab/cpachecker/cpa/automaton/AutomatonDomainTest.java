@@ -24,13 +24,13 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 import static org.mockito.Mockito.mock;
 
-import java.util.Collections;
+import com.google.common.truth.Truth;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-import com.google.common.truth.Truth;
+import java.util.Collections;
 
 public class AutomatonDomainTest {
 
@@ -62,7 +62,7 @@ public class AutomatonDomainTest {
     Truth.assertThat(dom.isLessOrEqual(inactive, top)).isTrue();
     Truth.assertThat(dom.isLessOrEqual(top, inactive)).isFalse();
 
-    Truth.assertThat(dom.isLessOrEqual(q1, inactive)).isTrue();
+    Truth.assertThat(dom.isLessOrEqual(q1, inactive)).isFalse();
     Truth.assertThat(dom.isLessOrEqual(inactive, q1)).isFalse();
   }
 
