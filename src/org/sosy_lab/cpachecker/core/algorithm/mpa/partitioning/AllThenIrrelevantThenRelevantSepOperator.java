@@ -70,13 +70,13 @@ public class AllThenIrrelevantThenRelevantSepOperator extends PartitioningBudget
     if (firstCpuTime.isEmpty()) {
       firstPartitionBudgeting = getPartitionBudgetingOperator();
     } else {
-      firstPartitionBudgeting = createPartitionBudgetingOperator(firstCpuTime, TimeSpan.empty(), pLogger);
+      firstPartitionBudgeting = createPartitionBudgetingOperator(firstCpuTime, TimeSpan.ofNanos(-1), pLogger);
     }
 
     if (secondCpuTime.isEmpty()) {
       secondPartitionBudgeting = getPartitionBudgetingOperator();
     } else {
-      secondPartitionBudgeting = createPartitionBudgetingOperator(secondCpuTime, TimeSpan.empty(), pLogger);
+      secondPartitionBudgeting = createPartitionBudgetingOperator(secondCpuTime, TimeSpan.ofNanos(-1), pLogger);
     }
   }
 
