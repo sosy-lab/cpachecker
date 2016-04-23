@@ -23,25 +23,25 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.io.Files;
+import com.google.common.truth.Truth;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.cpachecker.cpa.automaton.ReducedAutomatonProduct.ProductState;
+import org.sosy_lab.cpachecker.util.test.TestDataTools;
+
 import java.io.BufferedWriter;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.List;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.io.Paths;
-import org.sosy_lab.cpachecker.cpa.automaton.ReducedAutomatonProduct.ProductState;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.io.Files;
-import com.google.common.truth.Truth;
 
 
 public class ReducedAutomatonProductTest {
@@ -155,6 +155,8 @@ public class ReducedAutomatonProductTest {
 
   @Before
   public void setUp() throws Exception {
+    Configuration config = TestDataTools.configurationForTest().build();
+    pf = new AutomatonSafetyPropertyFactory(config, "dummy");
 
     a1_l1 = newLabelMatchingAutomaton("L1");
     a2_l2 = newLabelMatchingAutomaton("L2");
@@ -168,9 +170,6 @@ public class ReducedAutomatonProductTest {
     a_seq2 = similarPrefixMatchingAutomaton(2);
     a_seq3 = similarPrefixMatchingAutomaton(3);
     a_seq100 = similarPrefixMatchingAutomaton(100);
-
-    Configuration config = Mockito.mock(Configuration.class);
-    pf = new AutomatonSafetyPropertyFactory(config, "");
   }
 
   @Test

@@ -23,20 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-
-import org.sosy_lab.cpachecker.core.interfaces.TrinaryEqualable.Equality;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransition.PlainAutomatonTransition;
-import org.sosy_lab.cpachecker.util.Cartesian;
-
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.LinkedHashMultimap;
@@ -45,6 +33,19 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
+
+import org.sosy_lab.cpachecker.core.interfaces.TrinaryEqualable.Equality;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransition.PlainAutomatonTransition;
+import org.sosy_lab.cpachecker.util.Cartesian;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 
 public final class ReducedAutomatonProduct {
@@ -217,6 +218,9 @@ public final class ReducedAutomatonProduct {
    * @throws InvalidAutomatonException
    */
   public static Automaton productOf(List<Automaton> pAutomata, String pProductAutomataName) throws InvalidAutomatonException {
+    Preconditions.checkNotNull(pAutomata);
+    Preconditions.checkNotNull(pProductAutomataName);
+    Preconditions.checkArgument(pAutomata.size() > 0);
 
     Set<ProductState> productStates = Sets.newHashSet();
 
@@ -297,7 +301,7 @@ public final class ReducedAutomatonProduct {
       }
     }
 
-    return createAutomaton(initialState, productStates, pProductAutomataName);
+    return createAutomaton(pAutomata.get(0).getPropertyFactory(), initialState, productStates, pProductAutomataName);
   }
 
   private static boolean isBottom(ProductState pN) {
@@ -310,6 +314,7 @@ public final class ReducedAutomatonProduct {
   }
 
   private static Automaton createAutomaton(
+      AutomatonSafetyPropertyFactory pPropFactory,
       ProductState pInitialState, Set<ProductState> pProductStates, String pProductAutomataName)
           throws InvalidAutomatonException {
 
@@ -345,7 +350,7 @@ public final class ReducedAutomatonProduct {
       //    The split might (should?) already be part of the input automata!!
     }
 
-    return new Automaton(null, pProductAutomataName,
+    return new Automaton(pPropFactory, pProductAutomataName,
         Maps.<String, AutomatonVariable>newHashMap(),
         automatonStates, initialStateName);
   }
