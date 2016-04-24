@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Sets;
 import com.google.common.math.LongMath;
@@ -39,10 +40,13 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.FormulaTransformationVisitor;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FunctionDeclaration;
+import org.sosy_lab.solver.api.FunctionDeclarationKind;
 import org.sosy_lab.solver.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 import org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor;
@@ -76,6 +80,9 @@ public class RCNFManager implements StatisticsProvider {
       toUppercase=true)
   private BOUND_VARS_HANDLING boundVarsHandling =
       BOUND_VARS_HANDLING.QE_LIGHT_THEN_DROP;
+
+  @Option(secure=true, description="Expand equality atoms")
+  private boolean expandEquality = false;
 
   public enum BOUND_VARS_HANDLING {
 
@@ -270,6 +277,9 @@ public class RCNFManager implements StatisticsProvider {
 
   private Set<BooleanFormula> convert(BooleanFormula input) {
     BooleanFormula factorized = factorize(input);
+    if (expandEquality) {
+      factorized = transformEquality(factorized);
+    }
     Set<BooleanFormula> factorizedLemmas =
         bfmgr.toConjunctionArgs(factorized, true);
     Set<BooleanFormula> out = new HashSet<>();
@@ -280,6 +290,31 @@ public class RCNFManager implements StatisticsProvider {
       out.addAll(expandedLemmas);
     }
     return out;
+  }
+
+  /**
+   * Transform {@code a = b} to {@code a >= b /\ a <= b}.
+   */
+  private BooleanFormula transformEquality(BooleanFormula input) {
+    return fmgr.transformRecursively(new FormulaTransformationVisitor(fmgr) {
+      @Override
+      public Formula visitFunction(
+          Formula f,
+          List<Formula> newArgs,
+          FunctionDeclaration<?> functionDeclaration) {
+        if (functionDeclaration.getKind() == FunctionDeclarationKind.EQ &&
+            fmgr.getFormulaType(newArgs.get(0)).isNumeralType()) {
+          Preconditions.checkState(newArgs.size() == 2);
+          Formula a = newArgs.get(0);
+          Formula b = newArgs.get(1);
+          return bfmgr.and(
+              fmgr.makeGreaterOrEqual(a, b, true),
+              fmgr.makeLessOrEqual(a, b, true)
+          );
+        }
+        return super.visitFunction(f, newArgs, functionDeclaration);
+      }
+    }, input);
   }
 
   private boolean hasBoundVariables(BooleanFormula input) {
