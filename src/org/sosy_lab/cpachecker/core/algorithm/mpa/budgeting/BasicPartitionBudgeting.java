@@ -117,4 +117,22 @@ public class BasicPartitionBudgeting implements PartitionBudgeting {
     return Optional.absent();
   }
 
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+
+    Optional<TimeSpan> ctl = getPartitionCpuTimeLimit(1);
+    Optional<TimeSpan> wtl = getPartitionWallTimeLimit(1);
+
+    if (ctl.isPresent()) {
+      sb.append(String.format("CPU time: %s; ", ctl.toString()));
+    }
+
+    if (wtl.isPresent()) {
+      sb.append(String.format("Wall time: %s; ", wtl.toString()));
+    }
+
+    return sb.toString();
+  }
+
 }

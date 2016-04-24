@@ -97,8 +97,17 @@ public class AllThenIrrelevanceThenRelevantSepOperator extends PartitioningBudge
     }
 
     final Set<Property> maybeIrrelevantToCheck = Sets.difference(pToCheck, PropertyStats.INSTANCE.getRelevantProperties());
+    boolean checkIrrelevance = maybeIrrelevantToCheck.size() > 1;
+    if (checkIrrelevance && lastType.equals(PartitioningStatus.CHECK_IRRELEVANCE)) {
+      // In cases where we already checked the set of properties
+      //  for irrelevance: the fix point was not reached;
+      //  the control flow of the program might be too complex / too huge.
+      if (maybeIrrelevantToCheck.containsAll(pLastCheckedPartitioning.getPartitions().get(0))) {
+        checkIrrelevance = false;
+      }
+    }
 
-    if (maybeIrrelevantToCheck.size() > 1) {
+    if (checkIrrelevance) {
       return create(PartitioningStatus.CHECK_IRRELEVANCE,
           getPropertyBudgetingOperator(),
           secondPartitionBudgeting,

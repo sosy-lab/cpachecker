@@ -35,6 +35,7 @@ import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 
 import org.sosy_lab.common.Classes;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -136,9 +137,11 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
 
   private Optional<PropertySummary> lastRunPropertySummary = Optional.absent();
   private ResourceLimitChecker reschecker = null;
+  private ShutdownNotifier globalShutdownManager;
 
   public MultiPropertyAnalysis(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
-    Configuration pConfig, LogManager pLogger, InterruptProvider pShutdownNotifier, CFA pCfa)
+    Configuration pConfig, LogManager pLogger, ShutdownNotifier pGlobalShutdownNotifier,
+    InterruptProvider pShutdownNotifier, CFA pCfa)
       throws InvalidConfigurationException, CPAException {
 
     pConfig.inject(this);
@@ -156,6 +159,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
     initOperator = createInitOperator();
     partitionOperator = createPartitioningOperator(pConfig, pLogger);
     interruptNotifier = pShutdownNotifier;
+    globalShutdownManager = pGlobalShutdownNotifier;
   }
 
   private InitOperator createInitOperator() throws CPAException, InvalidConfigurationException {
@@ -370,7 +374,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
           }
         }
 
-        interruptNotifier.canInterrupt();
+        globalShutdownManager.shutdownIfNecessary();
 
         // ASSUMPTION:
         //    The wrapped algorithm immediately returns
@@ -489,7 +493,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
           initAndStartLimitChecker(checkPartitions, checkPartitions.getPartitionBudgeting());
         }
 
-        interruptNotifier.canInterrupt();
+        globalShutdownManager.shutdownIfNecessary();
 
         // Run as long as...
         //  ... (1) the fixpoint has not been reached
