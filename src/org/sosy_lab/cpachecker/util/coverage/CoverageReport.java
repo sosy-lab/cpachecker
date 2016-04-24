@@ -27,11 +27,9 @@ import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.EXTRACT_LOCATION;
 
-import java.io.PrintStream;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Multiset;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -53,9 +51,11 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-import com.google.common.collect.HashMultiset;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Multiset;
+import java.io.PrintStream;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Class responsible for extracting coverage information from ReachedSet and CFA
@@ -71,15 +71,21 @@ public class CoverageReport {
 
   private final Collection<CoverageWriter> reportWriters;
 
+  private void registerWriterIfEnabled(CoverageWriter pReportWriter) {
+    if (pReportWriter.isEnabled()) {
+      this.reportWriters.add(pReportWriter);
+    }
+  }
+
   public CoverageReport(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
 
     pConfig.inject(this);
 
     this.reportWriters = Lists.newArrayList();
-    this.reportWriters.add(new CoverageReportGcov(pConfig, pLogger));
-    this.reportWriters.add(new CoverageReportStdoutSummary(pConfig));
 
+    registerWriterIfEnabled(new CoverageReportGcov(pConfig, pLogger));
+    registerWriterIfEnabled(new CoverageReportStdoutSummary(pConfig));
   }
 
   public void writeCoverageReport(
@@ -87,7 +93,7 @@ public class CoverageReport {
       final ReachedSet pReached,
       final CFA pCfa) {
 
-    if (!enabled) {
+    if (!enabled || reportWriters.isEmpty()) {
       return;
     }
 

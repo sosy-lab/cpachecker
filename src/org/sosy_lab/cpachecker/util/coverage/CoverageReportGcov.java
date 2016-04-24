@@ -23,12 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.coverage;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.util.Map;
-import java.util.logging.Level;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -39,6 +33,12 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.coverage.FileCoverageInformation.FunctionInfo;
+
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.util.Map;
+import java.util.logging.Level;
 
 /**
  * Generate coverage information in Gcov format
@@ -76,9 +76,14 @@ class CoverageReportGcov implements CoverageWriter {
   }
 
   @Override
+  public boolean isEnabled() {
+    return exportCoverage && outputCoverageFile != null;
+  }
+
+  @Override
   public void write(Map<String, FileCoverageInformation> pCoverage, PrintStream pStdOut) {
 
-    if (!exportCoverage || (outputCoverageFile == null)) {
+    if (!isEnabled()) {
       return;
     }
 

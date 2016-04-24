@@ -29,6 +29,8 @@ import java.util.Map;
 
 public interface CoverageWriter {
 
+  boolean isEnabled();
+
   void write(Map<String, FileCoverageInformation> pCoverage, PrintStream pOut);
 
 }

@@ -23,14 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.coverage;
 
-import java.io.PrintStream;
-import java.util.Map;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
+
+import java.io.PrintStream;
+import java.util.Map;
 
 @Options
 class CoverageReportStdoutSummary implements CoverageWriter {
@@ -45,9 +45,14 @@ class CoverageReportStdoutSummary implements CoverageWriter {
   }
 
   @Override
+  public boolean isEnabled() {
+    return enabled;
+  }
+
+  @Override
   public void write(Map<String, FileCoverageInformation> pCoverage, PrintStream pStdOut) {
 
-    if (!enabled) {
+    if (!isEnabled()) {
       return;
     }
 
