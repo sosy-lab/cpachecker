@@ -2530,6 +2530,9 @@ properties = []
 rcnf.boundVarsHandling = QE_LIGHT_THEN_DROP
   enum:     [QE_LIGHT_THEN_DROP, QE, DROP]
 
+# Expand equality atoms
+rcnf.expandEquality = false
+
 # Limit on the size of the resulting number of lemmas from the explicit
 # expansion
 rcnf.expansionResultSizeLimit = 100
