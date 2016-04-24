@@ -1576,6 +1576,25 @@ public class FormulaManagerView {
   }
 
   /**
+   * Visit the formula recursively with a given {@link FormulaVisitor}.
+   *
+   * <p>This method guarantees that the traversal is done iteratively,
+   * without using Java recursion, and thus is not prone to StackOverflowErrors.
+   *
+   * <p>Furthermore, this method also guarantees that every equal part of the formula
+   * is visited only once. Thus it can be used to traverse DAG-like formulas efficiently.
+   *
+   * @param pFormulaVisitor Transformation described by the user.
+   */
+  public <T extends Formula> T transformRecursively(
+      FormulaTransformationVisitor pFormulaVisitor,
+      T f) {
+    @SuppressWarnings("unchecked")
+    T out = (T) manager.transformRecursively(pFormulaVisitor, unwrap(f));
+    return out;
+  }
+
+  /**
    * Replace all literals in {@code input} which do not satisfy {@code toKeep}
    * with {@code true}.
    */
@@ -1614,5 +1633,16 @@ public class FormulaManagerView {
   public BooleanFormula translateFrom(BooleanFormula other,
                                       FormulaManagerView otherManager) {
     return manager.translateFrom(other, otherManager.manager);
+  }
+
+  /**
+   * View wrapper for {@link #transformRecursively}.
+   */
+  public static class FormulaTransformationVisitor
+      extends org.sosy_lab.solver.visitors.FormulaTransformationVisitor {
+
+    protected FormulaTransformationVisitor(FormulaManagerView fmgr) {
+      super(fmgr.manager);
+    }
   }
 }
