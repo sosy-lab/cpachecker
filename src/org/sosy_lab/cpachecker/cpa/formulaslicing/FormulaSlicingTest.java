@@ -4,6 +4,7 @@ package org.sosy_lab.cpachecker.cpa.formulaslicing;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.truth.TruthJUnit;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -30,6 +31,20 @@ public class FormulaSlicingTest {
   public WEAKENING_STRATEGY weakeningStrategy;
 
   private static final String TEST_DIR_PATH = "test/programs/formulaslicing/";
+
+  @Test public void expand_equality_true_assert() throws Exception {
+    TruthJUnit.assume().that(weakeningStrategy).isNotEqualTo
+        (WEAKENING_STRATEGY.SYNTACTIC);
+    check("expand_equality_true_assert.c", ImmutableMap.of(
+        "rcnf.expandEquality", "true"
+    ));
+  }
+
+  @Test public void expand_equality_false_assert() throws Exception {
+    check("expand_equality_false_assert.c", ImmutableMap.of(
+        "rcnf.expandEquality", "true"
+    ));
+  }
 
   @Test public void simplest_true_assert() throws Exception {
     check("simplest_true_assert.c");
@@ -110,7 +125,6 @@ public class FormulaSlicingTest {
         .put("cpa.predicate.ignoreIrrelevantVariables", "false")
         .put("cpa.loopstack.loopIterationsBeforeAbstraction", "1")
         .put("cfa.findLiveVariables", "true")
-
         .put("cpa.slicing.weakeningStrategy", weakeningStrategy.toString())
         .put("log.consoleLevel", "INFO")
         .build());
