@@ -656,9 +656,6 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
       // Delegate the initialization of the set reached (and the waitlist) to the init operator
       result = initOperator.init(pAllProperties, partitionCPA, pReachedSet, pCheckPartitions, cfa);
 
-      logger.log(Level.WARNING, String.format("%d states in reached.", pReachedSet.size()));
-      logger.log(Level.WARNING, String.format("%d states in waitlist.", pReachedSet.getWaitlist().size()));
-
       // Logging: inactive properties
       Set<Property> inactive = getInactiveProperties(pReachedSet);
       Set<Property> active = getActiveProperties(pReachedSet);
