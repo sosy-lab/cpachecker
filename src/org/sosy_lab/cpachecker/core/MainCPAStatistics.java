@@ -101,6 +101,10 @@ public class MainCPAStatistics implements Statistics, AlgorithmIterationListener
       description="print detailed statistics on the reached set?")
   private boolean reachedSetStatistics = true;
 
+  @Option(secure=true, name="cfa.printDetailedStatistics",
+      description="print detailed statistics on the reached set?")
+  private boolean cfaStatistics = false;
+
   @Option(secure=true, name="reachedSet.file",
       description="print reached set to text file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -278,7 +282,9 @@ public class MainCPAStatistics implements Statistics, AlgorithmIterationListener
     out.println("CPAchecker general statistics");
     out.println("-----------------------------");
 
-    printCfaStatistics(out);
+    if (cfaStatistics) {
+      printCfaStatistics(out);
+    }
 
     if (result != Result.NOT_YET_STARTED) {
       try {
