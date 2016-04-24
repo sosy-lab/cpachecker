@@ -27,9 +27,6 @@ import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.EXTRACT_LOCATION;
 
-import java.io.PrintStream;
-import java.util.Set;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -51,6 +48,9 @@ import org.sosy_lab.cpachecker.cpa.coverage.CoverageData.CoverageCountMode;
 import org.sosy_lab.cpachecker.cpa.coverage.CoverageData.CoverageMode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
+
+import java.io.PrintStream;
+import java.util.Set;
 
 @Options
 public class CoverageStatistics extends AbstractStatistics {
@@ -84,6 +84,10 @@ public class CoverageStatistics extends AbstractStatistics {
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+
+    if (!(writeToStdout || writeToFile)) {
+      return;
+    }
 
     if (cov.getCoverageMode() == CoverageMode.REACHED) {
       computeCoverageFromReached(pReached);
