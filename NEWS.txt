@@ -5,6 +5,10 @@ Changes since CPAchecker 1.4
   that derives numerical invariants from linear templates
   with policy iteration in an efficient manner.
 
+* Formula Slicing Analysis
+  A new analysis was developed for CPAchecker that derives inductive invariants
+  from loop-free traces from the analyzed program.
+
 * Refinement Selection
   The value analysis and the predicate analysis can now use
   refinement selection for choosing well-suited ways to refine
