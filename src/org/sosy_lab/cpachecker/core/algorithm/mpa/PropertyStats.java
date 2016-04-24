@@ -68,10 +68,11 @@ public enum PropertyStats implements Statistics {
     refinementTime.clear();
     coverageCount.clear();
     noCoverageCount.clear();
-    relevantProperties.clear();
     loopRelatedPredicates.clear();
     loopUnrelatedPredicates.clear();
     allPredicates.clear();
+
+    // Do not reset 'relevantProperties'!!!
   }
 
   private final Comparator<Property> propertyRefinementComparator = new Comparator<Property>() {

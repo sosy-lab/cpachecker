@@ -659,9 +659,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
       Set<Property> inactive = getInactiveProperties(pReachedSet);
       Set<Property> active = getActiveProperties(pReachedSet);
       logger.log(Level.WARNING, String.format("Waitlist with %d active (%d inactive) properties.", active.size(), inactive.size()));
-      for (Property p: inactive) {
-        logger.logf(Level.WARNING, "INACTIVE: %s", p.toString());
-      }
+      logger.logf(Level.WARNING, "Inactive properties: %s", inactive.toString());
     }
 
     return result;
