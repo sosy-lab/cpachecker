@@ -233,7 +233,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
 
       // create path with all abstraction location elements (excluding the initial element)
       // the last element is the element corresponding to the error location
-      final List<ARGState> abstractionStatesTrace = transformPath(allStatesTrace);
+      final List<ARGState> abstractionStatesTrace = filterAbstractionStates(allStatesTrace);
       totalPathLength.setNextValue(abstractionStatesTrace.size());
 
       logger.log(Level.ALL, "Abstraction trace is", abstractionStatesTrace);
@@ -460,7 +460,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     return !prefixPreference.equals(PrefixSelector.NO_SELECTION);
   }
 
-  static List<ARGState> transformPath(ARGPath pPath) {
+  static List<ARGState> filterAbstractionStates(ARGPath pPath) {
     List<ARGState> result = from(pPath.asStatesList())
       .skip(1)
       .filter(Predicates.compose(PredicateAbstractState.FILTER_ABSTRACTION_STATES,

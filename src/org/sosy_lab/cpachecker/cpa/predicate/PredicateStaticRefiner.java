@@ -212,7 +212,7 @@ public class PredicateStaticRefiner extends StaticRefiner
 
     // create path with all abstraction location elements (excluding the initial element)
     // the last element is the element corresponding to the error location
-    final List<ARGState> abstractionStatesTrace = PredicateCPARefiner.transformPath(allStatesTrace);
+    final List<ARGState> abstractionStatesTrace = PredicateCPARefiner.filterAbstractionStates(allStatesTrace);
     final List<BooleanFormula> formulas =
         blockFormulaStrategy.getFormulasForPath(
             allStatesTrace.getFirstState(), abstractionStatesTrace);
