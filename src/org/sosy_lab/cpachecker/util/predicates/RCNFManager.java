@@ -124,6 +124,7 @@ public class RCNFManager implements StatisticsProvider {
   public Set<BooleanFormula> toLemmas(BooleanFormula input) throws InterruptedException {
     Set<BooleanFormula> out = conversionCache.get(input);
     if (out != null) {
+      statistics.conversionCacheHits++;
       return out;
     }
 
@@ -361,6 +362,7 @@ public class RCNFManager implements StatisticsProvider {
     Timer lightQuantifierElimination = new Timer();
     Timer quantifierElimination = new Timer();
     Timer conversion = new Timer();
+    int conversionCacheHits = 0;
 
     @Override
     public void printStatistics(
@@ -378,12 +380,14 @@ public class RCNFManager implements StatisticsProvider {
     }
 
     private void printTimer(PrintStream out, Timer t, String name) {
-      out.printf("Time spent in %s: %s (Max: %s), (Avg: %s), (#intervals = %s)%n",
+      out.printf("Time spent in %s: %s (Max: %s), (Avg: %s), (#calls = %s), "
+          + "(#cached = %d) %n",
           name,
           t.getSumTime().formatAs(TimeUnit.SECONDS),
           t.getMaxTime().formatAs(TimeUnit.SECONDS),
           t.getAvgTime().formatAs(TimeUnit.SECONDS),
-          t.getNumberOfIntervals());
+          t.getNumberOfIntervals(),
+          conversionCacheHits);
     }
   }
 }
