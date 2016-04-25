@@ -117,7 +117,7 @@ public class AllThenIrrelevanceThenRelevantSepOperator extends PartitioningBudge
     return create(PartitioningStatus.ONE_FOR_EACH,
         InfinitePropertyBudgeting.INSTANCE,
         getPartitionBudgetingOperator(),
-        singletonPartitions(pToCheck, pPropertyExpenseComparator));
+        singletonPartitions(PropertyStats.INSTANCE.getRelevantProperties(), pPropertyExpenseComparator));
 
   }
 
