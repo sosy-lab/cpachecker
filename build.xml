@@ -195,7 +195,7 @@
                 excludes="lib/ivy*"
                 prefix="${namet}/"/>
             <tarfileset dir="scripts"
-                includes="*.* benchmark/**"
+                includes="*.* benchmark/** generate-report-with-graphs/**"
                 excludes="*.bat *.sh *.py"
                 prefix="${namet}/scripts/"/>
             <tarfileset dir="." filemode="755"
