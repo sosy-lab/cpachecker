@@ -23,24 +23,17 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
-import java.math.BigInteger;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.TreeSet;
-
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
-import org.sosy_lab.solver.AssignableTerm;
+
+import java.util.List;
 
 
 public class TestCase {
 
   private int id;
-  private List<BigInteger> inputs;
-  private Pair<TreeSet<Entry<AssignableTerm, Object>>, TreeSet<Entry<AssignableTerm, Object>>> inputsAndOutputs;
   private List<TestStep> testSteps;
   private ARGPath argPath;
   private List<CFAEdge> errorPath;
@@ -51,8 +44,7 @@ public class TestCase {
   private int numberOfNewlyPartiallyCoveredGoals;
 
   public TestCase(int pId, List<TestStep> pTestSteps, ARGPath pArgPath, List<CFAEdge> pList, Region pPresenceCondition,
-      NamedRegionManager pBddCpaNamedRegionManager, long pGenerationTime, List<BigInteger> pInputs,
-      Pair<TreeSet<Entry<AssignableTerm, Object>>, TreeSet<Entry<AssignableTerm, Object>>> pInputsAndOutputs) {
+      NamedRegionManager pBddCpaNamedRegionManager, long pGenerationTime) {
     id = pId;
     testSteps = pTestSteps;
     argPath = pArgPath;
@@ -60,8 +52,6 @@ public class TestCase {
     bddCpaNamedRegionManager = pBddCpaNamedRegionManager;
     presenceCondition = pPresenceCondition;
     generationTime = pGenerationTime;
-    inputs = pInputs;
-    inputsAndOutputs = pInputsAndOutputs;
   }
 
   public int getId() {
@@ -104,22 +94,14 @@ public class TestCase {
     numberOfNewlyPartiallyCoveredGoals++;
   }
 
-  public List<BigInteger> getInputs() {
-    return inputs;
-  }
-
-  public Pair<TreeSet<Entry<AssignableTerm, Object>>, TreeSet<Entry<AssignableTerm, Object>>> getInputsAndOutputs() {
-    return inputsAndOutputs;
-  }
-
   public String toCode() {
     String str = "int input() {\n  static int index = 0;\n  switch (index) {\n";
 
-    int index = 0;
-    for (BigInteger input : inputs) {
-      str += "  case " + index + ":\n    index++;\n    return " + input + ";\n";
-      index++;
-    }
+//    int index = 0;
+//    for (BigInteger input : inputs) {
+//      str += "  case " + index + ":\n    index++;\n    return " + input + ";\n";
+//      index++;
+//    }
 
     str += "  default:\n    return 0;\n  }\n}\n";
 
@@ -128,7 +110,7 @@ public class TestCase {
 
   @Override
   public String toString() {
-    String returnStr = inputs.toString();
+    String returnStr = testSteps.toString();
 
     if (presenceCondition != null) {
       returnStr += " with configurations " + bddCpaNamedRegionManager.dumpRegion(getPresenceCondition());
@@ -141,7 +123,7 @@ public class TestCase {
   public boolean equals(Object o) {
     if (o instanceof TestCase) {
       TestCase other = (TestCase) o;
-      return (id == other.getId()) && (inputs.equals(other.inputs) && errorPath.equals(other.errorPath)
+      return (id == other.getId()) && (testSteps.equals(other.testSteps) && errorPath.equals(other.errorPath)
           && (presenceCondition != null ? presenceCondition.equals(other.getPresenceCondition()) : true));
     }
 
@@ -150,7 +132,7 @@ public class TestCase {
 
   @Override
   public int hashCode() {
-    return 38495 + 33 * inputs.hashCode() + 13 * errorPath.hashCode()
+    return 38495 + 33 * testSteps.hashCode() + 13 * errorPath.hashCode()
         + (presenceCondition != null ? 25 * presenceCondition.hashCode() : 0);
   }
 

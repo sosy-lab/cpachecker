@@ -27,30 +27,93 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.util.Pair;
-
 public class TestStep {
 
-  protected List<Pair<String,BigInteger>> variables;
+  public enum AssignmentType {
+    INPUT,
+    OUTPUT
+  }
+
+  public static class VariableAssignment {
+
+    private String variableName;
+    private BigInteger value;
+    private AssignmentType type;
+
+
+    public VariableAssignment(String pVariableName, BigInteger pValue, AssignmentType pType) {
+      setVariableName(pVariableName);
+      setValue(pValue);
+      setType(pType);
+    }
+
+    public String getVariableName() {
+      return variableName;
+    }
+
+    private void setVariableName(String pVariableName) {
+      variableName = pVariableName;
+    }
+
+    public BigInteger getValue() {
+      return value;
+    }
+
+    private void setValue(BigInteger pValue) {
+      value = pValue;
+    }
+
+    public AssignmentType getType() {
+      return type;
+    }
+
+    private void setType(AssignmentType pType) {
+      type = pType;
+    }
+
+    @Override
+    public String toString() {
+      String str = "";
+      if (getType() == AssignmentType.INPUT) {
+        str += "-> ";
+      } else if (getType() == AssignmentType.OUTPUT) {
+        str += "<- ";
+      }
+      str += getVariableName() + " = " + getValue();
+
+      return str;
+    }
+
+    @Override
+    public int hashCode() {
+      return 64248 + 34 * variableName.hashCode() + 13 * value.hashCode() + 29 * type.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (o instanceof VariableAssignment) {
+        VariableAssignment other = (VariableAssignment) o;
+        return variableName.equals(other.getVariableName()) && value.equals(other.getValue())
+            && type == other.getType();
+      }
+
+      return false;
+    }
+
+  }
+
+  protected List<VariableAssignment> assignments;
 
   public TestStep() {
-    variables = new ArrayList<>();
+    assignments = new ArrayList<>();
   }
 
-  public class InputStep extends TestStep {
-
-    public void addInput(String variable, BigInteger value) {
-      variables.add(Pair.of(variable, value));
-    }
-
+  public void addAssignment(VariableAssignment assignment) {
+    assignments.add(assignment);
   }
 
-  public class OutputStep extends TestStep {
-
-    public void addOutput(String variable, BigInteger value) {
-      variables.add(Pair.of(variable, value));
-    }
-
+  public List<VariableAssignment> getAssignments() {
+    return assignments;
   }
 
   @Override
@@ -58,11 +121,16 @@ public class TestStep {
     StringBuilder builder = new StringBuilder();
     builder.append("[");
 
-    for (Pair<String, BigInteger> variable : variables) {
-      builder.append(variable.getFirst());
-      builder.append("=");
-      builder.append(variable.getSecond());
-      builder.append(",");
+    for (VariableAssignment assignment : assignments) {
+      if (assignment.getType() == AssignmentType.INPUT) {
+        builder.append("->");
+      } else if (assignment.getType() == AssignmentType.OUTPUT) {
+        builder.append("<-");
+      }
+      builder.append(assignment.getVariableName());
+      builder.append(" = ");
+      builder.append(assignment.getValue());
+      builder.append(", ");
     }
     int index = builder.lastIndexOf(",");
     builder.replace(index, index + 1, "");
@@ -70,6 +138,21 @@ public class TestStep {
     builder.append("]");
 
     return builder.toString();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o instanceof TestStep) {
+      TestStep other = (TestStep) o;
+      return assignments.equals(other.getAssignments());
+    }
+
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    return 64248 + 34 * assignments.hashCode();
   }
 
 }

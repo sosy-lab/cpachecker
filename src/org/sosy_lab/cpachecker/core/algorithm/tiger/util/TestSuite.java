@@ -32,10 +32,10 @@ import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering.InfeasibilityPropagation.Prediction;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestStep.VariableAssignment;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
-import org.sosy_lab.solver.AssignableTerm;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -47,7 +47,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.TreeSet;
 
 public class TestSuite extends AlgorithmResult {
 
@@ -248,28 +247,17 @@ public class TestSuite extends AlgorithmResult {
 
     for (TestCase testcase : testcases) {
       str.append(testcase.toString() + "\n");
-      Pair<TreeSet<Entry<AssignableTerm, Object>>, TreeSet<Entry<AssignableTerm, Object>>> inputsAndOutputs =
-          testcase.getInputsAndOutputs();
-      if (inputsAndOutputs != null) {
-        TreeSet<Entry<AssignableTerm, Object>> inputs = inputsAndOutputs.getFirst();
-        if (inputs != null) {
-          str.append("Inputs:\n");
-          Collection<Entry<AssignableTerm, Object>> lastInputs = getLastAssignments(inputs);
-          for (Entry<AssignableTerm, Object> input : lastInputs) {
-            Pair<String, Integer> nameAndSsaIndex = parseVariableName(input.getKey().getName());
-            str.append(nameAndSsaIndex.getFirst() + ": " + input.getValue() + "\n");
-          }
-        }
-        TreeSet<Entry<AssignableTerm, Object>> outputs = inputsAndOutputs.getSecond();
-        if (outputs != null) {
-          str.append("Outputs:\n");
-          Collection<Entry<AssignableTerm, Object>> lastOutputs = getLastAssignments(outputs);
-          for (Entry<AssignableTerm, Object> output : lastOutputs) {
-            Pair<String, Integer> nameAndSsaIndex = parseVariableName(output.getKey().getName());
-            str.append(nameAndSsaIndex.getFirst() + ": " + output.getValue() + "\n");
-          }
+
+      List<TestStep> testSteps = testcase.getTestSteps();
+      int cnt = 0;
+      str.append("Test Steps:\n");
+      for (TestStep testStep : testSteps) {
+        str.append("  Test Step " + cnt + "\n");
+        for (VariableAssignment assignment : testStep.getAssignments()) {
+          str.append("    " + assignment + "\n");
         }
       }
+
       List<CFAEdge> errorPath = testcase.getErrorPath();
       if (testcase.getGenerationTime() != -1) {
         str.append("Generation Time: " + (testcase.getGenerationTime() - getGenerationStartTime()) + "\n");
@@ -349,25 +337,6 @@ public class TestSuite extends AlgorithmResult {
     return str.toString().replace("__SELECTED_FEATURE_", "");
   }
 
-  private Collection<Entry<AssignableTerm, Object>> getLastAssignments(
-      TreeSet<Entry<AssignableTerm, Object>> pInputs) {
-    Map<String,Entry<AssignableTerm, Object>> assignments = new HashMap<>();
-    for (Entry<AssignableTerm, Object> entry : pInputs) {
-      Entry<AssignableTerm, Object> containingVariable =
-          assignments.get(parseVariableName(entry.getKey().getName()).getFirst());
-      if (containingVariable == null) {
-        assignments.put(parseVariableName(entry.getKey().getName()).getFirst(), entry);
-      } else {
-        if (parseVariableName(containingVariable.getKey().getName())
-            .getSecond() < parseVariableName(entry.getKey().getName()).getSecond()) {
-          assignments.put(parseVariableName(entry.getKey().getName()).getFirst(), entry);
-        }
-      }
-    }
-
-    return assignments.values();
-  }
-
   public Pair<String, Integer> parseVariableName(String name) {
     String variableName;
     if (name.contains("::")) {
@@ -382,9 +351,6 @@ public class TestSuite extends AlgorithmResult {
 
   /**
    * Returns the label of a test goal if there is one; otherwise the goal index will be returned.
-   *
-   * @param goal
-   * @return
    */
   public String getTestGoalLabel(Goal goal) {
     String label = "";

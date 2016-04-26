@@ -44,6 +44,8 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
@@ -70,12 +72,13 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.util.PrecisionCallback;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestGoalUtils;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestStep;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestStep.AssignmentType;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestStep.VariableAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.ThreeValuedAnswer;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WorkerRunnable;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WorklistEntryComparator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.Wrapper;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WrapperUtil;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.RichModel;
@@ -93,7 +96,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPathExporter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
@@ -121,7 +123,6 @@ import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.NoTimeMeasurement;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.StatCpuTimer;
-import org.sosy_lab.solver.AssignableTerm;
 
 import java.io.BufferedWriter;
 import java.io.FileOutputStream;
@@ -171,18 +172,23 @@ public class TigerAlgorithm
 
     public TigerStatistics() {
       super();
-      addKeyValueStatistic("        Time for checking acceptance", acceptsTime);
-      addKeyValueStatistic("      Time for updating the test coverage", updateTestsuiteByCoverageOfTime);
-      addKeyValueStatistic("      Time for creating a test case", createTestcaseTime);
-      addKeyValueStatistic("    Time for adding a test to the suite", addTestToSuiteTime);
-      addKeyValueStatistic("    Time for restricting the BDD", restrictBddTime);
-      addKeyValueStatistic("    Time for handling infeasible goals", handleInfeasibleTestGoalTime);
-      addKeyValueStatistic("    Time for running the CPA algorithm with limit", runAlgorithmWithLimitTime);
-      addKeyValueStatistic("  Time for running the CPA algorithm", runAlgorithmTime);
-      addKeyValueStatistic("  Time for initializing the algorithm", initializeAlgorithmTime);
-      addKeyValueStatistic("  Time for initializing the reached set", initializeReachedSetTime);
-      addKeyValueStatistic("  Time for composing the CPA", composeCPATime);
-      addKeyValueStatistic("Time for test generation", testGenerationTime);
+    }
+
+    @Override
+    public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+      super.printStatistics(pOut, pResult, pReached);
+      pOut.append("Time for test generation " + testGenerationTime + "\n");
+      pOut.append("  Time for composing the CPA " + composeCPATime + "\n");
+      pOut.append("  Time for initializing the reached set " + initializeReachedSetTime + "\n");
+      pOut.append("  Time for initializing the algorithm " + initializeAlgorithmTime + "\n");
+      pOut.append("  Time for running the CPA algorithm " + runAlgorithmTime + "\n");
+      pOut.append("    Time for running the CPA algorithm with limit " + runAlgorithmWithLimitTime + "\n");
+      pOut.append("    Time for handling infeasible goals " + handleInfeasibleTestGoalTime + "\n");
+      pOut.append("    Time for restricting the BDD " + restrictBddTime + "\n");
+      pOut.append("    Time for adding a test to the suite " + addTestToSuiteTime + "\n");
+      pOut.append("      Time for creating a test case " + createTestcaseTime + "\n");
+      pOut.append("      Time for updating the test coverage " + updateTestsuiteByCoverageOfTime + "\n");
+      pOut.append("        Time for checking acceptance " + acceptsTime + "\n");
     }
 
   }
@@ -1182,8 +1188,6 @@ public class TigerAlgorithm
 
         CoreComponentsFactory coreFactory = new CoreComponentsFactory(internalConfiguration, logger, algNotifier.getNotifier());
 
-        ARGPathExporter argPathExporter = new ARGPathExporter(config, logger, cfa.getMachineModel(), cfa.getLanguage());
-
         algorithm = coreFactory.createAlgorithm(lARTCPA, programDenotation, cfa, stats);
 
         if (algorithm instanceof CEGARAlgorithm) {
@@ -1271,11 +1275,7 @@ public class TigerAlgorithm
     try (StatCpuTimer t = tigerStats.createTestcaseTime.start()) {
 
       final RichModel model = pCex.getTargetPathModel();
-      final List<BigInteger> inputValues = calculateInputValues(model);
-//      final Pair<TreeSet<Entry<AssignableTerm, Object>>, TreeSet<Entry<AssignableTerm, Object>>> inputsAndOutputs = calculateInputAndOutputValues(model);
-      final Pair<TreeSet<Entry<AssignableTerm, Object>>, TreeSet<Entry<AssignableTerm, Object>>> inputsAndOutputs = null;
-//      final List<TestStep> testSteps = calculateTestSteps(model, pCex);
-      final List<TestStep> testSteps = null;
+      final List<TestStep> testSteps = calculateTestSteps(model);
 
       TestCase testcase = new TestCase(testCaseId++,
           testSteps,
@@ -1283,9 +1283,7 @@ public class TigerAlgorithm
           pCex.getTargetPath().getInnerEdges(),
           pPresenceCondition,
           bddCpaNamedRegionManager,
-          getCpuTime(),
-          inputValues,
-          inputsAndOutputs);
+          getCpuTime());
 
       if (useTigerAlgorithm_with_pc) {
         logger.logf(Level.INFO, "Generated new test case %d with a PC in the last state.", testcase.getId());
@@ -1297,43 +1295,55 @@ public class TigerAlgorithm
     }
   }
 
-  private List<TestStep> calculateTestSteps(RichModel pModel, CounterexampleInfo pCex) {
+  private List<TestStep> calculateTestSteps(RichModel pModel) {
     List<TestStep> testSteps = new ArrayList<>();
 
-    Map<ARGState, CFAEdgeWithAssumptions> x = pModel.getExactVariableValues(pCex.getTargetPath());
+    boolean lastValueWasOuput = true;
+    TestStep curStep = null;
 
     CFAPathWithAssumptions path = pModel.getCFAPathWithAssignments();
-    for (CFAEdgeWithAssumptions cfaEdgeWithAssumptions : path) {
-    }
 
-    for (Entry<AssignableTerm, Object> e : pModel.entrySet()) {
-      if (e.getKey() instanceof AssignableTerm.Variable) {
-        AssignableTerm.Variable v = (AssignableTerm.Variable) e.getKey();
+    for (CFAEdgeWithAssumptions edge : path) {
+      List<AExpressionStatement> expStmts = edge.getExpStmts();
+      for (AExpressionStatement expStmt : expStmts) {
+        if (expStmt.getExpression() instanceof CBinaryExpression) {
+          CBinaryExpression exp = (CBinaryExpression) expStmt.getExpression();
 
-        if (v.getName().startsWith(WrapperUtil.CPAtiger_INPUT + "::__retval__")) {
+          if (inputVariables.contains(exp.getOperand1().toString())) {
+            if (lastValueWasOuput) {
+              if (curStep != null) {
+                testSteps.add(curStep);
+              }
+              curStep = new TestStep();
+            }
+
+            String variableName = exp.getOperand1().toString();
+            BigInteger value = new BigInteger(exp.getOperand2().toString());
+            VariableAssignment input = new VariableAssignment(variableName, value, AssignmentType.INPUT);
+            curStep.addAssignment(input);
+
+            lastValueWasOuput = false;
+          } else if (outputVariables.contains(exp.getOperand1().toString())) {
+            if (curStep == null) {
+              curStep = new TestStep();
+            }
+
+            String variableName = exp.getOperand1().toString();
+            BigInteger value = new BigInteger(exp.getOperand2().toString());
+            VariableAssignment input = new VariableAssignment(variableName, value, AssignmentType.OUTPUT);
+            curStep.addAssignment(input);
+
+            lastValueWasOuput = true;
+          }
         }
       }
     }
 
-    //    for (Entry<AssignableTerm, Object> e : model.entrySet()) {
-    //      if (e.getKey() instanceof AssignableTerm.Variable) {
-    //        AssignableTerm.Variable v = (AssignableTerm.Variable) e.getKey();
-    //
-    //        if (v.getName().startsWith(WrapperUtil.CPAtiger_INPUT + "::__retval__")) {
-    //          inputs.add(e);
-    //        }
-    //      }
-    //    }
-    //
-    //    List<BigInteger> inputValues = new ArrayList<>(inputs.size());
-    //
-    //    for (Entry<AssignableTerm, Object> e : inputs) {
-    //      //assert e.getValue() instanceof BigInteger;
-    //      //inputValues.add((BigInteger)e.getValue());
-    //      inputValues.add(new BigInteger(e.getValue().toString()));
-    //    }
+    if (curStep != null) {
+      testSteps.add(curStep);
+    }
 
-    return null;
+    return testSteps;
   }
 
   private void handleInfeasibleTestGoal(Goal pGoal, Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation) {
@@ -1389,114 +1399,6 @@ public class TigerAlgorithm
         }
       }
     }
-  }
-
-  private Pair<String, Integer> extractSsaComponents(final String pIndexedName) {
-    String[] comps = pIndexedName.split("@");
-
-    Preconditions.checkArgument(comps.length == 2);
-
-    String variableName = comps[0];
-    Integer ssaIndex = Integer.parseInt(comps[1]);
-
-    return Pair.of(variableName, ssaIndex);
-  }
-
-  private List<BigInteger> calculateInputValues(RichModel model) {
-    Comparator<Map.Entry<AssignableTerm, Object>> comp =
-        new Comparator<Map.Entry<AssignableTerm, Object>>() {
-
-          @Override
-          public int compare(Entry<AssignableTerm, Object> pArg0, Entry<AssignableTerm, Object> pArg1) {
-
-            assert pArg0.getKey() instanceof AssignableTerm.Variable;
-            assert pArg1.getKey() instanceof AssignableTerm.Variable;
-
-            Pair<String, Integer> argOneSsaComps = extractSsaComponents(pArg0.getKey().getName());
-            Pair<String, Integer> argTwoSsaComps = extractSsaComponents(pArg1.getKey().getName());
-
-            assert argOneSsaComps.getFirst().equals(argTwoSsaComps.getFirst());
-
-            return argOneSsaComps.getSecond() - argTwoSsaComps.getSecond();
-          }
-
-        };
-
-    TreeSet<Map.Entry<AssignableTerm, Object>> inputs = new TreeSet<>(comp);
-
-    for (Entry<AssignableTerm, Object> e : model.entrySet()) {
-      if (e.getKey() instanceof AssignableTerm.Variable) {
-        AssignableTerm.Variable v = (AssignableTerm.Variable) e.getKey();
-
-        if (v.getName().startsWith(WrapperUtil.CPAtiger_INPUT + "::__retval__")) {
-          inputs.add(e);
-        }
-      }
-    }
-
-    List<BigInteger> inputValues = new ArrayList<>(inputs.size());
-
-    for (Entry<AssignableTerm, Object> e : inputs) {
-      //assert e.getValue() instanceof BigInteger;
-      //inputValues.add((BigInteger)e.getValue());
-      inputValues.add(new BigInteger(e.getValue().toString()));
-    }
-    return inputValues;
-  }
-
-  private Pair<TreeSet<Entry<AssignableTerm, Object>>, TreeSet<Entry<AssignableTerm, Object>>> calculateInputAndOutputValues(
-      RichModel model) {
-    Comparator<Map.Entry<AssignableTerm, Object>> comp =
-        new Comparator<Map.Entry<AssignableTerm, Object>>() {
-
-          @Override
-          public int compare(Entry<AssignableTerm, Object> pArg0, Entry<AssignableTerm, Object> pArg1) {
-
-            assert pArg0.getKey() instanceof AssignableTerm.Variable;
-            assert pArg1.getKey() instanceof AssignableTerm.Variable;
-
-            Pair<String, Integer> argOneSsaComps = extractSsaComponents(pArg0.getKey().getName());
-            Pair<String, Integer> argTwoSsaComps = extractSsaComponents(pArg1.getKey().getName());
-
-            if (argOneSsaComps.getFirst().compareTo(argTwoSsaComps.getFirst()) == 0) {
-              return argOneSsaComps.getSecond() - argTwoSsaComps.getSecond();
-            } else {
-              return argOneSsaComps.getFirst().compareTo(argTwoSsaComps.getFirst());
-            }
-          }
-
-        };
-
-    TreeSet<Map.Entry<AssignableTerm, Object>> inputs = new TreeSet<>(comp);
-    TreeSet<Map.Entry<AssignableTerm, Object>> outputs = new TreeSet<>(comp);
-
-    for (Entry<AssignableTerm, Object> entry : model.entrySet()) {
-      if (!(entry.getKey() instanceof AssignableTerm.Variable)) {
-        continue;
-      }
-
-      AssignableTerm.Variable v = (AssignableTerm.Variable) entry.getKey();
-
-      String variableName;
-      if (v.getName().contains("::")) {
-        variableName = v.getName().substring(
-            v.getName().indexOf("::") + 2,
-            v.getName().indexOf("@"));
-      } else if (v.getName().contains("@")) {
-        variableName = v.getName().substring(0, v.getName().indexOf("@"));
-      } else {
-        variableName = v.getName();
-      }
-
-      if (inputVariables.contains(variableName)) {
-        inputs.add(entry);
-      }
-      if(outputVariables.contains(variableName)) {
-        outputs.add(entry);
-      }
-    }
-
-    return Pair.of(inputs, outputs);
   }
 
   private void dumpAutomaton(Automaton pA) {
