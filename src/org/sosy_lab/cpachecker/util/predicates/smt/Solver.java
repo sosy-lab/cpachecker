@@ -23,8 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import static org.sosy_lab.solver.api.SolverContext.ProverOptions.GENERATE_UNSAT_CORE;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Verify;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 
 import org.sosy_lab.common.ShutdownNotifier;
@@ -51,8 +55,11 @@ import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.api.SolverContext;
 import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
@@ -87,6 +94,10 @@ public final class Solver implements AutoCloseable {
   @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_OF_NULL_VALUE")
   private @Nullable Solvers interpolationSolver = null;
 
+  @Option(secure=true,
+  description="Extract and cache unsat cores for satisfiability checking")
+  private boolean cacheUnsatCores = true;
+
   private final UFCheckingProverOptions ufCheckingProverOptions;
 
   private final FormulaManagerView fmgr;
@@ -96,6 +107,19 @@ public final class Solver implements AutoCloseable {
   private final SolverContext interpolatingContext;
 
   private final Map<BooleanFormula, Boolean> unsatCache = Maps.newHashMap();
+
+  /**
+   * More complex unsat cache, grouped by an arbitrary key.
+   *
+   * <p>For each node, map a set of constraints to whether it is unsatisfiable
+   * or satisfiable (maps to |true| <=> |UNSAT|).
+   * If a set of constraints is satisfiable, any subset of it is also
+   * satisfiable.
+   * If a set of constraints is unsatisfiable, any superset of it is also
+   * unsatisfiable.
+   */
+  private final Map<Object, Map<Set<BooleanFormula>, Boolean>>
+      groupedUnsatCache = new HashMap<>();
 
   private final LogManager logger;
 
@@ -269,6 +293,85 @@ public final class Solver implements AutoCloseable {
   }
 
   /**
+   * Unsatisfiability check with more complex cache look up,
+   * optionally based on unsat core.
+   *
+   * @param constraints Conjunction of formulas to test for satisfiability
+   * @param cacheKey Key to group cached results under, usually CFANode
+   *                 is a good candidate.
+   * @return Whether {@code f} is unsatisfiable.
+   */
+  public boolean isUnsat(Set<BooleanFormula> constraints, Object cacheKey)
+      throws InterruptedException, SolverException {
+    solverTime.start();
+    try {
+      return isUnsat0(constraints, cacheKey);
+    } finally {
+      solverTime.stop();
+    }
+  }
+
+  private boolean isUnsat0(Set<BooleanFormula> lemmas, Object cacheKey)
+      throws InterruptedException, SolverException {
+    satChecks++;
+
+    Map<Set<BooleanFormula>, Boolean> stored = groupedUnsatCache.get(cacheKey);
+    if (stored != null) {
+      for (Entry<Set<BooleanFormula>, Boolean> isUnsatResults : stored
+          .entrySet()) {
+        Set<BooleanFormula> cachedConstraints = isUnsatResults.getKey();
+        boolean cachedIsUnsat = isUnsatResults.getValue();
+
+        if (cachedIsUnsat && lemmas.containsAll(cachedConstraints)) {
+
+          // Any superset of unreachable constraints is unreachable.
+          cachedSatChecks++;
+          return true;
+        } else if (!cachedIsUnsat &&
+            cachedConstraints.containsAll(lemmas)) {
+
+          // Any subset of reachable constraints is reachable.
+          cachedSatChecks++;
+          return false;
+        }
+      }
+    }
+
+    if (stored == null) {
+      stored = new HashMap<>();
+    } else {
+      stored = new HashMap<>(stored);
+    }
+
+    ProverOptions opts[];
+    if (cacheUnsatCores) {
+      opts = new ProverOptions[]{GENERATE_UNSAT_CORE};
+    } else {
+      opts = new ProverOptions[0];
+    }
+
+    try (ProverEnvironment pe = newProverEnvironment(opts)){
+      pe.push();
+      for (BooleanFormula lemma : lemmas) {
+        pe.addConstraint(lemma);
+      }
+      if (pe.isUnsat()) {
+        if (cacheUnsatCores) {
+          stored.put(ImmutableSet.copyOf(pe.getUnsatCore()), true);
+        } else {
+          stored.put(ImmutableSet.copyOf(lemmas), true);
+        }
+        return true;
+      } else {
+        stored.put(lemmas, false);
+        return false;
+      }
+    } finally {
+      groupedUnsatCache.put(cacheKey, ImmutableMap.copyOf(stored));
+    }
+  }
+
+  /**
    * Helper function for UNSAT core generation.
    * Takes a single API call to perform.
    *
@@ -279,7 +382,7 @@ public final class Solver implements AutoCloseable {
   public List<BooleanFormula> unsatCore(BooleanFormula constraints)
       throws SolverException, InterruptedException {
 
-    try (ProverEnvironment prover = newProverEnvironment(ProverOptions.GENERATE_UNSAT_CORE)) {
+    try (ProverEnvironment prover = newProverEnvironment(GENERATE_UNSAT_CORE)) {
       for (BooleanFormula constraint : bfmgr.toConjunctionArgs(constraints, true)) {
         prover.addConstraint(constraint);
       }
