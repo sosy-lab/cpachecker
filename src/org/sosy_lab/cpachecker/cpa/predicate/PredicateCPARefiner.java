@@ -146,7 +146,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   private final LogManager logger;
   private final BlockFormulaStrategy blockFormulaStrategy;
   private final FormulaManagerView fmgr;
-  private final InterpolationManager formulaManager;
+  private final InterpolationManager interpolationManager;
   private final RefinementStrategy strategy;
 
   public PredicateCPARefiner(
@@ -170,7 +170,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     blockFormulaStrategy = pBlockFormulaStrategy;
     fmgr = pFmgr;
 
-    formulaManager = pInterpolationManager;
+    interpolationManager = pInterpolationManager;
     pathChecker = pPathChecker;
     strategy = pStrategy;
     prefixProvider = pPrefixProvider;
@@ -304,7 +304,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
           .setUseAtomicPredicates(atomicInterpolants);
     }
 
-    return formulaManager.buildCounterexampleTrace(
+    return interpolationManager.buildCounterexampleTrace(
         formulas,
         Lists.<AbstractState>newArrayList(abstractionStatesTrace),
         elementsOnPath,
@@ -329,7 +329,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     }
 
     CounterexampleTraceInfo counterexample =
-        formulaManager.buildCounterexampleTrace(
+        interpolationManager.buildCounterexampleTrace(
             formulas,
             Lists.<AbstractState>newArrayList(abstractionStatesTrace),
             elementsOnPath,
@@ -547,7 +547,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
           .put(totalRefinement);
 
         StatisticsWriter w1 = w0.beginLevel();
-        formulaManager.printStatistics(w1);
+        interpolationManager.printStatistics(w1);
 
         w1.put(getFormulasForPathTime);
         if (isRefinementSelectionEnabled()) {
