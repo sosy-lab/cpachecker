@@ -1527,6 +1527,9 @@ cpa.predicate.refinement.dumpPredicatesFile = "refinement%04d-predicates.prec"
 # of blocks, before applying interpolation-based refinement
 cpa.predicate.refinement.getUsefulBlocks = false
 
+# Do a complete restart (clearing the reached set) after the refinement
+cpa.predicate.refinement.global.restartAfterRefinement = false
+
 # use incremental search in counterexample analysis, to find the minimal
 # infeasible prefix
 cpa.predicate.refinement.incrementalCexTraceCheck = false
@@ -2380,7 +2383,7 @@ pcc.backwardtargets.certificateStatesAsARGStates = false
 pcc.cmc.configFiles = no default value
 
 # write collected assumptions to file
-pcc.cmc.file = "assumptions.txt"
+pcc.cmc.file = "AssumptionAutomaton.txt"
 
 # collects information about value analysis states in proof
 pcc.collectValueAnalysisStateInfo = false
