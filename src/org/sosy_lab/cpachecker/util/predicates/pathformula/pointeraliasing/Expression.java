@@ -56,7 +56,16 @@ public abstract class Expression {
                       .toString();
       }
 
+      public String getRegion() {
+        return region;
+      }
+
+      public void setRegion(String region) {
+        this.region = region;
+      }
+
       private final Formula address;
+      private String region;
     }
 
     public static class UnaliasedLocation extends Location {

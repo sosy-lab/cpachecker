@@ -133,6 +133,10 @@ public final class PointerTargetSet implements Serializable {
                         PersistentLinkedList.<PointerTarget>of());
   }
 
+  public PersistentList<PointerTarget> getAllTargets(final String ufName) {
+    return firstNonNull(targets.get(ufName), PersistentLinkedList.<PointerTarget>of());
+  }
+
   public static PointerTargetSet emptyPointerTargetSet() {
     return EMPTY_INSTANCE;
   }

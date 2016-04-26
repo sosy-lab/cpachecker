@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.bnbmemorymodel.BnBRegionsMaker;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.arrays.CToFormulaConverterWithArrays;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.arrays.CtoFormulaTypeHandlerWithArrays;
@@ -139,6 +140,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   private final AnalysisDirection direction;
 
+  private final BnBRegionsMaker regionsMaker;
+
   @Deprecated
   public PathFormulaManagerImpl(FormulaManagerView pFmgr,
       Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
@@ -174,6 +177,12 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     shutdownNotifier = pShutdownNotifier;
 
     direction = pDirection;
+
+    if (pVariableClassification.isPresent()) {
+      regionsMaker = pVariableClassification.get().getRegionsMaker();
+    } else {
+      regionsMaker = null;
+    }
 
     if (handleArrays) {
       afmgr = fmgr.getArrayFormulaManager();
@@ -471,7 +480,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       assert symbolName.equals(CToFormulaConverterWithHeapArray.getArrayName(symbolType));
       return makeSsaArrayMerger(symbolName, symbolType, oldIndex, newIndex);
     } else if (CToFormulaConverterWithPointerAliasing.isUF(symbolName)) {
-      assert symbolName.equals(CToFormulaConverterWithPointerAliasing.getUFName(symbolType));
+      if (regionsMaker == null) {
+        assert symbolName.equals(CToFormulaConverterWithPointerAliasing.getUFName(symbolType));
+      } /*else {
+        TODO: find a better assertion for the B&B case
+      }*/
       return makeSsaUFMerger(symbolName, symbolType, oldIndex, newIndex, oldPts);
     } else {
       return makeSsaVariableMerger(symbolName, symbolType, oldIndex, newIndex);
@@ -522,7 +535,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
     final FormulaType<?> returnFormulaType =  converter.getFormulaTypeFromCType(returnType);
     BooleanFormula result = bfmgr.makeBoolean(true);
-    for (final PointerTarget target : pts.getAllTargets(returnType)) {
+    for (final PointerTarget target : pts.getAllTargets(functionName)) {
       shutdownNotifier.shutdownIfNecessary();
       final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(typeHandler.getPointerType(), target.getBaseName()),
                                                   fmgr.makeNumber(typeHandler.getPointerType(), target.getOffset()));

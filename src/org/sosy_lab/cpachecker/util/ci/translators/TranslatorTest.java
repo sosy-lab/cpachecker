@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.bnbmemorymodel.BnBException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -284,7 +285,7 @@ public class TranslatorTest {
 
   @Test
   public void testPredicateRequirementsTranslator() throws InvalidConfigurationException, CPAException,
-      UnsupportedOperationException, IOException, ParserException, InterruptedException {
+      UnsupportedOperationException, IOException, ParserException, InterruptedException, BnBException {
     Configuration config = TestDataTools.configurationForTest().build();
     LogManager logger = TestLogManager.getInstance();
     PredicateCPA predicateCpa =

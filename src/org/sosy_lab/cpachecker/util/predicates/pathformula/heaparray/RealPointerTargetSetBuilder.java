@@ -162,7 +162,7 @@ class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
    * @param pType The type of the allocated base or the next added pointer target
    */
   private void addTargets(final String pName, CType pType) {
-    targets = ptsMgs.addToTargets(pName, pType, null, 0, 0, targets, fields);
+    targets = ptsMgs.addToTargets(pName, null, pType, null, 0, 0, targets, fields);
   }
 
   /**
@@ -307,7 +307,8 @@ class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
         }
 
         if (isTargetComposite && memberDeclaration.getName().equals(pMemberName)) {
-          targets = ptsMgs.addToTargets(pBase, memberDeclaration.getType(), compositeType,
+
+          targets = ptsMgs.addToTargets(pBase, null, memberDeclaration.getType(), compositeType,
               offset, pContainerOffset + pProperOffset, targets, fields);
         }
 
@@ -636,6 +637,45 @@ class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
   @Override
   public Iterable<PointerTarget> getSpuriousTargets(
       final CType pType,
+      final PointerTargetPattern pTargetPattern) {
+    return from(getAllTargets(pType)).filter(not(pTargetPattern));
+  }
+
+  /**
+   * Gets a list of all targets of a pointer type.
+   *
+   * @param pType The type of the pointer variable.
+   * @return A list of all targets of a pointer type.
+   */
+  @Override
+  public PersistentList<PointerTarget> getAllTargets(final String pType) {
+    return firstNonNull(targets.get(pType), PersistentLinkedList.<PointerTarget>of());
+  }
+
+  /**
+   * Gets all matching targets of a pointer target pattern.
+   *
+   * @param pType          The type of the pointer variable.
+   * @param pTargetPattern The pointer target pattern.
+   * @return A list of matching pointer targets.
+   */
+  @Override
+  public Iterable<PointerTarget> getMatchingTargets(
+      final String pType,
+      final PointerTargetPattern pTargetPattern) {
+    return from(getAllTargets(pType)).filter(pTargetPattern);
+  }
+
+  /**
+   * Gets all spurious targets of a pointer target pattern.
+   *
+   * @param pType          The type of the pointer variable.
+   * @param pTargetPattern The pointer target pattern.
+   * @return A list of spurious pointer targets.
+   */
+  @Override
+  public Iterable<PointerTarget> getSpuriousTargets(
+      final String pType,
       final PointerTargetPattern pTargetPattern) {
     return from(getAllTargets(pType)).filter(not(pTargetPattern));
   }

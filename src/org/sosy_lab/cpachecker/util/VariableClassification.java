@@ -51,6 +51,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
+import org.sosy_lab.cpachecker.util.bnbmemorymodel.BnBRegionsMaker;
 
 public class VariableClassification {
 
@@ -85,6 +86,7 @@ public class VariableClassification {
   private final Map<Pair<CFAEdge, Integer>, Partition> edgeToPartitions;
 
   private final LogManagerWithoutDuplicates logger;
+  private static BnBRegionsMaker regionsMaker;
 
   VariableClassification(boolean pHasRelevantNonIntAddVars,
       Set<String> pIntBoolVars,
@@ -100,7 +102,30 @@ public class VariableClassification {
       Map<Pair<CFAEdge, Integer>, Partition> pEdgeToPartitions,
       Multiset<String> pAssumedVariables,
       Multiset<String> pAssignedVariables,
-    LogManager pLogger) {
+      LogManager pLogger) {
+    this(pHasRelevantNonIntAddVars, pIntBoolVars, pIntEqualVars,
+            pIntAddVars, pRelevantVariables, pAddressedVariables,
+            pRelevantFields, pPartitions, pIntBoolPartitions,
+            pIntEqualPartitions, pIntAddPartitions, pEdgeToPartitions,
+            pAssumedVariables, pAssignedVariables, pLogger, null);
+  }
+
+  VariableClassification(boolean pHasRelevantNonIntAddVars,
+      Set<String> pIntBoolVars,
+      Set<String> pIntEqualVars,
+      Set<String> pIntAddVars,
+      Set<String> pRelevantVariables,
+      Set<String> pAddressedVariables,
+      Multimap<CCompositeType, String> pRelevantFields,
+      Collection<Partition> pPartitions,
+      Set<Partition> pIntBoolPartitions,
+      Set<Partition> pIntEqualPartitions,
+      Set<Partition> pIntAddPartitions,
+      Map<Pair<CFAEdge, Integer>, Partition> pEdgeToPartitions,
+      Multiset<String> pAssumedVariables,
+      Multiset<String> pAssignedVariables,
+      LogManager pLogger,
+    BnBRegionsMaker regMk) {
     hasRelevantNonIntAddVars = pHasRelevantNonIntAddVars;
     intBoolVars = ImmutableSet.copyOf(pIntBoolVars);
     intEqualVars = ImmutableSet.copyOf(pIntEqualVars);
@@ -116,6 +141,7 @@ public class VariableClassification {
     assumedVariables = ImmutableMultiset.copyOf(pAssumedVariables);
     assignedVariables = ImmutableMultiset.copyOf(pAssignedVariables);
     logger = new LogManagerWithoutDuplicates(pLogger);
+    regionsMaker = regMk;
   }
 
   @VisibleForTesting
@@ -337,6 +363,10 @@ public class VariableClassification {
     }
 
     return newScore;
+  }
+
+  public BnBRegionsMaker getRegionsMaker(){
+    return regionsMaker;
   }
 
   @Override

@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.bnbmemorymodel.BnBRegionsMaker;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
@@ -137,8 +138,10 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     if (e.isValue()) {
       return e.asValue().getValue();
     } else if (e.asLocation().isAliased()) {
-      return !isSafe ? conv.makeDereference(type, e.asLocation().asAliased().getAddress(), ssa, errorConditions) :
-                       conv.makeSafeDereference(type, e.asLocation().asAliased().getAddress(), ssa);
+      return !isSafe ? conv.makeDereference(type, e.asLocation().asAliased().getAddress(), ssa, errorConditions,
+                                            e.asAliasedLocation().getRegion()) :
+                       conv.makeSafeDereference(type, e.asLocation().asAliased().getAddress(), ssa,
+                                            e.asAliasedLocation().getRegion());
     } else { // Unaliased location
       return conv.makeVariable(e.asLocation().asUnaliased().getVariableName(), type, ssa);
     }
@@ -211,7 +214,12 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
 
         final Formula address = conv.fmgr.makePlus(base.getAddress(), offset);
         addEqualBaseAdressConstraint(base.getAddress(), address);
-        return AliasedLocation.ofAddress(address);
+        AliasedLocation aliasedLocation = AliasedLocation.ofAddress(address);
+        BnBRegionsMaker regionsMaker = conv.getRegionsMaker();
+        if (regionsMaker != null && !regionsMaker.isInGlobalRegion(fieldOwnerType, e.getExpressionType(), fieldName)) {
+          aliasedLocation.setRegion(fieldOwnerType.toString() + ' ' + fieldName);
+        }
+        return aliasedLocation;
       } else {
         throw new UnrecognizedCCodeException("Field owner of a non-composite type", edge, e);
       }
@@ -359,7 +367,8 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
                                        initializedFields,
                                        ssa,
                                        constraints,
-                                       pts);
+                                       pts,
+                                       null);
         if (conv.hasIndex(base.getName(), base.getType(), ssa)) {
           ssa.deleteVariable(base.getName());
         }

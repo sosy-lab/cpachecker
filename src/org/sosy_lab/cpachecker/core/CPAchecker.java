@@ -72,6 +72,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProviderImpl;
+import org.sosy_lab.cpachecker.util.bnbmemorymodel.BnBException;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.base.Joiner;
@@ -327,7 +328,10 @@ public class CPAchecker {
     } catch (CPAException e) {
       logger.logUserException(Level.SEVERE, e, null);
 
-    } finally {
+    } catch (BnBException e) {
+      logger.logException(Level.WARNING, e, "Error while creating B&B regions");
+    }
+    finally {
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
     return new CPAcheckerResult(result,
@@ -354,7 +358,7 @@ public class CPAchecker {
   }
 
   private CFA parse(String fileNamesCommaSeparated, MainCPAStatistics stats) throws InvalidConfigurationException, IOException,
-      ParserException, InterruptedException {
+      ParserException, InterruptedException, BnBException {
     // parse file and create CFA
     CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
     stats.setCFACreator(cfaCreator);

@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.bnbmemorymodel.BnBException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
@@ -72,7 +73,7 @@ public class CustomInstructionTest {
   @Before
   public void init() throws NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException,
       IllegalArgumentException, InvocationTargetException, IOException,
-      ParserException, InterruptedException {
+      ParserException, InterruptedException, BnBException {
     String testProgram = ""
         + "void main(int a){"
         + "int a;"
@@ -270,7 +271,7 @@ public class CustomInstructionTest {
 
   @Test
   public void testInspectAppliedCustomInstruction() throws AppliedCustomInstructionParsingFailedException,
-    InterruptedException, IOException, ParserException, SecurityException, IllegalArgumentException {
+    InterruptedException, IOException, ParserException, SecurityException, IllegalArgumentException, BnBException {
     String testProgram = ""
         + "extern int f2(int);"
         + "int f(int x) {"

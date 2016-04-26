@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.cpachecker.util.bnbmemorymodel.BnBRegionsMaker;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet.CompositeField;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -111,6 +112,14 @@ public interface PointerTargetSetBuilder {
 
   Iterable<PointerTarget> getSpuriousTargets(CType type,
       PointerTargetPattern pattern);
+
+  PersistentList<PointerTarget> getAllTargets(String uf);
+
+  Iterable<PointerTarget> getMatchingTargets(String uf,
+                                             PointerTargetPattern pattern);
+
+  Iterable<PointerTarget> getSpuriousTargets(String uf,
+                                             PointerTargetPattern pattern);
 
   /**
    * Returns an immutable PointerTargetSet with all the changes made to the builder.
@@ -202,7 +211,7 @@ public interface PointerTargetSetBuilder {
      * @param type type of the allocated base or the next added pointer target
      */
     private void addTargets(final String name, CType type) {
-      targets = ptsMgr.addToTargets(name, type, null, 0, 0, targets, fields);
+      targets = ptsMgr.addToTargets(name, null, type, null, 0, 0, targets, fields);
     }
 
     @Override
@@ -312,7 +321,13 @@ public interface PointerTargetSetBuilder {
                        composite, memberName);
           }
           if (isTargetComposite && memberDeclaration.getName().equals(memberName)) {
-            targets = ptsMgr.addToTargets(base, memberDeclaration.getType(), compositeType, offset, containerOffset + properOffset, targets, fields);
+            BnBRegionsMaker regionsMaker = ptsMgr.getRegionsMaker();
+            String region = null;
+            if (regionsMaker != null && !regionsMaker.isInGlobalRegion(compositeType,
+                    memberDeclaration.getType(), memberName)) {
+              region = compositeType.toString() + ' ' + memberName;
+            }
+            targets = ptsMgr.addToTargets(base, region, memberDeclaration.getType(), compositeType, offset, containerOffset + properOffset, targets, fields);
           }
           if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
             offset += ptsMgr.getSize(memberDeclaration.getType());
@@ -527,6 +542,24 @@ public interface PointerTargetSetBuilder {
       return from(getAllTargets(type)).filter(not(pattern));
     }
 
+    @Override
+    public PersistentList<PointerTarget> getAllTargets(final String uf) {
+      return firstNonNull(targets.get(uf),
+                          PersistentLinkedList.<PointerTarget>of());
+    }
+
+    @Override
+    public Iterable<PointerTarget> getMatchingTargets(final String uf,
+                                                      final PointerTargetPattern pattern) {
+      return from(getAllTargets(uf)).filter(pattern);
+    }
+
+    @Override
+    public Iterable<PointerTarget> getSpuriousTargets(final String uf,
+                                                      final PointerTargetPattern pattern) {
+      return from(getAllTargets(uf)).filter(not(pattern));
+    }
+
     /**
      * Returns an immutable PointerTargetSet with all the changes made to the builder.
      */
@@ -550,6 +583,21 @@ public interface PointerTargetSetBuilder {
    */
   public static enum DummyPointerTargetSetBuilder implements PointerTargetSetBuilder {
     INSTANCE;
+
+    @Override
+    public PersistentList<PointerTarget> getAllTargets(String uf) {
+      return null;
+    }
+
+    @Override
+    public Iterable<PointerTarget> getMatchingTargets(String uf, PointerTargetPattern pattern) {
+      return null;
+    }
+
+    @Override
+    public Iterable<PointerTarget> getSpuriousTargets(String uf, PointerTargetPattern pattern) {
+      return null;
+    }
 
     @Override
     public BooleanFormula prepareBase(String pName, CType pType) {

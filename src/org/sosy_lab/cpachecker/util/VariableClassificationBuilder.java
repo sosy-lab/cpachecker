@@ -105,6 +105,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
+import org.sosy_lab.cpachecker.util.bnbmemorymodel.BnBException;
+import org.sosy_lab.cpachecker.util.bnbmemorymodel.BnBRegionsMaker;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -185,16 +187,23 @@ public class VariableClassificationBuilder {
   private final CollectingLHSVisitor collectingLHSVisitor = new CollectingLHSVisitor();
 
   private final LogManager logger;
+  private final boolean useBnB;
 
   public VariableClassificationBuilder(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     logger = checkNotNull(pLogger);
+    String key = "useBnB";
+    if (config.hasProperty(key)){
+      useBnB = new Boolean(config.getProperty(key));
+    } else {
+      useBnB = false;
+    }
     config.inject(this);
   }
 
   /** This function does the whole work:
    * creating all maps, collecting vars, solving dependencies.
    * The function runs only once, after that it does nothing. */
-  public VariableClassification build(CFA cfa) throws UnrecognizedCCodeException {
+  public VariableClassification build(CFA cfa) throws UnrecognizedCCodeException, BnBException {
     checkArgument(cfa.getLanguage() == Language.C, "VariableClassification currently only supports C");
 
     // fill maps
@@ -248,6 +257,12 @@ public class VariableClassificationBuilder {
 
     boolean hasRelevantNonIntAddVars = !Sets.intersection(relevantVariables, nonIntAddVars).isEmpty();
 
+    BnBRegionsMaker regionsMaker = null;
+    if (useBnB) {
+      regionsMaker = new BnBRegionsMaker(logger);
+      regionsMaker.makeRegions(cfa);
+    }
+
     VariableClassification result = new VariableClassification(
         hasRelevantNonIntAddVars,
         intBoolVars,
@@ -263,7 +278,8 @@ public class VariableClassificationBuilder {
         dependencies.edgeToPartition,
         extractAssumedVariables(cfa.getAllNodes()),
         extractAssignedVariables(cfa.getAllNodes()),
-        logger);
+        logger,
+        regionsMaker);
 
     if (printStatsOnStartup) {
       printStats(result);

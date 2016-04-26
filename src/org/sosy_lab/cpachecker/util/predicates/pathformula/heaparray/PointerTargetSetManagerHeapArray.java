@@ -672,6 +672,7 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
   @Override
   protected PersistentSortedMap<String, PersistentList<PointerTarget>> addToTargets(
       final String pBase,
+      String region,
       final CType pCurrentType,
       final @Nullable CType pContainerType,
       final int pProperOffset,
@@ -693,7 +694,7 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
 
       int offset = 0;
       for (int i = 0; i < length; ++i) {
-        pTargets = addToTargets(pBase, arrayType.getType(), arrayType, offset,
+        pTargets = addToTargets(pBase, null, arrayType.getType(), arrayType, offset,
             pContainerOffset + pProperOffset, pTargets, pFields);
         offset += getSize(arrayType.getType());
       }
@@ -710,7 +711,7 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
       for (final CCompositeTypeMemberDeclaration memberDeclaration
           : compositeType.getMembers()) {
         if (pFields.containsKey(CompositeField.of(typeName, memberDeclaration.getName()))) {
-          pTargets = addToTargets(pBase, memberDeclaration.getType(), compositeType, offset,
+          pTargets = addToTargets(pBase, null, memberDeclaration.getType(), compositeType, offset,
               pContainerOffset + pProperOffset, pTargets, pFields);
         }
 
@@ -742,7 +743,7 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
     for (final Map.Entry<String, CType> entry : pBases.entrySet()) {
       String name = entry.getKey();
       CType type = CTypeUtils.simplifyType(entry.getValue());
-      pTargets = addToTargets(name, type, null, 0, 0, pTargets, pFields);
+      pTargets = addToTargets(name, null, type, null, 0, 0, pTargets, pFields);
     }
     return pTargets;
   }
