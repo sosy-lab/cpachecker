@@ -1,12 +1,9 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
-import static org.sosy_lab.solver.api.SolverContext.ProverOptions.GENERATE_UNSAT_CORE;
-
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -45,8 +42,6 @@ import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FunctionDeclaration;
 import org.sosy_lab.solver.api.FunctionDeclarationKind;
-import org.sosy_lab.solver.api.ProverEnvironment;
-import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
 import org.sosy_lab.solver.visitors.TraversalProcess;
 
@@ -56,7 +51,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
@@ -73,16 +67,6 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
   private final LiveVariables liveVariables;
   private final LoopStructure loopStructure;
 
-  /**
-   * For each node, map a set of constraints to whether it is unsatisfiable
-   * or satisfiable (maps to |true| <=> |UNSAT|).
-   * If a set of constraints is satisfiable, any subset of it is also
-   * satisfiable.
-   * If a set of constraints is unsatisfiable, any superset of it is also
-   * unsatisfiable.
-   */
-  private final Map<CFANode, Map<Set<BooleanFormula>, Boolean>> unsatCache;
-
   @SuppressWarnings({"FieldCanBeLocal", "unused"})
   private final LogManager logger;
 
@@ -91,10 +75,6 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
   @Option(secure=true, description="Filter lemmas by liveness")
   private boolean filterByLiveness = true;
-
-  @Option(secure=true, description="Extract and cache unsat cores for "
-      + "satisfiability checking")
-  private boolean cacheUnsatCores = true;
 
   FormulaSlicingManager(
       Configuration config,
@@ -114,8 +94,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     solver = pSolver;
     bfmgr = pFmgr.getBooleanFormulaManager();
     rcnfManager = pRcnfManager;
-    statistics = new FormulaSlicingStatistics(pPfmgr);
-    unsatCache = new HashMap<>();
+    statistics = new FormulaSlicingStatistics(pPfmgr, pSolver);
     Preconditions.checkState(pCfa.getLiveVariables().isPresent() &&
       pCfa.getLoopStructure().isPresent());
     liveVariables = pCfa.getLiveVariables().get();
@@ -300,7 +279,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
     Set<BooleanFormula> finalClauses;
     Set<PathFormulaWithStartSSA> inductiveUnder;
-    if (isUnreachable(iState, false)) {
+    if (isUnreachableAbstraction(iState)) {
       return Optional.absent();
     }
     try {
@@ -357,7 +336,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
       throws InterruptedException, CPAException {
     try {
       statistics.reachabilityTargetTimer.start();
-      return isUnreachable(iState, true);
+      return isUnreachable(iState);
     } finally {
       statistics.reachabilityTargetTimer.stop();
     }
@@ -370,13 +349,13 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
       throws CPAException, InterruptedException {
     try {
       statistics.reachabilityAbstractionTimer.start();
-      return isUnreachable(iState, false);
+      return isUnreachable(iState);
     } finally {
       statistics.reachabilityAbstractionTimer.stop();
     }
   }
 
-  private boolean isUnreachable(SlicingIntermediateState iState, boolean isTarget)
+  private boolean isUnreachable(SlicingIntermediateState iState)
       throws InterruptedException, CPAException {
     BooleanFormula prevSlice = bfmgr.and(iState.getAbstractParent().getAbstraction());
     BooleanFormula instantiatedParent =
@@ -386,71 +365,19 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
     Set<BooleanFormula> constraints = ImmutableSet.copyOf(
         bfmgr.toConjunctionArgs(reachabilityQuery, true));
-
     CFANode node = iState.getNode();
     statistics.satChecksLocations.add(node);
 
-    Map<Set<BooleanFormula>, Boolean> stored = unsatCache.get(node);
-    if (stored != null) {
-      for (Entry<Set<BooleanFormula>, Boolean> isUnsatResults : stored
-          .entrySet()) {
-        Set<BooleanFormula> cachedConstraints = isUnsatResults.getKey();
-        boolean cachedIsUnsat = isUnsatResults.getValue();
-
-        if (cachedIsUnsat && constraints.containsAll(cachedConstraints)) {
-
-          // Any superset of unreachable constraints is unreachable.
-          statistics.recordReachabilityCacheHit(isTarget);
-          return true;
-        } else if (!cachedIsUnsat &&
-            cachedConstraints.containsAll(constraints)) {
-
-          // Any subset of reachable constraints is reachable.
-          statistics.recordReachabilityCacheHit(isTarget);
-          return false;
-        }
-      }
-    }
-
-    if (stored == null) {
-      stored = new HashMap<>();
-    } else {
-      stored = new HashMap<>(stored);
-    }
-
-    ProverOptions opts[];
-    if (cacheUnsatCores) {
-      opts = new ProverOptions[]{GENERATE_UNSAT_CORE};
-    } else {
-      opts = new ProverOptions[0];
-    }
-
-    try (ProverEnvironment pe = solver.newProverEnvironment(opts)){
-      for (BooleanFormula f : constraints) {
-        pe.addConstraint(f);
-      }
-      if (pe.isUnsat()) {
-        if (cacheUnsatCores) {
-          stored.put(ImmutableSet.copyOf(pe.getUnsatCore()), true);
-        } else {
-          stored.put(ImmutableSet.copyOf(constraints), true);
-        }
-        return true;
-      } else {
-        stored.put(constraints, false);
-        return false;
-      }
+    try {
+      return solver.isUnsat(constraints, node);
     } catch (SolverException pE) {
+      logger.log(Level.FINE, "Got solver exception while obtaining unsat core;"
+          + "Re-trying without unsat core extraction", pE);
       try {
-
-        logger.log(Level.FINE, "Got solver exception while obtaining unsat core;"
-                + "Re-trying without unsat core extraction", pE);
         return solver.isUnsat(reachabilityQuery);
       } catch (SolverException pE1) {
-        throw new CPAException("Solver exception suppressed: ", pE1);
+        throw new CPAException("Solver error occurred", pE1);
       }
-    } finally {
-      unsatCache.put(node, ImmutableMap.copyOf(stored));
     }
   }
 
