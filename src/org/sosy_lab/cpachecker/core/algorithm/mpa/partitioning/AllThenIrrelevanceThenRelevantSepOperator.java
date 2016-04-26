@@ -87,6 +87,7 @@ public class AllThenIrrelevanceThenRelevantSepOperator extends PartitioningBudge
       Comparator<Property> pPropertyExpenseComparator)
           throws PartitioningException {
 
+    final Set<Property> knownRelevant = PropertyStats.INSTANCE.getRelevantProperties();
     final PartitioningStatus lastType = pLastCheckedPartitioning.getStatus();
 
     if (lastType.equals(PartitioningStatus.NONE)) {
@@ -96,7 +97,7 @@ public class AllThenIrrelevanceThenRelevantSepOperator extends PartitioningBudge
             ImmutableList.of(ImmutableSet.copyOf(pToCheck)));
     }
 
-    final Set<Property> maybeIrrelevantToCheck = Sets.difference(pToCheck, PropertyStats.INSTANCE.getRelevantProperties());
+    final Set<Property> maybeIrrelevantToCheck = Sets.difference(pToCheck, knownRelevant);
     boolean checkIrrelevance = maybeIrrelevantToCheck.size() > 1;
     if (checkIrrelevance && lastType.equals(PartitioningStatus.CHECK_IRRELEVANCE)) {
       // In cases where we already checked the set of properties
@@ -114,11 +115,18 @@ public class AllThenIrrelevanceThenRelevantSepOperator extends PartitioningBudge
           ImmutableList.of(ImmutableSet.copyOf(maybeIrrelevantToCheck)));
     }
 
+
+    if (knownRelevant.isEmpty()) {
+      return create(PartitioningStatus.BREAK,
+          InfinitePropertyBudgeting.INSTANCE,
+          getPartitionBudgetingOperator(),
+          singletonPartitions(knownRelevant, pPropertyExpenseComparator));
+    }
+
     return create(PartitioningStatus.ONE_FOR_EACH,
         InfinitePropertyBudgeting.INSTANCE,
         getPartitionBudgetingOperator(),
-        singletonPartitions(PropertyStats.INSTANCE.getRelevantProperties(), pPropertyExpenseComparator));
-
+        singletonPartitions(knownRelevant, pPropertyExpenseComparator));
   }
 
 }
