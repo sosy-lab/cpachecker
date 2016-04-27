@@ -637,6 +637,10 @@ public class CPAchecker {
 
       final Set<Property> result = Sets.newHashSet();
 
+      if (pReached.isEmpty()) {
+        return ImmutableSet.copyOf(result);
+      }
+
       AbstractState e = pReached.getFirstState();
       Collection<AutomatonState> automataStates = AbstractStates.extractStatesByType(e, AutomatonState.class);
       for (AutomatonState a: automataStates) {

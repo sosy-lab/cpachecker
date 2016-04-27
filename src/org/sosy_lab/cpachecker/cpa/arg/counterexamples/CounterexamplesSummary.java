@@ -27,14 +27,14 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
-import java.io.PrintStream;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.WeakHashMap;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Function;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multiset;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -69,14 +69,14 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
-import com.google.common.base.Function;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashMultiset;
-import com.google.common.collect.ImmutableMultiset;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multiset;
-import com.google.common.collect.Sets;
+import java.io.PrintStream;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.WeakHashMap;
+
+import javax.annotation.Nullable;
 
 /**
  * Summary of all (so far) feasible counterexamples
@@ -278,14 +278,16 @@ public class CounterexamplesSummary implements IterationStatistics {
     Map<String, Automaton> observingAutomata = Maps.newHashMap();
     int transitionsToTargetStatesCount = 0;
     {
-      AbstractState initial = pReached.getFirstState();
-      Collection<AutomatonState> automataComponents = AbstractStates.extractStatesByType(initial, AutomatonState.class);
-      for (AutomatonState e: automataComponents) {
-        // An automata can have multiple target states!
-        //  And: An automata might be parametric...
-        if (e.getOwningAutomaton().getIsObservingOnly()) {
-          observingAutomata.put(e.getOwningAutomatonName(), e.getOwningAutomaton());
-          transitionsToTargetStatesCount += e.getOwningAutomaton().getTransitionsToTargetStatesCount();
+      if (!pReached.isEmpty()) {
+        AbstractState initial = pReached.getFirstState();
+        Collection<AutomatonState> automataComponents = AbstractStates.extractStatesByType(initial, AutomatonState.class);
+        for (AutomatonState e: automataComponents) {
+          // An automata can have multiple target states!
+          //  And: An automata might be parametric...
+          if (e.getOwningAutomaton().getIsObservingOnly()) {
+            observingAutomata.put(e.getOwningAutomatonName(), e.getOwningAutomaton());
+            transitionsToTargetStatesCount += e.getOwningAutomaton().getTransitionsToTargetStatesCount();
+          }
         }
       }
     }

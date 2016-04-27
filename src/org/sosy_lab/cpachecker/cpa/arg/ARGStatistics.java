@@ -218,7 +218,7 @@ public class ARGStatistics implements IterationStatistics {
       }
     }
 
-    if (exportARG) {
+    if (exportARG && !pReached.isEmpty()) {
       final Set<Pair<ARGState, ARGState>> allTargetPathEdges = new HashSet<>();
       for (CounterexampleInfo cex : counterexamples.values()) {
         allTargetPathEdges.addAll(cex.getTargetPath().getStatePairs());
