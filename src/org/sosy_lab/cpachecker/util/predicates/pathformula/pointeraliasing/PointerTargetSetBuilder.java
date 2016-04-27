@@ -323,8 +323,9 @@ public interface PointerTargetSetBuilder {
           if (isTargetComposite && memberDeclaration.getName().equals(memberName)) {
             BnBRegionsMaker regionsMaker = ptsMgr.getRegionsMaker();
             String region = null;
-            if (regionsMaker != null && !regionsMaker.isInGlobalRegion(compositeType,
-                    memberDeclaration.getType(), memberName)) {
+            if (regionsMaker != null && regionsMaker.notInGlobalRegion(compositeType,
+                                                                        memberDeclaration.getType(),
+                                                                        memberName)) {
               region = compositeType.toString() + ' ' + memberName;
             }
             targets = ptsMgr.addToTargets(base, region, memberDeclaration.getType(), compositeType, offset, containerOffset + properOffset, targets, fields);
@@ -586,23 +587,21 @@ public interface PointerTargetSetBuilder {
 
     @Override
     public PersistentList<PointerTarget> getAllTargets(String uf) {
-      return null;
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public Iterable<PointerTarget> getMatchingTargets(String uf, PointerTargetPattern pattern) {
-      return null;
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public Iterable<PointerTarget> getSpuriousTargets(String uf, PointerTargetPattern pattern) {
-      return null;
+      throw new UnsupportedOperationException();
     }
 
     @Override
-    public BooleanFormula prepareBase(String pName, CType pType) {
-      throw new UnsupportedOperationException();
-    }
+    public BooleanFormula prepareBase(String pName, CType pType) { throw new UnsupportedOperationException(); }
 
     @Override
     public void shareBase(String pName, CType pType) {

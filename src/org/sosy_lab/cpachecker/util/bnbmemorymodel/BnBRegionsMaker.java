@@ -26,21 +26,19 @@ package org.sosy_lab.cpachecker.util.bnbmemorymodel;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils;
 
 
 public class BnBRegionsMaker {
 
-  private Set<BnBRegionImpl> regions = new HashSet<>();
-  private static final String GLOBAL = " global";
+  private Set<BnBRegion> regions = new HashSet<>();
+  private static final String GLOBAL = "global";
   private final LogManager logger;
 
   public BnBRegionsMaker(LogManager logger) {
@@ -50,22 +48,23 @@ public class BnBRegionsMaker {
   /**
    * Determines whether or not the field is in global region
    * @param parent - element's base
-   * @param pMemberType
+   * @param memberType
    * @param name - name of element
    * @return true if global, else otherwise
    */
-  public boolean isInGlobalRegion(final CType parent, CType pMemberType, final String name){
+  public boolean notInGlobalRegion(final CType parent, final CType memberType, final String name){
 
     if (regions.isEmpty()){
-      return true;
-    }
-
-    BnBRegion toCheck = new BnBRegionImpl(pMemberType, parent, name);
-    if (regions.contains(toCheck)){
       return false;
     }
 
-    return true;
+    BnBRegion toCheck = new BnBRegionImpl(CTypeUtils.simplifyType(memberType),
+                                          CTypeUtils.simplifyType(parent), name);
+    if (regions.contains(toCheck)){
+      return true;
+    } else {
+      return false;
+    }
   }
 
   /**
@@ -102,7 +101,8 @@ public class BnBRegionsMaker {
         Set<String> set = usedFields.get(basicType).get(structType);
         if (!set.isEmpty()) {
           for (String name : set){
-            regions.add(new BnBRegionImpl(basicType, structType, name));
+            regions.add(new BnBRegionImpl(CTypeUtils.simplifyType(basicType),
+                                          CTypeUtils.simplifyType(structType), name));
           }
         }
       }
@@ -135,7 +135,7 @@ public class BnBRegionsMaker {
 
     if (!regions.isEmpty()) {
       int i = 0;
-      for (BnBRegionImpl reg : regions) {
+      for (BnBRegion reg : regions) {
         result += "Number: " + (i++) + '\n';
         result += reg.toString() + '\n';
       }
@@ -145,17 +145,13 @@ public class BnBRegionsMaker {
     return result;
   }
 
-  public static String getGlobal(){
-    return GLOBAL;
-  }
-
   /**
    * Constructs new UF name with consideration of the region
    * @param ufName - UF name to use with this CType
    * @param region - null if global or parent_name + " " + field_name
    * @return new UF name for the CType with region information
    */
-  public static String getNewUfName(final String ufName, String region){
+  public static String getNewUfName(final String ufName, final String region){
     String result = ufName + "_";
     if (region != null){
       result += region.replace(' ', '_');

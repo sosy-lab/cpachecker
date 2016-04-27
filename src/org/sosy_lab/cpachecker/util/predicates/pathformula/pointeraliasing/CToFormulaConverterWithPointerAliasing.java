@@ -219,7 +219,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     type = CTypeUtils.simplifyType(type);
     String ufName = getUFName(type);
     if (regionsMaker != null) {
-      ufName = regionsMaker.getNewUfName(ufName, region);
+      ufName = BnBRegionsMaker.getNewUfName(ufName, region);
     }
     final int index = getIndex(ufName, type, ssa);
     final FormulaType<?> returnType = getFormulaTypeFromCType(type);
@@ -306,7 +306,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
             isRelevantField(compositeType, memberName)) {
           fields.add(Pair.of(compositeType, memberName));
           String newRegion = null;
-          if (regionsMaker != null && !regionsMaker.isInGlobalRegion(compositeType, memberType, memberName)) {
+          if (regionsMaker != null && regionsMaker.notInGlobalRegion(compositeType, memberType, memberName)) {
             newRegion = compositeType.toString() + ' ' + memberName;
           }
           addValueImportConstraints(cfaEdge,
@@ -829,5 +829,9 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
   public BnBRegionsMaker getRegionsMaker() {
     return regionsMaker;
+  }
+
+  public boolean isBnBUsed(){
+    return regionsMaker != null;
   }
 }

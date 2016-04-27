@@ -216,7 +216,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
         addEqualBaseAdressConstraint(base.getAddress(), address);
         AliasedLocation aliasedLocation = AliasedLocation.ofAddress(address);
         BnBRegionsMaker regionsMaker = conv.getRegionsMaker();
-        if (regionsMaker != null && !regionsMaker.isInGlobalRegion(fieldOwnerType, e.getExpressionType(), fieldName)) {
+        if (regionsMaker != null && regionsMaker.notInGlobalRegion(fieldOwnerType, e.getExpressionType(), fieldName)) {
           aliasedLocation.setRegion(fieldOwnerType.toString() + ' ' + fieldName);
         }
         return aliasedLocation;

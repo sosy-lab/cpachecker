@@ -409,7 +409,7 @@ public class PointerTargetSetManager {
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         final String memberName = memberDeclaration.getName();
         final CType memberType = CTypeUtils.simplifyType(memberDeclaration.getType());
-        if (regionsMaker != null && !regionsMaker.isInGlobalRegion(compositeType, memberType, memberName)) {
+        if (regionsMaker != null && regionsMaker.notInGlobalRegion(compositeType, memberType, memberName)) {
           region = compositeType.toString() + ' ' + memberName;
         }
         final String newPrefix = variablePrefix + CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR + memberName;
@@ -447,7 +447,7 @@ public class PointerTargetSetManager {
                                  final String region) {
     String ufName = CToFormulaConverterWithPointerAliasing.getUFName(type);
     if (regionsMaker != null){
-      ufName = regionsMaker.getNewUfName(ufName, region);
+      ufName = BnBRegionsMaker.getNewUfName(ufName, region);
     }
     final int index = ssa.getIndex(ufName);
     final FormulaType<?> returnType = typeHandler.getFormulaTypeFromCType(type);
@@ -501,8 +501,8 @@ public class PointerTargetSetManager {
                          final int properOffset,
                          final int containerOffset,
                          final PersistentSortedMap<String, PersistentList<PointerTarget>> targets) {
-    String ufName = CToFormulaConverterWithPointerAliasing.getUFName(targetType);
-    if (region != null && useBnB) {
+    String ufName = CToFormulaConverterWithPointerAliasing.getUFName(CTypeUtils.simplifyType(targetType));
+    if (useBnB) {
       ufName = BnBRegionsMaker.getNewUfName(ufName, region);
     }
     PersistentList<PointerTarget> targetsForType = firstNonNull(targets.get(ufName),
@@ -566,7 +566,7 @@ public class PointerTargetSetManager {
       int offset = 0;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         if (fields.containsKey(CompositeField.of(type, memberDeclaration.getName()))) {
-          if (regionsMaker != null && !regionsMaker.isInGlobalRegion(compositeType, memberDeclaration.getType(),
+          if (regionsMaker != null && regionsMaker.notInGlobalRegion(compositeType, memberDeclaration.getType(),
                                                                       memberDeclaration.getName())){
             region = compositeType.toString() + ' ' + memberDeclaration.getName();
           } else {

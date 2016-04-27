@@ -48,8 +48,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class ComplexTypeFieldStatistics {
 
+  //first CType - field type, second - parent type, String - field name
   private HashMap<CType, HashMap<CType, HashSet<String>>> usedFields = new HashMap<>();
   private HashMap<CType, HashMap<CType, HashSet<String>>> refdFields = new HashMap<>();
+
   private final BnBStatementVisitor statementVisitor = new BnBStatementVisitor();
   private final BnBExpressionVisitor expressionVisitor = new BnBExpressionVisitor();
   private final BnBMapMerger merger = new BnBMapMerger();

@@ -230,9 +230,8 @@ class AssignmentHandler {
         if (updatedUFs == null) {
           assert isSimpleType(lvalueType) : "Should be impossible due to the first if statement";
           String ufName = CToFormulaConverterWithPointerAliasing.getUFName(lvalueType);
-          BnBRegionsMaker regionsMaker = conv.getRegionsMaker();
-          if (regionsMaker != null){
-            ufName = regionsMaker.getNewUfName(ufName, lvalue.asAliased().getRegion());
+          if (conv.isBnBUsed()){
+            ufName = BnBRegionsMaker.getNewUfName(ufName, lvalue.asAliased().getRegion());
           }
           updatedUFs = Collections.singleton(Pair.of(ufName, lvalueType));
         }
@@ -425,9 +424,8 @@ class AssignmentHandler {
     assert !(lvalueType instanceof CFunctionType) : "Can't assign to functions";
 
     String targetName = !lvalue.isAliased() ? lvalue.asUnaliased().getVariableName() : CToFormulaConverterWithPointerAliasing.getUFName(lvalueType);
-    BnBRegionsMaker regionsMaker = conv.getRegionsMaker();
-    if (lvalue.isAliased() && regionsMaker != null){
-      targetName = regionsMaker.getNewUfName(targetName, lvalue.asAliased().getRegion());
+    if (lvalue.isAliased() && conv.isBnBUsed()){
+      targetName = BnBRegionsMaker.getNewUfName(targetName, lvalue.asAliased().getRegion());
     }
     final FormulaType<?> targetType = conv.getFormulaTypeFromCType(lvalueType);
     final int newIndex = useOldSSAIndices ?
@@ -473,14 +471,12 @@ class AssignmentHandler {
                                          final String region) throws InterruptedException {
     lvalueType = CTypeUtils.simplifyType(lvalueType);
     final int size = conv.getSizeof(lvalueType);
-    String ufToPass = null;
     if (isSimpleType(lvalueType)) {
       Preconditions.checkArgument(startAddress != null,
                                   "Start address is mandatory for assigning to lvalues of simple types");
       String ufName = CToFormulaConverterWithPointerAliasing.getUFName(lvalueType);
-      BnBRegionsMaker regionsMaker = conv.getRegionsMaker();
-      if (regionsMaker != null) {
-        ufName = regionsMaker.getNewUfName(ufName, region);
+      if (conv.isBnBUsed()) {
+        ufName = BnBRegionsMaker.getNewUfName(ufName, region);
       }
       final int oldIndex = conv.getIndex(ufName, lvalueType, ssa);
       final int newIndex = conv.getFreshIndex(ufName, lvalueType, ssa);
@@ -504,18 +500,22 @@ class AssignmentHandler {
     } else if (pattern.isSemiExact()) {
       Preconditions.checkArgument(startAddress != null,
                                   "Start address is mandatory for semiexact pointer target patterns");
+      String ufToPass;
       // For semiexact retention constraints we need the first element type of the composite
       if (lvalueType instanceof CArrayType) {
         lvalueType = CTypeUtils.simplifyType(((CArrayType) lvalueType).getType());
-        ufToPass = CToFormulaConverterWithPointerAliasing.getUFName(lvalueType) + ' ' + BnBRegionsMaker.getGlobal();
+        ufToPass = BnBRegionsMaker.getNewUfName(CToFormulaConverterWithPointerAliasing.getUFName(lvalueType), null);
       } else { // CCompositeType
         CCompositeTypeMemberDeclaration memberDeclaration = ((CCompositeType) lvalueType).getMembers().get(0);
         lvalueType = CTypeUtils.simplifyType(memberDeclaration.getType());
         BnBRegionsMaker regionsMaker = conv.getRegionsMaker();
-        if (regionsMaker != null && !regionsMaker.isInGlobalRegion(lvalueType, memberDeclaration.getType(), memberDeclaration.getName())) {
-          ufToPass = regionsMaker.getNewUfName(CToFormulaConverterWithPointerAliasing.getUFName(lvalueType), lvalueType.toString() + ' ' + memberDeclaration.getName());
+        if (regionsMaker != null && regionsMaker.notInGlobalRegion(lvalueType,
+                                                                    memberDeclaration.getType(),
+                                                                    memberDeclaration.getName())) {
+          ufToPass = BnBRegionsMaker.getNewUfName(CToFormulaConverterWithPointerAliasing.getUFName(lvalueType),
+                                                  lvalueType.toString() + ' ' + memberDeclaration.getName());
         } else {
-          ufToPass = CToFormulaConverterWithPointerAliasing.getUFName(lvalueType) + ' ' + BnBRegionsMaker.getGlobal();
+          ufToPass = BnBRegionsMaker.getNewUfName(CToFormulaConverterWithPointerAliasing.getUFName(lvalueType), null);
         }
       }
       addSemiexactRetentionConstraints(pattern, ufToPass, startAddress, size, ufsToRetain);
