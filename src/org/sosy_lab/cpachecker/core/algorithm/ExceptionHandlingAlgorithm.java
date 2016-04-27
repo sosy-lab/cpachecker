@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationExc
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -77,6 +78,13 @@ public class ExceptionHandlingAlgorithm implements Algorithm {
           + " may still contain errors that could be found"
     )
     private boolean continueAfterFailedRefinement = false;
+
+    @Option(
+      secure = true,
+      name = "analysis.continueAfterUnsupportedCode",
+      description = "continue analysis after a unsupported code was found on one path"
+    )
+    private boolean continueAfterUnsupportedCode = false;
 
     private ExceptionHandlingOptions(Configuration pConfig) throws InvalidConfigurationException {
       pConfig.inject(this);
@@ -115,7 +123,8 @@ public class ExceptionHandlingAlgorithm implements Algorithm {
     ExceptionHandlingOptions options = new ExceptionHandlingOptions(pConfig);
 
     if ((options.continueAfterInfeasibleError && pCheckCounterexamples)
-        || (options.continueAfterFailedRefinement && pUseCEGAR)) {
+        || (options.continueAfterFailedRefinement && pUseCEGAR)
+        || options.continueAfterUnsupportedCode) {
       return new ExceptionHandlingAlgorithm(pAlgorithm, pCpa, options, pLogger, pShutdownNotifier);
     }
 
@@ -152,7 +161,7 @@ public class ExceptionHandlingAlgorithm implements Algorithm {
 
         // there can be more than one error path which needs to be handled
         for (ARGPath errorPath : e.getErrorPaths()) {
-          status = handleExceptionWithErrorPath(reached, status, errorPath.getLastState());
+          status = handleExceptionWithErrorPath(reached, status, errorPath.getLastState(), true);
         }
 
         // Handle failed refinements if specified by the configuration
@@ -162,6 +171,11 @@ public class ExceptionHandlingAlgorithm implements Algorithm {
         if (!options.continueAfterFailedRefinement) {
           throw e;
         }
+        logger.logUserException(
+            Level.WARNING,
+            e,
+            "Removing path that could not be refined"
+                + " from reached set and continue analysis with rest of the waitlist");
 
         ARGState lastState;
         if (e.getErrorPath() != null) {
@@ -170,17 +184,31 @@ public class ExceptionHandlingAlgorithm implements Algorithm {
           lastState = (ARGState) reached.getLastState();
         }
 
-        status = handleExceptionWithErrorPath(reached, status, lastState);
+        status = handleExceptionWithErrorPath(reached, status, lastState, true);
+
+        // handle occurrence of unsupported code. We can still check all remaining
+        // paths in the program for errors
+      } catch (UnsupportedCodeException e) {
+        // we don't want to continue, so no handling is necessary
+        if (!options.continueAfterUnsupportedCode || e.getParentState() == null) {
+          throw e;
+        }
+        logger.logUserException(
+            Level.WARNING,
+            e,
+            "Removing path that cannot be"
+                + " analyzed from reached set, and continue analysis with other states");
+
+        status = handleExceptionWithErrorPath(reached, status, e.getParentState(), false);
       }
     }
     return status;
   }
 
-  private AlgorithmStatus handleExceptionWithErrorPath(ReachedSet reached, AlgorithmStatus status,
-      ARGState lastState) {
+  private AlgorithmStatus handleExceptionWithErrorPath(
+      ReachedSet reached, AlgorithmStatus status, ARGState lastState, boolean isErrorState) {
 
-    // we need to have an (unreachable) error state on the last position
-    assert (lastState != null && lastState.isTarget());
+    assert lastState != null;
 
     // This counterexample is infeasible, so usually we would remove it
     // from the reached set. This is not possible, because the
@@ -206,7 +234,7 @@ public class ExceptionHandlingAlgorithm implements Algorithm {
     }
 
     // bit-wise and to have removeErrorState() definitely executed
-    sound &= removeErrorState(reached, lastState);
+    sound &= removeLastState(reached, lastState, isErrorState);
     assert ARGUtils.checkARG(reached);
 
     status = status.withSound(sound);
@@ -285,20 +313,20 @@ public class ExceptionHandlingAlgorithm implements Algorithm {
     return false;
   }
 
-  private boolean removeErrorState(ReachedSet reached, ARGState errorState) {
+  private boolean removeLastState(ReachedSet reached, ARGState lastState, boolean isErrorState) {
     boolean sound = true;
 
-    assert errorState.getChildren().isEmpty();
-    assert errorState.getCoveredByThis().isEmpty();
+    assert lastState.getChildren().isEmpty();
+    assert lastState.getCoveredByThis().isEmpty();
 
     // remove re-added parent of errorState to prevent computing
     // the same error state over and over
-    Collection<ARGState> parents = errorState.getParents();
+    Collection<ARGState> parents = lastState.getParents();
     assert parents.size() == 1 : "error state that was merged";
 
-    ARGState parent = Iterables.getOnlyElement(parents);
+    ARGState parent = isErrorState ? Iterables.getOnlyElement(parents) : lastState;
 
-    if (parent.getChildren().size() > 1 || parent.getCoveredByThis().isEmpty()) {
+    if (parent.getChildren().size() > 1 || parent.getCoveredByThis().isEmpty() || !isErrorState) {
       // The error state has a sibling, so the parent and the sibling
       // should stay in the reached set, but then the error state
       // would get re-discovered.
@@ -330,12 +358,12 @@ public class ExceptionHandlingAlgorithm implements Algorithm {
       covered.removeFromARG();
     }
 
-    cpa.clearCounterexamples(ImmutableSet.of(errorState));
+    cpa.clearCounterexamples(ImmutableSet.of(lastState));
     reached.remove(parent);
     parent.removeFromARG();
 
-    assert errorState.isDestroyed() : "errorState is not the child of its parent";
-    assert !reached.contains(errorState) : "reached.remove() didn't work";
+    assert lastState.isDestroyed() : "errorState is not the child of its parent";
+    assert !reached.contains(lastState) : "reached.remove() didn't work";
     return sound;
   }
 }

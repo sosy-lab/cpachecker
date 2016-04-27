@@ -160,6 +160,9 @@ analysis.checkProof = false
 # use assumption collecting algorithm
 analysis.collectAssumptions = false
 
+# continue analysis after a unsupported code was found on one path
+analysis.continueAfterUnsupportedCode = false
+
 # stop CPAchecker after startup (internal option, not intended for users)
 analysis.disable = false
 
@@ -1737,9 +1740,6 @@ cpa.sign.stop = "SEP"
 # Apply AND- LBE transformation to loop transition relation.
 cpa.slicing.applyLBETransformation = true
 
-# Extract and cache unsat cores for satisfiability checking
-cpa.slicing.cacheUnsatCores = true
-
 # Check target states reachability
 cpa.slicing.checkTargetStates = true
 
@@ -2559,6 +2559,9 @@ restartAlgorithm.configFiles = no default value
 
 # List of files with configurations to use. 2 filenames expected.
 restartAlgorithmWithARGReplay.configFiles = no default value
+
+# Extract and cache unsat cores for satisfiability checking
+solver.cacheUnsatCores = true
 
 # improve sat-checks with additional constraints for UFs
 solver.checkUFs = false
