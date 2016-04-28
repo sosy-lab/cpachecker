@@ -345,8 +345,6 @@ public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
 
   private class Stats implements Statistics {
 
-    private final Statistics statistics = strategy.getStatistics();
-
     @Override
     public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
       StatisticsWriter w0 = writingStatisticsTo(out);
@@ -354,14 +352,12 @@ public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
       w0.put("Number of predicate refinements", numberOfRefinements);
       if (numberOfRefinements > 0) {
         w0.put(totalTime).put(interpolationTime).put(satCheckTime);
-
-        statistics.printStatistics(out, result, reached);
       }
     }
 
     @Override
     public String getName() {
-      return strategy.getStatistics().getName();
+      return "Predicate Global Refiner";
     }
   }
 }
