@@ -242,6 +242,7 @@ analysis.mpa.partition.k = 5
 
 # Operator for determining the partitions of properties that have to be
 # checked.
+analysis.mpa.partition.operator = AllThenSepOperator.class
 analysis.mpa.partition.operator = CheaperFirstDivideOperator.class
 
 # Limit for cpu time of one property (use seconds or specify a unit; -1 for
