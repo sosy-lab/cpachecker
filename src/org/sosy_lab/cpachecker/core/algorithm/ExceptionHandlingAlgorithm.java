@@ -35,6 +35,8 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -55,7 +57,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-public class ExceptionHandlingAlgorithm implements Algorithm {
+public class ExceptionHandlingAlgorithm implements Algorithm, StatisticsProvider {
 
   @Options
   private static class ExceptionHandlingOptions {
@@ -365,5 +367,12 @@ public class ExceptionHandlingAlgorithm implements Algorithm {
     assert lastState.isDestroyed() : "errorState is not the child of its parent";
     assert !reached.contains(lastState) : "reached.remove() didn't work";
     return sound;
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    if (algorithm instanceof StatisticsProvider) {
+      ((StatisticsProvider) algorithm).collectStatistics(pStatsCollection);
+    }
   }
 }
