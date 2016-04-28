@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning.PartitioningStatus;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.PartitioningOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.PartitioningOperator.PartitioningException;
-import org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning.CheaperFirstDivideOperator;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning.AllThenSepOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning.Partitions;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning.RelevanceThenIrrelevantThenRelevantOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -106,7 +106,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
   @Option(secure=true, name="partition.operator",
       description = "Operator for determining the partitions of properties that have to be checked.")
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning")
-  @Nonnull private Class<? extends PartitioningOperator> partitionOperatorClass = CheaperFirstDivideOperator.class;
+  @Nonnull private Class<? extends PartitioningOperator> partitionOperatorClass = AllThenSepOperator.class;
   private final PartitioningOperator partitionOperator;
 
   @Option(secure=true, description = "Operator for initializing the waitlist after the partitioning of properties was performed.")
