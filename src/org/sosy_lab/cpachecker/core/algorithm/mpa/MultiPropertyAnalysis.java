@@ -182,6 +182,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
     if (isTargetState(e)) {
       Set<Property> violated = AbstractStates.extractViolatedProperties(e, Property.class);
       result.putAll(e, violated);
+      logger.logf(Level.INFO, "Violation of %s at %s", violated.toString(), AbstractStates.extractLocation(e).describeFileLocation());
     }
 
     return result.build();
