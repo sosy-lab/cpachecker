@@ -90,6 +90,8 @@ public class AllThenIrrelevanceThenRelevantSepOperator extends PartitioningBudge
     final Set<Property> knownRelevant = PropertyStats.INSTANCE.getRelevantProperties();
     final PartitioningStatus lastType = pLastCheckedPartitioning.getStatus();
 
+    //
+    // First phase: One partition with all properties
     if (lastType.equals(PartitioningStatus.NONE)) {
         return create(PartitioningStatus.ALL_IN_ONE,
             getPropertyBudgetingOperator(),
@@ -97,25 +99,31 @@ public class AllThenIrrelevanceThenRelevantSepOperator extends PartitioningBudge
             ImmutableList.of(ImmutableSet.copyOf(pToCheck)));
     }
 
+    //
+    // Second phase: Check irrelevance of properties
     final Set<Property> maybeIrrelevantToCheck = Sets.difference(pToCheck, knownRelevant);
-    boolean checkIrrelevance = maybeIrrelevantToCheck.size() > 1;
-    if (checkIrrelevance && lastType.equals(PartitioningStatus.CHECK_IRRELEVANCE)) {
-      // In cases where we already checked the set of properties
-      //  for irrelevance: the fix point was not reached;
-      //  the control flow of the program might be too complex / too huge.
-      if (maybeIrrelevantToCheck.containsAll(pLastCheckedPartitioning.getPartitions().get(0))) {
-        checkIrrelevance = false;
+    if (maybeIrrelevantToCheck.size() > 1) {
+      if (lastType.equals(PartitioningStatus.ALL_IN_ONE)) {
+        return create(PartitioningStatus.CHECK_IRRELEVANCE,
+            getPropertyBudgetingOperator(),
+            secondPartitionBudgeting,
+            ImmutableList.of(ImmutableSet.copyOf(maybeIrrelevantToCheck)));
+
+      } else if (lastType.equals(PartitioningStatus.CHECK_IRRELEVANCE)) {
+        // In cases where we already checked the set of properties
+        //  for irrelevance: the fix point was not reached;
+        //  the control flow of the program might be too complex / too huge.
+        if (!maybeIrrelevantToCheck.containsAll(pLastCheckedPartitioning.getPartitions().get(0))) {
+          return create(PartitioningStatus.CHECK_IRRELEVANCE,
+              getPropertyBudgetingOperator(),
+              secondPartitionBudgeting,
+              ImmutableList.of(ImmutableSet.copyOf(maybeIrrelevantToCheck)));
+        }
       }
     }
 
-    if (checkIrrelevance) {
-      return create(PartitioningStatus.CHECK_IRRELEVANCE,
-          getPropertyBudgetingOperator(),
-          secondPartitionBudgeting,
-          ImmutableList.of(ImmutableSet.copyOf(maybeIrrelevantToCheck)));
-    }
-
-
+    //
+    // Third phase: check each relevant property separately
     if (knownRelevant.isEmpty()) {
       return create(PartitioningStatus.BREAK,
           InfinitePropertyBudgeting.INSTANCE,
@@ -127,6 +135,7 @@ public class AllThenIrrelevanceThenRelevantSepOperator extends PartitioningBudge
         InfinitePropertyBudgeting.INSTANCE,
         getPartitionBudgetingOperator(),
         singletonPartitions(knownRelevant, pPropertyExpenseComparator));
+
   }
 
 }
