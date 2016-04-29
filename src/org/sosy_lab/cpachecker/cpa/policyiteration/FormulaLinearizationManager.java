@@ -131,7 +131,7 @@ public class FormulaLinearizationManager {
     BooleanFormula noUFs = processUFs(f, pModel);
 
     // Get rid of ite-expressions.
-    BooleanFormula out = bfmgr.visit(new ReplaceITEVisitor(pModel), noUFs);
+    BooleanFormula out = bfmgr.transformRecursively(new ReplaceITEVisitor(pModel), noUFs);
     statistics.ackermannizationTimer.stop();
 
     return out;
