@@ -3,6 +3,8 @@ package org.sosy_lab.cpachecker.cpa.policyiteration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
+import java.util.Objects;
+
 public final class PolicyIntermediateState extends PolicyState {
 
   /**
@@ -19,6 +21,7 @@ public final class PolicyIntermediateState extends PolicyState {
    * Meta-information for determining the coverage.
    */
   private transient PolicyIntermediateState mergedInto;
+  private transient int hashCache = 0;
 
   private PolicyIntermediateState(
       CFANode node,
@@ -72,5 +75,27 @@ public final class PolicyIntermediateState extends PolicyState {
   @Override
   public String toString() {
     return pathFormula.toString() + "\nLength: " + pathFormula.getLength();
+  }
+
+  @Override
+  public boolean equals(Object pO) {
+    if (this == pO) {
+      return true;
+    }
+    if (pO == null || getClass() != pO.getClass()) {
+      return false;
+    }
+    PolicyIntermediateState that = (PolicyIntermediateState) pO;
+    return Objects.equals(pathFormula, that.pathFormula) &&
+        Objects.equals(startingAbstraction, that.startingAbstraction) &&
+        Objects.equals(mergedInto, that.mergedInto);
+  }
+
+  @Override
+  public int hashCode() {
+    if (hashCache == 0) {
+      hashCache = Objects.hash(pathFormula, startingAbstraction, mergedInto);
+    }
+    return hashCache;
   }
 }

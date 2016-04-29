@@ -1,12 +1,9 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.common.log.LogManager;
@@ -19,10 +16,13 @@ import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyBound;
 import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationStatistics;
 import org.sosy_lab.cpachecker.cpa.policyiteration.Template;
 
-import com.google.common.base.Function;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.logging.Level;
 
 import apron.Abstract1;
 import apron.Coeff;
@@ -79,7 +79,7 @@ public class PolyhedraWideningManager {
 
     Abstract1 widened;
     try {
-      statistics.startPolyhedraWideningTimer();
+      statistics.polyhedraWideningTimer.start();
       Abstract1 abs1, abs2;
       Environment env = generateEnvironment(ImmutableList.of(oldData, newData));
       abs1 = fromTemplates(env, oldData);
@@ -87,7 +87,7 @@ public class PolyhedraWideningManager {
       abs2.join(manager, abs1);
       widened = abs1.widening(manager, abs2);
     } finally {
-      statistics.stopPolyhedraWideningTimer();
+      statistics.polyhedraWideningTimer.stop();
     }
 
     Map<Template, Rational> generated = toTemplates(widened);

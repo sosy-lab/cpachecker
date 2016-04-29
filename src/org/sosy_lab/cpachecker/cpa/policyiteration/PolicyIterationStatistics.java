@@ -21,16 +21,16 @@ public class PolicyIterationStatistics implements Statistics {
   final Multiset<Integer> abstractMergeCounter = HashMultiset.create();
   final Multiset<Integer> updateCounter = HashMultiset.create();
 
-  private final Timer valueDeterminationTimer = new Timer();
-  private final Timer abstractionTimer = new Timer();
-  private final Timer checkSATTimer = new Timer();
-  final Timer polyhedraWideningTimer = new Timer();
+  final Timer valueDeterminationTimer = new Timer();
+  final Timer abstractionTimer = new Timer();
+  final Timer checkSATTimer = new Timer();
+  public final Timer polyhedraWideningTimer = new Timer();
 
   final Timer optTimer = new Timer();
   final Timer checkIndependenceTimer = new Timer();
   final Timer simplifyTimer = new Timer();
-  final Timer congruenceTimer = new Timer();
-  final Timer comparisonTimer = new Timer();
+  public final Timer congruenceTimer = new Timer();
+
   final Timer ackermannizationTimer = new Timer();
   final Timer linearizationTimer = new Timer();
 
@@ -42,54 +42,6 @@ public class PolicyIterationStatistics implements Statistics {
     wideningTemplatesGenerated = wideningTemplatesGenerated.add(BigInteger.ONE);
   }
 
-  public void startCheckSATTimer() {
-    checkSATTimer.start();
-  }
-
-  public void stopCheckSATTimer() {
-    checkSATTimer.stop();
-  }
-
-  public void startOPTTimer() {
-    optTimer.start();
-  }
-
-  public void stopOPTTimer() {
-    optTimer.stop();
-  }
-
-  public void startAbstractionTimer() {
-    abstractionTimer.start();
-  }
-
-  public void stopAbstractionTimer() {
-    abstractionTimer.stop();
-  }
-
-  public void startValueDeterminationTimer() {
-    valueDeterminationTimer.start();
-  }
-
-  public void startCongruenceTimer() {
-    congruenceTimer.start();
-  }
-
-  public void stopCongruenceTimer() {
-    congruenceTimer.stop();
-  }
-
-  public void stopValueDeterminationTimer() {
-    valueDeterminationTimer.stop();
-  }
-
-  public void startPolyhedraWideningTimer() {
-    polyhedraWideningTimer.start();
-  }
-
-  public void stopPolyhedraWideningTimer() {
-    polyhedraWideningTimer.stop();
-  }
-
   public PolicyIterationStatistics(CFA pCFA) {
     cfa = pCFA;
   }
@@ -99,19 +51,10 @@ public class PolicyIterationStatistics implements Statistics {
       PrintStream out, CPAcheckerResult.Result result, ReachedSet reached) {
 
     printTimer(out, valueDeterminationTimer, "value determination");
-    out.printf("Number of val. det. calls: %d%n",
-        valueDeterminationTimer.getNumberOfIntervals());
     printTimer(out, abstractionTimer, "abstraction");
-    out.printf("Number of abstractions performed: %d%n",
-        abstractionTimer.getNumberOfIntervals());
     printTimer(out, optTimer, "optimization (OPT-SMT)");
-    out.printf("Number of optimization queries sent: %d%n",
-        optTimer.getNumberOfIntervals());
-    printTimer(out, checkSATTimer, "checking bad states (SMT)");
-    out.printf("Number of check-SAT calls sent: %d%n",
-        checkSATTimer.getNumberOfIntervals());
 
-    printTimer(out, comparisonTimer, "comparing abstract states");
+    printTimer(out, checkSATTimer, "checking bad states (SMT)");
 
     printTimer(out, checkIndependenceTimer, "checking independence");
     printTimer(out, simplifyTimer, "simplifying formulas");

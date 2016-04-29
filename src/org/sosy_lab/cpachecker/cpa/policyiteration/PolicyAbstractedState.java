@@ -16,6 +16,7 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 
 public final class PolicyAbstractedState extends PolicyState
       implements Iterable<Entry<Template, PolicyBound>>,
@@ -52,6 +53,7 @@ public final class PolicyAbstractedState extends PolicyState
    * location.
    */
   private final int locationID;
+  private transient int hashCache = 0;
 
   private PolicyAbstractedState(CFANode node,
       Map<Template, PolicyBound> pAbstraction,
@@ -212,5 +214,31 @@ public final class PolicyAbstractedState extends PolicyState
               + "encountered on this code path.");
     }
     return fmgr.uninstantiate(invariant);
+  }
+
+  @Override
+  public boolean equals(Object pO) {
+    if (this == pO) {
+      return true;
+    }
+    if (pO == null || getClass() != pO.getClass()) {
+      return false;
+    }
+    PolicyAbstractedState entries = (PolicyAbstractedState) pO;
+    return Objects.equals(congruence, entries.congruence) &&
+        Objects.equals(abstraction, entries.abstraction) &&
+        Objects.equals(ssaMap, entries.ssaMap) &&
+        Objects.equals(pointerTargetSet, entries.pointerTargetSet) &&
+        Objects.equals(extraInvariant, entries.extraInvariant);
+  }
+
+  @Override
+  public int hashCode() {
+    if (hashCache == 0) {
+      hashCache = Objects
+          .hash(congruence, abstraction, ssaMap, pointerTargetSet,
+              extraInvariant);
+    }
+    return hashCache;
   }
 }

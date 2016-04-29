@@ -4,6 +4,7 @@ import static com.google.common.collect.Iterables.filter;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -108,11 +109,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       + "previously obtained bound at the location. Interferes with"
       + "obtaining templates using convex hull.")
   private boolean usePreviousBounds = true;
-
-  @Option(secure=true, description="Any intermediate state with formula length "
-      + "bigger than specified will be checked for reachability. "
-      + "Set to -1 for no limit.")
-  private int lengthLimitForSATCheck = 300;
 
   @Option(secure=true, description="Run simple congruence analysis")
   private boolean runCongruence = true;
@@ -284,8 +280,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     // Perform reachability checking, either for property states, or when the
     // formula gets too long, or before abstractions.
     if (!inputState.isAbstract() && (hasTargetState && checkTargetStates
-        || (lengthLimitForSATCheck != -1 &&
-              iState.getPathFormula().getLength() > lengthLimitForSATCheck)
         || shouldPerformAbstraction
       ) && isUnreachable(iState, extraInvariant)) {
 
@@ -301,13 +295,13 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
       PolicyAbstractedState abstraction;
       if (!inputState.isAbstract()) {
-        statistics.startAbstractionTimer();
+        statistics.abstractionTimer.start();
         try {
           abstraction = performAbstraction(
               iState, getLocationID(sibling, node), sibling, toNodePrecision, extraInvariant);
           logger.log(Level.FINE, ">>> Abstraction produced a state: ", abstraction);
         } finally {
-          statistics.stopAbstractionTimer();
+          statistics.abstractionTimer.stop();
         }
       } else {
 
@@ -542,7 +536,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         new HashMap<>(stateWithUpdates.getAbstraction());
 
     // Maximize for each template subject to the overall constraints.
-    statistics.startValueDeterminationTimer();
+    statistics.valueDeterminationTimer.start();
     try (OptimizationProverEnvironment optEnvironment = solver.newOptEnvironment()) {
 
       for (BooleanFormula constraint : valDetConstraints.constraints) {
@@ -570,10 +564,10 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
         OptimizationProverEnvironment.OptStatus result;
         try {
-          statistics.startOPTTimer();
+          statistics.optTimer.start();
           result = optEnvironment.check();
         } finally {
-          statistics.stopOPTTimer();
+          statistics.optTimer.stop();
         }
         if (result != OptimizationProverEnvironment.OptStatus.OPT) {
           shutdownNotifier.shutdownIfNecessary();
@@ -605,7 +599,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     } catch(SolverException e){
       throw new CPATransferException("Failed maximization ", e);
     } finally{
-      statistics.stopValueDeterminationTimer();
+      statistics.valueDeterminationTimer.stop();
     }
 
     return Optional.of(stateWithUpdates.withNewAbstraction(newAbstraction));
@@ -662,14 +656,17 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     );
 
     try {
-      statistics.startCheckSATTimer();
-      return solver.isUnsat(constraint);
+      statistics.checkSATTimer.start();
+      return solver.isUnsat(
+          bfmgr.toConjunctionArgs(constraint, true), state.getNode());
     } catch (SolverException e) {
       throw new CPATransferException("Failed solving", e);
     } finally {
-      statistics.stopCheckSATTimer();
+      statistics.checkSATTimer.stop();
     }
   }
+
+  Map<Object[], PolicyAbstractedState> abstractionCache = new HashMap<>();
 
   /**
    * Perform the abstract operation on a new state
@@ -685,6 +682,15 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       PolicyPrecision precision,
       BooleanFormula extraInvariant)
       throws CPAException, InterruptedException {
+
+    // TODO: it's not nice to have to use locationID for caching,
+    // we should re-use the cache across different locations.
+    Object[] key = new Object[]{state, locationID, otherState, precision,
+        extraInvariant};
+    PolicyAbstractedState out = abstractionCache.get(key);
+    if (out != null) {
+      return out;
+    }
 
     logger.log(Level.FINE, "Performing abstraction at node: ", state.getNode());
 
@@ -769,45 +775,22 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
         OptimizationProverEnvironment.OptStatus status;
         try {
-          statistics.startOPTTimer();
+          statistics.optTimer.start();
           status = optEnvironment.check();
         } finally {
-          statistics.stopOPTTimer();
+          statistics.optTimer.stop();
         }
 
         switch (status) {
           case OPT:
             Optional<Rational> bound = optEnvironment.upper(handle, EPSILON);
+            Optional<PolicyBound> policyBound = getPolicyBound(template,
+                optEnvironment, bound, annotatedFormula, p, state, objective);
+            if (policyBound.isPresent()) {
+              abstraction.put(template, policyBound.get());
+            }
 
             // Lower bound on unsigned variables is at least zero.
-            boolean unsignedAndLower = template.isUnsigned() &&
-                (template.getKind() == Kind.NEG_LOWER_BOUND ||
-                template.getKind() == Kind.NEG_SUM_LOWER_BOUND);
-            if (bound.isPresent() &&
-                      !templateManager.isOverflowing(template, bound.get())
-                    || unsignedAndLower) {
-              Rational boundValue;
-              if (bound.isPresent() && unsignedAndLower) {
-                boundValue = Rational.max(bound.get(), Rational.ZERO);
-              } else if (bound.isPresent()){
-                boundValue = bound.get();
-              } else {
-                boundValue = Rational.ZERO;
-              }
-
-              try (Model model = optEnvironment.getModel()) {
-                if (linearizePolicy) {
-                  statistics.linearizationTimer.start();
-                  annotatedFormula = linearizationManager.convertToPolicy(
-                      annotatedFormula, model);
-                  statistics.linearizationTimer.stop();
-                }
-
-                PolicyBound policyBound = modelToPolicyBound(
-                    objective, state, p, annotatedFormula, model, boundValue);
-                abstraction.put(template, policyBound);
-              }
-            }
             logger.log(Level.FINE, "Got bound: ", bound);
             break;
 
@@ -841,7 +824,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       congruence = CongruenceState.empty();
     }
 
-    return PolicyAbstractedState.of(
+    out = PolicyAbstractedState.of(
             abstraction,
             state.getNode(),
             congruence,
@@ -852,9 +835,53 @@ public class PolicyIterationManager implements IPolicyIterationManager {
             extraInvariant,
             state
         );
+    abstractionCache.put(key, out);
+    return out;
   }
 
+  /**
+   * Derive policy bound from the optimization result.
+   */
+  private Optional<PolicyBound> getPolicyBound(
+      Template template,
+      OptimizationProverEnvironment optEnvironment,
+      Optional<Rational> bound,
+      BooleanFormula annotatedFormula,
+      PathFormula p,
+      PolicyIntermediateState state,
+      Formula objective
+      ) throws SolverException, InterruptedException {
+    boolean unsignedAndLower = template.isUnsigned() &&
+        (template.getKind() == Kind.NEG_LOWER_BOUND ||
+            template.getKind() == Kind.NEG_SUM_LOWER_BOUND);
+    if (bound.isPresent() &&
+        !templateManager.isOverflowing(template, bound.get())
+        || unsignedAndLower) {
+      Rational boundValue;
+      if (bound.isPresent() && unsignedAndLower) {
+        boundValue = Rational.max(bound.get(), Rational.ZERO);
+      } else if (bound.isPresent()){
+        boundValue = bound.get();
+      } else {
+        boundValue = Rational.ZERO;
+      }
 
+      try (Model model = optEnvironment.getModel()) {
+        BooleanFormula linearizedFormula = annotatedFormula;
+        if (linearizePolicy) {
+          statistics.linearizationTimer.start();
+          linearizedFormula = linearizationManager.convertToPolicy(
+              annotatedFormula, model);
+          statistics.linearizationTimer.stop();
+        }
+
+        PolicyBound policyBound = modelToPolicyBound(
+            objective, state, p, linearizedFormula, model, boundValue);
+        return Optional.of(policyBound);
+      }
+    }
+    return Optional.absent();
+  }
 
   /**
    * Use the auxiliary variables from the {@code model} to reconstruct the
@@ -1048,21 +1075,16 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   @Override
   public boolean isLessOrEqual(PolicyState state1, PolicyState state2)
       throws CPAException {
-    try {
-      statistics.comparisonTimer.start();
-      Preconditions.checkState(state1.isAbstract() == state2.isAbstract());
-      boolean out;
-      if (state1.isAbstract()) {
-        out = isLessOrEqualAbstracted(state1.asAbstracted(),
-            state2.asAbstracted());
-      } else {
-        out = isLessOrEqualIntermediate(state1.asIntermediate(),
-            state2.asIntermediate());
-      }
-      return out;
-    } finally {
-      statistics.comparisonTimer.stop();
+    Preconditions.checkState(state1.isAbstract() == state2.isAbstract());
+    boolean out;
+    if (state1.isAbstract()) {
+      out = isLessOrEqualAbstracted(state1.asAbstracted(),
+          state2.asAbstracted());
+    } else {
+      out = isLessOrEqualIntermediate(state1.asIntermediate(),
+          state2.asIntermediate());
     }
+    return out;
   }
 
   @Override
