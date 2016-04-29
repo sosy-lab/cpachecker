@@ -125,7 +125,7 @@ public class AllThenIrrelevanceThenRelevantSepOperator extends PartitioningBudge
     //
     // Third phase: check each relevant property separately
     if (knownRelevant.size() > 0
-        && (lastType.equals(PartitioningStatus.ONE_FOR_EACH)
+        && (lastType.equals(PartitioningStatus.ALL_IN_ONE)
          || lastType.equals(PartitioningStatus.CHECK_IRRELEVANCE))) {
 
       return create(PartitioningStatus.ONE_FOR_EACH,
