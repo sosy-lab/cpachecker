@@ -124,18 +124,22 @@ public class AllThenIrrelevanceThenRelevantSepOperator extends PartitioningBudge
 
     //
     // Third phase: check each relevant property separately
-    if (knownRelevant.isEmpty()) {
-      return create(PartitioningStatus.BREAK,
+    if (knownRelevant.size() > 0
+        && (lastType.equals(PartitioningStatus.ONE_FOR_EACH)
+         || lastType.equals(PartitioningStatus.CHECK_IRRELEVANCE))) {
+
+      return create(PartitioningStatus.ONE_FOR_EACH,
           InfinitePropertyBudgeting.INSTANCE,
           getPartitionBudgetingOperator(),
           singletonPartitions(knownRelevant, pPropertyExpenseComparator));
     }
 
-    return create(PartitioningStatus.ONE_FOR_EACH,
+    //
+    // Otherwise: Stop the analysis.
+    return create(PartitioningStatus.BREAK,
         InfinitePropertyBudgeting.INSTANCE,
         getPartitionBudgetingOperator(),
         singletonPartitions(knownRelevant, pPropertyExpenseComparator));
-
   }
 
 }
