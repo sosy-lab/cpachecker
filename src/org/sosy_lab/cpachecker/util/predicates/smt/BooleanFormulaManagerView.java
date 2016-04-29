@@ -23,14 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import java.util.Collection;
-import java.util.Set;
-
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.visitors.TraversalProcess;
+
+import java.util.Collection;
+import java.util.Set;
 
 
 public class BooleanFormulaManagerView extends BaseManagerView implements BooleanFormulaManager {
@@ -159,12 +159,15 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   /**
    * Base class for visitors for boolean formulas that traverse recursively
    * through the formula and somehow transform it (i.e., return a boolean formula).
-   * This class ensures that each identical subtree of the formula
+   *
+   * <p>Should be called with {@link #transformRecursively}
+   *
+   * <p>This class ensures that each identical subtree of the formula
    * is visited only once to avoid the exponential explosion.
    *
-   * By default this class implements the identity function.
+   * <p>By default this class implements the identity function.
    *
-   * No guarantee on iteration order is made.
+   * <p>No guarantee on iteration order is made.
    */
   public static abstract class BooleanFormulaTransformationVisitor
       extends org.sosy_lab.solver.visitors.BooleanFormulaTransformationVisitor {
