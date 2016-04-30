@@ -5,6 +5,8 @@
 
 # the default heap size of the Java VM
 DEFAULT_HEAP_SIZE="1200M"
+MIN_HEAP_SIZE="512M"
+MIN_HEAP_TOMAX=false
 
 #------------------------------------------------------------------------------
 # From here on you should not need to change anything
@@ -68,6 +70,9 @@ while [ $# -gt 0 ]; do
        shift
        JAVA_HEAP_SIZE=$1
        ;;
+   "-startWithMaxHeap")
+       MIN_HEAP_TOMAX=true
+       ;;
    "-disable-jit")
        JAVA_VM_ARGUMENTS="$JAVA_VM_ARGUMENTS -Xint"
        ;;
@@ -111,6 +116,11 @@ else
   echo "Running CPAchecker with default heap size (${JAVA_HEAP_SIZE}). Specify a larger value with -heap if you have more RAM."
 fi
 
+if [ $MIN_HEAP_TOMAX ]; then
+    echo "Starting with an initial heap of: ${JAVA_HEAP_SIZE}"
+    MIN_HEAP_SIZE="${JAVA_HEAP_SIZE}"
+fi
+
 if [ ! -z "$JAVA_VM_ARGUMENTS" ]; then
   echo "Running CPAchecker with the following extra VM options: $JAVA_VM_ARGUMENTS"
 fi
@@ -137,6 +147,7 @@ $EXEC "$JAVA" \
 	-Xss1024k \
 	-XX:+PerfDisableSharedMem \
 	$JAVA_VM_ARGUMENTS \
+	-Xms${MIN_HEAP_SIZE} \
 	-Xmx${JAVA_HEAP_SIZE} \
 	$JAVA_ASSERTIONS \
 	org.sosy_lab.cpachecker.cmdline.CPAMain \
