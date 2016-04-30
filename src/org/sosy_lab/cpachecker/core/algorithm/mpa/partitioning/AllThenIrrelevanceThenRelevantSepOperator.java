@@ -141,7 +141,7 @@ public class AllThenIrrelevanceThenRelevantSepOperator extends PartitioningBudge
     return create(PartitioningStatus.BREAK,
         InfinitePropertyBudgeting.INSTANCE,
         getPartitionBudgetingOperator(),
-        singletonPartitions(knownRelevantUnchecked, pPropertyExpenseComparator));
+        ImmutableList.<ImmutableSet<Property>>of());
   }
 
 }
