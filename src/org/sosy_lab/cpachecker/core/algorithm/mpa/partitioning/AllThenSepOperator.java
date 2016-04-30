@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning;
 
-import java.util.Comparator;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -34,15 +34,16 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.PropertySets;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.InfinitePropertyBudgeting;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.PartitionBudgeting;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning.PartitioningStatus;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
+import java.util.Comparator;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 @Options
 public class AllThenSepOperator extends PartitioningBudgetOperator {
@@ -144,7 +145,7 @@ public class AllThenSepOperator extends PartitioningBudgetOperator {
         : create(PartitioningStatus.ONE_FOR_EACH,
             InfinitePropertyBudgeting.INSTANCE,
             getPartitionBudgetingOperator(),
-            singletonPartitions(pToCheck, pPropertyExpenseComparator));
+            singletonPartitions(PropertySets.makeImmutableSortedSet(pToCheck)));
   }
 
 }

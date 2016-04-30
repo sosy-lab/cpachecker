@@ -23,12 +23,14 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -41,13 +43,12 @@ import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning.Partit
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.PartitioningOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
 
 @Options
 abstract class AbstractPartitioningOperator implements PartitioningOperator {
@@ -105,6 +106,17 @@ abstract class AbstractPartitioningOperator implements PartitioningOperator {
     Collections.sort(l, pComp);
 
     for (Property p: l) {
+      result.add(ImmutableSet.of(p));
+    }
+
+    return result.build();
+  }
+
+  protected ImmutableList<ImmutableSet<Property>> singletonPartitions(ImmutableSortedSet<Property> pInput) {
+
+    final ImmutableList.Builder<ImmutableSet<Property>> result = ImmutableList.<ImmutableSet<Property>>builder();
+
+    for (Property p: pInput) {
       result.add(ImmutableSet.of(p));
     }
 

@@ -133,7 +133,7 @@ public class AllThenIrrelevanceThenRelevantSepOperator extends PartitioningBudge
       return create(PartitioningStatus.ONE_FOR_EACH,
           InfinitePropertyBudgeting.INSTANCE,
           getPartitionBudgetingOperator(),
-          singletonPartitions(knownRelevantUnchecked, pPropertyExpenseComparator));
+          singletonPartitions(knownRelevantUnchecked));
     }
 
     //
