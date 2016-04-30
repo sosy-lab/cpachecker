@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -54,7 +55,7 @@ import java.util.TreeSet;
 public enum PropertyStats implements Statistics {
   INSTANCE;
 
-  private Set<Property> relevantProperties = Sets.newHashSet();
+  private LinkedHashSet<Property> relevantProperties = Sets.newLinkedHashSet();
   private Map<Property, StatCpuTime> refinementTime = Maps.newHashMap();
   private Map<Property, StatCounter> refinementCount = Maps.newHashMap();
   private Map<Property, StatCounter> coverageCount = Maps.newHashMap();

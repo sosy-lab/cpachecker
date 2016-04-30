@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
+import com.google.common.collect.ImmutableSortedSet;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -34,6 +34,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.PropertySets;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.PropertyStats;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.InfinitePropertyBudgeting;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.PartitionBudgeting;
@@ -88,6 +89,8 @@ public class AllThenIrrelevanceThenRelevantSepOperator extends PartitioningBudge
           throws PartitioningException {
 
     final Set<Property> knownRelevant = PropertyStats.INSTANCE.getRelevantProperties();
+    final ImmutableSortedSet<Property> knownRelevantUnchecked = PropertySets.makeIntersection(pToCheck, PropertyStats.INSTANCE.getRelevantProperties());
+    final ImmutableSortedSet<Property> maybeIrrelevantToCheck = PropertySets.makeDifference(pToCheck, knownRelevant);
     final PartitioningStatus lastType = pLastCheckedPartitioning.getStatus();
 
     //
@@ -101,7 +104,6 @@ public class AllThenIrrelevanceThenRelevantSepOperator extends PartitioningBudge
 
     //
     // Second phase: Check irrelevance of properties
-    final Set<Property> maybeIrrelevantToCheck = Sets.difference(pToCheck, knownRelevant);
     if (maybeIrrelevantToCheck.size() > 1) {
       if (lastType.equals(PartitioningStatus.ALL_IN_ONE)) {
         return create(PartitioningStatus.CHECK_IRRELEVANCE,
@@ -124,14 +126,14 @@ public class AllThenIrrelevanceThenRelevantSepOperator extends PartitioningBudge
 
     //
     // Third phase: check each relevant property separately
-    if (knownRelevant.size() > 0
+    if (knownRelevantUnchecked.size() > 0
         && (lastType.equals(PartitioningStatus.ALL_IN_ONE)
          || lastType.equals(PartitioningStatus.CHECK_IRRELEVANCE))) {
 
       return create(PartitioningStatus.ONE_FOR_EACH,
           InfinitePropertyBudgeting.INSTANCE,
           getPartitionBudgetingOperator(),
-          singletonPartitions(knownRelevant, pPropertyExpenseComparator));
+          singletonPartitions(knownRelevantUnchecked, pPropertyExpenseComparator));
     }
 
     //
@@ -139,7 +141,7 @@ public class AllThenIrrelevanceThenRelevantSepOperator extends PartitioningBudge
     return create(PartitioningStatus.BREAK,
         InfinitePropertyBudgeting.INSTANCE,
         getPartitionBudgetingOperator(),
-        singletonPartitions(knownRelevant, pPropertyExpenseComparator));
+        singletonPartitions(knownRelevantUnchecked, pPropertyExpenseComparator));
   }
 
 }

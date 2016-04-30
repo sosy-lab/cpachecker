@@ -28,11 +28,10 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.google.common.collect.Sets.SetView;
 
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -188,12 +187,12 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
     return result.build();
   }
 
-  private Set<Property> getActiveProperties(final ReachedSet pReached) {
+  private ImmutableSortedSet<Property> getActiveProperties(final ReachedSet pReached) {
 
     Set<Property> active = getActiveProperties(pReached.getFirstState(), pReached);
     Set<Property> inactive = getInactiveProperties(pReached);
 
-    return Sets.difference(active, inactive);
+    return PropertySets.makeDifference(active, inactive);
   }
 
   /**
@@ -206,7 +205,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
    *
    * @return            Set of properties
    */
-  static ImmutableSet<Property> getActiveProperties(
+  static ImmutableSortedSet<Property> getActiveProperties(
       final AbstractState pAbstractState,
       final UnmodifiableReachedSet pReached) {
 
@@ -214,7 +213,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
     Preconditions.checkNotNull(pReached);
     Preconditions.checkState(!pReached.isEmpty());
 
-    Set<Property> properties = Sets.newHashSet();
+    Set<Property> properties = Sets.newLinkedHashSet();
 
     // Retrieve the checked properties from the abstract state
     Collection<AutomatonState> automataStates = AbstractStates.extractStatesByType(
@@ -232,7 +231,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
       }
     }
 
-    return ImmutableSet.copyOf(properties);
+    return PropertySets.makeImmutableSortedSet(properties);
   }
 
   /**
@@ -245,7 +244,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
    * @param pReachedSet Set of reached states
    * @return  Set of properties
    */
-  private ImmutableSet<Property> getInactiveProperties(
+  private ImmutableSortedSet<Property> getInactiveProperties(
       final ReachedSet pReachedSet) {
 
     ARGCPA argCpa = CPAs.retrieveCPA(partitionCPA, ARGCPA.class);
@@ -254,10 +253,10 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
     // IMPORTANT: Ensure that an reset is performed for this information
     //  as soon the analysis (re-)starts with a new set of properties!!!
 
-    return argCpa.getCexSummary().getDisabledProperties();
+    return PropertySets.makeImmutableSortedSet(argCpa.getCexSummary().getDisabledProperties());
   }
 
-  private Set<Property> remaining(Set<Property> pAll,
+  private ImmutableSortedSet<Property> remaining(Set<Property> pAll,
       Set<Property> pViolated,
       Set<Property> pSatisfied,
       Set<Property> pFinallyExhausted) {
@@ -267,23 +266,23 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
     result = Sets.difference(result, pSatisfied);
     result = Sets.difference(result, pFinallyExhausted);
 
-    return result;
+    return PropertySets.makeImmutableSortedSet(result);
   }
 
   @Override
   public AlgorithmStatus run(final ReachedSet pReachedSet) throws CPAException,
       CPAEnabledAnalysisPropertyViolationException, InterruptedException {
 
-    final ImmutableSet<Property> all = getActiveProperties(pReachedSet.getFirstState(), pReachedSet);
+    final ImmutableSortedSet<Property> all = getActiveProperties(pReachedSet.getFirstState(), pReachedSet);
     stats.consideredProperties.addAll(all);
 
     logger.logf(Level.INFO, "Checking %d properties.", all.size());
     Preconditions.checkState(all.size() > 0, "At least one property must get checked!");
 
-    final Set<Property> relevant = Sets.newHashSet();
-    final Set<Property> violated = Sets.newHashSet();
-    final Set<Property> satisfied = Sets.newHashSet();
-    final Set<Property> unknown = Sets.newHashSet();
+    final Set<Property> relevant = Sets.newLinkedHashSet();
+    final Set<Property> violated = Sets.newLinkedHashSet();
+    final Set<Property> satisfied = Sets.newLinkedHashSet();
+    final Set<Property> unknown = Sets.newLinkedHashSet();
 
     try(Contexts ctx = Stats.beginRootContext("Multi-Property Verification")) {
 
@@ -297,7 +296,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
       Partitioning lastPartitioning;
 
       try {
-        checkPartitions = partition(noPartitioning, all, ImmutableSet.<Property>of());
+        checkPartitions = partition(noPartitioning, all, ImmutableSortedSet.<Property>of());
         lastPartitioning = checkPartitions;
       } catch (PartitioningException e1) {
         throw new CPAException("Partitioning failed!", e1);
@@ -310,7 +309,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
       Partitioning remainingPartitions = initReached(pReachedSet, checkPartitions, all);
 
       do {
-        final Set<Property> runProperties = getActiveProperties(pReachedSet);
+        final ImmutableSortedSet<Property> runProperties = getActiveProperties(pReachedSet);
 
         boolean wasInterrutped = false;
 
@@ -360,8 +359,8 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
               Preconditions.checkState(!pReachedSet.isEmpty());
               stats.numberOfPartitionExhaustions++;
 
-              SetView<Property> active = Sets.difference(all,
-                  Sets.union(violated, getInactiveProperties(pReachedSet)));
+              final ImmutableSet<Property> active = Sets.difference(all,
+                  Sets.union(violated, getInactiveProperties(pReachedSet))).immutableCopy();
               if (runProperties.size() == 1) {
                 unknown.addAll(active);
               }
@@ -423,10 +422,10 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
 
             // Properties that are (1) still active
             //  and (2) for that no counterexample was found are considered to be save!
-            Set<Property> active = Sets.difference(getActiveProperties(pReachedSet), violated);
+            final ImmutableSet<Property> active = Sets.difference(getActiveProperties(pReachedSet), violated).immutableCopy();
             satisfied.addAll(active);
 
-            Set<Property> remain = remaining(all, violated, satisfied, unknown);
+            final ImmutableSortedSet<Property> remain = remaining(all, violated, satisfied, unknown);
 
             // On the size of the set 'reached' (assertions and statistics)
             final Integer reachedSetSize = pReachedSet.size();
@@ -452,7 +451,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
           }
 
           // A new partitioning must be computed.
-          Set<Property> remain = remaining(all, violated, satisfied, unknown);
+          final ImmutableSortedSet<Property> remain = remaining(all, violated, satisfied, unknown);
 
           if (remain.isEmpty()) {
             break;
@@ -461,7 +460,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
           if (remainingPartitions.isEmpty()) {
             Stats.incCounter("Adjustments of property partitions", 1);
             try {
-              Set<Property> disabledProperties = Sets.difference(runProperties,
+              ImmutableSortedSet<Property> disabledProperties = PropertySets.makeDifference(runProperties,
                   getInactiveProperties(pReachedSet));
 
               logger.log(Level.INFO, "All properties: " + all.toString());
@@ -551,7 +550,8 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
   }
 
   private Partitioning partition(Partitioning pLastPartitioning,
-      Set<Property> pToCheck, Set<Property> pDisabledProperties)
+      ImmutableSortedSet<Property> pToCheck,
+      ImmutableSortedSet<Property> pDisabledProperties)
           throws PartitioningException {
 
     Partitioning result = partitionOperator.partition(pLastPartitioning, pToCheck,
@@ -658,8 +658,8 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
       result = initOperator.init(pAllProperties, partitionCPA, pReachedSet, pCheckPartitions, cfa);
 
       // Logging: inactive properties
-      Set<Property> inactive = getInactiveProperties(pReachedSet);
-      Set<Property> active = getActiveProperties(pReachedSet);
+      ImmutableSortedSet<Property> inactive = getInactiveProperties(pReachedSet);
+      ImmutableSortedSet<Property> active = getActiveProperties(pReachedSet);
       logger.log(Level.WARNING, String.format("Waitlist with %d active (%d inactive) properties.", active.size(), inactive.size()));
       logger.logf(Level.WARNING, "Active properties: %s", active.toString());
       logger.logf(Level.WARNING, "Inactive properties: %s", inactive.toString());
@@ -676,12 +676,12 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
     }
   }
 
-  public static ImmutableSet<Property> getAllProperties(AbstractState pAbstractState, ReachedSet pReached) {
+  public static ImmutableSortedSet<Property> getAllProperties(AbstractState pAbstractState, ReachedSet pReached) {
     Preconditions.checkNotNull(pAbstractState);
     Preconditions.checkNotNull(pReached);
     Preconditions.checkState(!pReached.isEmpty());
 
-    Builder<Property> result = ImmutableSet.<Property>builder();
+    ImmutableSortedSet.Builder<Property> result = PropertySets.builder();
 
     Collection<AutomatonState> automataStates = AbstractStates.extractStatesByType(
         pAbstractState, AutomatonState.class);
