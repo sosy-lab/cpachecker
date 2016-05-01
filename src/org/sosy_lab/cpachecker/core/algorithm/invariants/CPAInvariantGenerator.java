@@ -145,7 +145,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private Path configFile;
 
-  private final CPAInvariantGeneratorStatistics stats = new CPAInvariantGeneratorStatistics();
+  private final CPAInvariantGeneratorStatistics stats;
   private final LogManager logger;
   private final CPAAlgorithm algorithm;
   private final ConfigurableProgramAnalysis cpa;
@@ -264,7 +264,8 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
                           pCFA,
                           pToAdjust.reachedSetFactory,
                           cpa,
-                          pToAdjust.algorithm);
+                          pToAdjust.algorithm,
+                          pToAdjust.stats);
                 }
               } catch (InvalidConfigurationException e) {
                 pLogger.logUserException(
@@ -328,6 +329,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
       final int pIteration,
       final CFA pCFA, List<Automaton> pAdditionalAutomata) throws InvalidConfigurationException, CPAException {
     config.inject(this);
+    stats = new CPAInvariantGeneratorStatistics();
     logger = pLogger;
     shutdownManager = pShutdownManager;
     shutdownOnSafeNotifier = pShutdownOnSafeManager;
@@ -359,7 +361,8 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
       final CFA pCFA,
       ReachedSetFactory pReachedSetFactory,
       ConfigurableProgramAnalysis pCPA,
-      CPAAlgorithm pAlgorithm) throws InvalidConfigurationException {
+      CPAAlgorithm pAlgorithm,
+      CPAInvariantGeneratorStatistics pStats) throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
     shutdownManager = pShutdownManager;
@@ -370,6 +373,8 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     cfa = pCFA;
     cpa = pCPA;
     algorithm = pAlgorithm;
+
+    stats = pStats;
   }
 
   @Override
