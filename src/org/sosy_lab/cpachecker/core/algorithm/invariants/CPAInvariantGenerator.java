@@ -114,7 +114,9 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
 
     @Override
     public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-      out.println("Time for invariant generation:   " + invariantGeneration);
+      if (invariantGeneration.getNumberOfIntervals() > 0) {
+        out.println("Time for invariant generation:   " + invariantGeneration.getSumTime());
+      }
     }
 
     public TimeSpan getConsumedTime() {
