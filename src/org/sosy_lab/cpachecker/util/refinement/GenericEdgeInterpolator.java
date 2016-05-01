@@ -206,31 +206,20 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
       return interpolantManager.getTrueInterpolant();
     }
 
-    reduceToNecessaryState(initialSuccessor, remainingErrorPath);
-
-    return interpolantManager.createInterpolant(initialSuccessor);
-  }
-
-  protected S reduceToNecessaryState(S pInitialSuccessor, ARGPath pSuffix)
-      throws InterruptedException, CPAException {
-
-    Set<MemoryLocation> relevantMemoryLocations =
-        determineMemoryLocationsToInterpolateOn(pInitialSuccessor);
-
-    for (MemoryLocation currentMemoryLocation : relevantMemoryLocations) {
+    for (MemoryLocation currentMemoryLocation : determineMemoryLocationsToInterpolateOn(initialSuccessor)) {
       shutdownNotifier.shutdownIfNecessary();
 
       // temporarily remove the value of the current memory location from the candidate
       // interpolant
-      T forgottenInformation = pInitialSuccessor.forget(currentMemoryLocation);
+      T forgottenInformation = initialSuccessor.forget(currentMemoryLocation);
 
       // check if the remaining path now becomes feasible
-      if (isRemainingPathFeasible(pSuffix, pInitialSuccessor)) {
-        pInitialSuccessor.remember(currentMemoryLocation, forgottenInformation);
+      if (isRemainingPathFeasible(remainingErrorPath, initialSuccessor)) {
+        initialSuccessor.remember(currentMemoryLocation, forgottenInformation);
       }
     }
 
-    return pInitialSuccessor;
+    return interpolantManager.createInterpolant(initialSuccessor);
   }
 
   /**
