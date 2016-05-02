@@ -2256,6 +2256,9 @@ invariantGeneration.async = false
 # configuration file for invariant generation
 invariantGeneration.config = no default value
 
+# generate invariants in parallel to the normal analysis
+invariantGeneration.cpachecker.async = false
+
 # Configuration file for invariant generation with a full CPAchecker run.
 invariantGeneration.cpachecker.config.path = "config/invgen-components/pred-Invgen-restart.properties"
 

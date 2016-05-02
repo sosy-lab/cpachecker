@@ -32,6 +32,7 @@ import com.google.common.base.Preconditions;
 
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -54,6 +55,8 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.logging.Level;
 
 @Options(prefix="invariantGeneration.cpachecker")
@@ -67,6 +70,9 @@ public class CPAcheckerInvariantGenerator extends AbstractInvariantGenerator {
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private Path configPath = Paths.get("config/invgen-components/pred-Invgen-restart.properties");
 
+  @Option(secure=true, description="generate invariants in parallel to the normal analysis")
+  private boolean async = false;
+
   private final LogManager logger;
   private final CFA cfa;
   private final ReachedSet reached;
@@ -74,8 +80,8 @@ public class CPAcheckerInvariantGenerator extends AbstractInvariantGenerator {
   private final ConfigurableProgramAnalysis cpa;
   private final ShutdownManager shutdownNotifier;
 
-  private boolean generationCompleted = false;
-  private boolean programIsSafe = false;
+  private volatile boolean generationCompleted = false;
+  private volatile boolean programIsSafe = false;
 
   public CPAcheckerInvariantGenerator(
       Configuration config,
@@ -106,21 +112,37 @@ public class CPAcheckerInvariantGenerator extends AbstractInvariantGenerator {
         cpa.getInitialState(pInitialLocation, getDefaultPartition()),
         cpa.getInitialPrecision(pInitialLocation, getDefaultPartition()));
 
-    try {
-      AlgorithmStatus status = algorithm.run(reached);
-      generationCompleted = true;
-
-      if (!from(reached).anyMatch(IS_TARGET_STATE) && status.isSound()) {
-        // program is safe (waitlist is empty, algorithm was sound, no target states present)
-        logger.log(
-            Level.INFO,
-            "Invariant generation with abstract interpretation proved specification to hold.");
-        programIsSafe = true;
-      }
-
-    } catch (CPAException | InterruptedException e) {
-      logger.logUserException(Level.WARNING, e, "Invariant generation failed.");
+    if (async) {
+      ExecutorService executor = Executors.newSingleThreadExecutor(Threads.threadFactory());
+      executor.submit(computeInvariants());
+      executor.shutdown();
+    } else {
+      computeInvariants().run();
     }
+  }
+
+  private Runnable computeInvariants() {
+    return new Runnable() {
+      @Override
+      public void run() {
+        try {
+          AlgorithmStatus status = algorithm.run(reached);
+
+          if (!from(reached).anyMatch(IS_TARGET_STATE) && status.isSound()) {
+            // program is safe (waitlist is empty, algorithm was sound, no target states present)
+            logger.log(
+                Level.INFO,
+                "Invariant generation with abstract interpretation proved specification to hold.");
+            programIsSafe = true;
+          }
+
+          generationCompleted = true;
+
+        } catch (CPAException | InterruptedException e) {
+          logger.logUserException(Level.WARNING, e, "Invariant generation failed.");
+        }
+      }
+    };
   }
 
   @Override
