@@ -448,7 +448,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     pStatsCollection.add(stats);
   }
 
-  private static class LazyLocationMapping {
+  static class LazyLocationMapping {
 
     private final UnmodifiableReachedSet reachedSet;
 
@@ -481,14 +481,12 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
    * {@link InvariantSupplier} that extracts invariants from a {@link ReachedSet}
    * with {@link FormulaReportingState}s.
    */
-  private static class ReachedSetBasedInvariantSupplier implements InvariantSupplier {
+  static class ReachedSetBasedInvariantSupplier implements InvariantSupplier {
 
     private final LazyLocationMapping lazyLocationMapping;
     private final LogManager logger;
 
-    private ReachedSetBasedInvariantSupplier(
-        LazyLocationMapping pLazyLocationMapping,
-        LogManager pLogger) {
+    ReachedSetBasedInvariantSupplier(LazyLocationMapping pLazyLocationMapping, LogManager pLogger) {
       logger = Objects.requireNonNull(pLogger);
       lazyLocationMapping = Objects.requireNonNull(pLazyLocationMapping);
     }
@@ -512,12 +510,12 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     }
   }
 
-  private static class ReachedSetBasedExpressionTreeSupplier implements ExpressionTreeSupplier {
+  static class ReachedSetBasedExpressionTreeSupplier implements ExpressionTreeSupplier {
 
     private final LazyLocationMapping lazyLocationMapping;
     private final CFA cfa;
 
-    private ReachedSetBasedExpressionTreeSupplier(LazyLocationMapping pLazyLocationMapping, CFA pCFA) {
+    ReachedSetBasedExpressionTreeSupplier(LazyLocationMapping pLazyLocationMapping, CFA pCFA) {
       lazyLocationMapping = Objects.requireNonNull(pLazyLocationMapping);
       cfa = Objects.requireNonNull(pCFA);
     }
