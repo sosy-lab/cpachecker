@@ -1957,10 +1957,6 @@ cpa.stator.policy.generateTemplatesUsingConvexHull = false
 # Generate templates for the upper bounds of each variable
 cpa.stator.policy.generateUpperBound = true
 
-# Any intermediate state with formula length bigger than specified will be
-# checked for reachability. Set to -1 for no limit.
-cpa.stator.policy.lengthLimitForSATCheck = 300
-
 # Remove UFs and ITEs from policies.
 cpa.stator.policy.linearizePolicy = true
 
