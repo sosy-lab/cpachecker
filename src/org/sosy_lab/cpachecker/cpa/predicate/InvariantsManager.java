@@ -1142,12 +1142,12 @@ class InvariantsManager implements StatisticsProvider {
     }
   }
 
-  public class AsyncInvariantsSupplier implements InvariantSupplier {
+  public abstract class AsyncInvariantsSupplier implements InvariantSupplier {
 
     protected InvariantGenerator invGen;
     protected InvariantSupplier invSup;
 
-    private void setInitialLocation(CFANode pInitialLocation) {
+    protected void setInitialLocation(CFANode pInitialLocation) {
       invGen.start(pInitialLocation);
 
       try {
@@ -1179,6 +1179,14 @@ class InvariantsManager implements StatisticsProvider {
       checkState(invSup != null, "Before getting invariants an initial location has to be set.");
       return invSup.getInvariantFor(pLocation, pFmgr, pPfmgr, pContext);
     }
+
+    /**
+     * @return Indicates whether the invariant generation could prove the specification
+     * to hold or not.
+     */
+    public boolean isProgramSafe() {
+      return invGen.isProgramSafe();
+    }
   }
 
   private class WrappedAsyncInvariantsSupplier extends AsyncInvariantsSupplier {
@@ -1208,6 +1216,16 @@ class InvariantsManager implements StatisticsProvider {
       }
 
       return f;
+    }
+
+    @Override
+    public boolean isProgramSafe() {
+      for (AsyncInvariantsSupplier invSup : invSups) {
+        if (invSup.isProgramSafe()) {
+          return true;
+        }
+      }
+      return false;
     }
   }
 
