@@ -23,28 +23,29 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
+
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+
+import java.util.Collection;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * This class represents the precision of the PredicateCPA.
@@ -69,7 +70,7 @@ public class PredicatePrecision implements Precision {
       Multimap<Pair<CFANode, Integer>, AbstractionPredicate> pLocationInstancePredicates,
       Multimap<CFANode, AbstractionPredicate> pLocalPredicates,
       Multimap<String, AbstractionPredicate> pFunctionPredicates,
-      Collection<AbstractionPredicate> pGlobalPredicates) {
+      Iterable<AbstractionPredicate> pGlobalPredicates) {
     mLocationInstancePredicates = ImmutableSetMultimap.copyOf(pLocationInstancePredicates);
     mLocalPredicates = sortedImmutableSetCopyOf(pLocalPredicates);
     mFunctionPredicates = sortedImmutableSetCopyOf(pFunctionPredicates);
@@ -143,10 +144,11 @@ public class PredicatePrecision implements Precision {
    * additional global predicates.
    */
   public PredicatePrecision addGlobalPredicates(Collection<AbstractionPredicate> newPredicates) {
-    List<AbstractionPredicate> predicates = Lists.newArrayList(getGlobalPredicates());
-    predicates.addAll(newPredicates);
-    return new PredicatePrecision(getLocationInstancePredicates(),
-        getLocalPredicates(), getFunctionPredicates(), predicates);
+    return new PredicatePrecision(
+        getLocationInstancePredicates(),
+        getLocalPredicates(),
+        getFunctionPredicates(),
+        Iterables.concat(getGlobalPredicates(), newPredicates));
   }
 
   /**
@@ -224,9 +226,8 @@ public class PredicatePrecision implements Precision {
    */
   public PredicatePrecision mergeWith(PredicatePrecision prec) {
     // create new set of global predicates
-    Collection<AbstractionPredicate> newGlobalPredicates = Lists.newArrayList(getGlobalPredicates());
-    newGlobalPredicates.addAll(prec.getGlobalPredicates());
-    newGlobalPredicates = ImmutableSet.copyOf(newGlobalPredicates);
+    Set<AbstractionPredicate> newGlobalPredicates =
+        from(getGlobalPredicates()).append(prec.getGlobalPredicates()).toSet();
 
     // create new multimap of function-specific predicates
     Multimap<String, AbstractionPredicate> newFunctionPredicates = ArrayListMultimap.create(getFunctionPredicates());
@@ -237,7 +238,6 @@ public class PredicatePrecision implements Precision {
         newFunctionPredicates.putAll(function, newGlobalPredicates);
       }
     }
-    newFunctionPredicates = ImmutableSetMultimap.copyOf(newFunctionPredicates);
 
     // create new multimap of location-specific predicates
     Multimap<CFANode, AbstractionPredicate> newLocalPredicates = ArrayListMultimap.create(getLocalPredicates());
