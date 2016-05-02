@@ -161,6 +161,14 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
   )
   private boolean useARGCombiningAlgorithm = false;
 
+  @Option(
+    secure = true,
+    description =
+        "print the statistics of each component of the restart algorithm"
+            + " directly after the components computation is finished"
+  )
+  private boolean printIntermediateStatistics = true;
+
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final RestartAlgorithmStatistics stats;
@@ -356,7 +364,9 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       }
 
       if (configFilesIterator.hasNext()) {
-        stats.printIntermediateStatistics(System.out, Result.UNKNOWN, currentReached);
+        if (printIntermediateStatistics) {
+          stats.printIntermediateStatistics(System.out, Result.UNKNOWN, currentReached);
+        }
         stats.resetSubStatistics();
 
         if (currentCpa != null) {

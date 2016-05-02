@@ -2559,6 +2559,10 @@ restartAlgorithm.combineARGsAfterRestart = false
 # matching condition.
 restartAlgorithm.configFiles = no default value
 
+# print the statistics of each component of the restart algorithm directly
+# after the components computation is finished
+restartAlgorithm.printIntermediateStatistics = true
+
 # List of files with configurations to use. 2 filenames expected.
 restartAlgorithmWithARGReplay.configFiles = no default value
 
