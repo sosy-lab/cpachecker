@@ -34,6 +34,7 @@ import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -94,7 +95,14 @@ public class CPAcheckerInvariantGenerator extends AbstractInvariantGenerator {
     logger = pLogger;
     cfa = pCfa;
 
-    Configuration invgenConfig = Configuration.builder().loadFromFile(configPath).build();
+    ConfigurationBuilder configBuilder = Configuration.builder().loadFromFile(configPath);
+    // we want the invariant generator to run with the same specification as the outside
+    // analysis, otherwise the invariants might be useless for us
+    if (config.hasProperty("specification")) {
+      configBuilder.copyOptionFrom(config, "specification");
+    }
+    Configuration invgenConfig = configBuilder.build();
+
     shutdownNotifier = ShutdownManager.createWithParent(pShutdownNotifier);
 
     CoreComponentsFactory componentsFactory =

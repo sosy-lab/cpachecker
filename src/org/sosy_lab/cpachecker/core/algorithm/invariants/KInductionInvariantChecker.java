@@ -25,13 +25,10 @@ package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
 import static com.google.common.base.Preconditions.checkState;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.concurrent.TimeUnit;
-
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -48,6 +45,10 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.concurrent.TimeUnit;
 
 @Options(prefix = "invariantChecker")
 public class KInductionInvariantChecker {
@@ -112,7 +113,14 @@ public class KInductionInvariantChecker {
 
     Configuration invariantConfig;
     try {
-      invariantConfig = Configuration.builder().loadFromFile(kInductionConfig).build();
+      ConfigurationBuilder configBuilder = Configuration.builder().loadFromFile(kInductionConfig);
+      // we want the invariant generator to run with the same specification as the outside
+      // analysis, otherwise the invariants might be useless for us
+      if (config.hasProperty("specification")) {
+        configBuilder.copyOptionFrom(config, "specification");
+      }
+      invariantConfig = configBuilder.build();
+
     } catch (IOException e) {
       throw new InvalidConfigurationException(
           "Could not read configuration file for invariant generation: " + e.getMessage(), e);
