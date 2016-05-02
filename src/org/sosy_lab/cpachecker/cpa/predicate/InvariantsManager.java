@@ -69,12 +69,14 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.AbstractLocationFormulaInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.StaticCandidateProvider;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator.CPAInvariantGeneratorStatistics;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAcheckerInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantChecker;
@@ -123,6 +125,7 @@ import java.io.PrintStream;
 import java.io.StringReader;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -165,7 +168,7 @@ class InvariantsManager implements StatisticsProvider {
      * for refinement, they are path specific and will most likely lead to invalid
      * TRUE results when used during abstraction.
      *
-     * This option interferes with {@link InvariantGenerationStrategy#ASYNC}
+     * This option interferes with {@link InvariantGenerationStrategy#ASYNC_CPA}
      * as both use the configuration set with <code>invariantGeneration.config</code>.
      */
     RF_INVARIANT_GENERATION,
@@ -177,10 +180,21 @@ class InvariantsManager implements StatisticsProvider {
      * can be retrieved by calling {@link AsyncInvariantsSupplier#getInvariantFor(CFANode,
      * FormulaManagerView, PathFormulaManager, PathFormula)}
      *
+     * The wrapped analysis is <b>always</b> a {@link CPAAlgorithm} no customizations
+     * can be made here.
+     *
      * This option interferes with {@link InvariantGenerationStrategy#RF_INVARIANT_GENERATION}
      * as both use the configuration set with <code>invariantGeneration.config</code>.
      */
-    ASYNC;
+    ASYNC_CPA,
+
+    /**
+     * Runs an additional analysis that can consist of <b>any</b> configuration, e.g.
+     * a restart algorithm is allowed. As soon as the analysis finished computation
+     * the invariants can be computed and are, from that point on, always the same. They
+     * are not refined further on.
+     */
+    ASYNC_CPACHECKER;
   }
 
   private static enum InvariantUsageStrategy {
@@ -302,7 +316,8 @@ class InvariantsManager implements StatisticsProvider {
   private final List<BooleanFormula> refinementCache = new ArrayList<>();
   private LocationInvariantSupplier invariantSupplierSingleton = null;
 
-  private final AsyncInvariantsSupplier asyncInvariantSupplierSingleton;
+  private final AsyncInvariantsSupplier asyncCPAInvariantSupplierSingleton;
+  private final AsyncInvariantsSupplier asyncCPAcheckerInvariantSupplierSingleton;
 
   public InvariantsManager(
       Configuration pConfig,
@@ -341,10 +356,16 @@ class InvariantsManager implements StatisticsProvider {
     inductiveWeakeningMgr = new InductiveWeakeningManager(pConfig, pSolver, pLogger,
         pShutdownNotifier);
 
-    if (generationStrategy.contains(InvariantGenerationStrategy.ASYNC)) {
-      asyncInvariantSupplierSingleton = new AsyncInvariantsSupplier();
+    if (generationStrategy.contains(InvariantGenerationStrategy.ASYNC_CPA)) {
+      asyncCPAInvariantSupplierSingleton = new AsyncCPAInvariantsSupplier();
     } else {
-      asyncInvariantSupplierSingleton = null;
+      asyncCPAInvariantSupplierSingleton = null;
+    }
+
+    if (generationStrategy.contains(InvariantGenerationStrategy.ASYNC_CPACHECKER)) {
+      asyncCPAcheckerInvariantSupplierSingleton = new AsyncCPAcheckerInvariantsSupplier();
+    } else {
+      asyncCPAcheckerInvariantSupplierSingleton = null;
     }
 
     if (usageStrategy != InvariantUsageStrategy.NONE) {
@@ -355,15 +376,19 @@ class InvariantsManager implements StatisticsProvider {
           "for",
           usageStrategy);
     } else {
-      if (!generationStrategy.contains(InvariantGenerationStrategy.ASYNC)) {
+      if (!generationStrategy.contains(InvariantGenerationStrategy.ASYNC_CPA)
+          && !generationStrategy.contains(InvariantGenerationStrategy.ASYNC_CPACHECKER)) {
         logger.log(Level.INFO, "No invariants are computed");
       }
     }
   }
 
   public void setInitialLocation(CFANode node) {
-    if (asyncInvariantSupplierSingleton != null) {
-      asyncInvariantSupplierSingleton.setInitialLocation(node);
+    if (asyncCPAInvariantSupplierSingleton != null) {
+      asyncCPAInvariantSupplierSingleton.setInitialLocation(node);
+    }
+    if (asyncCPAcheckerInvariantSupplierSingleton != null) {
+      asyncCPAcheckerInvariantSupplierSingleton.setInitialLocation(node);
     }
   }
 
@@ -376,9 +401,21 @@ class InvariantsManager implements StatisticsProvider {
 
   AsyncInvariantsSupplier asAsyncInvariantsSupplier() {
     Preconditions.checkState(
-        asyncInvariantSupplierSingleton != null,
+        asyncCPAInvariantSupplierSingleton != null
+            || asyncCPAcheckerInvariantSupplierSingleton != null,
         "To use asynchronous invariants this has to be configured in the generation strategy.");
-    return asyncInvariantSupplierSingleton;
+
+    if (asyncCPAcheckerInvariantSupplierSingleton != null
+        && asyncCPAInvariantSupplierSingleton != null) {
+      return new WrappedAsyncInvariantsSupplier(
+          asyncCPAcheckerInvariantSupplierSingleton, asyncCPAInvariantSupplierSingleton);
+
+    } else if (asyncCPAcheckerInvariantSupplierSingleton != null) {
+      return asyncCPAcheckerInvariantSupplierSingleton;
+
+    } else {
+      return asyncCPAInvariantSupplierSingleton;
+    }
   }
 
   /**
@@ -531,11 +568,25 @@ class InvariantsManager implements StatisticsProvider {
                     invariantShutdown);
             break;
 
-          case ASYNC:
+          case ASYNC_CPA:
             for (Pair<PathFormula, CFANode> pair : argForPathFormulaBasedGeneration) {
               if (pair.getFirst() != null) {
                 BooleanFormula invariant =
-                    asyncInvariantSupplierSingleton.getInvariantFor(
+                    asyncCPAInvariantSupplierSingleton.getInvariantFor(
+                        pair.getSecond(), fmgr, pfmgr, pair.getFirst());
+                wasSuccessful = wasSuccessful || !bfmgr.isTrue(invariant);
+                addResultToCache(invariant, pair.getSecond());
+              } else {
+                addResultToCache(bfmgr.makeBoolean(true), pair.getSecond());
+              }
+            }
+            break;
+
+          case ASYNC_CPACHECKER:
+            for (Pair<PathFormula, CFANode> pair : argForPathFormulaBasedGeneration) {
+              if (pair.getFirst() != null) {
+                BooleanFormula invariant =
+                    asyncCPAcheckerInvariantSupplierSingleton.getInvariantFor(
                         pair.getSecond(), fmgr, pfmgr, pair.getFirst());
                 wasSuccessful = wasSuccessful || !bfmgr.isTrue(invariant);
                 addResultToCache(invariant, pair.getSecond());
@@ -1093,22 +1144,8 @@ class InvariantsManager implements StatisticsProvider {
 
   public class AsyncInvariantsSupplier implements InvariantSupplier {
 
-    private InvariantGenerator invGen;
-    private InvariantSupplier invSup;
-
-    /**
-     * private constructor so that this object can only be created from within
-     * InvariantsGenerator
-     */
-    private AsyncInvariantsSupplier() throws InvalidConfigurationException, CPAException {
-      invGen =
-          CPAInvariantGenerator.create(
-              config,
-              logger,
-              ShutdownManager.createWithParent(shutdownNotifier),
-              Optional.<ShutdownManager>absent(),
-              cfa);
-    }
+    protected InvariantGenerator invGen;
+    protected InvariantSupplier invSup;
 
     private void setInitialLocation(CFANode pInitialLocation) {
       invGen.start(pInitialLocation);
@@ -1141,6 +1178,67 @@ class InvariantsManager implements StatisticsProvider {
         PathFormula pContext) {
       checkState(invSup != null, "Before getting invariants an initial location has to be set.");
       return invSup.getInvariantFor(pLocation, pFmgr, pPfmgr, pContext);
+    }
+  }
+
+  private class WrappedAsyncInvariantsSupplier extends AsyncInvariantsSupplier {
+    private final List<AsyncInvariantsSupplier> invSups;
+
+    private WrappedAsyncInvariantsSupplier(AsyncInvariantsSupplier... inv) {
+      Preconditions.checkArgument(inv.length > 0);
+      invSups = Arrays.asList(inv);
+    }
+
+    @Override
+    public BooleanFormula getInvariantFor(
+        CFANode pLocation,
+        FormulaManagerView pFmgr,
+        PathFormulaManager pPfmgr,
+        PathFormula pContext) {
+
+      BooleanFormula f = null;
+      boolean isFirstIteration = true;
+      for (AsyncInvariantsSupplier invSup : invSups) {
+        if (isFirstIteration) {
+          f = invSup.getInvariantFor(pLocation, pFmgr, pPfmgr, pContext);
+          isFirstIteration = false;
+        } else {
+          f = bfmgr.and(f, invSup.getInvariantFor(pLocation, pFmgr, pPfmgr, pContext));
+        }
+      }
+
+      return f;
+    }
+  }
+
+  private class AsyncCPAInvariantsSupplier extends AsyncInvariantsSupplier {
+    /**
+     * private constructor so that this object can only be created from within
+     * InvariantsGenerator
+     */
+    private AsyncCPAInvariantsSupplier() throws InvalidConfigurationException, CPAException {
+      invGen =
+          CPAInvariantGenerator.create(
+              config,
+              logger,
+              ShutdownManager.createWithParent(shutdownNotifier),
+              Optional.<ShutdownManager>absent(),
+              cfa);
+    }
+  }
+
+  private class AsyncCPAcheckerInvariantsSupplier extends AsyncInvariantsSupplier {
+    /**
+     * private constructor so that this object can only be created from within
+     * InvariantsGenerator
+     */
+    private AsyncCPAcheckerInvariantsSupplier() throws InvalidConfigurationException, CPAException {
+      try {
+        // TODO is filename necessary?
+        invGen = new CPAcheckerInvariantGenerator(config, shutdownNotifier, logger, cfa, "");
+      } catch (IOException e) {
+        throw new CPAException("Invariant Generation failed", e);
+      }
     }
   }
 
@@ -1252,10 +1350,10 @@ class InvariantsManager implements StatisticsProvider {
       StatisticsWriter w0 = writingStatisticsTo(out);
 
       TimeSpan asyncTime;
-      if (asyncInvariantSupplierSingleton != null
-          && asyncInvariantSupplierSingleton.invGen instanceof StatisticsProvider) {
+      if (asyncCPAInvariantSupplierSingleton != null
+          && asyncCPAInvariantSupplierSingleton.invGen instanceof StatisticsProvider) {
         Collection<Statistics> st = new ArrayList<>();
-        ((StatisticsProvider) asyncInvariantSupplierSingleton.invGen).collectStatistics(st);
+        ((StatisticsProvider) asyncCPAInvariantSupplierSingleton.invGen).collectStatistics(st);
         asyncTime =
             ((CPAInvariantGeneratorStatistics)
                     getOnlyElement(
@@ -1263,6 +1361,19 @@ class InvariantsManager implements StatisticsProvider {
                 .getConsumedTime();
       } else {
         asyncTime = TimeSpan.ofSeconds(0);
+      }
+
+      if (asyncCPAcheckerInvariantSupplierSingleton != null
+          && asyncCPAcheckerInvariantSupplierSingleton.invGen instanceof StatisticsProvider) {
+        Collection<Statistics> st = new ArrayList<>();
+        ((StatisticsProvider) asyncCPAInvariantSupplierSingleton.invGen).collectStatistics(st);
+        asyncTime =
+            TimeSpan.sum(
+                asyncTime,
+                ((CPAInvariantGeneratorStatistics)
+                        getOnlyElement(
+                            from(st).filter(instanceOf(CPAInvariantGeneratorStatistics.class))))
+                    .getConsumedTime());
       }
 
       int numberOfInvGenTries = totalInvGenTries.getUpdateCount();
@@ -1316,9 +1427,15 @@ class InvariantsManager implements StatisticsProvider {
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
-    if (asyncInvariantSupplierSingleton != null
-        && asyncInvariantSupplierSingleton.invGen instanceof StatisticsProvider) {
-      ((StatisticsProvider) asyncInvariantSupplierSingleton.invGen)
+    if (asyncCPAInvariantSupplierSingleton != null
+        && asyncCPAInvariantSupplierSingleton.invGen instanceof StatisticsProvider) {
+      ((StatisticsProvider) asyncCPAInvariantSupplierSingleton.invGen)
+          .collectStatistics(pStatsCollection);
+    }
+
+    if (asyncCPAcheckerInvariantSupplierSingleton != null
+        && asyncCPAcheckerInvariantSupplierSingleton.invGen instanceof StatisticsProvider) {
+      ((StatisticsProvider) asyncCPAcheckerInvariantSupplierSingleton.invGen)
           .collectStatistics(pStatsCollection);
     }
   }
