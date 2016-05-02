@@ -1238,7 +1238,7 @@ class InvariantsManager implements StatisticsProvider {
       invGen =
           CPAInvariantGenerator.create(
               config,
-              logger,
+              new OnlyWarningsLogmanager(logger.withComponentName("Async Invgen")),
               ShutdownManager.createWithParent(shutdownNotifier),
               Optional.<ShutdownManager>absent(),
               cfa);
@@ -1253,7 +1253,13 @@ class InvariantsManager implements StatisticsProvider {
     private AsyncCPAcheckerInvariantsSupplier() throws InvalidConfigurationException, CPAException {
       try {
         // TODO is filename necessary?
-        invGen = new CPAcheckerInvariantGenerator(config, shutdownNotifier, logger, cfa, "");
+        invGen =
+            new CPAcheckerInvariantGenerator(
+                config,
+                shutdownNotifier,
+                new OnlyWarningsLogmanager(logger.withComponentName("Async Invgen")),
+                cfa,
+                "");
       } catch (IOException e) {
         throw new CPAException("Invariant Generation failed", e);
       }
