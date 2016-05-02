@@ -230,6 +230,10 @@ public class CFACreator {
       description="This option enables the computation of a classification of CFA nodes.")
 private boolean classifyNodes = false;
 
+  @Option(secure=true, name="cfa.detectLoops",
+      description="Build loop-structure information for a CFA.")
+  private boolean detectLoops = true;
+
   @Option(secure=true, description="C or Java?")
   private Language language = Language.C;
 
@@ -429,8 +433,12 @@ private boolean classifyNodes = false;
 
     // get loop information
     // (needs post-order information)
-    Optional<LoopStructure> loopStructure = getLoopStructure(cfa);
-    cfa.setLoopStructure(loopStructure);
+    if (detectLoops) {
+      Optional<LoopStructure> loopStructure = getLoopStructure(cfa);
+      cfa.setLoopStructure(loopStructure);
+    } else {
+      cfa.setLoopStructure(Optional.<LoopStructure> absent());
+    }
 
     // FOURTH, insert call and return edges and build the supergraph
     if (interprocedural) {
