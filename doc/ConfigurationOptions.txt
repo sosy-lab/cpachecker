@@ -466,6 +466,9 @@ cfa.checkNullPointers.singleTargetPerFunction = true
 # This option enables the computation of a classification of CFA nodes.
 cfa.classifyNodes = false
 
+# Build loop-structure information for a CFA.
+cfa.detectLoops = true
+
 # When a function pointer array element is written with a variable as index,
 # create a series of if-else edges with explicit indizes instead.
 cfa.expandFunctionPointerArrayAssignments = false
@@ -2442,7 +2445,7 @@ pcc.backwardtargets.certificateStatesAsARGStates = false
 pcc.cmc.configFiles = no default value
 
 # write collected assumptions to file
-pcc.cmc.file = "assumptions.txt"
+pcc.cmc.file = "AssumptionAutomaton.txt"
 
 # collects information about value analysis states in proof
 pcc.collectValueAnalysisStateInfo = false
