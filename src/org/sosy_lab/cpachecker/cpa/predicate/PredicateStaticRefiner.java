@@ -74,6 +74,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.StaticRefiner;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
@@ -249,11 +250,17 @@ public class PredicateStaticRefiner extends StaticRefiner
         predicateExtractionTime.stop();
       }
 
+      // Import for not forgetting predicates from initial precisions
+      PredicatePrecision basePrecision =
+          Precisions.extractPrecisionByType(
+              pReached.asReachedSet().getPrecision(root), PredicatePrecision.class);
+      PredicatePrecision newPrecision = basePrecision.mergeWith(heuristicPrecision);
+
       shutdownNotifier.shutdownIfNecessary();
       argUpdateTime.start();
       for (ARGState refinementRoot : ImmutableList.copyOf(root.getChildren())) {
         pReached.removeSubtree(
-            refinementRoot, heuristicPrecision, Predicates.instanceOf(PredicatePrecision.class));
+            refinementRoot, newPrecision, Predicates.instanceOf(PredicatePrecision.class));
       }
       argUpdateTime.stop();
 
