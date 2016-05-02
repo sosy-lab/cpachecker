@@ -276,7 +276,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
           logger.log(Level.INFO, "Creating formula for program");
           stats.bmcPreparation.start();
           status = BMCHelper.unroll(logger, reachedSet, algorithm, cpa);
-          stats.bmcPreparation.start();
+          stats.bmcPreparation.stop();
           if (from(reachedSet)
               .skip(1) // first state of reached is always an abstraction state, so skip it
               .filter(not(IS_TARGET_STATE)) // target states may be abstraction states
