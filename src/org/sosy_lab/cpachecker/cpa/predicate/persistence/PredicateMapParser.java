@@ -25,17 +25,10 @@ package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.annotation.Nullable;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Maps;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -58,11 +51,17 @@ import org.sosy_lab.cpachecker.util.predicates.precisionConverter.FormulaParser;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.Maps;
-import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.annotation.Nullable;
 
 /**
  * This is a parser for files which contain initial predicates for the analysis.
@@ -167,11 +166,11 @@ public class PredicateMapParser {
     }
 
     // second, read map of predicates
-    Set<AbstractionPredicate> globalPredicates = Sets.newHashSet();
-    SetMultimap<String, AbstractionPredicate> functionPredicates = HashMultimap.create();
-    SetMultimap<CFANode, AbstractionPredicate> localPredicates = HashMultimap.create();
+    List<AbstractionPredicate> globalPredicates = new ArrayList<>();
+    ListMultimap<String, AbstractionPredicate> functionPredicates = ArrayListMultimap.create();
+    ListMultimap<CFANode, AbstractionPredicate> localPredicates = ArrayListMultimap.create();
 
-    Set<AbstractionPredicate> currentSet = null;
+    List<AbstractionPredicate> currentSet = null;
     String currentLine;
     while ((currentLine = reader.readLine()) != null) {
       lineNo++;
@@ -206,7 +205,7 @@ public class PredicateMapParser {
 
           if (!cfa.getAllFunctionNames().contains(currentLine)) {
             logger.log(Level.WARNING, "Cannot use predicates for function", currentLine + ", this function does not exist.");
-            currentSet = new HashSet<>(); // temporary set which will be thrown away and ignored
+            currentSet = new ArrayList<>(); // temporary list which will be thrown away and ignored
 
           } else {
             currentSet = functionPredicates.get(currentLine);
@@ -223,7 +222,7 @@ public class PredicateMapParser {
             if (applyFunctionWide) {
               if (!cfa.getAllFunctionNames().contains(function)) {
                 logger.log(Level.WARNING, "Cannot use predicates for function", function + ", this function does not exist.");
-                currentSet = new HashSet<>(); // temporary set which will be thrown away and ignored
+                currentSet = new ArrayList<>(); // temporary list which will be thrown away and ignored
               } else {
                 currentSet = functionPredicates.get(function);
               }
@@ -232,7 +231,7 @@ public class PredicateMapParser {
               CFANode node = getCFANodeWithId(nodeId);
               if (node == null) {
                 logger.log(Level.WARNING, "Cannot use predicates for CFANode", nodeId + ", this node does not exist.");
-                currentSet = new HashSet<>(); // temporary set which will be thrown away and ignored
+                currentSet = new ArrayList<>(); // temporary list which will be thrown away and ignored
               } else {
                 currentSet = localPredicates.get(node);
               }
