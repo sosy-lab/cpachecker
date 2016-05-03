@@ -23,22 +23,24 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
-import static org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision.*;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Maps;
+import com.google.common.collect.MultimapBuilder;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -81,16 +83,17 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.ListMultimap;
-import com.google.common.collect.MultimapBuilder;
-import com.google.common.collect.Sets;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * This class provides the refinement strategy for the classical predicate
@@ -442,17 +445,21 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       splitInLocalAndGlobalPredicates(globalPredicates, localPredicates);
 
       newPrecision = basePrecision.addGlobalPredicates(globalPredicates);
-      newPrecision = newPrecision.addLocalPredicates(mergePredicatesPerLocation(localPredicates));
+      newPrecision =
+          newPrecision.addLocalPredicates(mergePredicatesPerLocation(localPredicates.entries()));
 
       break;
     case FUNCTION:
-      newPrecision = basePrecision.addFunctionPredicates(mergePredicatesPerFunction(newPredicates));
+      newPrecision =
+          basePrecision.addFunctionPredicates(
+              mergePredicatesPerFunction(newPredicates.entries()));
       break;
     case LOCATION:
-      newPrecision = basePrecision.addLocalPredicates(mergePredicatesPerLocation(newPredicates));
+      newPrecision =
+          basePrecision.addLocalPredicates(mergePredicatesPerLocation(newPredicates.entries()));
       break;
     case LOCATION_INSTANCE:
-      newPrecision = basePrecision.addLocationInstancePredicates(newPredicates);
+      newPrecision = basePrecision.addLocationInstancePredicates(newPredicates.entries());
       break;
     default:
       throw new AssertionError();
@@ -595,5 +602,36 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   @Override
   public Statistics getStatistics() {
     return new Stats();
+  }
+
+  private static Iterable<Map.Entry<String, AbstractionPredicate>> mergePredicatesPerFunction(
+      Iterable<Map.Entry<Pair<CFANode, Integer>, AbstractionPredicate>> predicates) {
+    return from(predicates)
+        .transform(
+            new Function<
+                Map.Entry<Pair<CFANode, Integer>, AbstractionPredicate>,
+                Map.Entry<String, AbstractionPredicate>>() {
+              @Override
+              public Map.Entry<String, AbstractionPredicate> apply(
+                  Map.Entry<Pair<CFANode, Integer>, AbstractionPredicate> pInput) {
+                return Maps.immutableEntry(
+                    pInput.getKey().getFirst().getFunctionName(), pInput.getValue());
+              }
+            });
+  }
+
+  private static Iterable<Map.Entry<CFANode, AbstractionPredicate>> mergePredicatesPerLocation(
+      Iterable<Map.Entry<Pair<CFANode, Integer>, AbstractionPredicate>> predicates) {
+    return from(predicates)
+        .transform(
+            new Function<
+                Map.Entry<Pair<CFANode, Integer>, AbstractionPredicate>,
+                Map.Entry<CFANode, AbstractionPredicate>>() {
+              @Override
+              public Map.Entry<CFANode, AbstractionPredicate> apply(
+                  Map.Entry<Pair<CFANode, Integer>, AbstractionPredicate> pInput) {
+                return Maps.immutableEntry(pInput.getKey().getFirst(), pInput.getValue());
+              }
+            });
   }
 }

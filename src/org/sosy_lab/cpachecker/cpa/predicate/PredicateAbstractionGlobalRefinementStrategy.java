@@ -258,7 +258,7 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
     logger.log(Level.ALL, "Old predicate map is", basePrecision);
     logger.log(Level.ALL, "New predicates are", newPredicates);
 
-    PredicatePrecision newPrecision = basePrecision.addLocalPredicates(newPredicates);
+    PredicatePrecision newPrecision = basePrecision.addLocalPredicates(newPredicates.entries());
 
     logger.log(Level.ALL, "Predicate map now is", newPrecision);
 
