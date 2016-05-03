@@ -56,7 +56,7 @@ public class SMGSingleLinkedListFinderTest {
     SMGAbstractionCandidate candidate = getBestCandidate(candidates);
     Assert.assertTrue(candidate instanceof SMGSingleLinkedListCandidateSequence);
     SMGSingleLinkedListCandidateSequence sllCandidate = (SMGSingleLinkedListCandidateSequence)candidate;
-    Assert.assertEquals(4, sllCandidate.getLength());
+    Assert.assertEquals(5, sllCandidate.getLength());
     Assert.assertEquals(8, sllCandidate.getCandidate().getNfo());
     SMGRegion expectedStart = (SMGRegion) smg.getPointer(root.getValue()).getObject();
     Assert.assertSame(expectedStart, sllCandidate.getCandidate().getStartObject());
@@ -140,7 +140,7 @@ public class SMGSingleLinkedListFinderTest {
     Assert.assertTrue(!candidates.isEmpty());
 
     for (SMGAbstractionCandidate candidate : candidates) {
-      Assert.assertTrue(((SMGSingleLinkedListCandidateSequence)candidate).getLength() + 1 == 3 || ((SMGSingleLinkedListCandidateSequence)candidate).getLength() + 1 == 4 );
+      Assert.assertTrue(((SMGSingleLinkedListCandidateSequence)candidate).getLength() < 5 );
     }
   }
 }

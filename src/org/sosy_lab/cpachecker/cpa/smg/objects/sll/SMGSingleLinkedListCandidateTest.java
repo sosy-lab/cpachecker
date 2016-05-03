@@ -64,7 +64,7 @@ public class SMGSingleLinkedListCandidateTest {
     int SEGMENT_LENGTH = 4;
     int OFFSET = 0;
 
-    SMGEdgeHasValue root = TestHelpers.createGlobalList(smg, SEGMENT_LENGTH + 1, NODE_SIZE, OFFSET, "pointer");
+    SMGEdgeHasValue root = TestHelpers.createGlobalList(smg, SEGMENT_LENGTH, NODE_SIZE, OFFSET, "pointer");
     Integer value = root.getValue();
 
     SMGObject startObject = smg.getPointer(value).getObject();
@@ -79,7 +79,7 @@ public class SMGSingleLinkedListCandidateTest {
     Assert.assertTrue(pointedObject.isAbstract());
     SMGSingleLinkedList segment = (SMGSingleLinkedList)pointedObject;
     Assert.assertEquals(NODE_SIZE, segment.getSize());
-    Assert.assertEquals(SEGMENT_LENGTH, segment.getMinimumLength() - 1);
+    Assert.assertEquals(SEGMENT_LENGTH, segment.getMinimumLength());
     Assert.assertEquals(OFFSET, segment.getNfo());
     Set<SMGEdgeHasValue> outboundEdges = abstractedSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(segment));
     Assert.assertEquals(1, outboundEdges.size());
@@ -102,7 +102,7 @@ public class SMGSingleLinkedListCandidateTest {
     Integer value = root.getValue();
     SMGObject startObject = smg.getPointer(value).getObject();
     SMGSingleLinkedListCandidate candidate = new SMGSingleLinkedListCandidate(startObject, 8, 0);
-    SMGSingleLinkedListCandidateSequence candidateSeq = new SMGSingleLinkedListCandidateSequence(candidate, 1, SMGJoinStatus.INCOMPARABLE);
+    SMGSingleLinkedListCandidateSequence candidateSeq = new SMGSingleLinkedListCandidateSequence(candidate, 2, SMGJoinStatus.INCOMPARABLE);
     CLangSMG abstractedSmg = candidateSeq.execute(smg, new SMGState(TestLogManager.getInstance(), MachineModel.LINUX64, false, false, null, 4, false));
     Set<SMGObject> heap = abstractedSmg.getHeapObjects();
     Assert.assertEquals(2, heap.size());
