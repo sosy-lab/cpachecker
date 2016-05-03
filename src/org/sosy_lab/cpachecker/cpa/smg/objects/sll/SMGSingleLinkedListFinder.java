@@ -76,7 +76,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
     Set<SMGAbstractionCandidate> returnSet = new HashSet<>();
     for (Map<Integer, SMGSingleLinkedListCandidate> objCandidates : candidates.values()) {
       for (SMGSingleLinkedListCandidate candidate : objCandidates.values()) {
-        if (candidateLength.get(candidate) >= seqLengthThreshold || (candidateSeqJoinGood.get(candidate) &&  candidateLength.get(candidate) > 1)) {
+        if (candidateLength.get(candidate) >= seqLengthThreshold || (candidateSeqJoinGood.get(candidate) &&  candidateLength.get(candidate) > 0)) {
           returnSet.add(new SMGSingleLinkedListCandidateSequence(candidate, candidateLength.get(candidate)));
         }
       }
@@ -235,11 +235,15 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
     // Third, calculate if the respective nfo restricted subsmgs are only reachable from their candidate objects
     if (!isSubSmgSeperate(nonSharedObject1, nonSharedValues1, smg, objectsOfSubSmg1,
         valuesOfSubSmg1, startObject)) {
+      isSubSmgSeperate(nonSharedObject1, nonSharedValues1, smg, objectsOfSubSmg1,
+          valuesOfSubSmg1, startObject);
       return;
     }
 
     if (!isSubSmgSeperate(nonSharedObject2, nonSharedValues2, smg, objectsOfSubSmg2,
         valuesOfSubSmg2, nextObject)) {
+      isSubSmgSeperate(nonSharedObject2, nonSharedValues2, smg, objectsOfSubSmg2,
+          valuesOfSubSmg2, nextObject);
       return;
     }
 
@@ -302,6 +306,12 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
     }
 
     for (Integer val : nonSharedValues) {
+
+      /*Abstract simple fields when joining.*/
+      if (!smg.isPointer(val)) {
+        continue;
+      }
+
       Set<SMGEdgeHasValue> hves =
           smg.getHVEdges(new SMGEdgeHasValueFilter().filterHavingValue(val));
 
