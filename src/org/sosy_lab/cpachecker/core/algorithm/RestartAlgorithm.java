@@ -33,6 +33,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
+import com.google.common.io.ByteStreams;
 
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -366,6 +367,8 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       if (configFilesIterator.hasNext()) {
         if (printIntermediateStatistics) {
           stats.printIntermediateStatistics(System.out, Result.UNKNOWN, currentReached);
+        } else {
+          stats.printIntermediateStatistics(new PrintStream(ByteStreams.nullOutputStream()), Result.UNKNOWN, currentReached);
         }
         stats.resetSubStatistics();
 
