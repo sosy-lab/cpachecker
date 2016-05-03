@@ -57,12 +57,14 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionCreator.RegionBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -139,7 +141,8 @@ public class PredicateAbstractionManager {
     CARTESIAN,
     BOOLEAN,
     COMBINED,
-    ELIMINATION;
+    ELIMINATION,
+    CARTESIAN_BY_WEAKENING;
   }
 
   @Option(secure=true, name = "abstraction.cartesian",
@@ -200,6 +203,8 @@ public class PredicateAbstractionManager {
 
   private final Configuration config;
 
+  private final InductiveWeakeningManager weakeningManager;
+
   public PredicateAbstractionManager(
       AbstractionManager pAmgr,
       PathFormulaManager pPfmgr,
@@ -245,6 +250,9 @@ public class PredicateAbstractionManager {
     }
 
     abstractionStorage = new PredicateAbstractionsStorage(reuseAbstractionsFrom, logger, fmgr, null);
+    weakeningManager = new InductiveWeakeningManager(
+        config, solver, logger, shutdownNotifier
+    );
   }
 
   /**
@@ -369,58 +377,67 @@ public class PredicateAbstractionManager {
       Iterables.removeIf(remainingPredicates, in(invPredicates));
     }
 
-    try (ProverEnvironment thmProver = solver.newProverEnvironment()) {
-      thmProver.push(f);
+    if (abstractionType == AbstractionType.CARTESIAN_BY_WEAKENING) {
+      abs = rmgr.makeAnd(
+            abs, buildCartesianAbstractionUsingWeakening(
+                f, ssa, remainingPredicates
+            )
+        );
+    } else {
+      try (ProverEnvironment thmProver = solver.newProverEnvironment()) {
+        thmProver.push(f);
 
-      if (remainingPredicates.isEmpty() && (abstractionType != AbstractionType.ELIMINATION)) {
-        stats.numSatCheckAbstractions++;
+        if (remainingPredicates.isEmpty() && (abstractionType
+            != AbstractionType.ELIMINATION)) {
+          stats.numSatCheckAbstractions++;
 
-        stats.abstractionSolveTime.start();
-        boolean feasibility;
-        try {
-          feasibility = !thmProver.isUnsat();
-        } finally {
-          stats.abstractionSolveTime.stop();
-        }
-
-        if (!feasibility) {
-          abs = rmgr.makeFalse();
-        }
-
-      } else if (abstractionType == AbstractionType.ELIMINATION) {
-        stats.quantifierEliminationTime.start();
-        try {
-          abs = rmgr.makeAnd(abs,
-              eliminateIrrelevantVariablePropositions(f, ssa));
-        } finally {
-          stats.quantifierEliminationTime.stop();
-        }
-      } else {
-        if (abstractionType != AbstractionType.BOOLEAN) {
-          // First do cartesian abstraction if desired
-          stats.cartesianAbstractionTime.start();
+          stats.abstractionSolveTime.start();
+          boolean feasibility;
           try {
-            abs =
-                rmgr.makeAnd(
-                    abs, buildCartesianAbstraction(f, ssa, thmProver, remainingPredicates));
+            feasibility = !thmProver.isUnsat();
           } finally {
-            stats.cartesianAbstractionTime.stop();
-          }
-        }
-
-        if (abstractionType != AbstractionType.CARTESIAN && !remainingPredicates.isEmpty()) {
-          // Last do boolean abstraction if desired and necessary
-          stats.numBooleanAbsPredicates += remainingPredicates.size();
-          stats.booleanAbstractionTime.start();
-          try {
-            abs = rmgr.makeAnd(abs, buildBooleanAbstraction(ssa, thmProver, remainingPredicates));
-          } finally {
-            stats.booleanAbstractionTime.stop();
+            stats.abstractionSolveTime.stop();
           }
 
-          // Warning:
-          // buildBooleanAbstraction() does not clean up thmProver, so do not use it here.
-          // remainingPredicates is now empty.
+          if (!feasibility) {
+            abs = rmgr.makeFalse();
+          }
+
+        } else if (abstractionType == AbstractionType.ELIMINATION) {
+          stats.quantifierEliminationTime.start();
+          try {
+            abs = rmgr.makeAnd(abs,
+                eliminateIrrelevantVariablePropositions(f, ssa));
+          } finally {
+            stats.quantifierEliminationTime.stop();
+          }
+        } else {
+          if (abstractionType != AbstractionType.BOOLEAN) {
+            // First do cartesian abstraction if desired
+            stats.cartesianAbstractionTime.start();
+            try {
+              abs =
+                  rmgr.makeAnd(
+                      abs, buildCartesianAbstraction(f, ssa, thmProver, remainingPredicates));
+            } finally {
+              stats.cartesianAbstractionTime.stop();
+            }
+          }
+
+          if (abstractionType != AbstractionType.CARTESIAN && !remainingPredicates.isEmpty()) {
+            // Last do boolean abstraction if desired and necessary
+            stats.numBooleanAbsPredicates += remainingPredicates.size();
+            stats.booleanAbstractionTime.start();
+            try {
+              abs = rmgr.makeAnd(abs, buildBooleanAbstraction(ssa, thmProver, remainingPredicates));
+            } finally {
+              stats.booleanAbstractionTime.stop();
+            }
+
+            // Warning:
+            // buildBooleanAbstraction() does not clean up thmProver, so do not use it here.
+            // remainingPredicates is now empty.
+          }
         }
       }
     }
@@ -741,6 +758,46 @@ public class PredicateAbstractionManager {
     Region r = amgr.convertFormulaToRegion(f);
     return makeAbstractionFormula(r, blockFormula.getSsa(), blockFormula);
   }
+
+  /**
+   * Build cartesian abstraction using the inductive weakening approach.
+   */
+  private Region buildCartesianAbstractionUsingWeakening(
+      final BooleanFormula f,
+      final SSAMap ssa,
+      final Collection<AbstractionPredicate> pPredicates)
+      throws SolverException, InterruptedException {
+
+    Set<BooleanFormula> toStateLemmas = new HashSet<>();
+    Map<BooleanFormula, Region> info = new HashMap<>();
+    for (AbstractionPredicate a : pPredicates) {
+      BooleanFormula lemma = a.getSymbolicAtom();
+      Region r = a.getAbstractVariable();
+      toStateLemmas.add(lemma);
+      info.put(lemma, r);
+      BooleanFormula negated = bfmgr.not(lemma);
+      toStateLemmas.add(negated);
+      info.put(negated, rmgr.makeNot(r));
+    }
+
+    Region out = rmgr.makeTrue();
+
+    Set<BooleanFormula> filteredLemmas =
+        weakeningManager.findInductiveWeakeningForRCNF(
+            SSAMap.emptySSAMap(),
+            new HashSet<BooleanFormula>(),
+            new PathFormula(
+                f, ssa, PointerTargetSet.emptyPointerTargetSet(), 0
+            ),
+            toStateLemmas
+        );
+    for (BooleanFormula lemma : filteredLemmas) {
+      out = rmgr.makeAnd(out, info.get(lemma));
+    }
+
+    return out;
+  }
+
 
   /**
    * Compute a Cartesian abstraction of a formula given a set of predicates.
