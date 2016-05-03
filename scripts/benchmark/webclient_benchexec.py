@@ -171,6 +171,8 @@ def _submitRunsParallel(runSet, benchmark):
 
             except (HTTPError, WebClientError) as e:
                 logging.warning('Could not submit run %s: %s.', run.identifier, e)
+                return result_futures # stop submitting runs 
+            
             finally:
                 submissonCounter += 1
     finally:
