@@ -35,6 +35,8 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.io.ByteStreams;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -215,6 +217,8 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     return algorithm;
   }
 
+  @SuppressFBWarnings(value="DM_DEFAULT_ENCODING",
+      justification="Encoding is irrelevant for null output stream")
   @Override
   public AlgorithmStatus run(ReachedSet pReached) throws CPAException, InterruptedException {
     checkArgument(pReached instanceof ForwardingReachedSet, "RestartAlgorithm needs ForwardingReachedSet");
