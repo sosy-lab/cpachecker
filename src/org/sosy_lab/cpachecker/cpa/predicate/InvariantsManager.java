@@ -399,6 +399,11 @@ class InvariantsManager implements StatisticsProvider {
     return invariantSupplierSingleton;
   }
 
+  boolean hasAsyncInvariants() {
+    return asyncCPAcheckerInvariantSupplierSingleton != null
+        || asyncCPAInvariantSupplierSingleton != null;
+  }
+
   AsyncInvariantsSupplier asAsyncInvariantsSupplier() {
     Preconditions.checkState(
         asyncCPAInvariantSupplierSingleton != null

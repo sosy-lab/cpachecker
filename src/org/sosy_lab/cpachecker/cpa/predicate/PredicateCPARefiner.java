@@ -116,6 +116,14 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
                                  + "as predicates, and not the whole interpolant")
   private boolean atomicInterpolants = true;
 
+  @Option(
+      secure = true,
+      description = "If the invariant generator can prove that a program is safe"
+          + " regarding the given specification we can directly stop the analysis."
+          + " This is done by clearing the waitlist and removing the last found"
+          + " (infeasible) error state from the reached set.")
+  private boolean shortcutForSafeProgram = false;
+
   // statistics
   private final StatInt totalPathLength = new StatInt(StatKind.AVG, "Avg. length of target path (in blocks)"); // measured in blocks
   private final StatTimer totalRefinement = new StatTimer("Time for refinement");
@@ -216,6 +224,20 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   @Override
   public CounterexampleInfo performRefinementForPath(final ARGReachedSet pReached, final ARGPath allStatesTrace) throws CPAException, InterruptedException {
     totalRefinement.start();
+
+    // shortcut, if we know that the invariant generator can prove that the
+    // program is safe we do not need to continue the analysis as we cannot
+    // directly stop the analysis from here, we need to remove the infeasible
+    // error state from the reached set, and clear the waitlist
+    if (shortcutForSafeProgram
+        && invariantsManager.hasAsyncInvariants()
+        && invariantsManager.asAsyncInvariantsSupplier().isProgramSafe()) {
+      pReached.removeSubtree(allStatesTrace.getLastState());
+      pReached.clearWaitlist();
+      totalRefinement.stop();
+      return CounterexampleInfo.spurious();
+    }
+
     try {
       final List<CFANode> errorPath =
           Lists.transform(allStatesTrace.asStatesList(), AbstractStates.EXTRACT_LOCATION);

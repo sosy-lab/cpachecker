@@ -25,14 +25,14 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
-import java.util.logging.Level;
+import com.google.common.base.Functions;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
+import com.google.common.collect.SetMultimap;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -42,14 +42,14 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetWrapper;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Precisions;
 
-import com.google.common.base.Functions;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
-import com.google.common.collect.SetMultimap;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.logging.Level;
 
 /**
  * This class is a modifiable live view of a reached set, which shows the ARG
@@ -484,6 +484,20 @@ public class ARGReachedSet {
     public void removeSubtree(ARGState pE, Precision pP,
         Predicate<? super Precision> pPrecisionType) {
       delegate.removeSubtree(pE, pP, pPrecisionType);
+    }
+  }
+
+  /**
+   * This method should only be used with great caution! It removes all pending
+   * states from the waitlist, and therefore effectively prevents the analysis
+   * from continuing.
+   *
+   * Depending on the states contained in the reached set this can lead to unsound
+   * behaviour (e.g. no state in waitlist anymore, but an existing error was not found)
+   */
+  public void clearWaitlist() {
+    while (mReached.hasWaitingState()) {
+      mReached.popFromWaitlist();
     }
   }
 }

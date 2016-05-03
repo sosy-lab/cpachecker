@@ -1578,6 +1578,12 @@ cpa.predicate.refinement.reuseInterpolationEnvironment = false
 # states in the reached set.
 cpa.predicate.refinement.sharePredicates = false
 
+# If the invariant generator can prove that a program is safe regarding the
+# given specification we can directly stop the analysis. This is done by
+# clearing the waitlist and removing the last found (infeasible) error state
+# from the reached set.
+cpa.predicate.refinement.shortcutForSafeProgram = false
+
 # slice block formulas, experimental feature!
 cpa.predicate.refinement.sliceBlockFormulas = false
 
