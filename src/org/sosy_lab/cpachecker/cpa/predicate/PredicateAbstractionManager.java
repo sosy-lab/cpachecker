@@ -787,9 +787,9 @@ public class PredicateAbstractionManager {
       Region r = a.getAbstractVariable();
       toStateLemmas.add(lemma);
       info.put(lemma, r);
-      BooleanFormula negated = bfmgr.not(lemma);
-      toStateLemmas.add(negated);
-      info.put(negated, rmgr.makeNot(r));
+//      BooleanFormula negated = bfmgr.not(lemma);
+//      toStateLemmas.add(negated);
+//      info.put(negated, rmgr.makeNot(r));
     }
 
     Region out = rmgr.makeTrue();
