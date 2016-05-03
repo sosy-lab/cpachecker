@@ -57,7 +57,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
   private final int seqLengthThreshold;
 
   public SMGDoublyLinkedListCandidateFinder() {
-    seqLengthThreshold = 2;
+    seqLengthThreshold = 3;
   }
 
   public SMGDoublyLinkedListCandidateFinder(int pSeqLengthThreshold) {
@@ -84,7 +84,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
     for (Map<Pair<Integer, Integer>, SMGDoublyLinkedListCandidate> objCandidates : candidates
         .values()) {
       for (SMGDoublyLinkedListCandidate candidate : objCandidates.values()) {
-        if (candidateLength.get(candidate) >= seqLengthThreshold || (candidateSeqJoinGood.get(candidate) != SMGJoinStatus.INCOMPARABLE && candidateLength.get(candidate) > 0)) {
+        if (candidateLength.get(candidate) >= seqLengthThreshold || (candidateSeqJoinGood.get(candidate) != SMGJoinStatus.INCOMPARABLE && candidateLength.get(candidate) > 1)) {
           returnSet.add(new SMGDoublyLinkedListCandidateSequence(candidate, candidateLength.get(candidate), candidateSeqJoinGood.get(candidate)));
         }
       }
@@ -205,7 +205,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
         SMGDoublyLinkedListCandidate candidate =
             new SMGDoublyLinkedListCandidate(pObject, hfo, pfo, nfo);
         candidates.get(pObject).put(Pair.of(nfo, pfo), candidate);
-        candidateLength.put(candidate, 0);
+        candidateLength.put(candidate, 1);
         candidateSeqJoinGood.put(candidate, SMGJoinStatus.EQUAL);
         continueTraversal(nextPointer, candidate, pSMGState);
       }
@@ -262,7 +262,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
       }
 
       candidate = new SMGDoublyLinkedListCandidate(nextObject, hfo, pfo, nfo);
-      candidateLength.put(candidate, 0);
+      candidateLength.put(candidate, 1);
       candidateSeqJoinGood.put(candidate, SMGJoinStatus.EQUAL);
     } else {
       candidate = objectCandidates.get(Pair.of(nfo, pfo));
@@ -350,7 +350,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
           return;
         }
       } else if (nextObject.getKind() == SMGObjectKind.REG) {
-        if (candidateLength.get(candidate) != 0) {
+        if (candidateLength.get(candidate) != 1) {
           Set<SMGEdgeHasValue> hves =
               smg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pte.getValue()));
 

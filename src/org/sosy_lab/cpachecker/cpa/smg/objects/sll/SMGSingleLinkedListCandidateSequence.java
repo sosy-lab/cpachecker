@@ -66,12 +66,12 @@ public class SMGSingleLinkedListCandidateSequence implements SMGAbstractionCandi
       return pSMG;
     }
 
-    for (int i = 0; i < length; i++) {
+    for (int i = 1; i < length; i++) {
 
       SMGEdgeHasValue nextEdge = Iterables.getOnlyElement(pSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(prevObject).filterAtOffset(nfo)));
       SMGObject nextObject = pSMG.getPointer(nextEdge.getValue()).getObject();
 
-      if (length > 0) {
+      if (length > 1) {
         SMGJoinSubSMGsForAbstraction jointest =
             new SMGJoinSubSMGsForAbstraction(new CLangSMG(pSMG), prevObject, nextObject, candidate,
                 pSmgState);

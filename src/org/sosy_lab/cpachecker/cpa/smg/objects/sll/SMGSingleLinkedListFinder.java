@@ -56,7 +56,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
   private final int seqLengthThreshold;
 
   public SMGSingleLinkedListFinder() {
-    seqLengthThreshold = 2;
+    seqLengthThreshold = 3;
   }
 
   public SMGSingleLinkedListFinder(int pSeqLengthThreshold) {
@@ -80,7 +80,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
       for (SMGSingleLinkedListCandidate candidate : objCandidates.values()) {
         if (candidateLength.get(candidate) >= seqLengthThreshold
             || (candidateSeqJoinStatus.get(candidate) != SMGJoinStatus.INCOMPARABLE
-                && candidateLength.get(candidate) > 0)) {
+                && candidateLength.get(candidate) > 1)) {
           returnSet.add(new SMGSingleLinkedListCandidateSequence(candidate, candidateLength.get(candidate), candidateSeqJoinStatus.get(candidate)));
         }
       }
@@ -151,7 +151,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
       SMGSingleLinkedListCandidate candidate =
           new SMGSingleLinkedListCandidate(pObject, nfo, hfo);
       candidates.get(pObject).put(nfo, candidate);
-      candidateLength.put(candidate, 0);
+      candidateLength.put(candidate, 1);
       candidateSeqJoinStatus.put(candidate, SMGJoinStatus.EQUAL);
       continueTraversal(nextPointer, candidate, pSMGState);
     }
@@ -184,7 +184,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
        * last object in sequence.
        */
       candidate = new SMGSingleLinkedListCandidate(nextObject, nfo, hfo);
-      candidateLength.put(candidate, 0);
+      candidateLength.put(candidate, 1);
       candidateSeqJoinStatus.put(candidate, SMGJoinStatus.EQUAL);
 
       if (!smg.isObjectValid(nextObject) || !(nextObject.getLevel() == startObject.getLevel())) {
