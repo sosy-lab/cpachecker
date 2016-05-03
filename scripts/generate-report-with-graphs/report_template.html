@@ -1,18 +1,27 @@
 <!DOCTYPE html>
 <html ng-app='report'>
 <head>
-    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css"/>
+    <link rel="stylesheet" type="text/css" href="https://www.sosy-lab.org/lib/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
     <link href="app/generic.css" rel="stylesheet" type="text/css">
-    <link href="https://google-code-prettify.googlecode.com/svn/trunk/src/prettify.css" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" type="text/css" href="https://www.sosy-lab.org/lib/google-code-prettify/2015-12-08-c67d802/prettify.css" integrity="sha384-Idd9oLcdDqxPfUuMARR/TPo7z2VE5qgbFk6j2RHdfzB88HFW5Ecm8qSe0KjhtZ2S" crossorigin="anonymous">
+    
     <!--the jquery-script is necessary for bootstrap, it has to be added BEFORE the bootstrap-script-->
-    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
-    <script type="text/javascript" src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
-    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular.min.js"></script>
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="https://www.sosy-lab.org/lib/jquery/1.12.0/jquery.min.js"></script>
+    <![endif]-->
+    <!--[if gte IE 9]><!-->
+    <script type="text/javascript" src="https://www.sosy-lab.org/lib/jquery/2.2.0/jquery.min.js" integrity="sha384-K+ctZQ+LL8q6tP7I94W+qzQsfRV2a+AfHIi9k8z8l9ggpc8X+Ytst4yBo/hH+8Fk" crossorigin="anonymous"></script>
+    <!--<![endif]-->
+    
+    <script src="https://www.sosy-lab.org/lib/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+    <script src="https://www.sosy-lab.org/lib/angularjs/1.5.5/angular.min.js" integrity="sha384-JhiEhwQjPEF1WJVY0yQaYOdN73Ml70AQwr+sq+zhSomAf4Fh0ImVDR8G9Ry0QokZ" crossorigin="anonymous"></script>
     <!--SCRIPT-->
-    <script type="text/javascript" src="https://google-code-prettify.googlecode.com/svn/trunk/src/prettify.js"></script>
+    <script src="https://www.sosy-lab.org/lib/google-code-prettify/2015-12-08-c67d802/prettify.js" integrity="sha384-uvP0LdNXVGNnAFf48ha9Ze5oJX136a8YERZm6nDnr/jAocGDVsfIj/N6I3h1wSj8" crossorigin="anonymous"></script>
+    
     <meta charset="UTF-8">
     <title>CPAchecker Report</title>
 </head>
+
 <body ng-controller="ReportController" onload="prettyPrint(); init()">
 <header class="header">
 
