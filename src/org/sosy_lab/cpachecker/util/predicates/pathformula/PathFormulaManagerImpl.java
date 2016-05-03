@@ -27,12 +27,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.MapsDifference.collectMapsDifferenceTo;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.regex.Pattern;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Maps;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.MapsDifference;
@@ -80,12 +80,12 @@ import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.Model.ValueAssignment;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Maps;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.regex.Pattern;
 
 /**
  * Class implementing the FormulaManager interface,
@@ -700,6 +700,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
    */
   @Override
   public Map<Integer, Boolean> getBranchingPredicateValuesFromModel(Iterable<ValueAssignment> model) {
+    // Do not use fmgr here, this fails if a separate solver is used for interpolation.
     if (!model.iterator().hasNext()) {
       logger.log(Level.WARNING, "No satisfying assignment given by solver!");
       return Collections.emptyMap();
@@ -709,7 +710,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     for (ValueAssignment entry : model) {
       String canonicalName = entry.getName();
 
-      if (fmgr.getFormulaType(entry.getKey()).isBooleanType()) {
+      if (entry.getKey() instanceof BooleanFormula) {
         String name = BRANCHING_PREDICATE_NAME_PATTERN.matcher(canonicalName).replaceFirst("");
         if (!name.equals(canonicalName)) {
           // pattern matched, so it's a variable with __ART__ in it
