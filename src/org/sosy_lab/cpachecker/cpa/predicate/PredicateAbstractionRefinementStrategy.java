@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
@@ -554,15 +555,10 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
    */
   private PredicatePrecision findAllPredicatesFromSubgraph(
       ARGState refinementRoot, UnmodifiableReachedSet reached) {
-    // find all distinct precisions to merge them
-    Set<PredicatePrecision> precisions = Sets.newIdentityHashSet();
-    for (ARGState state : refinementRoot.getSubgraph()) {
-      if (!state.isCovered()) {
-        // covered states are not in reached set
-        precisions.add(extractPredicatePrecision(reached.getPrecision(state)));
-      }
-    }
-    return PredicatePrecision.unionOf(precisions);
+    return PredicatePrecision.unionOf(
+        from(refinementRoot.getSubgraph())
+            .filter(not(ARGState.IS_COVERED))
+            .transform(Precisions.forStateIn(reached)));
   }
 
   private boolean isValuePrecisionAvailable(final ARGReachedSet pReached, ARGState root) {

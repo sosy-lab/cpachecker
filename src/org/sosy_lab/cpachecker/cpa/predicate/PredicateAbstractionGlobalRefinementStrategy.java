@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Predicates.not;
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.base.Preconditions;
@@ -270,17 +272,6 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
     return newPrecision;
   }
 
-  private PredicatePrecision extractPredicatePrecision(Precision oldPrecision)
-      throws IllegalStateException {
-    PredicatePrecision oldPredicatePrecision =
-        Precisions.extractPrecisionByType(oldPrecision, PredicatePrecision.class);
-    if (oldPredicatePrecision == null) {
-      throw new IllegalStateException(
-          "Could not find the PredicatePrecision for the error element");
-    }
-    return oldPredicatePrecision;
-  }
-
   /**
    * Collect all precisions in the subgraph below refinementRoot and merge
    * their predicates.
@@ -288,15 +279,10 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
    */
   private PredicatePrecision findAllPredicatesFromSubgraph(
       ARGState refinementRoot, UnmodifiableReachedSet reached) {
-    // find all distinct precisions to merge them
-    Set<PredicatePrecision> precisions = Sets.newIdentityHashSet();
-    for (ARGState state : refinementRoot.getSubgraph()) {
-      if (!state.isCovered()) {
-        // covered states are not in reached set
-        precisions.add(extractPredicatePrecision(reached.getPrecision(state)));
-      }
-    }
-    return PredicatePrecision.unionOf(precisions);
+    return PredicatePrecision.unionOf(
+        from(refinementRoot.getSubgraph())
+            .filter(not(ARGState.IS_COVERED))
+            .transform(Precisions.forStateIn(reached)));
   }
 
   /**

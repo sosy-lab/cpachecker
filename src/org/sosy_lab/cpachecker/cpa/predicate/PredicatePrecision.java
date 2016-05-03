@@ -39,6 +39,7 @@ import com.google.common.collect.Sets;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
 import java.util.Collection;
@@ -267,6 +268,21 @@ public class PredicatePrecision implements Precision {
                     return pInput.getGlobalPredicates();
                   }
                 }));
+  }
+
+  /**
+   * Create a new precision that is the union of the predicate precisions of all given precisions.
+   * This method can be called even with a lot of duplicate precisions in the input
+   * (for example, all precisions occurring in the reached set)
+   * and will handle the union computation efficiently.
+   */
+  public static PredicatePrecision unionOf(Iterable<Precision> precisions) {
+    // Find all distinct elements to avoid computing the union over lots of identical objects.
+    Set<PredicatePrecision> predicatePrecisions = Sets.newIdentityHashSet();
+    for (Precision prec : precisions) {
+      predicatePrecisions.add(Precisions.extractPrecisionByType(prec, PredicatePrecision.class));
+    }
+    return unionOf(predicatePrecisions);
   }
 
   /**

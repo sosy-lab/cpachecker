@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
+import static com.google.common.base.Predicates.not;
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
@@ -246,16 +249,12 @@ public class ValueAnalysisRefiner
    * the subgraph below the refinement root.
    */
   private PredicatePrecision mergePredicatePrecisionsForSubgraph(
-      final ARGState pRefinementRoot,
-      final ARGReachedSet pReached
-  ) {
-    // find all distinct precisions to merge them
-    Set<PredicatePrecision> uniquePrecisions = Sets.newIdentityHashSet();
-    for (ARGState descendant : getNonCoveredStatesInSubgraph(pRefinementRoot)) {
-      uniquePrecisions.add(extractPredicatePrecision(pReached, descendant));
+      final ARGState pRefinementRoot, final ARGReachedSet pReached) {
+    return PredicatePrecision.unionOf(
+        from(pRefinementRoot.getSubgraph())
+            .filter(not(ARGState.IS_COVERED))
+            .transform(Precisions.forStateIn(pReached.asReachedSet())));
     }
-    return PredicatePrecision.unionOf(uniquePrecisions);
-  }
 
   private VariableTrackingPrecision extractValuePrecision(final ARGReachedSet pReached,
       ARGState state) {

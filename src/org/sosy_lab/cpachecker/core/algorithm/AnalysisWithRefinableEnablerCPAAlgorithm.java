@@ -28,10 +28,9 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Predicates;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -494,7 +493,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     } else {
       newPrec = builtNewVariableTrackingPrecision(initialPrecision, precisions);
     }
-
+    shutdownNotifier.shutdownIfNecessary();
 
     try {
       // assure that refinement fails if same path is encountered twice and precision not refined on that path
@@ -512,42 +511,10 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     return replaceEnablerPrecision(initialPrecision, newPrec);
   }
 
-  private PredicatePrecision builtNewPredicatePrecision(final Precision initialPrecision,
-      final Collection<Precision> pReachedSetPrecisions) throws InterruptedException {
-    Multimap<PredicatePrecision.LocationInstance, AbstractionPredicate> locationInstancPreds =
-        HashMultimap.create();
-    Multimap<CFANode, AbstractionPredicate> localPreds = HashMultimap.create();
-    Multimap<String, AbstractionPredicate> functionPreds = HashMultimap.create();
-    Collection<AbstractionPredicate> globalPreds = new HashSet<>();
-
-    Collection<PredicatePrecision> seenPrecisions = new HashSet<>();
-
-    // add initial precision
-    PredicatePrecision predPrec = Precisions.extractPrecisionByType(initialPrecision, PredicatePrecision.class);
-    locationInstancPreds.putAll(predPrec.getLocationInstancePredicates());
-    localPreds.putAll(predPrec.getLocalPredicates());
-    functionPreds.putAll(predPrec.getFunctionPredicates());
-    globalPreds.addAll(predPrec.getGlobalPredicates());
-
-    seenPrecisions.add(predPrec);
-
-    // add further precision information obtained during refinement
-    for (Precision nextPrec : pReachedSetPrecisions) {
-      predPrec = Precisions.extractPrecisionByType(nextPrec, PredicatePrecision.class);
-
-      shutdownNotifier.shutdownIfNecessary();
-
-      if (!seenPrecisions.contains(predPrec)) {
-        seenPrecisions.add(predPrec);
-        locationInstancPreds.putAll(predPrec.getLocationInstancePredicates());
-        localPreds.putAll(predPrec.getLocalPredicates());
-        functionPreds.putAll(predPrec.getFunctionPredicates());
-        globalPreds.addAll(predPrec.getGlobalPredicates());
-      }
-    }
-
-    // construct new predicate precision
-    return new PredicatePrecision(locationInstancPreds, localPreds, functionPreds, globalPreds);
+  private PredicatePrecision builtNewPredicatePrecision(
+      final Precision initialPrecision, final Collection<Precision> pReachedSetPrecisions) {
+    return PredicatePrecision.unionOf(
+        Iterables.concat(ImmutableList.of(initialPrecision), pReachedSetPrecisions));
   }
 
   private Precision builtNewVariableTrackingPrecision(Precision pInitialPrecision, Collection<Precision> pPrecisions) {
