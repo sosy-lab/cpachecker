@@ -968,6 +968,17 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
           }
         }
         heap.addHasValueEdge(new SMGEdgeHasValue(hve.getType(), hve.getOffset(), pNewRegion, newVal));
+      } else {
+        MachineModel model = heap.getMachineModel();
+        int sizeOfHveInBytes = hve.getSizeInBytes(model);
+        /*If a restricted field is 0, and bigger than a pointer, add 0*/
+        if (sizeOfHveInBytes > model.getSizeofPtr() && hve.getValue() == 0) {
+          int offset = hve.getOffset() + model.getSizeofPtr();
+          int sizeInBytes = sizeOfHveInBytes - model.getSizeofPtr();
+          SMGEdgeHasValue expandedZeroEdge =
+              new SMGEdgeHasValue(sizeInBytes, offset, pNewRegion, 0);
+          heap.addHasValueEdge(expandedZeroEdge);
+        }
       }
     }
 

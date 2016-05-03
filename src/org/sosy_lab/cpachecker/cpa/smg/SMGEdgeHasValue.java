@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import java.util.Objects;
-
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+
+import java.util.Objects;
 
 public class SMGEdgeHasValue extends SMGEdge {
   final private CType type;
@@ -111,7 +111,6 @@ public class SMGEdgeHasValue extends SMGEdge {
   }
 
   public boolean isCompatibleFieldOnSameObject(SMGEdgeHasValue other, MachineModel pModel) {
-    // return (type.equals(other.type)) && (offset == other.offset) && (object == other.object);
     return pModel.getSizeof(type) == pModel.getSizeof(other.type) && (offset == other.offset) && object == other.object;
   }
 
