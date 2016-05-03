@@ -40,7 +40,7 @@ for egg in glob.glob(os.path.join(os.path.dirname(__file__), os.pardir, 'lib', '
     sys.path.insert(0, egg)
 
 def call_dot(infile, outpath):
-    (basefilename, ext) = os.path.splitext(os.path.basename(infile))
+    (basefilename, _) = os.path.splitext(os.path.basename(infile))
     outfile = os.path.join(outpath, basefilename + '.svg')
     #print ('   generating ' + infile)
 
@@ -50,6 +50,7 @@ def call_dot(infile, outpath):
                               '-Efontname=Courier New', '-Tsvg', '-o',
                               outfile, infile])
         code = p.wait()
+        
     except KeyboardInterrupt: # ctrl + c
         print ('   skipping ' + infile)
         p.terminate()
@@ -59,6 +60,7 @@ def call_dot(infile, outpath):
         except OSError:
             pass # if outfile is not written, removing is impossible
         return False
+    
     except OSError as e:
         if e.errno == 2:
             sys.exit('Error: Could not call "dot" from GraphViz to create graph, please install it\n({}).'.format(e))
@@ -72,122 +74,122 @@ def call_dot(infile, outpath):
     return True
 
 
-def generateReport(cpaoutdir, functions, argfilepath, outfilepath, tplfilepath):
-    fin = open(tplfilepath, 'r')
-    fout = open(outfilepath, 'w')
-    for line in fin:
-        if 'CFAFUNCTIONGRAPHS' in line:
-            writeCFA(cpaoutdir, functions, fout)
-        elif 'ARGGRAPHS' in line:
-            writeARG(argfilepath, fout)
-        else:
-            fout.write(line)
-
-    print ('Report generated in {0}'.format(outfilepath))
-
+def generate_report(cpa_output_dir, functions, arg_path, report_path, template_path):
+    with open(template_path, 'r') as template, open(report_path, 'w') as report:
+        for line in template:
+            if 'CFAFUNCTIONGRAPHS' in line:
+                write_cfa(cpa_output_dir, functions, report)
+            elif 'ARGGRAPHS' in line:
+                write_arg(arg_path, report)
+            else:
+                report.write(line)
+    
+        print ('Report generated in {0}'.format(report_path))
+    
     try:
         with open(os.devnull, 'w') as devnull:
-            subprocess.Popen(['xdg-open', outfilepath],
-                             stdout=devnull, stderr=devnull)
+            subprocess.Popen(['xdg-open', report_path], stdout=devnull, stderr=devnull)
+            
     except OSError:
         pass
-    fin.close()
-    fout.close()
 
-def writeCFA(cpaoutdir, functions, outf):
-    i = 0 
-    for func in functions:
+def write_cfa(cpa_output_dir, functions, report):
+    i = 0
+    for function in functions:
         start = False
-        cfafile = open(os.path.join(cpaoutdir, 'cfa__' + func + '.svg'))
-        for line in cfafile:
-            if start:
-                line = line.replace('class="node"','class="node" ng-dblclick="clickedCFAElement($event)"')
-                line = line.replace('class="edge"','class="edge" ng-dblclick="clickedCFAElement($event)"')
-                outf.write(line)
-            if '<svg' in line:
-                outf.write(line[:5] + " ng-show = \"cfaFunctionIsSet(" + str(i) + ")\" " + line[5:])
-                start = True
+        cfa_path = os.path.join(cpa_output_dir, 'cfa__' + function + '.svg')
+        if os.path.exists(cfa_path):
+            with open(cfa_path) as cfa_file:
+                for line in cfa_file:
+                    if start:
+                        line = line.replace('class="node"','class="node" ng-dblclick="clickedCFAElement($event)"')
+                        line = line.replace('class="edge"','class="edge" ng-dblclick="clickedCFAElement($event)"')
+                        report.write(line)
+                    if '<svg' in line:
+                        report.write(line[:5] + " ng-show = \"cfaFunctionIsSet(" + str(i) + ")\" " + line[5:])
+                        start = True
         i = i+1
-    cfafile.close()
 
-def writeARG(argfilepath, outf):
+def write_arg(arg_file_path, report):
     start = False
-    argfile = open(argfilepath[:-4] + '.svg')
-    for line in argfile:
-        if '<svg' in line:
-            start = True
-        if start:
-            line = line.replace('class="node"','class="node" ng-dblclick="clickedARGElement($event)"')
-            line = line.replace('class="edge"','class="edge" ng-dblclick="clickedARGElement($event)"')
-            outf.write(line)
-    argfile.close()
+    arg_path = arg_file_path[:-4] + '.svg'
+    if os.path.exists(arg_path):
+        with open(arg_path) as argfile:
+            for line in argfile:
+                if '<svg' in line:
+                    start = True
+                if start:
+                    line = line.replace('class="node"','class="node" ng-dblclick="clickedARGElement($event)"')
+                    line = line.replace('class="edge"','class="edge" ng-dblclick="clickedARGElement($event)"')
+                    report.write(line)
 
-def signal_handler(signal, frame):
-    print("Received a keyboard interrupt. Exiting.")
-    sys.exit(0)
-
-def main():
-    signal.signal(signal.SIGINT, signal_handler)
-
-    parser = argparse.ArgumentParser(
-        description="Generate a HTML report with graphs from the CPAchecker output."
-    )
-    parser.add_argument("-c", "--config",
-        dest="configfile",
-        default="output/UsedConfiguration.properties",
-        help="""File with all the used CPAchecker configuration files
-             (default: output/UsedConfiguration.properties)"""
-    )
-
+def parse_arguments():
+    parser = argparse.ArgumentParser(description="Generate a HTML report with graphs from the CPAchecker output.")
+    parser.add_argument("-c", 
+                        "--config", 
+                        dest="configfile", 
+                        default="output/UsedConfiguration.properties", 
+                        help="""File with all the used CPAchecker configuration files
+                            (default: output/UsedConfiguration.properties)""")
     options = parser.parse_args()
+    return options
 
-    print ('Generating report')
-
+def read_CPAchecker_config(options):
     # read config file
     config = {}
+    
     try:
         with open(options.configfile) as configfile:
             for line in configfile:
-                (key, val) = line.split("=", 1)
+                key, val = line.split("=", 1)
                 config[key.strip()] = val.strip()
     except IOError as e:
+        
         if e.errno:
             sys.exit('Could not find output of CPAchecker in {}. Please specify correctpath with option --config\n({}).'.format(options.configfile, e))
         else:
             sys.exit('Could not read output of CPAchecker in {}\n({}).'.format(options.configfile, e))
-
     if not config.get('analysis.programNames'):
         sys.exit('CPAchecker output does not specify path to analyzed program. Cannot generate report.')
+        
+    return config
 
-    # extract paths to all necessary files from config
-    cpaoutdir      = config.get('output.path', 'output/')
-    argfilepath    = os.path.join(cpaoutdir, config.get('cpa.arg.file', 'ARG.dot'))
-    errorpath      = os.path.join(cpaoutdir, config.get('cpa.arg.errorPath.json', 'ErrorPath.%d.json'))
+def main():
+    options = parse_arguments()
 
-    countexdir = "output/report"
+    print ('Generating report')
 
+    config = read_CPAchecker_config(options)
+
+    # extract paths to all necessary files and directories from config
+    cpa_output_dir = config.get('output.path', 'output/')
+    arg_path = os.path.join(cpa_output_dir, config.get('cpa.arg.file', 'ARG.dot'))
+    error_path = os.path.join(cpa_output_dir, config.get('cpa.arg.errorPath.json', 'ErrorPath.%d.json'))
+    report_dir = os.path.join(cpa_output_dir, "report")
 
     #if there is an ARG.dot create an SVG in the report dir
-    if os.path.isfile(argfilepath):
+    if os.path.isfile(arg_path):
         print ('Generating SVG for ARG (press Ctrl+C if this takes too long)')
-        call_dot(argfilepath, cpaoutdir)
+        call_dot(arg_path, cpa_output_dir)
 
     print ('Generating SVGs for CFA')
-    functions = [x[5:-4] for x in os.listdir(cpaoutdir) if x.startswith('cfa__') and x.endswith('.dot')]
-    errorpathcount = len(glob.glob(errorpath.replace('%d', '*')))
+    functions = [x[5:-4] for x in os.listdir(cpa_output_dir) if x.startswith('cfa__') and x.endswith('.dot')]
+    error_path_count = len(glob.glob(error_path.replace('%d', '*')))
     functions = sorted(functions)
-    for func in functions:
-        call_dot(os.path.join(cpaoutdir, 'cfa__' + func + '.dot'), cpaoutdir)
+    for function in functions:
+        print(function)
+        call_dot(os.path.join(cpa_output_dir, 'cfa__' + function + '.dot'), cpa_output_dir)
 
-    if errorpathcount != 0:
-      for index in range(errorpathcount):
-        outfilepath = os.path.join(countexdir, 'report_' + str(index) + '.html')
-        tplfilepath = os.path.join(countexdir, 'report_withoutGraphs_' + str(index) + '.html')
-        generateReport(cpaoutdir, functions, argfilepath, outfilepath, tplfilepath)
+    if error_path_count != 0:
+      for index in range(error_path_count):
+        report_path = os.path.join(report_dir, 'report_' + str(index) + '.html')
+        template_path = os.path.join(report_dir, 'report_withoutGraphs_' + str(index) + '.html')
+        generate_report(cpa_output_dir, functions, arg_path, report_path, template_path)
+        
     else:
-      outfilepath = os.path.join(countexdir, 'report.html')
-      tplfilepath = os.path.join(countexdir, 'report_withoutGraphs.html')
-      generateReport(cpaoutdir, functions, argfilepath, outfilepath, tplfilepath)
+      report_path = os.path.join(report_dir, 'report.html')
+      template_path = os.path.join(report_dir, 'report_withoutGraphs.html')
+      generate_report(cpa_output_dir, functions, arg_path, report_path, template_path)
 
 if __name__ == '__main__':
     main()
