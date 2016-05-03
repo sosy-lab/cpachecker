@@ -81,6 +81,16 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
       SMGEdgeHasValue nextEdge = Iterables.getOnlyElement(pSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(prevObject).filterAtOffset(nfo)));
       SMGObject nextObject = pSMG.getPointer(nextEdge.getValue()).getObject();
 
+      if (length > 0) {
+        SMGJoinSubSMGsForAbstraction jointest =
+            new SMGJoinSubSMGsForAbstraction(new CLangSMG(pSMG), prevObject, nextObject, candidate,
+                pSmgState);
+
+        if (!jointest.isDefined()) {
+          return pSMG;
+        }
+      }
+
       SMGJoinSubSMGsForAbstraction join =
           new SMGJoinSubSMGsForAbstraction(pSMG, prevObject, nextObject, candidate, pSmgState);
 
@@ -176,10 +186,10 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
   private int getStatusScore() {
     switch (seqStatus) {
       case EQUAL:
-        return 2;
+        return 3;
       case LEFT_ENTAIL:
       case RIGHT_ENTAIL:
-        return 1;
+        return 2;
       case INCOMPARABLE:
       default:
         return 0;
