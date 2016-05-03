@@ -765,8 +765,20 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     int newPointerToSll = SMGValueFactory.getNewValue();
 
+    /*If you can't find the pointer, use generic pointer type*/
+    CType typeOfPointerToSll;
+
+    Set<SMGEdgeHasValue> fieldsContainingOldPointerToSll =
+        heap.getHVEdges(SMGEdgeHasValueFilter.valueFilter(oldPointerToSll));
+
+    if (fieldsContainingOldPointerToSll.isEmpty()) {
+      typeOfPointerToSll = CPointerType.POINTER_TO_VOID;
+    } else {
+      typeOfPointerToSll = fieldsContainingOldPointerToSll.iterator().next().getType();
+    }
+
     SMGEdgeHasValue newFieldFromNewRegionToSll = new SMGEdgeHasValue(
-        oldSllFieldToOldRegion.getType(), nfo, newConcreteRegion, newPointerToSll);
+        typeOfPointerToSll, nfo, newConcreteRegion, newPointerToSll);
     SMGEdgePointsTo newPtEToSll =
         new SMGEdgePointsTo(newPointerToSll, newSll, hfo, SMGTargetSpecifier.FIRST);
 
@@ -857,7 +869,18 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     int newPointerToDll = SMGValueFactory.getNewValue();
 
-    SMGEdgeHasValue newFieldFromNewRegionToDll = new SMGEdgeHasValue(oldDllFieldToOldRegion.getType(), offsetPointingToDll, newConcreteRegion, newPointerToDll);
+    CType typeOfPointerToDll;
+
+    Set<SMGEdgeHasValue> fieldsContainingOldPointerToDll =
+        heap.getHVEdges(SMGEdgeHasValueFilter.valueFilter(oldPointerToDll));
+
+    if (fieldsContainingOldPointerToDll.isEmpty()) {
+      typeOfPointerToDll = CPointerType.POINTER_TO_VOID;
+    } else {
+      typeOfPointerToDll = fieldsContainingOldPointerToDll.iterator().next().getType();
+    }
+
+    SMGEdgeHasValue newFieldFromNewRegionToDll = new SMGEdgeHasValue(typeOfPointerToDll, offsetPointingToDll, newConcreteRegion, newPointerToDll);
     SMGEdgePointsTo newPtEToDll = new SMGEdgePointsTo(newPointerToDll, newDll, hfo, tg);
 
     SMGEdgeHasValue newFieldFromDllToNewRegion = new SMGEdgeHasValue(oldDllFieldToOldRegion.getType(), offsetPointingToRegion, newDll, oldPointerToDll);
