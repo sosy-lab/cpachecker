@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectKind;
 import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGGenericAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedList;
@@ -96,8 +97,9 @@ final class SMGJoinSubSMGs {
     Map<Integer, List<SMGGenericAbstractionCandidate>> valueAbstractionCandidates = new HashMap<>();
     boolean allValuesDefined = true;
 
-    boolean object1IsAbstract = pObj1.isAbstract();
-    boolean object2IsAbstract = pObj2.isAbstract();
+    /*Ignore optional objects for level increase, they have no sub smgs attached.*/
+    boolean object1IsAbstract = pObj1.isAbstract() && pObj1.getKind() != SMGObjectKind.OPTIONAL;
+    boolean object2IsAbstract = pObj2.isAbstract() && pObj1.getKind() != SMGObjectKind.OPTIONAL;
 
     int nfo1 = -1;
     int pfo1 = -1;
@@ -107,11 +109,13 @@ final class SMGJoinSubSMGs {
     if (object1IsAbstract) {
       switch (pObj1.getKind()) {
         case SLL:
-          nfo1 = ((SMGSingleLinkedList)pObj1).getNfo();
+          nfo1 = ((SMGSingleLinkedList) pObj1).getNfo();
           break;
         case DLL:
-          nfo1 = ((SMGDoublyLinkedList)pObj1).getNfo();
-          pfo1 = ((SMGDoublyLinkedList)pObj1).getPfo();
+          nfo1 = ((SMGDoublyLinkedList) pObj1).getNfo();
+          pfo1 = ((SMGDoublyLinkedList) pObj1).getPfo();
+          break;
+        case OPTIONAL:
           break;
         default:
           throw new AssertionError();
@@ -121,11 +125,13 @@ final class SMGJoinSubSMGs {
     if (object2IsAbstract) {
       switch (pObj2.getKind()) {
         case SLL:
-          nfo2 = ((SMGSingleLinkedList)pObj2).getNfo();
+          nfo2 = ((SMGSingleLinkedList) pObj2).getNfo();
           break;
         case DLL:
-          nfo2 = ((SMGDoublyLinkedList)pObj2).getNfo();
-          pfo2 = ((SMGDoublyLinkedList)pObj2).getPfo();
+          nfo2 = ((SMGDoublyLinkedList) pObj2).getNfo();
+          pfo2 = ((SMGDoublyLinkedList) pObj2).getPfo();
+          break;
+        case OPTIONAL:
           break;
         default:
           throw new AssertionError();

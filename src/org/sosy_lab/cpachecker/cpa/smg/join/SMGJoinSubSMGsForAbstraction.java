@@ -79,8 +79,8 @@ final public class SMGJoinSubSMGsForAbstraction {
       pfo = dllc.getPfo();
       hfo = dllc.getHfo();
 
-      int lengthObj1 = obj1.getKind() == SMGObjectKind.DLL ? ((SMGDoublyLinkedList)obj1).getMinimumLength() : 1;
-      int lengthObj2 = obj2.getKind() == SMGObjectKind.DLL ? ((SMGDoublyLinkedList)obj2).getMinimumLength() : 1;
+      int lengthObj1 = getMinLength(obj1);
+      int lengthObj2 = getMinLength(obj2);
 
       int length = lengthObj1 + lengthObj2;
       SMGObject dll = new SMGDoublyLinkedList(obj1.getSize(), hfo, nfo, pfo, length, obj1.getLevel());
@@ -102,8 +102,8 @@ final public class SMGJoinSubSMGsForAbstraction {
       hfo = sllc.getHfo();
       nfo = sllc.getNfo();
 
-      int lengthObj1 = obj1.getKind() == SMGObjectKind.SLL ? ((SMGSingleLinkedList)obj1).getMinimumLength() : 1;
-      int lengthObj2 = obj2.getKind() == SMGObjectKind.SLL ? ((SMGSingleLinkedList)obj2).getMinimumLength() : 1;
+      int lengthObj1 = getMinLength(obj1);
+      int lengthObj2 = getMinLength(obj2);
 
       int length = lengthObj1 + lengthObj2;
       SMGObject sll = new SMGSingleLinkedList(obj1.getSize(), hfo, nfo, length, obj1.getLevel());
@@ -125,8 +125,7 @@ final public class SMGJoinSubSMGsForAbstraction {
     mapping1.map(obj1, newAbstractObject);
     mapping2.map(obj2, newAbstractObject);
 
-    boolean increaseLevel =
-        obj1.getKind() == SMGObjectKind.REG && obj2.getKind() == SMGObjectKind.REG;
+    boolean increaseLevel = shouldAbstractionIncreaseLevel(obj1, obj2);
 
     CLangSMG inputSMG = new CLangSMG(smg);
 
@@ -197,13 +196,53 @@ final public class SMGJoinSubSMGsForAbstraction {
 
     for (Entry<Integer, Integer> entry : mapping2.getValue_mapEntrySet()) {
       if (origValues.contains(entry.getKey())) {
-        nonSharedValuesFromSMG2.add(entry.getKey());
+
+        /*Beware identical values, they are shared.*/
+        if (nonSharedValuesFromSMG1.contains(entry.getKey())) {
+          nonSharedValuesFromSMG1.remove(entry.getKey());
+        } else {
+          nonSharedValuesFromSMG2.add(entry.getKey());
+        }
       }
     }
 
     // Zero is not a non shared value
     nonSharedValuesFromSMG1.remove(0);
     nonSharedValuesFromSMG2.remove(0);
+  }
+
+  private boolean shouldAbstractionIncreaseLevel(SMGObject pObj1, SMGObject pObj2) {
+
+    switch (pObj1.getKind()) {
+      case REG:
+      case OPTIONAL:
+        switch (pObj2.getKind()) {
+          case REG:
+          case OPTIONAL:
+            return true;
+          default:
+            return false;
+        }
+
+      default:
+        return false;
+    }
+  }
+
+  private int getMinLength(SMGObject pObj) {
+
+    switch (pObj.getKind()) {
+      case REG:
+        return 1;
+      case DLL:
+        return ((SMGDoublyLinkedList) pObj).getMinimumLength();
+      case SLL:
+        return ((SMGSingleLinkedList) pObj).getMinimumLength();
+      case OPTIONAL:
+        return 0;
+      default:
+        throw new AssertionError();
+    }
   }
 
   public boolean isDefined() {

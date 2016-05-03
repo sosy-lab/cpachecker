@@ -30,7 +30,8 @@ public enum SMGObjectKind {
   DLL("DoublyLinkedList"),
   SLL("SingleyLinkedList"),
   NULL("NullObject"),
-  GENERIC("GenericAbstraction");
+  GENERIC("GenericAbstraction"),
+  OPTIONAL("OptionalObject");
 
   private final String name;
 

@@ -31,6 +31,7 @@ public enum SMGTargetSpecifier {
   FIRST,
   LAST,
   ALL,
+  OPT,
   UNKNOWN;
 
   @Override
@@ -44,6 +45,8 @@ public enum SMGTargetSpecifier {
         return "lst";
       case ALL:
         return "all";
+      case OPT:
+        return "optional";
       case UNKNOWN:
         return "unknown";
       default:

@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectKind;
 
 import java.util.Collection;
 
@@ -54,7 +55,10 @@ final class SMGJoinMapTargetAddress {
 
     SMGTargetSpecifier tg;
 
-    if(pt.getObject().isAbstract() || pt2 == null) {
+    /*When mapping optional object to other abstract object, use tg of other object.*/
+    if ((pt.getObject().isAbstract() && pt.getObject().getKind() != SMGObjectKind.OPTIONAL)
+        || pt2 == null
+        || pt2.getObject().getKind() == SMGObjectKind.OPTIONAL) {
       tg = pt.getTargetSpecifier();
     } else {
       tg = pt2.getTargetSpecifier();

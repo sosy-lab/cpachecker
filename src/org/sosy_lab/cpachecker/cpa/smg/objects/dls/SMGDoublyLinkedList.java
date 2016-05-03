@@ -106,15 +106,17 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
   @Override
   public boolean isMoreGeneral(SMGObject pOther) {
 
-    if (pOther.getKind() == SMGObjectKind.DLL && matchSpecificShape((SMGDoublyLinkedList) pOther)) {
-      return minimumLength < ((SMGDoublyLinkedList) pOther).getMinimumLength();
+    switch (pOther.getKind()) {
+      case REG:
+        return minimumLength < 2;
+      case OPTIONAL:
+        return minimumLength == 0;
+      case DLL:
+        return matchSpecificShape((SMGAbstractObject) pOther)
+            && minimumLength < ((SMGDoublyLinkedList) pOther).minimumLength;
+      default:
+        return false;
     }
-
-    if (pOther.getKind() == SMGObjectKind.REG) {
-      return minimumLength < 2;
-    }
-
-    return false;
   }
 
   public int getHfo() {
@@ -134,47 +136,48 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
 
     int maxLevel = Math.max(getLevel(), pOther.getLevel());
 
-    if(pOther.getKind() == SMGObjectKind.DLL) {
+    switch (pOther.getKind()) {
+      case DLL:
 
-      SMGDoublyLinkedList otherLinkedList = (SMGDoublyLinkedList) pOther;
-      assert getSize() == otherLinkedList.getSize();
-      assert getHfo() == otherLinkedList.getHfo();
-      assert getNfo() == otherLinkedList.getNfo();
-      assert getPfo() == otherLinkedList.getPfo();
+        SMGDoublyLinkedList otherLinkedList = (SMGDoublyLinkedList) pOther;
+        assert matchSpecificShape(otherLinkedList);
 
-      int minlength = Math.min(getMinimumLength(), otherLinkedList.getMinimumLength());
+        int minlength = Math.min(getMinimumLength(), otherLinkedList.getMinimumLength());
 
-      if (pIncreaseLevel) {
-        return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), minlength,
-            maxLevel + 1);
-      } else {
-
-        if (minimumLength == minlength && maxLevel == getLevel()) {
-          return this;
-        } else {
+        if (pIncreaseLevel) {
           return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), minlength,
-              maxLevel);
-        }
-      }
-
-    } else if(pOther.getKind() == SMGObjectKind.REG) {
-      assert getSize() == pOther.getSize();
-
-      int minlength = Math.min(getMinimumLength(), 1);
-
-      if(pIncreaseLevel) {
-        return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), minlength, maxLevel + 1);
-      } else {
-        if (minlength == getMinimumLength() && maxLevel == getLevel()) {
-          return this;
+              maxLevel + 1);
         } else {
-          return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), minlength,
-              maxLevel);
-        }
-      }
 
-    } else {
-      throw new IllegalArgumentException("join called on unjoinable Objects");
+          if (minimumLength == minlength && maxLevel == getLevel()) {
+            return this;
+          } else {
+            return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), minlength,
+                maxLevel);
+          }
+        }
+
+      case REG:
+      case OPTIONAL:
+        assert getSize() == pOther.getSize();
+
+        int otherLength = pOther.getKind() == SMGObjectKind.REG ? 1 : 0;
+        minlength = Math.min(getMinimumLength(), otherLength);
+
+        if (pIncreaseLevel) {
+          return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), minlength,
+              maxLevel + 1);
+        } else {
+          if (minlength == getMinimumLength() && maxLevel == getLevel()) {
+            return this;
+          } else {
+            return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), minlength,
+                maxLevel);
+          }
+        }
+
+      default:
+        throw new IllegalArgumentException("join called on unjoinable Objects");
     }
   }
 

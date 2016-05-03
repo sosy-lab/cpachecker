@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
@@ -58,9 +57,9 @@ import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoin;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGAbstractObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectKind;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
+import org.sosy_lab.cpachecker.cpa.smg.objects.optional.SMGOptionalObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -494,7 +493,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
       SMGObject obj = address.getObject();
 
-      if (obj instanceof SMGAbstractObject) {
+      if (obj.isAbstract()) {
         SMGAddressValueAndStateList result =
             handleMaterilisation(addressValue, ((SMGAbstractObject) obj));
         performConsistencyCheck(SMGRuntimeCheck.HALF);
@@ -511,38 +510,126 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   private SMGAddressValueAndStateList handleMaterilisation(SMGEdgePointsTo pointerToAbstractObject,
       SMGAbstractObject pSmgAbstractObject) throws SMGInconsistentException {
 
-    if (pSmgAbstractObject.getKind() == SMGObjectKind.DLL) {
+    switch (pSmgAbstractObject.getKind()) {
+      case DLL:
+        SMGDoublyLinkedList dllListSeg = (SMGDoublyLinkedList) pSmgAbstractObject;
 
-      SMGDoublyLinkedList listSeg = (SMGDoublyLinkedList) pSmgAbstractObject;
+        if (dllListSeg.getMinimumLength() == 0) {
+          List<SMGAddressValueAndState> result = new ArrayList<>(2);
+          SMGState removalState = new SMGState(this);
+          SMGAddressValueAndStateList removalResult =
+              removalState.removeDls(dllListSeg, pointerToAbstractObject);
+          result.addAll(removalResult.asAddressValueAndStateList());
+          SMGAddressValueAndState resultOfMaterilisation =
+              materialiseDls(dllListSeg, pointerToAbstractObject);
+          result.add(resultOfMaterilisation);
+          return SMGAddressValueAndStateList.copyOfAddressValueList(result);
+        } else {
+          SMGAddressValueAndState result = materialiseDls(dllListSeg, pointerToAbstractObject);
+          return SMGAddressValueAndStateList.of(result);
+        }
+      case SLL:
+        SMGSingleLinkedList sllListSeg = (SMGSingleLinkedList) pSmgAbstractObject;
 
-      if(listSeg.getMinimumLength() == 0) {
+        if (sllListSeg.getMinimumLength() == 0) {
+          List<SMGAddressValueAndState> result = new ArrayList<>(2);
+          SMGState removalState = new SMGState(this);
+          SMGAddressValueAndStateList resultOfRemoval =
+              removalState.removeSll(sllListSeg, pointerToAbstractObject);
+          result.addAll(resultOfRemoval.asAddressValueAndStateList());
+          SMGAddressValueAndState resultOfMaterilisation =
+              materialiseSll(sllListSeg, pointerToAbstractObject);
+          result.add(resultOfMaterilisation);
+          return SMGAddressValueAndStateList.copyOfAddressValueList(result);
+        } else {
+          SMGAddressValueAndState result = materialiseSll(sllListSeg, pointerToAbstractObject);
+          return SMGAddressValueAndStateList.of(result);
+        }
+      case OPTIONAL:
+        List<SMGAddressValueAndState> result = new ArrayList<>(2);
+        SMGOptionalObject optionalObject = (SMGOptionalObject) pSmgAbstractObject;
         SMGState removalState = new SMGState(this);
-        SMGAddressValueAndState resultOfRemoval = removalState.removeDls(listSeg, pointerToAbstractObject);
-        SMGAddressValueAndState resultOfMaterilisation = materialiseDls(listSeg, pointerToAbstractObject);
-        return SMGAddressValueAndStateList.copyOfAddressValueList(ImmutableList.of(resultOfRemoval, resultOfMaterilisation));
-      } else {
-        SMGAddressValueAndState result = materialiseDls(listSeg, pointerToAbstractObject);
-        return SMGAddressValueAndStateList.of(result);
-      }
-    } else if(pSmgAbstractObject.getKind() == SMGObjectKind.SLL) {
-      SMGSingleLinkedList listSeg = (SMGSingleLinkedList) pSmgAbstractObject;
-
-      if(listSeg.getMinimumLength() == 0) {
-        SMGState removalState = new SMGState(this);
-        SMGAddressValueAndState resultOfRemoval = removalState.removeSll(listSeg, pointerToAbstractObject);
-        SMGAddressValueAndState resultOfMaterilisation = materialiseSll(listSeg, pointerToAbstractObject);
-        return SMGAddressValueAndStateList.copyOfAddressValueList(ImmutableList.of(resultOfRemoval, resultOfMaterilisation));
-      } else {
-        SMGAddressValueAndState result = materialiseSll(listSeg, pointerToAbstractObject);
-        return SMGAddressValueAndStateList.of(result);
-      }
-    } else {
-      throw new UnsupportedOperationException("Materilization of abstraction"
-          + pSmgAbstractObject.toString() + " not yet implemented.");
+        SMGAddressValueAndStateList resultOfRemoval =
+            removalState.removeOptionalObject(optionalObject);
+        result.addAll(resultOfRemoval.asAddressValueAndStateList());
+        SMGAddressValueAndState resultOfMaterilisation =
+            materialiseOptionalObject(optionalObject, pointerToAbstractObject);
+        result.add(resultOfMaterilisation);
+        return SMGAddressValueAndStateList.copyOfAddressValueList(result);
+      default:
+        throw new UnsupportedOperationException("Materilization of abstraction"
+            + pSmgAbstractObject.toString() + " not yet implemented.");
     }
   }
 
-  private SMGAddressValueAndState removeSll(SMGSingleLinkedList pListSeg, SMGEdgePointsTo pPointerToAbstractObject) {
+  private SMGAddressValueAndStateList removeOptionalObject(SMGOptionalObject pOptionalObject) throws SMGInconsistentException {
+
+    logger.log(Level.ALL, "Remove " + pOptionalObject.toString() +" in state id " + this.getId());
+
+    /*Just remove the optional Object and merge all incoming pointer
+     * with the one pointer in all fields of the optional edge.
+     * If there is no pointer besides zero in the fields of the
+     * optional object, use zero.*/
+
+    Set<SMGEdgePointsTo> pointer = SMGUtils.getPointerToThisObject(pOptionalObject, heap);
+
+    Set<SMGEdgeHasValue> fields = getHVEdges(SMGEdgeHasValueFilter.objectFilter(pOptionalObject));
+
+    heap.removeHeapObjectAndEdges(pOptionalObject);
+
+    int pointerValue = 0;
+
+    for (SMGEdgeHasValue field : fields) {
+      if (heap.isPointer(field.getValue()) && field.getValue() != 0) {
+        pointerValue = field.getValue();
+        break;
+      }
+    }
+
+    for (SMGEdgePointsTo edge : pointer) {
+      heap.removePointsToEdge(edge.getValue());
+      heap.mergeValues(pointerValue, edge.getValue());
+    }
+
+    SMGAddressValueAndStateList result = getPointerFromValue(pointerValue);
+
+    return result;
+  }
+
+  private SMGAddressValueAndState materialiseOptionalObject(SMGOptionalObject pOptionalObject,
+      SMGEdgePointsTo pPointerToAbstractObject) {
+
+    /*Just replace the optional object with a region*/
+    logger.log(Level.ALL, "Materialise " + pOptionalObject.toString() +" in state id " + this.getId());
+
+    Set<SMGEdgePointsTo> pointer = SMGUtils.getPointerToThisObject(pOptionalObject, heap);
+
+    Set<SMGEdgeHasValue> fields = getHVEdges(SMGEdgeHasValueFilter.objectFilter(pOptionalObject));
+
+    SMGObject newObject = new SMGRegion(pOptionalObject.getSize(),
+        "Concrete object of " + pOptionalObject.toString(), pOptionalObject.getLevel());
+
+    heap.addHeapObject(newObject);
+    heap.setValidity(newObject, heap.isObjectValid(pOptionalObject));
+
+    heap.removeHeapObjectAndEdges(pOptionalObject);
+
+    for (SMGEdgeHasValue edge : fields) {
+      heap.addHasValueEdge(
+          new SMGEdgeHasValue(edge.getType(), edge.getOffset(), newObject, edge.getValue()));
+    }
+
+    for (SMGEdgePointsTo edge : pointer) {
+      heap.removePointsToEdge(edge.getValue());
+      heap.addPointsToEdge(new SMGEdgePointsTo(edge.getValue(), newObject, edge.getOffset()));
+    }
+
+    SMGAddressValueAndState result = SMGAddressValueAndState.of(this, SMGKnownAddVal.valueOf(pPointerToAbstractObject.getValue(), newObject, pPointerToAbstractObject.getOffset()));
+
+    return result;
+  }
+
+  private SMGAddressValueAndStateList removeSll(SMGSingleLinkedList pListSeg, SMGEdgePointsTo pPointerToAbstractObject) throws SMGInconsistentException {
 
     logger.log(Level.ALL, "Remove " + pListSeg.toString() +" in state id " + this.getId());
 
@@ -567,14 +654,14 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     heap.mergeValues(nextEdge.getValue(), firstPointer);
 
     if (firstPointer == pPointerToAbstractObject.getValue()) {
-      return SMGAddressValueAndState.of(this, SMGKnownAddVal.valueOf(nextPointerEdge.getValue(), nextPointerEdge.getObject(), nextPointerEdge.getOffset()));
+      return getPointerFromValue(nextPointerEdge.getValue());
     } else {
       throw new AssertionError(
           "Unexpected dereference of pointer " + pPointerToAbstractObject.getValue() + " pointing to abstraction " + pListSeg.toString());
     }
   }
 
-  private SMGAddressValueAndState removeDls(SMGDoublyLinkedList pListSeg, SMGEdgePointsTo pPointerToAbstractObject) {
+  private SMGAddressValueAndStateList removeDls(SMGDoublyLinkedList pListSeg, SMGEdgePointsTo pPointerToAbstractObject) throws SMGInconsistentException {
 
     logger.log(Level.ALL, "Remove " + pListSeg.toString() +" in state id " + this.getId());
 
@@ -613,9 +700,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     }
 
     if(firstPointer != null && firstPointer == pPointerToAbstractObject.getValue()) {
-      return SMGAddressValueAndState.of(this, SMGKnownAddVal.valueOf(nextPointerEdge.getValue(), nextPointerEdge.getObject(), nextPointerEdge.getOffset()));
+      return getPointerFromValue(nextPointerEdge.getValue());
     } else if(lastPointer != null && lastPointer == pPointerToAbstractObject.getValue()) {
-      return SMGAddressValueAndState.of(this, SMGKnownAddVal.valueOf(prevPointerEdge.getValue(), prevPointerEdge.getObject(), prevPointerEdge.getOffset()));
+      return getPointerFromValue(prevPointerEdge.getValue());
     } else {
       throw new AssertionError("Unexpected dereference of pointer " + pPointerToAbstractObject.getValue() + " pointing to abstraction " + pListSeg.toString());
     }

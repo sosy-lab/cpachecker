@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectVisitor;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
+import org.sosy_lab.cpachecker.cpa.smg.objects.optional.SMGOptionalObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedList;
 
 import java.io.IOException;
@@ -143,6 +144,19 @@ public final class SMGPlotter {
       String style = "dashed";
       node = new SMGObjectNode("dll", defaultDefinition(color, shape, style, dll));
 
+    }
+
+    @Override
+    public void visit(SMGOptionalObject opt) {
+      String shape = "rectangle";
+      String color = "blue";
+
+      if (! smg.isObjectValid(opt)) {
+        color="red";
+      }
+
+      String style = "dashed";
+      node = new SMGObjectNode("opt", defaultDefinition(color, shape, style, opt));
     }
   }
 

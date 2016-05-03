@@ -54,7 +54,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
   private final int seqLengthThreshold;
 
   public SMGSingleLinkedListFinder() {
-    seqLengthThreshold = 4;
+    seqLengthThreshold = 2;
   }
 
   public SMGSingleLinkedListFinder(int pSeqLengthThreshold) {
@@ -97,11 +97,11 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
 
   private void createCandidatesOfObject(SMGObject pObject, SMGState pSMGState) throws SMGInconsistentException {
 
-    if (!smg.isObjectValid(pObject) || !(pObject.getLevel() == 0)) {
+    if (!smg.isObjectValid(pObject)) {
       return;
     }
 
-    if(!(pObject.getKind() == SMGObjectKind.SLL || pObject.getKind() == SMGObjectKind.REG)) {
+    if(!(pObject.getKind() == SMGObjectKind.SLL || pObject.getKind() == SMGObjectKind.REG || pObject.getKind() == SMGObjectKind.OPTIONAL)) {
       return;
     }
 
@@ -121,7 +121,8 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
       SMGTargetSpecifier nextPointerTg = nextPointerEdge.getTargetSpecifier();
 
       if (!(nextPointerTg == SMGTargetSpecifier.REGION
-          || nextPointerTg == SMGTargetSpecifier.FIRST)) {
+          || nextPointerTg == SMGTargetSpecifier.FIRST
+          || nextPointerTg == SMGTargetSpecifier.OPT)) {
         continue;
       }
 
@@ -135,12 +136,12 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
         continue;
       }
 
-      if(!(nextObject.getKind() == SMGObjectKind.SLL || nextObject.getKind() == SMGObjectKind.REG)) {
-        return;
+      if(!(nextObject.getKind() == SMGObjectKind.SLL || nextObject.getKind() == SMGObjectKind.REG || nextObject.getKind() == SMGObjectKind.OPTIONAL)) {
+        continue;
       }
 
-      if (!smg.isObjectValid(nextObject) || !(nextObject.getLevel() == 0)) {
-        return;
+      if (!smg.isObjectValid(nextObject) || !(nextObject.getLevel() == pObject.getLevel())) {
+        continue;
       }
 
       SMGSingleLinkedListCandidate candidate =
@@ -182,11 +183,11 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
       candidateLength.put(candidate, 0);
       candidateSeqJoinGood.put(candidate, true);
 
-      if (!smg.isObjectValid(nextObject) || !(nextObject.getLevel() == 0)) {
+      if (!smg.isObjectValid(nextObject) || !(nextObject.getLevel() == startObject.getLevel())) {
         return;
       }
 
-      if(!(nextObject.getKind() == SMGObjectKind.SLL || nextObject.getKind() == SMGObjectKind.REG)) {
+      if(!(nextObject.getKind() == SMGObjectKind.SLL || nextObject.getKind() == SMGObjectKind.REG || nextObject.getKind() == SMGObjectKind.OPTIONAL)) {
         return;
       }
 

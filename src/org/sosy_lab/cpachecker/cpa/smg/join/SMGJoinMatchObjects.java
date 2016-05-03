@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGAbstractObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectKind;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -110,7 +111,28 @@ final class SMGJoinMatchObjects {
       //TODO: It should be possible to join some of the different generic shapes, i.e. a SLL
       //      might be a more general segment than a DLL
       if (! (pAbstract1.matchGenericShape(pAbstract2) && pAbstract1.matchSpecificShape(pAbstract2))) {
+
+        /*An optional object can be matched with dll or sll of the same size.*/
+        if(pObj1.getSize() != pObj2.getSize()) {
           return true;
+        }
+
+        switch (pObj1.getKind()) {
+          case OPTIONAL:
+            switch (pObj2.getKind()) {
+              case SLL:
+              case DLL:
+              case OPTIONAL:
+                return false;
+              default:
+                return true;
+            }
+          case SLL:
+          case DLL:
+            return pObj2.getKind() != SMGObjectKind.OPTIONAL;
+          default:
+            return true;
+        }
       }
     }
 

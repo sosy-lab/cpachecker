@@ -103,7 +103,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
 
   private void createCandidatesOfObject(SMGObject pObject, SMGState pSMGState) throws SMGInconsistentException {
 
-    if (!smg.isObjectValid(pObject) || !(pObject.getLevel() == 0)) {
+    if (!smg.isObjectValid(pObject)) {
       return;
     }
 
@@ -151,7 +151,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
         continue;
       }
 
-      if (!smg.isObjectValid(nextObject) || !(nextObject.getLevel() == 0)) {
+      if (!smg.isObjectValid(nextObject) || !(nextObject.getLevel() == pObject.getLevel())) {
         continue;
       }
 
@@ -234,7 +234,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
        * last object in sequence.
        */
 
-      if (!smg.isObjectValid(nextObject) || !(nextObject.getLevel() == 0)) {
+      if (!smg.isObjectValid(nextObject) || !(nextObject.getLevel() == startObject.getLevel())) {
         return;
       }
 

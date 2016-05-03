@@ -163,6 +163,9 @@ public class SMG {
    * @param pValue Value to remove
    */
   final public void removeValue(final Integer pValue) {
+
+    assert pValue != 0;
+
     values.remove(pValue);
     neq.removeValue(pValue);
     if (trackPredicates) {
@@ -192,6 +195,9 @@ public class SMG {
    * @param pObj Object to remove
    */
   final public void removeObjectAndEdges(final SMGObject pObj) {
+
+    assert pObj.notNull();
+
     removeObject(pObj);
     Iterator<SMGEdgeHasValue> hv_iter = hv_edges.iterator();
     Iterator<SMGEdgePointsTo> pt_iter = pt_edges.values().iterator();
@@ -275,6 +281,8 @@ public class SMG {
    * @param pValue the Source of the Points-To edge to be removed
    */
   final public void removePointsToEdge(int pValue) {
+    assert pValue != 0;
+
     pt_edges.remove(pValue);
   }
 
