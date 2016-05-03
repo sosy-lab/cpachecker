@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects.sll;
 
+import com.google.common.collect.Iterables;
+
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionFinder;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
@@ -194,10 +196,18 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
       }
 
       //TODO At the moment, we still demand that a value is found at prev or next.
-      if (smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(nfo))
-          .isEmpty()) {
+
+      Set<SMGEdgeHasValue> nextObjectNextPointer =
+          smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(nfo));
+
+      if (nextObjectNextPointer.size() != 1) {
         return;
       }
+
+      if (!smg.isPointer(Iterables.getOnlyElement(nextObjectNextPointer).getValue())) {
+        return;
+      }
+
     } else {
       candidate = objectCandidates.get(nfo);
     }

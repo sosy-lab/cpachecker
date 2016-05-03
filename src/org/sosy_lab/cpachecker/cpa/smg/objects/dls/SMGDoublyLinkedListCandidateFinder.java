@@ -189,10 +189,16 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
           continue;
         }
 
-        //TODO At the moment, we still demand that a value is found at prev or next.
+        //TODO At the moment, we still demand that a pointer is found at prev or next.
 
-        if (smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject).filterAtOffset(pfo))
-            .isEmpty()) {
+        Set<SMGEdgeHasValue> prevObjectprevPointer =
+            smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject).filterAtOffset(pfo));
+
+        if (prevObjectprevPointer.size() != 1) {
+          continue;
+        }
+
+        if (!smg.isPointer(Iterables.getOnlyElement(prevObjectprevPointer).getValue())) {
           continue;
         }
 
@@ -242,9 +248,16 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
         return;
       }
 
-      //TODO At the moment, we still demand that a value is found at prev or next.
-      if (smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(nfo))
-          .isEmpty()) {
+      //TODO At the moment, we still demand that a pointer is found at prev or next.
+
+      Set<SMGEdgeHasValue> nextObjectNextField =
+          smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(nfo));
+
+      if(nextObjectNextField.size() != 1) {
+        return;
+      }
+
+      if (!smg.isPointer(Iterables.getOnlyElement(nextObjectNextField).getValue())) {
         return;
       }
 
@@ -282,7 +295,6 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
     objectsOfSubSmg1.remove(startObject);
     objectsOfSubSmg2.remove(nextObject);
 
-    // TODO Investigate, is this okay?
     if(nonSharedValues2.contains(pValue)) {
       nonSharedValues2.remove(pValue);
     }
