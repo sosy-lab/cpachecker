@@ -25,8 +25,11 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter.PARAM_VARIABLE_NAME;
 
-import java.util.Collection;
-import java.util.logging.Level;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Multimap;
 
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
@@ -37,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -48,9 +50,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
+import java.util.Collection;
+import java.util.logging.Level;
 
 
 public class BAMPredicateReducer implements Reducer {
@@ -232,7 +233,7 @@ public class BAMPredicateReducer implements Reducer {
     }
 
     return new ReducedPredicatePrecision(rootPredicatePrecision,
-        ImmutableSetMultimap.<Pair<CFANode, Integer>, AbstractionPredicate> of(),
+        ImmutableMultimap.<PredicatePrecision.LocationInstance, AbstractionPredicate>of(),
         localPredicates,
         functionPredicates,
         globalPredicates);
@@ -244,11 +245,11 @@ public class BAMPredicateReducer implements Reducer {
     private final PredicatePrecision rootPredicatePrecision;
 
     private ReducedPredicatePrecision(PredicatePrecision pRootPredicatePrecision,
-        ImmutableSetMultimap<Pair<CFANode, Integer>, AbstractionPredicate> pLocalInstPredicates,
-        ImmutableSetMultimap<CFANode, AbstractionPredicate> pLocalPredicates,
-        ImmutableSetMultimap<String, AbstractionPredicate> pFunctionPredicates,
-        ImmutableSet<AbstractionPredicate> pGlobalPredicates) {
-      super(pLocalInstPredicates, pLocalPredicates, pFunctionPredicates, pGlobalPredicates);
+        Multimap<LocationInstance, AbstractionPredicate> pLocationInstancePredicates,
+        Multimap<CFANode, AbstractionPredicate> pLocalPredicates,
+        Multimap<String, AbstractionPredicate> pFunctionPredicates,
+        Iterable<AbstractionPredicate> pGlobalPredicates) {
+      super(pLocationInstancePredicates, pLocalPredicates, pFunctionPredicates, pGlobalPredicates);
       assert !(pRootPredicatePrecision instanceof ReducedPredicatePrecision);
       this.rootPredicatePrecision = pRootPredicatePrecision;
     }

@@ -30,12 +30,10 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime;
@@ -271,7 +269,7 @@ public enum PropertyStats implements Statistics {
     relevantProperties.addAll(pRelevant);
   }
 
-  public void trackPropertyPredicate(AbstractionPredicate pPredicate, Pair<CFANode, Integer> pKey,
+  public void trackPropertyPredicate(AbstractionPredicate pPredicate,
       boolean pLoopRelated, Set<Property> pPropertiesAtTarget) {
 
     for (Property prop: pPropertiesAtTarget) {

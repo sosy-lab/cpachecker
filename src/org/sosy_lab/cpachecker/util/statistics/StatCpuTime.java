@@ -23,15 +23,15 @@
  */
 package org.sosy_lab.cpachecker.util.statistics;
 
-import java.util.concurrent.TimeUnit;
-
-import javax.management.JMException;
+import com.google.common.base.Preconditions;
 
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 import org.sosy_lab.cpachecker.util.statistics.interfaces.TimeMeasurementListener;
 
-import com.google.common.base.Preconditions;
+import java.util.concurrent.TimeUnit;
+
+import javax.management.JMException;
 
 
 public class StatCpuTime implements TimeMeasurementListener {

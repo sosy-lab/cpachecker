@@ -24,9 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.*;
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
-import static org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision.*;
 
+import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -38,7 +39,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.Maps;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Sets;
 
@@ -65,6 +66,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision.LocationInstance;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -277,7 +279,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     }
   }
 
-  private ListMultimap<Pair<CFANode, Integer>, AbstractionPredicate> newPredicates;
+  private ListMultimap<LocationInstance, AbstractionPredicate> newPredicates;
 
 
   @Override
@@ -359,7 +361,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
       Collection<AbstractionPredicate> localPreds = convertInterpolant(pInterpolant, blockFormula);
 
-      newPredicates.putAll(Pair.of(loc, locInstance), localPreds);
+      newPredicates.putAll(new LocationInstance(loc, locInstance), localPreds);
     }
     predicateCreation.stop();
 
@@ -481,7 +483,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       CFANode loc = AbstractStates.extractLocationMaybeWeaved(pUnreachableState);
       int locInstance = getPredicateState(pUnreachableState)
                                        .getAbstractionLocationsOnPath().get(loc);
-      newPredicates.put(Pair.of(loc, locInstance),
+      newPredicates.put(new LocationInstance(loc, locInstance),
           predAbsMgr.createPredicateFor(bfmgr.makeBoolean(false)));
       pAffectedStates.add(pUnreachableState);
     }
@@ -520,7 +522,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     try {
       switch(predicateBasisStrategy) {
       case ALL:
-        basePrecision = findAllPredicatesFromSubgraph(refinementRoot, reached);
+        basePrecision = findAllPredicatesFromSubgraphNew(refinementRoot, reached);
         break;
       case TARGET:
         basePrecision = targetStatePrecision;
@@ -547,22 +549,27 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       break;
     case SCOPE:
       Set<AbstractionPredicate> globalPredicates = new HashSet<>();
-      ListMultimap<Pair<CFANode, Integer>, AbstractionPredicate> localPredicates = ArrayListMultimap.create();
+      ListMultimap<LocationInstance, AbstractionPredicate> localPredicates =
+          ArrayListMultimap.create();
 
       splitInLocalAndGlobalPredicates(globalPredicates, localPredicates);
 
       newPrecision = basePrecision.addGlobalPredicates(globalPredicates);
-      newPrecision = newPrecision.addLocalPredicates(mergePredicatesPerLocation(localPredicates));
+      newPrecision =
+          newPrecision.addLocalPredicates(mergePredicatesPerLocation(localPredicates.entries()));
 
       break;
     case FUNCTION:
-      newPrecision = basePrecision.addFunctionPredicates(mergePredicatesPerFunction(newPredicates));
+      newPrecision =
+          basePrecision.addFunctionPredicates(
+              mergePredicatesPerFunction(newPredicates.entries()));
       break;
     case LOCATION:
-      newPrecision = basePrecision.addLocalPredicates(mergePredicatesPerLocation(newPredicates));
+      newPrecision =
+          basePrecision.addLocalPredicates(mergePredicatesPerLocation(newPredicates.entries()));
       break;
     case LOCATION_INSTANCE:
-      newPrecision = basePrecision.addLocationInstancePredicates(newPredicates);
+      newPrecision = basePrecision.addLocationInstancePredicates(newPredicates.entries());
       break;
     default:
       throw new AssertionError();
@@ -593,7 +600,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   }
 
   private void inspectNewPredicates(
-      Multimap<Pair<CFANode, Integer>, AbstractionPredicate> pNewPredicates,
+      ListMultimap<LocationInstance, AbstractionPredicate> pNewPredicates,
       Set<Property> pPropertiesAtTarget) {
 
     // For each predicate:
@@ -601,7 +608,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     //  2) Identify which variables are loop counters (or might lead to a loop unrolling)
     //  3) Track statistics for the properties on the number of refinements that might lead to a loop unrolling
 
-    for (Entry<Pair<CFANode, Integer>, AbstractionPredicate> entry: pNewPredicates.entries()) {
+    for (Entry<LocationInstance, AbstractionPredicate> entry: pNewPredicates.entries()) {
       AbstractionPredicate pred = entry.getValue();
       Set<String> predVariables = fmgr.extractVariableNames(pred.getSymbolicAtom());
 
@@ -613,7 +620,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
         }
       }
 
-      PropertyStats.INSTANCE.trackPropertyPredicate(entry.getValue(), entry.getKey(), loopRelated, pPropertiesAtTarget);
+      PropertyStats.INSTANCE.trackPropertyPredicate(entry.getValue(), loopRelated, pPropertiesAtTarget);
     }
   }
 
@@ -625,10 +632,11 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     return oldPredicatePrecision;
   }
 
-  private void splitInLocalAndGlobalPredicates(Set<AbstractionPredicate> globalPredicates,
-      ListMultimap<Pair<CFANode, Integer>, AbstractionPredicate> localPredicates) {
+  private void splitInLocalAndGlobalPredicates(
+      Set<AbstractionPredicate> globalPredicates,
+      ListMultimap<LocationInstance, AbstractionPredicate> localPredicates) {
 
-    for (Map.Entry<Pair<CFANode, Integer>, AbstractionPredicate> predicate : newPredicates.entries()) {
+    for (Map.Entry<LocationInstance, AbstractionPredicate> predicate : newPredicates.entries()) {
       if (predicate.getValue().getSymbolicAtom().toString().contains("::")) {
         localPredicates.put(predicate.getKey(), predicate.getValue());
       }
@@ -697,13 +705,13 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
    * @return a new precision with all these predicates.
    * @throws InterruptedException
    */
-  private PredicatePrecision findAllPredicatesFromSubgraph(
+  private PredicatePrecision findAllPredicatesFromSubgraphNew(
       ARGState refinementRoot, UnmodifiableReachedSet reached) throws InterruptedException {
 
     PredicatePrecision newPrecision = PredicatePrecision.empty();
+    Set<Precision> precisions = Sets.newIdentityHashSet();
 
     // find all distinct precisions to merge them
-    Set<Precision> precisions = Sets.newIdentityHashSet();
     for (ARGState state : refinementRoot.getSubgraph()) {
       if (!state.isCovered()) {
         // covered states are not in reached set
@@ -711,10 +719,15 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       }
     }
 
+    List<PredicatePrecision> predPrecisions = Lists.newArrayListWithExpectedSize(precisions.size());
+
     for (Precision prec : precisions) {
-      shutdownNotifier.shutdownIfNecessary();
-      newPrecision = newPrecision.mergeWith(extractPredicatePrecision(prec));
+      PredicatePrecision pi = extractPredicatePrecision(prec);
+      predPrecisions.add(pi);
     }
+
+    newPrecision = PredicatePrecision.unionOf(predPrecisions);
+
     return newPrecision;
   }
 
@@ -762,5 +775,35 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     // thus a Multimap based on a LinkedHashMap
     // (we iterate over the keys)
     newPredicates = MultimapBuilder.linkedHashKeys().arrayListValues().build();
+  }
+
+  private static Iterable<Map.Entry<String, AbstractionPredicate>> mergePredicatesPerFunction(
+      Iterable<Map.Entry<LocationInstance, AbstractionPredicate>> predicates) {
+    return from(predicates)
+        .transform(
+            new Function<
+                Map.Entry<LocationInstance, AbstractionPredicate>,
+                Map.Entry<String, AbstractionPredicate>>() {
+              @Override
+              public Map.Entry<String, AbstractionPredicate> apply(
+                  Map.Entry<LocationInstance, AbstractionPredicate> pInput) {
+                return Maps.immutableEntry(pInput.getKey().getFunctionName(), pInput.getValue());
+              }
+            });
+  }
+
+  private static Iterable<Map.Entry<CFANode, AbstractionPredicate>> mergePredicatesPerLocation(
+      Iterable<Map.Entry<LocationInstance, AbstractionPredicate>> predicates) {
+    return from(predicates)
+        .transform(
+            new Function<
+                Map.Entry<LocationInstance, AbstractionPredicate>,
+                Map.Entry<CFANode, AbstractionPredicate>>() {
+              @Override
+              public Map.Entry<CFANode, AbstractionPredicate> apply(
+                  Map.Entry<LocationInstance, AbstractionPredicate> pInput) {
+                return Maps.immutableEntry(pInput.getKey().getLocation(), pInput.getValue());
+              }
+            });
   }
 }

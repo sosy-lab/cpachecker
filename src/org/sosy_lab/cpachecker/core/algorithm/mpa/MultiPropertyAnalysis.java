@@ -116,6 +116,9 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
   @Option(secure=true, description="Clear the caches of the analysis (CPA) when starting with a new partition.")
   private boolean clearAnalysisCachesOnRestart = false;
 
+  @Option(secure=true, description="Call the garbage collector when starting with a new partition.")
+  private boolean callGcOnRestart = false;
+
   @Option(secure=true, name="time.cpu.relevance.step2",
       description="Limit for cpu time of one partition in step 2 of Relevance strategy " +
         "(use seconds or specify a unit; -1 for infinite)")
@@ -646,6 +649,10 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
           ((AnalysisCache) a).clearCaches();
         }
       }
+    }
+
+    if (callGcOnRestart) {
+      System.gc();
     }
 
     // Reset the information in counterexamples, inactive properties, ...
