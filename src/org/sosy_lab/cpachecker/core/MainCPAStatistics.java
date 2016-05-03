@@ -111,6 +111,7 @@ class MainCPAStatistics implements Statistics {
     description="insert all files except cfa/arg-graphs in html/js-template")
   private boolean generateNewCounterexampleReport = true;
 
+  private final Configuration config;
   private final LogManager logger;
   private final Collection<Statistics> subStats;
   private final MemoryStatistics memStats;
@@ -129,7 +130,9 @@ class MainCPAStatistics implements Statistics {
   private Statistics cfaCreatorStatistics;
   private CFA cfa;
 
-  public MainCPAStatistics(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+  public MainCPAStatistics(Configuration pConfig, LogManager pLogger)
+      throws InvalidConfigurationException {
+    config = pConfig;
     logger = pLogger;
     config.inject(this);
 
@@ -277,9 +280,15 @@ class MainCPAStatistics implements Statistics {
     printMemoryStatistics(out);
 
     if (generateNewCounterexampleReport && cfa != null) {
-      final GenerateReportWithoutGraphs generateReportWithoutGraphs =
-          new GenerateReportWithoutGraphs(logger, cfa);
-      generateReportWithoutGraphs.generate();
+      try {
+        GenerateReportWithoutGraphs generateReportWithoutGraphs =
+            new GenerateReportWithoutGraphs(config, logger, cfa);
+        generateReportWithoutGraphs.generate();
+
+      } catch (InvalidConfigurationException e) {
+        logger.logUserException(
+            Level.WARNING, e, "Injecting configuration in to report generator failed.");
+      }
     }
   }
 

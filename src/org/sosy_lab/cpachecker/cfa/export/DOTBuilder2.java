@@ -26,16 +26,14 @@ package org.sosy_lab.cpachecker.cfa.export;
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static org.sosy_lab.cpachecker.util.CFAUtils.successorsOf;
 
-import java.io.IOException;
-import java.io.Writer;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -48,10 +46,13 @@ import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Generates one DOT file per function for the report.
@@ -69,6 +70,10 @@ import com.google.common.collect.Sets;
  */
 public final class DOTBuilder2 {
 
+  public final static Path COMBINED_NODES = Paths.get("combinednodes.json");
+  public final static Path F_CALL_EDGES = Paths.get("fcalledges.json");
+  public final static Path CFA_INFO = Paths.get("cfainfo.json");
+
   private DOTBuilder2() { /* utility class */ }
 
   /**
@@ -83,7 +88,7 @@ public final class DOTBuilder2 {
       dotter.writeFunctionFile(entryNode.getFunctionName(), outdir);
     }
     dotter.writeGlobalFiles(outdir);
-    JSON.writeJSONString(jsoner.getJSON(), outdir.resolve("cfainfo.json"));
+    JSON.writeJSONString(jsoner.getJSON(), outdir.resolve(CFA_INFO));
   }
 
   private static String getEdgeText(CFAEdge edge) {
@@ -197,8 +202,8 @@ public final class DOTBuilder2 {
     }
 
     void writeGlobalFiles(Path outdir) throws IOException {
-      JSON.writeJSONString(node2combo, outdir.resolve("combinednodes.json"));
-      JSON.writeJSONString(virtFuncCallEdges, outdir.resolve("fcalledges.json"));
+      JSON.writeJSONString(node2combo, outdir.resolve(COMBINED_NODES));
+      JSON.writeJSONString(virtFuncCallEdges, outdir.resolve(F_CALL_EDGES));
     }
 
     private String edgeToDot(CFAEdge edge) {
