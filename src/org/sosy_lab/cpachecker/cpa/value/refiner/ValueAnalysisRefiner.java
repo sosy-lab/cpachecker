@@ -249,20 +249,12 @@ public class ValueAnalysisRefiner
       final ARGState pRefinementRoot,
       final ARGReachedSet pReached
   ) {
-
-    PredicatePrecision mergedPrecision = PredicatePrecision.empty();
-
     // find all distinct precisions to merge them
     Set<PredicatePrecision> uniquePrecisions = Sets.newIdentityHashSet();
     for (ARGState descendant : getNonCoveredStatesInSubgraph(pRefinementRoot)) {
       uniquePrecisions.add(extractPredicatePrecision(pReached, descendant));
     }
-
-    for (PredicatePrecision precision : uniquePrecisions) {
-      mergedPrecision = mergedPrecision.mergeWith(precision);
-    }
-
-    return mergedPrecision;
+    return PredicatePrecision.unionOf(uniquePrecisions);
   }
 
   private VariableTrackingPrecision extractValuePrecision(final ARGReachedSet pReached,

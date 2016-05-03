@@ -551,22 +551,15 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
    */
   private PredicatePrecision findAllPredicatesFromSubgraph(
       ARGState refinementRoot, UnmodifiableReachedSet reached) {
-
-    PredicatePrecision newPrecision = PredicatePrecision.empty();
-
     // find all distinct precisions to merge them
-    Set<Precision> precisions = Sets.newIdentityHashSet();
+    Set<PredicatePrecision> precisions = Sets.newIdentityHashSet();
     for (ARGState state : refinementRoot.getSubgraph()) {
       if (!state.isCovered()) {
         // covered states are not in reached set
-        precisions.add(reached.getPrecision(state));
+        precisions.add(extractPredicatePrecision(reached.getPrecision(state)));
       }
     }
-
-    for (Precision prec : precisions) {
-      newPrecision = newPrecision.mergeWith(extractPredicatePrecision(prec));
-    }
-    return newPrecision;
+    return PredicatePrecision.unionOf(precisions);
   }
 
   private boolean isValuePrecisionAvailable(final ARGReachedSet pReached, ARGState root) {
