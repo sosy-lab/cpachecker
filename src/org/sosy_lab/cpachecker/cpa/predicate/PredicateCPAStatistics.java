@@ -24,16 +24,14 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.*;
+import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
+import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.toPercent;
+import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.valueWithPercentage;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.IdentityHashMap;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.MultimapBuilder;
+import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -66,10 +64,14 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.MultimapBuilder;
-import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.Set;
+import java.util.logging.Level;
 
 @Options(prefix="cpa.predicate")
 class PredicateCPAStatistics extends AbstractStatistics {

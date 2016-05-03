@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.ARGPathBuilder;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathPosition;
@@ -122,7 +123,7 @@ public class ARGUtils {
   /**
    * Get all abstract states without parents.
    */
-  public static Set<ARGState> getRootStates(ReachedSet pReached) {
+  public static Set<ARGState> getRootStates(UnmodifiableReachedSet pReached) {
 
     Set<ARGState> result = new HashSet<>();
 

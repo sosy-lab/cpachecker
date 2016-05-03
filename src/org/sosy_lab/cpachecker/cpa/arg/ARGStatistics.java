@@ -51,8 +51,9 @@ import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithConcreteCex;
-import org.sosy_lab.cpachecker.core.interfaces.IterationStatistics;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
 import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA.PartitionState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -73,7 +74,7 @@ import java.util.logging.Level;
 import javax.annotation.Nullable;
 
 @Options(prefix="cpa.arg")
-public class ARGStatistics implements IterationStatistics {
+public class ARGStatistics implements Statistics {
 
   @Option(secure=true, name="dumpAfterIteration", description="Dump all ARG related statistics files after each iteration of the CPA algorithm? (for debugging and demonstration)")
   private boolean dumpArgInEachCpaIteration = false;
@@ -184,23 +185,7 @@ public class ARGStatistics implements IterationStatistics {
     }
 
     if (exportARG) {
-      final Set<Pair<ARGState, ARGState>> allTargetPathEdges = new HashSet<>();
-      for (CounterexampleInfo cex : counterexamples.values()) {
-        allTargetPathEdges.addAll(cex.getTargetPath().getStatePairs());
-      }
-
-      // The state space might be partitioned ...
-      // ... so we would export a separate ARG for each partition ...
-      boolean partitionedArg = AbstractStates.extractStateByType(
-          pReached.getFirstState(), PartitionState.class) != null;
-
-      final Set<ARGState> rootStates = partitionedArg
-          ? ARGUtils.getRootStates(pReached)
-          : Collections.singleton(AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class));
-
-      for (ARGState rootState: rootStates) {
-        exportARG(rootState, Predicates.in(allTargetPathEdges));
-      }
+      exportARG(pReached, counterexamples);
     }
   }
 
@@ -222,7 +207,28 @@ public class ARGStatistics implements IterationStatistics {
     return Paths.get(prefix + "-" + partitionKey + extension);
   }
 
-  private void exportARG(final ARGState rootState, final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge) {
+  private void exportARG(UnmodifiableReachedSet pReached,
+      final Map<ARGState, CounterexampleInfo> counterexamples) {
+    final Set<Pair<ARGState, ARGState>> allTargetPathEdges = new HashSet<>();
+    for (CounterexampleInfo cex : counterexamples.values()) {
+      allTargetPathEdges.addAll(cex.getTargetPath().getStatePairs());
+    }
+
+    // The state space might be partitioned ...
+    // ... so we would export a separate ARG for each partition ...
+    boolean partitionedArg = AbstractStates.extractStateByType(
+        pReached.getFirstState(), PartitionState.class) != null;
+
+    final Set<ARGState> rootStates = partitionedArg
+        ? ARGUtils.getRootStates(pReached)
+        : Collections.singleton(AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class));
+
+    for (ARGState rootState: rootStates) {
+      exportARG0(rootState, Predicates.in(allTargetPathEdges));
+    }
+  }
+
+  private void exportARG0(final ARGState rootState, final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge) {
     SetMultimap<ARGState, ARGState> relevantSuccessorRelation = ARGUtils.projectARG(rootState, ARGUtils.CHILDREN_OF_STATE, ARGUtils.RELEVANT_STATE);
     Function<ARGState, Collection<ARGState>> relevantSuccessorFunction = Functions.forMap(relevantSuccessorRelation.asMap(), ImmutableSet.<ARGState>of());
 
@@ -274,7 +280,7 @@ public class ARGStatistics implements IterationStatistics {
     }
   }
 
-  private Map<ARGState, CounterexampleInfo> getAllCounterexamples(final ReachedSet pReached) {
+  private Map<ARGState, CounterexampleInfo> getAllCounterexamples(final UnmodifiableReachedSet pReached) {
     Map<ARGState, CounterexampleInfo> probableCounterexample = cpa.getCounterexamples();
     // This map may contain too many counterexamples
     // (for target states that were in the mean time removed from the ReachedSet),
@@ -342,10 +348,9 @@ public class ARGStatistics implements IterationStatistics {
     }
   }
 
-  @Override
-  public void printIterationStatistics(PrintStream pOut, ReachedSet pReached) {
+  public void printIterationStatistics(UnmodifiableReachedSet pReached) {
     if (dumpArgInEachCpaIteration) {
-      printStatistics(pOut, Result.UNKNOWN, pReached);
+      exportARG(pReached, getAllCounterexamples(pReached));
     }
   }
 }

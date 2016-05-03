@@ -193,7 +193,7 @@ public class CoreComponentsFactory {
       algorithm = new ExternalCBMCAlgorithm(programDenotation, config, logger);
 
     } else {
-      algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier, stats);
+      algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 
       if (useAnalysisWithEnablerCPAAlgorithm) {
         algorithm = new AnalysisWithRefinableEnablerCPAAlgorithm(algorithm, cpa, cfa, logger, config, shutdownNotifier);

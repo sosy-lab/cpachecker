@@ -25,14 +25,8 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.WeakHashMap;
-import java.util.logging.Level;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.configuration.ClassOption;
@@ -72,8 +66,14 @@ import org.sosy_lab.cpachecker.cpa.arg.counterexamples.PathEqualityCounterexampl
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.WeakHashMap;
+import java.util.logging.Level;
 
 @Options(prefix="cpa.arg")
 public class ARGCPA extends AbstractSingleWrapperCPA implements
@@ -129,13 +129,6 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     abstractDomain = new FlatLatticeDomain();
     transferRelation = new ARGTransferRelation(cpa.getTransferRelation());
 
-    PrecisionAdjustment wrappedPrec = cpa.getPrecisionAdjustment();
-    if (wrappedPrec instanceof SimplePrecisionAdjustment) {
-      precisionAdjustment = new ARGSimplePrecisionAdjustment((SimplePrecisionAdjustment) wrappedPrec);
-    } else {
-      precisionAdjustment = new ARGPrecisionAdjustment(cpa.getPrecisionAdjustment(), inCPAEnabledAnalysis);
-    }
-
     if (cpa instanceof ConfigurableProgramAnalysisWithBAM) {
       Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithBAM)cpa).getReducer();
       if (wrappedReducer != null) {
@@ -170,6 +163,13 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     stats = new ARGStatistics(config, logger, this, cfa.getMachineModel(),
         dumpErrorPathImmediately ? null : cexExporter, argPathExporter);
     machineModel = cfa.getMachineModel();
+
+    PrecisionAdjustment wrappedPrec = cpa.getPrecisionAdjustment();
+    if (wrappedPrec instanceof SimplePrecisionAdjustment) {
+      precisionAdjustment = new ARGSimplePrecisionAdjustment((SimplePrecisionAdjustment) wrappedPrec);
+    } else {
+      precisionAdjustment = new ARGPrecisionAdjustment(cpa.getPrecisionAdjustment(), inCPAEnabledAnalysis, stats);
+    }
   }
 
   private CounterexampleFilter createCounterexampleFilter(Configuration config,

@@ -23,22 +23,22 @@
  */
 package org.sosy_lab.cpachecker.core;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.*;
+import static org.sosy_lab.cpachecker.util.AbstractStates.EXTRACT_LOCATION;
+import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-
-import javax.management.JMException;
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Multimaps;
+import com.google.common.collect.Multiset;
+import com.google.common.collect.Ordering;
 
 import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
@@ -57,12 +57,9 @@ import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.counterexample.GenerateReportWithoutGraphs;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.AlgorithmIterationListener;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
-import org.sosy_lab.cpachecker.core.interfaces.IterationStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
@@ -74,19 +71,20 @@ import org.sosy_lab.cpachecker.util.resources.MemoryStatistics;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
-import com.google.common.collect.HashMultiset;
-import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Multimaps;
-import com.google.common.collect.Multiset;
-import com.google.common.collect.Ordering;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+
+import javax.management.JMException;
 
 @Options
-class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
+class MainCPAStatistics implements Statistics {
 
   // Beyond this many states, we omit some statistics because they are costly.
   private static final int MAX_SIZE_FOR_REACHED_STATISTICS = 1000000;
@@ -118,8 +116,6 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
   private final MemoryStatistics memStats;
   private final CoverageReport coverageReport;
   private Thread memStatsThread;
-
-  private Collection<IterationStatistics> iterationStats;
 
   private final Timer programTime = new Timer();
   final Timer creationTime = new Timer();
@@ -511,19 +507,4 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
     cfa = pCfa;
   }
 
-  @Override
-  public void afterAlgorithmIteration(Algorithm pAlg, ReachedSet pReached) {
-    if (iterationStats == null) {
-      iterationStats = Lists.newArrayList();
-      for (Statistics s: subStats) {
-        if (s instanceof IterationStatistics) {
-          iterationStats.add((IterationStatistics)s);
-        }
-      }
-    }
-
-    for(IterationStatistics s: iterationStats) {
-      s.printIterationStatistics(System.out, pReached);
-    }
-  }
 }

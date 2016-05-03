@@ -23,14 +23,9 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Functions;
+import com.google.common.base.Optional;
+import com.google.common.collect.Iterables;
 
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -44,7 +39,6 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.AlgorithmIterationListener;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ForcedCovering;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -62,9 +56,12 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import com.google.common.base.Functions;
-import com.google.common.base.Optional;
-import com.google.common.collect.Iterables;
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
 public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
@@ -143,17 +140,14 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     private final ConfigurableProgramAnalysis cpa;
     private final LogManager logger;
     private final ShutdownNotifier shutdownNotifier;
-    private final AlgorithmIterationListener iterationListener;
 
     public CPAAlgorithmFactory(ConfigurableProgramAnalysis cpa, LogManager logger,
-        Configuration config, ShutdownNotifier pShutdownNotifier,
-        @Nullable AlgorithmIterationListener pIterationListener) throws InvalidConfigurationException {
+        Configuration config, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
 
       config.inject(this);
       this.cpa = cpa;
       this.logger = logger;
       this.shutdownNotifier = pShutdownNotifier;
-      this.iterationListener = pIterationListener;
 
       if (forcedCoveringClass != null) {
         forcedCovering = Classes.createInstance(ForcedCovering.class, forcedCoveringClass,
@@ -166,21 +160,14 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     public CPAAlgorithm newInstance() {
-      return new CPAAlgorithm(cpa, logger, shutdownNotifier, forcedCovering, iterationListener, reportFalseAsUnknown);
+      return new CPAAlgorithm(cpa, logger, shutdownNotifier, forcedCovering, reportFalseAsUnknown);
     }
-  }
-
-  public static CPAAlgorithm create(ConfigurableProgramAnalysis cpa, LogManager logger,
-      Configuration config, ShutdownNotifier pShutdownNotifier,
-      AlgorithmIterationListener pIterationListener) throws InvalidConfigurationException {
-
-    return new CPAAlgorithmFactory(cpa, logger, config, pShutdownNotifier, pIterationListener).newInstance();
   }
 
   public static CPAAlgorithm create(ConfigurableProgramAnalysis cpa, LogManager logger,
       Configuration config, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
 
-    return new CPAAlgorithmFactory(cpa, logger, config, pShutdownNotifier, null).newInstance();
+    return new CPAAlgorithmFactory(cpa, logger, config, pShutdownNotifier).newInstance();
   }
 
 
@@ -197,14 +184,11 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
   private final ShutdownNotifier                   shutdownNotifier;
 
-  private final AlgorithmIterationListener  iterationListener;
-
   private final AlgorithmStatus status;
 
   private CPAAlgorithm(ConfigurableProgramAnalysis cpa, LogManager logger,
       ShutdownNotifier pShutdownNotifier,
       ForcedCovering pForcedCovering,
-      AlgorithmIterationListener pIterationListener,
       boolean pIsImprecise) {
 
     transferRelation = cpa.getTransferRelation();
@@ -214,7 +198,6 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     this.logger = logger;
     this.shutdownNotifier = pShutdownNotifier;
     this.forcedCovering = pForcedCovering;
-    this.iterationListener = pIterationListener;
     status = AlgorithmStatus.SOUND_AND_PRECISE.withPrecise(!pIsImprecise);
   }
 
@@ -267,9 +250,6 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         throw e;
       }
 
-      if (iterationListener != null) {
-        iterationListener.afterAlgorithmIteration(this, reachedSet);
-      }
     }
     return status;
   }
