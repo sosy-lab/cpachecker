@@ -52,7 +52,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
   private CLangSMG smg;
   private  Map<SMGObject, Map<Pair<Integer, Integer>, SMGDoublyLinkedListCandidate>> candidates = new HashMap<>();
   private  Map<SMGDoublyLinkedListCandidate, Integer> candidateLength = new HashMap<>();
-  private  Map<SMGDoublyLinkedListCandidate, Boolean> candidateSeqJoinGood = new HashMap<>();
+  private  Map<SMGDoublyLinkedListCandidate, SMGJoinStatus> candidateSeqJoinGood = new HashMap<>();
 
   private final int seqLengthThreshold;
 
@@ -84,8 +84,8 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
     for (Map<Pair<Integer, Integer>, SMGDoublyLinkedListCandidate> objCandidates : candidates
         .values()) {
       for (SMGDoublyLinkedListCandidate candidate : objCandidates.values()) {
-        if (candidateLength.get(candidate) >= seqLengthThreshold || (candidateSeqJoinGood.get(candidate) &&  candidateLength.get(candidate) > 0)) {
-          returnSet.add(new SMGDoublyLinkedListCandidateSequence(candidate, candidateLength.get(candidate)));
+        if (candidateLength.get(candidate) >= seqLengthThreshold || (candidateSeqJoinGood.get(candidate) != SMGJoinStatus.INCOMPARABLE && candidateLength.get(candidate) > 0)) {
+          returnSet.add(new SMGDoublyLinkedListCandidateSequence(candidate, candidateLength.get(candidate), candidateSeqJoinGood.get(candidate)));
         }
       }
     }
@@ -200,7 +200,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
             new SMGDoublyLinkedListCandidate(pObject, hfo, pfo, nfo);
         candidates.get(pObject).put(Pair.of(nfo, pfo), candidate);
         candidateLength.put(candidate, 0);
-        candidateSeqJoinGood.put(candidate, true);
+        candidateSeqJoinGood.put(candidate, SMGJoinStatus.EQUAL);
         continueTraversal(nextPointer, candidate, pSMGState);
       }
     }
@@ -250,7 +250,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
 
       candidate = new SMGDoublyLinkedListCandidate(nextObject, hfo, pfo, nfo);
       candidateLength.put(candidate, 0);
-      candidateSeqJoinGood.put(candidate, true);
+      candidateSeqJoinGood.put(candidate, SMGJoinStatus.EQUAL);
     } else {
       candidate = objectCandidates.get(Pair.of(nfo, pfo));
     }
@@ -359,7 +359,9 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
     }
 
     candidateLength.put(pPrevCandidate, candidateLength.get(candidate) + 1);
-    candidateSeqJoinGood.put(pPrevCandidate, candidateSeqJoinGood.get(candidate) && !(join.getStatus() == SMGJoinStatus.INCOMPARABLE));
+    SMGJoinStatus newJoinStatus =
+        SMGJoinStatus.updateStatus(candidateSeqJoinGood.get(candidate), join.getStatus());
+    candidateSeqJoinGood.put(pPrevCandidate, newJoinStatus);
   }
 
   private boolean isSubSmgSeperate(Set<SMGObject> nonSharedObject, Set<Integer> nonSharedValues,

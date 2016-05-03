@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinSubSMGsForAbstraction;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
@@ -44,11 +45,13 @@ public class SMGSingleLinkedListCandidateSequence implements SMGAbstractionCandi
 
   private final SMGSingleLinkedListCandidate candidate;
   private final int length;
+  private final SMGJoinStatus seqStatus;
 
   public SMGSingleLinkedListCandidateSequence(SMGSingleLinkedListCandidate pCandidate,
-      int pLength) {
+      int pLength, SMGJoinStatus pSmgJoinStatus) {
     candidate = pCandidate;
     length = pLength;
+    seqStatus = pSmgJoinStatus;
   }
 
   @Override
@@ -143,7 +146,21 @@ public class SMGSingleLinkedListCandidateSequence implements SMGAbstractionCandi
 
   @Override
   public int getScore() {
-    return length;
+    return length + getStatusScore();
+  }
+
+  private int getStatusScore() {
+
+    switch (seqStatus) {
+      case EQUAL:
+        return 2;
+      case LEFT_ENTAIL:
+      case RIGHT_ENTAIL:
+        return 1;
+      case INCOMPARABLE:
+      default:
+        return 0;
+    }
   }
 
   public SMGSingleLinkedListCandidate getCandidate() {

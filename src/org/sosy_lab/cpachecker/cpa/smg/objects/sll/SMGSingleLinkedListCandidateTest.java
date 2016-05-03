@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
@@ -47,7 +48,7 @@ public class SMGSingleLinkedListCandidateTest {
   public void basicTest() {
     SMGObject object = new SMGRegion(8, "object");
     SMGSingleLinkedListCandidate candidate = new SMGSingleLinkedListCandidate(object, 4, 0);
-    SMGSingleLinkedListCandidateSequence candidateSeq = new SMGSingleLinkedListCandidateSequence(candidate, 2);
+    SMGSingleLinkedListCandidateSequence candidateSeq = new SMGSingleLinkedListCandidateSequence(candidate, 2, SMGJoinStatus.INCOMPARABLE);
 
     Assert.assertSame(object, candidate.getStartObject());
     Assert.assertEquals(4, candidate.getNfo());
@@ -68,7 +69,7 @@ public class SMGSingleLinkedListCandidateTest {
 
     SMGObject startObject = smg.getPointer(value).getObject();
     SMGSingleLinkedListCandidate candidate = new SMGSingleLinkedListCandidate(startObject, OFFSET, 0);
-    SMGSingleLinkedListCandidateSequence candidateSeq = new SMGSingleLinkedListCandidateSequence(candidate, SEGMENT_LENGTH);
+    SMGSingleLinkedListCandidateSequence candidateSeq = new SMGSingleLinkedListCandidateSequence(candidate, SEGMENT_LENGTH, SMGJoinStatus.INCOMPARABLE);
 
     CLangSMG abstractedSmg = candidateSeq.execute(smg, new SMGState(TestLogManager.getInstance(), MachineModel.LINUX64, false, false, null, 4, false));
     Set<SMGObject> heap = abstractedSmg.getHeapObjects();
@@ -101,7 +102,7 @@ public class SMGSingleLinkedListCandidateTest {
     Integer value = root.getValue();
     SMGObject startObject = smg.getPointer(value).getObject();
     SMGSingleLinkedListCandidate candidate = new SMGSingleLinkedListCandidate(startObject, 8, 0);
-    SMGSingleLinkedListCandidateSequence candidateSeq = new SMGSingleLinkedListCandidateSequence(candidate, 1);
+    SMGSingleLinkedListCandidateSequence candidateSeq = new SMGSingleLinkedListCandidateSequence(candidate, 1, SMGJoinStatus.INCOMPARABLE);
     CLangSMG abstractedSmg = candidateSeq.execute(smg, new SMGState(TestLogManager.getInstance(), MachineModel.LINUX64, false, false, null, 4, false));
     Set<SMGObject> heap = abstractedSmg.getHeapObjects();
     Assert.assertEquals(2, heap.size());
