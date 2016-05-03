@@ -53,7 +53,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.LoopInvariantsWriter;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsWriter;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
@@ -196,17 +195,15 @@ class PredicateCPAStatistics extends AbstractStatistics {
    */
   private static class MutablePredicateSets {
 
-    private final SetMultimap<Pair<CFANode, Integer>, AbstractionPredicate> locationInstance;
+    private final SetMultimap<PredicatePrecision.LocationInstance, AbstractionPredicate>
+        locationInstance;
     private final SetMultimap<CFANode, AbstractionPredicate> location;
     private final SetMultimap<String, AbstractionPredicate> function;
     private final Set<AbstractionPredicate> global;
 
     private MutablePredicateSets() {
       // Use special multimaps with set-semantics and an ordering only on keys (not on values)
-      this.locationInstance = MultimapBuilder
-          .treeKeys(Pair.<CFANode, Integer>lexicographicalNaturalComparator())
-          .linkedHashSetValues()
-          .build();
+      this.locationInstance = MultimapBuilder.treeKeys().linkedHashSetValues().build();
 
       this.location = MultimapBuilder.treeKeys().linkedHashSetValues().build();
       this.function = MultimapBuilder.treeKeys().linkedHashSetValues().build();

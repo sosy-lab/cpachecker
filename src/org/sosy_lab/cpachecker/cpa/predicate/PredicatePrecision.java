@@ -23,9 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Function;
+import com.google.common.base.MoreObjects;
+import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -36,7 +39,6 @@ import com.google.common.collect.Sets;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
 import java.util.Collection;
@@ -56,20 +58,84 @@ import java.util.Set;
  */
 public class PredicatePrecision implements Precision {
 
-  private final ImmutableSetMultimap<Pair<CFANode, Integer>, AbstractionPredicate> mLocationInstancePredicates;
+  /**
+   * This class identifies a position in the ARG where predicates can be applied.
+   * It matches the n-th occurrence of a given CFANode on an ARGPath.
+   */
+  public static final class LocationInstance implements Comparable<LocationInstance> {
+    private final CFANode location;
+    private final int instance;
+
+    LocationInstance(CFANode pLocation, int pInstance) {
+      location = checkNotNull(pLocation);
+      if (pInstance < 0) {
+        throw new IllegalArgumentException(
+            "Invalid LocationInstance with negative count " + pInstance);
+      }
+      instance = pInstance;
+    }
+
+    public CFANode getLocation() {
+      return location;
+    }
+
+    public int getInstance() {
+      return instance;
+    }
+
+    public String getFunctionName() {
+      return location.getFunctionName();
+    }
+
+    @Override
+    public int hashCode() {
+      return (31 + instance) + location.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (!(obj instanceof LocationInstance)) {
+        return false;
+      }
+      LocationInstance other = (LocationInstance) obj;
+      return instance == other.instance && location.equals(other.location);
+    }
+
+    @Override
+    public int compareTo(LocationInstance other) {
+      return ComparisonChain.start()
+          .compare(location, other.location)
+          .compare(instance, other.instance)
+          .result();
+    }
+
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(this)
+          .add("location", location)
+          .add("instance", instance)
+          .toString();
+    }
+  }
+
+  private final ImmutableSetMultimap<LocationInstance, AbstractionPredicate>
+      mLocationInstancePredicates;
   private final ImmutableSetMultimap<CFANode, AbstractionPredicate> mLocalPredicates;
   private final ImmutableSetMultimap<String, AbstractionPredicate> mFunctionPredicates;
   private final ImmutableSet<AbstractionPredicate> mGlobalPredicates;
 
   private static final PredicatePrecision EMPTY =
       new PredicatePrecision(
-          ImmutableList.<Map.Entry<Pair<CFANode, Integer>, AbstractionPredicate>>of(),
+          ImmutableList.<Map.Entry<LocationInstance, AbstractionPredicate>>of(),
           ImmutableList.<Map.Entry<CFANode, AbstractionPredicate>>of(),
           ImmutableList.<Map.Entry<String, AbstractionPredicate>>of(),
           ImmutableList.<AbstractionPredicate>of());
 
   public PredicatePrecision(
-      Multimap<Pair<CFANode, Integer>, AbstractionPredicate> pLocationInstancePredicates,
+      Multimap<LocationInstance, AbstractionPredicate> pLocationInstancePredicates,
       Multimap<CFANode, AbstractionPredicate> pLocalPredicates,
       Multimap<String, AbstractionPredicate> pFunctionPredicates,
       Iterable<AbstractionPredicate> pGlobalPredicates) {
@@ -81,7 +147,7 @@ public class PredicatePrecision implements Precision {
   }
 
   public PredicatePrecision(
-      Iterable<Map.Entry<Pair<CFANode, Integer>, AbstractionPredicate>> pLocationInstancePredicates,
+      Iterable<Map.Entry<LocationInstance, AbstractionPredicate>> pLocationInstancePredicates,
       Iterable<Map.Entry<CFANode, AbstractionPredicate>> pLocalPredicates,
       Iterable<Map.Entry<String, AbstractionPredicate>> pFunctionPredicates,
       Iterable<AbstractionPredicate> pGlobalPredicates) {
@@ -125,15 +191,13 @@ public class PredicatePrecision implements Precision {
     }
     mLocalPredicates = ImmutableSetMultimap.copyOf(localPredicates);
 
-    Multimap<Pair<CFANode, Integer>, AbstractionPredicate> locationInstancePredicates =
-        MultimapBuilder.treeKeys(Pair.<CFANode, Integer>lexicographicalNaturalComparator())
-            .arrayListValues()
-            .build();
+    Multimap<LocationInstance, AbstractionPredicate> locationInstancePredicates =
+        MultimapBuilder.treeKeys().arrayListValues().build();
     putAll(pLocationInstancePredicates, locationInstancePredicates);
-    for (Pair<CFANode, Integer> location : locationInstancePredicates.keySet()) {
-      locationInstancePredicates.putAll(location, mLocalPredicates.get(location.getFirst()));
+    for (LocationInstance location : locationInstancePredicates.keySet()) {
+      locationInstancePredicates.putAll(location, mLocalPredicates.get(location.getLocation()));
       locationInstancePredicates.putAll(
-          location, mFunctionPredicates.get(location.getFirst().getFunctionName()));
+          location, mFunctionPredicates.get(location.getFunctionName()));
       locationInstancePredicates.putAll(location, mGlobalPredicates);
     }
     mLocationInstancePredicates = ImmutableSetMultimap.copyOf(locationInstancePredicates);
@@ -168,9 +232,9 @@ public class PredicatePrecision implements Precision {
             .transformAndConcat(
                 new Function<
                     PredicatePrecision,
-                    Iterable<Map.Entry<Pair<CFANode, Integer>, AbstractionPredicate>>>() {
+                    Iterable<Map.Entry<LocationInstance, AbstractionPredicate>>>() {
                   @Override
-                  public Iterable<Map.Entry<Pair<CFANode, Integer>, AbstractionPredicate>> apply(
+                  public Iterable<Map.Entry<LocationInstance, AbstractionPredicate>> apply(
                       PredicatePrecision pInput) {
                     return pInput.getLocationInstancePredicates().entries();
                   }
@@ -210,7 +274,7 @@ public class PredicatePrecision implements Precision {
    * These are the predicates that should be used at the n-th instance
    * of an abstraction location l in the current path.
    */
-  public final ImmutableSetMultimap<Pair<CFANode, Integer>, AbstractionPredicate>
+  public final ImmutableSetMultimap<LocationInstance, AbstractionPredicate>
       getLocationInstancePredicates() {
     return mLocationInstancePredicates;
   }
@@ -241,14 +305,21 @@ public class PredicatePrecision implements Precision {
    * @param loc A CFA location.
    * @param locInstance How often this location has appeared in the current path.
    */
-  public final ImmutableSet<AbstractionPredicate> getPredicates(CFANode loc, Integer locInstance) {
+  public final ImmutableSet<AbstractionPredicate> getPredicates(CFANode loc, int locInstance) {
+    return getPredicates(new LocationInstance(loc, locInstance));
+  }
+
+  /**
+   * Return all predicates for one specific location in this precision.
+   */
+  public final ImmutableSet<AbstractionPredicate> getPredicates(LocationInstance locationInstance) {
     ImmutableSet<AbstractionPredicate> result =
-        getLocationInstancePredicates().get(Pair.of(loc, locInstance));
+        getLocationInstancePredicates().get(locationInstance);
     if (result.isEmpty()) {
-      result = getLocalPredicates().get(loc);
+      result = getLocalPredicates().get(locationInstance.getLocation());
     }
     if (result.isEmpty()) {
-      result = getFunctionPredicates().get(loc.getFunctionName());
+      result = getFunctionPredicates().get(locationInstance.getFunctionName());
     }
     if (result.isEmpty()) {
       result = getGlobalPredicates();
@@ -305,7 +376,7 @@ public class PredicatePrecision implements Precision {
    * additional location-instance-specific predicates.
    */
   public PredicatePrecision addLocationInstancePredicates(
-      Iterable<Map.Entry<Pair<CFANode, Integer>, AbstractionPredicate>> newPredicates) {
+      Iterable<Map.Entry<LocationInstance, AbstractionPredicate>> newPredicates) {
     if (Iterables.isEmpty(newPredicates)) {
       return this;
     }

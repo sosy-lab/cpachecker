@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision.LocationInstance;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -240,7 +241,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     }
   }
 
-  private ListMultimap<Pair<CFANode, Integer>, AbstractionPredicate> newPredicates;
+  private ListMultimap<LocationInstance, AbstractionPredicate> newPredicates;
 
 
   final void setUseAtomicPredicates(boolean atomicPredicates) {
@@ -269,7 +270,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     CFANode loc = AbstractStates.extractLocation(interpolationPoint);
     int locInstance = predicateState.getAbstractionLocationsOnPath().get(loc);
 
-    newPredicates.putAll(Pair.of(loc, locInstance), localPreds);
+    newPredicates.putAll(new LocationInstance(loc, locInstance), localPreds);
     predicateCreation.stop();
 
     return false;
@@ -382,7 +383,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       CFANode loc = extractLocation(pUnreachableState);
       int locInstance = getPredicateState(pUnreachableState)
                                        .getAbstractionLocationsOnPath().get(loc);
-      newPredicates.put(Pair.of(loc, locInstance), predAbsMgr.makeFalsePredicate());
+      newPredicates.put(new LocationInstance(loc, locInstance), predAbsMgr.makeFalsePredicate());
       pAffectedStates.add(pUnreachableState);
     }
 
@@ -440,7 +441,8 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       break;
     case SCOPE:
       Set<AbstractionPredicate> globalPredicates = new HashSet<>();
-      ListMultimap<Pair<CFANode, Integer>, AbstractionPredicate> localPredicates = ArrayListMultimap.create();
+      ListMultimap<LocationInstance, AbstractionPredicate> localPredicates =
+          ArrayListMultimap.create();
 
       splitInLocalAndGlobalPredicates(globalPredicates, localPredicates);
 
@@ -497,10 +499,11 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     return oldPredicatePrecision;
   }
 
-  private void splitInLocalAndGlobalPredicates(Set<AbstractionPredicate> globalPredicates,
-      ListMultimap<Pair<CFANode, Integer>, AbstractionPredicate> localPredicates) {
+  private void splitInLocalAndGlobalPredicates(
+      Set<AbstractionPredicate> globalPredicates,
+      ListMultimap<LocationInstance, AbstractionPredicate> localPredicates) {
 
-    for (Map.Entry<Pair<CFANode, Integer>, AbstractionPredicate> predicate : newPredicates.entries()) {
+    for (Map.Entry<LocationInstance, AbstractionPredicate> predicate : newPredicates.entries()) {
       if (predicate.getValue().getSymbolicAtom().toString().contains("::")) {
         localPredicates.put(predicate.getKey(), predicate.getValue());
       }
@@ -598,32 +601,31 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   }
 
   private static Iterable<Map.Entry<String, AbstractionPredicate>> mergePredicatesPerFunction(
-      Iterable<Map.Entry<Pair<CFANode, Integer>, AbstractionPredicate>> predicates) {
+      Iterable<Map.Entry<LocationInstance, AbstractionPredicate>> predicates) {
     return from(predicates)
         .transform(
             new Function<
-                Map.Entry<Pair<CFANode, Integer>, AbstractionPredicate>,
+                Map.Entry<LocationInstance, AbstractionPredicate>,
                 Map.Entry<String, AbstractionPredicate>>() {
               @Override
               public Map.Entry<String, AbstractionPredicate> apply(
-                  Map.Entry<Pair<CFANode, Integer>, AbstractionPredicate> pInput) {
-                return Maps.immutableEntry(
-                    pInput.getKey().getFirst().getFunctionName(), pInput.getValue());
+                  Map.Entry<LocationInstance, AbstractionPredicate> pInput) {
+                return Maps.immutableEntry(pInput.getKey().getFunctionName(), pInput.getValue());
               }
             });
   }
 
   private static Iterable<Map.Entry<CFANode, AbstractionPredicate>> mergePredicatesPerLocation(
-      Iterable<Map.Entry<Pair<CFANode, Integer>, AbstractionPredicate>> predicates) {
+      Iterable<Map.Entry<LocationInstance, AbstractionPredicate>> predicates) {
     return from(predicates)
         .transform(
             new Function<
-                Map.Entry<Pair<CFANode, Integer>, AbstractionPredicate>,
+                Map.Entry<LocationInstance, AbstractionPredicate>,
                 Map.Entry<CFANode, AbstractionPredicate>>() {
               @Override
               public Map.Entry<CFANode, AbstractionPredicate> apply(
-                  Map.Entry<Pair<CFANode, Integer>, AbstractionPredicate> pInput) {
-                return Maps.immutableEntry(pInput.getKey().getFirst(), pInput.getValue());
+                  Map.Entry<LocationInstance, AbstractionPredicate> pInput) {
+                return Maps.immutableEntry(pInput.getKey().getLocation(), pInput.getValue());
               }
             });
   }

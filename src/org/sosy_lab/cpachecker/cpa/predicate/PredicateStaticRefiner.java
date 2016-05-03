@@ -73,7 +73,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.StaticRefiner;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -494,8 +493,7 @@ public class PredicateStaticRefiner extends StaticRefiner
     logger.log(Level.FINER, "Extracting finished, found", allPredicates.size(), "predicates");
 
     return new PredicatePrecision(
-        ImmutableSetMultimap.<Pair<CFANode,Integer>,
-        AbstractionPredicate>of(),
+        ImmutableSetMultimap.<PredicatePrecision.LocationInstance, AbstractionPredicate>of(),
         ArrayListMultimap.<CFANode, AbstractionPredicate>create(),
         functionPredicates,
         globalPredicates);
