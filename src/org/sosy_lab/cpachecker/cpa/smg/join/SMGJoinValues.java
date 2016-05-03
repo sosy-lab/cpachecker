@@ -400,18 +400,25 @@ final class SMGJoinValues {
 
     if (jv.isDefined()) {
 
+      newAddressFromOptionalObject = jv.getValue();
+
+      /*No double optional objects for the same address.*/
+      if (pDestSMG.getPointer(newAddressFromOptionalObject)
+          .getTargetSpecifier() == SMGTargetSpecifier.OPT) {
+        return Pair.of(false, false);
+      }
+
       this.status = jv.getStatus();
       this.inputSMG1 = jv.getInputSMG1();
       this.inputSMG2 = jv.getInputSMG2();
       this.destSMG = jv.getDestinationSMG();
       this.mapping1 = jv.getMapping1();
       this.mapping2 = jv.getMapping2();
-      newAddressFromOptionalObject = jv.getValue();
       this.value = resultPointer;
       this.defined = jv.defined;
 
     } else {
-      return Pair.of(false, false);
+      return Pair.of(false, true);
     }
 
     /*Copy values of optional object.*/
@@ -550,13 +557,20 @@ final class SMGJoinValues {
 
     if (jv.isDefined()) {
 
+      newAddressFromOptionalObject = jv.getValue();
+
+      /*No double optional objects for the same address.*/
+      if (pDestSMG.getPointer(newAddressFromOptionalObject)
+          .getTargetSpecifier() == SMGTargetSpecifier.OPT) {
+        return Pair.of(false, false);
+      }
+
       this.status = jv.getStatus();
       this.inputSMG1 = jv.getInputSMG1();
       this.inputSMG2 = jv.getInputSMG2();
       this.destSMG = jv.getDestinationSMG();
       this.mapping1 = jv.getMapping1();
       this.mapping2 = jv.getMapping2();
-      newAddressFromOptionalObject = jv.getValue();
       this.value = resultPointer;
       this.defined = jv.defined;
 
@@ -620,6 +634,12 @@ final class SMGJoinValues {
           pfo = ((SMGDoublyLinkedList) pTarget).getPfo();
           length = ((SMGDoublyLinkedList) pTarget).getMinimumLength();
         } else {
+
+          //TODO /*With 0 and SLL, its too imprecise to insert sll (at the moment)*/
+          if (pointer2 == 0) {
+            return Pair.of(false, true);
+          }
+
           nf = ((SMGSingleLinkedList) pTarget).getNfo();
           hfo = ((SMGSingleLinkedList) pTarget).getHfo();
           nfo = nf;
@@ -815,6 +835,11 @@ final class SMGJoinValues {
           nfo = nf;
           pfo = -1;
           length = ((SMGSingleLinkedList) pTarget).getMinimumLength();
+
+          //TODO /*With 0 and SLL, its too imprecise to insert sll (at the moment)*/
+          if (pointer1 == 0) {
+            return Pair.of(false, true);
+          }
         }
         break;
       case LAST:
