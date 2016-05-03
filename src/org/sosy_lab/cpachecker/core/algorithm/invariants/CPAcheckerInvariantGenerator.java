@@ -109,8 +109,8 @@ public class CPAcheckerInvariantGenerator extends AbstractInvariantGenerator {
         new CoreComponentsFactory(invgenConfig, logger, shutdownNotifier.getNotifier());
     reached = componentsFactory.createReachedSet();
 
-    cpa = componentsFactory.createCPA(pCfa, null, SpecAutomatonCompositionType.TARGET_SPEC);
-    algorithm = componentsFactory.createAlgorithm(cpa, pFilename, pCfa, null);
+    cpa = componentsFactory.createCPA(pCfa, SpecAutomatonCompositionType.TARGET_SPEC);
+    algorithm = componentsFactory.createAlgorithm(cpa, pFilename, pCfa);
   }
 
   @Override

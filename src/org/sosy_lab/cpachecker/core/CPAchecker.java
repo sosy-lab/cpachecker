@@ -27,13 +27,14 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.ShutdownNotifier.interruptCurrentThreadOnShutdown;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
+import com.google.common.base.StandardSystemProperty;
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
+import com.google.common.collect.Sets;
+import com.google.common.io.Resources;
 
 import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.ShutdownManager;
@@ -64,6 +65,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -74,14 +76,13 @@ import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProviderImpl;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Splitter;
-import com.google.common.base.StandardSystemProperty;
-import com.google.common.collect.ImmutableCollection;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
-import com.google.common.collect.Sets;
-import com.google.common.io.Resources;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.logging.Level;
 
 @Options(prefix="analysis")
 public class CPAchecker {
@@ -253,12 +254,25 @@ public class CPAchecker {
             ? SpecAutomatonCompositionType.BACKWARD_TO_ENTRY_SPEC
             : SpecAutomatonCompositionType.TARGET_SPEC;
 
-        ConfigurableProgramAnalysis cpa = factory.createCPA(
-            cfa, stats,
-            speComposition);
+        ConfigurableProgramAnalysis cpa;
+        stats.cpaCreationTime.start();
+        try {
+          cpa = factory.createCPA(cfa, speComposition);
+        } finally {
+          stats.cpaCreationTime.stop();
+        }
+
+        if (cpa instanceof StatisticsProvider) {
+          ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());
+        }
+
         GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
-        algorithm = factory.createAlgorithm(cpa, programDenotation, cfa, stats);
+        algorithm = factory.createAlgorithm(cpa, programDenotation, cfa);
+
+        if (algorithm instanceof StatisticsProvider) {
+          ((StatisticsProvider)algorithm).collectStatistics(stats.getSubStatistics());
+        }
 
         if (algorithm instanceof ImpactAlgorithm) {
           ImpactAlgorithm mcmillan = (ImpactAlgorithm)algorithm;

@@ -411,7 +411,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
     CoreComponentsFactory coreComponents =
         new CoreComponentsFactory(singleConfig, singleLogger, singleShutdownManager.getNotifier());
-    cpa = coreComponents.createCPA(cfa, null, SpecAutomatonCompositionType.TARGET_SPEC);
+    cpa = coreComponents.createCPA(cfa, SpecAutomatonCompositionType.TARGET_SPEC);
 
     if (cpa instanceof StatisticsProvider) {
       ((StatisticsProvider) cpa).collectStatistics(stats.getSubStatistics());
@@ -419,7 +419,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
     GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
-    algorithm = coreComponents.createAlgorithm(cpa, filename, cfa, null);
+    algorithm = coreComponents.createAlgorithm(cpa, filename, cfa);
     reached =
         createInitialReachedSetForRestart(
             cpa, mainFunction, coreComponents.getReachedSetFactory(), singleLogger);

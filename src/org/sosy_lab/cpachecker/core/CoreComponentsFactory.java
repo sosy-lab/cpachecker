@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.core.algorithm.pcc.AlgorithmWithPropertyCheck;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -61,8 +60,6 @@ import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 /**
  * Factory class for the three core components of CPAchecker:
@@ -169,7 +166,7 @@ public class CoreComponentsFactory {
   }
 
   public Algorithm createAlgorithm(final ConfigurableProgramAnalysis cpa,
-      final String programDenotation, final CFA cfa, @Nullable final MainCPAStatistics stats)
+      final String programDenotation, final CFA cfa)
       throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating algorithms");
 
@@ -249,9 +246,6 @@ public class CoreComponentsFactory {
       }
     }
 
-    if (stats != null && algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider)algorithm).collectStatistics(stats.getSubStatistics());
-    }
     return algorithm;
   }
 
@@ -276,38 +270,24 @@ public class CoreComponentsFactory {
   }
 
   public ConfigurableProgramAnalysis createCPA(final CFA cfa,
-      @Nullable final MainCPAStatistics stats,
       SpecAutomatonCompositionType composeWithSpecificationCPAs) throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
-    if (stats != null) {
-      stats.cpaCreationTime.start();
+
+    if (useRestartingAlgorithm) {
+      // hard-coded dummy CPA
+      return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
     }
-    try {
 
-      if (useRestartingAlgorithm) {
-        // hard-coded dummy CPA
-        return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
-      }
-
-      final ConfigurableProgramAnalysis cpa;
-      switch (composeWithSpecificationCPAs) {
-      case TARGET_SPEC:
-        cpa = cpaFactory.buildCPAWithSpecAutomatas(cfa); break;
-      case BACKWARD_TO_ENTRY_SPEC:
-        cpa = cpaFactory.buildCPAWithBackwardSpecAutomatas(cfa); break;
-      default:
-        cpa = cpaFactory.buildCPAs(cfa, null);
-      }
-
-      if (stats != null && cpa instanceof StatisticsProvider) {
-        ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());
-      }
-      return cpa;
-
-    } finally {
-      if (stats != null) {
-        stats.cpaCreationTime.stop();
-      }
+    final ConfigurableProgramAnalysis cpa;
+    switch (composeWithSpecificationCPAs) {
+    case TARGET_SPEC:
+      cpa = cpaFactory.buildCPAWithSpecAutomatas(cfa); break;
+    case BACKWARD_TO_ENTRY_SPEC:
+      cpa = cpaFactory.buildCPAWithBackwardSpecAutomatas(cfa); break;
+    default:
+      cpa = cpaFactory.buildCPAs(cfa, null);
     }
+
+    return cpa;
   }
 }

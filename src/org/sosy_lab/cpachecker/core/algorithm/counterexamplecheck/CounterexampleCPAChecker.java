@@ -24,11 +24,10 @@
 package org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.*;
+import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
-import java.io.IOException;
-import java.io.Writer;
-import java.util.Set;
+import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -59,7 +58,9 @@ import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
-import com.google.common.collect.ImmutableSet;
+import java.io.IOException;
+import java.io.Writer;
+import java.util.Set;
 
 @Options(prefix="counterexample.checker")
 public class CounterexampleCPAChecker implements CounterexampleChecker {
@@ -167,8 +168,8 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
 
       CoreComponentsFactory factory =
           new CoreComponentsFactory(lConfig, lLogger, lShutdownManager.getNotifier());
-      ConfigurableProgramAnalysis lCpas = factory.createCPA(cfa, null, SpecAutomatonCompositionType.TARGET_SPEC);
-      Algorithm lAlgorithm = factory.createAlgorithm(lCpas, filename, cfa, null);
+      ConfigurableProgramAnalysis lCpas = factory.createCPA(cfa, SpecAutomatonCompositionType.TARGET_SPEC);
+      Algorithm lAlgorithm = factory.createAlgorithm(lCpas, filename, cfa);
       ReachedSet lReached = factory.createReachedSet();
       lReached.add(
           lCpas.getInitialState(entryNode, StateSpacePartition.getDefaultPartition()),
