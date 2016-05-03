@@ -407,7 +407,7 @@ public class PredicateAbstractionManager {
       } else if (abstractionType == AbstractionType.CARTESIAN_BY_WEAKENING) {
         abs = rmgr.makeAnd(
             abs, buildCartesianAbstractionUsingWeakening(
-                f, ssa, remainingPredicates
+                f, ssa, remainingPredicates, thmProver
             )
         );
       } else {
@@ -763,8 +763,22 @@ public class PredicateAbstractionManager {
   private Region buildCartesianAbstractionUsingWeakening(
       final BooleanFormula f,
       final SSAMap ssa,
-      final Collection<AbstractionPredicate> pPredicates)
+      final Collection<AbstractionPredicate> pPredicates,
+      ProverEnvironment thmProver)
       throws SolverException, InterruptedException {
+
+    stats.abstractionSolveTime.start();
+    boolean feasibility;
+    try {
+      feasibility = !thmProver.isUnsat();
+    } finally {
+      stats.abstractionSolveTime.stop();
+    }
+
+    if (!feasibility) {
+      // abstract post leads to false, we can return immediately
+      return rmgr.makeFalse();
+    }
 
     Set<BooleanFormula> toStateLemmas = new HashSet<>();
     Map<BooleanFormula, Region> info = new HashMap<>();
@@ -780,15 +794,27 @@ public class PredicateAbstractionManager {
 
     Region out = rmgr.makeTrue();
 
-    Set<BooleanFormula> filteredLemmas =
-        weakeningManager.findInductiveWeakeningForRCNF(
-            SSAMap.emptySSAMap(),
-            new HashSet<BooleanFormula>(),
-            new PathFormula(
-                f, ssa, PointerTargetSet.emptyPointerTargetSet(), 0
-            ),
-            toStateLemmas
-        );
+    // We have to start with an empty stack, as otherwise we wouldn't be able to
+    // create a new prover environment in inductive weakening manager.
+    thmProver.pop();
+    Set<BooleanFormula> filteredLemmas;
+    stats.cartesianAbstractionTime.start();
+    try {
+      filteredLemmas =
+          weakeningManager.findInductiveWeakeningForRCNF(
+              SSAMap.emptySSAMap(),
+              new HashSet<BooleanFormula>(),
+              new PathFormula(
+                  f, ssa, PointerTargetSet.emptyPointerTargetSet(), 0
+              ),
+              toStateLemmas
+          );
+    } finally {
+      stats.cartesianAbstractionTime.stop();
+
+      // Restore the stack.
+      thmProver.push(f);
+    }
     for (BooleanFormula lemma : filteredLemmas) {
       out = rmgr.makeAnd(out, info.get(lemma));
     }
