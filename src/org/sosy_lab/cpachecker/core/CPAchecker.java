@@ -385,7 +385,7 @@ public class CPAchecker {
       throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
     // parse file and create CFA
     CFACreator cfaCreator;
-    List<String> headerFilesToParse = new LinkedList<>();
+    Set<String> headerFilesToParse = new HashSet<>();
     if (pAutomata != null) {
       cfaCreator = new CFACreator(config, logger, shutdownNotifier, pAutomata, language, machineModel);
       for (Automaton automaton : pAutomata) {
