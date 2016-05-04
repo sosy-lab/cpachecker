@@ -260,6 +260,12 @@ public final class Solver implements AutoCloseable {
     return environment;
   }
 
+  public OptimizationProverEnvironment newCachedOptEnvironment() {
+    OptimizationProverEnvironment environment = solvingContext.newCachedOptimizationProverEnvironment();
+    environment = new OptimizationProverEnvironmentView(environment, fmgr);
+    return environment;
+  }
+
   /**
    * Checks whether a formula is unsat.
    */
