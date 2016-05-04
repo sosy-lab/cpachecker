@@ -177,7 +177,14 @@ public class TargetSummary {
       Optional<Region> cond1 = conditions1.get(p);
       Optional<Region> cond2 = conditions2.get(p);
 
-      Optional<Region> condUnion = unionOfConditions(pRm, cond1, cond2);
+      Optional<Region> condUnion;
+      if (cond1 == null) {
+        condUnion = cond2;
+      } else if (cond2 == null) {
+        condUnion = cond1;
+      } else {
+        condUnion = unionOfConditions(pRm, cond1, cond2);
+      }
 
       TargetStateInfo sum = new TargetStateInfo();
       sum.violatedProperties.add(p);
