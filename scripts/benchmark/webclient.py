@@ -675,7 +675,7 @@ class WebInterface:
             return state
 
         except requests.HTTPError as e:
-            logging.warning('Could not get run state %s: %s', run_id, e.reason)
+            logging.warning('Could not get run state %s: %s', run_id, e.response)
             return False
 
     def _download_result(self, run_id):
