@@ -336,16 +336,31 @@ public class AutomatonExpressionArguments {
             return new CIntegerLiteralExpression(pNode.getFileLocation(),
                 CNumericTypes.INT, BigInteger.valueOf(var.getValue()));
           }
-        } else if (pNode instanceof CBinaryExpression) {
+        }
+
+        // Attention: Only put here code for cases where we DO NOT HAVE TO
+        //    perform substitutions of child nodes later!
+
+        return null;
+      }
+
+      private boolean isProblemExpression(CBinaryExpression pExpr) {
+        return pExpr.getCalculationType() instanceof CProblemType
+            || pExpr.getExpressionType() instanceof CProblemType;
+      }
+
+      @Override
+      public CAstNode adjustTypesAfterSubstitution(CAstNode pNode) {
+        if (pNode instanceof CBinaryExpression) {
           // Fix assume expressions where the type could not be determined during parsing because
           // the type information needs to be inferred from information in a C header file; this
           // information is not present during automaton parsing, hence we have to adjust this
           // afterwards.
           final CBinaryExpression expression = (CBinaryExpression) pNode;
-          if (expression.getCalculationType() instanceof CProblemType
-              || expression.getExpressionType() instanceof CProblemType) {
-
-            return fixBinaryExpressionType(expression);
+          if (isProblemExpression(expression)) {
+            CBinaryExpression result = fixBinaryExpressionType(expression);
+            Preconditions.checkState(!isProblemExpression(result));
+            return result;
           }
         }
 
@@ -353,7 +368,8 @@ public class AutomatonExpressionArguments {
       }
     });
 
-    return pNode.accept(visitor);
+    final CAstNode result = pNode.accept(visitor);
+    return result;
   }
 
   ImmutableList<Pair<AStatement, Boolean>> instantiateAssumptions(

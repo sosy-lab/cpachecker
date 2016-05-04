@@ -36,6 +36,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
 
   public static interface SubstituteProvider {
     public @Nullable CAstNode findSubstitute(CAstNode pNode);
+    public @Nullable CAstNode adjustTypesAfterSubstitution(CAstNode pNode);
   }
 
   private SubstituteProvider sp;
@@ -46,6 +47,10 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
 
   private @Nullable CAstNode findSubstitute(CAstNode pNode) {
     return sp.findSubstitute(pNode);
+  }
+
+  private @Nullable CAstNode adjustTypesAfterSubstitution(CAstNode pNode) {
+    return sp.adjustTypesAfterSubstitution(pNode);
   }
 
   private <T> T firstNotNull(T pExpr1, T pExpr2) {
@@ -156,6 +161,15 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
 
   @Override
   public CAstNode visit(CBinaryExpression pNode) throws RuntimeException {
+    CAstNode result = substituteOnBinExpr(pNode);
+    CAstNode post = adjustTypesAfterSubstitution(result);
+    if (post != null) {
+      return post;
+    }
+    return result;
+  }
+
+  private CAstNode substituteOnBinExpr(CBinaryExpression pNode) {
     final CAstNode result = findSubstitute(pNode);
     if (result != null) {
       return result;
