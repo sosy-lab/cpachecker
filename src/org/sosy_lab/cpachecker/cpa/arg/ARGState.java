@@ -81,7 +81,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
   private final int stateId;
 
   // If this is a target state, we may store additional information here.
-  private CounterexampleInfo counterexample;
+  private transient CounterexampleInfo counterexample;
 
   private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
 
