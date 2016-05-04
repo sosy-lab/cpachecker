@@ -309,10 +309,7 @@ public class AutomatonExpressionArguments {
     return null;
   }
 
-  ImmutableList<Pair<AStatement, Boolean>> instantiateAssumptions(
-      final ImmutableList<Pair<AStatement, Boolean>> pSymbolicAssumes) {
-
-    Builder<Pair<AStatement, Boolean>> builder = ImmutableList.<Pair<AStatement, Boolean>>builder();
+  private CAstNode substituteJokerVariables(CAstNode pNode) {
     final SubstitutingCAstNodeVisitor visitor = new SubstitutingCAstNodeVisitor(new SubstituteProvider() {
       @Override
       public CAstNode findSubstitute(CAstNode pNode) {
@@ -356,12 +353,20 @@ public class AutomatonExpressionArguments {
       }
     });
 
+    return pNode.accept(visitor);
+  }
+
+  ImmutableList<Pair<AStatement, Boolean>> instantiateAssumptions(
+      final ImmutableList<Pair<AStatement, Boolean>> pSymbolicAssumes) {
+
+    Builder<Pair<AStatement, Boolean>> builder = ImmutableList.<Pair<AStatement, Boolean>>builder();
+
     for (Pair<AStatement, Boolean> entry: pSymbolicAssumes) {
       final AStatement stmt = entry.getFirst();
       final Boolean truth = entry.getSecond();
 
       if (stmt instanceof CStatement) {
-        CStatement inst = (CStatement)((CStatement) stmt).accept(visitor);
+        CStatement inst = (CStatement)substituteJokerVariables((CStatement) stmt);
         builder.add(Pair.<AStatement, Boolean>of(inst, truth));
       } else {
         this.getLogger().log(Level.WARNING, "Could not instantiate transition assumption! Support for non-C-languages is missing at the moment!");
@@ -370,6 +375,15 @@ public class AutomatonExpressionArguments {
     }
 
     return builder.build();
+  }
+
+  public List<AAstNode> instantiateCode(ImmutableList<AAstNode> pShadowCode) {
+    Builder<AAstNode> result = ImmutableList.<AAstNode>builder();
+    for (AAstNode n: pShadowCode) {
+      AAstNode nPrime = substituteJokerVariables((CAstNode)n);
+      result.add(nPrime);
+    }
+    return result.build();
   }
 
   /**
@@ -405,4 +419,6 @@ public class AutomatonExpressionArguments {
       return matchingEdges;
     }
   }
+
+
 }

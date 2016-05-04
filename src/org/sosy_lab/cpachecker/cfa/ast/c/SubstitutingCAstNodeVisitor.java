@@ -23,14 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import java.util.List;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
+import java.util.List;
+
+import javax.annotation.Nullable;
 
 public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, RuntimeException> {
 
@@ -377,7 +377,20 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
 
   @Override
   public CAstNode visit(CVariableDeclaration pNode) throws RuntimeException {
-    throw new RuntimeException("Not yet implemented! Implement me!");
+    final CAstNode result = findSubstitute(pNode);
+    if (result != null) {
+      return result;
+    }
+
+    CInitializer init = (CInitializer) findSubstitute(pNode.getInitializer());
+    if (init != pNode.getInitializer()) {
+      return new CVariableDeclaration(pNode.getFileLocation(), pNode.isGlobal(),
+          pNode.getCStorageClass(), pNode.getType(), pNode.getName(),
+          pNode.getOrigName(), pNode.getQualifiedName(),
+          init);
+    }
+
+    return pNode;
   }
 
   @Override

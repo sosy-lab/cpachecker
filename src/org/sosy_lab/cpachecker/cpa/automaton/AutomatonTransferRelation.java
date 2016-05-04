@@ -423,9 +423,8 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
         //  --> We have to instantiate them!
         ImmutableList<Pair<AStatement, Boolean>> symbolicAssumes = t.getAssumptionWithTruth();
         exprArgs.setCFA(cpa.getCfa());
-        ImmutableList<Pair<AStatement, Boolean>> instantiatedAssumes =
-            exprArgs.instantiateAssumptions(symbolicAssumes);
-        List<AAstNode> shadowCode = t.getShadowCode();
+        ImmutableList<Pair<AStatement, Boolean>> instantiatedAssumes = exprArgs.instantiateAssumptions(symbolicAssumes);
+        List<AAstNode> instantiatedShadowCode = exprArgs.instantiateCode(t.getShadowCode());
 
         // Create the new successor state of the automaton state
         AutomatonState lSuccessor = AutomatonState.automatonStateFactory(
@@ -433,7 +432,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
             t.getFollowState(),
             cpa,
             instantiatedAssumes,
-            shadowCode,
+            instantiatedShadowCode,
             pState.getMatches() + 1,
             pState.getFailedMatches(),
             checkFeasibility,
