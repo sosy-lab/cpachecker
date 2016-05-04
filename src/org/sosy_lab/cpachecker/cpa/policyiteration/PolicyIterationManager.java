@@ -742,7 +742,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     final Map<Template, PolicyBound> abstraction = new HashMap<>();
 
     // TODO: flag for caching.
-    try (OptimizationProverEnvironment optEnvironment = solver.newOptEnvironment()) {
+    try (OptimizationProverEnvironment optEnvironment = solver.newCachedOptEnvironment()) {
 
       optEnvironment.push();
       optEnvironment.addConstraint(startConstraints);
