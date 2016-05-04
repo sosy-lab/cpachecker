@@ -877,12 +877,13 @@ public class ARGPathExporter {
       pGraphBuilder.buildGraph(pRootState, pIsRelevantState, pIsRelevantEdge, valueMap, doc, collectPathEdges(pRootState, successorFunction, pIsRelevantState), this);
 
       // Remove edges that lead to the sink but have a sibling edge that has the same label
-      // TODO if there are two edges with two sinks, edge and sibling are both removed --> correct? FIXME
-      Collection<Edge> toRemove = new ArrayList<>();
+      Collection<Edge> toRemove = Sets.newHashSet();
       for (Edge edge : leavingEdges.values()) {
         if (edge.target.equals(SINK_NODE_ID)) {
           for (Edge otherEdge : leavingEdges.get(edge.source)) {
-            if (!edge.equals(otherEdge) && edge.label.equals(otherEdge.label)) {
+            if (!edge.equals(otherEdge)
+                && edge.label.equals(otherEdge.label)
+                && !toRemove.contains(otherEdge)) {
               toRemove.add(edge);
               break;
             }
