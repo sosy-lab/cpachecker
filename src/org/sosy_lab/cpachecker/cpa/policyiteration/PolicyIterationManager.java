@@ -1,12 +1,17 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import static com.google.common.collect.Iterables.filter;
+import static org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationManager.DecompositionStatus.ABSTRACTION_REQUIRED;
+import static org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationManager.DecompositionStatus.BOUND_COMPUTED;
+import static org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationManager.DecompositionStatus.UNBOUNDED;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.ShutdownNotifier;
@@ -16,8 +21,10 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.rationals.LinearExpression;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
@@ -38,6 +45,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -49,6 +57,7 @@ import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.Model;
 import org.sosy_lab.solver.api.OptimizationProverEnvironment;
 import org.sosy_lab.solver.api.ProverEnvironment;
+import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -102,12 +111,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
   @Option(secure=true, description="Check target states reachability")
   private boolean checkTargetStates = true;
-
-  @Option(secure=true,
-  description="Use the optimized abstraction, which takes into the account the "
-      + "previously obtained bound at the location. Interferes with"
-      + "obtaining templates using convex hull.")
-  private boolean usePreviousBounds = true;
 
   @Option(secure=true, description="Run simple congruence analysis")
   private boolean runCongruence = true;
@@ -297,7 +300,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         statistics.abstractionTimer.start();
         try {
           abstraction = performAbstraction(
-              iState, getLocationID(sibling, node), sibling, toNodePrecision, extraInvariant);
+              iState, getLocationID(sibling, node), toNodePrecision, extraInvariant);
           logger.log(Level.FINE, ">>> Abstraction produced a state: ", abstraction);
         } finally {
           statistics.abstractionTimer.stop();
@@ -665,179 +668,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     }
   }
 
-  Map<Object[], PolicyAbstractedState> abstractionCache = new HashMap<>();
-
-  /**
-   * Perform the abstract operation on a new state
-   *
-   * @param state State to abstract
-   * @return Abstracted state if the state is reachable, empty optional
-   * otherwise.
-   */
-  private PolicyAbstractedState performAbstraction(
-      final PolicyIntermediateState state,
-      int locationID,
-      final Optional<PolicyAbstractedState> otherState,
-      PolicyPrecision precision,
-      BooleanFormula extraInvariant)
-      throws CPAException, InterruptedException {
-
-    // TODO: it's not nice to have to use locationID for caching,
-    // we should re-use the cache across different locations.
-    Object[] key = new Object[]{state, locationID, otherState, precision,
-        extraInvariant};
-    PolicyAbstractedState out = abstractionCache.get(key);
-    if (out != null) {
-      return out;
-    }
-
-    logger.log(Level.FINE, "Performing abstraction at node: ", state.getNode());
-
-    final PathFormula p = state.getPathFormula();
-
-    // Linearize.
-    statistics.linearizationTimer.start();
-    final BooleanFormula linearizedFormula = linearizationManager.linearize(
-        p.getFormula());
-
-    // Add choice variables.
-    BooleanFormula annotatedFormula = linearizationManager.annotateDisjunctions(
-        linearizedFormula);
-    statistics.linearizationTimer.stop();
-
-    final Map<Template, PolicyBound> abstraction = new HashMap<>();
-    final BooleanFormula startConstraints =
-        stateFormulaConversionManager.getStartConstraints(state, true);
-
-    try (OptimizationProverEnvironment optEnvironment = solver.newOptEnvironment()) {
-      optEnvironment.addConstraint(annotatedFormula);
-      optEnvironment.addConstraint(startConstraints);
-
-      // Invariant from the invariant generator.
-      optEnvironment.addConstraint(
-          fmgr.instantiate(
-              stateFormulaConversionManager.getInvariantFor(state.getNode()),
-              state.getPathFormula().getSsa()
-          )
-      );
-
-      Set<String> formulaVars = fmgr.extractFunctionNames(
-          state.getPathFormula().getFormula());
-      for (Template template : precision) {
-        shutdownNotifier.shutdownIfNecessary();
-
-        // Optimize for the template subject to the
-        // constraints introduced by {@code p}.
-        Formula objective = templateManager.toFormula(pfmgr, fmgr, template, p);
-
-        // We only care for a new value if it is the larger than the one
-        // we currently have.
-        // Skip the iteration if the previous value is already unbounded,
-        // add a lemma that the new value has to be strictly larger otherwise.
-        BooleanFormula prevStateConstraint = bfmgr.makeBoolean(true);
-        PolicyBound prevBound = null;
-        if (usePreviousBounds && otherState.isPresent()) {
-          PolicyAbstractedState prevState = otherState.get();
-          Optional<PolicyBound> bound = prevState.getBound(template);
-          if (!bound.isPresent()) {
-
-            // Can't do better than unbounded.
-            continue;
-          } else {
-            prevBound = bound.get();
-            Rational prevValue = prevBound.getBound();
-
-            prevStateConstraint = fmgr.makeGreaterThan(
-                objective, fmgr.makeNumber(objective, prevValue), true);
-          }
-        }
-
-        // Skip updates if the edge does not have any variables mentioned in the
-        // template.
-        if (shortCircuitSyntactic) {
-          Optional<Optional<PolicyBound>> syntacticCheckResult =
-              shouldPerformOptimization(state, formulaVars, template);
-          if (syntacticCheckResult.isPresent()) {
-            Optional<PolicyBound> inner = syntacticCheckResult.get();
-            if (inner.isPresent()) {
-              abstraction.put(template, inner.get());
-            }
-            continue;
-          }
-        }
-
-        optEnvironment.push();
-        optEnvironment.addConstraint(prevStateConstraint);
-
-        logger.log(Level.FINE, "Optimizing for ", objective);
-        int handle = optEnvironment.maximize(objective);
-
-        OptimizationProverEnvironment.OptStatus status;
-        try {
-          statistics.optTimer.start();
-          status = optEnvironment.check();
-        } finally {
-          statistics.optTimer.stop();
-        }
-
-        switch (status) {
-          case OPT:
-            Optional<Rational> bound = optEnvironment.upper(handle, EPSILON);
-            Optional<PolicyBound> policyBound = getPolicyBound(template,
-                optEnvironment, bound, annotatedFormula, p, state, objective);
-            if (policyBound.isPresent()) {
-              abstraction.put(template, policyBound.get());
-            }
-
-            // Lower bound on unsigned variables is at least zero.
-            logger.log(Level.FINE, "Got bound: ", bound);
-            break;
-
-          case UNSAT:
-            logger.log(Level.FINE, "Got UNSAT, previous value must be unbeatable");
-            assert prevBound != null : "Got UNSAT during abstraction, no previous value supplied";
-
-            // Use the previous bound.
-            abstraction.put(template, prevBound);
-            break;
-
-          case UNDEF:
-            shutdownNotifier.shutdownIfNecessary();
-            throw new CPATransferException("Solver returned undefined status");
-          default:
-            throw new AssertionError("Unhandled enum value in switch: " + status);
-        }
-        optEnvironment.pop();
-      }
-    } catch (SolverException e) {
-      throw new CPATransferException("Solver error: ", e);
-    }
-
-    statistics.updateCounter.add(locationID);
-    CongruenceState congruence;
-    if (runCongruence) {
-      congruence = congruenceManager.performAbstraction(
-          state.getNode(), p, startConstraints
-      );
-    } else {
-      congruence = CongruenceState.empty();
-    }
-
-    out = PolicyAbstractedState.of(
-            abstraction,
-            state.getNode(),
-            congruence,
-            locationID,
-            stateFormulaConversionManager,
-            state.getPathFormula().getSsa(),
-            state.getPathFormula().getPointerTargetSet(),
-            extraInvariant,
-            state
-        );
-    abstractionCache.put(key, out);
-    return out;
-  }
-
   /**
    * Derive policy bound from the optimization result.
    */
@@ -880,6 +710,307 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       }
     }
     return Optional.absent();
+  }
+
+  /**
+   * Perform the abstract operation on a new state
+   *
+   * @param state State to abstract
+   * @return Abstracted state if the state is reachable, empty optional
+   * otherwise.
+   */
+  private PolicyAbstractedState performAbstraction(
+      final PolicyIntermediateState state,
+      int locationID,
+      PolicyPrecision precision,
+      BooleanFormula extraInvariant)
+      throws CPAException, InterruptedException {
+
+    logger.log(Level.FINE, "Performing abstraction at node: ", state.getNode());
+
+    final PathFormula p = state.getPathFormula();
+    final BooleanFormula startConstraints =
+        stateFormulaConversionManager.getStartConstraints(state, true);
+
+    Set<BooleanFormula> startConstraintLemmas =
+        bfmgr.toConjunctionArgs(fmgr.applyTactic(startConstraints, Tactic
+            .TSEITIN_CNF), true);
+    Set<BooleanFormula> lemmas = bfmgr.toConjunctionArgs(
+      fmgr.applyTactic(p.getFormula(), Tactic.TSEITIN_CNF), true
+    );
+
+    final Map<Template, PolicyBound> abstraction = new HashMap<>();
+
+    // TODO: flag for caching.
+    try (OptimizationProverEnvironment optEnvironment = solver.newOptEnvironment()) {
+
+      optEnvironment.push();
+      optEnvironment.addConstraint(startConstraints);
+      optEnvironment.push();
+
+      for (Template template : precision) {
+        optEnvironment.pop();
+        optEnvironment.push();
+
+        // Optimize for the template subject to the
+        // constraints introduced by {@code p}.
+        Formula objective = templateManager.toFormula(pfmgr, fmgr, template, p);
+        Set<String> objectiveVars = fmgr.extractFunctionNames(objective);
+
+        Pair<DecompositionStatus, PolicyBound> res =
+            computeByDecomposition(
+                template, p, lemmas, startConstraintLemmas, abstraction);
+        switch (res.getFirstNotNull()) {
+          case BOUND_COMPUTED:
+
+            // Put the computed bound.
+            abstraction.put(template, res.getSecond());
+            continue;
+          case UNBOUNDED:
+
+            continue;
+          case ABSTRACTION_REQUIRED:
+
+            // Continue with abstraction.
+            break;
+        }
+
+        Set<BooleanFormula> slicedConstraint = sliceToRelated(
+            lemmas,
+            startConstraintLemmas,
+            objectiveVars);
+        BooleanFormula f = bfmgr.and(slicedConstraint);
+
+        // Linearize & add choice variables.
+        statistics.linearizationTimer.start();
+        BooleanFormula annotatedFormula = linearizationManager.annotateDisjunctions(
+            linearizationManager.linearize(f)
+        );
+        statistics.linearizationTimer.stop();
+
+        // Skip updates if the edge does not have any variables mentioned in the
+        // template: this now becomes obvious with the new slicing scheme.
+        if (shortCircuitSyntactic && bfmgr.isTrue(f)) {
+          if (state.getGeneratingState().getAbstraction().get(template) == null) {
+
+            // Unbounded.
+            continue;
+          }
+
+          PolicyBound bound = state.getGeneratingState().getAbstraction().get(template);
+          abstraction.put(template, bound);
+        }
+
+        optEnvironment.addConstraint(annotatedFormula);
+
+        // TODO: evaluate whether we need the code in "usePreviousBound".
+        int handle = optEnvironment.maximize(objective);
+
+        OptimizationProverEnvironment.OptStatus status;
+        try {
+          statistics.optTimer.start();
+          status = optEnvironment.check();
+        } finally {
+          statistics.optTimer.stop();
+        }
+
+        switch (status) {
+          case OPT:
+
+            Optional<Rational> bound = optEnvironment.upper(handle, EPSILON);
+            Optional<PolicyBound> policyBound = getPolicyBound(template,
+                optEnvironment, bound, annotatedFormula, p, state, objective);
+            if (policyBound.isPresent()) {
+              abstraction.put(template, policyBound.get());
+            }
+
+            logger.log(Level.FINE, "Got bound: ", bound);
+            break;
+
+          case UNSAT:
+            throw new CPAException("Unexpected UNSAT");
+
+          case UNDEF:
+            throw new CPATransferException("Solver returned undefined status");
+          default:
+            throw new AssertionError("Unhandled enum value in switch: " + status);
+        }
+
+      }
+    } catch (SolverException e) {
+      throw new CPATransferException("Solver error: ", e);
+    }
+
+    statistics.updateCounter.add(locationID);
+
+    // TODO: ideally, congruence should be a separate CPA.
+    CongruenceState congruence;
+    if (runCongruence) {
+      congruence = congruenceManager.performAbstraction(
+          state.getNode(), p, startConstraints
+      );
+    } else {
+      congruence = CongruenceState.empty();
+    }
+
+    return PolicyAbstractedState.of(
+        abstraction,
+        state.getNode(),
+        congruence,
+        locationID,
+        stateFormulaConversionManager,
+        state.getPathFormula().getSsa(),
+        state.getPathFormula().getPointerTargetSet(),
+        extraInvariant,
+        state
+    );
+  }
+
+  enum DecompositionStatus {
+    BOUND_COMPUTED,
+    ABSTRACTION_REQUIRED,
+    UNBOUNDED,
+  }
+
+  /**
+   * Tries to shortcut an abstraction computation.
+   *
+   * @param lemmas Input in RCNF form.
+   */
+  private Pair<DecompositionStatus, PolicyBound> computeByDecomposition(
+      Template pTemplate,
+      PathFormula pFormula,
+      Set<BooleanFormula> lemmas,
+      Set<BooleanFormula> startConstraintLemmas,
+      Map<Template, PolicyBound> currentAbstraction
+  ) {
+
+    if (pTemplate.size() == 1) {
+      return Pair.of(ABSTRACTION_REQUIRED, null);
+    }
+
+    List<Set<BooleanFormula>> slices = new ArrayList<>(pTemplate.size());
+    List<PolicyBound> policyBounds = new ArrayList<>();
+
+
+    for (Entry<CIdExpression, Rational> e : pTemplate.getLinearExpression()) {
+      CIdExpression c = e.getKey();
+      Rational r = e.getValue();
+      LinearExpression<CIdExpression> le = LinearExpression.ofVariable(c);
+
+      Template singleton;
+      if (r.signum() < 0) {
+        singleton = Template.of(le.negate());
+      } else {
+        singleton = Template.of(le);
+      }
+
+      policyBounds.add(currentAbstraction.get(singleton));
+
+      Set<String> variables = fmgr.extractFunctionNames(
+          templateManager.toFormula(pfmgr, fmgr, singleton, pFormula)
+      );
+      Set<BooleanFormula> lemmasSubset = sliceToRelated(
+          lemmas, startConstraintLemmas, variables);
+      slices.add(lemmasSubset);
+    }
+
+    // Fast-fail iff not all lemmas in slices are disjoint: simple quadratic
+    // test.
+    for (Set<BooleanFormula> sliceA : slices) {
+      for (Set<BooleanFormula> sliceB : slices) {
+        if (sliceA == sliceB) {
+          continue;
+        }
+        if (!Sets.intersection(sliceA, sliceB).isEmpty()) {
+          return Pair.of(ABSTRACTION_REQUIRED, null);
+        }
+      }
+    }
+
+    // One unbounded => all unbounded (sign is taken into account).
+    if (Iterables.filter(policyBounds, Predicates.<PolicyBound>isNull())
+        .iterator().hasNext()) {
+      return Pair.of(UNBOUNDED, null);
+    }
+
+    // Return FAIL if not all predecessors are the same.
+    PolicyBound first = policyBounds.get(0);
+    for (PolicyBound bound : policyBounds) {
+      if (!bound.getPredecessor().equals(first.getPredecessor())
+          || !bound.getFormula().getSsa().equals(first.getFormula().getSsa())
+          || !bound.getFormula().getPointerTargetSet().equals(first
+                .getFormula().getPointerTargetSet())) {
+        return Pair.of(ABSTRACTION_REQUIRED, null);
+      }
+    }
+
+    Set<Template> allDependencies = new HashSet<>();
+    Set<BooleanFormula> combinedPolicy = new HashSet<>();
+    Rational combinedBound = Rational.ZERO;
+    for (PolicyBound bound : policyBounds) {
+      combinedBound = combinedBound.plus(bound.getBound());
+      allDependencies.addAll(bound.getDependencies());
+      combinedPolicy.add(bound.getFormula().getFormula());
+    }
+
+    return Pair.of(BOUND_COMPUTED, PolicyBound.of(
+        first.getFormula().updateFormula(bfmgr.and(combinedPolicy)),
+        combinedBound,
+        first.getPredecessor(),
+        allDependencies
+    ));
+  }
+
+
+  /**
+   * @param supportingLemmas Closure computation should be done with respect
+   *                         to those variables.
+   *
+   * @return Subset {@code input},
+   * which exactly preserves the state-space with respect to all variables in
+   * {@code vars}.
+   */
+  private Set<BooleanFormula> sliceToRelated(
+      Set<BooleanFormula> input,
+      Set<BooleanFormula> supportingLemmas,
+      Set<String> vars
+  ) {
+    final Set<String> closure = relatedClosure(
+        Sets.union(input, supportingLemmas), vars);
+    Set<BooleanFormula> out = new HashSet<>();
+
+    for (BooleanFormula lemma : input) {
+      if (!Sets.intersection(fmgr.extractFunctionNames(lemma), closure)
+          .isEmpty()) {
+        out.add(lemma);
+      }
+    }
+    return out;
+  }
+
+  /**
+   * @param input Set of lemmas.
+   * @param vars Vars to perform the closure with respect to.
+   * @return Set of variables contained in the closure.
+   */
+  private Set<String> relatedClosure(
+      Set<BooleanFormula> input,
+      Set<String> vars) {
+    Set<String> related = new HashSet<>(vars);
+    while (true) {
+      boolean modified = false;
+      for (BooleanFormula atom : input) {
+        Set<String> containedVars = fmgr.extractFunctionNames(atom);
+        if (!Sets.intersection(containedVars, related).isEmpty()) {
+          modified |= related.addAll(containedVars);
+        }
+      }
+      if (!modified) {
+        break;
+      }
+    }
+    return related;
   }
 
   /**
@@ -972,46 +1103,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       default:
         throw new UnsupportedOperationException("Unexpected state");
     }
-  }
-
-  /** HELPER METHODS BELOW. **/
-
-  /**
-   * Perform a syntactic check on whether an abstraction is necessary on a
-   * given template.
-   *
-   * Optional.absent() => abstraction necessary
-   * Optional.of(Optional.absent()) => unbounded
-   * Optional.of(Optional.of(bound)) => fixed bound
-   */
-  private Optional<Optional<PolicyBound>> shouldPerformOptimization(
-      PolicyIntermediateState state,
-      Set<String> formulaVars,
-      Template pTemplate
-  ) {
-    PolicyAbstractedState generatingState = state.getGeneratingState();
-    Set<String> templateVars = fmgr.extractFunctionNames(
-        templateManager.toFormula(pfmgr, fmgr, pTemplate, state.getPathFormula()));
-
-    if (!Sets.intersection(formulaVars, templateVars).isEmpty()) {
-      return Optional.absent();
-    }
-
-    // Otherwise compute the bound from the previous value.
-    Optional<PolicyBound> genBound = generatingState.getBound(pTemplate);
-    if (!genBound.isPresent()) {
-      return Optional.of(Optional.<PolicyBound>absent());
-    }
-    return Optional.of(Optional.of(
-        PolicyBound.of(
-            stateFormulaConversionManager
-                .getPathFormula(generatingState, fmgr, true)
-                .updateFormula(bfmgr.makeBoolean(true)),
-            genBound.get().getBound(),
-            generatingState,
-            ImmutableSet.of(pTemplate)
-        )
-    ));
   }
 
   /**
