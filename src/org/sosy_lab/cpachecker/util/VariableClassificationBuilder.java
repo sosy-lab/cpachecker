@@ -759,7 +759,7 @@ public class VariableClassificationBuilder {
 
         final VariableOrField lhsVariableOrField = lhs.accept(collectingLHSVisitor);
 
-        assignments.put(lhsVariableOrField, VariableOrField.newVariable(scopedRetVal));
+        addVariableOrField(lhsVariableOrField, VariableOrField.newVariable(scopedRetVal));
 
       } else if (statement instanceof CFunctionCallStatement) {
         // f(); without assignment
