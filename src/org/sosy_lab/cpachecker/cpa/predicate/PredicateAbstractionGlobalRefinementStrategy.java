@@ -334,15 +334,16 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
       throws CPAException, InterruptedException {
     // only thing to do here is adding the false predicate for unreacheable states
     newPredicates.put(extractLocation(infeasiblePartOfART), predAbsMgr.makeFalsePredicate());
+    changedElements.add(infeasiblePartOfART);
 
-    if (refinementRoot == null) {
-      refinementRoot = changedElements.get(0);
-
-    } else if (restartAfterRefinement) {
+    if (restartAfterRefinement) {
       refinementRoot = (ARGState) reached.asReachedSet().getFirstState();
 
-      // search parent of both refinement roots and use this as the new
-      // refinement root
+    } else if (refinementRoot == null) {
+        refinementRoot = changedElements.get(0);
+
+        // search parent of both refinement roots and use this as the new
+        // refinement root
     } else {
       PathIterator firstPath = ARGUtils.getOnePathTo(refinementRoot).pathIterator();
       PathIterator secondPath = ARGUtils.getOnePathTo(changedElements.get(0)).pathIterator();
