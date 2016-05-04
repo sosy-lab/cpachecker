@@ -23,12 +23,11 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.mpa;
 
-import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
-
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -59,6 +58,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AnalysisCache;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MultiPropertyAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.PresenceCondition;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.PropertySummary;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonPrecision;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
+import org.sosy_lab.cpachecker.cpa.bdd.BDDCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -76,6 +77,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.InterruptProvider;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.predicates.regions.Region;
+import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTimeLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
@@ -86,6 +89,7 @@ import org.sosy_lab.cpachecker.util.statistics.Stats.Contexts;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -140,6 +144,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
   private Optional<PropertySummary> lastRunPropertySummary = Optional.absent();
   private ResourceLimitChecker reschecker = null;
   private ShutdownNotifier globalShutdownManager;
+  private RegionManager rm;
 
   public MultiPropertyAnalysis(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
     Configuration pConfig, LogManager pLogger, ShutdownNotifier pGlobalShutdownNotifier,
@@ -162,6 +167,13 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
     partitionOperator = createPartitioningOperator(pConfig, pLogger);
     interruptNotifier = pShutdownNotifier;
     globalShutdownManager = pGlobalShutdownNotifier;
+
+    BDDCPA bddCpa = CPAs.retrieveCPA(pCpa, BDDCPA.class);
+    if (bddCpa != null) {
+      rm = bddCpa.getManager();
+    }
+
+
   }
 
   private InitOperator createInitOperator() throws CPAException, InvalidConfigurationException {
@@ -173,21 +185,6 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
 
     return Classes.createInstance(PartitioningOperator.class, partitionOperatorClass,
         new Class[] { Configuration.class, LogManager.class }, new Object[] { pConfig, pLogger }, CPAException.class);
-  }
-
-  private ImmutableSetMultimap<AbstractState, Property> identifyViolationsInRun(ReachedSet pReachedSet) {
-    ImmutableSetMultimap.Builder<AbstractState, Property> result = ImmutableSetMultimap.<AbstractState, Property>builder();
-
-    // ASSUMPTION: no "global refinement" is used! (not yet implemented for this algorithm!)
-
-    final AbstractState e = pReachedSet.getLastState();
-    if (isTargetState(e)) {
-      Set<Property> violated = AbstractStates.extractViolatedProperties(e, Property.class);
-      result.putAll(e, violated);
-      logger.logf(Level.INFO, "Violation of %s at %s", violated.toString(), AbstractStates.extractLocation(e).describeFileLocation());
-    }
-
-    return result.build();
   }
 
   private ImmutableSortedSet<Property> getActiveProperties(final ReachedSet pReached) {
@@ -283,9 +280,9 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
     Preconditions.checkState(all.size() > 0, "At least one property must get checked!");
 
     final Set<Property> relevant = Sets.newLinkedHashSet();
-    final Set<Property> violated = Sets.newLinkedHashSet();
     final Set<Property> satisfied = Sets.newLinkedHashSet();
     final Set<Property> unknown = Sets.newLinkedHashSet();
+    TargetSummary violated = TargetSummary.none();
 
     try(Contexts ctx = Stats.beginRootContext("Multi-Property Verification")) {
 
@@ -363,7 +360,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
               stats.numberOfPartitionExhaustions++;
 
               final ImmutableSet<Property> active = Sets.difference(all,
-                  Sets.union(violated, getInactiveProperties(pReachedSet))).immutableCopy();
+                  Sets.union(violated.getViolatedProperties(), getInactiveProperties(pReachedSet))).immutableCopy();
               if (runProperties.size() == 1) {
                 unknown.addAll(active);
               }
@@ -385,10 +382,9 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
         //    (no global refinement)
 
         // Identify the properties that were violated during the last verification run
-        final ImmutableSetMultimap<AbstractState, Property> runViolated;
-        runViolated = identifyViolationsInRun(pReachedSet);
+        final TargetSummary runViolated = TargetSummary.identifyViolationsInRun(logger, pReachedSet);
 
-        if (runViolated.size() > 0) {
+        if (runViolated.hasTargetStates()) {
 
           // The waitlist should never be empty in this case!
           //  There might be violations of other properties after the
@@ -404,7 +400,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
           //    (or identify more feasible counterexamples)
 
           // Add the properties that were violated in this run.
-          violated.addAll(runViolated.values());
+          violated = TargetSummary.union(rm, violated, runViolated);
 
           // The partitioning operator might remove the violated properties
           //  if we have found sufficient counterexamples
@@ -413,7 +409,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
           //    checkPartitions = checkPartitions.substract(ImmutableSet.<Property>copyOf(runViolated.values()));
 
           // Just adjust the precision of the states in the waitlist
-          Precisions.updatePropertyBlacklistOnWaitlist(partitionCPA, pReachedSet, violated);
+          Precisions.updatePropertyBlacklistOnWaitlist(partitionCPA, pReachedSet, violated.getViolatedProperties());
 
         } else {
 
@@ -425,10 +421,10 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
 
             // Properties that are (1) still active
             //  and (2) for that no counterexample was found are considered to be save!
-            final ImmutableSet<Property> active = Sets.difference(getActiveProperties(pReachedSet), violated).immutableCopy();
+            final ImmutableSet<Property> active = Sets.difference(getActiveProperties(pReachedSet), violated.getViolatedProperties()).immutableCopy();
             satisfied.addAll(active);
 
-            final ImmutableSortedSet<Property> remain = remaining(all, violated, satisfied, unknown);
+            final ImmutableSortedSet<Property> remain = remaining(all, violated.getViolatedProperties(), satisfied, unknown);
 
             // On the size of the set 'reached' (assertions and statistics)
             final Integer reachedSetSize = pReachedSet.size();
@@ -454,7 +450,8 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
           }
 
           // A new partitioning must be computed.
-          final ImmutableSortedSet<Property> remain = remaining(all, violated, satisfied, unknown);
+          final ImmutableSortedSet<Property> remain = remaining(all,
+              violated.getViolatedProperties(), satisfied, unknown);
 
           if (remain.isEmpty()) {
             break;
@@ -502,7 +499,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
         //  ... (1) the fixpoint has not been reached
         //  ... (2) or not all properties have been checked so far.
       } while (pReachedSet.hasWaitingState()
-          || remaining(all, violated, satisfied, unknown).size() > 0 );
+          || remaining(all, violated.getViolatedProperties(), satisfied, unknown).size() > 0 );
 
       // Compute the overall result:
       //    Violated properties (might have multiple counterexamples)
@@ -511,17 +508,18 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
       //        (could be derived from the precision of the leaf states)
 
       logger.log(Level.WARNING, String.format("Multi-property analysis terminated: %d violated, %d satisfied, %d unknown",
-          violated.size(), satisfied.size(), remaining(all, violated, satisfied, unknown).size()));
+          violated.getViolatedProperties().size(), satisfied.size(), remaining(all, violated.getViolatedProperties(),
+              satisfied, unknown).size()));
 
       return status;
 
     } finally {
-      lastRunPropertySummary = Optional.<PropertySummary>of(createSummary(all, relevant, violated, satisfied));
+      lastRunPropertySummary = Optional.<PropertySummary>of(createSummary(all, relevant, violated.getViolatedProperties(), satisfied, violated));
     }
   }
 
   private PropertySummary createSummary(final ImmutableSet<Property> all, final Set<Property> relevant,
-      final Set<Property> violated, final Set<Property> satisfied) {
+      final Set<Property> violated, final Set<Property> satisfied, final TargetSummary pTargetSummary) {
 
     return new PropertySummary() {
 
@@ -548,6 +546,27 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
       @Override
       public ImmutableSet<Property> getConsideredProperties() {
         return ImmutableSet.copyOf(all);
+      }
+
+      @Override
+      public ImmutableMap<Property, PresenceCondition> getConditionalViolatedProperties() {
+        Builder<Property, PresenceCondition> builder = ImmutableMap.<Property, PresenceCondition>builder();
+        for (final Entry<Property, Optional<Region>> e: pTargetSummary.getViolationConditions().entrySet()) {
+          if (e.getValue().isPresent()) {
+            Preconditions.checkState(rm != null);
+            if (!e.getValue().get().isTrue()) {
+              builder.put(e.getKey(), new PresenceCondition() {
+                private final Region pc = e.getValue().get();
+
+                @Override
+                public String toString() {
+                  return pc.toString();
+                }
+              });
+            }
+          }
+        }
+        return builder.build();
       }
     };
   }

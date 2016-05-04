@@ -24,11 +24,14 @@
 package org.sosy_lab.cpachecker.core.interfaces;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 public interface PropertySummary {
 
   public ImmutableSet<Property> getViolatedProperties();
+
+  public ImmutableMap<Property, PresenceCondition> getConditionalViolatedProperties();
 
   public ImmutableSet<Property> getConsideredProperties();
 
@@ -63,6 +66,11 @@ public interface PropertySummary {
     @Override
     public Optional<ImmutableSet<Property>> getRelevantProperties() {
       return Optional.absent();
+    }
+
+    @Override
+    public ImmutableMap<Property, PresenceCondition> getConditionalViolatedProperties() {
+      return ImmutableMap.of();
     }
   };
 

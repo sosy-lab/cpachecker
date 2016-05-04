@@ -27,6 +27,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -59,6 +60,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AnalysisCache;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MultiPropertyAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.PresenceCondition;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.PropertySummary;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -525,6 +527,12 @@ public final class MultiPropertyAnalysisFullReset implements MultiPropertyAlgori
       @Override
       public ImmutableSet<Property> getConsideredProperties() {
         return ImmutableSet.copyOf(all);
+      }
+
+      @Override
+      public ImmutableMap<Property, PresenceCondition> getConditionalViolatedProperties() {
+        // TODO Auto-generated method stub
+        return null;
       }
     };
   }

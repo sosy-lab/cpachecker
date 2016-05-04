@@ -138,6 +138,8 @@ public class CPAcheckerResult {
     out.println(String.format("\tNumber of considered properties: %d", propertySummary.getConsideredProperties().size()));
     out.println(String.format("\tNumber of violated properties: %d", propertySummary.getViolatedProperties().size()));
 
+    out.println(String.format("\tNumber of conditional violated properties: %d", propertySummary.getConditionalViolatedProperties().keySet().size()));
+
     if (propertySummary.getUnknownProperties().isPresent()) {
       out.println(String.format("\tNumber of unknown properties: %d", propertySummary.getUnknownProperties().get().size()));
     }

@@ -25,15 +25,19 @@ package org.sosy_lab.cpachecker.core;
 
 import static com.google.common.base.Preconditions.*;
 
-import java.util.Collection;
-import java.util.Collections;
+import com.google.common.base.Optional;
+import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.cpachecker.core.counterexample.RichModel;
+import org.sosy_lab.cpachecker.core.interfaces.PresenceCondition;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import com.google.common.collect.Lists;
+import java.util.Collection;
+import java.util.Collections;
+
+import javax.annotation.Nullable;
 
 public class CounterexampleInfo {
 
@@ -46,9 +50,12 @@ public class CounterexampleInfo {
   // list with additional information about the counterexample
   private final Collection<Pair<Object, PathTemplate>> furtherInfo;
 
-  private static final CounterexampleInfo SPURIOUS = new CounterexampleInfo(true, null, null, false);
+  private static final CounterexampleInfo SPURIOUS = new CounterexampleInfo(true,
+      null, null, false);
 
-  private CounterexampleInfo(boolean pSpurious, ARGPath pTargetPath, RichModel pModel, boolean pIsPreciseCEX) {
+  private CounterexampleInfo(boolean pSpurious, ARGPath pTargetPath, RichModel pModel,
+      boolean pIsPreciseCEX) {
+
     spurious = pSpurious;
     targetPath = pTargetPath;
     model = pModel;
@@ -63,6 +70,17 @@ public class CounterexampleInfo {
 
   public static CounterexampleInfo spurious() {
     return SPURIOUS;
+  }
+
+  public Optional<PresenceCondition> getPresenceCondition() {
+    if (furtherInfo != null) {
+      for (Object o: furtherInfo) {
+        if (o instanceof PresenceCondition) {
+          return Optional.of((PresenceCondition) o);
+        }
+      }
+    }
+    return Optional.absent();
   }
 
   public boolean isPreciseCounterExample() {
@@ -107,7 +125,7 @@ public class CounterexampleInfo {
    * @param info The information.
    * @param dumpFile The file where "info.toString()" should be dumped (may be null).
    */
-  public void addFurtherInformation(Object info, PathTemplate dumpFile) {
+  public void addFurtherInformation(Object info, @Nullable PathTemplate dumpFile) {
     checkState(!spurious);
 
     furtherInfo.add(Pair.of(checkNotNull(info), dumpFile));

@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.collect.Collections2;
+import com.google.errorprone.annotations.ForOverride;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -48,10 +48,10 @@ import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.StatCpuTimer;
 import org.sosy_lab.cpachecker.util.statistics.Stats;
 import org.sosy_lab.cpachecker.util.statistics.Stats.Contexts;
 
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.collect.Collections2;
-import com.google.errorprone.annotations.ForOverride;
+import java.util.Set;
+import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 public abstract class AbstractARGBasedRefiner implements Refiner {
 
@@ -118,6 +118,8 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
         try(StatCpuTimer t = Stats.startTimer("Precision Refinement Time")) {
 
           counterexample = performRefinement(reached, path);
+
+
         }
       }
     } catch (RefinementFailedException  e) {
