@@ -39,6 +39,8 @@ public class PolicyBound {
    */
   private final ImmutableSet<Template> dependencies;
 
+  private int hashCache = 0;
+
   private static final Map<Triple<PolicyAbstractedState, BooleanFormula, PolicyAbstractedState>, Integer>
       serializationMap = new HashMap<>();
   private static final UniqueIdGenerator pathCounter = new UniqueIdGenerator();
@@ -98,7 +100,10 @@ public class PolicyBound {
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(predecessor, bound, formula);
+    if (hashCache == 0) {
+      hashCache = Objects.hashCode(predecessor, bound, formula);
+    }
+    return hashCache;
   }
 
   @Override
