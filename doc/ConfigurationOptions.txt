@@ -1993,11 +1993,6 @@ cpa.stator.policy.useCachingPathFormulaManager = true
 # them.
 cpa.stator.policy.useInvariantsForAbstraction = false
 
-# Use the optimized abstraction, which takes into the account the previously
-# obtained bound at the location. Interferes withobtaining templates using
-# convex hull.
-cpa.stator.policy.usePreviousBounds = true
-
 # Strategy for filtering variables out of templates
 cpa.stator.policy.varFiltering = ALL_LIVE
   enum:     [ALL_LIVE, ONE_LIVE, ALL]
