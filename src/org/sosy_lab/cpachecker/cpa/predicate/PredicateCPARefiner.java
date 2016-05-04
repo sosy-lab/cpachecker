@@ -28,12 +28,13 @@ import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getAllStatesOnPathsTo;
 import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
-import java.io.PrintStream;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.UnmodifiableIterator;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -88,13 +89,12 @@ import org.sosy_lab.solver.AssignableTerm;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.UnmodifiableIterator;
+import java.io.PrintStream;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * This class provides a basic refiner implementation for predicate analysis.
@@ -207,7 +207,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   /**
    * Create list of formulas on path.
    */
-  protected List<BooleanFormula> createFormulasOnPath(final ARGPath allStatesTrace,
+  public List<BooleanFormula> createFormulasOnPath(final ARGPath allStatesTrace,
                                                       final List<ARGState> abstractionStatesTrace)
                                                       throws CPAException, InterruptedException {
     List<BooleanFormula> formulas;
@@ -360,7 +360,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     return !prefixPreference.equals(PrefixSelector.NO_SELECTION);
   }
 
-  static List<ARGState> transformPath(ARGPath pPath) {
+  public static List<ARGState> transformPath(ARGPath pPath) {
     List<ARGState> result = from(pPath.asStatesList())
       .skip(1)
       .filter(Predicates.compose(PredicateAbstractState.FILTER_ABSTRACTION_STATES,

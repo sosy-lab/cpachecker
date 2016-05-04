@@ -27,13 +27,10 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
-import java.io.PrintStream;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.Collection;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.Classes;
@@ -56,10 +53,13 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidComponentException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 
-import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.PrintStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.Collection;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
 @Options(prefix="cegar")
 public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
@@ -314,6 +314,10 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
       ((StatisticsProvider)mRefiner).collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(stats);
+  }
+
+  public Refiner getRefiner() {
+    return mRefiner;
   }
 
 }
