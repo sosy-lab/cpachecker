@@ -285,12 +285,12 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
   /** checks whether the location is the last node of a thread,
    * i.e. the current thread will terminate after this node. */
-  private boolean isLastNodeOfThread(CFANode node) {
+  private static boolean isLastNodeOfThread(CFANode node) {
     return 0 == node.getNumLeavingEdges();
   }
 
   /** the whole program will terminate after this edge */
-  private boolean isTerminatingEdge(CFAEdge edge) {
+  private static boolean isTerminatingEdge(CFAEdge edge) {
     return edge.getSuccessor() instanceof CFATerminationNode;
   }
 
@@ -490,7 +490,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     }
   }
 
-  private boolean isImporantForThreading(CFAEdge cfaEdge) {
+  private static boolean isImporantForThreading(CFAEdge cfaEdge) {
     switch (cfaEdge.getEdgeType()) {
     case StatementEdge: {
       AStatement statement = ((AStatementEdge)cfaEdge).getStatement();
