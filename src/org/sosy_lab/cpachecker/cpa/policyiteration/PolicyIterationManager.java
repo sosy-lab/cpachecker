@@ -759,7 +759,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
         // TODO: make optional.
         Pair<DecompositionStatus, PolicyBound> res = computeByDecomposition(
-                template, p, lemmas, startConstraintLemmas, abstraction);
+                template, objective, p, lemmas, startConstraintLemmas,
+            abstraction);
         switch (res.getFirstNotNull()) {
           case BOUND_COMPUTED:
 
@@ -883,11 +884,12 @@ public class PolicyIterationManager implements IPolicyIterationManager {
    */
   private Pair<DecompositionStatus, PolicyBound> computeByDecomposition(
       Template pTemplate,
+      Formula pTemplateObjective,
       PathFormula pFormula,
       Set<BooleanFormula> lemmas,
       Set<BooleanFormula> startConstraintLemmas,
       Map<Template, PolicyBound> currentAbstraction
-  ) {
+  ) throws SolverException, InterruptedException {
 
     if (pTemplate.size() == 1) {
       return Pair.of(ABSTRACTION_REQUIRED, null);
@@ -962,9 +964,29 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       allDependencies.addAll(bound.getDependencies());
       policies.add(bound.getFormula().getFormula());
     }
+    BooleanFormula policy = bfmgr.and(policies);
+
+    if (checkPolicyInitialCondition) {
+      statistics.checkIndependenceTimer.start();
+      try (ProverEnvironment prover = solver.newProverEnvironment()) {
+
+        prover.push();
+        prover.addConstraint(policy);
+
+        //noinspection ResultOfMethodCallIgnored
+        prover.push(fmgr.makeGreaterThan(
+            pTemplateObjective,
+            fmgr.makeNumber(pTemplateObjective, combinedBound), true));
+        if (prover.isUnsat()) {
+          allDependencies = new HashSet<>();
+        }
+      } finally {
+        statistics.checkIndependenceTimer.stop();
+      }
+    }
 
     return Pair.of(BOUND_COMPUTED, PolicyBound.of(
-        firstBound.getFormula().updateFormula(bfmgr.and(policies)),
+        firstBound.getFormula().updateFormula(policy),
         combinedBound,
         firstBound.getPredecessor(),
         allDependencies
