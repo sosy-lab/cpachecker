@@ -773,6 +773,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
             // Continue with abstraction.
             break;
+          default:
+            throw new UnsupportedOperationException("Unexpected case");
         }
 
         Set<BooleanFormula> slicedConstraint = sliceToRelated(
