@@ -1,11 +1,14 @@
 package org.sosy_lab.cpachecker.core.counterexample;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.FluentIterable.from;
 import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.common.io.PathTemplate.ofFormatString;
+import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
 import com.google.common.base.Splitter;
-import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.configuration.Configuration;
@@ -20,6 +23,8 @@ import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder2;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -50,6 +55,7 @@ public class GenerateReportWithoutGraphs {
   private final Configuration config;
   private final LogManager logger;
   private final CFA cfa;
+  private final ReachedSet reached;
   private final DOTBuilder2 dotBuilder;
 
   @Option(
@@ -70,14 +76,15 @@ public class GenerateReportWithoutGraphs {
   @Nullable private final Path outputPath;
   @Nullable private final Path reportDir;
 
-  private final List<Path> errorPathFiles = new ArrayList<>();
   private final List<String> sourceFiles = new ArrayList<>();
 
-  public GenerateReportWithoutGraphs(Configuration pConfig, LogManager pLogger, CFA pCfa)
+  public GenerateReportWithoutGraphs(
+      Configuration pConfig, LogManager pLogger, CFA pCfa, ReachedSet pReached)
       throws InvalidConfigurationException {
     config = checkNotNull(pConfig);
     logger = checkNotNull(pLogger);
     cfa = checkNotNull(pCfa);
+    reached = checkNotNull(pReached);
     dotBuilder = new DOTBuilder2(pCfa);
 
     config.inject(this);
@@ -93,28 +100,9 @@ public class GenerateReportWithoutGraphs {
       reportDir = outputPath.resolve(REPORT);
 
       sourceFiles.addAll(COMMA_SPLITTER.splitToList(programs));
-      errorPathFiles.addAll(getErrorPathFiles());
-
     } else {
       reportDir = null;
     }
-  }
-
-  private List<Path> getErrorPathFiles() {
-    List<Path> errorPaths = Lists.newArrayList();
-    PathTemplate errorPathTemplate = PathTemplate.ofFormatString(outputPath + "/ErrorPath.%d.json");
-
-    for (int i = 0; i < Integer.MAX_VALUE; i++) {
-      Path errorPath = errorPathTemplate.getPath(i);
-      if (errorPath.exists()) {
-        errorPaths.add(errorPath);
-
-      } else {
-        break;
-      }
-    }
-
-    return errorPaths;
   }
 
   public void generate() {
@@ -122,24 +110,35 @@ public class GenerateReportWithoutGraphs {
       return; // output is disabled
     }
 
-    if (errorPathFiles.isEmpty()) {
-      fillOutTemplate(-1);
+    Iterable<CounterexampleInfo> counterExamples =
+        Optional.presentInstances(
+            from(reached.asCollection())
+                .filter(IS_TARGET_STATE)
+                .filter(ARGState.class)
+                .transform(new ExtractCounterExampleInfo()));
+
+    if (!counterExamples.iterator().hasNext()) {
+      fillOutTemplate(null, NO_PATHS_OUT_HTML);
 
     } else {
-      for (int i = 0; i < errorPathFiles.size(); i++) {
-        fillOutTemplate(i);
+      int index = 0;
+      for (CounterexampleInfo counterExample : counterExamples) {
+        fillOutTemplate(counterExample, OUT_HTML.getPath(index));
+        index++;
       }
     }
   }
 
-  private void fillOutTemplate(int round) {
-    final Path outFileName;
-    if (round == -1) {
-      outFileName = NO_PATHS_OUT_HTML;
-    } else {
-      outFileName = OUT_HTML.getPath(round);
-    }
+  private static class ExtractCounterExampleInfo
+      implements Function<ARGState, Optional<CounterexampleInfo>> {
 
+    @Override
+    public Optional<CounterexampleInfo> apply(ARGState state) {
+      return state.getCounterexampleInformation();
+    }
+  }
+
+  private void fillOutTemplate(@Nullable CounterexampleInfo counterExample, Path outFileName) {
     Path reportPath = reportDir.resolve(outFileName);
     try {
       Files.createParentDirs(reportPath);
@@ -167,8 +166,8 @@ public class GenerateReportWithoutGraphs {
           insertSources(report);
         } else if (line.contains("LOG")) {
           insertLog(report);
-        } else if (line.contains("ERRORPATH") && round != -1) {
-          insertErrorPathData(errorPathFiles.get(round), report);
+        } else if (line.contains("ERRORPATH") && counterExample != null) {
+          insertErrorPathData(counterExample, report);
         } else if (line.contains("FUNCTIONS")) {
           insertFunctionNames(report);
         } else if (line.contains("SOURCE_FILE_NAMES")) {
@@ -190,7 +189,7 @@ public class GenerateReportWithoutGraphs {
     }
   }
 
-  private void insertStatistics(BufferedWriter bufferedWriter) throws IOException {
+  private void insertStatistics(Writer report) throws IOException {
     if (statisticsFile.exists() && statisticsFile.isFile()) {
       int iterator = 0;
       try (BufferedReader statistics =
@@ -201,7 +200,7 @@ public class GenerateReportWithoutGraphs {
         String line;
         while (null != (line = statistics.readLine())) {
           line = "<pre id=\"statistics-" + iterator + "\">" + line + "</pre>\n";
-          bufferedWriter.write(line);
+          report.write(line);
           iterator++;
         }
 
@@ -211,7 +210,7 @@ public class GenerateReportWithoutGraphs {
       }
 
     } else {
-      bufferedWriter.write("<p>No Statistics-File available</p>");
+      report.write("<p>No Statistics-File available</p>");
     }
   }
 
@@ -302,7 +301,7 @@ public class GenerateReportWithoutGraphs {
     }
   }
 
-  private void insertFCallEdges(BufferedWriter report) throws IOException {
+  private void insertFCallEdges(Writer report) throws IOException {
     report.write("var fCallEdges = ");
     dotBuilder.writeFunctionCallEdges(report);
     report.write(";\n");
@@ -320,25 +319,11 @@ public class GenerateReportWithoutGraphs {
     report.write(";\n");
   }
 
-  private void insertErrorPathData(Path errorPatData, BufferedWriter bufferedWriter) {
-    if (errorPatData.exists()) {
-      try (BufferedReader bufferedReader =
-          new BufferedReader(
-              new InputStreamReader(
-                  new FileInputStream(errorPatData.toFile()), Charset.defaultCharset()))) {
-
-        String line;
-        bufferedWriter.write("var errorPathData = ");
-        while (null != (line = bufferedReader.readLine())) {
-          bufferedWriter.write(line);
-        }
-        bufferedWriter.write(";\n");
-
-      } catch (IOException e) {
-        logger.logUserException(
-            WARNING, e, "Could not create report: Insertion of error path data failed.");
-      }
-    }
+  private void insertErrorPathData(CounterexampleInfo counterExample, Writer report)
+      throws IOException {
+    report.write("var errorPathData = ");
+    counterExample.toJSON(report);
+    report.write(";\n");
   }
 
   private void insertFunctionNames(BufferedWriter report) {
@@ -353,7 +338,7 @@ public class GenerateReportWithoutGraphs {
     }
   }
 
-  private void insertSourceFileNames(BufferedWriter report) {
+  private void insertSourceFileNames(Writer report) {
     try{
       report.write("var sourceFiles = ");
       JSON.writeJSONString(sourceFiles, report);

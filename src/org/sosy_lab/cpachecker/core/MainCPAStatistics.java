@@ -282,7 +282,7 @@ class MainCPAStatistics implements Statistics {
     if (generateNewCounterexampleReport && cfa != null) {
       try {
         GenerateReportWithoutGraphs generateReportWithoutGraphs =
-            new GenerateReportWithoutGraphs(config, logger, cfa);
+            new GenerateReportWithoutGraphs(config, logger, cfa, reached);
         generateReportWithoutGraphs.generate();
 
       } catch (InvalidConfigurationException e) {
