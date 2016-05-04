@@ -23,13 +23,9 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
-import java.util.Collection;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
+import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.LazyFutureTask;
@@ -41,9 +37,13 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
+import java.util.Collection;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 
 public class AdjustableInvariantGenerator<T extends InvariantGenerator> extends AbstractInvariantGenerator implements StatisticsProvider {
@@ -58,31 +58,51 @@ public class AdjustableInvariantGenerator<T extends InvariantGenerator> extends 
 
   private final AtomicReference<Future<FormulaAndTreeSupplier>> currentInvariantSupplier = new AtomicReference<>();
 
+  private final T initialGenerator;
+
+  private final AtomicBoolean started = new AtomicBoolean();
+
   public AdjustableInvariantGenerator(ShutdownNotifier pShutdownNotifier, T pInitialGenerator, Function<? super T, ? extends T> pAdjust) {
     shutdownNotifier = pShutdownNotifier;
-    invariantGenerator = new AtomicReference<>(pInitialGenerator);
+    invariantGenerator = new AtomicReference<>();
+    initialGenerator = pInitialGenerator;
     adjust = pAdjust;
   }
 
   @Override
   public void start(CFANode pInitialLocation) {
-    invariantGenerator.get().start(pInitialLocation);
-    setSupplier(invariantGenerator.get());
+    initialGenerator.start(pInitialLocation);
+    started.set(true);
+    setSupplier(
+        new FormulaAndTreeSupplier(
+            InvariantSupplier.TrivialInvariantSupplier.INSTANCE,
+            ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE));
   }
 
   public boolean adjustAndContinue(CFANode pInitialLocation) throws CPAException, InterruptedException {
     final T current = invariantGenerator.get();
-    try {
-      setSupplier(new FormulaAndTreeSupplier(current.get(), current.getAsExpressionTree()));
-    } finally {
-      if (current.isProgramSafe()) {
-        isProgramSafe.set(true);
+    final T next;
+    if (current == null) {
+      next = initialGenerator;
+      setSupplier(
+          new FormulaAndTreeSupplier(
+              InvariantSupplier.TrivialInvariantSupplier.INSTANCE,
+              ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE));
+    } else {
+      try {
+        setSupplier(new FormulaAndTreeSupplier(current.get(), current.getAsExpressionTree()));
+      } finally {
+        if (current.isProgramSafe()) {
+          isProgramSafe.set(true);
+        }
       }
+      next = adjust.apply(current);
     }
-    final T next = adjust.apply(current);
     boolean adjustable = next != current && next != null;
     if (adjustable) {
-      next.start(pInitialLocation);
+      if (current != null) {
+        next.start(pInitialLocation);
+      }
       invariantGenerator.set(next);
     }
     return adjustable;
@@ -90,7 +110,14 @@ public class AdjustableInvariantGenerator<T extends InvariantGenerator> extends 
 
   @Override
   public void cancel() {
-    invariantGenerator.get().cancel();
+    T current = invariantGenerator.get();
+    if (current == null) {
+      if (started.get()) {
+        initialGenerator.cancel();
+      }
+    } else {
+      current.cancel();
+    }
   }
 
   private FormulaAndTreeSupplier getInternal() throws CPAException, InterruptedException {
@@ -123,7 +150,14 @@ public class AdjustableInvariantGenerator<T extends InvariantGenerator> extends 
 
   @Override
   public boolean isProgramSafe() {
-    return isProgramSafe.get() || invariantGenerator.get().isProgramSafe();
+    if (isProgramSafe.get()) {
+      return true;
+    }
+    T current = invariantGenerator.get();
+    if (current == null) {
+      return false;
+    }
+    return current.isProgramSafe();
   }
 
   @Override
@@ -137,17 +171,6 @@ public class AdjustableInvariantGenerator<T extends InvariantGenerator> extends 
     if (invariantGenerator instanceof StatisticsProvider) {
       ((StatisticsProvider) invariantGenerator).collectStatistics(pStatsCollection);
     }
-  }
-
-  private void setSupplier(final InvariantGenerator pInvariantGenerator) {
-    currentInvariantSupplier.set(new LazyFutureTask<>(new Callable<FormulaAndTreeSupplier>() {
-
-      @Override
-      public FormulaAndTreeSupplier call() throws Exception {
-        return new FormulaAndTreeSupplier(pInvariantGenerator.get(), pInvariantGenerator.getAsExpressionTree());
-      }
-
-    }));
   }
 
   private void setSupplier(final FormulaAndTreeSupplier pSupplier) {
