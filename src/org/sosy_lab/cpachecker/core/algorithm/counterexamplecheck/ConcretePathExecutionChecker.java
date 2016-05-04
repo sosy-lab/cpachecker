@@ -23,14 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.logging.Level;
-
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.ProcessExecutor;
 import org.sosy_lab.common.configuration.Configuration;
@@ -52,11 +44,18 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
+
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.logging.Level;
 
 /**
  * Counterexample checker that creates a C program out of a given path program.
@@ -82,19 +81,17 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
   @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS, defaultUserUnit = TimeUnit.MILLISECONDS, min = 0)
   private TimeSpan timelimit = TimeSpan.ofMillis(0);
 
-  private final ARGCPA cpa;
   private final LogManager logger;
   private final Timer timer = new Timer();
 
-  public ConcretePathExecutionChecker(Configuration config, LogManager logger, CFA cfa, ARGCPA cpa) throws InvalidConfigurationException {
-
+  public ConcretePathExecutionChecker(Configuration config, LogManager logger, CFA cfa)
+      throws InvalidConfigurationException {
     if (cfa.getLanguage() != Language.C) {
       throw new UnsupportedOperationException("Concrete execution checker can only be used with C.");
     }
 
     config.inject(this);
     this.logger = logger;
-    this.cpa = cpa;
   }
 
   @Override
@@ -162,7 +159,7 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
     assert cFile != null;
 
     timer.start();
-    CounterexampleInfo ceInfo = cpa.getCounterexamples().get(pErrorState);
+    CounterexampleInfo ceInfo = pErrorState.getCounterexampleInformation().get();
 
     Appender pathProgram = PathToConcreteProgramTranslator.translatePaths(pRootState, pErrorPathStates, ceInfo.getCFAPathWithAssignments());
 

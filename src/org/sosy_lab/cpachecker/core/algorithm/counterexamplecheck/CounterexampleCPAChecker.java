@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -79,8 +78,6 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
   private final CFA cfa;
   private final String filename;
 
-  private final ARGCPA cpa;
-
   @Option(secure=true, name = "path.file",
       description = "File name where to put the path specification that is generated "
       + "as input for the counterexample check. A temporary file is used if this is unspecified.")
@@ -100,21 +97,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
     this.shutdownNotifier = pShutdownNotifier;
     this.cfa = pCfa;
     this.filename = pFilename;
-    cpa = null;
   }
-
-  public CounterexampleCPAChecker(Configuration config, LogManager logger,
-      ShutdownNotifier pShutdownNotifier, CFA pCfa, String pFilename,
-      ARGCPA pCpa) throws InvalidConfigurationException {
-    this.logger = logger;
-    this.config = config;
-    config.inject(this);
-    this.shutdownNotifier = pShutdownNotifier;
-    this.cfa = pCfa;
-    this.filename = pFilename;
-    cpa = pCpa;
-  }
-
 
   @Override
   public boolean checkCounterexample(ARGState pRootState,
@@ -142,8 +125,12 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       Path automatonFile) throws IOException, CPAException, InterruptedException {
 
     try (Writer w = Files.openOutputFile(automatonFile)) {
-      ARGUtils.producePathAutomaton(w, pRootState, pErrorPathStates,
-          "CounterexampleToCheck", cpa.getCounterexamples().get(pErrorState));
+      ARGUtils.producePathAutomaton(
+          w,
+          pRootState,
+          pErrorPathStates,
+          "CounterexampleToCheck",
+          pErrorState.getCounterexampleInformation().orNull());
     }
 
     CFANode entryNode = extractLocation(pRootState);

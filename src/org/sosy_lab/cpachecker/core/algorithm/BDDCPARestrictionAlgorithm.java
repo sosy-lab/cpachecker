@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import java.util.Collection;
-import java.util.logging.Level;
+import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -41,7 +40,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDCPA;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDState;
@@ -51,7 +50,8 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
-import com.google.common.collect.ImmutableList;
+import java.util.Collection;
+import java.util.logging.Level;
 
 @Options(prefix="counterexample")
 public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider {
@@ -62,7 +62,6 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
 
   private final Algorithm algorithm;
   private final LogManager logger;
-  private final ConfigurableProgramAnalysis cpa;
 
   private final NamedRegionManager manager;
   private Region errorSummary;
@@ -77,7 +76,6 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
     if (bddCpa == null) {
       throw new InvalidConfigurationException("BDD CPA needed for BDDCPARestrictionAlgorithm");
     }
-    cpa = pCpa;
     logger.log(Level.INFO, "using the BDDCPA Restriction Algorithm");
 
     manager = bddCpa.getManager();
@@ -106,8 +104,9 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
       logger.log(Level.INFO, "ErrorBDD:", manager.dumpRegion(errorBdd));
       errorSummary = manager.makeOr(errorBdd, errorSummary);
 
-      if (presenceConditionFile != null && cpa instanceof ARGCPA) {
-        CounterexampleInfo counterEx = ((ARGCPA)cpa).getCounterexamples().get(lastState);
+      if (presenceConditionFile != null && lastState instanceof ARGState) {
+        CounterexampleInfo counterEx =
+            ((ARGState) lastState).getCounterexampleInformation().orNull();
         if (counterEx != null) {
           counterEx.addFurtherInformation(manager.dumpRegion(errorBdd), presenceConditionFile);
         }

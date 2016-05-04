@@ -330,13 +330,6 @@ public class ARGReachedSet {
    * @return the elements to re-add to the waitlist
    */
   private SortedSet<ARGState> removeSet(Set<ARGState> elements) {
-    if (cpa != null) {
-      // This method call is "just" for avoiding a memory leak,
-      // so we can ignore it if we have no reference to the CPA,
-      // however, users of this class should really try to provide the CPA
-      // instance to reduce memory usage.
-      cpa.clearCounterexamples(elements);
-    }
     mReached.removeAll(elements);
 
     SortedSet<ARGState> toWaitlist = new TreeSet<>();

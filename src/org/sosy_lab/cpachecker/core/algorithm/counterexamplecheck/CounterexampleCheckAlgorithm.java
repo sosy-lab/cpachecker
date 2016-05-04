@@ -72,7 +72,6 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
   private final Algorithm algorithm;
   private final CounterexampleChecker checker;
   private final LogManager logger;
-  private final ARGCPA cpa;
 
   private final Timer checkTime = new Timer();
   private int numberOfInfeasiblePaths = 0;
@@ -95,17 +94,16 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
     if (!(pCpa instanceof ARGCPA)) {
       throw new InvalidConfigurationException("ARG CPA needed for counterexample check");
     }
-    cpa = (ARGCPA)pCpa;
 
     switch (checkerType) {
     case CBMC:
       checker = new CBMCChecker(config, logger, cfa);
       break;
     case CPACHECKER:
-      checker = new CounterexampleCPAChecker(config, logger, pShutdownNotifier, cfa, filename, cpa);
+      checker = new CounterexampleCPAChecker(config, logger, pShutdownNotifier, cfa, filename);
       break;
     case CONCRETE_EXECUTION:
-      checker = new ConcretePathExecutionChecker(config, logger, cfa, cpa);
+      checker = new ConcretePathExecutionChecker(config, logger, cfa);
       break;
     default:
       throw new AssertionError("Unhandled case statement: " + checkerType);

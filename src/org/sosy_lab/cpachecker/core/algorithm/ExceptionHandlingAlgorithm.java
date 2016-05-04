@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.collect.ImmutableList.copyOf;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
 import org.sosy_lab.common.ShutdownNotifier;
@@ -96,7 +95,6 @@ public class ExceptionHandlingAlgorithm implements Algorithm, StatisticsProvider
   private final Algorithm algorithm;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
-  private final ARGCPA cpa;
   private final ExceptionHandlingOptions options;
 
   private ExceptionHandlingAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
@@ -109,7 +107,6 @@ public class ExceptionHandlingAlgorithm implements Algorithm, StatisticsProvider
     if (!(pCpa instanceof ARGCPA)) {
       throw new InvalidConfigurationException("ARG CPA needed for counterexample check");
     }
-    cpa = (ARGCPA)pCpa;
   }
 
   public static Algorithm create(
@@ -360,7 +357,6 @@ public class ExceptionHandlingAlgorithm implements Algorithm, StatisticsProvider
       covered.removeFromARG();
     }
 
-    cpa.clearCounterexamples(ImmutableSet.of(lastState));
     reached.remove(parent);
     parent.removeFromARG();
 

@@ -25,10 +25,10 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.util.Collection;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.collect.Collections2;
+import com.google.errorprone.annotations.ForOverride;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -45,10 +45,10 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.collect.Collections2;
-import com.google.errorprone.annotations.ForOverride;
+import java.util.Collection;
+import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 /**
  * Base implementation for {@link Refiner}s that provides access to ARG utilities
@@ -137,7 +137,8 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
       // so it can be used for debugging
       // we don't know if the path is precise here, so we assume it is imprecise
       // (this only affects the CEXExporter)
-      argCpa.addCounterexample(lastElement, CounterexampleInfo.feasibleImprecise(e.getErrorPath()));
+      lastElement.addCounterexampleInformation(
+          CounterexampleInfo.feasibleImprecise(e.getErrorPath()));
       throw e;
     }
 
@@ -150,7 +151,7 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
       assert targetPath.getFirstState() == path.getFirstState() : "Target path from refiner does not contain root node";
       assert targetPath.getLastState()  == path.getLastState() : "Target path from refiner does not contain target state";
 
-      argCpa.addCounterexample(lastElement, counterexample);
+      lastElement.addCounterexampleInformation(counterexample);
 
       logger.log(Level.FINEST, "Counterexample", counterexamplesCounter, "has been found.");
 

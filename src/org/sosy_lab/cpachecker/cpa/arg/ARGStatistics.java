@@ -281,20 +281,11 @@ public class ARGStatistics implements Statistics {
   }
 
   private Map<ARGState, CounterexampleInfo> getAllCounterexamples(final UnmodifiableReachedSet pReached) {
-    Map<ARGState, CounterexampleInfo> probableCounterexample = cpa.getCounterexamples();
-    // This map may contain too many counterexamples
-    // (for target states that were in the mean time removed from the ReachedSet),
-    // as well as too feww counterexamples
-    // (for target states where we don't have a CounterexampleInfo
-    // because we did no refinement).
-    // So we create a map with all target states,
-    // adding the CounterexampleInfo where we have it (null otherwise).
-
     Map<ARGState, CounterexampleInfo> counterexamples = new HashMap<>();
 
     for (AbstractState targetState : from(pReached).filter(IS_TARGET_STATE)) {
       ARGState s = (ARGState)targetState;
-      CounterexampleInfo cex = probableCounterexample.get(s);
+      CounterexampleInfo cex = s.getCounterexampleInformation().orNull();
       if (cex == null) {
         ARGPath path = ARGUtils.getOnePathTo(s);
         if (path.getFullPath().isEmpty()) {

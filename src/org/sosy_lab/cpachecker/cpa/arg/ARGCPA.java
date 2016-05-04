@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
@@ -68,11 +66,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.WeakHashMap;
 import java.util.logging.Level;
 
 @Options(prefix="cpa.arg")
@@ -119,7 +113,6 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
   private final ProofChecker wrappedProofChecker;
 
   private final CEXExporter cexExporter;
-  private final Map<ARGState, CounterexampleInfo> counterexamples = new WeakHashMap<>();
   private final MachineModel machineModel;
 
   private ARGCPA(ConfigurableProgramAnalysis cpa, Configuration config, LogManager logger, CFA cfa) throws InvalidConfigurationException {
@@ -240,33 +233,6 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
     super.collectStatistics(pStatsCollection);
-  }
-
-  public Map<ARGState, CounterexampleInfo> getCounterexamples() {
-    return Collections.unmodifiableMap(counterexamples);
-  }
-
-  public void addCounterexample(ARGState targetState, CounterexampleInfo pCounterexample) {
-    checkArgument(targetState.isTarget());
-    checkArgument(!pCounterexample.isSpurious());
-    // With BAM, the targetState and the last state of the path
-    // may actually be not identical.
-    checkArgument(pCounterexample.getTargetPath().getLastState().isTarget());
-    counterexamples.put(targetState, pCounterexample);
-  }
-
-  public void clearCounterexamples(Set<ARGState> toRemove) {
-    // Actually the goal would be that this method is not necessary
-    // because the GC automatically removes counterexamples when the ARGState
-    // is removed from the ReachedSet.
-    // However, counterexamples may reference their target state through
-    // the target path attribute, so the GC may not remove the counterexample.
-    // While this is not a problem for correctness
-    // (we check in the end which counterexamples are still valid),
-    // it may be a memory leak.
-    // Thus this method.
-
-    counterexamples.keySet().removeAll(toRemove);
   }
 
   ARGToDotWriter getRefinementGraphWriter() {

@@ -293,7 +293,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
               ImmutableList.<BooleanFormula>of(cexFormula), model, branchingInformation);
       CounterexampleInfo counterexample =
           pathChecker.createCounterexample(targetPath, cexInfo, shouldCheckBranching);
-      ((ARGCPA) cpa).addCounterexample(counterexample.getTargetPath().getLastState(), counterexample);
+      counterexample.getTargetPath().getLastState().addCounterexampleInformation(counterexample);
 
     } finally {
       stats.errorPathCreation.stop();
