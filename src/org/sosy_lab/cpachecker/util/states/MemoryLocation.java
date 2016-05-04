@@ -25,17 +25,17 @@ package org.sosy_lab.cpachecker.util.states;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.Serializable;
-import java.util.Map;
-import java.util.Objects;
-
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
-import org.sosy_lab.common.collect.PersistentMap;
-
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Ordering;
+
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentMap;
+
+import java.io.Serializable;
+import java.util.Map;
+import java.util.Objects;
 
 /**
 * This class describes a location in the memory.
@@ -133,6 +133,10 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
 
   public static MemoryLocation valueOf(String pIdentifier, long pOffest) {
     return new MemoryLocation(pIdentifier, Optional.of(pOffest));
+  }
+
+  public static MemoryLocation valueOf(String pIdentifier, Optional<Long> pOffest) {
+    return new MemoryLocation(pIdentifier, pOffest);
   }
 
   public static MemoryLocation valueOf(String pVariableName) {
