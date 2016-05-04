@@ -970,7 +970,7 @@ v.addInitializer(initializer);
     if (exportCfaPerFunction && exportCfaFile != null) {
       try {
         Path outdir = exportCfaFile.getParent();
-        DOTBuilder2.writeReport(cfa, outdir);
+        new DOTBuilder2(cfa).writeReport(outdir);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,
           "Could not write CFA to dot and json file");

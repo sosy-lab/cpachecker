@@ -50,6 +50,7 @@ public class GenerateReportWithoutGraphs {
   private final Configuration config;
   private final LogManager logger;
   private final CFA cfa;
+  private final DOTBuilder2 dotBuilder;
 
   @Option(
     secure = true,
@@ -68,9 +69,6 @@ public class GenerateReportWithoutGraphs {
 
   @Nullable private final Path outputPath;
   @Nullable private final Path reportDir;
-  @Nullable private final Path combinedNodesPath;
-  @Nullable private final Path cfaInfoPath;
-  @Nullable private final Path fCallEdgesPath;
 
   private final List<Path> errorPathFiles = new ArrayList<>();
   private final List<String> sourceFiles = new ArrayList<>();
@@ -80,6 +78,7 @@ public class GenerateReportWithoutGraphs {
     config = checkNotNull(pConfig);
     logger = checkNotNull(pLogger);
     cfa = checkNotNull(pCfa);
+    dotBuilder = new DOTBuilder2(pCfa);
 
     config.inject(this);
     if (statisticsFile != null) {
@@ -91,19 +90,12 @@ public class GenerateReportWithoutGraphs {
     }
 
     if (outputPath != null) {
-      combinedNodesPath = outputPath.resolve(DOTBuilder2.COMBINED_NODES);
-      fCallEdgesPath = outputPath.resolve(DOTBuilder2.F_CALL_EDGES);
-      cfaInfoPath = outputPath.resolve(DOTBuilder2.CFA_INFO);
-
       reportDir = outputPath.resolve(REPORT);
 
       sourceFiles.addAll(COMMA_SPLITTER.splitToList(programs));
       errorPathFiles.addAll(getErrorPathFiles());
 
     } else {
-      combinedNodesPath = null;
-      fCallEdgesPath = null;
-      cfaInfoPath = null;
       reportDir = null;
     }
   }
@@ -310,66 +302,22 @@ public class GenerateReportWithoutGraphs {
     }
   }
 
-  private void insertFCallEdges(BufferedWriter bufferedWriter) {
-    if (fCallEdgesPath != null && fCallEdgesPath.exists()) {
-      try (BufferedReader bufferedReader =
-          new BufferedReader(
-              new InputStreamReader(
-                  new FileInputStream(fCallEdgesPath.toFile()), Charset.defaultCharset()))) {
-        String line;
-        bufferedWriter.write("var fCallEdges = ");
-        while (null != (line = bufferedReader.readLine())) {
-          bufferedWriter.write(line);
-        }
-        bufferedWriter.write(";\n");
-      } catch (IOException e) {
-        logger.logUserException(
-            WARNING, e, "Could not create report: Insertion of function call edges failed.");
-      }
-    }
+  private void insertFCallEdges(BufferedWriter report) throws IOException {
+    report.write("var fCallEdges = ");
+    dotBuilder.writeFunctionCallEdges(report);
+    report.write(";\n");
   }
 
-  private void insertCombinedNodesData(Writer report) {
-
-    if (combinedNodesPath != null && combinedNodesPath.exists()) {
-      try (BufferedReader combinedNodes =
-          new BufferedReader(
-              new InputStreamReader(
-                  new FileInputStream(combinedNodesPath.toFile()), Charset.defaultCharset()))) {
-
-        String line;
-        report.write("var combinedNodes = ");
-        while (null != (line = combinedNodes.readLine())) {
-          report.write(line);
-        }
-        report.write(";\n");
-
-      } catch (IOException e) {
-        logger.logUserException(
-            WARNING, e, "Could not create report: Insertion of combindes nodes failed.");
-      }
-    }
+  private void insertCombinedNodesData(Writer report) throws IOException {
+    report.write("var combinedNodes = ");
+    dotBuilder.writeCombinedNodes(report);
+    report.write(";\n");
   }
 
-  private void insertCfaInfoData(Writer report) {
-    if (cfaInfoPath != null && cfaInfoPath.exists()) {
-      try (BufferedReader bufferedReader =
-          new BufferedReader(
-              new InputStreamReader(
-                  new FileInputStream(cfaInfoPath.toFile()), Charset.defaultCharset()))) {
-
-        String line;
-        report.write("var cfaInfo = ");
-        while (null != (line = bufferedReader.readLine())) {
-          report.write(line);
-        }
-        report.write(";\n");
-
-      } catch (IOException e) {
-        logger.logUserException(
-            WARNING, e, "Could not create report: Insertion of CFA info failed.");
-      }
-    }
+  private void insertCfaInfoData(Writer report) throws IOException {
+    report.write("var cfaInfo = ");
+    dotBuilder.writeCfaInfo(report);
+    report.write(";\n");
   }
 
   private void insertErrorPathData(Path errorPatData, BufferedWriter bufferedWriter) {

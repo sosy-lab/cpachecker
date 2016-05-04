@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.export;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static org.sosy_lab.cpachecker.util.CFAUtils.successorsOf;
 
@@ -74,22 +75,43 @@ public final class DOTBuilder2 {
   public final static Path F_CALL_EDGES = Paths.get("fcalledges.json");
   public final static Path CFA_INFO = Paths.get("cfainfo.json");
 
-  private DOTBuilder2() { /* utility class */ }
+  private final CFA cfa;
+  private final CFAJSONBuilder jsoner;
+  private final DOTViewBuilder dotter;
+
+  public DOTBuilder2(CFA pCfa) {
+    cfa = checkNotNull(pCfa);
+    jsoner = new CFAJSONBuilder();
+    dotter = new DOTViewBuilder(cfa);
+    CFAVisitor vis = new NodeCollectingCFAVisitor(new CompositeCFAVisitor(jsoner, dotter));
+    for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
+      CFATraversal.dfs().ignoreFunctionCalls().traverse(entryNode, vis);
+    }
+  }
 
   /**
    * output the CFA as DOT and JSON files
    */
-  public static void writeReport(CFA cfa, Path outdir) throws IOException {
-    CFAJSONBuilder jsoner = new CFAJSONBuilder();
-    DOTViewBuilder dotter = new DOTViewBuilder(cfa);
-    CFAVisitor vis = new NodeCollectingCFAVisitor(new CompositeCFAVisitor(jsoner, dotter));
+  public void writeReport(Path outdir) throws IOException {
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
-      CFATraversal.dfs().ignoreFunctionCalls().traverse(entryNode, vis);
       dotter.writeFunctionFile(entryNode.getFunctionName(), outdir);
     }
     dotter.writeGlobalFiles(outdir);
     JSON.writeJSONString(jsoner.getJSON(), outdir.resolve(CFA_INFO));
   }
+
+  public void writeCfaInfo(Writer out) throws IOException {
+    JSON.writeJSONString(jsoner.getJSON(), out);
+  }
+
+  public void writeFunctionCallEdges(Writer out) throws IOException {
+    JSON.writeJSONString(dotter.virtFuncCallEdges, out);
+  }
+
+  public  void writeCombinedNodes(Writer out) throws IOException {
+    JSON.writeJSONString(dotter.node2combo, out);
+  }
+
 
   private static String getEdgeText(CFAEdge edge) {
     //the first call to replaceAll replaces \" with \ " to prevent a bug in dotty.
