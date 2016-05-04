@@ -1,6 +1,320 @@
+<!DOCTYPE html>
+<html ng-app='report'>
+<head>
+    <meta charset="UTF-8">
+    <title>CPAchecker Report</title>
+
+	<style type="text/css">
+	  <!--
+	  html{
+    position: relative;
+    height: 100%;
+}
+body {
+    padding-top: 50px;
+    height: 100%;
+    min-height: 300px;
+    min-width: 750px;
+    background-color: white;
+}
+.header {
+    position: absolute;
+    top:0;
+    width: 100%;
+    min-width: 750px;
+    height: 50px;
+    background-color: whitesmoke;
+    border-bottom: solid 2px;
+    border-bottom-color: lightgrey;
+}
+
+.sections{
+    position: relative;
+    height: 100%;
+    padding: 0;
+}
+
+.btn{
+    cursor: pointer;
+}
+#err_table td{
+    cursor: pointer;
+}
+#err_table td:hover{
+    font-weight: bold;
+}
+.edge{
+    cursor: pointer;
+}
+.edge:hover{
+    font-weight: bold;
+    stroke-width: 2;
+}
+.argContent .node{
+    cursor: pointer;
+}
+.argContent .node:hover{
+    font-weight: bold;
+}
+.functionNode{
+    cursor: pointer;
+}
+.functionNode:hover{
+    font-weight: bold;
+    stroke-width: 2;
+}
+.functionNode polygon{
+    fill: transparent;
+}
+
+.header h3 img{
+height: 25px;
+}
+.header h3{
+    float: left;
+    margin-top: 10px;
+    margin-left: 10px;
+}
+.header em{
+    float: right;
+    margin-top: 15px;
+    margin-right: 10px;
+}
+
+
+#errorpath_section{
+    position:relative;
+    float: left;
+    width: 25%;
+    min-width: 70px;
+    height: inherit;
+    background-color: white;
+    border: solid 4px;
+    border-color: lightgrey;
+    padding: 5px;
+}
+
+#errorpath_section header .input-group{
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
+
+#middleLine{
+    cursor: col-resize;
+    position: absolute;
+    top:0;
+    right: -8px;
+    height:inherit;
+    width: 8px;
+    z-index: 100;
+    background-color: darkgrey;
+}
+#middleLine:hover{
+    background-color: grey;
+}
+#externalFiles_section{
+    float: right;
+    width: 75%;
+    height: inherit;
+    background-color: white;
+    padding: 5px;
+    border: solid 4px;
+    border-color: lightgrey;
+}
+
+.popover{
+    min-width: 500px;
+    max-height: 500px;
+    white-space: pre-line;
+    overflow: auto;
+    background-color: #f5fff8;
+    border: solid 2px;
+    border-color: #00d415;
+}
+#externalFiles_section .popover{
+    overflow: hidden;
+}
+
+#errorpath_section .fileContent {
+    height: calc(100% - 110px);
+    margin: 5px;
+    overflow: auto;
+}
+#externalFiles_section .fileContent {
+    height: calc(100% - 50px);
+    margin: 5px;
+    overflow: auto;
+}
+table {
+    border-collapse: separate;
+    border-spacing: 2px;
+}
+td:first-child {
+    background-color: #ccc;
+}
+#err_table td:first-child{
+    border-radius: 6px;
+}
+#err_table td pre {
+    padding: 0px;
+    margin: 0px;
+    border: none;
+}
+#err_table tr:nth-child(odd) td pre.prettyprint {
+    background-color: #f3f3f3;
+}
+.sourceContent td pre {
+    padding: 0px;
+    margin: 0px;
+    border: none;
+}
+.sourceContent tr:nth-child(odd) td pre.prettyprint {
+    background-color: #f3f3f3;
+}
+.markedSourceLine{
+    background-color: #df80ff;
+}
+.markedCFAEdge path{
+    stroke: #df80ff;
+}
+.markedCFAEdge polygon{
+    fill: #df80ff;
+    stroke: #df80ff;
+}
+.markedCFAEdge text{
+    fill: #df80ff;
+}
+
+.markedCFANode text{
+    fill: #df80ff;
+}
+.markedCFANode ellipse{
+    stroke: #df80ff;
+}
+.markedCFANode polygon{
+    stroke: #df80ff;
+}
+
+.markedARGNode polygon{
+    fill: #df80ff;
+}
+.markedTableElement{
+    border: solid 2px;
+    border-color: #00d415;
+}
+.markedValueElement pre{
+    background-color: #83d480 !important;
+}
+.markedDescElement pre{
+    background-color: #71afff !important;
+}
+.markedValueDescElement pre{
+    background: linear-gradient(#83d480, #71afff) !important;
+}
+#searchOptions label{
+    font-weight: normal;
+}
+#matches{
+    display: none;
+}
+.markedValues{
+    background-color: #83d480;
+    border-radius: 25px;
+    margin-bottom: 2px;
+    padding: 2px;
+    padding-left: 8px;
+    max-width: 270px;
+}
+.markedDescriptions{
+    background-color: #71afff;
+    border-radius: 20px;
+    padding: 2px;
+    padding-left: 8px;
+    margin-bottom: 2px;
+    max-width: 270px;
+}
+.cfaContent{
+    margin: 20px;
+    margin-top: 45px;
+    /* This is very important - otherwise right margin is not shown (and nodes cannot be centered) */
+    display: inline-block;
+}
+.argContent{
+    margin: 20px;
+    margin-top: 45px;
+    /* This is very important - otherwise right margin is not shown (and nodes cannot be centered) */
+    display: inline-block;
+}
+.sourceContent{
+    margin-top: 45px;
+}
+.edit-line{
+    position: fixed;
+    background-color: white;
+    padding: 5px;
+}
+.edit-line div{
+    display: inline-block;
+}
+.edit-line label{
+    margin-right: 100px;
+    display: inline-block;
+}
+.edit-line p{
+    display: inline-block;
+}
+#cfa-scalingField{
+    margin-left: 5px;
+    width: 50px;
+    display: inline-block;
+}
+#arg-scalingField{
+    margin-left: 5px;
+    width: 50px;
+    display: inline-block;
+}
+
+div pre{
+    background-color: transparent;
+    border: 0;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+}
+.help_button{
+    padding: 0px;
+    border: 0px;
+    margin:0px;
+    display: inline-block;
+    float: right;
+}
+#externalFiles_section .help_button{
+    margin-left: 10px;
+    float: left;
+}
+	    -->
+	</style>
+	
+	<link rel="stylesheet" type="text/css" href="https://www.sosy-lab.org/lib/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+    <link rel="stylesheet" type="text/css" href="https://www.sosy-lab.org/lib/google-code-prettify/2015-12-08-c67d802/prettify.css" integrity="sha384-Idd9oLcdDqxPfUuMARR/TPo7z2VE5qgbFk6j2RHdfzB88HFW5Ecm8qSe0KjhtZ2S" crossorigin="anonymous">
+    
+    <!--the jquery-script is necessary for bootstrap, it has to be added BEFORE the bootstrap-script-->
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="https://www.sosy-lab.org/lib/jquery/1.12.0/jquery.min.js"></script>
+    <![endif]-->
+    <!--[if gte IE 9]><!-->
+    <script type="text/javascript" src="https://www.sosy-lab.org/lib/jquery/2.2.0/jquery.min.js" integrity="sha384-K+ctZQ+LL8q6tP7I94W+qzQsfRV2a+AfHIi9k8z8l9ggpc8X+Ytst4yBo/hH+8Fk" crossorigin="anonymous"></script>
+    <!--<![endif]-->
+    
+    <script type="text/javascript" src="https://www.sosy-lab.org/lib/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+    <script type="text/javascript" src="https://www.sosy-lab.org/lib/angularjs/1.5.5/angular.min.js" integrity="sha384-JhiEhwQjPEF1WJVY0yQaYOdN73Ml70AQwr+sq+zhSomAf4Fh0ImVDR8G9Ry0QokZ" crossorigin="anonymous"></script>
+    <script type="text/javascript" src="https://www.sosy-lab.org/lib/google-code-prettify/2015-12-08-c67d802/prettify.js" integrity="sha384-uvP0LdNXVGNnAFf48ha9Ze5oJX136a8YERZm6nDnr/jAocGDVsfIj/N6I3h1wSj8" crossorigin="anonymous"></script>
+   
+	
+	<script type="text/javascript">
 /**
- * Created by Magdalena Murr on 06.07.15.
- */
+* Created by Magdalena Murr on 06.07.15.
+*/
 //(function(){})() --> this notation makes a function in JS "self-invoking"
 (function() {
     var app = angular.module('report', []);
@@ -496,7 +810,7 @@ var fCallEdges = {}; //FCALLEDGES
 var cfaInfo = {}; //CFAINFO
 var errorPathData = {}; //ERRORPATH
 var combinedNodes = {}; //COMBINEDNODES
-var sourceFiles = []; //SOURCEFILES
+var sourceFiles = []; //SOURCE_FILE_NAMES
 
 $(function () {
   $('[data-toggle="popover"]').popover({ html : true })
@@ -594,3 +908,138 @@ function init(){
     }
   }
 };
+	</script>
+	
+</head>
+
+<body ng-controller="ReportController" onload="prettyPrint(); init()">
+<header class="header">
+
+    <h3><img ng-src="{{logo}}"/> Report</h3>
+
+    <em> Generated: {{date | date:'yyyy-MM-dd HH:mm:ss'}}</em>
+</header>
+
+<div class="sections" ng-mousemove="setWidth($event)" ng-mouseup="setMouseUp()">
+    <section id="errorpath_section" ng-controller="ErrorpathController">
+        <div id="middleLine" ng-mousedown="setMouseDown()"></div>
+        <header ng-controller="SearchController">
+            <div class="btn-group">
+                <button class="btn btn-success" ng-click="clickedErrpathButton($event)">Prev</button>
+                <button class="btn btn-warning" ng-click="clickedErrpathButton($event)">Start</button>
+                <button class="btn btn-success" ng-click="clickedErrpathButton($event)">Next</button>
+            </div>
+            <button data-toggle="popover" data-placement="right" data-trigger="click" data-content="{{help_errorpath}}" class="btn btn-default btn-lg help_button" type="button">
+                <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
+            </button>
+            <div class="input-group input-group-sm">
+                <input type="text" ng-keydown="checkIfEnter($event)" class="form-control search-input" placeholder="Search for...">
+                    <span class="input-group-btn">
+                        <button ng-click="searchFor()" class="btn btn-default" type="button">
+                            <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+                        </button>
+                    </span>
+            </div>
+            <div id="searchOptions">
+                <label for="optionExactMatch">
+                    <input id="optionExactMatch" type="checkbox" name="searchOption">
+                    Find only exact matches</label>
+            </div>
+            <div id="matches">
+                <p class="markedValues">Matches in value-assignements (V): {{numOfValueMatches}}</p>
+                <p class="markedDescriptions">Matches in edge-description: {{numOfDescriptionMatches}}</p>
+            </div>
+        </header>
+        <div class="fileContent" ng-controller="ValueAssignmentsController">
+            <table id="err_table">
+                <tr id="errpath-{{$index}}" ng-repeat="line in errorPathData">
+                    <td ng-click="showValues($event)" data-toggle="popover" data-placement="right" data-trigger="click" data-content="{{line.valString}}"><pre>-V-</pre></td>
+                    <td ng-click="clickedErrpathElement($event)"><pre class="prettyprint">{{line.desc}}</pre></td>
+                </tr>
+            </table>
+        </div>
+    </section>
+    <section id="externalFiles_section">
+        <ul class="nav nav-pills">
+            <li ng-class="{active: tabIsSet(1)}">
+                <a href ng-click="setTab(1)">CFA</a>
+            </li>
+            <li ng-class="{active: tabIsSet(2)}">
+                <a href ng-click="setTab(2)">ARG</a>
+            </li>
+            <li ng-class="{active: tabIsSet(3)}">
+                <a href ng-click="setTab(3)">Source</a>
+            </li>
+            <li ng-class="{active: tabIsSet(4)}">
+                <a href ng-click="setTab(4)">Log</a>
+            </li>
+            <li ng-class="{active: tabIsSet(5)}">
+                <a href ng-click="setTab(5)">Statistics</a>
+            </li>
+            <li ng-class="{active: tabIsSet(6)}">
+                <a href ng-click="setTab(6)">Configurations</a>
+            </li>
+            <button data-toggle="popover" data-placement="right" data-trigger="click" data-content="{{help_externalFiles}}" class="btn btn-default btn-lg help_button" type="button">
+                <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
+            </button>
+        </ul>
+        <div class="fileContent" ng-show="tabIsSet(1)" ng-controller="CFAController">
+            <div class="edit-line">
+                <div class="dropdown">
+                    <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                        Displayed CFA
+                        <span class="caret"></span>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li ng-repeat="func in functions"><a ng-click="setCFAFunction($index)">{{func}}</a></li>
+                    </ul>
+                </div>
+                <label>{{functions[selectedCFAFunction]}}</label>
+                <div ng-controller="ZoomController">
+                    <p>Zoom Factor (%)</p>
+                    <input id="cfa-scalingField" type="number" min="0" max="200" ng-model="zoomFactorCFA" ng-change="setZoom('cfa-scalingField')"/>
+                </div>
+            </div>
+            <div class="cfaContent">
+                    <!--CFAFUNCTIONGRAPHS-->
+                </div>
+            </div>
+            <div class="fileContent" ng-show="tabIsSet(2)" ng-controller="ARGController">
+                <div class="edit-line">
+                    <div ng-controller="ZoomController">
+                        <p>Zoom Factor (%)</p>
+                        <input id="arg-scalingField" type="number" min="0" max="200" ng-model="zoomFactorARG" ng-change="setZoom('arg-scalingField')"/>
+                    </div>
+                </div>
+                <div class="argContent">
+                    <!--ARGGRAPHS-->
+                </div>
+            </div>
+            <div class="fileContent" ng-show="tabIsSet(3)" ng-controller="SourceController">
+                <div class="edit-line">
+                    <div class="dropdown">
+                        <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                            Displayed Sourcefile
+                            <span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li ng-repeat="file in sourceFiles"><a ng-click="setSourceFile($index)">{{file}}</a></li>
+                        </ul>
+                    </div>
+                    <label>{{sourceFiles[selectedSourceFile]}}</label>
+                </div>
+                <!--SOURCE_CONTENT-->
+            </div>
+            <div class="fileContent" ng-show="tabIsSet(4)">
+                <!--LOG-->
+            </div>
+            <div class="fileContent"  ng-show="tabIsSet(5)">
+                <!--STATISTICS-->
+            </div>
+            <div class="fileContent" ng-show="tabIsSet(6)">
+                <!--CONFIGURATION-->
+            </div>
+        </section>
+    </div>
+</body>
+</html>

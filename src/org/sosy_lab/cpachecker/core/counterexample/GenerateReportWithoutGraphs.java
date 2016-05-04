@@ -2,6 +2,7 @@ package org.sosy_lab.cpachecker.core.counterexample;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.logging.Level.WARNING;
+import static org.sosy_lab.common.io.PathTemplate.ofFormatString;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
@@ -22,7 +23,6 @@ import org.sosy_lab.cpachecker.cfa.export.DOTBuilder2;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -41,14 +41,11 @@ public class GenerateReportWithoutGraphs {
   private static final Splitter LINE_SPLITTER = Splitter.on('\n');
   private static final Splitter COMMA_SPLITTER = Splitter.on(',').trimResults();
 
-  private static final Path INPUT_ROOT = Paths.get("scripts/generate-report-with-graphs/");
+  private static final Path SCRIPTS = Paths.get("scripts");
   private static final Path REPORT = Paths.get("report");
-  private static final String HTML_TEMPLATE = "report_template.html";
-  private static final String JS_TEMPLATE = "app/app_template.js";
-  private static final String OUT_HTML = "report_withoutGraphs_%d.html";
-  private static final String NO_PATHS_OUT_HTML = "report_withoutGraphs.html";
-  private static final String OUT_JS = "app/app_%d.js";
-  private static final String NO_PATHS_OUT_JS = "app/app.js";
+  private static final Path HTML_TEMPLATE = SCRIPTS.resolve("report_template.html");
+  private static final PathTemplate OUT_HTML = ofFormatString("report_withoutGraphs_%d.html");
+  private static final Path NO_PATHS_OUT_HTML = Paths.get("report_withoutGraphs.html");
 
   private final Configuration config;
   private final LogManager logger;
@@ -113,7 +110,7 @@ public class GenerateReportWithoutGraphs {
 
   private List<Path> getErrorPathFiles() {
     List<Path> errorPaths = Lists.newArrayList();
-    PathTemplate errorPathTemplate = PathTemplate.ofFormatString(outputPath + "ErrorPath.%d.json");
+    PathTemplate errorPathTemplate = PathTemplate.ofFormatString(outputPath + "/ErrorPath.%d.json");
 
     for (int i = 0; i < Integer.MAX_VALUE; i++) {
       Path errorPath = errorPathTemplate.getPath(i);
@@ -134,25 +131,21 @@ public class GenerateReportWithoutGraphs {
     }
 
     if (errorPathFiles.isEmpty()) {
-      fillOutHTMLTemplate(-1);
-      fillOutJSTemplate(-1);
+      fillOutTemplate(-1);
 
     } else {
       for (int i = 0; i < errorPathFiles.size(); i++) {
-        fillOutHTMLTemplate(i);
-        fillOutJSTemplate(i);
+        fillOutTemplate(i);
       }
-
     }
   }
 
-  private void fillOutHTMLTemplate(int round) {
-    File templateFile = INPUT_ROOT.resolve(HTML_TEMPLATE).toFile();
-    final String outFileName;
+  private void fillOutTemplate(int round) {
+    final Path outFileName;
     if (round == -1) {
       outFileName = NO_PATHS_OUT_HTML;
     } else {
-      outFileName = String.format(OUT_HTML, round);
+      outFileName = OUT_HTML.getPath(round);
     }
 
     Path reportPath = reportDir.resolve(outFileName);
@@ -165,7 +158,8 @@ public class GenerateReportWithoutGraphs {
 
     try (BufferedReader template =
             new BufferedReader(
-                new InputStreamReader(new FileInputStream(templateFile), Charset.defaultCharset()));
+                new InputStreamReader(
+                    new FileInputStream(HTML_TEMPLATE.toFile()), Charset.defaultCharset()));
         BufferedWriter report =
             new BufferedWriter(
                 new OutputStreamWriter(
@@ -177,15 +171,22 @@ public class GenerateReportWithoutGraphs {
           insertConfiguration(report);
         } else if (line.contains("STATISTICS")) {
           insertStatistics(report);
-        } else if (line.contains("SOURCE")) {
+        } else if (line.contains("SOURCE_CONTENT")) {
           insertSources(report);
         } else if (line.contains("LOG")) {
           insertLog(report);
-        } else if (line.contains("SCRIPT") && round != -1) {
-          report.write(
-              "<script type =\"text/javascript\" src=\"app/app_" + round + ".js\"></script>\n");
-        } else if (line.contains("SCRIPT")) {
-          report.write("<script type =\"text/javascript\" src=\"app/app.js\"></script>\n");
+        } else if (line.contains("ERRORPATH") && round != -1) {
+          insertErrorPathData(errorPathFiles.get(round), report);
+        } else if (line.contains("FUNCTIONS")) {
+          insertFunctionNames(report);
+        } else if (line.contains("SOURCE_FILE_NAMES")) {
+          insertSourceFileNames(report);
+        } else if (line.contains("COMBINEDNODES")) {
+          insertCombinedNodesData(report);
+        } else if (line.contains("CFAINFO")) {
+          insertCfaInfoData(report);
+        } else if (line.contains("FCALLEDGES")) {
+          insertFCallEdges(report);
         } else {
           report.write(line + "\n");
         }
@@ -308,46 +309,6 @@ public class GenerateReportWithoutGraphs {
       bufferedWriter.write("<p>No Log-File available</p>");
     }
   }
-
-  private void fillOutJSTemplate(int round) {
-    File inputFile = INPUT_ROOT.resolve(JS_TEMPLATE).toFile();
-    final String outFileName;
-    if (round == -1) {
-      outFileName = NO_PATHS_OUT_JS;
-    } else {
-      outFileName = String.format(OUT_JS, round);
-    }
-    File outputFile = reportDir.resolve(outFileName).toFile();
-    try (BufferedReader bufferedTemplateReader =
-            new BufferedReader(
-                new InputStreamReader(new FileInputStream(inputFile), Charset.defaultCharset()));
-        BufferedWriter bufferedWriter =
-            new BufferedWriter(
-                new OutputStreamWriter(
-                    new FileOutputStream(outputFile), Charset.defaultCharset()))) {
-      String line;
-      while (null != (line = bufferedTemplateReader.readLine())) {
-        if (line.contains("ERRORPATH") && round != -1) {
-          insertErrorPathData(errorPathFiles.get(round), bufferedWriter);
-        } else if (line.contains("FUNCTIONS")) {
-          insertFunctionNames(bufferedWriter);
-        } else if (line.contains("SOURCEFILES")) {
-          insertSourceFileNames(bufferedWriter);
-        } else if (line.contains("COMBINEDNODES")) {
-          insertCombinedNodesData(bufferedWriter);
-        } else if (line.contains("CFAINFO")) {
-          insertCfaInfoData(bufferedWriter);
-        } else if (line.contains("FCALLEDGES")) {
-          insertFCallEdges(bufferedWriter);
-        } else {
-          bufferedWriter.write(line + "\n");
-        }
-      }
-    } catch (IOException e) {
-      logger.logUserException(WARNING, e, "Could not create report.");
-    }
-  }
-
 
   private void insertFCallEdges(BufferedWriter bufferedWriter) {
     if (fCallEdgesPath != null && fCallEdgesPath.exists()) {
