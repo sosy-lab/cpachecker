@@ -757,8 +757,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         Formula objective = templateManager.toFormula(pfmgr, fmgr, template, p);
         Set<String> objectiveVars = fmgr.extractFunctionNames(objective);
 
-        Pair<DecompositionStatus, PolicyBound> res =
-            computeByDecomposition(
+        // TODO: make optional.
+        Pair<DecompositionStatus, PolicyBound> res = computeByDecomposition(
                 template, p, lemmas, startConstraintLemmas, abstraction);
         switch (res.getFirstNotNull()) {
           case BOUND_COMPUTED:
@@ -768,6 +768,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
             continue;
           case UNBOUNDED:
 
+            // Any of the components is unbounded => the sum is unbounded as
+            // well.
             continue;
           case ABSTRACTION_REQUIRED:
 
@@ -777,7 +779,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
             throw new UnsupportedOperationException("Unexpected case");
         }
 
-        Set<BooleanFormula> slicedConstraint = sliceToRelated(
+        Set<BooleanFormula> slicedConstraint = computeRelevantSubset(
             lemmas,
             startConstraintLemmas,
             objectiveVars);
@@ -891,9 +893,10 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       return Pair.of(ABSTRACTION_REQUIRED, null);
     }
 
+    // Slices and bounds for all template sub-components.
     List<Set<BooleanFormula>> slices = new ArrayList<>(pTemplate.size());
     List<PolicyBound> policyBounds = new ArrayList<>();
-
+    List<Rational> coefficients = new ArrayList<>();
 
     for (Entry<CIdExpression, Rational> e : pTemplate.getLinearExpression()) {
       CIdExpression c = e.getKey();
@@ -907,23 +910,24 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         singleton = Template.of(le);
       }
 
-      policyBounds.add(currentAbstraction.get(singleton));
-
       Set<String> variables = fmgr.extractFunctionNames(
           templateManager.toFormula(pfmgr, fmgr, singleton, pFormula)
       );
-      Set<BooleanFormula> lemmasSubset = sliceToRelated(
+
+      // Subset of lemmas relevant to the set |variables|.
+      Set<BooleanFormula> lemmasSubset = computeRelevantSubset(
           lemmas, startConstraintLemmas, variables);
       slices.add(lemmasSubset);
+      policyBounds.add(currentAbstraction.get(singleton));
+      coefficients.add(r);
     }
 
-    // Fast-fail iff not all lemmas in slices are disjoint: simple quadratic
+    // Fast-fail iff not all lemmas in slices are disjoint: a simple quadratic
     // test.
-    for (Set<BooleanFormula> sliceA : slices) {
-      for (Set<BooleanFormula> sliceB : slices) {
-        if (sliceA == sliceB) {
-          continue;
-        }
+    for (int sliceIdx=0; sliceIdx<slices.size(); sliceIdx++) {
+      for (int otherSliceIdx=sliceIdx+1; otherSliceIdx<slices.size(); otherSliceIdx++) {
+        Set<BooleanFormula> sliceA = slices.get(sliceIdx);
+        Set<BooleanFormula> sliceB = slices.get(otherSliceIdx);
         if (!Sets.intersection(sliceA, sliceB).isEmpty()) {
           return Pair.of(ABSTRACTION_REQUIRED, null);
         }
@@ -936,30 +940,33 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       return Pair.of(UNBOUNDED, null);
     }
 
-    // Return FAIL if not all predecessors are the same.
-    PolicyBound first = policyBounds.get(0);
+    // Abstraction required if not all predecessors, SSA forms,
+    // and pointer target sets are the same.
+    PolicyBound firstBound = policyBounds.get(0);
     for (PolicyBound bound : policyBounds) {
-      if (!bound.getPredecessor().equals(first.getPredecessor())
-          || !bound.getFormula().getSsa().equals(first.getFormula().getSsa())
-          || !bound.getFormula().getPointerTargetSet().equals(first
+      if (!bound.getPredecessor().equals(firstBound.getPredecessor())
+          || !bound.getFormula().getSsa().equals(firstBound.getFormula().getSsa())
+          || !bound.getFormula().getPointerTargetSet().equals(firstBound
                 .getFormula().getPointerTargetSet())) {
         return Pair.of(ABSTRACTION_REQUIRED, null);
       }
     }
 
     Set<Template> allDependencies = new HashSet<>();
-    Set<BooleanFormula> combinedPolicy = new HashSet<>();
+    Set<BooleanFormula> policies = new HashSet<>();
     Rational combinedBound = Rational.ZERO;
-    for (PolicyBound bound : policyBounds) {
-      combinedBound = combinedBound.plus(bound.getBound());
+    for (int i=0; i<policyBounds.size(); i++) {
+      PolicyBound bound = policyBounds.get(i);
+      combinedBound = combinedBound.plus(
+          bound.getBound().times(coefficients.get(i)));
       allDependencies.addAll(bound.getDependencies());
-      combinedPolicy.add(bound.getFormula().getFormula());
+      policies.add(bound.getFormula().getFormula());
     }
 
     return Pair.of(BOUND_COMPUTED, PolicyBound.of(
-        first.getFormula().updateFormula(bfmgr.and(combinedPolicy)),
+        firstBound.getFormula().updateFormula(bfmgr.and(policies)),
         combinedBound,
-        first.getPredecessor(),
+        firstBound.getPredecessor(),
         allDependencies
     ));
   }
@@ -973,7 +980,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
    * which exactly preserves the state-space with respect to all variables in
    * {@code vars}.
    */
-  private Set<BooleanFormula> sliceToRelated(
+  private Set<BooleanFormula> computeRelevantSubset(
       Set<BooleanFormula> input,
       Set<BooleanFormula> supportingLemmas,
       Set<String> vars
