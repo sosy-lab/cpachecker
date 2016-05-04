@@ -2333,6 +2333,9 @@ liveVar.partwiseLivenessCheckTime = 20s
 # Write the tokenized version of the input program to this file.
 locmapper.dumpTokenizedProgramToFile = no default value
 
+# name of the log file
+log.file = "CPALog.txt"
+
 # Whether to check for memory safety properties (this can be specified by
 # passing an appropriate .prp file to the -spec parameter).
 memorysafety.check = false
