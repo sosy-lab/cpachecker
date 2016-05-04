@@ -286,6 +286,9 @@ Transition   ::= Bool:trigger ARROW Split:a Encode:ec GOTO IDENTIFIER:follow NEG
              | Bool:trigger ARROW Split:a Encode:ec GOTO IDENTIFIER:follow NEGATION ERROR SEMICOLON
                {: RESULT = Lists.newArrayList(new AutomatonTransition(trigger, ImmutableList.<AutomatonBoolExpr>of(), a, true, ec, ImmutableList.<AutomatonAction>of(), follow.toString()), 
                new AutomatonTransition(trigger, ImmutableList.<AutomatonBoolExpr>of(), a, false, ImmutableList.<AAstNode>of(), ImmutableList.<AutomatonAction>of(), AutomatonInternalState.ERROR, propFact.createSingleProperty())); :}
+             | Bool:trigger ARROW Split:a Encode:ec GOTO IDENTIFIER:follow NEGATION ERROR OPEN_BRACKETS STRING_LITERAL:property CLOSE_BRACKETS SEMICOLON
+               {: RESULT = Lists.newArrayList(new AutomatonTransition(trigger, ImmutableList.<AutomatonBoolExpr>of(), a, true, ec, ImmutableList.<AutomatonAction>of(), follow.toString()), 
+               new AutomatonTransition(trigger, ImmutableList.<AutomatonBoolExpr>of(), a, false, ImmutableList.<AAstNode>of(), ImmutableList.<AutomatonAction>of(), AutomatonInternalState.ERROR, propFact.createSingleProperty(new AutomatonExpression.StringExpression(property.toString())))); :}
              | Bool:trigger  ARROW Assertions:ass Assume:a Encode:ec Actions:acts GOTO IDENTIFIER:follow SEMICOLON
                {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, ec, acts, follow.toString(), null, ImmutableSet.<SafetyProperty>of(), propFact.createAssertionProperties(ass))); :}
              | Bool:trigger  ARROW Assertions:ass Assume:a Encode:ec Actions:acts ERROR SEMICOLON
