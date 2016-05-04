@@ -1059,7 +1059,7 @@ public class ARGPathExporter {
       violatedProperties.putAll(source, violatedProperties.removeAll(target));
 
       // Move the leaving edges
-      Set<Edge> leavingEdgesToMove = new HashSet<>(this.leavingEdges.get(target));
+      Collection<Edge> leavingEdgesToMove = ImmutableList.copyOf(this.leavingEdges.get(target));
       // Remove the edges from their successors
       for (Edge leavingEdge : leavingEdgesToMove) {
         boolean removed = removeEdge(leavingEdge);
@@ -1074,7 +1074,7 @@ public class ARGPathExporter {
       }
 
       // Move the entering edges
-      Set<Edge> enteringEdgesToMove = new HashSet<>(this.enteringEdges.get(target));
+      Collection<Edge> enteringEdgesToMove = ImmutableList.copyOf(this.enteringEdges.get(target));
       // Remove the edges from their predecessors
       for (Edge enteringEdge : enteringEdgesToMove) {
         boolean removed = removeEdge(enteringEdge);
