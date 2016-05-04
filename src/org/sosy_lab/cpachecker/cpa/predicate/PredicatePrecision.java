@@ -282,6 +282,7 @@ public class PredicatePrecision implements Precision {
     for (Precision prec : precisions) {
       predicatePrecisions.add(Precisions.extractPrecisionByType(prec, PredicatePrecision.class));
     }
+    predicatePrecisions.remove(EMPTY); // union over empty precision is pointless
     return unionOf(predicatePrecisions);
   }
 
@@ -408,6 +409,12 @@ public class PredicatePrecision implements Precision {
    * and a second one.
    */
   public PredicatePrecision mergeWith(PredicatePrecision prec) {
+    if (this.isEmpty()) {
+      return prec;
+    }
+    if (prec.isEmpty()) {
+      return this;
+    }
     return new PredicatePrecision(
         Iterables.concat(
             getLocationInstancePredicates().entries(),
@@ -441,6 +448,13 @@ public class PredicatePrecision implements Precision {
     difference += Sets.difference(this.getLocationInstancePredicates().entries(),
                                   other.getLocationInstancePredicates().entries()).size();
     return difference;
+  }
+
+  public boolean isEmpty() {
+    return getGlobalPredicates().isEmpty()
+        && getFunctionPredicates().isEmpty()
+        && getLocalPredicates().isEmpty()
+        && getLocationInstancePredicates().isEmpty();
   }
 
   @Override
