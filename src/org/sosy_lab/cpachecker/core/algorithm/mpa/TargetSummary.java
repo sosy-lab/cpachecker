@@ -36,7 +36,11 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithPresenceCondition;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.bdd.BDDCPA;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 
@@ -68,11 +72,23 @@ public class TargetSummary {
       stateSummary.violatedProperties = AbstractStates.extractViolatedProperties(e, Property.class);
       stateSummary.presenceCondition = getPresenceCondition(e);
 
+      String presenceConditionText = stateSummary.presenceCondition.toString();
+
+      BDDCPA bddCpa = CPAs.retrieveCPA(GlobalInfo.getInstance().getCPA().get(), BDDCPA.class);
+      if (bddCpa != null) {
+        NamedRegionManager rm = bddCpa.getManager();
+        if (rm != null) {
+          if (stateSummary.presenceCondition.isPresent()) {
+            presenceConditionText = rm.dumpRegion(stateSummary.presenceCondition.get()).toString();
+          }
+        }
+      }
+
       result.targetStateSummaries.add(stateSummary);
 
       pLogger.logf(Level.INFO, "Violation of %s at %s in the configuration %s",
           stateSummary.violatedProperties.toString(), AbstractStates.extractLocation(e).describeFileLocation(),
-          stateSummary.presenceCondition);
+          presenceConditionText);
     }
 
     return result;
