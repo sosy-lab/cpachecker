@@ -461,6 +461,9 @@ cfa.exportPerFunction = true
 # export CFA as .dot file
 cfa.file = "cfa.dot"
 
+# Pre-compute a superset of nodes which can be associated with errors
+cfa.findErrorNodes = false
+
 # By enabling this option the variables that are live are computed for each
 # edge of the cfa. Live means that their value is read later on.
 cfa.findLiveVariables = false
@@ -1094,6 +1097,10 @@ cpa.liveVar.assumeGlobalVariablesAreAlwaysLive = true
 # By disabling this option one can traverse a function without following
 # function calls (in this case FunctionSummaryEdges are used)
 cpa.location.followFunctionCalls = true
+
+# Skip edges which can not possibly lead to specification violation. Makes
+# sense only for forward analysis.
+cpa.location.skipNoTargetEdges = false
 
 # Number of loop iterations before the loop counter is abstracted. Zero is
 # equivalent to no limit.
