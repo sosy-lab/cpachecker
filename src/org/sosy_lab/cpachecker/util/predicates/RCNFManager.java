@@ -284,6 +284,9 @@ public class RCNFManager implements StatisticsProvider {
     Set<BooleanFormula> factorizedLemmas =
         bfmgr.toConjunctionArgs(factorized, true);
     Set<BooleanFormula> out = new HashSet<>();
+    if (expansionResultSizeLimit == 1) {
+      return factorizedLemmas;
+    }
     for (BooleanFormula lemma : factorizedLemmas) {
       BooleanFormula expanded = expandClause(lemma);
       Set<BooleanFormula> expandedLemmas =
