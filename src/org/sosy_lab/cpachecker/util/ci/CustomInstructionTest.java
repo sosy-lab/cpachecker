@@ -23,19 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.ci;
 
-import java.io.IOException;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.truth.Truth;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -55,7 +44,19 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
-import com.google.common.truth.Truth;
+import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
 
 public class CustomInstructionTest {
   private CustomInstructionApplications cia;
@@ -68,6 +69,7 @@ public class CustomInstructionTest {
   private Collection<CFANode> endNodes;
   private ARGState start;
   private ARGState end;
+  private Set<CFANode> allNodes;
 
   @Before
   public void init() throws NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException,
@@ -80,8 +82,9 @@ public class CustomInstructionTest {
         + "}";
     cfa = TestDataTools.makeCFA(testProgram);
 
-    locConstructor = LocationState.class.getDeclaredConstructor(CFANode.class, boolean.class);
+    locConstructor = LocationState.class.getDeclaredConstructor(CFANode.class, boolean.class, Set.class);
     locConstructor.setAccessible(true);
+    allNodes = ImmutableSet.copyOf(cfa.getAllNodes());
 
     startNode = cfa.getMainFunction();
     endNodes = new HashSet<>();
@@ -104,15 +107,17 @@ public class CustomInstructionTest {
     cis.put(startNode, aci);
 
     cia = new CustomInstructionApplications(cis, ci);
-    start = new ARGState(locConstructor.newInstance(startNode, true), null);
-    end = new ARGState(locConstructor.newInstance(endNodes.iterator().next(), true), null);
+    start = new ARGState(locConstructor.newInstance(startNode, true, allNodes), null);
+    end = new ARGState(locConstructor.newInstance(endNodes.iterator().next(), true, allNodes), null);
   }
 
   @Test
   public void testIsStartState() throws CPAException, InstantiationException, IllegalAccessException,
       IllegalArgumentException, InvocationTargetException {
     ARGState notStart =
-        new ARGState(locConstructor.newInstance(startNode.getLeavingEdge(0).getSuccessor(), true), start);
+        new ARGState(locConstructor.newInstance(startNode.getLeavingEdge(0).getSuccessor(), true,
+            allNodes
+            ), start);
     ARGState noLocation = new ARGState(new CallstackState(null, "main", startNode), null);
 
     // test applied custom instruction
