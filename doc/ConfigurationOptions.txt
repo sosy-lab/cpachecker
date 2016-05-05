@@ -1929,6 +1929,9 @@ cpa.stator.policy.checkPolicyInitialCondition = true
 # Check target states reachability
 cpa.stator.policy.checkTargetStates = true
 
+# Compute abstraction for larger templates using decomposition
+cpa.stator.policy.computeAbstractionByDecomposition = false
+
 # Ignore the template type and encode with a rational variable
 cpa.stator.policy.encodeTemplatesAsRationals = false
 
@@ -1972,12 +1975,13 @@ cpa.stator.policy.runCongruence = true
 # Run naive value determination first, switch to namespaced if it fails.
 cpa.stator.policy.runHopefulValueDetermination = true
 
-# Use syntactic check to short-circuit val. det. and abstraction operations.
-cpa.stator.policy.shortCircuitSyntactic = true
-
 # Do not generate templates with threshold larger than specified. Set to '-1'
 # for no limit.
 cpa.stator.policy.templateConstantThreshold = 100
+
+# Algorithm for converting a formula to a set of lemmas
+cpa.stator.policy.toLemmasAlgorithm = "RCNF"
+  allowed values: [CNF, RCNF]
 
 # Use unguided template refinement, progressively brute-forcing the possible
 # template space.
@@ -1986,12 +1990,18 @@ cpa.stator.policy.unguidedTemplateRefinement = true
 # Number of refinements after which the unrolling depth is increased
 cpa.stator.policy.unrollingRefinementThreshold = 2
 
+# Use caching optimization solver
+cpa.stator.policy.useCachingOptSolver = false
+
 # Cache formulas produced by path formula manager
 cpa.stator.policy.useCachingPathFormulaManager = true
 
 # Generate invariants and strengthen the formulas during abstraction with
 # them.
 cpa.stator.policy.useInvariantsForAbstraction = false
+
+# Use syntactic check before adding value determination dependencies
+cpa.stator.policy.valDetSyntacticCheck = false
 
 # Strategy for filtering variables out of templates
 cpa.stator.policy.varFiltering = ALL_LIVE
