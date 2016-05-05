@@ -66,6 +66,11 @@ public class PolicyBound {
     return new PolicyBound(formula, newValue, predecessor, dependencies);
   }
 
+  public PolicyBound withNoDependencies() {
+    return new PolicyBound(formula, bound, predecessor,
+        ImmutableSet.<Template>of());
+  }
+
   /**
    * @return Unique identifier for value determination.
    *

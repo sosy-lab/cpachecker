@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.RCNFManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -56,7 +57,6 @@ import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.Model;
 import org.sosy_lab.solver.api.OptimizationProverEnvironment;
-import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 
 import java.util.ArrayList;
@@ -78,12 +78,12 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
   @Option(secure = true,
       description = "Where to perform abstraction")
-  private ABSTRACTION_LOCATIONS abstractionLocations = ABSTRACTION_LOCATIONS.LOOPHEAD;
+  private AbstractionLocations abstractionLocations = AbstractionLocations.LOOPHEAD;
 
   /**
    * Where an abstraction should be performed.
    */
-  private enum ABSTRACTION_LOCATIONS  {
+  private enum AbstractionLocations {
 
     /**
      * At every node.
@@ -115,9 +115,10 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   @Option(secure=true, description="Run simple congruence analysis")
   private boolean runCongruence = true;
 
-  @Option(secure=true, description="Use syntactic check to short-circuit"
-      + " val. det. and abstraction operations.")
-  private boolean shortCircuitSyntactic = true;
+  // TODO: debug performance issues.
+  @Option(secure=true, description="Use syntactic check before adding value "
+      + "determination dependencies" )
+  private boolean valDetSyntacticCheck = false;
 
   @Option(secure=true, description="Check whether the policy depends on the initial value")
   private boolean checkPolicyInitialCondition = true;
@@ -128,9 +129,20 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   @Option(secure=true, description="Generate new templates using polyhedra convex hull")
   private boolean generateTemplatesUsingConvexHull = false;
 
+  @Option(secure=true, description="Use caching optimization solver")
+  private boolean useCachingOptSolver = false;
+
+  @Option(secure=true, description="Compute abstraction for larger templates "
+      + "using decomposition")
+  private boolean computeAbstractionByDecomposition = false;
+
   @Option(secure=true, description="Number of value determination steps allowed before widening is run."
       + " Value of '-1' runs value determination until convergence.")
   private int wideningThreshold = -1;
+
+  @Option(secure=true, description="Algorithm for converting a formula to a "
+      + "set of lemmas", toUppercase=true, values={"CNF", "RCNF"})
+  private String toLemmasAlgorithm = "RCNF";
 
   private final FormulaManagerView fmgr;
   private final CFA cfa;
@@ -147,6 +159,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   private final PolyhedraWideningManager pwm;
   private final InvariantGenerator invariantGenerator;
   private final StateFormulaConversionManager stateFormulaConversionManager;
+  private final RCNFManager rcnfManager;
 
   public PolicyIterationManager(
       Configuration config,
@@ -192,6 +205,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       }
     }
     loopStructure = loopStructureBuilder.build();
+    rcnfManager = new RCNFManager(fmgr, config);
   }
 
   /**
@@ -680,36 +694,53 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       PolicyIntermediateState state,
       Formula objective
       ) throws SolverException, InterruptedException {
-    boolean unsignedAndLower = template.isUnsigned() &&
-        (template.getKind() == Kind.NEG_LOWER_BOUND ||
-            template.getKind() == Kind.NEG_SUM_LOWER_BOUND);
-    if (bound.isPresent() &&
-        !templateManager.isOverflowing(template, bound.get())
-        || unsignedAndLower) {
-      Rational boundValue;
-      if (bound.isPresent() && unsignedAndLower) {
-        boundValue = Rational.max(bound.get(), Rational.ZERO);
-      } else if (bound.isPresent()){
-        boundValue = bound.get();
-      } else {
-        boundValue = Rational.ZERO;
-      }
 
-      try (Model model = optEnvironment.getModel()) {
-        BooleanFormula linearizedFormula = annotatedFormula;
-        if (linearizePolicy) {
-          statistics.linearizationTimer.start();
-          linearizedFormula = linearizationManager.convertToPolicy(
-              annotatedFormula, model);
-          statistics.linearizationTimer.stop();
+    statistics.getBoundTimer.start();
+    try {
+      boolean unsignedAndLower = template.isUnsigned() &&
+          (template.getKind() == Kind.NEG_LOWER_BOUND ||
+              template.getKind() == Kind.NEG_SUM_LOWER_BOUND);
+      if (bound.isPresent() &&
+          !templateManager.isOverflowing(template, bound.get())
+          || unsignedAndLower) {
+        Rational boundValue;
+        if (bound.isPresent() && unsignedAndLower) {
+          boundValue = Rational.max(bound.get(), Rational.ZERO);
+        } else if (bound.isPresent()){
+          boundValue = bound.get();
+        } else {
+          boundValue = Rational.ZERO;
         }
 
-        PolicyBound policyBound = modelToPolicyBound(
-            objective, state, p, linearizedFormula, model, boundValue);
-        return Optional.of(policyBound);
+        try (Model model = optEnvironment.getModel()) {
+          BooleanFormula linearizedFormula = annotatedFormula;
+          if (linearizePolicy) {
+            statistics.linearizationTimer.start();
+            linearizedFormula = linearizationManager.convertToPolicy(
+                annotatedFormula, model);
+            statistics.linearizationTimer.stop();
+          }
+
+          PolicyBound policyBound = modelToPolicyBound(
+              objective, state, p, linearizedFormula, model, boundValue);
+          return Optional.of(policyBound);
+        }
       }
+      return Optional.absent();
+    } finally {
+      statistics.getBoundTimer.stop();
     }
-    return Optional.absent();
+  }
+
+  private Set<BooleanFormula> toLemmas(BooleanFormula formula)
+      throws InterruptedException {
+    if (toLemmasAlgorithm.equals("CNF")) {
+      return bfmgr.toConjunctionArgs(
+          fmgr.applyTactic(formula, Tactic.TSEITIN_CNF), true);
+    } else if (toLemmasAlgorithm.equals("RCNF")) {
+      return rcnfManager.toLemmas(formula);
+    }
+    throw new UnsupportedOperationException("Unexpected state");
   }
 
   /**
@@ -732,17 +763,12 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     final BooleanFormula startConstraints =
         stateFormulaConversionManager.getStartConstraints(state, true);
 
-    Set<BooleanFormula> startConstraintLemmas =
-        bfmgr.toConjunctionArgs(fmgr.applyTactic(startConstraints, Tactic
-            .TSEITIN_CNF), true);
-    Set<BooleanFormula> lemmas = bfmgr.toConjunctionArgs(
-      fmgr.applyTactic(p.getFormula(), Tactic.TSEITIN_CNF), true
-    );
+    Set<BooleanFormula> startConstraintLemmas = toLemmas(startConstraints);
+    Set<BooleanFormula> lemmas = toLemmas(p.getFormula());
 
     final Map<Template, PolicyBound> abstraction = new HashMap<>();
 
-    // TODO: flag for caching.
-    try (OptimizationProverEnvironment optEnvironment = solver.newCachedOptEnvironment()) {
+    try (OptimizationProverEnvironment optEnvironment = newOptProver()) {
 
       optEnvironment.push();
       optEnvironment.addConstraint(startConstraints);
@@ -757,33 +783,35 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         Formula objective = templateManager.toFormula(pfmgr, fmgr, template, p);
         Set<String> objectiveVars = fmgr.extractFunctionNames(objective);
 
-        // TODO: make optional.
-        Pair<DecompositionStatus, PolicyBound> res = computeByDecomposition(
-                template, objective, p, lemmas, startConstraintLemmas,
-            abstraction);
-        switch (res.getFirstNotNull()) {
-          case BOUND_COMPUTED:
+        if (computeAbstractionByDecomposition) {
+          Pair<DecompositionStatus, PolicyBound> res = computeByDecomposition(
+              template, p, lemmas, startConstraintLemmas, abstraction);
+          switch (res.getFirstNotNull()) {
+            case BOUND_COMPUTED:
 
-            // Put the computed bound.
-            abstraction.put(template, res.getSecond());
-            continue;
-          case UNBOUNDED:
+              // Put the computed bound.
+              PolicyBound bound = res.getSecondNotNull();
+              if (checkPolicyInitialCondition) {
+                bound = updatePolicyBoundDependencies(bound, objective);
+              }
+              abstraction.put(template, bound);
+              continue;
+            case UNBOUNDED:
 
-            // Any of the components is unbounded => the sum is unbounded as
-            // well.
-            continue;
-          case ABSTRACTION_REQUIRED:
+              // Any of the components is unbounded => the sum is unbounded as
+              // well.
+              continue;
+            case ABSTRACTION_REQUIRED:
 
-            // Continue with abstraction.
-            break;
-          default:
-            throw new UnsupportedOperationException("Unexpected case");
+              // Continue with abstraction.
+              break;
+            default:
+              throw new UnsupportedOperationException("Unexpected case");
+          }
         }
 
         Set<BooleanFormula> slicedConstraint = computeRelevantSubset(
-            lemmas,
-            startConstraintLemmas,
-            objectiveVars);
+            lemmas, startConstraintLemmas, objectiveVars);
         BooleanFormula f = bfmgr.and(slicedConstraint);
 
         // Linearize & add choice variables.
@@ -794,8 +822,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         statistics.linearizationTimer.stop();
 
         // Skip updates if the edge does not have any variables mentioned in the
-        // template: this now becomes obvious with the new slicing scheme.
-        if (shortCircuitSyntactic && bfmgr.isTrue(f)) {
+        // template.
+        if (bfmgr.isTrue(f)) {
           if (state.getGeneratingState().getAbstraction().get(template) == null) {
 
             // Unbounded.
@@ -871,6 +899,34 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     );
   }
 
+  private OptimizationProverEnvironment newOptProver() {
+    if (useCachingOptSolver) {
+      return solver.newCachedOptEnvironment();
+    } else {
+      return solver.newOptEnvironment();
+    }
+  }
+
+  private PolicyBound updatePolicyBoundDependencies(
+      PolicyBound bound, Formula objective
+  ) throws SolverException, InterruptedException {
+    statistics.checkIndependenceTimer.start();
+    try {
+      if (solver.isUnsat(bfmgr.and(
+          bound.getFormula().getFormula(),
+          fmgr.makeGreaterThan(
+              objective,
+              fmgr.makeNumber(objective, bound.getBound()), true)
+      ))) {
+        return bound.withNoDependencies();
+      } else {
+        return bound;
+      }
+    } finally {
+      statistics.checkIndependenceTimer.stop();
+    }
+  }
+
   enum DecompositionStatus {
     BOUND_COMPUTED,
     ABSTRACTION_REQUIRED,
@@ -884,12 +940,10 @@ public class PolicyIterationManager implements IPolicyIterationManager {
    */
   private Pair<DecompositionStatus, PolicyBound> computeByDecomposition(
       Template pTemplate,
-      Formula pTemplateObjective,
       PathFormula pFormula,
       Set<BooleanFormula> lemmas,
       Set<BooleanFormula> startConstraintLemmas,
-      Map<Template, PolicyBound> currentAbstraction
-  ) throws SolverException, InterruptedException {
+      Map<Template, PolicyBound> currentAbstraction) {
 
     if (pTemplate.size() == 1) {
       return Pair.of(ABSTRACTION_REQUIRED, null);
@@ -966,24 +1020,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     }
     BooleanFormula policy = bfmgr.and(policies);
 
-    if (checkPolicyInitialCondition) {
-      statistics.checkIndependenceTimer.start();
-      try (ProverEnvironment prover = solver.newProverEnvironment()) {
-
-        prover.push();
-        prover.addConstraint(policy);
-
-        //noinspection ResultOfMethodCallIgnored
-        prover.push(fmgr.makeGreaterThan(
-            pTemplateObjective,
-            fmgr.makeNumber(pTemplateObjective, combinedBound), true));
-        if (prover.isUnsat()) {
-          allDependencies = new HashSet<>();
-        }
-      } finally {
-        statistics.checkIndependenceTimer.stop();
-      }
-    }
+    // TODO: move this code back to the abstraction
 
     return Pair.of(BOUND_COMPUTED, PolicyBound.of(
         firstBound.getFormula().updateFormula(policy),
@@ -1063,23 +1100,17 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     final boolean dependsOnInitial;
 
     if (checkPolicyInitialCondition) {
-        statistics.checkIndependenceTimer.start();
-        try (ProverEnvironment prover = solver.newProverEnvironment()) {
+      statistics.checkIndependenceTimer.start();
+      try {
+        dependsOnInitial = !solver.isUnsat(bfmgr.and(
+            policyFormula,
+            fmgr.makeGreaterThan(
+                templateObjective,
+                fmgr.makeNumber(templateObjective, bound), true)));
 
-          //noinspection ResultOfMethodCallIgnored
-          prover.push(policyFormula);
-
-          //noinspection ResultOfMethodCallIgnored
-          prover.push(fmgr.makeGreaterThan(
-              templateObjective,
-              fmgr.makeNumber(templateObjective, bound), true));
-          try {
-            dependsOnInitial = !prover.isUnsat();
-          } finally {
-            statistics.checkIndependenceTimer.stop();
-            prover.pop();
-          }
-        }
+      } finally {
+        statistics.checkIndependenceTimer.stop();
+      }
     } else {
         dependsOnInitial = true;
     }
@@ -1090,7 +1121,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     Set<Template> dependencies;
     if (!dependsOnInitial) {
       dependencies = ImmutableSet.of();
-    } else if (!shortCircuitSyntactic) {
+    } else if (!valDetSyntacticCheck) {
       dependencies = templateManager.templatesForNode(backpointer.getNode());
     } else {
       dependencies = new HashSet<>();

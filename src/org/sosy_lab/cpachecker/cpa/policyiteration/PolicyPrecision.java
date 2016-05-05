@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
+import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -23,9 +24,10 @@ public class PolicyPrecision implements Precision, Iterable<Template> {
       @Override
       public int compare(
           Template o1, Template o2) {
-        return Integer.compare(
-            o1.getLinearExpression().size(),
-            o2.getLinearExpression().size());
+        return ComparisonChain.start()
+            .compare(o1.getLinearExpression().size(),
+                o1.getLinearExpression().size())
+            .compare(o1.toString(), o2.toString()).result();
       }
     });
     templates = ImmutableList.copyOf(t);

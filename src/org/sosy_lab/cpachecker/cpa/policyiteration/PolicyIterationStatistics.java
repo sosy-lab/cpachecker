@@ -34,6 +34,8 @@ public class PolicyIterationStatistics implements Statistics {
   final Timer ackermannizationTimer = new Timer();
   final Timer linearizationTimer = new Timer();
 
+  final Timer getBoundTimer = new Timer();
+
   private final CFA cfa;
 
   private BigInteger wideningTemplatesGenerated = BigInteger.ZERO;
@@ -50,6 +52,7 @@ public class PolicyIterationStatistics implements Statistics {
   public void printStatistics(
       PrintStream out, CPAcheckerResult.Result result, ReachedSet reached) {
 
+    printTimer(out, getBoundTimer, "getting policy bound");
     printTimer(out, valueDeterminationTimer, "value determination");
     printTimer(out, abstractionTimer, "abstraction");
     printTimer(out, optTimer, "optimization (OPT-SMT)");
