@@ -97,6 +97,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.VariableClassificationBuilder;
+import org.sosy_lab.cpachecker.util.error.ErrorLocationFinder;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -223,9 +224,14 @@ public class CFACreator {
               + " is read later on.")
   private boolean findLiveVariables = false;
 
+  @Option(secure=true, name="cfa.findErrorNodes",
+    description="Pre-compute a superset of nodes which can be associated with "
+      + "errors")
+  private boolean findErrorNodes = false;
+
   @Option(secure=true, name="cfa.classifyNodes",
       description="This option enables the computation of a classification of CFA nodes.")
-private boolean classifyNodes = false;
+  private boolean classifyNodes = false;
 
   @Option(secure=true, description="C or Java?")
   private Language language = Language.C;
@@ -486,6 +492,11 @@ private boolean classifyNodes = false;
                                                 pParseResult.getGlobalDeclarations(),
                                                 cfa, logger, shutdownNotifier,
                                                 config));
+    }
+
+    if (findErrorNodes) {
+      cfa.setErrorNodes(ErrorLocationFinder.findErrorLocations(cfa, logger,
+          ShutdownNotifier.createDummy(), config));
     }
 
     stats.processingTime.stop();

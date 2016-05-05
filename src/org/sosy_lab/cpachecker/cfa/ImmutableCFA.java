@@ -23,9 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.Map;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.SetMultimap;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -34,12 +40,7 @@ import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableCollection;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.ImmutableSortedSet;
-import com.google.common.collect.SetMultimap;
+import java.util.Map;
 
 /**
  * This class represents a CFA after it has been fully created (parsing, linking
@@ -54,6 +55,7 @@ class ImmutableCFA implements CFA {
   private final Optional<LoopStructure> loopStructure;
   private final Optional<VariableClassification> varClassification;
   private final Optional<LiveVariables> liveVariables;
+  private final Optional<ImmutableSet<CFANode>> errorLocations;
   private final Language language;
 
   ImmutableCFA(
@@ -64,9 +66,10 @@ class ImmutableCFA implements CFA {
       Optional<LoopStructure> pLoopStructure,
       Optional<VariableClassification> pVarClassification,
       Optional<LiveVariables> pLiveVariables,
-      Language pLanguage) {
+      Optional<ImmutableSet<CFANode>> pErrorLocations, Language pLanguage) {
 
     machineModel = pMachineModel;
+    errorLocations = pErrorLocations;
     functions = ImmutableSortedMap.copyOf(pFunctions);
     allNodes = ImmutableSortedSet.copyOf(pAllNodes.values());
     mainFunction = checkNotNull(pMainFunction);
@@ -87,6 +90,7 @@ class ImmutableCFA implements CFA {
     varClassification = Optional.absent();
     liveVariables = Optional.absent();
     language = pLanguage;
+    errorLocations = Optional.absent();
   }
 
   static ImmutableCFA empty(MachineModel pMachineModel, Language pLanguage) {
@@ -159,6 +163,11 @@ class ImmutableCFA implements CFA {
   @Override
   public Optional<LiveVariables> getLiveVariables() {
     return liveVariables;
+  }
+
+  @Override
+  public Optional<ImmutableSet<CFANode>> getErrorNodes() {
+    return errorLocations;
   }
 
   @Override

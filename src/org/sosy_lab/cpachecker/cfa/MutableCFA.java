@@ -25,12 +25,9 @@ package org.sosy_lab.cpachecker.cfa;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.SortedSet;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.SortedSetMultimap;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -39,9 +36,12 @@ import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.SortedSetMultimap;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.SortedSet;
 
 public class MutableCFA implements CFA {
 
@@ -52,6 +52,7 @@ public class MutableCFA implements CFA {
   private final Language language;
   private Optional<LoopStructure> loopStructure = Optional.absent();
   private Optional<LiveVariables> liveVariables = Optional.absent();
+  private Optional<ImmutableSet<CFANode>> errorLocations = Optional.absent();
 
   public MutableCFA(
       MachineModel pMachineModel,
@@ -158,7 +159,8 @@ public class MutableCFA implements CFA {
 
   public ImmutableCFA makeImmutableCFA(Optional<VariableClassification> pVarClassification) {
     return new ImmutableCFA(machineModel, functions, allNodes, mainFunction,
-        loopStructure, pVarClassification, liveVariables, language);
+        loopStructure, pVarClassification, liveVariables, errorLocations,
+        language);
   }
 
   @Override
@@ -171,6 +173,11 @@ public class MutableCFA implements CFA {
     return liveVariables;
   }
 
+  @Override
+  public Optional<ImmutableSet<CFANode>> getErrorNodes() {
+    return errorLocations;
+  }
+
   public void setLiveVariables(Optional<LiveVariables> pLiveVariables) {
     liveVariables = pLiveVariables;
   }
@@ -180,4 +187,11 @@ public class MutableCFA implements CFA {
       return language;
   }
 
+  public void setErrorNodes(Optional<Set<CFANode>> pErrorLocations) {
+    if (pErrorLocations.isPresent()) {
+      errorLocations = Optional.of(ImmutableSet.copyOf(pErrorLocations.get()));
+    } else {
+      errorLocations = Optional.absent();
+    }
+  }
 }

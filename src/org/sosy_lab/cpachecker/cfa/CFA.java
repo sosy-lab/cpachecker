@@ -23,9 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import java.util.Collection;
-import java.util.Map;
-import java.util.Set;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -34,8 +33,9 @@ import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableSet;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
 
 public interface CFA {
 
@@ -64,6 +64,8 @@ public interface CFA {
   Optional<VariableClassification> getVarClassification();
 
   Optional<LiveVariables> getLiveVariables();
+
+  Optional<ImmutableSet<CFANode>> getErrorNodes();
 
   Language getLanguage();
 }
