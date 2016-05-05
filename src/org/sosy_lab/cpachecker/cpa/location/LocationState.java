@@ -33,10 +33,10 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.enteringEdges;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
@@ -62,7 +63,10 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class LocationState implements AbstractStateWithLocation, AbstractQueryableState, Partitionable, Serializable {
 
@@ -80,6 +84,15 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
         + " without following function calls (in this case FunctionSummaryEdges are used)")
     private boolean followFunctionCalls = true;
 
+    @Option(secure=true, description="Skip edges which can not possibly lead "
+        + "to specification violation. Makes sense only for forward analysis.")
+    private boolean skipNoTargetEdges = false;
+
+    private final LocationStateType locationStateType;
+    private final CFA cfa;
+
+    private final Set<CFANode> canReachErrorNode;
+
     public LocationStateFactory(CFA pCfa, LocationStateType locationType, Configuration config) throws InvalidConfigurationException {
       config.inject(this);
 
@@ -90,17 +103,41 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
       } else {
         allNodes = ImmutableSortedSet.copyOf(tmpNodes);
       }
+      locationStateType = locationType;
+      cfa = pCfa;
+
+      if (locationStateType == LocationStateType.FORWARD
+          && cfa.getErrorNodes().isPresent()
+          && skipNoTargetEdges) {
+
+        canReachErrorNode = new HashSet<>();
+        for (CFANode node : cfa.getErrorNodes().get()) {
+          canReachErrorNode.addAll(
+              CFATraversal.dfs().backwards().collectNodesReachableFrom(node));
+        }
+      } else {
+        canReachErrorNode = ImmutableSet.copyOf(pCfa.getAllNodes());
+      }
 
       int maxNodeNumber = allNodes.last().getNodeNumber();
       states = new LocationState[maxNodeNumber+1];
       for (CFANode node : allNodes) {
-        LocationState state = locationType == LocationStateType.BACKWARD
-            ? new BackwardsLocationState(node, pCfa, followFunctionCalls)
-            : locationType == LocationStateType.BACKWARDNOTARGET
-                ? new BackwardsLocationStateNoTarget(node, pCfa, followFunctionCalls)
-                : new LocationState(node, followFunctionCalls);
+        states[node.getNodeNumber()] = createStateForNode(node);
+      }
+    }
 
-        states[node.getNodeNumber()] = state;
+    private LocationState createStateForNode(CFANode node) {
+      switch (locationStateType) {
+
+        case FORWARD:
+          return new LocationState(node, followFunctionCalls, canReachErrorNode);
+        case BACKWARD:
+          return new BackwardsLocationState(node, cfa, followFunctionCalls);
+        case BACKWARDNOTARGET:
+          return new BackwardsLocationStateNoTarget(node, cfa,
+              followFunctionCalls);
+        default:
+          throw new UnsupportedOperationException("Unexpected state");
       }
     }
 
@@ -124,7 +161,10 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
     private boolean followFunctionCalls;
 
     protected BackwardsLocationState(CFANode locationNode, CFA pCfa, boolean pFollowFunctionCalls) {
-      super(locationNode, pFollowFunctionCalls);
+      super(locationNode, pFollowFunctionCalls,
+
+          // Allowed to-nodes are irrelevant for backward states.
+          new HashSet<CFANode>());
       cfa = pCfa;
       followFunctionCalls = pFollowFunctionCalls;
     }
@@ -167,10 +207,14 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
 
   private transient CFANode locationNode;
   private boolean followFunctionCalls;
+  private final Set<CFANode> allowedToNodes;
 
-  private LocationState(CFANode pLocationNode, boolean pFollowFunctionCalls) {
+  private LocationState(CFANode pLocationNode,
+                        boolean pFollowFunctionCalls,
+                        Set<CFANode> pAllowedToNodes) {
     locationNode = pLocationNode;
     followFunctionCalls = pFollowFunctionCalls;
+    allowedToNodes = pAllowedToNodes;
   }
 
   @Override
@@ -185,12 +229,27 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
 
   @Override
   public Iterable<CFAEdge> getOutgoingEdges() {
+    FluentIterable<CFAEdge> out;
     if (followFunctionCalls) {
-      return leavingEdges(locationNode);
+      out = leavingEdges(locationNode);
 
     } else {
-      return allLeavingEdges(locationNode).filter(not(or(instanceOf(FunctionReturnEdge.class), instanceOf(FunctionCallEdge.class))));
+      out = allLeavingEdges(locationNode)
+          .filter(
+              not(or(
+                  instanceOf(FunctionReturnEdge.class),
+                  instanceOf(FunctionCallEdge.class)))
+          );
     }
+    out = out.filter(
+        new Predicate<CFAEdge>() {
+          @Override
+          public boolean apply(CFAEdge input) {
+            return allowedToNodes.contains(input.getSuccessor());
+          }
+        }
+    );
+    return out;
   }
 
   @Override
