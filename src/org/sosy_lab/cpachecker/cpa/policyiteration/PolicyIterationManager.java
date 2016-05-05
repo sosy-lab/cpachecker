@@ -743,6 +743,16 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     throw new UnsupportedOperationException("Unexpected state");
   }
 
+  private final Map<Formula, Set<String>> functionNamesCache = new HashMap<>();
+  private Set<String> extractFunctionNames(Formula f) {
+    Set<String> out = functionNamesCache.get(f);
+    if (out == null) {
+      out = fmgr.extractFunctionNames(f);
+      functionNamesCache.put(f, out);
+    }
+    return out;
+  }
+
   /**
    * Perform the abstract operation on a new state
    *
@@ -781,7 +791,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         // Optimize for the template subject to the
         // constraints introduced by {@code p}.
         Formula objective = templateManager.toFormula(pfmgr, fmgr, template, p);
-        Set<String> objectiveVars = fmgr.extractFunctionNames(objective);
+        Set<String> objectiveVars = extractFunctionNames(objective);
 
         if (computeAbstractionByDecomposition) {
           Pair<DecompositionStatus, PolicyBound> res = computeByDecomposition(
@@ -966,7 +976,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         singleton = Template.of(le);
       }
 
-      Set<String> variables = fmgr.extractFunctionNames(
+      Set<String> variables = extractFunctionNames(
           templateManager.toFormula(pfmgr, fmgr, singleton, pFormula)
       );
 
@@ -1049,7 +1059,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     Set<BooleanFormula> out = new HashSet<>();
 
     for (BooleanFormula lemma : input) {
-      if (!Sets.intersection(fmgr.extractFunctionNames(lemma), closure)
+      if (!Sets.intersection(extractFunctionNames(lemma), closure)
           .isEmpty()) {
         out.add(lemma);
       }
@@ -1069,7 +1079,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     while (true) {
       boolean modified = false;
       for (BooleanFormula atom : input) {
-        Set<String> containedVars = fmgr.extractFunctionNames(atom);
+        Set<String> containedVars = extractFunctionNames(atom);
         if (!Sets.intersection(containedVars, related).isEmpty()) {
           modified |= related.addAll(containedVars);
         }
@@ -1117,7 +1127,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
     PolicyAbstractedState backpointer = inputState.getGeneratingState();
 
-    Set<String> policyVars = fmgr.extractFunctionNames(policyFormula);
+    Set<String> policyVars = extractFunctionNames(policyFormula);
     Set<Template> dependencies;
     if (!dependsOnInitial) {
       dependencies = ImmutableSet.of();
@@ -1126,7 +1136,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     } else {
       dependencies = new HashSet<>();
       for (Template t : templateManager.templatesForNode(backpointer.getNode())) {
-        Set<String> fVars = fmgr.extractFunctionNames(templateManager.toFormula(
+        Set<String> fVars = extractFunctionNames(templateManager.toFormula(
             pfmgr, fmgr, t,
             stateFormulaConversionManager.getPathFormula(backpointer, fmgr, false)
         ));
