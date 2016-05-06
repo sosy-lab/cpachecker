@@ -23,17 +23,17 @@
  */
 package org.sosy_lab.cpachecker.util;
 
+import com.google.common.collect.ImmutableMap;
+
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.cpachecker.cfa.CFACreator;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.EnumSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.cpachecker.cfa.CFACreator;
-
-import com.google.common.collect.ImmutableMap;
 
 /**
  * A simple class that reads a property, i.e. basically an entry function and a proposition, from a given property,

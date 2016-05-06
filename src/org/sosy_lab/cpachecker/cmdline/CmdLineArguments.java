@@ -23,18 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
-import static org.sosy_lab.cpachecker.cmdline.CPAMain.*;
+import static org.sosy_lab.cpachecker.cmdline.CPAMain.ERROR_EXIT_CODE;
+import static org.sosy_lab.cpachecker.cmdline.CPAMain.ERROR_OUTPUT;
 
-import java.io.FileNotFoundException;
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.regex.Pattern;
+import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
+import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.configuration.OptionCollector;
 import org.sosy_lab.common.io.Files;
@@ -46,9 +40,16 @@ import org.sosy_lab.cpachecker.util.PropertyFileParser;
 import org.sosy_lab.cpachecker.util.PropertyFileParser.InvalidPropertyFileException;
 import org.sosy_lab.cpachecker.util.PropertyFileParser.PropertyType;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Splitter;
-import com.google.common.collect.Lists;
+import java.io.FileNotFoundException;
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * This classes parses the CPAchecker command line arguments.
