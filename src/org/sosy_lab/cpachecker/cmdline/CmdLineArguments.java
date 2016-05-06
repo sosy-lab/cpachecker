@@ -98,6 +98,7 @@ class CmdLineArguments {
   private static final String MEMORYSAFETY_SPECIFICATION_FILE_FREE = "config/specification/memorysafety-free.spc";
   private static final String MEMORYSAFETY_SPECIFICATION_FILE_MEMTRACK = "config/specification/memorysafety-memtrack.spc";
   private static final String OVERFLOW_SPECIFICATION_FILE = "config/specification/overflow.spc";
+  private static final String DEADLOCK_SPECIFICATION_FILE = "config/specification/deadlock.spc";
 
   private static final Pattern PROPERTY_FILE_PATTERN = Pattern.compile("(.)+\\.prp");
 
@@ -450,6 +451,9 @@ class CmdLineArguments {
       case OVERFLOW:
         putIfNotExistent(options, "overflow.check", "true");
         newSpec = OVERFLOW_SPECIFICATION_FILE;
+        break;
+      case DEADLOCK:
+        newSpec = DEADLOCK_SPECIFICATION_FILE;
         break;
       case REACHABILITY:
         newSpec = REACHABILITY_SPECIFICATION_FILE;

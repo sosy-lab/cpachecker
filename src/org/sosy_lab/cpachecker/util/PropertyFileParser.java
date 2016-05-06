@@ -121,6 +121,7 @@ public class PropertyFileParser {
     VALID_DEREF,
     VALID_MEMTRACK,
     OVERFLOW,
+    DEADLOCK,
     ;
 
     private static ImmutableMap<String, PropertyType> AVAILABLE_PROPERTIES = ImmutableMap.<String, PropertyType>builder()
@@ -129,6 +130,8 @@ public class PropertyFileParser {
         .put("G valid-free",     PropertyType.VALID_FREE)
         .put("G valid-deref",    PropertyType.VALID_DEREF)
         .put("G valid-memtrack", PropertyType.VALID_MEMTRACK)
-        .put("G ! overflow",     PropertyType.OVERFLOW).build();
+        .put("G ! overflow",     PropertyType.OVERFLOW)
+        .put("G ! deadlock",     PropertyType.DEADLOCK)
+        .build();
   }
 }
