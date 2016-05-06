@@ -23,13 +23,25 @@
  */
 package org.sosy_lab.cpachecker.cpa.threading;
 
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
+import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_JOIN;
+import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.extractParamName;
+import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.getLockId;
+import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.isLastNodeOfThread;
+
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -42,10 +54,9 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.FluentIterable;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
 
 /** This immutable state represents a location state combined with a callstack state. */
 public class ThreadingState implements AbstractState, AbstractStateWithLocations, Graphable, Partitionable, AbstractQueryableState {
@@ -279,16 +290,44 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
     }
 
     for (CFAEdge edge : edges) {
-      String newLock = ThreadingTransferRelation.getLockId(edge);
-      if (newLock == null || !hasLock(newLock)) {
-        // no new lock required or the new lock is not yet used,
-        // -> this edge can be visited, no deadlock
+      if (!needsAlreadyUsedLock(edge) && !isWaitingForOtherThread(edge)) {
+        // edge can be visited, thus there is no deadlock
         return false;
       }
     }
 
-    // of no edge can be visited, there is a deadlock
+    // if no edge can be visited, there is a deadlock
     return true;
+  }
+
+  /** check, if the edge required a lock, that is already used. This might cause a deadlock. */
+  private boolean needsAlreadyUsedLock(CFAEdge edge) throws UnrecognizedCodeException {
+    final String newLock = getLockId(edge);
+    return newLock != null && hasLock(newLock);
+  }
+
+  /** A thread might need to wait for another thread, if the other thread joins at
+   * the current edge. If the other thread never exits, we have found a deadlock. */
+  private boolean isWaitingForOtherThread(CFAEdge edge) throws UnrecognizedCodeException {
+    if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
+      AStatement statement = ((AStatementEdge)edge).getStatement();
+      if (statement instanceof AFunctionCall) {
+        AExpression functionNameExp = ((AFunctionCall)statement).getFunctionCallExpression().getFunctionNameExpression();
+        if (functionNameExp instanceof AIdExpression) {
+          final String functionName = ((AIdExpression)functionNameExp).getName();
+          if (THREAD_JOIN.equals(functionName)) {
+            final String joiningThread = extractParamName(statement, 0);
+            // check whether other thread is running and has at least one outgoing edge,
+            // then we have to wait for it.
+            if (threads.containsKey(joiningThread)
+                && !isLastNodeOfThread(getThreadLocation(joiningThread).getLocationNode())) {
+              return true;
+            }
+          }
+        }
+      }
+    }
+    return false;
   }
 
   @Override
