@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.FormulaTransformationVisitor;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
@@ -81,7 +80,8 @@ public class RCNFManager implements StatisticsProvider {
   private BOUND_VARS_HANDLING boundVarsHandling =
       BOUND_VARS_HANDLING.QE_LIGHT_THEN_DROP;
 
-  @Option(secure=true, description="Expand equality atoms")
+  @Option(secure=true, description="Expand equality atoms. E.g. 'x=a' gets "
+      + "expanded into 'x >= a AND x <= a'. Can lead to stronger weakenings.")
   private boolean expandEquality = false;
 
   public enum BOUND_VARS_HANDLING {
@@ -278,20 +278,21 @@ public class RCNFManager implements StatisticsProvider {
 
   private Set<BooleanFormula> convert(BooleanFormula input) {
     BooleanFormula factorized = factorize(input);
-    if (expandEquality) {
-      factorized = transformEquality(factorized);
-    }
     Set<BooleanFormula> factorizedLemmas =
         bfmgr.toConjunctionArgs(factorized, true);
     Set<BooleanFormula> out = new HashSet<>();
-    if (expansionResultSizeLimit == 1) {
-      return factorizedLemmas;
-    }
     for (BooleanFormula lemma : factorizedLemmas) {
       BooleanFormula expanded = expandClause(lemma);
       Set<BooleanFormula> expandedLemmas =
           bfmgr.toConjunctionArgs(expanded, true);
-      out.addAll(expandedLemmas);
+      for (BooleanFormula l : expandedLemmas) {
+        if (expandEquality) {
+          out.addAll(bfmgr.toConjunctionArgs(
+              transformEquality(l), false));
+        } else {
+          out.add(l);
+        }
+      }
     }
     return out;
   }
@@ -300,9 +301,14 @@ public class RCNFManager implements StatisticsProvider {
    * Transform {@code a = b} to {@code a >= b /\ a <= b}.
    */
   private BooleanFormula transformEquality(BooleanFormula input) {
-    return fmgr.transformRecursively(new FormulaTransformationVisitor(fmgr) {
+    return fmgr.visit(new DefaultFormulaVisitor<BooleanFormula>() {
       @Override
-      public Formula visitFunction(
+      protected BooleanFormula visitDefault(Formula f) {
+        return (BooleanFormula) f;
+      }
+
+      @Override
+      public BooleanFormula visitFunction(
           Formula f,
           List<Formula> newArgs,
           FunctionDeclaration<?> functionDeclaration) {
@@ -315,8 +321,9 @@ public class RCNFManager implements StatisticsProvider {
               fmgr.makeGreaterOrEqual(a, b, true),
               fmgr.makeLessOrEqual(a, b, true)
           );
+        } else {
+          return (BooleanFormula) f;
         }
-        return super.visitFunction(f, newArgs, functionDeclaration);
       }
     }, input);
   }
