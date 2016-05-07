@@ -42,14 +42,14 @@ import java.util.TreeSet;
  * CPA-Abstract-State for tracking which variables/funtions are dependendent on which other variables/funtions
  */
 public class DependencyTrackerState implements AbstractState, Serializable,
-LatticeAbstractState<DependencyTrackerState>, Graphable, AbstractQueryableState{
+    LatticeAbstractState<DependencyTrackerState>, Graphable, AbstractQueryableState {
 
   private static final long serialVersionUID = -7164706513665824978L;
 
   /**
    * Internal Variable: Dependencies
    */
-  private Map<Variable,SortedSet<Variable>> dependencies= new TreeMap<>();
+  private Map<Variable, SortedSet<Variable>> dependencies = new TreeMap<>();
 
   public Map<Variable, SortedSet<Variable>> getDependencies() {
     return dependencies;
@@ -64,7 +64,7 @@ LatticeAbstractState<DependencyTrackerState>, Graphable, AbstractQueryableState{
   /**
    * Utility for computation of Set-Operations over Variables.
    */
-  private static SetUtil<Variable> setutil=new SetUtil<>();
+  private static SetUtil<Variable> setutil = new SetUtil<>();
 
   @Override
   public String getCPAName() {
@@ -104,83 +104,64 @@ LatticeAbstractState<DependencyTrackerState>, Graphable, AbstractQueryableState{
     return false;
   }
 
-  public boolean isEqual(DependencyTrackerState pOther) throws CPAException {
-      if (this==pOther) {
-         return true;
+  public boolean isEqual(DependencyTrackerState pOther) {
+    if (this == pOther) { return true; }
+    if (pOther == null) { return false; }
+    for (Variable var : this.dependencies.keySet()) {
+      if (pOther.dependencies.containsKey(var)) {
+        if (!(setutil.isSubset(this.dependencies.get(var),
+            pOther.dependencies.get(var)))) { return false; }
+      } else {
+        return false;
       }
-      if (pOther==null) {
-         return false;
+    }
+    for (Variable var : pOther.dependencies.keySet()) {
+      if (this.dependencies.containsKey(var)) {
+        if (!(setutil.isSubset(pOther.dependencies.get(var),
+            this.dependencies.get(var)))) { return false; }
+      } else {
+        return false;
       }
-      for(Variable var: this.dependencies.keySet()){
-        if(pOther.dependencies.containsKey(var)){
-          if(!(setutil.isSubset(this.dependencies.get(var), pOther.dependencies.get(var)))){
-            return false;
-          }
-        }
-        else{
-          return false;
-        }
-      }
-      for(Variable var: pOther.dependencies.keySet()){
-        if(this.dependencies.containsKey(var)){
-          if(!(setutil.isSubset(pOther.dependencies.get(var), this.dependencies.get(var)))){
-            return false;
-          }
-        }
-        else{
-          return false;
-        }
-      }
-      return true;
+    }
+    return true;
   }
 
   @Override
   public DependencyTrackerState join(DependencyTrackerState pOther) {
-    try {
-      if(this.isEqual(pOther)) {
-        return pOther;
-      }
-      else{
-        //Strongest Post Condition
-        DependencyTrackerState merge=this;
-        //implicit copy of this
-        //explicit copy of pOther
-        for(Variable var: pOther.dependencies.keySet()){
-          SortedSet<Variable> deps = pOther.dependencies.get(var);
-          SortedSet<Variable> ndeps =new TreeSet<>();
-          if(this.dependencies.containsKey(var)){
-            assert(merge.dependencies.containsKey(var));
-            ndeps=merge.dependencies.get(var);
-          }
-          for(Variable var2: deps){
-            ndeps.add(var2);
-          }
-          merge.dependencies.put(var,ndeps);
+    if (this.isEqual(pOther)) {
+      return pOther;
+    } else {
+      //Strongest Post Condition
+      DependencyTrackerState merge = this;
+      //implicit copy of this
+      //explicit copy of pOther
+      for (Variable var : pOther.dependencies.keySet()) {
+        SortedSet<Variable> deps = pOther.dependencies.get(var);
+        SortedSet<Variable> ndeps = new TreeSet<>();
+        if (this.dependencies.containsKey(var)) {
+          assert (merge.dependencies.containsKey(var));
+          ndeps = merge.dependencies.get(var);
         }
-        return merge;
+        for (Variable var2 : deps) {
+          ndeps.add(var2);
+        }
+        merge.dependencies.put(var, ndeps);
       }
-    } catch (CPAException e) {
-      //logger.log(Level.WARNING,e.toString());
+      return merge;
     }
-    return null;
   }
 
   @Override
-  public boolean isLessOrEqual(DependencyTrackerState pOther) throws CPAException, InterruptedException {
-    if (this==pOther) {
-        return true;
-    }
-    if (pOther==null) {
-      return false;
-    }
+  public boolean isLessOrEqual(DependencyTrackerState pOther)
+      throws CPAException, InterruptedException {
+    if (this == pOther) { return true; }
+    if (pOther == null) { return false; }
     //[l]>[l,h]
-    for(Variable var: this.dependencies.keySet()){
-      if(pOther.dependencies.containsKey(var)){
-        if(!(setutil.isSubset(this.dependencies.get(var), pOther.dependencies.get(var)))){
-          return false;
-        }
-      }
-      else{
+    for (Variable var : this.dependencies.keySet()) {
+      if (pOther.dependencies.containsKey(var)) {
+        if (!(setutil.isSubset(this.dependencies.get(var),
+            pOther.dependencies.get(var)))) { return false; }
+      } else {
         return false;
       }
     }
@@ -189,14 +170,14 @@ LatticeAbstractState<DependencyTrackerState>, Graphable, AbstractQueryableState{
 
 
   @Override
-  public DependencyTrackerState clone(){
-    DependencyTrackerState result=new DependencyTrackerState();
+  public DependencyTrackerState clone() {
+    DependencyTrackerState result = new DependencyTrackerState();
 
-    result.dependencies=new TreeMap<>();
-    for(Variable key :this.dependencies.keySet()){
-      SortedSet<Variable> vars=this.dependencies.get(key);
-      SortedSet<Variable> nvars=new TreeSet<>();
-      for(Variable var:vars){
+    result.dependencies = new TreeMap<>();
+    for (Variable key : this.dependencies.keySet()) {
+      SortedSet<Variable> vars = this.dependencies.get(key);
+      SortedSet<Variable> nvars = new TreeSet<>();
+      for (Variable var : vars) {
         nvars.add(var);
       }
       result.dependencies.put(key, nvars);

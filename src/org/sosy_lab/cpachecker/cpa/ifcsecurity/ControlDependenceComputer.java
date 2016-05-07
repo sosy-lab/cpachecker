@@ -108,4 +108,86 @@ public class ControlDependenceComputer {
   public TreeMap<CFANode,TreeSet<CFANode>> getReversedControlDependency(){
     return rcd;
   }
+
+
+  protected CFA getCfa() {
+    return cfa;
+  }
+
+
+  protected void setCfa(CFA pCfa) {
+    cfa = pCfa;
+  }
+
+
+  protected CFANode getEntry() {
+    return entry;
+  }
+
+
+  protected void setEntry(CFANode pEntry) {
+    entry = pEntry;
+  }
+
+
+  protected CFANode getExit() {
+    return exit;
+  }
+
+
+  protected void setExit(CFANode pExit) {
+    exit = pExit;
+  }
+
+
+  protected int getMode() {
+    return mode;
+  }
+
+
+  protected void setMode(int pMode) {
+    mode = pMode;
+  }
+
+
+  protected Collection<CFANode> getNodes() {
+    return nodes;
+  }
+
+
+  protected void setNodes(Collection<CFANode> pNodes) {
+    nodes = pNodes;
+  }
+
+
+  protected TreeMap<CFANode, TreeSet<CFANode>> getDf() {
+    return df;
+  }
+
+
+  protected void setDf(TreeMap<CFANode, TreeSet<CFANode>> pDf) {
+    df = pDf;
+  }
+
+
+  protected TreeMap<CFANode, TreeSet<CFANode>> getCd() {
+    return cd;
+  }
+
+
+  protected void setCd(TreeMap<CFANode, TreeSet<CFANode>> pCd) {
+    cd = pCd;
+  }
+
+
+  protected TreeMap<CFANode, TreeSet<CFANode>> getRcd() {
+    return rcd;
+  }
+
+
+  protected void setRcd(TreeMap<CFANode, TreeSet<CFANode>> pRcd) {
+    rcd = pRcd;
+  }
+
+
 }

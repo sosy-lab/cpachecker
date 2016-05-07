@@ -28,8 +28,6 @@ import org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking.Variable;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -49,7 +47,8 @@ public class ImmediateChecksParser {
    * Starts and execute the ImmediateChecksParser for parsing those Variables/functions that should be checked for security violation at every state.
   * @param file the file to be parsed.
    */
-  public ImmediateChecksParser(LogManager logger,String file) throws FileNotFoundException, IOException{
+  @SuppressWarnings("resource")
+  public ImmediateChecksParser(LogManager logger,String file){
     set=new TreeSet<>();
 
     FileInputStream fstream;

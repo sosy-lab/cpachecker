@@ -64,6 +64,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.logging.Level;
 
 /**
  * CPA-Transfer-Relation for tracking which variables/funtions are dependendent on which other variables/funtions
@@ -373,7 +374,8 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
   }
 
   public void strengthenExpressionAssignementStatement(DependencyTrackerState state, List<AbstractState> pOtherStates,
-      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException, InterruptedException {
+      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException{
+    logger.log(Level.FINE,pPrecision);
 
     /*
      * ControlDependancyTrackerState => Statement
@@ -406,7 +408,9 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
   }
 
   public void strengthenFunctionCallAssignmentStatement(DependencyTrackerState state, List<AbstractState> pOtherStates,
-      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException, InterruptedException {
+      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException {
+    logger.log(Level.FINE,pPrecision);
+
     /*
      * ControlDependancyTrackerState => CFunctionCallAssignmentStatement
      * if(h){
@@ -439,7 +443,9 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
   }
 
   public void strengthenFunctionCallStatement(DependencyTrackerState state, List<AbstractState> pOtherStates,
-      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException, InterruptedException {
+      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException {
+    logger.log(Level.FINE,pPrecision);
+
     /*
      * ControlDependancyTrackerState => CFunctionCallStatement
      * if(h){
@@ -472,7 +478,8 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
   }
 
   public void strengthenReturnStatementEdge(DependencyTrackerState state, List<AbstractState> pOtherStates,
-      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException, InterruptedException {
+      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException {
+    logger.log(Level.FINE,pPrecision);
     /*
      * CallstackState => CReturnStatementEdge
      * func(s){

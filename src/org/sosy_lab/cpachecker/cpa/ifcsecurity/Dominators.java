@@ -216,7 +216,6 @@ public class Dominators {
       }
     }
     infopw.bucket = new TreeSet<>();
-    ;
   }
 
   private void step4() {
@@ -251,5 +250,17 @@ public class Dominators {
     Collection<CFANode> pred;
     Collection<CFANode> bucket;
   }
+
+
+  protected CFA getCfa() {
+    return cfa;
+  }
+
+
+  protected void setCfa(CFA pCfa) {
+    cfa = pCfa;
+  }
+
+
 
 }

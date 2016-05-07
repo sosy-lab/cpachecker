@@ -30,8 +30,6 @@ import org.sosy_lab.cpachecker.cpa.ifcsecurity.policies.SecurityClasses;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.util.Map;
@@ -51,7 +49,8 @@ public class InitialMapParser {
    * Starts and execute the InitialMapParser for parsing the allowed SecurityClass-Mapping.
   * @param file the file to be parsed.
    */
-  public InitialMapParser(LogManager logger, String file) throws FileNotFoundException, IOException{
+  @SuppressWarnings("resource")
+  public InitialMapParser(LogManager logger, String file) {
     map=new TreeMap<>();
 
     FileInputStream fstream;

@@ -23,15 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.SortedSet;
-import java.util.TreeSet;
-
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.SetUtil;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 /**
  * Class for maintaining the variable dependencies of control flows
@@ -97,7 +97,6 @@ public class BlockGuard {
      * @param node2 Sink of the Edge
      * @param expression Expression of the control branch
      * @param value Truth value of the expression if the branch is taken
-     * @throws UnsupportedCCodeException
      */
     public void addDependancy(CFANode node, CFANode node2, CExpression expression, boolean value) throws UnsupportedCCodeException{
       VariableDependancy visitor=new VariableDependancy();
@@ -216,7 +215,6 @@ public class BlockGuard {
     * Combines two BlockGuards by intersection.
     * @param other the other Blockguard.
     * @return A new BlockGuard that is the intersection of both BlockGuards.
-    * @throws UnsupportedCCodeException
     */
    public BlockGuard meet(BlockGuard other) throws UnsupportedCCodeException{
      BlockGuard result=this.clone();

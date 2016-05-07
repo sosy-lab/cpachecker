@@ -95,7 +95,7 @@ LatticeAbstractState<ControlDependencyTrackerState>, Graphable, AbstractQueryabl
     return false;
   }
 
-  public boolean isEqual(ControlDependencyTrackerState pOther) throws CPAException {
+  public boolean isEqual(ControlDependencyTrackerState pOther) {
       if (this==pOther) {
          return true;
       }
@@ -110,7 +110,6 @@ LatticeAbstractState<ControlDependencyTrackerState>, Graphable, AbstractQueryabl
 
   @Override
   public ControlDependencyTrackerState join(ControlDependencyTrackerState pOther) {
-    try {
       if(this.isEqual(pOther)) {
         return pOther;
       }
@@ -124,10 +123,6 @@ LatticeAbstractState<ControlDependencyTrackerState>, Graphable, AbstractQueryabl
         }
         return merge;
       }
-    } catch (CPAException e) {
-//      logger.log(Level.WARNING,e.toString());
-    }
-    return null;
   }
 
   @Override
