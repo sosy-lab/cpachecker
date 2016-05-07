@@ -45,28 +45,28 @@ public class StringSecurityClass extends SecurityClasses{
     this.sc=sc;
   }
 
-  @Override
-  public boolean equals(Object obj) {
-    if (this==obj) {
-      return true;
-   }
-   if (obj==null) {
-      return false;
-   }
-   if (!(obj instanceof StringSecurityClass )) {
-      return false; // different class
-   }
-
-   StringSecurityClass other = (StringSecurityClass) obj;
-   if (this.sc==other.sc) {
-      return true;
-   }
-   if (this.sc==null && other.sc!=null) {
-      return false;
-   }
-   // this.content can't be null
-   return this.sc.equals(other.sc);
- }
+//  @Override
+//  public boolean equals(Object obj) {
+//    if (this==obj) {
+//      return true;
+//   }
+//   if (obj==null) {
+//      return false;
+//   }
+//   if (!(obj instanceof StringSecurityClass )) {
+//      return false; // different class
+//   }
+//
+//   StringSecurityClass other = (StringSecurityClass) obj;
+//   if (this.sc.equals(other.sc)) {
+//      return true;
+//   }
+//   if (this.sc==null && other.sc!=null) {
+//      return false;
+//   }
+//   // this.content can't be null
+//   return this.sc.equals(other.sc);
+// }
 
   @Override
   public int compareTo(SecurityClasses obj) {
