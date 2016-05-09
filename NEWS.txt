@@ -29,13 +29,12 @@ Changes since CPAchecker 1.4
   with a limited number of threads
   by using value analysis or BDD-based analysis.
 
-* Witness-Export and -Import
+* Witness Export and Validation
   After an analysis, CPAchecker exports witnesses
   that contain information about found counterexamples or correctness-proofs.
   The format of the witnesses is standardized and 
-  a (maybe outdated) description is avialable at
+  a description is available at
   https://sv-comp.sosy-lab.org/2016/witnesses
-  CPAchecker can also use witnesses to speedup the re-verification process.
 
 * Support for Verification Tasks with Multiple Source Files
   Multiple C source files can be given as input to CPAchecker,
