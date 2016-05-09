@@ -23,16 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.flowpolicies;
 
+import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.SetUtil;
+
+import java.io.Serializable;
 import java.util.Comparator;
 import java.util.SortedSet;
-
-import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.SetUtil;
 
 /**
  * Class for specifiying an Information Flow Relation
  * @param <E> Type of Security Class Elements
  */
-public class Edge<E extends Comparable<? super E>> implements Comparable<Edge<E>>{
+public class Edge<E extends Comparable<? super E>> implements Comparable<Edge<E>>, Serializable{
+
+  private static final long serialVersionUID = -8116012552727270178L;
 
   /**
    * Internal Variable: Comparator that is used for comparing two Edges

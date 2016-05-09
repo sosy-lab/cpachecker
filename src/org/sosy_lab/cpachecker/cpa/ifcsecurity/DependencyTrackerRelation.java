@@ -356,7 +356,7 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
         for(Entry<MemoryLocation, LocationSet> memloc: map.entrySet()){
           String varname=memloc.getKey().getIdentifier();
           Variable var=new Variable(varname);
-          LocationSet lset=map.get(memloc);
+          LocationSet lset=memloc.getValue();
           for(Variable var2: state.getDependencies().keySet()){
             if(lset.mayPointTo(MemoryLocation.valueOf(var2.toString()))){
               SortedSet<Variable> varset1=state.getDependencies().get(var);

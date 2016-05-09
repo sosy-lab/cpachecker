@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.flowpolicies;
 
+import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.SetUtil;
+
 import java.util.SortedSet;
 import java.util.TreeSet;
-
-import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.SetUtil;
 
 
 /**
@@ -149,7 +149,7 @@ public class PolicyAlgebra<E extends Comparable<? super E>> {
    * @return Complement-Policy of the two Policy
    */
   public ConglomeratePolicy<E> complement (ConglomeratePolicy<E> thispol){
-    ConglomeratePolicy<E> result = new ConglomeratePolicy<>();
+    ConglomeratePolicy<E> result;
     SortedSet<E> range=getDomain(thispol);
     ConglomeratePolicy<E> toppol=new TopPolicy<>(range);
     ConglomeratePolicy<E> botpol=new BottomPolicy<>(range);

@@ -23,10 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.flowpolicies;
 
+import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.InternalSetComparator;
+
+import java.io.Serializable;
 import java.util.Comparator;
 import java.util.SortedSet;
-
-import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.InternalSetComparator;
 
 /**
  * Comparator for comparing two Edges. Establish a Ordering depending on
@@ -34,7 +35,8 @@ import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.InternalSetComparator;
  * 2. Comparator of Edge.to.
  * @param <E> Type of Security Class Elements
  */
-public class EdgeComparator<E extends Comparable<? super E>> implements Comparator<Edge<E>>{
+public class EdgeComparator<E extends Comparable<? super E>> implements Comparator<Edge<E>>, Serializable{
+  private static final long serialVersionUID = 2957720262671604658L;
   /**
    * Comparator for Sets.
    */

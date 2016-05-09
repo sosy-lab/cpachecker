@@ -49,7 +49,7 @@ public class BlockGuard implements Cloneable, Serializable{
   /**
    * Internal Stack: that contains relevant information to all active control flow
    */
-  private List<Pair<Pair<CFANode,CFANode>, Pair<Pair<CExpression,Boolean>,SortedSet<Variable>>>> contextstack=new ArrayList<>();
+  private transient List<Pair<Pair<CFANode,CFANode>, Pair<Pair<CExpression,Boolean>,SortedSet<Variable>>>> contextstack=new ArrayList<>();
 
 
     /**

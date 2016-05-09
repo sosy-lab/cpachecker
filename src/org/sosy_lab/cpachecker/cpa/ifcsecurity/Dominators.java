@@ -242,4 +242,16 @@ public class Dominators {
     Collection<CFANode> pred;
     Collection<CFANode> bucket;
   }
+
+
+  protected CFA getCfa() {
+    return cfa;
+  }
+
+
+  protected void setCfa(CFA pCfa) {
+    cfa = pCfa;
+  }
+
+
 }
