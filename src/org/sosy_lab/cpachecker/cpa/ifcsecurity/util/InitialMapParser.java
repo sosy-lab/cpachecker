@@ -23,15 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.util;
 
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking.Variable;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.policies.PredefinedPolicies;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.policies.SecurityClasses;
 
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.InputStreamReader;
+import java.io.IOException;
 import java.lang.reflect.Field;
+import java.nio.charset.Charset;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Level;
@@ -50,35 +51,43 @@ public class InitialMapParser {
   * @param file the file to be parsed.
    */
   @SuppressWarnings("resource")
-  public InitialMapParser(LogManager logger, String file) {
+  public InitialMapParser(LogManager logger, Path file) {
     map=new TreeMap<>();
 
-    FileInputStream fstream;
+    List<String> contents = null;
     try {
-      fstream = new FileInputStream(file);
-      BufferedReader br = new BufferedReader(new InputStreamReader(fstream));
+      contents = file.asCharSource(Charset.defaultCharset()).readLines();
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "Could not read intial security mapping from file named " + file);
+      return ;
+    }
 
-      //Read File Line By Line
-      String strLine= br.readLine();
-      while (strLine  != null)   {
-        if(strLine.contains("=") && strLine.contains(";")){
-          int eqsign=strLine.indexOf("=");
-          int sem=strLine.indexOf(";");
-          assert(eqsign<sem);
-          Variable var=new Variable(strLine.substring(0, eqsign));
-          Field f=PredefinedPolicies.class.getField(strLine.substring(eqsign+1, sem));
+    for (String strLine : contents) {
+      if (strLine.trim().isEmpty()) {
+        continue;
+
+      } else if(strLine.contains("=") && strLine.contains(";")){
+        int eqsign=strLine.indexOf("=");
+        int sem=strLine.indexOf(";");
+        assert(eqsign<sem);
+        Variable var=new Variable(strLine.substring(0, eqsign));
+        try {
+          Field f = PredefinedPolicies.class.getField(strLine.substring(eqsign+1, sem));
           SecurityClasses clas=(SecurityClasses)(f.get(null));
           if(!map.containsKey(var)){
             map.put(var, clas);
           }
+        } catch (NoSuchFieldException e) {
+          logger.logUserException(Level.WARNING, e, "");
+        } catch (SecurityException e) {
+          logger.logUserException(Level.WARNING, e, "");
+        } catch (IllegalArgumentException e) {
+          logger.logUserException(Level.WARNING, e, "");
+        } catch (IllegalAccessException e) {
+          logger.logUserException(Level.WARNING, e, "");
         }
-        strLine=br.readLine();
-      }
 
-      //Close the input stream
-      br.close();
-    } catch (Exception e) {
-      logger.log(Level.WARNING, e.toString());
+      }
     }
   }
 

@@ -25,9 +25,12 @@ package org.sosy_lab.cpachecker.cpa.ifcsecurity;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -85,30 +88,36 @@ public class PolicyEnforcementCPA implements ConfigurableProgramAnalysis {
   private CFA cfa;
 
   @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
-      description="which merge operator to use for TestCPA")
+      description="which merge operator to use for PolicyEnforcementCPA")
   private String mergeType = "JOIN";
 
   @Option(secure=true, name="stop", toUppercase=true, values={"SEP", "JOIN"},
-      description="which stop operator to use for TestCPA")
+      description="which stop operator to use for PolicyEnforcementCPA")
   private String stopType = "SEP";
 
   private StopOperator stop;
   private MergeOperator merge;
 
-  @Option(secure=true, name="policy", toUppercase=true, description="which policy to use for TestCPA")
+  @Option(secure=true, name="policy", toUppercase=true, description="which policy to use for PolicyEnforcementCPA")
   private String policyname="HILO";
 
-  @Option(secure=true, name="betamapfile", toUppercase=false, description="which betamapfile to use for TestCPA")
-  private String betamapfile="betamap.conf";
+  @Option(secure=true, name="betamapfile", toUppercase=false, description="which betamapfile to use for PolicyEnforcementCPA")
+  @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
+  private Path betamapfile=Paths.get("betamap.conf");
 
-  @Option(secure=true, name="immediatechecksfile", toUppercase=false, description="which immediatechecksfile to use for TestCPA")
-  private String immediatechecksfile="immediatechecks.conf";
+  @Option(secure=true, name="immediatechecksfile", toUppercase=false, description="which immediatechecksfile to use for PolicyEnforcementCPA")
+  @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
+  private Path immediatechecksfile=Paths.get("immediatechecks.conf");
 
-  @Option(secure=true, name="callerlevel", toUppercase=true, description="which callerlevel to use for TestCPA")
+  @Option(secure=true, name="callerlevel", toUppercase=true, description="which callerlevel to use for PolicyEnforcementCPA")
   private String callerlevel="LOW";
 
   @Option(secure=true, name="statestocheck", toUppercase=true, description="which states shall be checked")
   private int statestocheck=0;
+
+  @Option(secure=true, description="defines security classes of entities")
+
+  private Path initialmapfile = null;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PolicyEnforcementCPA.class);

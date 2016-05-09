@@ -37,11 +37,11 @@ import java.io.Serializable;
 /**
  * CPA-Abstract-State for tracking the Active Control Dependencies
  */
-public class ControlDependencyTrackerState implements AbstractState, Serializable,
+public class ControlDependencyTrackerState implements AbstractState, Cloneable, Serializable,
 LatticeAbstractState<ControlDependencyTrackerState>, Graphable, AbstractQueryableState{
 
-  private static final long serialVersionUID = -7164706513665824978L;
 
+  private static final long serialVersionUID = -2622026109609951120L;
   /**
    * Active Control Dependencies
    */

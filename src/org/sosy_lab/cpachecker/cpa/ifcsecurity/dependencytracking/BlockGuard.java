@@ -36,7 +36,7 @@ import java.util.TreeSet;
 /**
  * Class for maintaining the variable dependencies of control flows
  */
-public class BlockGuard {
+public class BlockGuard implements Cloneable{
 
   /**
    * Utility for computation of Set-Operations over Variables.

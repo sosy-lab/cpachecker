@@ -23,12 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity;
 
-import java.io.Serializable;
-import java.util.Map;
-import java.util.SortedSet;
-import java.util.TreeMap;
-import java.util.TreeSet;
-
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
@@ -42,15 +36,21 @@ import org.sosy_lab.cpachecker.cpa.ifcsecurity.policies.SecurityClasses;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
+import java.io.Serializable;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
+
 /**
  * CPA-Abstract-State for enforcing a Security Policy
  */
 @Options(prefix="cpa.ifcsecurity")
-public class PolicyEnforcementState<E extends Comparable<? super E>> implements AbstractState, Serializable,
+public class PolicyEnforcementState<E extends Comparable<? super E>> implements AbstractState, Cloneable, Serializable,
 LatticeAbstractState<PolicyEnforcementState<E>>, Graphable, AbstractQueryableState{
 
-  private static final long serialVersionUID = -7164706513665824978L;
 
+  private static final long serialVersionUID = 8288327797371384819L;
   /**
    * Internal Variable: Security Policy
    */

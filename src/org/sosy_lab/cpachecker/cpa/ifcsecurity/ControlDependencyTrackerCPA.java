@@ -65,6 +65,7 @@ public class ControlDependencyTrackerCPA implements ConfigurableProgramAnalysis 
   private LogManager logger;
   private AbstractDomain domain;
   private ControlDependencyTrackerRelation transfer;
+  @SuppressWarnings("unused")
   private CFA cfa;
 
 
@@ -234,16 +235,4 @@ public class ControlDependencyTrackerCPA implements ConfigurableProgramAnalysis 
   public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
     return SingletonPrecision.getInstance();
   }
-
-
-  protected CFA getCfa() {
-    return cfa;
-  }
-
-
-  protected void setCfa(CFA pCfa) {
-    cfa = pCfa;
-  }
-
-
 }

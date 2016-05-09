@@ -23,12 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.util;
 
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking.Variable;
 
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.InputStreamReader;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.logging.Level;
@@ -48,31 +49,28 @@ public class ImmediateChecksParser {
   * @param file the file to be parsed.
    */
   @SuppressWarnings("resource")
-  public ImmediateChecksParser(LogManager logger,String file){
+  public ImmediateChecksParser(LogManager logger,Path file){
     set=new TreeSet<>();
 
-    FileInputStream fstream;
+    List<String> contents = null;
     try {
-      fstream = new FileInputStream(file);
-      BufferedReader br = new BufferedReader(new InputStreamReader(fstream));
+      contents = file.asCharSource(Charset.defaultCharset()).readLines();
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "Could not read intial security mapping from file named " + file);
+      return ;
+    }
 
-      //Read File Line By Line
-      String strLine= br.readLine();
-      while (strLine  != null)   {
-        if(strLine.contains(";")){
-          int sem=strLine.indexOf(";");
-          Variable var=new Variable(strLine.substring(0, sem));
-          if(!set.contains(var)){
-            set.add(var);
-          }
+    for (String strLine : contents) {
+      if (strLine.trim().isEmpty()) {
+        continue;
+
+      } else if(strLine.contains(";")){
+        int sem=strLine.indexOf(";");
+        Variable var=new Variable(strLine.substring(0, sem));
+        if(!set.contains(var)){
+          set.add(var);
         }
-        strLine=br.readLine();
       }
-
-      //Close the input stream
-      br.close();
-    } catch (Exception e) {
-      logger.log(Level.WARNING,e);
     }
   }
 

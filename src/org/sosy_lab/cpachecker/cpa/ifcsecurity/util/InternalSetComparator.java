@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.util;
 
+import java.io.Serializable;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.SortedSet;
@@ -33,7 +34,9 @@ import java.util.SortedSet;
  * 2. Comparator of elements.
  * @param <E> Type of elements in the sets.
  */
-public class InternalSetComparator<E extends Comparable<? super E>> implements Comparator<SortedSet<E>>{
+public class InternalSetComparator<E extends Comparable<? super E>> implements Serializable, Comparator<SortedSet<E>>{
+    private static final long serialVersionUID = 1L;
+
     @Override
     public int compare(SortedSet<E> obj1, SortedSet<E> obj2) {
       if(obj1.size()<obj2.size()){
