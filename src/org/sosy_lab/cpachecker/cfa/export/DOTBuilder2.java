@@ -56,6 +56,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 /**
  * Generates one DOT file per function for the report.
@@ -89,6 +90,7 @@ public final class DOTBuilder2 {
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
       CFATraversal.dfs().ignoreFunctionCalls().traverse(entryNode, vis);
     }
+    dotter.postProcessing();
   }
 
   /**
@@ -113,7 +115,6 @@ public final class DOTBuilder2 {
   public  void writeCombinedNodes(Writer out) throws IOException {
     JSON.writeJSONString(dotter.node2combo, out);
   }
-
 
   private static String getEdgeText(CFAEdge edge) {
     //the first call to replaceAll replaces \" with \ " to prevent a bug in dotty.
@@ -184,6 +185,26 @@ public final class DOTBuilder2 {
       return TraversalProcess.CONTINUE;
     }
 
+    void postProcessing() {
+      for (Entry<String, List<CFAEdge>> entry : comboedges.entries()) {
+        List<CFAEdge> combo = entry.getValue();
+        String funcname = entry.getKey();
+        if (combo.size() == 1) {
+          comboedges.remove(funcname, combo);
+          edges.put(funcname, combo.get(0));
+          nodes.put(funcname, combo.get(0).getPredecessor());
+          nodes.put(funcname, combo.get(0).getSuccessor());
+
+        } else {
+          for (CFAEdge edge : combo) {
+            CFAEdge first = combo.get(0);
+            int firstNo = first.getPredecessor().getNodeNumber();
+            node2combo.put(edge.getPredecessor().getNodeNumber(), firstNo);
+          }
+        }
+      }
+    }
+
     void writeFunctionFile(String funcname, Path outdir) throws IOException {
 
       try (Writer out =
@@ -196,22 +217,15 @@ public final class DOTBuilder2 {
 
         //write comboedges
         for (List<CFAEdge> combo : comboedges.get(funcname)) {
-          if (combo.size() == 1) {
-            edges.put(funcname, combo.get(0));
-            nodes.put(funcname, combo.get(0).getPredecessor());
-            nodes.put(funcname, combo.get(0).getSuccessor());
+          outb.append(comboToDot(combo));
 
-          } else {
-            outb.append(comboToDot(combo));
+          CFAEdge first = combo.get(0);
+          CFAEdge last = combo.get(combo.size() - 1);
 
-            CFAEdge first = combo.get(0);
-            CFAEdge last = combo.get(combo.size() - 1);
-
-            outb.append(first.getPredecessor().getNodeNumber());
-            outb.append(" -> ");
-            outb.append(last.getSuccessor().getNodeNumber());
-            outb.append("[label=\"\"]\n");
-          }
+          outb.append(first.getPredecessor().getNodeNumber());
+          outb.append(" -> ");
+          outb.append(last.getSuccessor().getNodeNumber());
+          outb.append("[label=\"\"]\n");
         }
 
         //write nodes
@@ -297,10 +311,6 @@ public final class DOTBuilder2 {
           sb.append("</td></tr>");
         }
         sb.append("</table>>");
-      }
-
-      for (CFAEdge edge: combo) {
-        node2combo.put(edge.getPredecessor().getNodeNumber(), firstNo);
       }
 
       sb.append("]\n");
