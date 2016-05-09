@@ -40,7 +40,7 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 @Options
-public class GenerateReportWithoutGraphs {
+public class ReportGenerator {
 
   private static final Splitter LINE_SPLITTER = Splitter.on('\n');
   private static final Splitter COMMA_SPLITTER = Splitter.on(',').trimResults();
@@ -80,7 +80,7 @@ public class GenerateReportWithoutGraphs {
 
   private final List<String> sourceFiles = new ArrayList<>();
 
-  public GenerateReportWithoutGraphs(
+  public ReportGenerator(
       Configuration pConfig,
       LogManager pLogger,
       CFA pCfa,
