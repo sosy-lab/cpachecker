@@ -53,7 +53,7 @@ import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentEx
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofGenerator;
-import org.sosy_lab.cpachecker.core.counterexample.GenerateReportWithoutGraphs;
+import org.sosy_lab.cpachecker.core.counterexample.ReportGenerator;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
@@ -385,8 +385,8 @@ public class CPAMain {
     CFA cfa = mResult.getCfa();
     if (options.generateCounterexampleReport && reached != null && cfa != null) {
       try {
-        GenerateReportWithoutGraphs generateReportWithoutGraphs =
-            new GenerateReportWithoutGraphs(
+        ReportGenerator generateReportWithoutGraphs =
+            new ReportGenerator(
                 cpaConfig, logManager, cfa, reached, statistics.toString());
         generateReportWithoutGraphs.generate();
 
