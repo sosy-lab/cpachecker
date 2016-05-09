@@ -74,8 +74,11 @@ def call_dot(infile, outpath):
     return True
 
 
-def generate_report(cpa_output_dir, functions, arg_path, report_path, template_path):
-    with open(template_path, 'r') as template, open(report_path, 'w') as report:
+def generate_report(cpa_output_dir, functions, arg_path, report_path):
+    with open(report_path, 'r') as report:
+        template = report.readlines()
+    
+    with open(report_path, 'w') as report:
         for line in template:
             if 'CFAFUNCTIONGRAPHS' in line:
                 write_cfa(cpa_output_dir, functions, report)
@@ -164,8 +167,8 @@ def main():
     # extract paths to all necessary files and directories from config
     cpa_output_dir = config.get('output.path', 'output/')
     arg_path = os.path.join(cpa_output_dir, config.get('cpa.arg.file', 'ARG.dot'))
-    error_path = os.path.join(cpa_output_dir, config.get('cpa.arg.errorPath.json', 'ErrorPath.%d.json'))
-    report_dir = os.path.join(cpa_output_dir, "report")
+    counter_example_path_template = os.path.join(cpa_output_dir, config.get('counterexample.report.file', 'Counterexample.%d.html'))
+    report_path = os.path.join(cpa_output_dir, config.get('report.file', 'Report.html'))
 
     #if there is an ARG.dot create an SVG in the report dir
     if os.path.isfile(arg_path):
@@ -174,22 +177,17 @@ def main():
 
     print ('Generating SVGs for CFA')
     functions = [x[5:-4] for x in os.listdir(cpa_output_dir) if x.startswith('cfa__') and x.endswith('.dot')]
-    error_path_count = len(glob.glob(error_path.replace('%d', '*')))
-    functions = sorted(functions)
-    for function in functions:
+    for function in sorted(functions):
         print(function)
         call_dot(os.path.join(cpa_output_dir, 'cfa__' + function + '.dot'), cpa_output_dir)
 
-    if error_path_count != 0:
-      for index in range(error_path_count):
-        report_path = os.path.join(report_dir, 'report_' + str(index) + '.html')
-        template_path = os.path.join(report_dir, 'report_withoutGraphs_' + str(index) + '.html')
-        generate_report(cpa_output_dir, functions, arg_path, report_path, template_path)
+    counter_example_paths = glob.glob(counter_example_path_template.replace('%d', '*'))
+    print(counter_example_path_template)
+    for counter_example_path in counter_example_paths:
+        generate_report(cpa_output_dir, functions, arg_path, counter_example_path)
         
-    else:
-      report_path = os.path.join(report_dir, 'report.html')
-      template_path = os.path.join(report_dir, 'report_withoutGraphs.html')
-      generate_report(cpa_output_dir, functions, arg_path, report_path, template_path)
+    if os.path.exists(report_path):
+        generate_report(cpa_output_dir, functions, arg_path, report_path)
 
 if __name__ == '__main__':
     main()

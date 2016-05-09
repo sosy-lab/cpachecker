@@ -3,7 +3,6 @@ package org.sosy_lab.cpachecker.core.counterexample;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static java.util.logging.Level.WARNING;
-import static org.sosy_lab.common.io.PathTemplate.ofFormatString;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Function;
@@ -47,10 +46,7 @@ public class GenerateReportWithoutGraphs {
   private static final Splitter COMMA_SPLITTER = Splitter.on(',').trimResults();
 
   private static final Path SCRIPTS = Paths.get("scripts");
-  private static final Path REPORT = Paths.get("report");
   private static final Path HTML_TEMPLATE = SCRIPTS.resolve("report_template.html");
-  private static final PathTemplate OUT_HTML = ofFormatString("report_withoutGraphs_%d.html");
-  private static final Path NO_PATHS_OUT_HTML = Paths.get("report_withoutGraphs.html");
 
   private final Configuration config;
   private final LogManager logger;
@@ -73,8 +69,13 @@ public class GenerateReportWithoutGraphs {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path statisticsFile = Paths.get("Statistics.txt");
 
-  @Nullable private final Path outputPath;
-  @Nullable private final Path reportDir;
+  @Option(secure = true, name = "report.file.", description = "export report as HTML")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path reportFile = Paths.get("Report.html");
+
+  @Option(secure = true, name = "counterexample.report.file", description = "export counterexample as HTML")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate counterExampleFiles = PathTemplate.ofFormatString("Counterexample.%d.html");
 
   private final List<String> sourceFiles = new ArrayList<>();
 
@@ -86,27 +87,12 @@ public class GenerateReportWithoutGraphs {
     cfa = checkNotNull(pCfa);
     reached = checkNotNull(pReached);
     dotBuilder = new DOTBuilder2(pCfa);
-
     config.inject(this);
-    if (statisticsFile != null) {
-      outputPath = statisticsFile.getParent();
-    } else if (logFile != null) {
-      outputPath = logFile.getParent();
-    } else {
-      outputPath = null;
-    }
-
-    if (outputPath != null) {
-      reportDir = outputPath.resolve(REPORT);
-
-      sourceFiles.addAll(COMMA_SPLITTER.splitToList(programs));
-    } else {
-      reportDir = null;
-    }
+    sourceFiles.addAll(COMMA_SPLITTER.splitToList(programs));
   }
 
   public void generate() {
-    if (outputPath == null) {
+    if (reportFile == null || counterExampleFiles == null) {
       return; // output is disabled
     }
 
@@ -118,12 +104,12 @@ public class GenerateReportWithoutGraphs {
                 .transform(new ExtractCounterExampleInfo()));
 
     if (!counterExamples.iterator().hasNext()) {
-      fillOutTemplate(null, NO_PATHS_OUT_HTML);
+      fillOutTemplate(null, reportFile);
 
     } else {
       int index = 0;
       for (CounterexampleInfo counterExample : counterExamples) {
-        fillOutTemplate(counterExample, OUT_HTML.getPath(index));
+        fillOutTemplate(counterExample, counterExampleFiles.getPath(index));
         index++;
       }
     }
@@ -138,8 +124,7 @@ public class GenerateReportWithoutGraphs {
     }
   }
 
-  private void fillOutTemplate(@Nullable CounterexampleInfo counterExample, Path outFileName) {
-    Path reportPath = reportDir.resolve(outFileName);
+  private void fillOutTemplate(@Nullable CounterexampleInfo counterExample, Path reportPath) {
     try {
       Files.createParentDirs(reportPath);
     } catch (IOException e) {
