@@ -133,8 +133,11 @@ There are a few additional guidelines for most effective logging of exceptions:
   to log it, and logging an exception before (re-)throwing it
   will produce confusing logs which contain the same exception
   multiple times.
+- When logging an exception, always add a log message that explains
+  where this exception happened and what effect this has.
 - Throwable.printStackTrace() should not be used, always use the logger.
 - Always pass the exception object to the LogManager.
+  Do not use e.toString() or e.getMessage() when logging the exception.
   Logging only the message of the exception would hide important details
   such as the stack trace and the cause of the exception,
   which can be very important for debugging.

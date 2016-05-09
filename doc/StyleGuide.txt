@@ -12,6 +12,9 @@ Further guidelines that are worth reading:
 Some additional information can be found in other files
 in this directory, e.g. Logging.txt and Test.txt.
 
+Please read all these documents, they will let you write better code
+with considerably less effort!
+
 We use an automatic code formatter to format our new code
 (existing code still may violate the style guide).
 Before committing, run "ant format-diff" to reformat your changes
@@ -63,6 +66,7 @@ Compilation:
 Design:
 - Prefer immutable objects, for own classes and for collections
   (https://github.com/google/guava/wiki/ImmutableCollectionsExplained).
+  Do not add setters unless really required!
 - Avoid null, replace it with real objects, or (at last resort) Optional:
   https://github.com/google/guava/wiki/UsingAndAvoidingNullExplained
 - Avoid boolean parameters. They carry no semantics
@@ -103,6 +107,7 @@ Coding:
 - Mark fields as final, if they are never modified,
   and try to make them final, if they are modified (-> immutability).
 - Prefer enhanced for-loop over List.get(int).
+- Use try-with-resources instead of manually calling close().
 - Use arrays only with primitive types (int, long, etc.)
   or when existing APIs require them.
   Otherwise never use arrays of object types, use lists instead.
@@ -134,5 +139,7 @@ Coding:
 - Never swallow an exception.
   If throwing another exception, add the original one as the cause.
   If logging, use the appropriate logger methods (c.f. doc/Logging.txt).
+- Do not catch "Exception", catch only the specific exception types
+  that need to be caught!
 - Always put @Override when implementing an overriding method
   (Eclipse does this automatically).
