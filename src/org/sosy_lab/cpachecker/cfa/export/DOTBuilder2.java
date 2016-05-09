@@ -54,6 +54,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -186,11 +187,14 @@ public final class DOTBuilder2 {
     }
 
     void postProcessing() {
-      for (Entry<String, List<CFAEdge>> entry : comboedges.entries()) {
+      Iterator<Entry<String, List<CFAEdge>>> it = comboedges.entries().iterator();
+      while (it.hasNext()) {
+        Entry<String, List<CFAEdge>> entry = it.next();
         List<CFAEdge> combo = entry.getValue();
         String funcname = entry.getKey();
+
         if (combo.size() == 1) {
-          comboedges.remove(funcname, combo);
+          it.remove();
           edges.put(funcname, combo.get(0));
           nodes.put(funcname, combo.get(0).getPredecessor());
           nodes.put(funcname, combo.get(0).getSuccessor());
