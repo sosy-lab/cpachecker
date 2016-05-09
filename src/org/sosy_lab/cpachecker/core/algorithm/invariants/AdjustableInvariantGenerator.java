@@ -56,6 +56,8 @@ public class AdjustableInvariantGenerator<T extends InvariantGenerator> extends 
 
   private final AtomicReference<T> invariantGenerator;
 
+  private final AtomicReference<T> previousInvariantGenerator = new AtomicReference<>();
+
   private final AtomicReference<Future<FormulaAndTreeSupplier>> currentInvariantSupplier = new AtomicReference<>();
 
   private final T initialGenerator;
@@ -103,7 +105,7 @@ public class AdjustableInvariantGenerator<T extends InvariantGenerator> extends 
       if (current != null) {
         next.start(pInitialLocation);
       }
-      invariantGenerator.set(next);
+      previousInvariantGenerator.set(invariantGenerator.getAndSet(next));
     }
     return adjustable;
   }
@@ -168,6 +170,12 @@ public class AdjustableInvariantGenerator<T extends InvariantGenerator> extends 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     InvariantGenerator invariantGenerator = this.invariantGenerator.get();
+    if (invariantGenerator == null) {
+      invariantGenerator = previousInvariantGenerator.get();
+    }
+    if (invariantGenerator == null) {
+      invariantGenerator = initialGenerator;
+    }
     if (invariantGenerator instanceof StatisticsProvider) {
       ((StatisticsProvider) invariantGenerator).collectStatistics(pStatsCollection);
     }
