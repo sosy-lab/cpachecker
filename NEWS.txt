@@ -24,6 +24,19 @@ Changes since CPAchecker 1.4
   with unbounded memory regions by using the SMT theory of arrays.
   This can be enabled with cpa.predicate.handleHeapArray=true.
 
+* Concurrency Support
+  CPAchecker now supports the analysis of concurrent programs
+  with a limited number of threads
+  by using value analysis or BDD-based analysis.
+
+* Witness-Export and -Import
+  After an analysis, CPAchecker exports witnesses
+  that contain information about found counterexamples or correctness-proofs.
+  The format of the witnesses is standardized and 
+  a (maybe outdated) description is avialable at
+  https://sv-comp.sosy-lab.org/2016/witnesses
+  CPAchecker can also use witnesses to speedup the re-verification process.
+
 * Support for Verification Tasks with Multiple Source Files
   Multiple C source files can be given as input to CPAchecker,
   and they will be linked together and analyzed as a single program.
