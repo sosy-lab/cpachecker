@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.SetUtil;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.SortedSet;
@@ -36,7 +37,9 @@ import java.util.TreeSet;
 /**
  * Class for maintaining the variable dependencies of control flows
  */
-public class BlockGuard implements Cloneable{
+public class BlockGuard implements Cloneable, Serializable{
+
+  private static final long serialVersionUID = 7481418201286823199L;
 
   /**
    * Utility for computation of Set-Operations over Variables.
@@ -66,6 +69,11 @@ public class BlockGuard implements Cloneable{
 
     @Override
     public BlockGuard clone(){
+      try {
+        super.clone();
+      } catch (CloneNotSupportedException e) {
+        //    logger.logUserException(Level.WARNING, e, "");
+      }
       //Copy internal structure
       List<Pair<Pair<CFANode,CFANode>, Pair< Pair<CExpression,Boolean>,SortedSet<Variable>>>> tmpallcontexts=new ArrayList<>();
       for(int i=0;i<contextstack.size();i++){
@@ -276,7 +284,7 @@ public class BlockGuard implements Cloneable{
     * @param <T> Type of the first element
     * @param <E> Type of the second element
     */
-  class Pair<T,E> {
+  static class Pair<T,E> {
     /**
      * first element
      */

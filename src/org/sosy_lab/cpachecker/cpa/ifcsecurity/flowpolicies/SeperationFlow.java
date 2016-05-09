@@ -23,15 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.flowpolicies;
 
-import java.util.SortedSet;
-
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.SetUtil;
+
+import java.util.SortedSet;
 
 /**
  * Class for constructing a Policy that only contains one specific Edge and all Reflexive Edges over the Domain of the Edge.
  * @param <E> Type of Security Class Elements
  */
 public class SeperationFlow<E extends Comparable<? super E>> extends ConglomeratePolicy<E>{
+
+  private static final long serialVersionUID = 2687695854333064398L;
 
   /**
    * Class for constructing a Policy that only contains one specific Edge and all Reflexive Edges over the Domain of the Edge.

@@ -23,13 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.SortedSet;
-import java.util.TreeSet;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -56,6 +49,14 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking.Variable;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 
 /**
@@ -213,7 +214,8 @@ public class PolicyEnforcementRelation<E extends Comparable<? super E>> extends 
         DependencyTrackerState otherstate=(DependencyTrackerState)aState;
         Map<Variable, SortedSet<Variable>> deps = otherstate.getDependencies();
 
-        for(Variable var: deps.keySet()){
+        for(Entry<Variable, SortedSet<Variable>> entry: deps.entrySet()){
+          Variable var=entry.getKey();
           SortedSet<E> history = new TreeSet<>();
           //Reflexivity
           history.add(state.getAllowedsecurityclassmapping().get(var));

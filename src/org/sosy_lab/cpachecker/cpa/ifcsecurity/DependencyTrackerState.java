@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 import java.io.Serializable;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -107,7 +108,8 @@ public class DependencyTrackerState implements AbstractState, Cloneable, Seriali
   public boolean isEqual(DependencyTrackerState pOther) {
     if (this == pOther) { return true; }
     if (pOther == null) { return false; }
-    for (Variable var : this.dependencies.keySet()) {
+    for (Entry<Variable, SortedSet<Variable>> entry : this.dependencies.entrySet()) {
+      Variable var=entry.getKey();
       if (pOther.dependencies.containsKey(var)) {
         if (!(setutil.isSubset(this.dependencies.get(var),
             pOther.dependencies.get(var)))) { return false; }
@@ -115,7 +117,8 @@ public class DependencyTrackerState implements AbstractState, Cloneable, Seriali
         return false;
       }
     }
-    for (Variable var : pOther.dependencies.keySet()) {
+    for (Entry<Variable, SortedSet<Variable>> entry : pOther.dependencies.entrySet()) {
+      Variable var=entry.getKey();
       if (this.dependencies.containsKey(var)) {
         if (!(setutil.isSubset(pOther.dependencies.get(var),
             this.dependencies.get(var)))) { return false; }
@@ -157,7 +160,8 @@ public class DependencyTrackerState implements AbstractState, Cloneable, Seriali
     if (this == pOther) { return true; }
     if (pOther == null) { return false; }
     //[l]>[l,h]
-    for (Variable var : this.dependencies.keySet()) {
+    for (Entry<Variable, SortedSet<Variable>> entry : this.dependencies.entrySet()) {
+      Variable var=entry.getKey();
       if (pOther.dependencies.containsKey(var)) {
         if (!(setutil.isSubset(this.dependencies.get(var),
             pOther.dependencies.get(var)))) { return false; }
@@ -171,11 +175,18 @@ public class DependencyTrackerState implements AbstractState, Cloneable, Seriali
 
   @Override
   public DependencyTrackerState clone() {
+    try {
+      super.clone();
+    } catch (CloneNotSupportedException e) {
+      //    logger.logUserException(Level.WARNING, e, "");
+    }
+
     DependencyTrackerState result = new DependencyTrackerState();
 
     result.dependencies = new TreeMap<>();
-    for (Variable key : this.dependencies.keySet()) {
-      SortedSet<Variable> vars = this.dependencies.get(key);
+    for (Entry<Variable, SortedSet<Variable>> entry : this.dependencies.entrySet()) {
+      Variable key=entry.getKey();
+      SortedSet<Variable> vars = entry.getValue();
       SortedSet<Variable> nvars = new TreeSet<>();
       for (Variable var : vars) {
         nvars.add(var);

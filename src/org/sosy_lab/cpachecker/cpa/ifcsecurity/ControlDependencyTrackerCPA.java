@@ -140,7 +140,7 @@ public class ControlDependencyTrackerCPA implements ConfigurableProgramAnalysis 
    * @param <T> Type of the first element
    * @param <E> Type of the second element
    */
- class Pair<T,E> {
+ static class Pair<T,E> {
    /**
     * first element
     */

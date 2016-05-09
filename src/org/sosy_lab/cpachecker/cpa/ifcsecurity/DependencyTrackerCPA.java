@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 /**
- * CPA for tracking which variables/funtions are dependendent on which other variables/funtions
+ * CPA for tracking which variables/functions are dependent on which other variables/functions
  */
 @Options(prefix="cpa.ifcsecurity")
 public class DependencyTrackerCPA implements ConfigurableProgramAnalysis {

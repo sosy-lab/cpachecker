@@ -23,11 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking;
 
+import java.io.Serializable;
 
 /**
  * Class, for wrapping one Variable
  */
-public class Variable implements Comparable<Variable>{
+public class Variable implements Comparable<Variable>, Serializable{
+  private static final long serialVersionUID = -4199046985815841335L;
   /**
    * Identifier of the Variable
    */

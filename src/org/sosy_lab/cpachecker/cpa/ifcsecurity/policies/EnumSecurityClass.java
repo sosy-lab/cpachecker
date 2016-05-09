@@ -33,7 +33,7 @@ public class EnumSecurityClass extends SecurityClasses{
   /**
    * Internal Variable containing the Enum-Identifier of the Security class
    */
-  SecurityClassesSet sc;
+  private SecurityClassesSet sc;
 
   /**
    * Constructor for the Security-Class
@@ -59,7 +59,7 @@ public class EnumSecurityClass extends SecurityClasses{
    if (this.sc==other.sc) {
       return true;
    }
-   if (this.sc==null && other.sc!=null) {
+   if (this.sc!=null && other.sc==null) {
       return false;
    }
    // this.content can't be null

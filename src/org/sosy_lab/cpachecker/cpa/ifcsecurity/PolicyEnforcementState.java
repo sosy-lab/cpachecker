@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 import java.io.Serializable;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -95,7 +96,8 @@ LatticeAbstractState<PolicyEnforcementState<E>>, Graphable, AbstractQueryableSta
 
       //Check Violation
       if(this.isCheckthis()){
-        for(Variable var: this.contentsecurityclasslevels.keySet()){
+        for(Entry<Variable, SortedSet<E>> entry: this.contentsecurityclasslevels.entrySet()){
+            Variable var=entry.getKey();
 //          if(this.isglobal.containsKey(var)){
 //            if(this.isglobal.get(var).equals(true)){
               E sink=this.allowedsecurityclassmapping.get(var);
@@ -145,8 +147,9 @@ LatticeAbstractState<PolicyEnforcementState<E>>, Graphable, AbstractQueryableSta
 //    sb.append("[Default Level]="+defaultlevel.toString());
 //    sb.append("\\n");
     sb.append("[Initial-Variable Level]");
-    for(Variable key:allowedsecurityclassmapping.keySet()){
-      SecurityClasses value=(SecurityClasses) allowedsecurityclassmapping.get(key);
+    for(Entry<Variable, E> entry:allowedsecurityclassmapping.entrySet()){
+      Variable key=entry.getKey();
+      SecurityClasses value=(SecurityClasses) entry.getValue();
       if(!(ignoreany && value.equals(PredefinedPolicies.UNIMPORTANT))){
         sb.append("("+key+","+value+"), ");
       }
@@ -155,9 +158,10 @@ LatticeAbstractState<PolicyEnforcementState<E>>, Graphable, AbstractQueryableSta
     sb.append("\\n");
     sb.append("[Content-Level]=");
     sb.append("\\n");
-    for(Variable key:contentsecurityclasslevels.keySet()){
+    for(Entry<Variable, SortedSet<E>> entry:contentsecurityclasslevels.entrySet()){
+      Variable key=entry.getKey();
       @SuppressWarnings("unchecked")
-      SortedSet<SecurityClasses> value2=(SortedSet<SecurityClasses>)  contentsecurityclasslevels.get(key);
+      SortedSet<SecurityClasses> value2=(SortedSet<SecurityClasses>)  entry.getValue();
       SecurityClasses value=(SecurityClasses) allowedsecurityclassmapping.get(key);
       if(!(ignoreany && value.equals(PredefinedPolicies.UNIMPORTANT))){
         sb.append("("+key+","+value2+"), ");
@@ -179,17 +183,19 @@ LatticeAbstractState<PolicyEnforcementState<E>>, Graphable, AbstractQueryableSta
   @Override
   public boolean shouldBeHighlighted() {
     //Highlight all potential Security Leak
-    for(Variable var: this.contentsecurityclasslevels.keySet()){
+    for(Entry<Variable, SortedSet<E>> entry: this.contentsecurityclasslevels.entrySet()){
+      Variable var=entry.getKey();
 //    if(this.isglobal.containsKey(var)){
 //      if(this.isglobal.get(var).equals(true)){
         E sink=this.allowedsecurityclassmapping.get(var);
-        SortedSet<E> source=this.contentsecurityclasslevels.get(var);
+        SortedSet<E> source=entry.getValue();
         Edge<E> edge=new Edge<>(sink,source);
         if(!(this.policy.getEdges().contains(edge))){
           return true;
         }
       }
-//    for(Variable var: this.contentsecurityclasslevels.keySet()){
+//    for(Variable entry: this.contentsecurityclasslevels.entrySet()){
+//    Variable var=entry.getKey();
 //      if(this.isglobal.containsKey(var)){
 //        if(this.isglobal.get(var).equals(true)){
 //          E sink=this.allowedsecurityclassmapping.get(var);
@@ -240,9 +246,11 @@ LatticeAbstractState<PolicyEnforcementState<E>>, Graphable, AbstractQueryableSta
     else{
       //Strongest Post Condition
       PolicyEnforcementState<E> merge=this;
-      for(Variable var: (SortedSet<Variable>)(pOther.allowedsecurityclassmapping.keySet())){
+      for(Entry<Variable, E> entry: pOther.allowedsecurityclassmapping.entrySet()){
+        //(SortedSet<Variable>)
+        Variable var=entry.getKey();
         SortedSet<E> deps = pOther.contentsecurityclasslevels.get(var);
-        E initialmap=pOther.allowedsecurityclassmapping.get(var);
+        E initialmap=entry.getValue();
         SortedSet<E> ndeps =new TreeSet<>();
         if(this.allowedsecurityclassmapping.containsKey(var)){
           assert(merge.allowedsecurityclassmapping.containsKey(var));
@@ -270,6 +278,12 @@ LatticeAbstractState<PolicyEnforcementState<E>>, Graphable, AbstractQueryableSta
   @Override
   public PolicyEnforcementState<E> clone(){
     //Makes a deep copy of the state (except ignoreany, checkthis)
+    try {
+      super.clone();
+    } catch (CloneNotSupportedException e) {
+      //    logger.logUserException(Level.WARNING, e, "");
+    }
+
     PolicyEnforcementState<E> result=new PolicyEnforcementState<>();
 
     result.policy=this.policy;
@@ -277,14 +291,16 @@ LatticeAbstractState<PolicyEnforcementState<E>>, Graphable, AbstractQueryableSta
     result.defaultlevel=this.defaultlevel;
 
     result.allowedsecurityclassmapping=new TreeMap<>();
-    for(Variable key :this.allowedsecurityclassmapping.keySet()){
-      E val=this.allowedsecurityclassmapping.get(key);
+    for(Entry<Variable, E> entry :this.allowedsecurityclassmapping.entrySet()){
+      Variable key=entry.getKey();
+      E val=entry.getValue();
       result.allowedsecurityclassmapping.put(key, val);
     }
 
     result.contentsecurityclasslevels=new TreeMap<>();
-    for(Variable key :this.contentsecurityclasslevels.keySet()){
-      SortedSet<E> val=this.contentsecurityclasslevels.get(key);
+    for(Entry<Variable, SortedSet<E>> entry :this.contentsecurityclasslevels.entrySet()){
+      Variable key=entry.getKey();
+      SortedSet<E> val=entry.getValue();
       result.contentsecurityclasslevels.put(key, val);
     }
 

@@ -133,6 +133,11 @@ LatticeAbstractState<ControlDependencyTrackerState>, Graphable, AbstractQueryabl
 
   @Override
   public ControlDependencyTrackerState clone(){
+    try {
+      super.clone();
+    } catch (CloneNotSupportedException e) {
+  //    logger.logUserException(Level.WARNING, e, "");
+    }
     ControlDependencyTrackerState result=new ControlDependencyTrackerState();
     result.guards=this.guards.clone();
     return result;

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.flowpolicies;
 
+import java.io.Serializable;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -30,8 +31,9 @@ import java.util.TreeSet;
  * Class for specifiying a Security Policy
  * @param <E> Type of Security Class Elements
  */
-public class ConglomeratePolicy<E extends Comparable<? super E>> {
+public class ConglomeratePolicy<E extends Comparable<? super E>> implements Serializable{
 
+  private static final long serialVersionUID = 4589552203012815677L;
   /**
    * Internal Variable: allowed information flows relation
    */

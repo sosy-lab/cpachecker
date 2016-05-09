@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.InitialMapParser;
 
 import java.lang.reflect.Field;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -188,8 +189,9 @@ public class PolicyEnforcementCPA implements ConfigurableProgramAnalysis {
 
       Map<Variable, SecurityClasses> scmap=new TreeMap<>();
       Map<Variable, SortedSet<SecurityClasses>> cscmap=new TreeMap<>();
-      for(Variable key:map.keySet()){
-        SecurityClasses sc=map.get(key);
+      for(Entry<Variable, SecurityClasses> entry:map.entrySet()){
+        Variable key=entry.getKey();
+        SecurityClasses sc=entry.getValue();
         scmap.put(key, sc);
         SortedSet<SecurityClasses> his=new TreeSet<>();
         his.add(sc);

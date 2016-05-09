@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.flowpolicies;
 
-import java.util.SortedSet;
-
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.SetUtil;
+
+import java.util.SortedSet;
 
 /**
  * A class for specifying the Bottom Policy for a given Domain according to Policy Algebra .
@@ -33,6 +33,8 @@ import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.SetUtil;
  */
 public class BottomPolicy<E extends Comparable<? super E>> extends ConglomeratePolicy<E>{
 
+
+  private static final long serialVersionUID = -7984893733529641680L;
 
   /**
    * Construct a Bottom Policy for the given domain <i>sets</i>

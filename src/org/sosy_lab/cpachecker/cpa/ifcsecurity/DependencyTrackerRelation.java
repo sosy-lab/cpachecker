@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.logging.Level;
@@ -352,8 +353,8 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
       if(astate instanceof PointerState){
         PointerState pointerstate=(PointerState)astate;
         Map<MemoryLocation, LocationSet>  map = pointerstate.getPointsToMap();
-        for(MemoryLocation memloc: map.keySet()){
-          String varname=memloc.getIdentifier();
+        for(Entry<MemoryLocation, LocationSet> memloc: map.entrySet()){
+          String varname=memloc.getKey().getIdentifier();
           Variable var=new Variable(varname);
           LocationSet lset=map.get(memloc);
           for(Variable var2: state.getDependencies().keySet()){

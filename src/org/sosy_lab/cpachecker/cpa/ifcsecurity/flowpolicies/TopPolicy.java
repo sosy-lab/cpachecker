@@ -32,6 +32,8 @@ import java.util.TreeSet;
  */
 public class TopPolicy<E extends Comparable<? super E>> extends ConglomeratePolicy<E>{
 
+  private static final long serialVersionUID = -1872546989274436435L;
+
   /**
    * Construct a Top Policy for the given domain <i>sets</i>
    * @param sets Domain

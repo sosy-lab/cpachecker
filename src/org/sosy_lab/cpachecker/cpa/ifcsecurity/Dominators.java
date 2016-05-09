@@ -51,6 +51,7 @@ public class Dominators {
   private int mode;
   private int n;
   private Collection<CFANode> nodes;
+  @SuppressWarnings("unused")
   private CFA cfa;
 
   public Dominators(CFA cfa, int mode) {
@@ -76,24 +77,21 @@ public class Dominators {
     int m;
     if (mode == 0) {
       m = v.getNumLeavingEdges();
-    }
-    else {
+    } else {
       m = v.getNumEnteringEdges();
     }
     FunctionSummaryEdge e;
     CFANode w;
     if (mode == 0) {
       e = v.getLeavingSummaryEdge();
-    }
-    else {
+    } else {
       e = v.getEnteringSummaryEdge();
     }
 
     if (e != null) {
       if (mode == 0) {
         w = e.getSuccessor();
-      }
-      else {
+      } else {
         w = e.getPredecessor();
       }
       NodeInfo infow = map.get(w);
@@ -108,8 +106,7 @@ public class Dominators {
     for (int i = 0; i < m; i++) {
       if (mode == 0) {
         w = v.getLeavingEdge(i).getSuccessor();
-      }
-      else {
+      } else {
         w = v.getEnteringEdge(i).getPredecessor();
       }
       NodeInfo infow = map.get(w);
@@ -141,8 +138,7 @@ public class Dominators {
     NodeInfo infov = map.get(v);
     if (infov.ancestor == null) {
       return v;
-    }
-    else {
+    } else {
       compress(v);
       return infov.label;
     }
@@ -163,9 +159,9 @@ public class Dominators {
     }
     step4();
   }
-
-  public TreeMap<CFANode, TreeSet<CFANode>> functionedge = new TreeMap<>();
-  public TreeMap<CFANode, TreeSet<CFANode>> reversedfunctionedge = new TreeMap<>();
+  //
+  //  private TreeMap<CFANode, TreeSet<CFANode>> functionedge = new TreeMap<>();
+  //  private TreeMap<CFANode, TreeSet<CFANode>> reversedfunctionedge = new TreeMap<>();
 
   private void step1() {
     n = 0;
@@ -178,8 +174,7 @@ public class Dominators {
     }
     if (mode == 0) {
       dfs(entry);
-    }
-    else {
+    } else {
       dfs(exit);
     }
   }
@@ -210,8 +205,7 @@ public class Dominators {
       NodeInfo infou = map.get(u);
       if (infou.semi < infov.semi) {
         dom.put(v, u);
-      }
-      else {
+      } else {
         dom.put(v, infow.parent);
       }
     }
@@ -230,8 +224,7 @@ public class Dominators {
     }
     if (mode == 0) {
       dom.put(entry, null);
-    }
-    else {
+    } else {
       dom.put(exit, null);
     }
   }
@@ -240,9 +233,8 @@ public class Dominators {
     return dom;
   }
 
-  class NodeInfo {
-
-    CFANode node;
+  static class NodeInfo {
+    //CFANode node;
     CFANode parent;
     CFANode ancestor;
     CFANode label;
@@ -250,17 +242,4 @@ public class Dominators {
     Collection<CFANode> pred;
     Collection<CFANode> bucket;
   }
-
-
-  protected CFA getCfa() {
-    return cfa;
-  }
-
-
-  protected void setCfa(CFA pCfa) {
-    cfa = pCfa;
-  }
-
-
-
 }
