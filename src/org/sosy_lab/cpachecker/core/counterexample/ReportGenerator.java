@@ -66,10 +66,6 @@ public class ReportGenerator {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path logFile = Paths.get("CPALog.txt");
 
-  @Option(secure = true, name = "statistics.file", description = "write some statistics to disk")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path statisticsFile = Paths.get("Statistics.txt");
-
   @Option(secure = true, name = "report.file.", description = "export report as HTML")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path reportFile = Paths.get("Report.html");
