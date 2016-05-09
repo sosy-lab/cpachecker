@@ -22,7 +22,7 @@ import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder2;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 import java.io.BufferedReader;
@@ -51,7 +51,8 @@ public class GenerateReportWithoutGraphs {
   private final Configuration config;
   private final LogManager logger;
   private final CFA cfa;
-  private final ReachedSet reached;
+  private final UnmodifiableReachedSet reached;
+  private final String statistics;
   private final DOTBuilder2 dotBuilder;
 
   @Option(
@@ -80,12 +81,17 @@ public class GenerateReportWithoutGraphs {
   private final List<String> sourceFiles = new ArrayList<>();
 
   public GenerateReportWithoutGraphs(
-      Configuration pConfig, LogManager pLogger, CFA pCfa, ReachedSet pReached)
+      Configuration pConfig,
+      LogManager pLogger,
+      CFA pCfa,
+      UnmodifiableReachedSet pReached,
+      String pStatistics)
       throws InvalidConfigurationException {
     config = checkNotNull(pConfig);
     logger = checkNotNull(pLogger);
     cfa = checkNotNull(pCfa);
     reached = checkNotNull(pReached);
+    statistics = checkNotNull(pStatistics);
     dotBuilder = new DOTBuilder2(pCfa);
     config.inject(this);
     sourceFiles.addAll(COMMA_SPLITTER.splitToList(programs));
@@ -175,27 +181,11 @@ public class GenerateReportWithoutGraphs {
   }
 
   private void insertStatistics(Writer report) throws IOException {
-    if (statisticsFile.exists() && statisticsFile.isFile()) {
-      int iterator = 0;
-      try (BufferedReader statistics =
-          new BufferedReader(
-              new InputStreamReader(
-                  new FileInputStream(statisticsFile.toFile()), Charset.defaultCharset()))) {
-
-        String line;
-        while (null != (line = statistics.readLine())) {
-          line = "<pre id=\"statistics-" + iterator + "\">" + line + "</pre>\n";
-          report.write(line);
-          iterator++;
-        }
-
-      } catch (IOException e) {
-        logger.logUserException(
-            WARNING, e, "Could not create report: Writing of statistics failed.");
-      }
-
-    } else {
-      report.write("<p>No Statistics-File available</p>");
+    int iterator = 0;
+    for (String line : LINE_SPLITTER.split(statistics)) {
+      line = "<pre id=\"statistics-" + iterator + "\">" + line + "</pre>\n";
+      report.write(line);
+      iterator++;
     }
   }
 

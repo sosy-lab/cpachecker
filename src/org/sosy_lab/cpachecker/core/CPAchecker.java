@@ -224,6 +224,7 @@ public class CPAchecker {
 
     MainCPAStatistics stats = null;
     ReachedSet reached = null;
+    CFA cfa = null;
     Result result = Result.NOT_YET_STARTED;
     String violatedPropertyDescription = "";
 
@@ -245,7 +246,7 @@ public class CPAchecker {
         algorithm = new ExternalCBMCAlgorithm(programDenotation, config, logger);
 
       } else {
-        CFA cfa = parse(programDenotation, stats);
+        cfa = parse(programDenotation, stats);
         GlobalInfo.getInstance().storeCFA(cfa);
         shutdownNotifier.shutdownIfNecessary();
 
@@ -289,8 +290,8 @@ public class CPAchecker {
       // now everything necessary has been instantiated
 
       if (disableAnalysis) {
-        return new CPAcheckerResult(Result.NOT_YET_STARTED,
-            violatedPropertyDescription, null, stats);
+        return new CPAcheckerResult(
+            Result.NOT_YET_STARTED, violatedPropertyDescription, null, cfa, stats);
       }
 
       // run analysis
@@ -344,8 +345,7 @@ public class CPAchecker {
     } finally {
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
-    return new CPAcheckerResult(result,
-        violatedPropertyDescription, reached, stats);
+    return new CPAcheckerResult(result, violatedPropertyDescription, reached, cfa, stats);
   }
 
   private void checkIfOneValidFile(String fileDenotation) throws InvalidConfigurationException {

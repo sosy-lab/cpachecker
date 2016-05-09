@@ -57,7 +57,6 @@ import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.counterexample.GenerateReportWithoutGraphs;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -106,10 +105,6 @@ class MainCPAStatistics implements Statistics {
   @Option(secure=true, name="statistics.memory",
     description="track memory usage of JVM during runtime")
   private boolean monitorMemoryUsage = true;
-
-  @Option(secure=true, name="newCounterexampleReport",
-    description="insert all files except cfa/arg-graphs in html/js-template")
-  private boolean generateNewCounterexampleReport = true;
 
   private final Configuration config;
   private final LogManager logger;
@@ -278,18 +273,6 @@ class MainCPAStatistics implements Statistics {
     out.println();
 
     printMemoryStatistics(out);
-
-    if (generateNewCounterexampleReport && cfa != null) {
-      try {
-        GenerateReportWithoutGraphs generateReportWithoutGraphs =
-            new GenerateReportWithoutGraphs(config, logger, cfa, reached);
-        generateReportWithoutGraphs.generate();
-
-      } catch (InvalidConfigurationException e) {
-        logger.logUserException(
-            Level.WARNING, e, "Injecting configuration in to report generator failed.");
-      }
-    }
   }
 
 

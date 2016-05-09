@@ -25,12 +25,13 @@ package org.sosy_lab.cpachecker.cmdline;
 
 import static org.sosy_lab.common.DuplicateOutputStream.mergeStreams;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintStream;
-import java.util.Map;
-import java.util.logging.Level;
+import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.io.Closer;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+import org.matheclipse.core.util.WriterOutputStream;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
@@ -47,18 +48,22 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentException;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofGenerator;
+import org.sosy_lab.cpachecker.core.counterexample.GenerateReportWithoutGraphs;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.io.Closer;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
+import java.io.StringWriter;
+import java.util.Map;
+import java.util.logging.Level;
 
 public class CPAMain {
 
@@ -147,7 +152,7 @@ public class CPAMain {
     Thread.interrupted(); // clear interrupted flag
 
     try {
-      printResultAndStatistics(result, outputDirectory, options, logManager);
+      printResultAndStatistics(result, outputDirectory, options, cpaConfig, logManager);
     } catch (IOException e) {
       logManager.logUserException(Level.WARNING, e, "Could not write statistics to file");
     }
@@ -209,6 +214,13 @@ public class CPAMain {
 
     @Option(secure=true, name="statistics.print", description="print statistics to console")
     private boolean printStatistics = false;
+
+    @Option(
+      secure = true,
+      name = "counterexample.export.report",
+      description = "insert all files except cfa/arg-graphs in html/js-template"
+    )
+    private boolean generateCounterexampleReport = true;
 
     @Option(secure=true, name = "pcc.proofgen.doPCC", description = "Generate and dump a proof")
     private boolean doPCC = false;
@@ -317,8 +329,13 @@ public class CPAMain {
   }
 
   @SuppressWarnings("deprecation")
-  private static void printResultAndStatistics(CPAcheckerResult mResult,
-      String outputDirectory, MainOptions options, LogManager logManager) throws IOException {
+  private static void printResultAndStatistics(
+      CPAcheckerResult mResult,
+      String outputDirectory,
+      MainOptions options,
+      Configuration cpaConfig,
+      LogManager logManager)
+      throws IOException {
 
     // setup output streams
     PrintStream console = options.printStatistics ? System.out : null;
@@ -337,9 +354,12 @@ public class CPAMain {
 
     PrintStream stream = makePrintStream(mergeStreams(console, file));
 
+    StringWriter statistics = new StringWriter();
     try {
       // print statistics
-      mResult.printStatistics(stream);
+      PrintStream statisticsStream =
+          makePrintStream(mergeStreams(stream, new WriterOutputStream(statistics)));
+      mResult.printStatistics(statisticsStream);
       stream.println();
 
       // print result
@@ -358,6 +378,22 @@ public class CPAMain {
 
     } finally {
       closer.close();
+    }
+
+    // export report
+    UnmodifiableReachedSet reached = mResult.getReached();
+    CFA cfa = mResult.getCfa();
+    if (options.generateCounterexampleReport && reached != null && cfa != null) {
+      try {
+        GenerateReportWithoutGraphs generateReportWithoutGraphs =
+            new GenerateReportWithoutGraphs(
+                cpaConfig, logManager, cfa, reached, statistics.toString());
+        generateReportWithoutGraphs.generate();
+
+      } catch (InvalidConfigurationException e) {
+        logManager.logUserException(
+            Level.WARNING, e, "Injecting configuration in to report generator failed.");
+      }
     }
   }
 
