@@ -384,7 +384,7 @@ private boolean classifyNodes = false;
 
     // check the CFA of each function
     for (String functionName : cfa.getAllFunctionNames()) {
-      assert CFACheck.check(cfa.getFunctionHead(functionName), cfa.getFunctionNodes(functionName), false);
+      assert CFACheck.check(cfa.getFunctionHead(functionName), cfa.getFunctionNodes(functionName));
     }
     stats.checkTime.stop();
 
@@ -396,7 +396,7 @@ private boolean classifyNodes = false;
     // Check CFA again after post-processings
     stats.checkTime.start();
     for (String functionName : cfa.getAllFunctionNames()) {
-      assert CFACheck.check(cfa.getFunctionHead(functionName), cfa.getFunctionNodes(functionName), false);
+      assert CFACheck.check(cfa.getFunctionHead(functionName), cfa.getFunctionNodes(functionName));
     }
     stats.checkTime.stop();
 
@@ -463,7 +463,7 @@ private boolean classifyNodes = false;
 
     // check the super CFA starting at the main function
     stats.checkTime.start();
-    assert CFACheck.check(mainFunction, null, false);
+    assert CFACheck.check(mainFunction, null);
     stats.checkTime.stop();
 
     if (((exportCfaFile != null) && (exportCfa || exportCfaPerFunction))
