@@ -1792,6 +1792,9 @@ cpa.slicing.leastRemovalsDepthLimit = 2
 # Pre-run syntactic weakening
 cpa.slicing.preRunSyntacticWeakening = true
 
+# Do not explore nodes which syntactically can not lead to an error state.
+cpa.slicing.reduceCfa = true
+
 # Strategy for abstracting children during CEX weakening
 cpa.slicing.removalSelectionStrategy = ALL
   enum:     [ALL, FIRST, RANDOM, LEAST_REMOVALS]
@@ -1999,6 +2002,9 @@ cpa.stator.policy.generateUpperBound = true
 # Remove UFs and ITEs from policies.
 cpa.stator.policy.linearizePolicy = true
 
+# Do not explore nodes which syntactically can not lead to an error state.
+cpa.stator.policy.reduceCfa = true
+
 # Run simple congruence analysis
 cpa.stator.policy.runCongruence = true
 
@@ -2011,7 +2017,7 @@ cpa.stator.policy.templateConstantThreshold = 100
 
 # Algorithm for converting a formula to a set of lemmas
 cpa.stator.policy.toLemmasAlgorithm = "RCNF"
-  allowed values: [CNF, RCNF]
+  allowed values: [CNF, RCNF, NONE]
 
 # Use unguided template refinement, progressively brute-forcing the possible
 # template space.
@@ -2030,7 +2036,7 @@ cpa.stator.policy.useCachingPathFormulaManager = true
 # them.
 cpa.stator.policy.useInvariantsForAbstraction = false
 
-# Use syntactic check before adding value determination dependencies
+# Syntactically pre-compute dependencies for value determination
 cpa.stator.policy.valDetSyntacticCheck = false
 
 # Strategy for filtering variables out of templates
