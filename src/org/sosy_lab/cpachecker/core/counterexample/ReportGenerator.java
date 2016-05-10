@@ -109,10 +109,8 @@ public class ReportGenerator {
       fillOutTemplate(null, reportFile);
 
     } else {
-      int index = 0;
       for (CounterexampleInfo counterExample : counterExamples) {
-        fillOutTemplate(counterExample, counterExampleFiles.getPath(index));
-        index++;
+        fillOutTemplate(counterExample, counterExampleFiles.getPath(counterExample.getUniqueId()));
       }
     }
 
@@ -188,7 +186,7 @@ public class ReportGenerator {
 
     } else {
       String title = String.format(
-          "<h3>%s (%s)</h3>",
+          "<h3>%s (Counterexample %s)</h3>",
           sourceFiles.get(0),
           counterExample.getUniqueId());
       report.write(title);
