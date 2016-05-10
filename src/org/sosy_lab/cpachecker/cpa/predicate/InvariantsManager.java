@@ -1376,7 +1376,8 @@ class InvariantsManager implements StatisticsProvider {
 
       int numberOfInvGenTries = totalInvGenTries.getUpdateCount();
       if (numberOfInvGenTries > 0) {
-        w0.put(totalInvGenTries)
+        w0.put("Invariant generation proved safety", isProgramSafe())
+          .put(totalInvGenTries)
             .beginLevel()
             .put(terminatingInvGenTries)
             .put(successfulInvGenTries)
