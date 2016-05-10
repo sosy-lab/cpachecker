@@ -362,6 +362,12 @@ public class AutomatonExpressionArguments {
             Preconditions.checkState(!isProblemExpression(result));
             return result;
           }
+        } else if (pNode instanceof CIdExpression) {
+          CIdExpression idExpr = (CIdExpression) pNode;
+          if (idExpr.getExpressionType() instanceof CProblemType) {
+            throw new IllegalStateException(String.format("The ID expression '%s' is not mapped to a correct type!"
+                + "\nIs the referenced variable declared? Misspelling or missing header file?", idExpr.toString()));
+          }
         }
 
         return null;

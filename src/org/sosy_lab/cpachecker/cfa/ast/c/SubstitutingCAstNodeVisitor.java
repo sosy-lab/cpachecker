@@ -46,11 +46,19 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
   }
 
   private @Nullable CAstNode findSubstitute(CAstNode pNode) {
-    return sp.findSubstitute(pNode);
-  }
+    final CAstNode preTypeCheck = sp.findSubstitute(pNode);
+    final CAstNode postTypeCheck;
+    if (preTypeCheck != null) {
+      postTypeCheck = sp.adjustTypesAfterSubstitution(preTypeCheck);
+    } else {
+      postTypeCheck = sp.adjustTypesAfterSubstitution(pNode);
+    }
 
-  private @Nullable CAstNode adjustTypesAfterSubstitution(CAstNode pNode) {
-    return sp.adjustTypesAfterSubstitution(pNode);
+    if (postTypeCheck == null) {
+      return preTypeCheck;
+    } else {
+      return postTypeCheck;
+    }
   }
 
   private <T> T firstNotNull(T pExpr1, T pExpr2) {
@@ -161,12 +169,12 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
 
   @Override
   public CAstNode visit(CBinaryExpression pNode) throws RuntimeException {
-    CAstNode result = substituteOnBinExpr(pNode);
-    CAstNode post = adjustTypesAfterSubstitution(result);
-    if (post != null) {
-      return post;
+    CAstNode subst = substituteOnBinExpr(pNode);
+    if (subst == null) {
+      return pNode;
+    } else {
+      return subst;
     }
-    return result;
   }
 
   private CAstNode substituteOnBinExpr(CBinaryExpression pNode) {
@@ -286,11 +294,11 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
 
   @Override
   public CAstNode visit(CIdExpression pNode) throws RuntimeException {
-    final CAstNode result = findSubstitute(pNode);
-    if (result != null) {
-      return result;
-    } else {
+    CAstNode subst = findSubstitute(pNode);
+    if (subst == null) {
       return pNode;
+    } else {
+      return subst;
     }
   }
 
