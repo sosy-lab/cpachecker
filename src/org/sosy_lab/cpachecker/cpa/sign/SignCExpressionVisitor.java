@@ -23,11 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.sign;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -39,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -50,8 +48,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
 
 
 public class SignCExpressionVisitor
@@ -96,6 +97,12 @@ public class SignCExpressionVisitor
 
   @Override
   public SIGN visit(CArraySubscriptExpression e) throws UnrecognizedCodeException {
+    // TODO possibly may become preciser
+    return SIGN.ALL;
+  }
+
+  @Override
+  public SIGN visit(CPointerExpression e) throws UnrecognizedCodeException {
     // TODO possibly may become preciser
     return SIGN.ALL;
   }
