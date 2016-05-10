@@ -72,18 +72,18 @@ import java.util.logging.Level;
 /**
  * This class can check feasibility of a simple path using an SMT solver.
  */
-@Options(prefix="cpa.predicate")
+@Options(prefix="counterexample.export", deprecatedPrefix="cpa.predicate")
 public class PathChecker {
 
-  @Option(secure=true,
+  @Option(secure=true, name="formula", deprecatedName="dumpCounterexampleFormula",
       description="where to dump the counterexample formula in case a specification violation is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate dumpCounterexampleFormula = PathTemplate.ofFormatString("ErrorPath.%d.smt2");
+  private PathTemplate dumpCounterexampleFormula = PathTemplate.ofFormatString("Counterexample.%d.smt2");
 
-  @Option(secure=true,
+  @Option(secure=true, name="model", deprecatedName="dumpCounterexampleModel",
       description="where to dump the counterexample model in case a specification violation is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate dumpCounterexampleModel = PathTemplate.ofFormatString("ErrorPath.%d.assignment.txt");
+  private PathTemplate dumpCounterexampleModel = PathTemplate.ofFormatString("Counterexample.%d.assignment.txt");
 
   private final LogManager logger;
   private final PathFormulaManager pmgr;

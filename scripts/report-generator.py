@@ -142,8 +142,8 @@ def main():
     logfile        = os.path.join(cpaoutdir, config.get('log.file', 'CPALog.txt'))
     statsfile      = os.path.join(cpaoutdir, config.get('statistics.file', 'Statistics.txt'))
     argfilepath    = os.path.join(cpaoutdir, config.get('cpa.arg.file', 'ARG.dot'))
-    errorpathgraph = os.path.join(cpaoutdir, config.get('cpa.arg.errorPath.graph', 'ErrorPath.%d.dot'))
-    errorpath      = os.path.join(cpaoutdir, config.get('cpa.arg.errorPath.json', 'ErrorPath.%d.json'))
+    errorpathgraph = os.path.join(cpaoutdir, config.get('cpa.arg.errorPath.graph', 'Counterexample.%d.dot'))
+    errorpath      = os.path.join(cpaoutdir, config.get('cpa.arg.errorPath.json', 'Counterexample.%d.json'))
     combinednodes  = os.path.join(cpaoutdir, 'combinednodes.json')
     cfainfo        = os.path.join(cpaoutdir, 'cfainfo.json')
     fcalledges     = os.path.join(cpaoutdir, 'fcalledges.json')
@@ -191,7 +191,7 @@ def main():
 
     if errorpathcount > 0:
         for i in range(errorpathcount):
-            outfilepath = os.path.join(reportdir, 'ErrorPath.%d.html' % i)
+            outfilepath = os.path.join(reportdir, 'Counterexample.%d.html' % i)
             templatevalues['title'] = '%s (error path %d)' % (os.path.basename(sourcefiles[0]), i) # use the first sourcefile as name
 
             try:

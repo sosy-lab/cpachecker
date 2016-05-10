@@ -58,59 +58,59 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-@Options(prefix="cpa.arg.errorPath")
+@Options(prefix="counterexample.export", deprecatedPrefix="cpa.arg.errorPath")
 public class CEXExporter {
 
   enum CounterexampleExportType {
     CBMC, CONCRETE_EXECUTION;
   }
 
-  @Option(secure=true, name="export",
-      description="export error path to file, if one is found")
+  @Option(secure=true, name="enabled", deprecatedName="export",
+      description="export counterexample to file, if one is found")
   private boolean exportErrorPath = true;
 
   @Option(secure=true, name="file",
-      description="export error path as text file")
+      description="export counterexample as text file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate errorPathFile = PathTemplate.ofFormatString("ErrorPath.%d.txt");
+  private PathTemplate errorPathFile = PathTemplate.ofFormatString("Counterexample.%d.txt");
 
   @Option(secure=true, name="core",
-      description="export error path core as text file")
+      description="export counterexample core as text file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate errorPathCoreFile = PathTemplate.ofFormatString("ErrorPath.%d.core.txt");
+  private PathTemplate errorPathCoreFile = PathTemplate.ofFormatString("Counterexample.%d.core.txt");
 
   @Option(secure=true, name="source",
-      description="export error path as source file")
+      description="export counterexample as source file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate errorPathSourceFile = PathTemplate.ofFormatString("ErrorPath.%d.c");
+  private PathTemplate errorPathSourceFile = PathTemplate.ofFormatString("Counterexample.%d.c");
 
   @Option(secure=true, name="exportAsSource",
-      description="export error path as source file")
+      description="export counterexample as source file")
   private boolean exportSource = true;
 
   @Option(secure=true, name="json",
-      description="export error path as JSON file")
+      description="export counterexample as JSON file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate errorPathJson = PathTemplate.ofFormatString("ErrorPath.%d.json");
+  private PathTemplate errorPathJson = PathTemplate.ofFormatString("Counterexample.%d.json");
 
   @Option(secure=true, name="graph",
-      description="export error path as graph")
+      description="export counterexample as graph")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate errorPathGraphFile = PathTemplate.ofFormatString("ErrorPath.%d.dot");
+  private PathTemplate errorPathGraphFile = PathTemplate.ofFormatString("Counterexample.%d.dot");
 
   @Option(secure=true, name="automaton",
-      description="export error path as automaton")
+      description="export counterexample as automaton")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate errorPathAutomatonFile = PathTemplate.ofFormatString("ErrorPath.%d.spc");
+  private PathTemplate errorPathAutomatonFile = PathTemplate.ofFormatString("Counterexample.%d.spc");
 
   @Option(secure=true, name="exportWitness",
-      description="export error path as witness/graphml file")
+      description="export counterexample as witness/graphml file")
   private boolean exportWitness = true;
 
   @Option(secure=true, name="graphml",
-      description="export error path to file as GraphML automaton")
+      description="export counterexample to file as GraphML automaton")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate errorPathAutomatonGraphmlFile = PathTemplate.ofFormatString("ErrorPath.%d.graphml");
+  private PathTemplate errorPathAutomatonGraphmlFile = PathTemplate.ofFormatString("Counterexample.%d.graphml");
 
   @Option(secure=true, name="codeStyle",
           description="exports either CMBC format or a concrete path program")

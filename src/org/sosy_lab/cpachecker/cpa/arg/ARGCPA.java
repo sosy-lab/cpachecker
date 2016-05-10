@@ -69,7 +69,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 
-@Options(prefix="cpa.arg")
+@Options
 public class ARGCPA extends AbstractSingleWrapperCPA implements
     ConfigurableProgramAnalysisWithBAM, ProofChecker {
 
@@ -77,19 +77,19 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     return AutomaticCPAFactory.forType(ARGCPA.class);
   }
 
-  @Option(secure=true,
+  @Option(secure=true, name="cpa.arg.inCPAEnabledAnalysis",
   description="inform ARG CPA if it is run in an analysis with enabler CPA because then it must "
     + "behave differntly during merge.")
   private boolean inCPAEnabledAnalysis = false;
 
-  @Option(secure=true,
+  @Option(secure=true, name="cpa.arg.deleteInCPAEnabledAnalysis",
       description="inform merge operator in CPA enabled analysis that it should delete the subgraph of the merged node "
         + "which is required to get at most one successor per CFA edge.")
       private boolean deleteInCPAEnabledAnalysis = false;
 
-  @Option(secure=true, name="errorPath.filters",
+  @Option(secure=true, name="counterexample.export.filters", deprecatedName="cpa.arg.errorPath.filters",
       description="Filter for irrelevant counterexamples to reduce the number of similar counterexamples reported."
-      + " Only relevant with analysis.stopAfterError=false and cpa.arg.errorPath.exportImmediately=true."
+      + " Only relevant with analysis.stopAfterError=false and counterexample.export.exportImmediately=true."
       + " Put the weakest and cheapest filter first, e.g., PathEqualityCounterexampleFilter.")
   @ClassOption(packagePrefix="org.sosy_lab.cpachecker.cpa.arg.counterexamples")
   private List<Class<? extends CounterexampleFilter>> cexFilterClasses
@@ -97,7 +97,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
           PathEqualityCounterexampleFilter.class);
   private final CounterexampleFilter cexFilter;
 
-  @Option(secure=true, name="errorPath.exportImmediately",
+  @Option(secure=true, name="counterexample.export.exportImmediately", deprecatedName="cpa.arg.errorPath.exportImmediately",
           description="export error paths to files immediately after they were found")
   private boolean dumpErrorPathImmediately = false;
 

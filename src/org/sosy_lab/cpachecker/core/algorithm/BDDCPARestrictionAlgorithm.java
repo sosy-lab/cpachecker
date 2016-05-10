@@ -53,12 +53,13 @@ import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import java.util.Collection;
 import java.util.logging.Level;
 
-@Options(prefix="counterexample")
+@Options(prefix="counterexample.export", deprecatedPrefix="counterexample")
 public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider {
 
-  @Option(secure=true, description="The files where the BDDCPARestrictionAlgorithm should write the presence conditions for the counterexamples to.")
+  @Option(secure=true, name="presenceCondition", deprecatedName="presenceConditionFile",
+      description="The files where the BDDCPARestrictionAlgorithm should write the presence conditions for the counterexamples to.")
   @FileOption(Type.OUTPUT_FILE)
-  private PathTemplate presenceConditionFile = PathTemplate.ofFormatString("ErrorPath.%d.presenceCondition.txt");
+  private PathTemplate presenceConditionFile = PathTemplate.ofFormatString("Counterexample.%d.presenceCondition.txt");
 
   private final Algorithm algorithm;
   private final LogManager logger;

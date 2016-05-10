@@ -591,12 +591,64 @@ counterexample.export.assumptions.assumeLinearArithmetics = false
 # Whether or not to include concrete address values.
 counterexample.export.assumptions.includeConstantsForPointers = true
 
+# export counterexample as automaton
+counterexample.export.automaton = "Counterexample.%d.spc"
+
+# exports either CMBC format or a concrete path program
+counterexample.export.codeStyle = CBMC
+  enum:     [CBMC, CONCRETE_EXECUTION]
+
+# export counterexample core as text file
+counterexample.export.core = "Counterexample.%d.core.txt"
+
+# export counterexample to file, if one is found
+counterexample.export.enabled = true
+
+# export counterexample as source file
+counterexample.export.exportAsSource = true
+
+# export error paths to files immediately after they were found
+counterexample.export.exportImmediately = false
+
+# export counterexample as witness/graphml file
+counterexample.export.exportWitness = true
+
+# export counterexample as text file
+counterexample.export.file = "Counterexample.%d.txt"
+
+# Filter for irrelevant counterexamples to reduce the number of similar
+# counterexamples reported. Only relevant with analysis.stopAfterError=false
+# and counterexample.export.exportImmediately=true. Put the weakest and
+# cheapest filter first, e.g., PathEqualityCounterexampleFilter.
+counterexample.export.filters = [
+          PathEqualityCounterexampleFilter.class]
+
+# where to dump the counterexample formula in case a specification violation
+# is found
+counterexample.export.formula = "Counterexample.%d.smt2"
+
+# export counterexample as graph
+counterexample.export.graph = "Counterexample.%d.dot"
+
+# export counterexample to file as GraphML automaton
+counterexample.export.graphml = "Counterexample.%d.graphml"
+
+# export counterexample as JSON file
+counterexample.export.json = "Counterexample.%d.json"
+
+# where to dump the counterexample model in case a specification violation is
+# found
+counterexample.export.model = "Counterexample.%d.assignment.txt"
+
 # The files where the BDDCPARestrictionAlgorithm should write the presence
 # conditions for the counterexamples to.
-counterexample.presenceConditionFile = "ErrorPath.%d.presenceCondition.txt"
+counterexample.export.presenceCondition = "Counterexample.%d.presenceCondition.txt"
 
 # File name for analysis report in case a counterexample was found.
 counterexample.export.report = "Counterexample.%d.html"
+
+# export counterexample as source file
+counterexample.export.source = "Counterexample.%d.c"
 
 # If continueAfterInfeasibleError is true, remove the infeasible
 # counterexample before continuing.Setting this to false may prevent a lot of
@@ -662,50 +714,6 @@ cpa.arg.deleteInCPAEnabledAnalysis = false
 # Dump all ARG related statistics files after each iteration of the CPA
 # algorithm? (for debugging and demonstration)
 cpa.arg.dumpAfterIteration = false
-
-# export error path as automaton
-cpa.arg.errorPath.automaton = "ErrorPath.%d.spc"
-
-# exports either CMBC format or a concrete path program
-cpa.arg.errorPath.codeStyle = CBMC
-  enum:     [CBMC, CONCRETE_EXECUTION]
-
-# export error path core as text file
-cpa.arg.errorPath.core = "ErrorPath.%d.core.txt"
-
-# export error path to file, if one is found
-cpa.arg.errorPath.export = true
-
-# export error path as source file
-cpa.arg.errorPath.exportAsSource = true
-
-# export error paths to files immediately after they were found
-cpa.arg.errorPath.exportImmediately = false
-
-# export error path as witness/graphml file
-cpa.arg.errorPath.exportWitness = true
-
-# export error path as text file
-cpa.arg.errorPath.file = "ErrorPath.%d.txt"
-
-# Filter for irrelevant counterexamples to reduce the number of similar
-# counterexamples reported. Only relevant with analysis.stopAfterError=false
-# and cpa.arg.errorPath.exportImmediately=true. Put the weakest and cheapest
-# filter first, e.g., PathEqualityCounterexampleFilter.
-cpa.arg.errorPath.filters = [
-          PathEqualityCounterexampleFilter.class]
-
-# export error path as graph
-cpa.arg.errorPath.graph = "ErrorPath.%d.dot"
-
-# export error path to file as GraphML automaton
-cpa.arg.errorPath.graphml = "ErrorPath.%d.graphml"
-
-# export error path as JSON file
-cpa.arg.errorPath.json = "ErrorPath.%d.json"
-
-# export error path as source file
-cpa.arg.errorPath.source = "ErrorPath.%d.c"
 
 # export final ARG as .dot file
 cpa.arg.export = true
@@ -1328,14 +1336,6 @@ cpa.predicate.deferUntypedAllocations = true
 # Direction of the analysis?
 cpa.predicate.direction = FORWARD
   enum:     [FORWARD, BACKWARD]
-
-# where to dump the counterexample formula in case a specification violation
-# is found
-cpa.predicate.dumpCounterexampleFormula = "ErrorPath.%d.smt2"
-
-# where to dump the counterexample model in case a specification violation is
-# found
-cpa.predicate.dumpCounterexampleModel = "ErrorPath.%d.assignment.txt"
 
 # Enable the possibility to precompute explicit abstraction locations.
 cpa.predicate.enableBlockreducer = false
