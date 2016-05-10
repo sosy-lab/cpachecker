@@ -95,13 +95,6 @@ public class StateFormulaConversionManager {
         fmgr, pfmgr, state.getGeneratingState(), true));
   }
 
-  private BooleanFormula getStartConstraints(
-      PolicyIntermediateState state,
-      boolean attachExtraInvariant) throws CPAException {
-    return bfmgr.and(abstractStateToConstraints(fmgr, pfmgr,
-        state.getGeneratingState(), attachExtraInvariant));
-  }
-
   /**
    * @return Representation of an {@code abstractState} as a
    * {@link PolicyIntermediateState}.
