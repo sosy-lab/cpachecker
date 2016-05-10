@@ -183,7 +183,6 @@ def main():
         call_dot(os.path.join(cpa_output_dir, 'cfa__' + function + '.dot'), cpa_output_dir)
 
     counter_example_paths = glob.glob(counter_example_path_template.replace('%d', '*'))
-    print(counter_example_path_template)
     for counter_example_path in counter_example_paths:
         generate_report(cpa_output_dir, sorted_functions, arg_path, counter_example_path)
         
