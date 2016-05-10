@@ -51,6 +51,8 @@ import java.util.Map;
 
 public class CounterexampleInfo extends AbstractAppender {
 
+  private static final UniqueIdGenerator ID_GENERATOR = new UniqueIdGenerator();
+
   private final int uniqueId;
 
   private final boolean spurious;
@@ -63,8 +65,6 @@ public class CounterexampleInfo extends AbstractAppender {
   private final Collection<Pair<Object, PathTemplate>> furtherInfo;
 
   private static final CounterexampleInfo SPURIOUS = new CounterexampleInfo(true, null, null, false);
-
-  private static final UniqueIdGenerator ID_GENERATOR = new UniqueIdGenerator();
 
   private CounterexampleInfo(boolean pSpurious, ARGPath pTargetPath,
       CFAPathWithAssumptions pAssignments, boolean pIsPreciseCEX) {
