@@ -760,13 +760,17 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
   private Set<BooleanFormula> toLemmas(BooleanFormula formula)
       throws InterruptedException {
-    if (toLemmasAlgorithm.equals("CNF")) {
-      return bfmgr.toConjunctionArgs(
-          fmgr.applyTactic(formula, Tactic.TSEITIN_CNF), true);
-    } else if (toLemmasAlgorithm.equals("RCNF")) {
-      return rcnfManager.toLemmas(formula);
+    switch (toLemmasAlgorithm) {
+      case "CNF":
+        return bfmgr.toConjunctionArgs(
+            fmgr.applyTactic(formula, Tactic.TSEITIN_CNF), true);
+      case "RCNF":
+        return rcnfManager.toLemmas(formula);
+      case "NONE":
+        return ImmutableSet.of(formula);
+      default:
+        throw new UnsupportedOperationException("Unexpected state");
     }
-    throw new UnsupportedOperationException("Unexpected state");
   }
 
   private final Map<Formula, Set<String>> functionNamesCache = new HashMap<>();
@@ -1160,11 +1164,16 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     } else if (!valDetSyntacticCheck) {
       dependencies = templateManager.templatesForNode(backpointer.getNode());
     } else {
+      // TODO: debug performance issues.
       dependencies = new HashSet<>();
+
+      // Context for converting the template to formula, used for determining
+      // used SSA map and PointerTargetSet.
+      PathFormula contextFormula =
+          stateFormulaConversionManager.getPathFormula(backpointer, fmgr, false);
       for (Template t : templateManager.templatesForNode(backpointer.getNode())) {
         Set<String> fVars = extractFunctionNames(templateManager.toFormula(
-            pfmgr, fmgr, t,
-            stateFormulaConversionManager.getPathFormula(backpointer, fmgr, false)
+            pfmgr, fmgr, t, contextFormula
         ));
         if (!Sets.intersection(fVars, policyVars).isEmpty()) {
           dependencies.add(t);
