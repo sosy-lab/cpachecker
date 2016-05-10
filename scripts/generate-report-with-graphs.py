@@ -177,17 +177,18 @@ def main():
 
     print ('Generating SVGs for CFA')
     functions = [x[5:-4] for x in os.listdir(cpa_output_dir) if x.startswith('cfa__') and x.endswith('.dot')]
-    for function in sorted(functions):
+    sorted_functions = sorted(functions)
+    for function in sorted_functions:
         print(function)
         call_dot(os.path.join(cpa_output_dir, 'cfa__' + function + '.dot'), cpa_output_dir)
 
     counter_example_paths = glob.glob(counter_example_path_template.replace('%d', '*'))
     print(counter_example_path_template)
     for counter_example_path in counter_example_paths:
-        generate_report(cpa_output_dir, functions, arg_path, counter_example_path)
+        generate_report(cpa_output_dir, sorted_functions, arg_path, counter_example_path)
         
     if os.path.exists(report_path):
-        generate_report(cpa_output_dir, functions, arg_path, report_path)
+        generate_report(cpa_output_dir, sorted_functions, arg_path, report_path)
 
 if __name__ == '__main__':
     main()
