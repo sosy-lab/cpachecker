@@ -397,7 +397,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
     }
 
     CInitializer init = (CInitializer) findSubstitute(pNode.getInitializer());
-    if (init != null && !(init.equals(pNode.getInitializer()))) {
+    if (init != null && init != pNode.getInitializer()) {
       return new CVariableDeclaration(pNode.getFileLocation(), pNode.isGlobal(),
           pNode.getCStorageClass(), pNode.getType(), pNode.getName(),
           pNode.getOrigName(), pNode.getQualifiedName(),
