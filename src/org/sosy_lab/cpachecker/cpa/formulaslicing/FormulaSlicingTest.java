@@ -110,6 +110,7 @@ public class FormulaSlicingTest {
                     .add("cpa.functionpointer.FunctionPointerCPA")
                     .add("cpa.loopstack.LoopstackCPA")
                     .add("cpa.formulaslicing.FormulaSlicingCPA")
+                    .add("cpa.assumptions.storage.AssumptionStorageCPA")
                     .build()
             ))
     )
