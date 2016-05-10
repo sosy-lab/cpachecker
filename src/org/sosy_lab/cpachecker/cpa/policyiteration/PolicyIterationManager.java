@@ -125,7 +125,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
   @Option(secure=true, description="Syntactically pre-compute dependencies for "
       + "value determination")
-  private boolean valDetSyntacticCheck = false;
+  private boolean valDetSyntacticCheck = true;
 
   @Option(secure=true, description="Check whether the policy depends on the initial value")
   private boolean checkPolicyInitialCondition = true;
@@ -686,7 +686,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   private boolean isUnreachable(PolicyIntermediateState state, BooleanFormula extraInvariant)
       throws CPAException, InterruptedException {
     BooleanFormula startConstraints =
-        stateFormulaConversionManager.getStartConstraints(state, true);
+        stateFormulaConversionManager.getStartConstraintsWithExtraInvariant(state);
     PathFormula pf = state.getPathFormula();
 
     BooleanFormula constraint = bfmgr.and(
@@ -801,7 +801,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
     final PathFormula p = state.getPathFormula();
     final BooleanFormula startConstraints =
-        stateFormulaConversionManager.getStartConstraints(state, true);
+        stateFormulaConversionManager.getStartConstraintsWithExtraInvariant(state);
 
     Set<BooleanFormula> startConstraintLemmas = toLemmas(startConstraints);
     Set<BooleanFormula> lemmas = toLemmas(p.getFormula());
@@ -1060,8 +1060,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     }
     BooleanFormula policy = bfmgr.and(policies);
 
-    // TODO: move this code back to the abstraction
-
     return Pair.of(BOUND_COMPUTED, PolicyBound.of(
         firstBound.getFormula().updateFormula(policy),
         combinedBound,
@@ -1164,14 +1162,14 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     } else if (!valDetSyntacticCheck) {
       dependencies = templateManager.templatesForNode(backpointer.getNode());
     } else {
-      // TODO: debug performance issues.
       dependencies = new HashSet<>();
 
       // Context for converting the template to formula, used for determining
       // used SSA map and PointerTargetSet.
       PathFormula contextFormula =
           stateFormulaConversionManager.getPathFormula(backpointer, fmgr, false);
-      for (Template t : templateManager.templatesForNode(backpointer.getNode())) {
+      for (Entry<Template, PolicyBound> entry : backpointer) {
+        Template t = entry.getKey();
         Set<String> fVars = extractFunctionNames(templateManager.toFormula(
             pfmgr, fmgr, t, contextFormula
         ));

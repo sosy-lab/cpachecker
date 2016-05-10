@@ -48,9 +48,12 @@ import org.sosy_lab.solver.api.BitvectorFormula;
 import org.sosy_lab.solver.api.Formula;
 
 import java.math.BigInteger;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -364,6 +367,9 @@ public class TemplateManager {
   }
 
 
+  private final Map<ToFormulaCacheKey, Formula> toFormulaCache = new
+      HashMap<>();
+
   /**
    * Convert {@code template} to {@link Formula}, using
    * {@link org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap} and
@@ -376,6 +382,12 @@ public class TemplateManager {
       FormulaManagerView fmgr,
       Template template,
       PathFormula contextFormula) {
+    ToFormulaCacheKey key =
+        new ToFormulaCacheKey(pfmgr, fmgr, template, contextFormula);
+    Formula out = toFormulaCache.get(key);
+    if (out != null) {
+      return out;
+    }
     boolean useRationals = shouldUseRationals(template);
     Formula sum = null;
     int maxBitvectorSize = getBitvectorSize(template, pfmgr, contextFormula,fmgr);
@@ -414,13 +426,15 @@ public class TemplateManager {
 
     if (sum == null) {
       if (useRationals) {
-        return fmgr.getRationalFormulaManager().makeNumber(0);
+        out = fmgr.getRationalFormulaManager().makeNumber(0);
       } else {
-        return fmgr.getIntegerFormulaManager().makeNumber(0);
+        out = fmgr.getIntegerFormulaManager().makeNumber(0);
       }
     } else {
-      return sum;
+      out = sum;
     }
+    toFormulaCache.put(key, out);
+    return out;
   }
 
   public boolean shouldUseRationals(Template template) {
@@ -821,5 +835,56 @@ public class TemplateManager {
           length);
     }
     return length;
+  }
+
+  private static class ToFormulaCacheKey {
+    private final PathFormulaManager pathFormulaManager;
+    private final FormulaManagerView formulaManagerView;
+    private final Template template;
+    private final PathFormula contextFormula;
+
+
+    private ToFormulaCacheKey(
+        PathFormulaManager pPathFormulaManager,
+        FormulaManagerView pFormulaManagerView,
+        Template pTemplate,
+        PathFormula pContextFormula) {
+      pathFormulaManager = pPathFormulaManager;
+      formulaManagerView = pFormulaManagerView;
+      template = pTemplate;
+      contextFormula = pContextFormula;
+    }
+
+    @Override
+    public boolean equals(Object pO) {
+      if (this == pO) {
+        return true;
+      }
+      if (pO == null || getClass() != pO.getClass()) {
+        return false;
+      }
+      ToFormulaCacheKey that = (ToFormulaCacheKey) pO;
+      return pathFormulaManager == that.pathFormulaManager
+          && formulaManagerView == that.formulaManagerView &&
+          Objects.equals(template, that.template) &&
+          Objects.equals(contextFormula, that.contextFormula);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects
+          .hash(pathFormulaManager, formulaManagerView, template,
+              contextFormula);
+    }
+
+    @Override
+    public String toString() {
+      return "ToFormulaCacheKey{" +
+          "pathFormulaManager=" + pathFormulaManager +
+          ", formulaManagerView=" + formulaManagerView +
+          ", template=" + template +
+          ", contextFormula=" + contextFormula +
+          '}';
+    }
   }
 }
