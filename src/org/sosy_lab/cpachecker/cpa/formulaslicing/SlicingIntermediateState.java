@@ -74,7 +74,6 @@ class SlicingIntermediateState extends SlicingState
     return mergedInto == other;
   }
 
-
   @Override
   public boolean isAbstracted() {
     return false;
