@@ -897,14 +897,16 @@ function init(){
   }
   for(var x = 0; x < errPathDataForCFA.length; x++){
     var cfaEdge = document.getElementById("cfa-" + errPathDataForCFA[x]);
-    var path = cfaEdge.getElementsByTagName("path")[0];
-    var poly = cfaEdge.getElementsByTagName("polygon")[0];
-    var text = cfaEdge.getElementsByTagName("text")[0];
-    path.setAttribute("stroke", "red");
-    poly.setAttribute("stroke", "red");
-    poly.setAttribute("fill", "red");
-    if(text != undefined) {
-      text.setAttribute("fill", "red");
+    if (cfaEdge != null) {
+	  var path = cfaEdge.getElementsByTagName("path")[0];
+	  var poly = cfaEdge.getElementsByTagName("polygon")[0];
+	  var text = cfaEdge.getElementsByTagName("text")[0];
+	  path.setAttribute("stroke", "red");
+	  poly.setAttribute("stroke", "red");
+	  poly.setAttribute("fill", "red");
+	  if(text != undefined) {
+	    text.setAttribute("fill", "red");
+	  }
     }
   }
 };
