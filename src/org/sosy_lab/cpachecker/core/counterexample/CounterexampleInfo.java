@@ -33,6 +33,7 @@ import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.common.JSON;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -50,6 +51,8 @@ import java.util.Map;
 
 public class CounterexampleInfo extends AbstractAppender {
 
+  private final int uniqueId;
+
   private final boolean spurious;
   private final boolean isPreciseCounterExample;
 
@@ -61,8 +64,11 @@ public class CounterexampleInfo extends AbstractAppender {
 
   private static final CounterexampleInfo SPURIOUS = new CounterexampleInfo(true, null, null, false);
 
+  private static final UniqueIdGenerator ID_GENERATOR = new UniqueIdGenerator();
+
   private CounterexampleInfo(boolean pSpurious, ARGPath pTargetPath,
       CFAPathWithAssumptions pAssignments, boolean pIsPreciseCEX) {
+    uniqueId = ID_GENERATOR.getFreshId();
     spurious = pSpurious;
     targetPath = pTargetPath;
     assignments = pAssignments;
@@ -77,6 +83,10 @@ public class CounterexampleInfo extends AbstractAppender {
 
   public static CounterexampleInfo spurious() {
     return SPURIOUS;
+  }
+
+  public int getUniqueId() {
+    return uniqueId;
   }
 
   public boolean isPreciseCounterExample() {
