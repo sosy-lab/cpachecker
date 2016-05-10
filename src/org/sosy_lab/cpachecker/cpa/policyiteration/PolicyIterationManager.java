@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackState;
 import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationStatistics.TemplateUpdateEvent;
@@ -44,8 +45,11 @@ import org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra.PolyhedraWideningMa
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
+import org.sosy_lab.cpachecker.util.automaton.TargetLocationProviderImpl;
 import org.sosy_lab.cpachecker.util.predicates.RCNFManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -75,6 +79,10 @@ import java.util.logging.Level;
  */
 @Options(prefix="cpa.stator.policy")
 public class PolicyIterationManager implements IPolicyIterationManager {
+
+  @Option(secure=true, description="Do not explore nodes which syntactically "
+      + "can not lead to an error state.")
+  private boolean reduceCfa = true;
 
   @Option(secure = true,
       description = "Where to perform abstraction")
@@ -115,9 +123,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   @Option(secure=true, description="Run simple congruence analysis")
   private boolean runCongruence = true;
 
-  // TODO: debug performance issues.
-  @Option(secure=true, description="Use syntactic check before adding value "
-      + "determination dependencies" )
+  @Option(secure=true, description="Syntactically pre-compute dependencies for "
+      + "value determination")
   private boolean valDetSyntacticCheck = false;
 
   @Option(secure=true, description="Check whether the policy depends on the initial value")
@@ -141,7 +148,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   private int wideningThreshold = -1;
 
   @Option(secure=true, description="Algorithm for converting a formula to a "
-      + "set of lemmas", toUppercase=true, values={"CNF", "RCNF"})
+      + "set of lemmas", toUppercase=true, values={"CNF", "RCNF", "NONE"})
   private String toLemmasAlgorithm = "RCNF";
 
   private final FormulaManagerView fmgr;
@@ -160,6 +167,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   private final InvariantGenerator invariantGenerator;
   private final StateFormulaConversionManager stateFormulaConversionManager;
   private final RCNFManager rcnfManager;
+  private final ImmutableSet<CFANode> targetReachableFrom;
 
   public PolicyIterationManager(
       Configuration config,
@@ -176,7 +184,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       CongruenceManager pCongruenceManager,
       PolyhedraWideningManager pPwm,
       InvariantGenerator pInvariantGenerator,
-      StateFormulaConversionManager pStateFormulaConversionManager)
+      StateFormulaConversionManager pStateFormulaConversionManager,
+      ReachedSetFactory pReachedSetFactory)
       throws InvalidConfigurationException {
     pwm = pPwm;
     stateFormulaConversionManager = pStateFormulaConversionManager;
@@ -206,6 +215,21 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     }
     loopStructure = loopStructureBuilder.build();
     rcnfManager = new RCNFManager(fmgr, config);
+
+    TargetLocationProvider targetProvider = new TargetLocationProviderImpl(
+        pReachedSetFactory, pShutdownNotifier, pLogger, config, pCfa);
+    Set<CFANode> targetNodes =
+        targetProvider.tryGetAutomatonTargetLocations(pCfa.getMainFunction());
+    if (reduceCfa) {
+      ImmutableSet.Builder<CFANode> builder = ImmutableSet.builder();
+      for (CFANode target : targetNodes) {
+        builder.addAll(CFATraversal.dfs().backwards()
+            .collectNodesReachableFrom(target));
+      }
+      targetReachableFrom = builder.build();
+    } else {
+      targetReachableFrom = ImmutableSet.copyOf(pCfa.getAllNodes());
+    }
   }
 
   /**
@@ -263,7 +287,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     PolicyIntermediateState out = PolicyIntermediateState.of(
         node,
         outPath,
-        iOldState.getGeneratingState());
+        iOldState.getGeneratingState(),
+        targetReachableFrom.contains(node));
 
     return Collections.singleton(out);
   }
@@ -448,7 +473,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     PolicyIntermediateState out = PolicyIntermediateState.of(
         newState.getNode(),
         mergedPath,
-        oldState.getGeneratingState()
+        oldState.getGeneratingState(),
+        newState.getIsRelevantToTarget() || oldState.getIsRelevantToTarget()
     );
 
     newState.setMergedInto(out);

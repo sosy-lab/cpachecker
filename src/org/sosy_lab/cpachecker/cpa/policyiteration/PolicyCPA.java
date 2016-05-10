@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.policyiteration.congruence.CongruenceManager;
 import org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra.PolyhedraWideningManager;
@@ -87,7 +88,8 @@ public class PolicyCPA extends SingleEdgeTransferRelation
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier shutdownNotifier,
-      CFA cfa
+      CFA cfa,
+      ReachedSetFactory pReachedSetFactory
   ) throws InvalidConfigurationException, CPAException {
     pConfig.inject(this);
 
@@ -148,7 +150,8 @@ public class PolicyCPA extends SingleEdgeTransferRelation
         formulaLinearizationManager,
         pCongruenceManager,
         pPwm,
-        invariantGenerator, stateFormulaConversionManager);
+        invariantGenerator, stateFormulaConversionManager,
+        pReachedSetFactory);
     stopOperator = new StopSepOperator(this);
   }
 

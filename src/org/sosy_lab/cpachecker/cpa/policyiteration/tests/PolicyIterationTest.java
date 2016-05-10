@@ -202,6 +202,7 @@ public class PolicyIterationTest {
                 .add("cpa.functionpointer.FunctionPointerCPA")
                 .add("cpa.loopstack.LoopstackCPA")
                 .add("cpa.policyiteration.PolicyCPA")
+                .add("cpa.assumptions.storage.AssumptionStorageCPA")
                 .build()
             ))
         )
