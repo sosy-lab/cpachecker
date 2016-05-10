@@ -193,8 +193,9 @@ class InvariantsManager implements StatisticsProvider {
      * a restart algorithm is allowed. As soon as the analysis finished computation
      * the invariants can be computed and are, from that point on, always the same. They
      * are not refined further on.
+     * This strategy computes the invariants before the actual analysis is started.
      */
-    ASYNC_CPACHECKER;
+    CPACHECKER;
   }
 
   private static enum InvariantUsageStrategy {
@@ -362,7 +363,7 @@ class InvariantsManager implements StatisticsProvider {
       asyncCPAInvariantSupplierSingleton = null;
     }
 
-    if (generationStrategy.contains(InvariantGenerationStrategy.ASYNC_CPACHECKER)) {
+    if (generationStrategy.contains(InvariantGenerationStrategy.CPACHECKER)) {
       asyncCPAcheckerInvariantSupplierSingleton = new AsyncCPAcheckerInvariantsSupplier();
     } else {
       asyncCPAcheckerInvariantSupplierSingleton = null;
@@ -377,7 +378,7 @@ class InvariantsManager implements StatisticsProvider {
           usageStrategy);
     } else {
       if (!generationStrategy.contains(InvariantGenerationStrategy.ASYNC_CPA)
-          && !generationStrategy.contains(InvariantGenerationStrategy.ASYNC_CPACHECKER)) {
+          && !generationStrategy.contains(InvariantGenerationStrategy.CPACHECKER)) {
         logger.log(Level.INFO, "No invariants are computed");
       }
     }
@@ -587,7 +588,7 @@ class InvariantsManager implements StatisticsProvider {
             }
             break;
 
-          case ASYNC_CPACHECKER:
+          case CPACHECKER:
             for (Pair<PathFormula, CFANode> pair : argForPathFormulaBasedGeneration) {
               if (pair.getFirst() != null) {
                 BooleanFormula invariant =
