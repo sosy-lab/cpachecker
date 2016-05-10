@@ -229,9 +229,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     // program is safe we do not need to continue the analysis as we cannot
     // directly stop the analysis from here, we need to remove the infeasible
     // error state from the reached set, and clear the waitlist
-    if (shortcutForSafeProgram
-        && invariantsManager.hasAsyncInvariants()
-        && invariantsManager.asAsyncInvariantsSupplier().isProgramSafe()) {
+    if (shortcutForSafeProgram && invariantsManager.isProgramSafe()) {
       pReached.removeSubtree(allStatesTrace.getLastState());
       pReached.clearWaitlist();
       totalRefinement.stop();
