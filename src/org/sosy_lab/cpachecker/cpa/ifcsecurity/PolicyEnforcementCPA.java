@@ -76,7 +76,7 @@ public class PolicyEnforcementCPA implements ConfigurableProgramAnalysis {
    * Default Security Enforcer: Explicit Flow without Dependency (Access Control)
    *
    * Can Use: DependancyTracker (Explicit Flow with HWM)
-   * Can Use: GuardTracker
+   * Can Use: ControlDependencyTracker
    */
   @SuppressWarnings("unused")
   private LogManager logger;
@@ -102,16 +102,16 @@ public class PolicyEnforcementCPA implements ConfigurableProgramAnalysis {
   @Option(secure=true, name="policy", toUppercase=true, description="which policy to use for PolicyEnforcementCPA")
   private String policyname="HILO";
 
-  @Option(secure=true, name="betamapfile", toUppercase=false, description="which betamapfile to use for PolicyEnforcementCPA")
+  @Option(secure=true, name="scMappingFile", toUppercase=false, description="which betamapfile to use for PolicyEnforcementCPA")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-  private Path betamapfile=Paths.get("betamap.conf");
+  private Path scMappingFile=Paths.get("betamap.conf");
 
   @Option(secure=true, name="immediatechecksfile", toUppercase=false, description="which immediatechecksfile to use for PolicyEnforcementCPA")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private Path immediatechecksfile=Paths.get("immediatechecks.conf");
 
-  @Option(secure=true, name="callerlevel", toUppercase=true, description="which callerlevel to use for PolicyEnforcementCPA")
-  private String callerlevel="LOW";
+  @Option(secure=true, name="defaultsc", toUppercase=true, description="which default SecurityClass to use for PolicyEnforcementCPA")
+  private String defaultSC="LOW";
 
   @Option(secure=true, name="statestocheck", toUppercase=true, description="which states shall be checked")
   private int statestocheck=0;
@@ -125,13 +125,13 @@ public class PolicyEnforcementCPA implements ConfigurableProgramAnalysis {
   }
 
   @SuppressWarnings("unchecked")
-  private PolicyEnforcementCPA(LogManager logger, Configuration config, ShutdownNotifier shutdownNotifier, CFA cfa) throws InvalidConfigurationException {
-    config.inject(this);
-    this.logger = logger;
-    this.cfa=cfa;
+  private PolicyEnforcementCPA(LogManager pLogger, Configuration pConfig, ShutdownNotifier pShutdownNotifier, CFA pCfa) throws InvalidConfigurationException {
+    pConfig.inject(this);
+    this.logger = pLogger;
+    this.cfa=pCfa;
 
     domain = DelegateAbstractDomain.<PolicyEnforcementState<SecurityClasses>>getInstance();
-    transfer = new PolicyEnforcementRelation<>(logger, shutdownNotifier,statestocheck);
+    transfer = new PolicyEnforcementRelation<>(logger, pShutdownNotifier,statestocheck);
 
     if (stopType.equals("SEP")) {
       stop = new StopSepOperator(domain);
@@ -176,41 +176,48 @@ public class PolicyEnforcementCPA implements ConfigurableProgramAnalysis {
     PolicyEnforcementState<SecurityClasses> initialstate=new PolicyEnforcementState<>();
 
 
-    try{
-      Field f;
-      //Get Policy
-      f=PredefinedPolicies.class.getField(policyname);
-      ConglomeratePolicy<SecurityClasses> policy=(ConglomeratePolicy<SecurityClasses>)(f.get(null));
-      initialstate.setPolicy(policy);
 
-      //Initial Systemmap & History Map
-      InitialMapParser imapp=new InitialMapParser(logger,betamapfile);
-      Map<Variable, SecurityClasses> map = imapp.getInitialMap();
+      try {
+        Field f;
+        //Get Policy
+        f=PredefinedPolicies.class.getField(policyname);
+        ConglomeratePolicy<SecurityClasses> policy=(ConglomeratePolicy<SecurityClasses>)(f.get(null));
+        initialstate.setPolicy(policy);
 
-      Map<Variable, SecurityClasses> scmap=new TreeMap<>();
-      Map<Variable, SortedSet<SecurityClasses>> cscmap=new TreeMap<>();
-      for(Entry<Variable, SecurityClasses> entry:map.entrySet()){
-        Variable key=entry.getKey();
-        SecurityClasses sc=entry.getValue();
-        scmap.put(key, sc);
-        SortedSet<SecurityClasses> his=new TreeSet<>();
-        his.add(sc);
-        cscmap.put(key,his);
+        //Initial Systemmap & History Map
+        InitialMapParser imapp=new InitialMapParser(logger,scMappingFile);
+        Map<Variable, SecurityClasses> map = imapp.getInitialMap();
+
+        Map<Variable, SecurityClasses> scmap=new TreeMap<>();
+        Map<Variable, SortedSet<SecurityClasses>> cscmap=new TreeMap<>();
+        for(Entry<Variable, SecurityClasses> entry:map.entrySet()){
+          Variable key=entry.getKey();
+          SecurityClasses sc=entry.getValue();
+          scmap.put(key, sc);
+          SortedSet<SecurityClasses> his=new TreeSet<>();
+          his.add(sc);
+          cscmap.put(key,his);
+        }
+        initialstate.setAllowedsecurityclassmapping(scmap);
+        initialstate.setContentsecurityclasslevels(cscmap);
+
+        //Immediate CheckSet
+        ImmediateChecksParser imcp=new ImmediateChecksParser(logger,immediatechecksfile);
+        initialstate.setImmediatecheck(imcp.getSet());
+
+        //Attacker-Level
+        f=PredefinedPolicies.class.getField(defaultSC);
+        initialstate.setDefaultlevel((SecurityClasses)(f.get(null)));
+      } catch (NoSuchFieldException e) {
+        logger.log(Level.WARNING, e);
+      } catch (SecurityException e) {
+        logger.log(Level.WARNING, e);
+      } catch (IllegalArgumentException e) {
+        logger.log(Level.WARNING, e);
+      } catch (IllegalAccessException e) {
+        logger.log(Level.WARNING, e);
       }
-      initialstate.setAllowedsecurityclassmapping(scmap);
-      initialstate.setContentsecurityclasslevels(cscmap);
 
-      //Immediate CheckSet
-      ImmediateChecksParser imcp=new ImmediateChecksParser(logger,immediatechecksfile);
-      initialstate.setImmediatecheck(imcp.getSet());
-
-      //Attacker-Level
-      f=PredefinedPolicies.class.getField(callerlevel);
-      initialstate.setDefaultlevel((SecurityClasses)(f.get(null)));
-    }
-    catch(Exception e){
-      logger.log(Level.WARNING, e.toString());
-    }
     return  initialstate;
   }
 

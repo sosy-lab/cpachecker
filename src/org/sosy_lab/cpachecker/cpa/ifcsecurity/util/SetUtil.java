@@ -38,25 +38,25 @@ public class SetUtil<E extends Comparable<? super E>> {
 
     /**
      * Computes the Equality of two Sets.
-     * @param set1 a Set.
-     * @param set2 the other Set
+     * @param pSet1 a Set.
+     * @param pSet2 the other Set
      * @return <b>true</b>, if equal, <b>false</b> otherwise.
      */
-    public boolean isEqual(SortedSet<E> set1,SortedSet<E> set2){
-      return (isSubset(set1,set2) && isSubset(set2,set1));
+    public boolean isEqual(SortedSet<E> pSet1,SortedSet<E> pSet2){
+      return (isSubset(pSet1,pSet2) && isSubset(pSet2,pSet1));
     }
 
     /**
      * Computes if <i>set1</i> is a subset of <i>set2</i>.
-     * @param set1 a Set.
-     * @param set2 the other Set
+     * @param pSet1 a Set.
+     * @param pSet2 the other Set
      * @return <b>true</b>, if subset relation consists, <b>false</b> otherwise.
      */
-    public boolean isSubset(SortedSet<E> set1,SortedSet<E> set2){
-      Iterator<E> it = set1.iterator();
+    public boolean isSubset(SortedSet<E> pSet1,SortedSet<E> pSet2){
+      Iterator<E> it = pSet1.iterator();
       while(it.hasNext()){
         E elem=it.next();
-         if(!(set2.contains(elem))){
+         if(!(pSet2.contains(elem))){
            return false;
          }
       }
@@ -65,20 +65,20 @@ public class SetUtil<E extends Comparable<? super E>> {
 
     /**
      * Computes a new set, that is the union of <i>set1</i> and <i>set2</i>.
-     * @param set1 a Set.
-     * @param set2 the other Set
+     * @param pSet1 a Set.
+     * @param pSet2 the other Set
      * @return Setunion.
      */
-    public SortedSet<E> union(SortedSet<E> set1,SortedSet<E> set2){
+    public SortedSet<E> union(SortedSet<E> pSet1,SortedSet<E> pSet2){
       SortedSet<E> result=new TreeSet<>();
       E elem;
-      Iterator<E> it1 = set1.iterator();
+      Iterator<E> it1 = pSet1.iterator();
 
       while(it1.hasNext()){
         elem=it1.next();
         result.add(elem);
       }
-      Iterator<E> it2 = set2.iterator();
+      Iterator<E> it2 = pSet2.iterator();
       while(it2.hasNext()){
         elem=it2.next();
         result.add(elem);
@@ -88,14 +88,14 @@ public class SetUtil<E extends Comparable<? super E>> {
 
     /**
      * Computes a new set, that is the intersection of <i>set1</i> and <i>set2</i>.
-     * @param set1 a Set.
-     * @param set2 the other Set
+     * @param pSet1 a Set.
+     * @param pSet2 the other Set
      * @return Setintersection.
      */
-    public SortedSet<E> intersect(SortedSet<E> set1,SortedSet<E> set2){
+    public SortedSet<E> intersect(SortedSet<E> pSet1,SortedSet<E> pSet2){
       SortedSet<E> result=new TreeSet<>();
-      Iterator<E> it1 = set1.iterator();
-      Iterator<E> it2 = set2.iterator();
+      Iterator<E> it1 = pSet1.iterator();
+      Iterator<E> it2 = pSet2.iterator();
 
       if(!it1.hasNext()){
         return result;
@@ -104,8 +104,8 @@ public class SetUtil<E extends Comparable<? super E>> {
         return result;
       }
 
-      E elem1=set1.first();
-      E elem2=set2.first();
+      E elem1=pSet1.first();
+      E elem2=pSet2.first();
 
       while(true){
         if(elem1.compareTo(elem2)==0){
@@ -138,16 +138,16 @@ public class SetUtil<E extends Comparable<? super E>> {
 
     /**
      * Computes a new set, that is the setminus of <i>set1</i> and <i>set2</i>.
-     * @param set1 a Set.
-     * @param set2 the other Set
+     * @param pSet1 a Set.
+     * @param pSet2 the other Set
      * @return Setminus.
      */
-    public SortedSet<E> setminus(SortedSet<E> set1,SortedSet<E> set2){
+    public SortedSet<E> setminus(SortedSet<E> pSet1,SortedSet<E> pSet2){
       SortedSet<E> result=new TreeSet<>();
-      Iterator<E> it1 = set1.iterator();
+      Iterator<E> it1 = pSet1.iterator();
       while(it1.hasNext()){
         E elem=it1.next();
-        if(!set2.contains(elem)){
+        if(!pSet2.contains(elem)){
           result.add(elem);
         }
       }
@@ -156,12 +156,12 @@ public class SetUtil<E extends Comparable<? super E>> {
 
     /**
      * Creates a new set, that is a copy of <i>set</i>
-     * @param set a Set
+     * @param pSet a Set
      * @return a Copy.
      */
-    public SortedSet<E> clone(SortedSet<E> set){
+    public SortedSet<E> clone(SortedSet<E> pSet){
       SortedSet<E> result=new TreeSet<>();
-      Iterator<E> it = set.iterator();
+      Iterator<E> it = pSet.iterator();
       while(it.hasNext()){
         E elem=it.next();
         result.add(elem);
@@ -171,11 +171,11 @@ public class SetUtil<E extends Comparable<? super E>> {
 
     /**
      * Computes a new set, that is the powerset of <i>set1</i>
-     * @param set1 a Set
+     * @param pSet1 a Set
      * @return Powerset.
      */
-    public java.util.SortedSet<java.util.SortedSet<E>> getPowerSet(SortedSet<E> set1){
-      List<E> list = new ArrayList<>(set1);
+    public java.util.SortedSet<java.util.SortedSet<E>> getPowerSet(SortedSet<E> pSet1){
+      List<E> list = new ArrayList<>(pSet1);
       int n = list.size();
 
       java.util.SortedSet<java.util.SortedSet<E>> powerSet = new TreeSet<>(new InternalSetComparator<E>());

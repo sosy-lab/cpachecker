@@ -31,6 +31,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
@@ -42,9 +44,9 @@ import java.util.TreeSet;
  */
 public class Dominators {
 
-  private ArrayList<CFANode> vertex = new ArrayList<>();
-  private TreeMap<CFANode, NodeInfo> map = new TreeMap<>();
-  private TreeMap<CFANode, CFANode> dom = new TreeMap<>();
+  private List<CFANode> vertex = new ArrayList<>();
+  private Map<CFANode, NodeInfo> map = new TreeMap<>();
+  private Map<CFANode, CFANode> dom = new TreeMap<>();
 
   private CFANode entry;
   private CFANode exit;
@@ -54,38 +56,37 @@ public class Dominators {
   @SuppressWarnings("unused")
   private CFA cfa;
 
-  public Dominators(CFA cfa, int mode) {
-    this.cfa = cfa;
-    this.entry = cfa.getMainFunction();
+  public Dominators(CFA pCfa, int pMode) {
+    this.cfa = pCfa;
+    this.entry = pCfa.getMainFunction();
     this.exit = ((FunctionEntryNode) entry).getExitNode();
-    this.mode = mode;
-    this.nodes = cfa.getAllNodes();
-    this.vertex = new ArrayList<>(cfa.getAllNodes().size());
-    for (int i = 0; i < cfa.getAllNodes().size() + 1; i++) {
+    this.mode = pMode;
+    this.nodes = pCfa.getAllNodes();
+    this.vertex = new ArrayList<>(pCfa.getAllNodes().size());
+    for (int i = 0; i < pCfa.getAllNodes().size() + 1; i++) {
       vertex.add(null);
     }
-    //this.n=cfa.getAllNodes().size();
   }
 
-  private void dfs(CFANode v) {
-    NodeInfo infov = map.get(v);
+  private void dfs(CFANode pNode) {
+    NodeInfo infov = map.get(pNode);
     n = n + 1;
     infov.semi = n;
-    vertex.set(n, v);
-    infov.label = v;
+    vertex.set(n, pNode);
+    infov.label = pNode;
     infov.ancestor = null;
     int m;
     if (mode == 0) {
-      m = v.getNumLeavingEdges();
+      m = pNode.getNumLeavingEdges();
     } else {
-      m = v.getNumEnteringEdges();
+      m = pNode.getNumEnteringEdges();
     }
     FunctionSummaryEdge e;
     CFANode w;
     if (mode == 0) {
-      e = v.getLeavingSummaryEdge();
+      e = pNode.getLeavingSummaryEdge();
     } else {
-      e = v.getEnteringSummaryEdge();
+      e = pNode.getEnteringSummaryEdge();
     }
 
     if (e != null) {
@@ -96,31 +97,31 @@ public class Dominators {
       }
       NodeInfo infow = map.get(w);
       if (infow.semi == 0) {
-        infow.parent = v;
+        infow.parent = pNode;
         dfs(w);
       }
-      infow.pred.add(v);
+      infow.pred.add(pNode);
 
     }
     // else{
     for (int i = 0; i < m; i++) {
       if (mode == 0) {
-        w = v.getLeavingEdge(i).getSuccessor();
+        w = pNode.getLeavingEdge(i).getSuccessor();
       } else {
-        w = v.getEnteringEdge(i).getPredecessor();
+        w = pNode.getEnteringEdge(i).getPredecessor();
       }
       NodeInfo infow = map.get(w);
       if (infow.semi == 0) {
-        infow.parent = v;
+        infow.parent = pNode;
         dfs(w);
       }
-      infow.pred.add(v);
+      infow.pred.add(pNode);
     }
     //   }
   }
 
-  private void compress(CFANode v) {
-    NodeInfo infov = map.get(v);
+  private void compress(CFANode pNode) {
+    NodeInfo infov = map.get(pNode);
     CFANode av = infov.ancestor;
     NodeInfo infoav = map.get(av);
     if (infoav.ancestor != null) {
@@ -134,21 +135,24 @@ public class Dominators {
     }
   }
 
-  private CFANode eval(CFANode v) {
-    NodeInfo infov = map.get(v);
+  private CFANode eval(CFANode pNode) {
+    NodeInfo infov = map.get(pNode);
     if (infov.ancestor == null) {
-      return v;
+      return pNode;
     } else {
-      compress(v);
+      compress(pNode);
       return infov.label;
     }
   }
 
-  private void link(CFANode v, CFANode w) {
-    NodeInfo infow = map.get(w);
-    infow.ancestor = v;
+  private void link(CFANode pNodeV, CFANode pNodeW) {
+    NodeInfo infow = map.get(pNodeW);
+    infow.ancestor = pNodeV;
   }
 
+  /**
+   * Execute the specified Dominators computation.
+   */
   public void execute() {
     //step0();
     step1();
@@ -159,9 +163,6 @@ public class Dominators {
     }
     step4();
   }
-  //
-  //  private TreeMap<CFANode, TreeSet<CFANode>> functionedge = new TreeMap<>();
-  //  private TreeMap<CFANode, TreeSet<CFANode>> reversedfunctionedge = new TreeMap<>();
 
   private void step1() {
     n = 0;
@@ -179,8 +180,8 @@ public class Dominators {
     }
   }
 
-  private void step2(CFANode w) {
-    NodeInfo infow = map.get(w);
+  private void step2(CFANode pNodeW) {
+    NodeInfo infow = map.get(pNodeW);
     for (CFANode v : infow.pred) {
       CFANode u = eval(v);
       NodeInfo infou = map.get(u);
@@ -189,13 +190,13 @@ public class Dominators {
       }
       CFANode t = vertex.get(infow.semi);
       NodeInfo infot = map.get(t);
-      infot.bucket.add(w);
-      link(infow.parent, w);
+      infot.bucket.add(pNodeW);
+      link(infow.parent, pNodeW);
     }
   }
 
-  private void step3(CFANode w) {
-    NodeInfo infow = map.get(w);
+  private void step3(CFANode pNodeW) {
+    NodeInfo infow = map.get(pNodeW);
     NodeInfo infopw = map.get(infow.parent);
     Iterator<CFANode> iterator = infopw.bucket.iterator();
     while (iterator.hasNext()) {
@@ -229,29 +230,22 @@ public class Dominators {
     }
   }
 
-  public TreeMap<CFANode, CFANode> getDom() {
+  /**
+   * Returns the computed Dominators
+   * @return the computed map of Dominators
+   */
+  public Map<CFANode, CFANode> getDom() {
     return dom;
   }
 
   static class NodeInfo {
     //CFANode node;
-    CFANode parent;
-    CFANode ancestor;
-    CFANode label;
-    Integer semi;
-    Collection<CFANode> pred;
-    Collection<CFANode> bucket;
+    private CFANode parent;
+    private CFANode ancestor;
+    private CFANode label;
+    private Integer semi;
+    private Collection<CFANode> pred;
+    private Collection<CFANode> bucket;
   }
-
-
-  protected CFA getCfa() {
-    return cfa;
-  }
-
-
-  protected void setCfa(CFA pCfa) {
-    cfa = pCfa;
-  }
-
 
 }

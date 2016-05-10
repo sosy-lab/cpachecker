@@ -49,7 +49,7 @@ public class BlockGuard implements Cloneable, Serializable{
   /**
    * Internal Stack: that contains relevant information to all active control flow
    */
-  private transient List<Pair<Pair<CFANode,CFANode>, Pair<Pair<CExpression,Boolean>,SortedSet<Variable>>>> contextstack=new ArrayList<>();
+  private List<Pair<Pair<CFANode,CFANode>, Pair<Pair<CExpression,Boolean>,SortedSet<Variable>>>> contextstack=new ArrayList<>();
 
 
     /**
@@ -60,11 +60,11 @@ public class BlockGuard implements Cloneable, Serializable{
     }
 
     /**
-     * Constructs an BlockGuard with the given <i>contextstack</i>
-     * @param contextstack stack that contains relevant information to all active control flow
+     * Constructs an BlockGuard with the given <i>pContextstack</i>
+     * @param pContextstack stack that contains relevant information to all active control flow
      */
-    private BlockGuard(List<Pair<Pair<CFANode,CFANode>, Pair<Pair<CExpression,Boolean>,SortedSet<Variable>>>> contextstack){
-      this.contextstack=contextstack;
+    private BlockGuard(List<Pair<Pair<CFANode,CFANode>, Pair<Pair<CExpression,Boolean>,SortedSet<Variable>>>> pContextstack){
+      this.contextstack=pContextstack;
     }
 
     @Override
@@ -101,14 +101,14 @@ public class BlockGuard implements Cloneable, Serializable{
 
     /**
      * Puts a new Control Dependency on the Stack
-     * @param node Source of the Edge
-     * @param node2 Sink of the Edge
-     * @param expression Expression of the control branch
-     * @param value Truth value of the expression if the branch is taken
+     * @param pNodeV Source of the Edge
+     * @param pNodeW Sink of the Edge
+     * @param pExpression Expression of the control branch
+     * @param pValue Truth value of the expression if the branch is taken
      */
-    public void addDependancy(CFANode node, CFANode node2, CExpression expression, boolean value) throws UnsupportedCCodeException{
+    public void addDependancy(CFANode pNodeV, CFANode pNodeW, CExpression pExpression, boolean pValue) throws UnsupportedCCodeException{
       VariableDependancy visitor=new VariableDependancy();
-      expression.accept(visitor);
+      pExpression.accept(visitor);
       SortedSet<Variable> varl=visitor.getResult();
 
       int size=contextstack.size();
@@ -119,24 +119,24 @@ public class BlockGuard implements Cloneable, Serializable{
         }
       }
 
-      Pair<CExpression,Boolean> secfirst=new Pair<>(expression,value);
+      Pair<CExpression,Boolean> secfirst=new Pair<>(pExpression,pValue);
       Pair<Pair<CExpression,Boolean>,SortedSet<Variable>> sec= new Pair<>(secfirst,varl);
-      Pair<CFANode,CFANode> first=new Pair<>(node,node2);
+      Pair<CFANode,CFANode> first=new Pair<>(pNodeV,pNodeW);
       Pair<Pair<CFANode,CFANode>, Pair<Pair<CExpression,Boolean>,SortedSet<Variable>>> elem=new Pair<> (first, sec);
       contextstack.add(elem);
     }
 
    /**
     * Removes all Control Dependency information from the context stack that does not influence <i>currentNode</i>.
-    * @param currentNode Node for which controlDependencies that stacks should be reduced to.
-    * @param dependencies Control Dependencies of <i>currentNode</i>.
+    * @param pCurrentNode Node for which controlDependencies that stacks should be reduced to.
+    * @param pDependencies Control Dependencies of <i>currentNode</i>.
     */
-   public void changeContextStack(CFANode currentNode, TreeSet<CFANode> dependencies){
+   public void changeContextStack(CFANode pCurrentNode, TreeSet<CFANode> pDependencies){
      int size=contextstack.size();
      for(int i=size;i>0;i--){
        Pair<Pair<CFANode, CFANode>, Pair<Pair<CExpression, Boolean>, SortedSet<Variable>>> elem=contextstack.get(i-1);
        CFANode first=elem.first.first;
-       if(!(dependencies.contains(first))){
+       if(!(pDependencies.contains(first))){
          contextstack.remove(i-1);
        }
      }
@@ -168,37 +168,37 @@ public class BlockGuard implements Cloneable, Serializable{
 
    /**
     * Replace the set of the Variables that influence the expression of top Control Dependency of the stack by the set <i>vars</i>.
-    * @param vars Replacing set of Variables.
+    * @param pVars Replacing set of Variables.
     */
-   public void changeTopVariables(SortedSet<Variable> vars){
+   public void changeTopVariables(SortedSet<Variable> pVars){
      int index=contextstack.size()-1;
      if(index>=0){
-       contextstack.get(index).second.second=vars;
+       contextstack.get(index).second.second=pVars;
      }
    }
 
    /**
     * Returns all Variable that influence the <i>index</i> expression of any Control Dependency of the stack.
-    * @param index Index of the Control Dependency
+    * @param pIndex Index of the Control Dependency
     * @return All Variable that influence the <i>index</i> expression of any Control Dependency of the stack.
     */
-   public SortedSet<Variable> getVariables(int index){
-     SortedSet<Variable> tmp=contextstack.get(index).second.second;
+   public SortedSet<Variable> getVariables(int pIndex){
+     SortedSet<Variable> tmp=contextstack.get(pIndex).second.second;
      return tmp;
    }
 
    @Override
-  public boolean equals(Object other){
-     if(other==null){
+  public boolean equals(Object pOther){
+     if(pOther==null){
        return false;
      }
-     if(this==other){
+     if(this==pOther){
        return true;
      }
-     if (!(other instanceof BlockGuard)) {
+     if (!(pOther instanceof BlockGuard)) {
        return false;
      }
-     BlockGuard bother=(BlockGuard) other;
+     BlockGuard bother=(BlockGuard) pOther;
      boolean value=true;
 
      for(int i=contextstack.size()-1;i>=0;i++){
@@ -221,18 +221,18 @@ public class BlockGuard implements Cloneable, Serializable{
 
    /**
     * Combines two BlockGuards by intersection.
-    * @param other the other Blockguard.
+    * @param pOther the other Blockguard.
     * @return A new BlockGuard that is the intersection of both BlockGuards.
     */
-   public BlockGuard meet(BlockGuard other) throws UnsupportedCCodeException{
+   public BlockGuard meet(BlockGuard pOther) throws UnsupportedCCodeException{
      BlockGuard result=this.clone();
 
 
      int size1=this.contextstack.size();
-     int size2=other.contextstack.size();
+     int size2=pOther.contextstack.size();
      for(int i=0;i<((size1<size2)?size1:size2);i++){
-       Pair<Pair<CFANode,CFANode>, Pair<Pair<CExpression,Boolean>, SortedSet<Variable>>> value = contextstack.get(i);
-       Pair<Pair<CFANode,CFANode>, Pair<Pair<CExpression,Boolean>, SortedSet<Variable>>> othervalue = other.contextstack.get(i);
+       Pair<Pair<CFANode,CFANode>, Pair<Pair<CExpression,Boolean>, SortedSet<Variable>>> value = this.contextstack.get(i);
+       Pair<Pair<CFANode,CFANode>, Pair<Pair<CExpression,Boolean>, SortedSet<Variable>>> othervalue = pOther.contextstack.get(i);
 
        Pair<CFANode,CFANode> edge=value.first;
        Pair<CFANode,CFANode> otheredge=othervalue.first;
@@ -249,11 +249,12 @@ public class BlockGuard implements Cloneable, Serializable{
        CExpression otherexpr=othervalue.second.first.first;
        boolean truth=value.second.first.second;
        boolean othertruth=othervalue.second.first.second;
-       if(!(expr==null && otherexpr==null)){
-         if(!(expr.equals(otherexpr)&&(truth==othertruth))){
+//       if(expr==null || otherexpr==null){
+         if(expr==null || otherexpr == null || !(expr.equals(otherexpr)) || !(truth==othertruth)){
            return result;
          }
-       }
+//         return result;
+//       }
 
 
        SortedSet<Variable> variables=value.second.second;
@@ -284,7 +285,9 @@ public class BlockGuard implements Cloneable, Serializable{
     * @param <T> Type of the first element
     * @param <E> Type of the second element
     */
-  static class Pair<T,E> {
+  static class Pair<T,E> implements Serializable{
+
+    private static final long serialVersionUID = 921854014515969561L;
     /**
      * first element
      */

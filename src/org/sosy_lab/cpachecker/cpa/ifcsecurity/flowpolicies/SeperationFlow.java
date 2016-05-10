@@ -37,16 +37,16 @@ public class SeperationFlow<E extends Comparable<? super E>> extends Conglomerat
 
   /**
    * Class for constructing a Policy that only contains one specific Edge and all Reflexive Edges over the Domain of the Edge.
-   * @param from the from Part for the Edge
-   * @param to the to Part of the Edge
+   * @param pFrom the from Part for the Edge
+   * @param pTo the to Part of the Edge
    */
-  public SeperationFlow(E from, SortedSet<E> to){
+  public SeperationFlow(E pFrom, SortedSet<E> pTo){
     SetUtil<E> setutil=new SetUtil<>();
     SetUtil<Edge<E>> setutil2=new SetUtil<>();
-    Edge<E> edge=new Edge<>(from,to);
+    Edge<E> edge=new Edge<>(pFrom,pTo);
     addEdge(edge);
-    SortedSet<E> alphabet=setutil.clone(to);
-    alphabet.add(from);
+    SortedSet<E> alphabet=setutil.clone(pTo);
+    alphabet.add(pFrom);
     ConglomeratePolicy<E> toppol=new TopPolicy<>(alphabet);
     this.setEdges(setutil2.union(this.getEdges(),toppol.getEdges()));
   }

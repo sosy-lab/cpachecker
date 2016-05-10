@@ -54,20 +54,20 @@ public class Edge<E extends Comparable<? super E>> implements Comparable<Edge<E>
 
   /**
    * Constructs a new Information Flow Relation
-   * @param from Security Level, which can have information of Security Levels <i>to</i>
-   * @param to Security Levels, which can flow to Security Levels <i>from</i>
+   * @param pFrom Security Level, which can have information of Security Levels <i>to</i>
+   * @param pTo Security Levels, which can flow to Security Levels <i>from</i>
    */
-  public Edge(E from, SortedSet<E> to){
+  public Edge(E pFrom, SortedSet<E> pTo){
     SetUtil<E> setutil=new SetUtil<>();
-    SortedSet<E> toclone = setutil.clone(to);
-    toclone.add(from);
-    this.from=from;
+    SortedSet<E> toclone = setutil.clone(pTo);
+    toclone.add(pFrom);
+    this.from=pFrom;
     this.to=toclone;
   }
 
   @Override
-  public int compareTo(Edge<E> otheredge) {
-    return comp.compare(this, otheredge);
+  public int compareTo(Edge<E> pOtherEdge) {
+    return comp.compare(this, pOtherEdge);
   }
 
 

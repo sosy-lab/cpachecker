@@ -36,12 +36,12 @@ public class TopPolicy<E extends Comparable<? super E>> extends ConglomeratePoli
 
   /**
    * Construct a Top Policy for the given domain <i>sets</i>
-   * @param sets Domain
+   * @param pSets Domain
    */
-  public TopPolicy(SortedSet<E> sets){
+  public TopPolicy(SortedSet<E> pSets){
     SortedSet<E> set;
     Edge<E> edge;
-    for(E elem:sets){
+    for(E elem:pSets){
       set=new TreeSet<>();
       set.add(elem);
       edge=new Edge<>(elem,set);

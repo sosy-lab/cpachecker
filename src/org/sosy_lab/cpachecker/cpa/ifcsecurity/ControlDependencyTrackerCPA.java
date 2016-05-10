@@ -51,14 +51,14 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-import java.util.TreeMap;
+import java.util.Map;
 import java.util.TreeSet;
 import java.util.logging.Level;
 
 /**
  * CPA for tracking the Active Control Dependencies
  */
-@Options(prefix="cpa.ifcsecurity")
+@Options(prefix = "cpa.ifcsecurity")
 public class ControlDependencyTrackerCPA implements ConfigurableProgramAnalysis {
 
   @SuppressWarnings("unused")
@@ -68,19 +68,25 @@ public class ControlDependencyTrackerCPA implements ConfigurableProgramAnalysis 
   @SuppressWarnings("unused")
   private CFA cfa;
 
-
-
   /**
    * Internal Variable: Control Dependencies
    */
-  private TreeMap<CFANode,TreeSet<CFANode>> rcd;
+  private Map<CFANode, TreeSet<CFANode>> rcd;
 
-  @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
-      description="which merge operator to use for TestCPA")
+  @Option(
+      secure = true,
+      name = "merge",
+      toUppercase = true,
+      values = { "SEP", "JOIN" },
+      description = "which merge operator to use for ControlDependencyTrackerCPA")
   private String mergeType = "JOIN";
 
-  @Option(secure=true, name="stop", toUppercase=true, values={"SEP", "JOIN"},
-      description="which stop operator to use for TestCPA")
+  @Option(
+      secure = true,
+      name = "stop",
+      toUppercase = true,
+      values = { "SEP", "JOIN" },
+      description = "which stop operator to use for ControlDependencyTrackerCPA")
   private String stopType = "SEP";
 
   private StopOperator stop;
@@ -91,36 +97,36 @@ public class ControlDependencyTrackerCPA implements ConfigurableProgramAnalysis 
     return AutomaticCPAFactory.forType(ControlDependencyTrackerCPA.class);
   }
 
-  private ControlDependencyTrackerCPA(LogManager logger, Configuration config, ShutdownNotifier shutdownNotifier, CFA cfa) throws InvalidConfigurationException {
+  private ControlDependencyTrackerCPA(LogManager logger, Configuration config,
+      ShutdownNotifier shutdownNotifier, CFA cfa) throws InvalidConfigurationException {
     config.inject(this);
     this.logger = logger;
-    this.cfa=cfa;
+    this.cfa = cfa;
 
-    Dominators postdom=new Dominators(cfa, 1);
+    Dominators postdom = new Dominators(cfa, 1);
     postdom.execute();
-    TreeMap<CFANode, CFANode> postdominators = postdom.getDom();
+    Map<CFANode, CFANode> postdominators = postdom.getDom();
     logger.log(Level.FINE, "Postdominators");
     logger.log(Level.FINE, postdominators);
 
-    DominanceFrontier domfron=new DominanceFrontier(cfa,postdominators, 1);
+    DominanceFrontier domfron = new DominanceFrontier(cfa, postdominators, 1);
     domfron.execute();
-    TreeMap<CFANode,TreeSet<CFANode>> df=domfron.getDominanceFrontier();
+    Map<CFANode, TreeSet<CFANode>> df = domfron.getDominanceFrontier();
     logger.log(Level.FINE, "Dominance Frontier");
     logger.log(Level.FINE, df);
 
-    ControlDependenceComputer cdcom=new ControlDependenceComputer(cfa, df, 1);
+    ControlDependenceComputer cdcom = new ControlDependenceComputer(cfa, df);
     cdcom.execute();
-    TreeMap<CFANode,TreeSet<CFANode>> cd=cdcom.getControlDependency();
+    Map<CFANode, TreeSet<CFANode>> cd = cdcom.getControlDependency();
     logger.log(Level.FINE, "Control Dependency");
     logger.log(Level.FINE, cd);
 
-    TreeMap<CFANode,TreeSet<CFANode>> recd=cdcom.getReversedControlDependency();
+    Map<CFANode, TreeSet<CFANode>> recd = cdcom.getReversedControlDependency();
     logger.log(Level.FINE, "Reversed Control Dependency");
     logger.log(Level.FINE, recd);
-    this.rcd=recd;
+    this.rcd = recd;
 
-
-    domain = DelegateAbstractDomain.<ControlDependencyTrackerState>getInstance();
+    domain = DelegateAbstractDomain.<ControlDependencyTrackerState> getInstance();
     transfer = new ControlDependencyTrackerRelation(logger, shutdownNotifier, rcd);
 
     if (stopType.equals("SEP")) {
@@ -140,65 +146,68 @@ public class ControlDependencyTrackerCPA implements ConfigurableProgramAnalysis 
    * @param <T> Type of the first element
    * @param <E> Type of the second element
    */
- static class Pair<T,E> {
-   /**
+  static class Pair<T, E> {
+
+    /**
     * first element
     */
-   private T first;
-   /**
+    private T first;
+    /**
     * second element
     */
-   private E second;
+    private E second;
 
-   /**
+    /**
     * Generates a new 2-Pair
     * @param first The first element of the 2-Pair.
     * @param second The second element of the 2-Pair.
     */
-   public Pair(T first, E second){
-     this.first=first;
-     this.second=second;
-   }
+    public Pair(T first, E second) {
+      this.first = first;
+      this.second = second;
+    }
 
-   /**
+    /**
     * Returns the first element of the 2-Pair.
     * @return The first element of the 2-Pair.
     */
-   public T getFirst(){
-     return first;
-   }
+    public T getFirst() {
+      return first;
+    }
 
-   /**
+    /**
     * Returns the second element of the 2-Pair.
     * @return The second element of the 2-Pair.
     */
-   public E getSecond(){
-     return second;
-   }
+    public E getSecond() {
+      return second;
+    }
 
-   @Override
-   public boolean equals(Object obj){
-     if(obj == null){
-       return false;
-     }
-     if(!(obj instanceof Pair)){
-       return false;
-     }
-     @SuppressWarnings("unchecked")
-    Pair<T,E> other=(Pair<T,E>) obj;
-     return (first.equals(other.first) && second.equals(other.second));
-   }
+    @Override
+    public boolean equals(Object obj) {
+      if (obj == null) { return false; }
+      if (!(obj instanceof Pair)) { return false; }
+      @SuppressWarnings("unchecked")
+      Pair<T, E> other = (Pair<T, E>) obj;
+      return (first.equals(other.first) && second.equals(other.second));
+    }
 
-   @Override
-   public String toString(){
-     return "["+((first==null)?"Null":((first instanceof CExpression)?((CExpression)first).toASTString() :first.toString()))+","+((second==null)?"Null":((second instanceof CExpression)?((CExpression)second).toASTString():(second.toString())))+"]";
-   }
+    @Override
+    public String toString() {
+      return "["
+          + ((first == null) ? "Null"
+              : ((first instanceof CExpression) ? ((CExpression) first).toASTString()
+                  : first.toString()))
+          + "," + ((second == null) ? "Null" : ((second instanceof CExpression)
+              ? ((CExpression) second).toASTString() : (second.toString())))
+          + "]";
+    }
 
-  @Override
-  public int hashCode() {
-    return super.hashCode();
+    @Override
+    public int hashCode() {
+      return super.hashCode();
+    }
   }
- }
 
   @Override
   public AbstractDomain getAbstractDomain() {
@@ -227,8 +236,8 @@ public class ControlDependencyTrackerCPA implements ConfigurableProgramAnalysis 
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    ControlDependencyTrackerState initialstate=new ControlDependencyTrackerState();
-    return  initialstate;
+    ControlDependencyTrackerState initialstate = new ControlDependencyTrackerState();
+    return initialstate;
   }
 
   @Override

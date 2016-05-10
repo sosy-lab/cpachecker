@@ -39,10 +39,10 @@ public class StringSecurityClass extends SecurityClasses{
 
   /**
    * Constructor for the Security-Class
-    * @param sc the representive SecurityClass-Element
+    * @param pSC the representive SecurityClass-Element
    */
-  public StringSecurityClass(String sc){
-    this.sc=sc;
+  public StringSecurityClass(String pSC){
+    this.sc=pSC;
   }
 
 //  @Override
@@ -69,20 +69,20 @@ public class StringSecurityClass extends SecurityClasses{
 // }
 
   @Override
-  public int compareTo(SecurityClasses obj) {
-     if (this==obj) {
+  public int compareTo(SecurityClasses pObj) {
+     if (this==pObj) {
         return 0;
      }
-     if (obj==null) {
+     if (pObj==null) {
         return 1;
      }
-     if (!(obj instanceof StringSecurityClass )) {
-       return (getClass().getName().compareTo(obj.getClass().getName()));
+     if (!(pObj instanceof StringSecurityClass )) {
+       return (getClass().getName().compareTo(pObj.getClass().getName()));
      }
-     StringSecurityClass other=(StringSecurityClass) obj;
-     if(equals(other)){
-       return 0;
-     }
+     StringSecurityClass other=(StringSecurityClass) pObj;
+//     if(equals(other)){
+//       return 0;
+//     }
      return (this.sc.compareTo(other.sc));
   }
 

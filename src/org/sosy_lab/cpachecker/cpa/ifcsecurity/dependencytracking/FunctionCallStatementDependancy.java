@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 
 /**
- * VisitorClass for determinig all variables and and a functioncall that occurence in a given expression.
+ * VisitorClass to determine all variables and and a functioncalls that occur in a given expression.
  */
 public class FunctionCallStatementDependancy extends VariableDependancy implements CRightHandSideVisitor<Void, UnsupportedCCodeException> {
 
@@ -55,9 +55,9 @@ public class FunctionCallStatementDependancy extends VariableDependancy implemen
 
 
     @Override
-    public Void visit(CFunctionCallExpression expr) throws UnsupportedCCodeException {
-      functionname=new Variable(expr.getFunctionNameExpression().toASTString());
-      for(CExpression param:expr.getParameterExpressions()){
+    public Void visit(CFunctionCallExpression pExpr) throws UnsupportedCCodeException {
+      functionname=new Variable(pExpr.getFunctionNameExpression().toASTString());
+      for(CExpression param:pExpr.getParameterExpressions()){
         param.accept(this);
       }
       return null;

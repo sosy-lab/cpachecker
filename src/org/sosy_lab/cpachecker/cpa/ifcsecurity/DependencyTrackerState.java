@@ -40,7 +40,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 /**
- * CPA-Abstract-State for tracking which variables/funtions are dependendent on which other variables/funtions
+ * CPA-Abstract-State for tracking which variables/functions are depends on which other variables/functions
  */
 public class DependencyTrackerState implements AbstractState, Cloneable, Serializable,
     LatticeAbstractState<DependencyTrackerState>, Graphable, AbstractQueryableState {

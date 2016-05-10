@@ -68,7 +68,7 @@ import java.util.TreeSet;
 import java.util.logging.Level;
 
 /**
- * CPA-Transfer-Relation for tracking which variables/funtions are dependendent on which other variables/funtions
+ * CPA-Transfer-Relation for tracking which variables/functions are depends on which other variables/functions
  */
 public class DependencyTrackerRelation extends ForwardingTransferRelation<DependencyTrackerState, DependencyTrackerState, Precision>  {
 
@@ -84,27 +84,27 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
   }
 
   @Override
-  protected DependencyTrackerState handleAssumption(CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
+  protected DependencyTrackerState handleAssumption(CAssumeEdge pCfaEdge, CExpression pExpression, boolean pTruthAssumption)
       throws CPATransferException {
     return state.clone();
   }
 
   @Override
-  protected DependencyTrackerState handleFunctionCallEdge(CFunctionCallEdge cfaEdge,
-      List<CExpression> arguments, List<CParameterDeclaration> parameters,
-      String calledFunctionName) throws CPATransferException {
+  protected DependencyTrackerState handleFunctionCallEdge(CFunctionCallEdge pCfaEdge,
+      List<CExpression> pArguments, List<CParameterDeclaration> pParameters,
+      String pCalledFunctionName) throws CPATransferException {
 
       /*
        * Function-Parameter-Dependencies on a call
        */
       DependencyTrackerState result=state.clone();
-      for(int i=0;i<parameters.size();i++){
-        CParameterDeclaration par=parameters.get(i);
+      for(int i=0;i<pParameters.size();i++){
+        CParameterDeclaration par=pParameters.get(i);
         String name=par.getQualifiedName();
         Variable pvar=new Variable(name);
         SortedSet<Variable> deps=new TreeSet<>();
 
-        CExpression expr=arguments.get(i);
+        CExpression expr=pArguments.get(i);
         VariableDependancy visitor = new VariableDependancy();
         expr.accept(visitor);
         SortedSet<Variable> vars=visitor.getResult();
@@ -120,8 +120,8 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
   }
 
   @Override
-  protected DependencyTrackerState handleFunctionReturnEdge(CFunctionReturnEdge cfaEdge,
-      CFunctionSummaryEdge fnkCall, CFunctionCall summaryExpr, String callerFunctionName)
+  protected DependencyTrackerState handleFunctionReturnEdge(CFunctionReturnEdge pCfaEdge,
+      CFunctionSummaryEdge pFnkCall, CFunctionCall pSummaryExpr, String pCallerFunctionName)
           throws CPATransferException {
 
     /*
@@ -129,7 +129,7 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
      */
     DependencyTrackerState result=state.clone();
     Variable function=new Variable(functionName);
-    if (summaryExpr instanceof CFunctionCallAssignmentStatement) {
+    if (pSummaryExpr instanceof CFunctionCallAssignmentStatement) {
       /*
        * Function-Assignment
        * -l=func(x);
@@ -137,7 +137,7 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
        */
 
       //Get dependency of function
-      CFunctionCallAssignmentStatement funcExp = (CFunctionCallAssignmentStatement)summaryExpr;
+      CFunctionCallAssignmentStatement funcExp = (CFunctionCallAssignmentStatement)pSummaryExpr;
       CExpression left=funcExp.getLeftHandSide();
       VariableDependancy visitor=new VariableDependancy();
       left.accept(visitor);
@@ -152,7 +152,7 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
       for(Variable l: varl){
         result.getDependencies().put(l,deps);
       }
-    } else if (summaryExpr instanceof CFunctionCallStatement) {
+    } else if (pSummaryExpr instanceof CFunctionCallStatement) {
       /*
        * Function-Call-Statement
        * -func(x);
@@ -160,25 +160,25 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
        */
 
     } else {
-      throw new UnrecognizedCCodeException("on function return", edge, summaryExpr);
+      throw new UnrecognizedCCodeException("on function return", edge, pSummaryExpr);
     }
     result.getDependencies().put(function, new TreeSet<Variable>());
     return result;
   }
 
   @Override
-  protected DependencyTrackerState handleDeclarationEdge(CDeclarationEdge cfaEdge, CDeclaration decl)
+  protected DependencyTrackerState handleDeclarationEdge(CDeclarationEdge pCfaEdge, CDeclaration pDecl)
       throws CPATransferException {
     DependencyTrackerState result=state.clone();
 
-    if (decl instanceof CVariableDeclaration) {
+    if (pDecl instanceof CVariableDeclaration) {
       /*
        * Variable Declaration
        */
-      CVariableDeclaration dec = (CVariableDeclaration) decl;
+      CVariableDeclaration dec = (CVariableDeclaration) pDecl;
       String left = dec.getQualifiedName();
       Variable var=new Variable(left);
-      if(decl.isGlobal()){
+      if(pDecl.isGlobal()){
         /*
          * Global Variable
          * -depends initially on itself
@@ -205,12 +205,12 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
         result.getDependencies().put(var, deps);
       }
     }
-    if (decl instanceof CFunctionDeclaration) {
+    if (pDecl instanceof CFunctionDeclaration) {
       /*
        * Function Declaration
        */
       //Set Default-Dependancies of Return-Value
-      CFunctionDeclaration dec = (CFunctionDeclaration) decl;
+      CFunctionDeclaration dec = (CFunctionDeclaration) pDecl;
       String fname=dec.getQualifiedName();
       Variable fvar=new Variable(fname);
       SortedSet<Variable> fdeps=new TreeSet<>();
@@ -231,19 +231,19 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
   }
 
   @Override
-  protected DependencyTrackerState handleStatementEdge(CStatementEdge cfaEdge, CStatement statement)
+  protected DependencyTrackerState handleStatementEdge(CStatementEdge pCfaEdge, CStatement pStatement)
       throws CPATransferException {
     DependencyTrackerState result=state.clone();
     CExpression left=null;
     CExpression right=null;
-    if (statement instanceof CExpressionAssignmentStatement) {
+    if (pStatement instanceof CExpressionAssignmentStatement) {
       /*
        * ExpressionAssignmentStatement
        * -l=exp
        * -l depends on all variable/function dependencies in exp
        */
-      left = ((CExpressionAssignmentStatement) statement).getLeftHandSide();
-      right= ((CExpressionAssignmentStatement) statement).getRightHandSide();
+      left = ((CExpressionAssignmentStatement) pStatement).getLeftHandSide();
+      right= ((CExpressionAssignmentStatement) pStatement).getRightHandSide();
 
       VariableDependancy visitor=new VariableDependancy();
       left.accept(visitor);
@@ -265,13 +265,13 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
         result.getDependencies().put(l, deps);
       }
     }
-    if (statement instanceof CFunctionCallStatement) {
+    if (pStatement instanceof CFunctionCallStatement) {
       /*
        * FunctionCallStatement
        * -send(par)
        * -send depends  on all variable/function dependencies in par
        */
-      CFunctionCallStatement stmt = ((CFunctionCallStatement) statement);
+      CFunctionCallStatement stmt = ((CFunctionCallStatement) pStatement);
       CFunctionCallExpression expr = stmt.getFunctionCallExpression();
       FunctionCallStatementDependancy visitor=new FunctionCallStatementDependancy();
 
@@ -293,7 +293,7 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
   }
 
   @Override
-  protected DependencyTrackerState handleReturnStatementEdge(CReturnStatementEdge cfaEdge)
+  protected DependencyTrackerState handleReturnStatementEdge(CReturnStatementEdge pCfaEdge)
       throws CPATransferException {
     //See Strengthen
     return state.clone();
@@ -301,12 +301,12 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
 
   @Override
   @SuppressWarnings("unchecked")
-  protected DependencyTrackerState handleBlankEdge(BlankEdge cfaEdge) {
+  protected DependencyTrackerState handleBlankEdge(BlankEdge pCfaEdge) {
     return state.clone();
   }
 
   @Override
-  protected DependencyTrackerState handleFunctionSummaryEdge(CFunctionSummaryEdge cfaEdge) throws CPATransferException {
+  protected DependencyTrackerState handleFunctionSummaryEdge(CFunctionSummaryEdge pCfaEdge) throws CPATransferException {
     return state.clone();
   }
 
@@ -374,7 +374,7 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
     return null;
   }
 
-  public void strengthenExpressionAssignementStatement(DependencyTrackerState state, List<AbstractState> pOtherStates,
+  public void strengthenExpressionAssignementStatement(DependencyTrackerState pState, List<AbstractState> pOtherStates,
       CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException{
     logger.log(Level.FINE,pPrecision);
 
@@ -394,7 +394,7 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
           left.accept(visitor);
           SortedSet<Variable> varl=visitor.getResult();
           for(Variable var: varl){
-            SortedSet<Variable> cvars=state.getDependencies().get(var);
+            SortedSet<Variable> cvars=pState.getDependencies().get(var);
             int size=ostate.getGuards().getSize();
             for(int i=0;i<size;i++){
               SortedSet<Variable> nvars = ostate.getGuards().getVariables(i);
@@ -408,7 +408,7 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
     }
   }
 
-  public void strengthenFunctionCallAssignmentStatement(DependencyTrackerState state, List<AbstractState> pOtherStates,
+  public void strengthenFunctionCallAssignmentStatement(DependencyTrackerState pState, List<AbstractState> pOtherStates,
       CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException {
     logger.log(Level.FINE,pPrecision);
 
@@ -429,7 +429,7 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
           left.accept(visitor);
           SortedSet<Variable> varl=visitor.getResult();
           for(Variable var: varl){
-            SortedSet<Variable> cvars=state.getDependencies().get(var);
+            SortedSet<Variable> cvars=pState.getDependencies().get(var);
             int size=ostate.getGuards().getSize();
             for(int i=0;i<size;i++){
               SortedSet<Variable> nvars = ostate.getGuards().getVariables(i);
@@ -443,7 +443,7 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
     }
   }
 
-  public void strengthenFunctionCallStatement(DependencyTrackerState state, List<AbstractState> pOtherStates,
+  public void strengthenFunctionCallStatement(DependencyTrackerState pState, List<AbstractState> pOtherStates,
       CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException {
     logger.log(Level.FINE,pPrecision);
 
@@ -465,7 +465,7 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
           expr.accept(visitor);
           Variable function=visitor.getFunctionname();
 
-          SortedSet<Variable> cvars=state.getDependencies().get(function);
+          SortedSet<Variable> cvars=pState.getDependencies().get(function);
           int size=ostate.getGuards().getSize();
           for(int i=0;i<size;i++){
             SortedSet<Variable> nvars = ostate.getGuards().getVariables(i);
@@ -478,7 +478,7 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
     }
   }
 
-  public void strengthenReturnStatementEdge(DependencyTrackerState state, List<AbstractState> pOtherStates,
+  public void strengthenReturnStatementEdge(DependencyTrackerState pState, List<AbstractState> pOtherStates,
       CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException {
     logger.log(Level.FINE,pPrecision);
     /*
@@ -502,8 +502,8 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
             expr.accept(visitor);
             SortedSet<Variable> vars=visitor.getResult();
             for(Variable var: vars){
-              assert(state.getDependencies().containsKey(var));
-              for(Variable c: state.getDependencies().get(var)){
+              assert(pState.getDependencies().containsKey(var));
+              for(Variable c: pState.getDependencies().get(var)){
                 deps.add(c);
               }
             }
@@ -512,7 +512,7 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
             //return;
             //DO NOTHING
           }
-          state.getDependencies().put(fvar, deps);
+          pState.getDependencies().put(fvar, deps);
         }
       }
    }

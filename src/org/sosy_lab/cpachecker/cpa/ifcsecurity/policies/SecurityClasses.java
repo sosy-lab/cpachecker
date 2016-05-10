@@ -33,14 +33,14 @@ abstract public class SecurityClasses implements Comparable<SecurityClasses>{
   /**
    * Compares this SecurityClass with another SecurityClass
    */
-  public int compareTo(SecurityClasses obj) {
-     if (this==obj) {
+  public int compareTo(SecurityClasses pObj) {
+     if (this==pObj) {
         return 0;
      }
-     if (obj==null) {
+     if (pObj==null) {
         return 1;
      }
-     return (getClass().getName().compareTo(obj.getClass().getName()));
+     return (getClass().getName().compareTo(pObj.getClass().getName()));
   }
 
 }

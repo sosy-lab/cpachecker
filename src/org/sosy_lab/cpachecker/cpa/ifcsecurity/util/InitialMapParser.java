@@ -48,17 +48,17 @@ public class InitialMapParser {
 
   /**
    * Starts and execute the InitialMapParser for parsing the allowed SecurityClass-Mapping.
-  * @param file the file to be parsed.
+  * @param pFile the file to be parsed.
    */
   @SuppressWarnings("resource")
-  public InitialMapParser(LogManager logger, Path file) {
+  public InitialMapParser(LogManager pLogger, Path pFile) {
     map=new TreeMap<>();
 
     List<String> contents = null;
     try {
-      contents = file.asCharSource(Charset.defaultCharset()).readLines();
+      contents = pFile.asCharSource(Charset.defaultCharset()).readLines();
     } catch (IOException e) {
-      logger.logUserException(Level.WARNING, e, "Could not read intial security mapping from file named " + file);
+      pLogger.logUserException(Level.WARNING, e, "Could not read intial security mapping from file named " + pFile);
       return ;
     }
 
@@ -78,13 +78,13 @@ public class InitialMapParser {
             map.put(var, clas);
           }
         } catch (NoSuchFieldException e) {
-          logger.logUserException(Level.WARNING, e, "");
+          pLogger.logUserException(Level.WARNING, e, "");
         } catch (SecurityException e) {
-          logger.logUserException(Level.WARNING, e, "");
+          pLogger.logUserException(Level.WARNING, e, "");
         } catch (IllegalArgumentException e) {
-          logger.logUserException(Level.WARNING, e, "");
+          pLogger.logUserException(Level.WARNING, e, "");
         } catch (IllegalAccessException e) {
-          logger.logUserException(Level.WARNING, e, "");
+          pLogger.logUserException(Level.WARNING, e, "");
         }
 
       }

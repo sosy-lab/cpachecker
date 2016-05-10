@@ -61,11 +61,11 @@ public class DependencyTrackerCPA implements ConfigurableProgramAnalysis {
   private DependencyTrackerRelation transfer;
 
   @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
-      description="which merge operator to use for TestCPA")
+      description="which merge operator to use for DependencyTrackerCPA")
   private String mergeType = "JOIN";
 
   @Option(secure=true, name="stop", toUppercase=true, values={"SEP", "JOIN"},
-      description="which stop operator to use for TestCPA")
+      description="which stop operator to use for DependencyTrackerCPA")
   private String stopType = "SEP";
 
   private StopOperator stop;
@@ -75,12 +75,12 @@ public class DependencyTrackerCPA implements ConfigurableProgramAnalysis {
     return AutomaticCPAFactory.forType(DependencyTrackerCPA.class);
   }
 
-  private DependencyTrackerCPA(LogManager logger, Configuration config, ShutdownNotifier shutdownNotifier) throws InvalidConfigurationException {
-    config.inject(this);
-    this.logger = logger;
+  private DependencyTrackerCPA(LogManager pLogger, Configuration pConfig, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+    pConfig.inject(this);
+    this.logger = pLogger;
 
     domain = DelegateAbstractDomain.<DependencyTrackerState>getInstance();
-    transfer = new DependencyTrackerRelation(logger, shutdownNotifier);
+    transfer = new DependencyTrackerRelation(pLogger, pShutdownNotifier);
 
     if (stopType.equals("SEP")) {
       stop = new StopSepOperator(domain);

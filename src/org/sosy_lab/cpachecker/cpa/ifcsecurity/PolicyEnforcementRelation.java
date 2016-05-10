@@ -92,36 +92,36 @@ public class PolicyEnforcementRelation<E extends Comparable<? super E>> extends 
   }
 
   @Override
-  protected PolicyEnforcementState<E> handleAssumption(CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
+  protected PolicyEnforcementState<E> handleAssumption(CAssumeEdge pCfaEdge, CExpression pExpression, boolean pTruthAssumption)
       throws CPATransferException {
     return state.clone();
   }
 
   @Override
-  protected PolicyEnforcementState<E> handleFunctionCallEdge(CFunctionCallEdge cfaEdge,
-      List<CExpression> arguments, List<CParameterDeclaration> parameters,
-      String calledFunctionName) throws CPATransferException {
+  protected PolicyEnforcementState<E> handleFunctionCallEdge(CFunctionCallEdge pCfaEdge,
+      List<CExpression> pArguments, List<CParameterDeclaration> pParameters,
+      String pCalledFunctionName) throws CPATransferException {
     return state.clone();
   }
 
   @Override
-  protected PolicyEnforcementState<E> handleFunctionReturnEdge(CFunctionReturnEdge cfaEdge,
-      CFunctionSummaryEdge fnkCall, CFunctionCall summaryExpr, String callerFunctionName)
+  protected PolicyEnforcementState<E> handleFunctionReturnEdge(CFunctionReturnEdge pCfaEdge,
+      CFunctionSummaryEdge pFnkCall, CFunctionCall pSummaryExpr, String pCallerFunctionName)
           throws CPATransferException {
     return state.clone();
   }
 
   @Override
-  protected PolicyEnforcementState<E> handleDeclarationEdge(CDeclarationEdge cfaEdge, CDeclaration decl)
+  protected PolicyEnforcementState<E> handleDeclarationEdge(CDeclarationEdge pCfaEdge, CDeclaration pDecl)
       throws CPATransferException {
     PolicyEnforcementState<E> result=state.clone();
     //Handle Variable-Declarations
-    if (decl instanceof CVariableDeclaration) {
-      CVariableDeclaration dec = (CVariableDeclaration) decl;
+    if (pDecl instanceof CVariableDeclaration) {
+      CVariableDeclaration dec = (CVariableDeclaration) pDecl;
       String left = dec.getQualifiedName();
       Variable var=new Variable(left);
       //Treat global Variables different from lokal Variables
-      if(decl.isGlobal()){
+      if(pDecl.isGlobal()){
         //Add if not in allowedsecurityclassmapping
         if(!(result.getAllowedsecurityclassmapping().containsKey(var))){
           result.getAllowedsecurityclassmapping().put(var,result.getDefaultlevel());
@@ -142,8 +142,8 @@ public class PolicyEnforcementRelation<E extends Comparable<? super E>> extends 
     }
 
     //Handle Function-Declaration
-    if (decl instanceof CFunctionDeclaration) {
-      CFunctionDeclaration dec = (CFunctionDeclaration) decl;
+    if (pDecl instanceof CFunctionDeclaration) {
+      CFunctionDeclaration dec = (CFunctionDeclaration) pDecl;
       //Add Function Parameter
       List<CParameterDeclaration> param = dec.getParameters();
       for(CParameterDeclaration par:param){
@@ -176,25 +176,25 @@ public class PolicyEnforcementRelation<E extends Comparable<? super E>> extends 
   }
 
   @Override
-  protected PolicyEnforcementState<E> handleStatementEdge(CStatementEdge cfaEdge, CStatement statement)
+  protected PolicyEnforcementState<E> handleStatementEdge(CStatementEdge pCfaEdge, CStatement pStatement)
       throws CPATransferException {
     return state.clone();
   }
 
   @Override
-  protected PolicyEnforcementState<E> handleReturnStatementEdge(CReturnStatementEdge cfaEdge)
+  protected PolicyEnforcementState<E> handleReturnStatementEdge(CReturnStatementEdge pCfaEdge)
       throws CPATransferException {
     return state.clone();
   }
 
   @Override
   @SuppressWarnings("unchecked")
-  protected PolicyEnforcementState<E> handleBlankEdge(BlankEdge cfaEdge) {
+  protected PolicyEnforcementState<E> handleBlankEdge(BlankEdge pCfaEdge) {
     return state.clone();
   }
 
   @Override
-  protected PolicyEnforcementState<E> handleFunctionSummaryEdge(CFunctionSummaryEdge cfaEdge) throws CPATransferException {
+  protected PolicyEnforcementState<E> handleFunctionSummaryEdge(CFunctionSummaryEdge pCfaEdge) throws CPATransferException {
     return state.clone();
   }
 

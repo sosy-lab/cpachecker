@@ -51,27 +51,27 @@ public class EdgeComparator<E extends Comparable<? super E>> implements Comparat
 
   /**
    * Constructs a new Comparator.
-   * @param compset Comparator for Sets.
+   * @param pCompset Comparator for Sets.
    */
-  public EdgeComparator(Comparator<SortedSet<E>> compset) {
-    this.compset=compset;
+  public EdgeComparator(Comparator<SortedSet<E>> pCompset) {
+    this.compset=pCompset;
   }
 
   @Override
-  public int compare(Edge<E> edge1, Edge<E> edge2) {
+  public int compare(Edge<E> pEdge1, Edge<E> pEdge2) {
     //to <
-    if((edge1.getFrom()).compareTo(edge2.getFrom())<0) {
+    if((pEdge1.getFrom()).compareTo(pEdge2.getFrom())<0) {
       return -1;
     }
     //to >
-    if((edge1.getFrom()).compareTo(edge2.getFrom())>0) {
+    if((pEdge1.getFrom()).compareTo(pEdge2.getFrom())>0) {
       return 1;
     }
     //to =
-    if(compset.compare(edge1.getTo(),edge2.getTo())<0) {
+    if(compset.compare(pEdge1.getTo(),pEdge2.getTo())<0) {
       return -1;
     }
-    if(compset.compare(edge1.getTo(),edge2.getTo())>0) {
+    if(compset.compare(pEdge1.getTo(),pEdge2.getTo())>0) {
       return 1;
     }
     return 0;

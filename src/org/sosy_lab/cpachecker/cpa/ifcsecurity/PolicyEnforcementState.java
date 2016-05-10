@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import java.io.Serializable;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -75,7 +76,7 @@ LatticeAbstractState<PolicyEnforcementState<E>>, Graphable, AbstractQueryableSta
   /**
    * Internal Variable: Set of Variables/Functions that should be checked at every state for a Security Violation
    */
-  private SortedSet<Variable> immediatecheck=new TreeSet<>();
+  private Set<Variable> immediatecheck=new TreeSet<>();
   /**
    * Internal Variable: Signalize whether at this state all Variables/Functions should be checked for a Security Violation
    */
@@ -375,7 +376,7 @@ LatticeAbstractState<PolicyEnforcementState<E>>, Graphable, AbstractQueryableSta
   }
 
 
-  protected SortedSet<Variable> getImmediatecheck() {
+  protected Set<Variable> getImmediatecheck() {
     return immediatecheck;
   }
 

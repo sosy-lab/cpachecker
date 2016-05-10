@@ -25,10 +25,9 @@ package org.sosy_lab.cpachecker.cpa.ifcsecurity;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.SetUtil;
 
-import java.util.Collection;
+import java.util.Map;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
@@ -38,22 +37,14 @@ import java.util.TreeSet;
 public class ControlDependenceComputer {
 
   private CFA cfa;
-  private CFANode entry;
-  private CFANode exit;
-  private int mode;
-  private Collection<CFANode> nodes;
 
-  private TreeMap<CFANode,TreeSet<CFANode>> df=new TreeMap<>();
-  private TreeMap<CFANode,TreeSet<CFANode>> cd=new TreeMap<>();
-  private TreeMap<CFANode,TreeSet<CFANode>> rcd=new TreeMap<>();
+  private Map<CFANode,TreeSet<CFANode>> df=new TreeMap<>();
+  private Map<CFANode,TreeSet<CFANode>> cd=new TreeMap<>();
+  private Map<CFANode,TreeSet<CFANode>> rcd=new TreeMap<>();
 
-  public ControlDependenceComputer(CFA cfa, TreeMap<CFANode,TreeSet<CFANode>> df, int mode){
-    this.df=df;
-    this.cfa=cfa;
-    this.entry=cfa.getMainFunction();
-    this.exit=((FunctionEntryNode) entry).getExitNode();
-    this.mode=mode;
-    this.nodes = cfa.getAllNodes();
+  public ControlDependenceComputer(CFA pCfa, Map<CFANode,TreeSet<CFANode>> pDf){
+    this.df=pDf;
+    this.cfa=pCfa;
   }
 
   public void execute(){
@@ -101,93 +92,11 @@ public class ControlDependenceComputer {
     }
   }
 
-  public TreeMap<CFANode,TreeSet<CFANode>> getControlDependency(){
+  public Map<CFANode,TreeSet<CFANode>> getControlDependency(){
     return cd;
   }
 
-  public TreeMap<CFANode,TreeSet<CFANode>> getReversedControlDependency(){
+  public Map<CFANode,TreeSet<CFANode>> getReversedControlDependency(){
     return rcd;
   }
-
-
-  protected CFA getCfa() {
-    return cfa;
-  }
-
-
-  protected void setCfa(CFA pCfa) {
-    cfa = pCfa;
-  }
-
-
-  protected CFANode getEntry() {
-    return entry;
-  }
-
-
-  protected void setEntry(CFANode pEntry) {
-    entry = pEntry;
-  }
-
-
-  protected CFANode getExit() {
-    return exit;
-  }
-
-
-  protected void setExit(CFANode pExit) {
-    exit = pExit;
-  }
-
-
-  protected int getMode() {
-    return mode;
-  }
-
-
-  protected void setMode(int pMode) {
-    mode = pMode;
-  }
-
-
-  protected Collection<CFANode> getNodes() {
-    return nodes;
-  }
-
-
-  protected void setNodes(Collection<CFANode> pNodes) {
-    nodes = pNodes;
-  }
-
-
-  protected TreeMap<CFANode, TreeSet<CFANode>> getDf() {
-    return df;
-  }
-
-
-  protected void setDf(TreeMap<CFANode, TreeSet<CFANode>> pDf) {
-    df = pDf;
-  }
-
-
-  protected TreeMap<CFANode, TreeSet<CFANode>> getCd() {
-    return cd;
-  }
-
-
-  protected void setCd(TreeMap<CFANode, TreeSet<CFANode>> pCd) {
-    cd = pCd;
-  }
-
-
-  protected TreeMap<CFANode, TreeSet<CFANode>> getRcd() {
-    return rcd;
-  }
-
-
-  protected void setRcd(TreeMap<CFANode, TreeSet<CFANode>> pRcd) {
-    rcd = pRcd;
-  }
-
-
 }

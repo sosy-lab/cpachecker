@@ -37,47 +37,50 @@ public class EnumSecurityClass extends SecurityClasses{
 
   /**
    * Constructor for the Security-Class
-   * @param sc the representive SecurityClass-Element
+   * @param pSC the representive SecurityClass-Element
    */
-  public EnumSecurityClass(SecurityClassesSet sc){
-    this.sc=sc;
+  public EnumSecurityClass(SecurityClassesSet pSC){
+    this.sc=pSC;
   }
 
   @Override
-  public boolean equals(Object obj) {
-    if (this==obj) {
+  public boolean equals(Object pObj) {
+    if (this==pObj) {
       return true;
    }
-   if (obj==null) {
+   if (pObj==null) {
       return false;
    }
-   if (!(obj instanceof EnumSecurityClass )) {
+   if (!(pObj instanceof EnumSecurityClass )) {
       return false; // different class
    }
 
-   EnumSecurityClass other = (EnumSecurityClass) obj;
-   if (this.sc==other.sc) {
+   EnumSecurityClass pOther = (EnumSecurityClass) pObj;
+   if (this.sc==pOther.sc) {
       return true;
    }
-   if (this.sc!=null && other.sc==null) {
+   if (this.sc!=null && pOther.sc==null) {
       return false;
    }
    // this.content can't be null
-   return this.sc.equals(other.sc);
+   if(this.sc!=null && pOther.sc!= null){
+     return this.sc.equals(pOther.sc);
+   }
+   return true;
  }
 
   @Override
-  public int compareTo(SecurityClasses obj) {
-     if (this==obj) {
+  public int compareTo(SecurityClasses pObj) {
+     if (this==pObj) {
         return 0;
      }
-     if (obj==null) {
+     if (pObj==null) {
         return 1;
      }
-     if (!(obj instanceof EnumSecurityClass )) {
-       return (getClass().getName().compareTo(obj.getClass().getName()));
+     if (!(pObj instanceof EnumSecurityClass )) {
+       return (getClass().getName().compareTo(pObj.getClass().getName()));
      }
-     EnumSecurityClass other=(EnumSecurityClass) obj;
+     EnumSecurityClass other=(EnumSecurityClass) pObj;
      return ((this.sc).compareTo(other.sc));
   }
 

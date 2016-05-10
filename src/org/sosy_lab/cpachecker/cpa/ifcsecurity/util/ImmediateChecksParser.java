@@ -46,17 +46,17 @@ public class ImmediateChecksParser {
 
   /**
    * Starts and execute the ImmediateChecksParser for parsing those Variables/functions that should be checked for security violation at every state.
-  * @param file the file to be parsed.
+  * @param pFile the file to be parsed.
    */
   @SuppressWarnings("resource")
-  public ImmediateChecksParser(LogManager logger,Path file){
+  public ImmediateChecksParser(LogManager pLogger,Path pFile){
     set=new TreeSet<>();
 
     List<String> contents = null;
     try {
-      contents = file.asCharSource(Charset.defaultCharset()).readLines();
+      contents = pFile.asCharSource(Charset.defaultCharset()).readLines();
     } catch (IOException e) {
-      logger.logUserException(Level.WARNING, e, "Could not read intial security mapping from file named " + file);
+      pLogger.logUserException(Level.WARNING, e, "Could not read intial security mapping from file named " + pFile);
       return ;
     }
 

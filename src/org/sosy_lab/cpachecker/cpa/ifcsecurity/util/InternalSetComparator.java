@@ -35,20 +35,21 @@ import java.util.SortedSet;
  * @param <E> Type of elements in the sets.
  */
 public class InternalSetComparator<E extends Comparable<? super E>> implements Serializable, Comparator<SortedSet<E>>{
-    private static final long serialVersionUID = 1L;
+
+    private static final long serialVersionUID = -4025316246248802824L;
 
     @Override
-    public int compare(SortedSet<E> obj1, SortedSet<E> obj2) {
-      if(obj1.size()<obj2.size()){
+    public int compare(SortedSet<E> pObj1, SortedSet<E> pObj2) {
+      if(pObj1.size()<pObj2.size()){
         return -1;
       }
-      if(obj1.size()>obj2.size()){
+      if(pObj1.size()>pObj2.size()){
         return 1;
       }
-      if(obj1.size()==obj2.size()){
-        int n=obj1.size();
-        Iterator<E> it1 = obj1.iterator();
-        Iterator<E> it2 = obj2.iterator();
+      if(pObj1.size()==pObj2.size()){
+        int n=pObj1.size();
+        Iterator<E> it1 = pObj1.iterator();
+        Iterator<E> it2 = pObj2.iterator();
         for(int i=0;i<n;i++){
           E elem1=it1.next();
           E elem2=it2.next();

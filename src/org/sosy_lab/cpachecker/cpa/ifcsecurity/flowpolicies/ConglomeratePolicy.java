@@ -48,35 +48,35 @@ public class ConglomeratePolicy<E extends Comparable<? super E>> implements Seri
 
   /**
    * Allows the information flow relation described in <i>edge</i>.
-   * @param edge A Information flow.
+   * @param pEdge A Information flow.
    */
-  public void addEdge(Edge<E> edge){
-    edges.add(edge);
+  public void addEdge(Edge<E> pEdge){
+    edges.add(pEdge);
   }
 
   /**
    * Remove the allowed information flow relation described in <i>edge</i>
-   * @param edge A Information flow.
+   * @param pEdge A Information flow.
    */
-  public void removeEdge(Edge<E> edge){
-    edges.remove(edge);
+  public void removeEdge(Edge<E> pEdge){
+    edges.remove(pEdge);
   }
 
 
 
   @Override
-  public boolean equals(Object obj){
-    if(this==obj){
+  public boolean equals(Object pObj){
+    if(this==pObj){
       return true;
     }
-    if(obj==null){
+    if(pObj==null){
       return false;
     }
-    if(!(obj instanceof ConglomeratePolicy)){
+    if(!(pObj instanceof ConglomeratePolicy)){
       return false;
     }
     @SuppressWarnings("unchecked")
-    ConglomeratePolicy<E> otherpol=(ConglomeratePolicy<E>) obj;
+    ConglomeratePolicy<E> otherpol=(ConglomeratePolicy<E>) pObj;
     return this.edges.equals(otherpol.edges);
   }
 

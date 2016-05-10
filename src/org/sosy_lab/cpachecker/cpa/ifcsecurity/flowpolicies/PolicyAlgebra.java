@@ -38,32 +38,32 @@ public class PolicyAlgebra<E extends Comparable<? super E>> {
   /**
    * Utility for computation of Set-Operations over the Security-Class Elements.
    */
-  private SetUtil<E> setutil=new SetUtil<>();
+  private SetUtil<E> setUtil=new SetUtil<>();
   /**
    * Utility for computation of Set-Operations over the Policy-Edges.
    */
-  private SetUtil<Edge<E>> setutil2=new SetUtil<>();
+  private SetUtil<Edge<E>> setUtil2=new SetUtil<>();
 
   /**
    * Computes the Join-Operation of the Policy-Algebra
-   * @param thispol A Policy
-   * @param otherpol Another Policy
+   * @param pThisPol A Policy
+   * @param pOtherPol Another Policy
    * @return Join-Policy of the two Policy
    */
-  public  ConglomeratePolicy<E> join (ConglomeratePolicy<E> thispol, ConglomeratePolicy<E> otherpol){
+  public  ConglomeratePolicy<E> join (ConglomeratePolicy<E> pThisPol, ConglomeratePolicy<E> pOtherPol){
     //Join(P,Q)= TODO Description
-    SortedSet<E> range1=getDomain(thispol);
-    SortedSet<E> range2=getDomain(otherpol);
-    SortedSet<E> newrange=setutil.union(range1,range2);
+    SortedSet<E> range1=getDomain(pThisPol);
+    SortedSet<E> range2=getDomain(pOtherPol);
+    SortedSet<E> newrange=setUtil.union(range1,range2);
     ConglomeratePolicy<E> result=new ConglomeratePolicy<>();
-    SortedSet<SortedSet<E>> newpowerset=setutil.getPowerSet(newrange);
+    SortedSet<SortedSet<E>> newpowerset=setUtil.getPowerSet(newrange);
     for(SortedSet<E> set:newpowerset){
       for(E elem: newrange){
         //Check First
         boolean check1=true;
         if(range1.contains(elem)){
-          Edge<E> edge=new Edge<>(elem,setutil.intersect(set, range1));
-          if(!thispol.getEdges().contains(edge)){
+          Edge<E> edge=new Edge<>(elem,setUtil.intersect(set, range1));
+          if(!pThisPol.getEdges().contains(edge)){
             check1=false;
           }
         }
@@ -71,8 +71,8 @@ public class PolicyAlgebra<E extends Comparable<? super E>> {
         //Check Second
         boolean check2=true;
         if(range2.contains(elem)){
-          Edge<E> edge=new Edge<>(elem,setutil.intersect(set, range2));
-          if(!otherpol.getEdges().contains(edge)){
+          Edge<E> edge=new Edge<>(elem,setUtil.intersect(set, range2));
+          if(!pOtherPol.getEdges().contains(edge)){
             check2=false;
           }
         }
@@ -89,55 +89,55 @@ public class PolicyAlgebra<E extends Comparable<? super E>> {
 
   /**
    * Computes the Meet-Operation of the Policy-Algebra
-   * @param thispol A Policy
-   * @param otherpol Another Policy
+   * @param pThisPol A Policy
+   * @param pOtherPol Another Policy
    * @return Meet-Policy of the two Policy
    */
-  public ConglomeratePolicy<E> meet (ConglomeratePolicy<E> thispol, ConglomeratePolicy<E> otherpol){
+  public ConglomeratePolicy<E> meet (ConglomeratePolicy<E> pThisPol, ConglomeratePolicy<E> pOtherPol){
      //Meet(P,Q)=(P|(R(P) intersect R(Q)) Union (Q|(R(P) intersect R(Q))
-     SortedSet<E> range1=getDomain(thispol);
-     SortedSet<E> range2=getDomain(otherpol);
-     SortedSet<E> newrange=setutil.intersect(range1,range2);
-     ConglomeratePolicy<E> result=union(abstracted(thispol,newrange),abstracted(otherpol,newrange));
+     SortedSet<E> range1=getDomain(pThisPol);
+     SortedSet<E> range2=getDomain(pOtherPol);
+     SortedSet<E> newrange=setUtil.intersect(range1,range2);
+     ConglomeratePolicy<E> result=union(abstracted(pThisPol,newrange),abstracted(pOtherPol,newrange));
      return result;
   }
 
   /**
    * Computes the Intersection of all allowed Edges (allowed Information Flow) of <i>thispol</i> and <i>otherpol</i>
-   * @param thispol A Policy
-   * @param otherpol Another Policy
+   * @param pThisPol A Policy
+   * @param pOtherPol Another Policy
    * @return Intersection-Policy of the two Policy
    */
-  public ConglomeratePolicy<E> intersect (ConglomeratePolicy<E> thispol, ConglomeratePolicy<E> otherpol){
+  public ConglomeratePolicy<E> intersect (ConglomeratePolicy<E> pThisPol, ConglomeratePolicy<E> pOtherPol){
     ConglomeratePolicy<E> result = new ConglomeratePolicy<>();
-    result.setEdges(setutil2.intersect(thispol.getEdges(),otherpol.getEdges()));
+    result.setEdges(setUtil2.intersect(pThisPol.getEdges(),pOtherPol.getEdges()));
     return result;
   }
 
   /**
    * Computes the Union of all allowed Edges (allowed Information Flow) of <i>thispol</i> and <i>otherpol</i>
-   * @param thispol A Policy
-   * @param otherpol Another Policy
+   * @param pThisPol A Policy
+   * @param pOtherPol Another Policy
    * @return Union-Policy of the two Policy
    */
-  public ConglomeratePolicy<E> union (ConglomeratePolicy<E> thispol, ConglomeratePolicy<E> otherpol){
+  public ConglomeratePolicy<E> union (ConglomeratePolicy<E> pThisPol, ConglomeratePolicy<E> pOtherPol){
     ConglomeratePolicy<E> result = new ConglomeratePolicy<>();
-    result.setEdges(setutil2.union(thispol.getEdges(),otherpol.getEdges()));
+    result.setEdges(setUtil2.union(pThisPol.getEdges(),pOtherPol.getEdges()));
     return result;
   }
 
 
   /**
    * Restricts a Policy to a set <i>classes</i> ignoring all other SecurityClasses that are not in the set.
-   * @param thispol A Policy
-   * @param classes Set of only those Security Classes that should be considered
+   * @param pThisPol A Policy
+   * @param pClasses Set of only those Security Classes that should be considered
    * @return the abstracted Policy
    */
-  public ConglomeratePolicy<E> abstracted (ConglomeratePolicy<E> thispol, SortedSet<E> classes){
+  public ConglomeratePolicy<E> abstracted (ConglomeratePolicy<E> pThisPol, SortedSet<E> pClasses){
     ConglomeratePolicy<E> result = new ConglomeratePolicy<>();
-    for(Edge<E> edge:thispol.getEdges()){
-      if(classes.contains(edge.getFrom())){
-        result.addEdge(new Edge<>(edge.getFrom(), setutil.intersect(edge.getTo(),classes)));
+    for(Edge<E> edge:pThisPol.getEdges()){
+      if(pClasses.contains(edge.getFrom())){
+        result.addEdge(new Edge<>(edge.getFrom(), setUtil.intersect(edge.getTo(),pClasses)));
       }
     }
     return result;
@@ -145,27 +145,27 @@ public class PolicyAlgebra<E extends Comparable<? super E>> {
 
   /**
    * Computes the complemented Policy of <i>thispol</i> over the same domain.
-   * @param thispol A Policy
+   * @param pThisPol A Policy
    * @return Complement-Policy of the two Policy
    */
-  public ConglomeratePolicy<E> complement (ConglomeratePolicy<E> thispol){
+  public ConglomeratePolicy<E> complement (ConglomeratePolicy<E> pThisPol){
     ConglomeratePolicy<E> result;
-    SortedSet<E> range=getDomain(thispol);
+    SortedSet<E> range=getDomain(pThisPol);
     ConglomeratePolicy<E> toppol=new TopPolicy<>(range);
     ConglomeratePolicy<E> botpol=new BottomPolicy<>(range);
-    botpol.setEdges(setutil2.setminus(botpol.getEdges(),thispol.getEdges()));
+    botpol.setEdges(setUtil2.setminus(botpol.getEdges(),pThisPol.getEdges()));
     result=union(toppol,botpol);
     return result;
   }
 
   /**
    * Computes the Domain of the Policy (All Security Classes to which at least one security class can flow)
-   * @param thispol A Policy
+   * @param pThisPol A Policy
    * @return The Domain of the policy.
    */
-  public SortedSet<E> getDomain(ConglomeratePolicy<E> thispol){
+  public SortedSet<E> getDomain(ConglomeratePolicy<E> pThisPol){
     SortedSet<E> result=new TreeSet<>();
-    for(Edge<E> edge: thispol.getEdges()){
+    for(Edge<E> edge: pThisPol.getEdges()){
       result.add(edge.getFrom());
     }
     return result;
@@ -173,12 +173,12 @@ public class PolicyAlgebra<E extends Comparable<? super E>> {
 
   /**
    * Computes the Range of the Policy (All Security Classes that flow to at least one security class)
-   * @param thispol A Policy
+   * @param pThisPol A Policy
    * @return The Range of the policy.
    */
-  public SortedSet<E> getRange(ConglomeratePolicy<E> thispol){
+  public SortedSet<E> getRange(ConglomeratePolicy<E> pThisPol){
     SortedSet<E> result=new TreeSet<>();
-    for(Edge<E> edge: thispol.getEdges()){
+    for(Edge<E> edge: pThisPol.getEdges()){
       for(E elem: edge.getTo()){
         result.add(elem);
       }

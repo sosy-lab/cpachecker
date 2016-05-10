@@ -39,20 +39,20 @@ public class AggregationFlow<E extends Comparable<? super E>> extends Conglomera
 
   /**
    * Class for constructing a Policy that only contains all subset Edges of one specifc Edge and all Reflexive Edges over the Domain of the Edge.
-   * @param from the from Part for the Edge
-   * @param to the to Part of the Edge
+   * @param pFrom the from Part for the Edge
+   * @param pTo the to Part of the Edge
    */
-  public AggregationFlow(E from, SortedSet<E> to){
+  public AggregationFlow(E pFrom, SortedSet<E> pTo){
     SetUtil<E> setutil=new SetUtil<>();
     SetUtil<Edge<E>> setutil2=new SetUtil<>();
-    SortedSet<SortedSet<E>> powersets = setutil.getPowerSet(to);
+    SortedSet<SortedSet<E>> powersets = setutil.getPowerSet(pTo);
     Edge<E> edge;
     for(SortedSet<E> set:powersets){
-      edge=new Edge<>(from,set);
+      edge=new Edge<>(pFrom,set);
       addEdge(edge);
     }
-    SortedSet<E> alphabet=setutil.clone(to);
-    alphabet.add(from);
+    SortedSet<E> alphabet=setutil.clone(pTo);
+    alphabet.add(pFrom);
     ConglomeratePolicy<E> toppol=new TopPolicy<>(alphabet);
 
     this.setEdges(setutil2.union(this.getEdges(),toppol.getEdges()));

@@ -37,10 +37,10 @@ public class Variable implements Comparable<Variable>, Serializable{
 
   /**
    * Constructs a Variable with the given identifier.
-   * @param name Identifier of the Variable.
+   * @param pName Identifier of the Variable.
    */
-  public Variable(String name){
-    this.name=name;
+  public Variable(String pName){
+    this.name=pName;
   }
 
   @Override
@@ -64,23 +64,23 @@ public class Variable implements Comparable<Variable>, Serializable{
   }
 
   @Override
-  public int compareTo(Variable other) {
-    if (this==other) {
+  public int compareTo(Variable pOther) {
+    if (this==pOther) {
       return 0;
    }
-   if (other==null) {
+   if (pOther==null) {
       return -1;
    }
 
    if (this.name==null)  {
-      if (this.name==null && other.name!=null) {
+      if (this.name==null && pOther.name!=null) {
          return 1;
       }
       return 0;
    }
 
    // this.content can't be null
-   return this.name.compareTo(other.name);
+   return this.name.compareTo(pOther.name);
   }
 
   @Override
