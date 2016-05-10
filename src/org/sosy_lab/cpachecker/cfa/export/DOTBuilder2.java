@@ -133,8 +133,8 @@ public final class DOTBuilder2 {
    */
   private static class DOTViewBuilder extends DefaultCFAVisitor {
     // global state for all functions
-    private final Map<Object, Object> node2combo = new HashMap<>();
-    private final Map<Object, Object> virtFuncCallEdges = new HashMap<>();
+    private final Map<Integer, Integer> node2combo = new HashMap<>();
+    private final Map<Integer, List<Integer>> virtFuncCallEdges = new HashMap<>();
     private int virtFuncCallNodeIdCounter = 100000;
 
     // local state per function
@@ -207,6 +207,14 @@ public final class DOTBuilder2 {
           }
         }
       }
+
+      for (CFAEdge edge : edges.values()) {
+        if (edge.getEdgeType() == CFAEdgeType.CallToReturnEdge) {
+           int from = edge.getPredecessor().getNodeNumber();
+           int to = edge.getSuccessor().getNodeNumber();
+           virtFuncCallEdges.put(from, Lists.newArrayList(++virtFuncCallNodeIdCounter, to));
+        }
+      }
     }
 
     void writeFunctionFile(String funcname, Path outdir) throws IOException {
@@ -258,18 +266,19 @@ public final class DOTBuilder2 {
        //create the function node
         CFANode functionEntryNode = getOnlyElement(successorsOf(edge.getPredecessor()).filter(FunctionEntryNode.class));
         String calledFunction = functionEntryNode.getFunctionName();
-        String ret = (++virtFuncCallNodeIdCounter) + " [shape=\"component\" label=\"" + calledFunction + "\"]\n";
         int from = edge.getPredecessor().getNodeNumber();
+        Integer virtFuncCallNodeId = virtFuncCallEdges.get(from).get(0);
+
+        String ret = virtFuncCallNodeId + " [shape=\"component\" label=\"" + calledFunction + "\"]\n";
         ret += String.format("%d -> %d [label=\"%s\" fontname=\"Courier New\"]%n",
             from,
-            virtFuncCallNodeIdCounter,
+            virtFuncCallNodeId,
             getEdgeText(edge));
 
         int to = edge.getSuccessor().getNodeNumber();
         ret += String.format("%d -> %d [label=\"\" fontname=\"Courier New\"]%n",
-            virtFuncCallNodeIdCounter,
+            virtFuncCallNodeId,
             to);
-        virtFuncCallEdges.put(from, Lists.newArrayList(virtFuncCallNodeIdCounter, to));
         return ret;
       }
 
