@@ -26,12 +26,9 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.util.List;
@@ -44,8 +41,7 @@ public class ReportGenerator {
   private static final Splitter LINE_SPLITTER = Splitter.on('\n');
   private static final Splitter COMMA_SPLITTER = Splitter.on(',').trimResults();
 
-  private static final Path SCRIPTS = Paths.get("scripts");
-  private static final Path HTML_TEMPLATE = SCRIPTS.resolve("report_template.html");
+  private static final String HTML_TEMPLATE = "report_template.html";
 
   private final Configuration config;
   private final LogManager logger;
@@ -90,7 +86,9 @@ public class ReportGenerator {
     sourceFiles = COMMA_SPLITTER.splitToList(programs);
   }
 
-  public boolean generate(CFA pCfa, UnmodifiableReachedSet pReached, String pStatistics) {
+  public boolean generate(
+      Path scriptsDir, CFA pCfa, UnmodifiableReachedSet pReached, String pStatistics) {
+    checkNotNull(scriptsDir);
     checkNotNull(pCfa);
     checkNotNull(pReached);
     checkNotNull(pStatistics);
@@ -98,6 +96,8 @@ public class ReportGenerator {
     if (!generateReport) {
       return false;
     }
+
+    Path templateFile = scriptsDir.resolve(HTML_TEMPLATE);
 
     Iterable<CounterexampleInfo> counterExamples =
         Optional.presentInstances(
@@ -109,7 +109,7 @@ public class ReportGenerator {
     if (!counterExamples.iterator().hasNext()) {
       if (reportFile != null) {
         DOTBuilder2 dotBuilder = new DOTBuilder2(pCfa);
-        fillOutTemplate(null, reportFile, pCfa, dotBuilder, pStatistics);
+        fillOutTemplate(null, templateFile, reportFile, pCfa, dotBuilder, pStatistics);
         return true;
       } else {
         return false;
@@ -120,6 +120,7 @@ public class ReportGenerator {
       for (CounterexampleInfo counterExample : counterExamples) {
         fillOutTemplate(
             counterExample,
+            templateFile,
             counterExampleFiles.getPath(counterExample.getUniqueId()),
             pCfa,
             dotBuilder,
@@ -142,6 +143,7 @@ public class ReportGenerator {
 
   private void fillOutTemplate(
       @Nullable CounterexampleInfo counterExample,
+      Path templateFile,
       Path reportPath,
       CFA cfa,
       DOTBuilder2 dotBuilder,
@@ -154,13 +156,8 @@ public class ReportGenerator {
     }
 
     try (BufferedReader template =
-            new BufferedReader(
-                new InputStreamReader(
-                    new FileInputStream(HTML_TEMPLATE.toFile()), Charset.defaultCharset()));
-        BufferedWriter report =
-            new BufferedWriter(
-                new OutputStreamWriter(
-                    new FileOutputStream(reportPath.toFile()), Charset.defaultCharset()))) {
+            templateFile.asCharSource(Charset.defaultCharset()).openBufferedStream();
+        Writer report = reportPath.asCharSink(Charset.defaultCharset()).openBufferedStream()) {
 
       String line;
       while (null != (line = template.readLine())) {
@@ -346,7 +343,7 @@ public class ReportGenerator {
     report.write(";\n");
   }
 
-  private void insertFunctionNames(BufferedWriter report, CFA cfa) {
+  private void insertFunctionNames(Writer report, CFA cfa) {
     try {
       report.write("var functions = ");
       JSON.writeJSONString(cfa.getAllFunctionNames(), report);

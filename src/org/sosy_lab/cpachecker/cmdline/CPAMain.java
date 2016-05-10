@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
+import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.common.DuplicateOutputStream.mergeStreams;
 
 import com.google.common.base.Strings;
@@ -376,11 +377,30 @@ public class CPAMain {
 
     // export report
     if (mResult.getResult() != Result.NOT_YET_STARTED) {
+      Path scriptsDir;
+      try {
+        // TODO: relativize scriptsDir after AppEngine code is deleted
+        scriptsDir =
+            Paths.get(
+                    ReportGenerator.class
+                        .getProtectionDomain()
+                        .getCodeSource()
+                        .getLocation()
+                        .getPath())
+                .getParent()
+                .resolve("scripts");
+      } catch (SecurityException e) {
+        logManager.logUserException(WARNING, e, "Could not create report.");
+        return;
+      }
+
       boolean generated =
-          reportGenerator.generate(mResult.getCfa(), mResult.getReached(), statistics.toString());
+          reportGenerator.generate(
+              scriptsDir, mResult.getCfa(), mResult.getReached(), statistics.toString());
 
       if (generated) {
-        stream.println("Run ./scripts/report-generator.py to show graphical report.");
+        stream.println(
+            "Run " + scriptsDir.resolve("report-generator.py") + " to show graphical report.");
       }
     }
   }
