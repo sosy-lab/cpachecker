@@ -34,7 +34,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.Nullable;
@@ -50,10 +49,6 @@ public class ReportGenerator {
 
   private final Configuration config;
   private final LogManager logger;
-  private final CFA cfa;
-  private final UnmodifiableReachedSet reached;
-  private final String statistics;
-  private final DOTBuilder2 dotBuilder;
 
   @Option(
     secure = true,
@@ -66,55 +61,74 @@ public class ReportGenerator {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path logFile = Paths.get("CPALog.txt");
 
-  @Option(secure = true, name = "report.file.", description = "export report as HTML")
+  @Option(
+    secure = true,
+    name = "report.export",
+    description = "Generate HTML report with analysis result."
+  )
+  private boolean generateReport = true;
+
+  @Option(secure = true, name = "report.file", description = "File name for analysis report in case no counterexample was found.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path reportFile = Paths.get("Report.html");
 
-  @Option(secure = true, name = "counterexample.report.file", description = "export counterexample as HTML")
+  @Option(
+    secure = true,
+    name = "counterexample.export.report",
+    description = "File name for analysis report in case a counterexample was found."
+  )
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate counterExampleFiles = PathTemplate.ofFormatString("Counterexample.%d.html");
 
-  private final List<String> sourceFiles = new ArrayList<>();
+  private final List<String> sourceFiles;
 
-  public ReportGenerator(
-      Configuration pConfig,
-      LogManager pLogger,
-      CFA pCfa,
-      UnmodifiableReachedSet pReached,
-      String pStatistics)
+  public ReportGenerator(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
     config = checkNotNull(pConfig);
     logger = checkNotNull(pLogger);
-    cfa = checkNotNull(pCfa);
-    reached = checkNotNull(pReached);
-    statistics = checkNotNull(pStatistics);
-    dotBuilder = new DOTBuilder2(pCfa);
     config.inject(this);
-    sourceFiles.addAll(COMMA_SPLITTER.splitToList(programs));
+    sourceFiles = COMMA_SPLITTER.splitToList(programs);
   }
 
-  public boolean generate() {
-    if (reportFile == null || counterExampleFiles == null) {
-      return false; // output is disabled
+  public boolean generate(CFA pCfa, UnmodifiableReachedSet pReached, String pStatistics) {
+    checkNotNull(pCfa);
+    checkNotNull(pReached);
+    checkNotNull(pStatistics);
+
+    if (!generateReport) {
+      return false;
     }
 
     Iterable<CounterexampleInfo> counterExamples =
         Optional.presentInstances(
-            from(reached.asCollection())
+            from(pReached)
                 .filter(IS_TARGET_STATE)
                 .filter(ARGState.class)
                 .transform(new ExtractCounterExampleInfo()));
 
     if (!counterExamples.iterator().hasNext()) {
-      fillOutTemplate(null, reportFile);
-
-    } else {
-      for (CounterexampleInfo counterExample : counterExamples) {
-        fillOutTemplate(counterExample, counterExampleFiles.getPath(counterExample.getUniqueId()));
+      if (reportFile != null) {
+        DOTBuilder2 dotBuilder = new DOTBuilder2(pCfa);
+        fillOutTemplate(null, reportFile, pCfa, dotBuilder, pStatistics);
+        return true;
+      } else {
+        return false;
       }
-    }
 
-    return true;
+    } else if (counterExampleFiles != null) {
+      DOTBuilder2 dotBuilder = new DOTBuilder2(pCfa);
+      for (CounterexampleInfo counterExample : counterExamples) {
+        fillOutTemplate(
+            counterExample,
+            counterExampleFiles.getPath(counterExample.getUniqueId()),
+            pCfa,
+            dotBuilder,
+            pStatistics);
+      }
+      return true;
+    } else {
+      return false;
+    }
   }
 
   private static class ExtractCounterExampleInfo
@@ -126,7 +140,12 @@ public class ReportGenerator {
     }
   }
 
-  private void fillOutTemplate(@Nullable CounterexampleInfo counterExample, Path reportPath) {
+  private void fillOutTemplate(
+      @Nullable CounterexampleInfo counterExample,
+      Path reportPath,
+      CFA cfa,
+      DOTBuilder2 dotBuilder,
+      String statistics) {
     try {
       Files.createParentDirs(reportPath);
     } catch (IOException e) {
@@ -148,7 +167,7 @@ public class ReportGenerator {
         if (line.contains("CONFIGURATION")) {
           insertConfiguration(report);
         } else if (line.contains("STATISTICS")) {
-          insertStatistics(report);
+          insertStatistics(report, statistics);
         } else if (line.contains("SOURCE_CONTENT")) {
           insertSources(report);
         } else if (line.contains("LOG")) {
@@ -156,15 +175,15 @@ public class ReportGenerator {
         } else if (line.contains("ERRORPATH") && counterExample != null) {
           insertErrorPathData(counterExample, report);
         } else if (line.contains("FUNCTIONS")) {
-          insertFunctionNames(report);
+          insertFunctionNames(report, cfa);
         } else if (line.contains("SOURCE_FILE_NAMES")) {
           insertSourceFileNames(report);
         } else if (line.contains("COMBINEDNODES")) {
-          insertCombinedNodesData(report);
+          insertCombinedNodesData(report, dotBuilder);
         } else if (line.contains("CFAINFO")) {
-          insertCfaInfoData(report);
+          insertCfaInfoData(report, dotBuilder);
         } else if (line.contains("FCALLEDGES")) {
-          insertFCallEdges(report);
+          insertFCallEdges(report, dotBuilder);
         } else if (line.contains("TITLE")) {
           insertTitle(counterExample, report);
         } else if (line.contains("REPORT_NAME")) {
@@ -206,7 +225,7 @@ public class ReportGenerator {
     }
   }
 
-  private void insertStatistics(Writer report) throws IOException {
+  private void insertStatistics(Writer report, String statistics) throws IOException {
     int iterator = 0;
     for (String line : LINE_SPLITTER.split(statistics)) {
       line = "<pre id=\"statistics-" + iterator + "\">" + line + "</pre>\n";
@@ -302,19 +321,19 @@ public class ReportGenerator {
     }
   }
 
-  private void insertFCallEdges(Writer report) throws IOException {
+  private void insertFCallEdges(Writer report, DOTBuilder2 dotBuilder) throws IOException {
     report.write("var fCallEdges = ");
     dotBuilder.writeFunctionCallEdges(report);
     report.write(";\n");
   }
 
-  private void insertCombinedNodesData(Writer report) throws IOException {
+  private void insertCombinedNodesData(Writer report, DOTBuilder2 dotBuilder) throws IOException {
     report.write("var combinedNodes = ");
     dotBuilder.writeCombinedNodes(report);
     report.write(";\n");
   }
 
-  private void insertCfaInfoData(Writer report) throws IOException {
+  private void insertCfaInfoData(Writer report, DOTBuilder2 dotBuilder) throws IOException {
     report.write("var cfaInfo = ");
     dotBuilder.writeCfaInfo(report);
     report.write(";\n");
@@ -327,7 +346,7 @@ public class ReportGenerator {
     report.write(";\n");
   }
 
-  private void insertFunctionNames(BufferedWriter report) {
+  private void insertFunctionNames(BufferedWriter report, CFA cfa) {
     try {
       report.write("var functions = ");
       JSON.writeJSONString(cfa.getAllFunctionNames(), report);

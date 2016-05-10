@@ -48,13 +48,12 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentException;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofGenerator;
 import org.sosy_lab.cpachecker.core.counterexample.ReportGenerator;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
@@ -104,6 +103,7 @@ public class CPAMain {
     CPAchecker cpachecker = null;
     ProofGenerator proofGenerator = null;
     ResourceLimitChecker limits = null;
+    ReportGenerator reportGenerator = null;
     MainOptions options = new MainOptions();
     try {
       cpaConfig.inject(options);
@@ -119,6 +119,7 @@ public class CPAMain {
       if (options.doPCC) {
         proofGenerator = new ProofGenerator(cpaConfig, logManager, shutdownNotifier);
       }
+      reportGenerator = new ReportGenerator(cpaConfig, logManager);
     } catch (InvalidConfigurationException e) {
       logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
       System.exit(ERROR_EXIT_CODE);
@@ -152,7 +153,7 @@ public class CPAMain {
     Thread.interrupted(); // clear interrupted flag
 
     try {
-      printResultAndStatistics(result, outputDirectory, options, cpaConfig, logManager);
+      printResultAndStatistics(result, outputDirectory, options, reportGenerator, logManager);
     } catch (IOException e) {
       logManager.logUserException(Level.WARNING, e, "Could not write statistics to file");
     }
@@ -214,13 +215,6 @@ public class CPAMain {
 
     @Option(secure=true, name="statistics.print", description="print statistics to console")
     private boolean printStatistics = false;
-
-    @Option(
-      secure = true,
-      name = "counterexample.export.report",
-      description = "insert all files except cfa/arg-graphs in html/js-template"
-    )
-    private boolean generateCounterexampleReport = true;
 
     @Option(secure=true, name = "pcc.proofgen.doPCC", description = "Generate and dump a proof")
     private boolean doPCC = false;
@@ -333,7 +327,7 @@ public class CPAMain {
       CPAcheckerResult mResult,
       String outputDirectory,
       MainOptions options,
-      Configuration cpaConfig,
+      ReportGenerator reportGenerator,
       LogManager logManager)
       throws IOException {
 
@@ -381,22 +375,12 @@ public class CPAMain {
     }
 
     // export report
-    UnmodifiableReachedSet reached = mResult.getReached();
-    CFA cfa = mResult.getCfa();
-    if (options.generateCounterexampleReport && reached != null && cfa != null) {
-      try {
-        ReportGenerator generateReportWithoutGraphs =
-            new ReportGenerator(
-                cpaConfig, logManager, cfa, reached, statistics.toString());
-        boolean generated = generateReportWithoutGraphs.generate();
+    if (mResult.getResult() != Result.NOT_YET_STARTED) {
+      boolean generated =
+          reportGenerator.generate(mResult.getCfa(), mResult.getReached(), statistics.toString());
 
-        if (generated) {
-          stream.println("Run ./scripts/report-generator.py to show graphical report.");
-        }
-
-      } catch (InvalidConfigurationException e) {
-        logManager.logUserException(
-            Level.WARNING, e, "Injecting configuration in to report generator failed.");
+      if (generated) {
+        stream.println("Run ./scripts/report-generator.py to show graphical report.");
       }
     }
   }

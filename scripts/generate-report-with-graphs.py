@@ -50,7 +50,7 @@ def call_dot(infile, outpath):
                               '-Efontname=Courier New', '-Tsvg', '-o',
                               outfile, infile])
         code = p.wait()
-        
+
     except KeyboardInterrupt: # ctrl + c
         print ('   skipping ' + infile)
         p.terminate()
@@ -60,7 +60,7 @@ def call_dot(infile, outpath):
         except OSError:
             pass # if outfile is not written, removing is impossible
         return False
-    
+
     except OSError as e:
         if e.errno == 2:
             sys.exit('Error: Could not call "dot" from GraphViz to create graph, please install it\n({}).'.format(e))
@@ -77,7 +77,7 @@ def call_dot(infile, outpath):
 def generate_report(cpa_output_dir, functions, arg_path, report_path):
     with open(report_path, 'r') as report:
         template = report.readlines()
-    
+
     with open(report_path, 'w') as report:
         for line in template:
             if 'CFAFUNCTIONGRAPHS' in line:
@@ -86,13 +86,13 @@ def generate_report(cpa_output_dir, functions, arg_path, report_path):
                 write_arg(arg_path, report)
             else:
                 report.write(line)
-    
+
         print ('Report generated in {0}'.format(report_path))
-    
+
     try:
         with open(os.devnull, 'w') as devnull:
             subprocess.Popen(['xdg-open', report_path], stdout=devnull, stderr=devnull)
-            
+
     except OSError:
         pass
 
@@ -128,10 +128,10 @@ def write_arg(arg_file_path, report):
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Generate a HTML report with graphs from the CPAchecker output.")
-    parser.add_argument("-c", 
-                        "--config", 
-                        dest="configfile", 
-                        default="output/UsedConfiguration.properties", 
+    parser.add_argument("-c",
+                        "--config",
+                        dest="configfile",
+                        default="output/UsedConfiguration.properties",
                         help="""File with all the used CPAchecker configuration files
                             (default: output/UsedConfiguration.properties)""")
     options = parser.parse_args()
@@ -140,21 +140,21 @@ def parse_arguments():
 def read_CPAchecker_config(options):
     # read config file
     config = {}
-    
+
     try:
         with open(options.configfile) as configfile:
             for line in configfile:
                 key, val = line.split("=", 1)
                 config[key.strip()] = val.strip()
     except IOError as e:
-        
+
         if e.errno:
             sys.exit('Could not find output of CPAchecker in {}. Please specify correctpath with option --config\n({}).'.format(options.configfile, e))
         else:
             sys.exit('Could not read output of CPAchecker in {}\n({}).'.format(options.configfile, e))
     if not config.get('analysis.programNames'):
         sys.exit('CPAchecker output does not specify path to analyzed program. Cannot generate report.')
-        
+
     return config
 
 def main():
@@ -167,7 +167,7 @@ def main():
     # extract paths to all necessary files and directories from config
     cpa_output_dir = config.get('output.path', 'output/')
     arg_path = os.path.join(cpa_output_dir, config.get('cpa.arg.file', 'ARG.dot'))
-    counter_example_path_template = os.path.join(cpa_output_dir, config.get('counterexample.report.file', 'Counterexample.%d.html'))
+    counter_example_path_template = os.path.join(cpa_output_dir, config.get('counterexample.export.report', 'Counterexample.%d.html'))
     report_path = os.path.join(cpa_output_dir, config.get('report.file', 'Report.html'))
 
     #if there is an ARG.dot create an SVG in the report dir
@@ -185,7 +185,7 @@ def main():
     counter_example_paths = glob.glob(counter_example_path_template.replace('%d', '*'))
     for counter_example_path in counter_example_paths:
         generate_report(cpa_output_dir, sorted_functions, arg_path, counter_example_path)
-        
+
     if os.path.exists(report_path):
         generate_report(cpa_output_dir, sorted_functions, arg_path, report_path)
 

@@ -591,20 +591,17 @@ counterexample.export.assumptions.assumeLinearArithmetics = false
 # Whether or not to include concrete address values.
 counterexample.export.assumptions.includeConstantsForPointers = true
 
-# insert all files except cfa/arg-graphs in html/js-template
-counterexample.export.report = true
-
 # The files where the BDDCPARestrictionAlgorithm should write the presence
 # conditions for the counterexamples to.
 counterexample.presenceConditionFile = "ErrorPath.%d.presenceCondition.txt"
+
+# File name for analysis report in case a counterexample was found.
+counterexample.export.report = "Counterexample.%d.html"
 
 # If continueAfterInfeasibleError is true, remove the infeasible
 # counterexample before continuing.Setting this to false may prevent a lot of
 # similar infeasible counterexamples to get discovered, but is unsound
 counterexample.removeInfeasibleErrors = false
-
-# export counterexample as HTML
-counterexample.report.file = "Counterexample.%d.html"
 
 # Compute and export information about the verification coverage?
 coverage.enabled = true
@@ -2597,8 +2594,11 @@ reachedSet.dot = "reached.dot"
 reachedSet.export = false
 reachedSet.file = "reached.txt"
 
-# export report as HTML
-report.file. = "Report.html"
+# Generate HTML report with analysis result.
+report.export = true
+
+# File name for analysis report in case no counterexample was found.
+report.file = "Report.html"
 
 # combine (partial) ARGs obtained by restarts of the analysis after an
 # unknown result with a different configuration
