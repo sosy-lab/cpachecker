@@ -388,7 +388,11 @@ public class CPAMain {
         ReportGenerator generateReportWithoutGraphs =
             new ReportGenerator(
                 cpaConfig, logManager, cfa, reached, statistics.toString());
-        generateReportWithoutGraphs.generate();
+        boolean generated = generateReportWithoutGraphs.generate();
+
+        if (generated) {
+          stream.println("Run ./scripts/report-generator.py to show graphical report.");
+        }
 
       } catch (InvalidConfigurationException e) {
         logManager.logUserException(

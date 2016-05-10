@@ -93,9 +93,9 @@ public class ReportGenerator {
     sourceFiles.addAll(COMMA_SPLITTER.splitToList(programs));
   }
 
-  public void generate() {
+  public boolean generate() {
     if (reportFile == null || counterExampleFiles == null) {
-      return; // output is disabled
+      return false; // output is disabled
     }
 
     Iterable<CounterexampleInfo> counterExamples =
@@ -115,6 +115,8 @@ public class ReportGenerator {
         index++;
       }
     }
+
+    return true;
   }
 
   private static class ExtractCounterExampleInfo
