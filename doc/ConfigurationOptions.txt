@@ -2304,6 +2304,9 @@ invariantGeneration.cpachecker.async = false
 # Configuration file for invariant generation with a full CPAchecker run.
 invariantGeneration.cpachecker.config.path = "config/invgen-components/pred-Invgen-restart.properties"
 
+# dump generated invariants
+invariantGeneration.cpachecker.invExportPath = no default value
+
 # Check candidate invariants in a separate thread asynchronously.
 invariantGeneration.kInduction.async = true
 

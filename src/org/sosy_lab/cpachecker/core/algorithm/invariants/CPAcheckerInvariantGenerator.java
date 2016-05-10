@@ -39,6 +39,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
@@ -54,8 +55,10 @@ import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator.R
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 
 import java.io.IOException;
+import java.io.Writer;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
@@ -74,6 +77,10 @@ public class CPAcheckerInvariantGenerator extends AbstractInvariantGenerator {
   @Option(secure=true, description="generate invariants in parallel to the normal analysis")
   private boolean async = false;
 
+  @Option(secure=true, description="dump generated invariants")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path invExportPath = null;
+
   private final LogManager logger;
   private final CFA cfa;
   private final ReachedSet reached;
@@ -83,6 +90,8 @@ public class CPAcheckerInvariantGenerator extends AbstractInvariantGenerator {
 
   private volatile boolean generationCompleted = false;
   private volatile boolean programIsSafe = false;
+
+  private final StateToFormulaWriter formulaWriter;
 
   public CPAcheckerInvariantGenerator(
       Configuration config,
@@ -111,6 +120,8 @@ public class CPAcheckerInvariantGenerator extends AbstractInvariantGenerator {
 
     cpa = componentsFactory.createCPA(pCfa, SpecAutomatonCompositionType.TARGET_SPEC);
     algorithm = componentsFactory.createAlgorithm(cpa, pFilename, pCfa);
+
+    formulaWriter = new StateToFormulaWriter(config, logger, shutdownNotifier.getNotifier(), cfa);
   }
 
   @Override
@@ -145,6 +156,14 @@ public class CPAcheckerInvariantGenerator extends AbstractInvariantGenerator {
           }
 
           generationCompleted = true;
+
+          if (invExportPath != null) {
+            try (Writer w = Files.openOutputFile(invExportPath)) {
+              formulaWriter.write(reached, w);
+            } catch (IOException e) {
+              logger.logUserException(Level.WARNING, e, "Could not write formulas to file");
+            }
+          }
 
         } catch (CPAException | InterruptedException e) {
           logger.logUserException(Level.WARNING, e, "Invariant generation failed.");
