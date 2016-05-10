@@ -111,7 +111,6 @@ public class StateFormulaConversionManager {
     return PolicyIntermediateState.of(
         node, generatingFormula, abstractState, true);
   }
-  }
 
   /**
    * @param attachExtraInvariant Whether the extra invariant should be attached.
