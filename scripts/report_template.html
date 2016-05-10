@@ -327,15 +327,18 @@ div pre{
             "<p>- the errorpath is highlighted in red</p>" +
             "<p>- click on the function-nodes to jump to CFA of this function</p>" +
             "<p>- click on edges to jump to the relating line in the source-code</p>" +
-            "<p><img src='app/circle.png' width='17px' height='17px'> normal element  <img src='app/box.png' width='25px' height='17px'> more normal elements</p>" +
-            "<p><img src='app/diamond.png' width='25px' height='17px'> condition  <img src='app/function.png' width='25px' height='17px'> function (different CFA)</p>" +
-            "<p><img src='app/doubleCircle.png' width='17px' height='17px'> loop head (graph-based)  <img src='app/doubleOctagon.png' width='25px' height='17px'> loop head (syntactic)</p>\n" +
+            "<p> ○ normal element   ▢ more normal elements</p>" +
+            "<p> ◇ condition</p>" +
+            "<p> ▭ function</p>" +
+            "<p> ◎ loop head (graph-based)  ⬡ loop head (syntactic)</p> " +
             "<p><b>ARG</b> shows the errorpath as a graph</p>" +
             "<p>- the errorpath is highlighted in red</p>" +
             "<p>- click on nodes to jump to the relating node in the CFA</p>" +
             "<p>- click on edges to jump to the relating line in the source-code</p>" +
-            "<p><img src='app/green.png' width='8px' height='8px'> covered state  <img src='app/orange.png' width='8px' height='8px'> not yet processed</p>" +
-            "<p><img src='app/cornflowerblue.png' width='8px' height='8px'> important (depending on used analysis)  <img src='app/red.png' width='8px' height='8px'> target state</p>";
+            "<p><font color=\"green\">■</font> covered state</p>" +
+            "<p><font color=\"orange\">■</font> not yet processed state</p>" +
+            "<p><font color=\"cornflowerblue\">■</font> important state (depending on used analysis)</p>" +
+            "<p><font color=\"red\">■</font> target state</p>";
         $scope.help_errorpath = "<p>The errorpath leads to the error 'line by line' (Source) or 'edge by edge' (CFA)</p>\n" +
             "<p><b>-V-</b> Click to show all initialized variables and their values at that point</p>\n" +
             "<p><b>Edge-Description (Source-Code-View)</b> Click to jump to the relating edge in the CFA / node in the ARG / line in Source (depending on active tab)</p>\n" +
