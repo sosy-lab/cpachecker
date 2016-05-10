@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.util.PropertyFileParser.PropertyType;
 
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -494,7 +495,16 @@ class CmdLineArguments {
     }
 
     // look relative to code location second
-    Path codeLocation = Paths.get(CmdLineArguments.class.getProtectionDomain().getCodeSource().getLocation().getPath());
+    Path codeLocation;
+    try {
+      codeLocation =
+          Paths.get(
+              CmdLineArguments.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+    } catch (SecurityException | URISyntaxException e) {
+      ERROR_OUTPUT.println(
+          "Cannot resolve paths relative to project directory of CPAchecker: " + e.getMessage());
+      return null;
+    }
     Path baseDir = codeLocation.getParent();
 
     file = baseDir.resolve(fileName);

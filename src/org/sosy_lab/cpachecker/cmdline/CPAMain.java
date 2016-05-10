@@ -62,6 +62,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.StringWriter;
+import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.logging.Level;
 
@@ -381,15 +382,10 @@ public class CPAMain {
       try {
         // TODO: relativize scriptsDir after AppEngine code is deleted
         scriptsDir =
-            Paths.get(
-                    ReportGenerator.class
-                        .getProtectionDomain()
-                        .getCodeSource()
-                        .getLocation()
-                        .getPath())
+            Paths.get(CPAMain.class.getProtectionDomain().getCodeSource().getLocation().toURI())
                 .getParent()
                 .resolve("scripts");
-      } catch (SecurityException e) {
+      } catch (SecurityException | URISyntaxException e) {
         logManager.logUserException(WARNING, e, "Could not create report.");
         return;
       }
