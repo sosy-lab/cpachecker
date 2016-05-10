@@ -1,17 +1,17 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration.tests;
 
-import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Map;
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Integration testing for policy iteration.
@@ -183,8 +183,7 @@ public class PolicyIterationTest {
       fullPath = Paths.get(TEST_DIR_PATH, filename).toString();
     }
 
-    TestResults results = CPATestRunner.runAndLogToSTDOUT(
-        getProperties(extra), fullPath);
+    TestResults results = CPATestRunner.run(getProperties(extra), fullPath);
     if (filename.contains("_true_assert") || filename.contains("_true-unreach")) {
       results.assertIsSafe();
     } else if (filename.contains("_false_assert") || filename.contains("_false-unreach")) {
@@ -224,8 +223,6 @@ public class PolicyIterationTest {
         .put("analysis.traversal.useCallstack", "true")
         .put("analysis.traversal.useReversePostorder", "true")
         .put("analysis.traversal.useLoopstack", "true")
-
-        .put("log.consoleLevel", "INFO")
     .build());
     props.putAll(extra);
     return props;

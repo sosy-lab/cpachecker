@@ -23,11 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.test;
 
-import java.util.Map;
-import java.util.logging.Handler;
-import java.util.logging.SimpleFormatter;
-import java.util.logging.StreamHandler;
-
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.BasicLogManager;
@@ -36,51 +31,28 @@ import org.sosy_lab.common.log.StringBuildingLogHandler;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 
+import java.util.Map;
+
 /**
  * Helper class for running CPA tests.
  */
 public class CPATestRunner {
 
-  public static TestResults runAndLogToSTDOUT(
-      Map<String, String> pProperties,
-      String pSourceCodeFilePath) throws Exception {
-    return run(pProperties, pSourceCodeFilePath, true);
-  }
-
   public static TestResults run(
       Map<String, String> pProperties,
       String pSourceCodeFilePath) throws Exception {
-    return run(pProperties, pSourceCodeFilePath, false);
-  }
-
-  public static TestResults run(
-      Map<String, String> pProperties,
-      String pSourceCodeFilePath,
-      boolean writeLogToSTDOUT) throws Exception {
 
     Configuration config = TestDataTools.configurationForTest()
         .setOptions(pProperties)
         .build();
 
     StringBuildingLogHandler stringLogHandler = new StringBuildingLogHandler();
+    LogManager logger = new BasicLogManager(config, stringLogHandler);
 
-    Handler h;
-    if (writeLogToSTDOUT) {
-      h = new StreamHandler(System.out, new SimpleFormatter());
-    } else {
-      h = stringLogHandler;
-    }
-
-    LogManager logger = new BasicLogManager(config, h);
     ShutdownManager shutdownManager = ShutdownManager.create();
     CPAchecker cpaChecker = new CPAchecker(config, logger, shutdownManager);
-    try {
-      CPAcheckerResult results = cpaChecker.run(pSourceCodeFilePath);
-      return new TestResults(stringLogHandler.getLog(), results);
-    } finally {
-      logger.flush();
-
-    }
-
+    CPAcheckerResult results = cpaChecker.run(pSourceCodeFilePath);
+    logger.flush();
+    return new TestResults(stringLogHandler.getLog(), results);
   }
 }

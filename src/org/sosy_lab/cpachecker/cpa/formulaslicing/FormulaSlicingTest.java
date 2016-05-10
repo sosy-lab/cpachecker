@@ -91,8 +91,7 @@ public class FormulaSlicingTest {
       fullPath = Paths.get(TEST_DIR_PATH, filename).toString();
     }
 
-    TestResults results = CPATestRunner.runAndLogToSTDOUT(
-        getProperties(extra), fullPath);
+    TestResults results = CPATestRunner.run(getProperties(extra), fullPath);
     if (filename.contains("_true_assert") || filename.contains("_true-unreach")) {
       results.assertIsSafe();
     } else if (filename.contains("_false_assert") || filename.contains("_false-unreach")) {
@@ -126,7 +125,6 @@ public class FormulaSlicingTest {
         .put("cpa.loopstack.loopIterationsBeforeAbstraction", "1")
         .put("cfa.findLiveVariables", "true")
         .put("cpa.slicing.weakeningStrategy", weakeningStrategy.toString())
-        .put("log.consoleLevel", "INFO")
         .build());
     props.putAll(extra);
     return props;
