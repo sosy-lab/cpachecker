@@ -65,8 +65,6 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
   private final ARGCPA argCpa;
   private final LogManager logger;
 
-  private int counterexamplesCounter = 0;
-
   protected AbstractARGBasedRefiner(ARGBasedRefiner pRefiner, ARGCPA pCpa, LogManager pLogger) {
     refiner = pRefiner;
     argCpa = pCpa;
@@ -153,11 +151,10 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
 
       lastElement.addCounterexampleInformation(counterexample);
 
-      logger.log(Level.FINEST, "Counterexample", counterexamplesCounter, "has been found.");
+      logger.log(Level.FINEST, "Counterexample", counterexample.getUniqueId(), "has been found.");
 
       // Print error trace if cpa.arg.printErrorPath = true
-      argCpa.exportCounterexampleOnTheFly(lastElement, counterexample, counterexamplesCounter);
-      counterexamplesCounter++;
+      argCpa.exportCounterexampleOnTheFly(lastElement, counterexample);
     }
 
     logger.log(Level.FINEST, "ARG based refinement finished, result is", counterexample.isSpurious());

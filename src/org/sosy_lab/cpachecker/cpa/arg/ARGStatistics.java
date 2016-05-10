@@ -178,9 +178,8 @@ public class ARGStatistics implements Statistics {
     final Map<ARGState, CounterexampleInfo> counterexamples = getAllCounterexamples(pReached);
 
     if (cexExporter != null) {
-      int cexIndex = 0;
       for (Map.Entry<ARGState, CounterexampleInfo> cex : counterexamples.entrySet()) {
-        cexExporter.exportCounterexample(cex.getKey(), cex.getValue(), cexIndex++);
+        cexExporter.exportCounterexample(cex.getKey(), cex.getValue());
       }
     }
 

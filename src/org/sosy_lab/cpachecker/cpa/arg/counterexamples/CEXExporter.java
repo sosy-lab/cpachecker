@@ -25,11 +25,9 @@ package org.sosy_lab.cpachecker.cpa.arg.counterexamples;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.IOException;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Joiner;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
@@ -54,9 +52,11 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
 
 @Options(prefix="cpa.arg.errorPath")
 public class CEXExporter {
@@ -145,29 +145,27 @@ public class CEXExporter {
    * @param pCounterexampleInfo contains further information and the (optional) targetPath.
    *                            If the targetPath is available, it will be used for the output.
    *                            Otherwise we use backwards reachable states from pTargetState.
-   * @param cexIndex should be a unique index for the CEX and will be used to enumerate files.
    */
   public void exportCounterexample(final ARGState pTargetState,
-      final CounterexampleInfo pCounterexampleInfo,
-      int cexIndex) {
+      final CounterexampleInfo pCounterexampleInfo) {
     checkNotNull(pTargetState);
     checkNotNull(pCounterexampleInfo);
 
     if (exportErrorPath) {
-      exportCounterexample(pTargetState, cexIndex, pCounterexampleInfo);
+      exportCounterexample0(pTargetState, pCounterexampleInfo);
     }
   }
 
-  private void exportCounterexample(final ARGState lastState,
-                                    final int cexIndex,
+  private void exportCounterexample0(final ARGState lastState,
                                     final CounterexampleInfo counterexample) {
 
     final ARGPath targetPath = counterexample.getTargetPath();
     final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge = Predicates.in(
         new HashSet<>(targetPath.getStatePairs()));
     final ARGState rootState = targetPath.getFirstState();
+    final int uniqueId = counterexample.getUniqueId();
 
-    writeErrorPathFile(errorPathFile, cexIndex, counterexample);
+    writeErrorPathFile(errorPathFile, uniqueId, counterexample);
 
     if (errorPathCoreFile != null) {
       // the shrinked errorPath only includes the nodes,
@@ -175,11 +173,11 @@ public class CEXExporter {
       // only some nodes of the targetPath are part of it
       ErrorPathShrinker pathShrinker = new ErrorPathShrinker();
       List<CFAEdge> shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath);
-      writeErrorPathFile(errorPathCoreFile, cexIndex,
-          Appenders.forIterable(Joiner.on('\n'), shrinkedErrorPath));
+      writeErrorPathFile(errorPathCoreFile,
+          uniqueId, Appenders.forIterable(Joiner.on('\n'), shrinkedErrorPath));
     }
 
-    writeErrorPathFile(errorPathJson, cexIndex, new Appender() {
+    writeErrorPathFile(errorPathJson, uniqueId, new Appender() {
       @Override
       public void appendTo(Appendable pAppendable) throws IOException {
         counterexample.toJSON(pAppendable);
@@ -226,10 +224,10 @@ public class CEXExporter {
     }
 
     if (pathProgram != null) {
-      writeErrorPathFile(errorPathSourceFile, cexIndex, pathProgram);
+      writeErrorPathFile(errorPathSourceFile, uniqueId, pathProgram);
     }
 
-    writeErrorPathFile(errorPathGraphFile, cexIndex, new Appender() {
+    writeErrorPathFile(errorPathGraphFile, uniqueId, new Appender() {
       @Override
       public void appendTo(Appendable pAppendable) throws IOException {
         ARGToDotWriter.write(pAppendable, rootState,
@@ -239,22 +237,22 @@ public class CEXExporter {
       }
     });
 
-    writeErrorPathFile(errorPathAutomatonFile, cexIndex, new Appender() {
+    writeErrorPathFile(errorPathAutomatonFile, uniqueId, new Appender() {
       @Override
       public void appendTo(Appendable pAppendable) throws IOException {
         ARGUtils.producePathAutomaton(pAppendable, rootState, pathElements,
-                "ErrorPath" + cexIndex,
+                "ErrorPath" + uniqueId,
                 counterexample);
       }
     });
 
     for (Pair<Object, PathTemplate> info : counterexample.getAllFurtherInformation()) {
       if (info.getSecond() != null) {
-        writeErrorPathFile(info.getSecond(), cexIndex, info.getFirst());
+        writeErrorPathFile(info.getSecond(), uniqueId, info.getFirst());
       }
     }
 
-    writeErrorPathFile(errorPathAutomatonGraphmlFile, cexIndex, new Appender() {
+    writeErrorPathFile(errorPathAutomatonGraphmlFile, uniqueId, new Appender() {
       @Override
       public void appendTo(Appendable pAppendable) throws IOException {
         witnessExporter.writeErrorWitness(pAppendable, rootState,
@@ -265,10 +263,10 @@ public class CEXExporter {
     });
   }
 
-  private void writeErrorPathFile(PathTemplate template, int cexIndex, Object content) {
+  private void writeErrorPathFile(PathTemplate template, int uniqueId, Object content) {
     if (template != null) {
       // fill in index in file name
-      Path file = template.getPath(cexIndex);
+      Path file = template.getPath(uniqueId);
 
       try {
         Files.writeFile(file, content);
