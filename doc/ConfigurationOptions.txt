@@ -1036,11 +1036,8 @@ cpa.functionpointer.ignoreUnknownFunctionPointerCalls = false
 # in order to find calls to such pointers
 cpa.functionpointer.trackInvalidFunctionPointers = false
 
-# which betamapfile to use for PolicyEnforcementCPA
-cpa.ifcsecurity.betamapfile = "betamap.conf"
-
-# which callerlevel to use for PolicyEnforcementCPA
-cpa.ifcsecurity.callerlevel = "LOW"
+# which default SecurityClass to use for PolicyEnforcementCPA
+cpa.ifcsecurity.defaultsc = "LOW"
 
 # which immediatechecksfile to use for PolicyEnforcementCPA
 cpa.ifcsecurity.immediatechecksfile = "immediatechecks.conf"
@@ -1048,7 +1045,8 @@ cpa.ifcsecurity.immediatechecksfile = "immediatechecks.conf"
 # defines security classes of entities
 cpa.ifcsecurity.initialmapfile = no default value
 
-# which merge operator to use for TestCPA
+# which merge operator to use for ControlDependencyTrackerCPA
+# which merge operator to use for DependencyTrackerCPA
 # which merge operator to use for PolicyEnforcementCPA
 cpa.ifcsecurity.merge = "JOIN"
   allowed values: [SEP, JOIN]
@@ -1056,10 +1054,14 @@ cpa.ifcsecurity.merge = "JOIN"
 # which policy to use for PolicyEnforcementCPA
 cpa.ifcsecurity.policy = "HILO"
 
+# which betamapfile to use for PolicyEnforcementCPA
+cpa.ifcsecurity.scMappingFile = "betamap.conf"
+
 # which states shall be checked
 cpa.ifcsecurity.statestocheck = 0
 
-# which stop operator to use for TestCPA
+# which stop operator to use for ControlDependencyTrackerCPA
+# which stop operator to use for DependencyTrackerCPA
 # which stop operator to use for PolicyEnforcementCPA
 cpa.ifcsecurity.stop = "SEP"
   allowed values: [SEP, JOIN]
