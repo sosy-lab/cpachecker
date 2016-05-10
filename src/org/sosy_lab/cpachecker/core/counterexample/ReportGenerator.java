@@ -167,6 +167,10 @@ public class ReportGenerator {
           insertCfaInfoData(report);
         } else if (line.contains("FCALLEDGES")) {
           insertFCallEdges(report);
+        } else if (line.contains("TITLE")) {
+          insertTitle(counterExample, report);
+        } else if (line.contains("REPORT_NAME")) {
+            insertReportName(counterExample, report);
         } else {
           report.write(line + "\n");
         }
@@ -175,6 +179,32 @@ public class ReportGenerator {
     } catch (IOException e) {
       logger.logUserException(
           WARNING, e, "Could not create report: Procesing of HTML template failed.");
+    }
+  }
+
+  private void insertReportName(@Nullable CounterexampleInfo counterExample, Writer report) throws IOException {
+    if (counterExample == null) {
+      report.write("<h3>" + sourceFiles.get(0) +  "</h3>");
+
+    } else {
+      String title = String.format(
+          "<h3>%s (%s)</h3>",
+          sourceFiles.get(0),
+          counterExample.getUniqueId());
+      report.write(title);
+    }
+  }
+
+  private void insertTitle(@Nullable CounterexampleInfo counterExample, Writer report) throws IOException {
+    if (counterExample == null) {
+      report.write("<title>CPAchecker Report: " + sourceFiles.get(0) + "</title>");
+
+    } else {
+      String title = String.format(
+          "<title>CPAchecker Counterexample Report %s: %s</title>",
+          sourceFiles.get(0),
+          counterExample.getUniqueId());
+      report.write(title);
     }
   }
 

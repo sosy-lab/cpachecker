@@ -2,7 +2,7 @@
 <html ng-app='report'>
 <head>
     <meta charset="UTF-8">
-    <title>CPAchecker Report</title>
+    <title>CPAchecker Report</title> <!-- TITLE -->
 
 	<style type="text/css">
 	  <!--
@@ -125,7 +125,7 @@ height: 25px;
 .popover{
     min-width: 500px;
     max-height: 500px;
-    white-space: pre-line;
+    white-space: pre-line !important;
     overflow: auto;
     background-color: #f5fff8;
     border: solid 2px;
@@ -918,6 +918,7 @@ function init(){
 <header class="header">
 
     <h3><img ng-src="{{logo}}"/> Report</h3>
+    <!-- REPORT_NAME -->
 
     <em> Generated: {{date | date:'yyyy-MM-dd HH:mm:ss'}}</em>
 </header>
