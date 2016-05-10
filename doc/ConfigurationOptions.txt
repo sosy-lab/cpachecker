@@ -2037,7 +2037,7 @@ cpa.stator.policy.useCachingPathFormulaManager = true
 cpa.stator.policy.useInvariantsForAbstraction = false
 
 # Syntactically pre-compute dependencies for value determination
-cpa.stator.policy.valDetSyntacticCheck = false
+cpa.stator.policy.valDetSyntacticCheck = true
 
 # Strategy for filtering variables out of templates
 cpa.stator.policy.varFiltering = ALL_LIVE
