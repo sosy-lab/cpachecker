@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -76,8 +77,9 @@ public class SignCExpressionVisitor
     // TODO possibly treat typedef types differently
     // e.g. x = non_det() where non_det is extern, unknown function allways assume returns any value
     if (pIastFunctionCallExpression.getExpressionType() instanceof CSimpleType
-        || pIastFunctionCallExpression.getExpressionType() instanceof CTypedefType) { return SIGN.ALL; }
-    return null;
+        || pIastFunctionCallExpression.getExpressionType() instanceof CTypedefType
+        || pIastFunctionCallExpression.getExpressionType() instanceof CPointerType) { return SIGN.ALL; }
+    throw new UnrecognizedCodeException("unsupported code found", edgeOfExpr);
   }
 
   @Override
