@@ -74,7 +74,6 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFunctionPointerResol
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.ExpandFunctionPointerArrayAssignments;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.NullPointerChecks;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
-import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFAReduction;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.FunctionCallUnwinder;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.CFASingleLoopTransformation;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -152,10 +151,6 @@ public class CFACreator {
       description="add declarations for global variables before entry function")
   private boolean useGlobalVars = true;
 
-  @Option(secure=true, name="cfa.removeIrrelevantForSpecification",
-      description="remove paths from CFA that cannot lead to a specification violation")
-  private boolean removeIrrelevantForSpecification = false;
-
   @Option(secure=true, name="cfa.export",
       description="export CFA as .dot file")
   private boolean exportCfa = true;
@@ -232,7 +227,6 @@ private boolean classifyNodes = false;
 
   private final LogManager logger;
   private final Parser parser;
-  private final CFAReduction cfaReduction;
   private final ShutdownNotifier shutdownNotifier;
 
   private static class CFACreatorStatistics implements Statistics {
@@ -243,7 +237,6 @@ private boolean classifyNodes = false;
     private Timer conversionTime;
     private final Timer checkTime = new Timer();
     private final Timer processingTime = new Timer();
-    private final Timer pruningTime = new Timer();
     private final Timer variableClassificationTime = new Timer();
     private final Timer exportTime = new Timer();
 
@@ -260,9 +253,6 @@ private boolean classifyNodes = false;
       out.println("    Time for AST to CFA:      " + conversionTime);
       out.println("    Time for CFA sanity check:" + checkTime);
       out.println("    Time for post-processing: " + processingTime);
-      if (pruningTime.getNumberOfIntervals() > 0) {
-        out.println("      Time for CFA pruning:   " + pruningTime);
-      }
       if (variableClassificationTime.getNumberOfIntervals() > 0) {
         out.println("      Time for var class.:    " + variableClassificationTime);
       }
@@ -310,12 +300,6 @@ private boolean classifyNodes = false;
 
     stats.parsingTime = parser.getParseTime();
     stats.conversionTime = parser.getCFAConstructionTime();
-
-    if (removeIrrelevantForSpecification) {
-      cfaReduction = new CFAReduction(config, logger, pShutdownNotifier);
-    } else {
-      cfaReduction = null;
-    }
 
     stats.parserInstantiationTime.stop();
   }
@@ -440,21 +424,6 @@ private boolean classifyNodes = false;
     // Mutating post-processings should be checked carefully for their effect
     // on the information collected above (such as loops and post-order ids).
 
-    // remove irrelevant locations
-    if (cfaReduction != null) {
-      stats.pruningTime.start();
-      cfaReduction.removeIrrelevantForSpecification(cfa);
-      stats.pruningTime.stop();
-
-      if (cfa.isEmpty()) {
-        logger.log(Level.INFO, "No states which violate the specification are syntactically reachable from the function " + mainFunction.getFunctionName()
-              + ", analysis not necessary. "
-              + "If you want to run the analysis anyway, set the option cfa.removeIrrelevantForSpecification to false.");
-
-        return ImmutableCFA.empty(machineModel, language);
-      }
-    }
-
     // optionally transform CFA so that there is only one single loop
     if (transformIntoSingleLoop) {
       cfa = CFASingleLoopTransformation.getSingleLoopTransformation(logger, config, shutdownNotifier).apply(cfa);
@@ -494,7 +463,7 @@ private boolean classifyNodes = false;
 
     // check the super CFA starting at the main function
     stats.checkTime.start();
-    assert CFACheck.check(mainFunction, null, cfaReduction != null);
+    assert CFACheck.check(mainFunction, null, false);
     stats.checkTime.stop();
 
     if (((exportCfaFile != null) && (exportCfa || exportCfaPerFunction))

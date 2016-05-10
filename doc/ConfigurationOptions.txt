@@ -480,9 +480,6 @@ cfa.initializeAllVariables = false
 # create c code which is not the same as the original one
 cfa.moveDeclarationsToFunctionStart = false
 
-# remove paths from CFA that cannot lead to a specification violation
-cfa.removeIrrelevantForSpecification = false
-
 # Show messages when dead code is encountered during parsing.
 cfa.showDeadCode = true
 
@@ -594,6 +591,9 @@ counterexample.export.assumptions.assumeLinearArithmetics = false
 # Whether or not to include concrete address values.
 counterexample.export.assumptions.includeConstantsForPointers = true
 
+# insert all files except cfa/arg-graphs in html/js-template
+counterexample.export.report = true
+
 # The files where the BDDCPARestrictionAlgorithm should write the presence
 # conditions for the counterexamples to.
 counterexample.presenceConditionFile = "ErrorPath.%d.presenceCondition.txt"
@@ -602,6 +602,9 @@ counterexample.presenceConditionFile = "ErrorPath.%d.presenceCondition.txt"
 # counterexample before continuing.Setting this to false may prevent a lot of
 # similar infeasible counterexamples to get discovered, but is unsound
 counterexample.removeInfeasibleErrors = false
+
+# export counterexample as HTML
+counterexample.report.file = "Counterexample.%d.html"
 
 # Compute and export information about the verification coverage?
 coverage.enabled = true
@@ -1032,6 +1035,34 @@ cpa.functionpointer.ignoreUnknownFunctionPointerCalls = false
 # whether function pointers with invalid targets (e.g., 0) should be tracked
 # in order to find calls to such pointers
 cpa.functionpointer.trackInvalidFunctionPointers = false
+
+# which betamapfile to use for PolicyEnforcementCPA
+cpa.ifcsecurity.betamapfile = "betamap.conf"
+
+# which callerlevel to use for PolicyEnforcementCPA
+cpa.ifcsecurity.callerlevel = "LOW"
+
+# which immediatechecksfile to use for PolicyEnforcementCPA
+cpa.ifcsecurity.immediatechecksfile = "immediatechecks.conf"
+
+# defines security classes of entities
+cpa.ifcsecurity.initialmapfile = no default value
+
+# which merge operator to use for TestCPA
+# which merge operator to use for PolicyEnforcementCPA
+cpa.ifcsecurity.merge = "JOIN"
+  allowed values: [SEP, JOIN]
+
+# which policy to use for PolicyEnforcementCPA
+cpa.ifcsecurity.policy = "HILO"
+
+# which states shall be checked
+cpa.ifcsecurity.statestocheck = 0
+
+# which stop operator to use for TestCPA
+# which stop operator to use for PolicyEnforcementCPA
+cpa.ifcsecurity.stop = "SEP"
+  allowed values: [SEP, JOIN]
 
 # which type of merge operator to use for IntervalAnalysisCPA
 cpa.interval.merge = "SEP"
@@ -2353,9 +2384,6 @@ memorysafety.config = no default value
 merge = "JOIN"
   allowed values: [SEP, JOIN]
 
-# insert all files except cfa/arg-graphs in html/js-template
-newCounterexampleReport = true
-
 # Whether to check for the overflow property (this can be specified by
 # passing an appropriate .prp file to the -spec parameter).
 overflow.check = false
@@ -2549,7 +2577,8 @@ properties = []
 rcnf.boundVarsHandling = QE_LIGHT_THEN_DROP
   enum:     [QE_LIGHT_THEN_DROP, QE, DROP]
 
-# Expand equality atoms
+# Expand equality atoms. E.g. 'x=a' gets expanded into 'x >= a AND x <= a'.
+# Can lead to stronger weakenings.
 rcnf.expandEquality = false
 
 # Limit on the size of the resulting number of lemmas from the explicit
@@ -2562,6 +2591,9 @@ reachedSet.dot = "reached.dot"
 # print reached set to text file
 reachedSet.export = false
 reachedSet.file = "reached.txt"
+
+# export report as HTML
+report.file. = "Report.html"
 
 # combine (partial) ARGs obtained by restarts of the analysis after an
 # unknown result with a different configuration
