@@ -439,8 +439,6 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   private void updateARGTree(final PredicatePrecision pNewPrecision,
       final ARGState pRefinementRoot, final ARGReachedSet pReached) {
 
-    final ARGState refinementRootParent = pRefinementRoot.getParents().iterator().next();
-
     argUpdate.start();
 
     List<Precision> precisions = new ArrayList<>(2);
@@ -457,10 +455,13 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     }
 
     final ARGState restartFrom = pRefinementRoot;
-    final int siblings = refinementRootParent.getChildren().size();
-    if (siblings > 1) {
-      numberOfRefinementRootsWithSiblings.inc();
-      logger.logf(Level.WARNING, "Refinement on a state with %d siblings!", siblings-1);
+    if (!pRefinementRoot.getParents().isEmpty()) {
+      final ARGState refinementRootParent = pRefinementRoot.getParents().iterator().next();
+      final int siblings = refinementRootParent.getChildren().size();
+      if (siblings > 1) {
+        numberOfRefinementRootsWithSiblings.inc();
+        logger.logf(Level.WARNING, "Refinement on a state with %d siblings!", siblings-1);
+      }
     }
 
     pReached.removeSubtree(restartFrom, precisions, precisionTypes);
@@ -688,8 +689,10 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
             if (getPredicateState(current).isAbstractionState()) {
               numberOfRefinementRootsSkippedWithSiblings.inc();
-              rootState = current;
-              break;
+              if (!current.getParents().isEmpty()) {
+                rootState = current;
+                break;
+              }
             }
           }
         }
