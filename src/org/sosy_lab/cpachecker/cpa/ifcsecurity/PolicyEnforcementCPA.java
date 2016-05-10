@@ -131,7 +131,7 @@ public class PolicyEnforcementCPA implements ConfigurableProgramAnalysis {
     this.cfa=pCfa;
 
     domain = DelegateAbstractDomain.<PolicyEnforcementState<SecurityClasses>>getInstance();
-    transfer = new PolicyEnforcementRelation<>(logger, pShutdownNotifier,statestocheck);
+    transfer = new PolicyEnforcementRelation<>(logger, pShutdownNotifier,statestocheck, pConfig);
 
     if (stopType.equals("SEP")) {
       stop = new StopSepOperator(domain);

@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity;
 
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -47,7 +46,6 @@ import java.util.TreeSet;
 /**
  * CPA-Abstract-State for enforcing a Security Policy
  */
-@Options(prefix="cpa.ifcsecurity")
 public class PolicyEnforcementState<E extends Comparable<? super E>> implements AbstractState, Cloneable, Serializable,
 LatticeAbstractState<PolicyEnforcementState<E>>, Graphable, AbstractQueryableState{
 

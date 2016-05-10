@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.ifcsecurity;
 
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
@@ -85,7 +87,9 @@ public class PolicyEnforcementRelation<E extends Comparable<? super E>> extends 
    * @param pShutdownNotifier ShutdownNotifier
    * @param statestocheck Signalize whether at every state all Variables/Functions should be checked for a Security Violation or only at the end
    */
-  public PolicyEnforcementRelation(LogManager pLogger, ShutdownNotifier pShutdownNotifier, int statestocheck) {
+  public PolicyEnforcementRelation(LogManager pLogger, ShutdownNotifier pShutdownNotifier,
+      int statestocheck, Configuration pConfig) throws InvalidConfigurationException {
+    pConfig.inject(this);
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
     this.statestocheck=statestocheck;
