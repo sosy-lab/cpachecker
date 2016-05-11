@@ -330,6 +330,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   @Override
   public void close() {
     solver.close();
+    invariantsManager.cancelAsyncInvariantGeneration();
   }
 
   @Override

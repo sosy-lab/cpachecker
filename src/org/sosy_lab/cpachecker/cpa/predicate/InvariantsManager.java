@@ -423,6 +423,12 @@ class InvariantsManager implements StatisticsProvider {
     return asyncCPAInvariantSupplierSingleton;
   }
 
+  public void cancelAsyncInvariantGeneration() {
+    if (asyncCPAInvariantSupplierSingleton != null) {
+      asyncCPAInvariantSupplierSingleton.invGen.cancel();
+    }
+  }
+
   /**
    * @return Determines if the program could be proved to be safe by either an
    * asynchronously running invariant generator or by an {@link CPAcheckerInvariantGenerator}.
