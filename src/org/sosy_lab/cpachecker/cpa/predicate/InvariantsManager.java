@@ -363,7 +363,19 @@ class InvariantsManager implements StatisticsProvider {
     }
 
     if (generationStrategy.contains(InvariantGenerationStrategy.CPACHECKER)) {
-      cpaCheckerInvariantSupplierSingleton = new CPAcheckerInvariantsSupplier();
+      InvariantsSupplier tmpSupplier;
+      try {
+        tmpSupplier = new CPAcheckerInvariantsSupplier();
+      } catch (IOException e) {
+        logger.logUserException(
+            Level.WARNING,
+            e,
+            "Falling back to not using invariants of the strategy "
+                + InvariantGenerationStrategy.CPACHECKER);
+        tmpSupplier = null;
+      }
+      cpaCheckerInvariantSupplierSingleton = tmpSupplier;
+
     } else {
       cpaCheckerInvariantSupplierSingleton = null;
     }
@@ -1158,8 +1170,12 @@ class InvariantsManager implements StatisticsProvider {
 
   abstract class InvariantsSupplier implements InvariantSupplier {
 
-    protected InvariantGenerator invGen;
-    protected InvariantSupplier invSup;
+    private InvariantGenerator invGen;
+    private InvariantSupplier invSup;
+
+    private InvariantsSupplier(InvariantGenerator pInvGen) {
+      invGen = pInvGen;
+    }
 
     protected void setInitialLocation(CFANode pInitialLocation) {
       invGen.start(pInitialLocation);
@@ -1209,13 +1225,13 @@ class InvariantsManager implements StatisticsProvider {
      * InvariantsGenerator
      */
     private AsyncCPAInvariantsSupplier() throws InvalidConfigurationException, CPAException {
-      invGen =
+      super(
           CPAInvariantGenerator.create(
               config,
               new OnlyWarningsLogmanager(logger.withComponentName("Async Invgen")),
               ShutdownManager.createWithParent(shutdownNotifier),
               Optional.<ShutdownManager>absent(),
-              cfa);
+              cfa));
     }
   }
 
@@ -1223,20 +1239,17 @@ class InvariantsManager implements StatisticsProvider {
     /**
      * private constructor so that this object can only be created from within
      * InvariantsGenerator
+     * @throws IOException in the case a file is missing or can not be created
      */
-    private CPAcheckerInvariantsSupplier() throws InvalidConfigurationException, CPAException {
-      try {
-        // TODO is filename necessary?
-        invGen =
-            new CPAcheckerInvariantGenerator(
-                config,
-                shutdownNotifier,
-                new OnlyWarningsLogmanager(logger.withComponentName("Async Invgen")),
-                cfa,
-                "");
-      } catch (IOException e) {
-        throw new CPAException("Invariant Generation failed", e);
-      }
+    private CPAcheckerInvariantsSupplier()
+        throws InvalidConfigurationException, CPAException, IOException {
+      super(
+          new CPAcheckerInvariantGenerator(
+              config,
+              shutdownNotifier,
+              new OnlyWarningsLogmanager(logger.withComponentName("Async Invgen")),
+              cfa,
+              ""));
     }
   }
 
@@ -1438,4 +1451,5 @@ class InvariantsManager implements StatisticsProvider {
           .collectStatistics(pStatsCollection);
     }
   }
+
 }
