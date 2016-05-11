@@ -159,9 +159,6 @@ def read_CPAchecker_config(options):
 
 def main():
     options = parse_arguments()
-
-    print ('Generating report')
-
     config = read_CPAchecker_config(options)
 
     # extract paths to all necessary files and directories from config
@@ -170,19 +167,30 @@ def main():
     counter_example_path_template = os.path.join(cpa_output_dir, config.get('counterexample.export.report', 'Counterexample.%d.html'))
     report_path = os.path.join(cpa_output_dir, config.get('report.file', 'Report.html'))
 
+    counter_example_paths = glob.glob(counter_example_path_template.replace('%d', '*'))
+    
+    report_count = len(counter_example_paths)
+    if os.path.exists(report_path):
+        report_count = report_count + 1
+    
+    if report_count == 0:
+        print("No reports found in " + cpa_output_dir)
+        return
+
+    print ('Generating', report_count, 'reports')
+    
     #if there is an ARG.dot create an SVG in the report dir
     if os.path.isfile(arg_path):
         print ('Generating SVG for ARG (press Ctrl+C if this takes too long)')
         call_dot(arg_path, cpa_output_dir)
 
-    print ('Generating SVGs for CFA')
+    print ('Generating SVGs for CFA:')
     functions = [x[5:-4] for x in os.listdir(cpa_output_dir) if x.startswith('cfa__') and x.endswith('.dot')]
     sorted_functions = sorted(functions)
     for function in sorted_functions:
-        print(function)
+        print("\t" + function)
         call_dot(os.path.join(cpa_output_dir, 'cfa__' + function + '.dot'), cpa_output_dir)
 
-    counter_example_paths = glob.glob(counter_example_path_template.replace('%d', '*'))
     for counter_example_path in counter_example_paths:
         generate_report(cpa_output_dir, sorted_functions, arg_path, counter_example_path)
 
