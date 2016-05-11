@@ -378,24 +378,21 @@ public class CPAMain {
 
     // export report
     if (mResult.getResult() != Result.NOT_YET_STARTED) {
-      Path scriptsDir;
-      try {
-        // TODO: relativize scriptsDir after AppEngine code is deleted
-        scriptsDir =
-            Paths.get(CPAMain.class.getProtectionDomain().getCodeSource().getLocation().toURI())
-                .getParent()
-                .resolve("scripts");
-      } catch (SecurityException | URISyntaxException e) {
-        logManager.logUserException(WARNING, e, "Could not create report.");
-        return;
-      }
-
-      boolean generated =
+       boolean generated =
           reportGenerator.generate(mResult.getCfa(), mResult.getReached(), statistics.toString());
 
       if (generated) {
-        stream.println(
-            "Run " + scriptsDir.resolve("report-generator.py") + " to show graphical report.");
+        try {
+          // TODO: relativize scriptsDir after AppEngine code is deleted
+          Path scriptsDir =
+              Paths.get(CPAMain.class.getProtectionDomain().getCodeSource().getLocation().toURI())
+                  .getParent()
+                  .resolve("scripts");
+          stream.println(
+              "Run " + scriptsDir.resolve("report-generator.py") + " to show graphical report.");
+        } catch (SecurityException | URISyntaxException e) {
+          logManager.logUserException(WARNING, e, "Could not find script for generating report.");
+        }
       }
     }
   }
