@@ -179,6 +179,8 @@ class InvariantsManager implements StatisticsProvider {
      * can be retrieved by calling {@link InvariantsSupplier#getInvariantFor(CFANode,
      * FormulaManagerView, PathFormulaManager, PathFormula)}
      *
+     * To make this option work you need to call {@link InvariantsManager#setInitialLocation(CFANode)}.
+     *
      * The wrapped analysis is <b>always</b> a {@link CPAAlgorithm} no customizations
      * can be made here.
      *
@@ -193,6 +195,8 @@ class InvariantsManager implements StatisticsProvider {
      * the invariants can be computed and are, from that point on, always the same. They
      * are not refined further on.
      * This strategy computes the invariants before the actual analysis is started.
+     *
+     * To make this option work you need to call {@link InvariantsManager#setInitialLocation(CFANode)}.
      */
     CPACHECKER;
   }
@@ -395,6 +399,11 @@ class InvariantsManager implements StatisticsProvider {
     }
   }
 
+  /**
+   * Sets the initial location for asynchronous invariant generation. This method
+   * needs to be called if asynchronous invariants should be computed.
+   * @param node The starting node of the invariant generation
+   */
   public void setInitialLocation(CFANode node) {
     if (asyncCPAInvariantSupplierSingleton != null) {
       asyncCPAInvariantSupplierSingleton.setInitialLocation(node);
@@ -404,18 +413,28 @@ class InvariantsManager implements StatisticsProvider {
     }
   }
 
-  LocationInvariantSupplier asInvariantsSupplier() {
+  /**
+   * @return an immutable view of all currently computed invariants for each location.
+   */
+  public LocationInvariantSupplier asInvariantsSupplier() {
     if (invariantSupplierSingleton == null) {
       invariantSupplierSingleton = new LocationInvariantSupplier();
     }
     return invariantSupplierSingleton;
   }
 
-  boolean hasAsyncInvariants() {
+  /**
+   * @return indicates wether asynchronous invariants are computed
+   */
+  public boolean hasAsyncInvariants() {
     return asyncCPAInvariantSupplierSingleton != null;
   }
 
-  InvariantsSupplier asAsyncInvariantsSupplier() {
+  /**
+   * @return an asynchronous invariant supplier, if the usage of one is
+   * configured, an {@link IllegalStateException} is thrown otherwise
+   */
+  public InvariantsSupplier asAsyncInvariantsSupplier() {
     Preconditions.checkState(
         asyncCPAInvariantSupplierSingleton != null,
         "To use asynchronous invariants this has to be configured in the generation strategy.");
@@ -423,6 +442,9 @@ class InvariantsManager implements StatisticsProvider {
     return asyncCPAInvariantSupplierSingleton;
   }
 
+  /**
+   * Cancels the asynchronous invariant generation if necessary.
+   */
   public void cancelAsyncInvariantGeneration() {
     if (asyncCPAInvariantSupplierSingleton != null) {
       asyncCPAInvariantSupplierSingleton.invGen.cancel();
