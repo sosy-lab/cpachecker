@@ -633,9 +633,6 @@ counterexample.export.graph = "Counterexample.%d.dot"
 # export counterexample to file as GraphML automaton
 counterexample.export.graphml = "Counterexample.%d.graphml"
 
-# export counterexample as JSON file
-counterexample.export.json = "Counterexample.%d.json"
-
 # where to dump the counterexample model in case a specification violation is
 # found
 counterexample.export.model = "Counterexample.%d.assignment.txt"
@@ -2151,6 +2148,10 @@ cpa.value.optimizeBooleanVariables = true
 
 # target file to hold the exported precision
 cpa.value.precisionFile = no default value
+
+# whether or not to add assumptions to counterexamples, e.g., for supporting
+# counterexample checks
+cpa.value.refinement.addAssumptionsToCex = true
 
 # whether or not to use heuristic to avoid similar, repeated refinements
 cpa.value.refinement.avoidSimilarRepeatedRefinement = false

@@ -23,12 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.refinement;
 
-import java.io.PrintStream;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import com.google.errorprone.annotations.ForOverride;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -62,9 +59,12 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.google.errorprone.annotations.ForOverride;
+import java.io.PrintStream;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * A generic refiner using a {@link VariableTrackingPrecision}.
@@ -102,6 +102,10 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
    */
   @Option(secure = true, description="store all refined paths")
   private boolean storeAllRefinedPaths = false;
+
+  @Option(secure = true, description="whether or not to add assumptions to counterexamples,"
+      + " e.g., for supporting counterexample checks")
+  private boolean addAssumptionsToCex = true;
 
   protected final LogManager logger;
 
@@ -353,9 +357,11 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
 
       logger.log(Level.FINEST, "found a feasible counterexample");
       // we use the imprecise version of the CounterexampleInfo, due to the possible
-      // merges which are done in the used CPAs, but if we can compute a path with assignments,
+      // merges which are done in the used CPAs, but if we (can) compute a path with assignments,
       // it is probably precise.
-      CFAPathWithAssumptions assignments = createModel(feasiblePath);
+      CFAPathWithAssumptions assignments = addAssumptionsToCex
+          ? createModel(feasiblePath)
+          : CFAPathWithAssumptions.empty();
       if (!assignments.isEmpty()) {
         return CounterexampleInfo.feasiblePrecise(feasiblePath, assignments);
       } else {
@@ -438,4 +444,5 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     COMMON
   }
 }
+
 
