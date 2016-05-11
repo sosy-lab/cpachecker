@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking.Variable;
-import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.SetUtil;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
@@ -60,12 +59,6 @@ public class DependencyTrackerState implements AbstractState, Cloneable, Seriali
   public void setDependencies(Map<Variable, SortedSet<Variable>> pDependencies) {
     dependencies = pDependencies;
   }
-
-
-  /**
-   * Utility for computation of Set-Operations over Variables.
-   */
-  private static SetUtil<Variable> setutil = new SetUtil<>();
 
   @Override
   public String getCPAName() {

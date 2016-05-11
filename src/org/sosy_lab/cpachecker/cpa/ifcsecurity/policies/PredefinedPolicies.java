@@ -23,13 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.policies;
 
-import java.util.SortedSet;
-import java.util.TreeSet;
-
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.flowpolicies.AggregationFlow;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.flowpolicies.ConglomeratePolicy;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.flowpolicies.PolicyAlgebra;
-import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.SetUtil;
+
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 /**
  * Class, that offers some common Policies and SecurityClasses.
@@ -58,10 +57,6 @@ public class PredefinedPolicies{
    * Utility for computation of Policy-Algebra-Operations.
    */
   private static PolicyAlgebra<SecurityClasses> alg;
-  /**
-   * Utility for computation of Set-Operations.
-   */
-  private static SetUtil<SecurityClasses> setutil;
 
 
   /**
@@ -69,7 +64,6 @@ public class PredefinedPolicies{
    */
   static{
     alg=new PolicyAlgebra<>();
-    setutil=new SetUtil<>();
     HILO=createHiloPol();
     HILOANY=createHiloAnyPol();
     MILITARY=createMilitary();
@@ -125,17 +119,17 @@ public class PredefinedPolicies{
     set.add(u);
     ConglomeratePolicy<SecurityClasses> pol=new AggregationFlow<>(u,set);
     //c->{u,c}
-    set=setutil.clone(set);
+    set=new TreeSet<>(set);
     set.add(c);
     ConglomeratePolicy<SecurityClasses> tmppol=new AggregationFlow<>(c,set);
     pol=alg.union(pol,tmppol);
     //s->{u,c,s}
-    set=setutil.clone(set);
+    set=new TreeSet<>(set);
     set.add(s);
     tmppol=new AggregationFlow<>(s,set);
     pol=alg.union(pol,tmppol);
     //s->{u,c,s,t}
-    set=setutil.clone(set);
+    set=new TreeSet<>(set);
     set.add(t);
     tmppol=new AggregationFlow<>(t,set);
     pol=alg.union(pol,tmppol);

@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.ifcsecurity;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.SetUtil;
 
 import java.util.Map;
 import java.util.TreeMap;
@@ -73,13 +72,12 @@ public class ControlDependenceComputer {
     }
 
     boolean changed=true;
-    SetUtil<CFANode> setutil=new SetUtil<>();
 
     while(changed){
       changed=false;
       for(CFANode n: cfa.getAllNodes()){
         TreeSet<CFANode> rcdsetn=rcd.get(n);
-        for(CFANode m: setutil.clone(rcdsetn)){
+        for(CFANode m: new TreeSet<>(rcdsetn)){
           TreeSet<CFANode> rcdsetm=rcd.get(m);
           for(CFANode l: rcdsetm){
             if(!(rcdsetn.contains(l))){

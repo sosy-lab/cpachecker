@@ -26,11 +26,11 @@ package org.sosy_lab.cpachecker.cpa.ifcsecurity.flowpolicies;
 import com.google.common.collect.ComparisonChain;
 
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.InternalSetComparator;
-import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.SetUtil;
 
 import java.io.Serializable;
 import java.util.Objects;
 import java.util.SortedSet;
+import java.util.TreeSet;
 
 /**
  * Class for specifiying an Information Flow Relation
@@ -56,8 +56,7 @@ public class Edge<E extends Comparable<? super E>> implements Comparable<Edge<E>
    * @param pTo Security Levels, which can flow to Security Levels <i>from</i>
    */
   public Edge(E pFrom, SortedSet<E> pTo){
-    SetUtil<E> setutil=new SetUtil<>();
-    SortedSet<E> toclone = setutil.clone(pTo);
+    SortedSet<E> toclone = new TreeSet<>(pTo);
     toclone.add(pFrom);
     this.from=pFrom;
     this.to=toclone;

@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.SetUtil;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 
 import java.io.Serializable;
@@ -40,11 +39,6 @@ import java.util.TreeSet;
 public class BlockGuard implements Cloneable, Serializable{
 
   private static final long serialVersionUID = 7481418201286823199L;
-
-  /**
-   * Utility for computation of Set-Operations over Variables.
-   */
-  private static SetUtil<Variable> setutil=new SetUtil<>();
 
   /**
    * Internal Stack: that contains relevant information to all active control flow

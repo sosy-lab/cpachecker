@@ -52,7 +52,6 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking.FunctionCallStatementDependancy;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking.Variable;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking.VariableDependancy;
-import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.SetUtil;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -76,7 +75,6 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
   private LogManager logger;
   @SuppressWarnings("unused")
   private final ShutdownNotifier shutdownNotifier;
-  private SetUtil<Variable> setutil=new SetUtil<>();
 
   public DependencyTrackerRelation(LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
     logger = pLogger;
@@ -362,7 +360,7 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
               SortedSet<Variable> varset1=state.getDependencies().get(var);
               SortedSet<Variable> varset2=state.getDependencies().get(var2);
               if(!(varset1.equals(varset2))){
-                SortedSet<Variable> newvarset1=setutil.clone(varset2);
+                SortedSet<Variable> newvarset1=new TreeSet<>(varset2);
                 state.getDependencies().put(var, newvarset1);
               }
             }

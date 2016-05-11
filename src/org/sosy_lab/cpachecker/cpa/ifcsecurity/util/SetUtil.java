@@ -128,21 +128,6 @@ public class SetUtil<E extends Comparable<? super E>> {
     }
 
     /**
-     * Creates a new set, that is a copy of <i>set</i>
-     * @param pSet a Set
-     * @return a Copy.
-     */
-    public SortedSet<E> clone(SortedSet<E> pSet){
-      SortedSet<E> result=new TreeSet<>();
-      Iterator<E> it = pSet.iterator();
-      while(it.hasNext()){
-        E elem=it.next();
-        result.add(elem);
-      }
-      return result;
-    }
-
-    /**
      * Computes a new set, that is the powerset of <i>set1</i>
      * @param pSet1 a Set
      * @return Powerset.
