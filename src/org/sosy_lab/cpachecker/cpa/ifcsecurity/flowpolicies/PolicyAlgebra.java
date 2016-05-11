@@ -36,15 +36,6 @@ import java.util.TreeSet;
 public class PolicyAlgebra<E extends Comparable<? super E>> {
 
   /**
-   * Utility for computation of Set-Operations over the Security-Class Elements.
-   */
-  private SetUtil<E> setUtil=new SetUtil<>();
-  /**
-   * Utility for computation of Set-Operations over the Policy-Edges.
-   */
-  private SetUtil<Edge<E>> setUtil2=new SetUtil<>();
-
-  /**
    * Computes the Join-Operation of the Policy-Algebra
    * @param pThisPol A Policy
    * @param pOtherPol Another Policy
@@ -54,15 +45,15 @@ public class PolicyAlgebra<E extends Comparable<? super E>> {
     //Join(P,Q)= TODO Description
     SortedSet<E> range1=getDomain(pThisPol);
     SortedSet<E> range2=getDomain(pOtherPol);
-    SortedSet<E> newrange=setUtil.union(range1,range2);
+    SortedSet<E> newrange=SetUtil.union(range1,range2);
     ConglomeratePolicy<E> result=new ConglomeratePolicy<>();
-    SortedSet<SortedSet<E>> newpowerset=setUtil.getPowerSet(newrange);
+    SortedSet<SortedSet<E>> newpowerset=SetUtil.getPowerSet(newrange);
     for(SortedSet<E> set:newpowerset){
       for(E elem: newrange){
         //Check First
         boolean check1=true;
         if(range1.contains(elem)){
-          Edge<E> edge=new Edge<>(elem,setUtil.intersect(set, range1));
+          Edge<E> edge=new Edge<>(elem,SetUtil.intersect(set, range1));
           if(!pThisPol.getEdges().contains(edge)){
             check1=false;
           }
@@ -71,7 +62,7 @@ public class PolicyAlgebra<E extends Comparable<? super E>> {
         //Check Second
         boolean check2=true;
         if(range2.contains(elem)){
-          Edge<E> edge=new Edge<>(elem,setUtil.intersect(set, range2));
+          Edge<E> edge=new Edge<>(elem,SetUtil.intersect(set, range2));
           if(!pOtherPol.getEdges().contains(edge)){
             check2=false;
           }
@@ -97,7 +88,7 @@ public class PolicyAlgebra<E extends Comparable<? super E>> {
      //Meet(P,Q)=(P|(R(P) intersect R(Q)) Union (Q|(R(P) intersect R(Q))
      SortedSet<E> range1=getDomain(pThisPol);
      SortedSet<E> range2=getDomain(pOtherPol);
-     SortedSet<E> newrange=setUtil.intersect(range1,range2);
+     SortedSet<E> newrange=SetUtil.intersect(range1,range2);
      ConglomeratePolicy<E> result=union(abstracted(pThisPol,newrange),abstracted(pOtherPol,newrange));
      return result;
   }
@@ -110,7 +101,7 @@ public class PolicyAlgebra<E extends Comparable<? super E>> {
    */
   public ConglomeratePolicy<E> intersect (ConglomeratePolicy<E> pThisPol, ConglomeratePolicy<E> pOtherPol){
     ConglomeratePolicy<E> result = new ConglomeratePolicy<>();
-    result.setEdges(setUtil2.intersect(pThisPol.getEdges(),pOtherPol.getEdges()));
+    result.setEdges(SetUtil.intersect(pThisPol.getEdges(),pOtherPol.getEdges()));
     return result;
   }
 
@@ -122,7 +113,7 @@ public class PolicyAlgebra<E extends Comparable<? super E>> {
    */
   public ConglomeratePolicy<E> union (ConglomeratePolicy<E> pThisPol, ConglomeratePolicy<E> pOtherPol){
     ConglomeratePolicy<E> result = new ConglomeratePolicy<>();
-    result.setEdges(setUtil2.union(pThisPol.getEdges(),pOtherPol.getEdges()));
+    result.setEdges(SetUtil.union(pThisPol.getEdges(),pOtherPol.getEdges()));
     return result;
   }
 
@@ -137,7 +128,7 @@ public class PolicyAlgebra<E extends Comparable<? super E>> {
     ConglomeratePolicy<E> result = new ConglomeratePolicy<>();
     for(Edge<E> edge:pThisPol.getEdges()){
       if(pClasses.contains(edge.getFrom())){
-        result.addEdge(new Edge<>(edge.getFrom(), setUtil.intersect(edge.getTo(),pClasses)));
+        result.addEdge(new Edge<>(edge.getFrom(), SetUtil.intersect(edge.getTo(),pClasses)));
       }
     }
     return result;
@@ -153,7 +144,7 @@ public class PolicyAlgebra<E extends Comparable<? super E>> {
     SortedSet<E> range=getDomain(pThisPol);
     ConglomeratePolicy<E> toppol=new TopPolicy<>(range);
     ConglomeratePolicy<E> botpol=new BottomPolicy<>(range);
-    botpol.setEdges(setUtil2.setminus(botpol.getEdges(),pThisPol.getEdges()));
+    botpol.setEdges(SetUtil.setminus(botpol.getEdges(),pThisPol.getEdges()));
     result=union(toppol,botpol);
     return result;
   }

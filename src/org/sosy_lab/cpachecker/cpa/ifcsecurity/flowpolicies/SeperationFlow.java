@@ -42,12 +42,11 @@ public class SeperationFlow<E extends Comparable<? super E>> extends Conglomerat
    * @param pTo the to Part of the Edge
    */
   public SeperationFlow(E pFrom, SortedSet<E> pTo){
-    SetUtil<Edge<E>> setutil2=new SetUtil<>();
     Edge<E> edge=new Edge<>(pFrom,pTo);
     addEdge(edge);
     SortedSet<E> alphabet=new TreeSet<>(pTo);
     alphabet.add(pFrom);
     ConglomeratePolicy<E> toppol=new TopPolicy<>(alphabet);
-    this.setEdges(setutil2.union(this.getEdges(),toppol.getEdges()));
+    this.setEdges(SetUtil.union(this.getEdges(),toppol.getEdges()));
   }
 }

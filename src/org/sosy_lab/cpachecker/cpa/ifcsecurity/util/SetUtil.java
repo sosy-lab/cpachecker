@@ -34,7 +34,11 @@ import java.util.TreeSet;
  * Utilities for computation of classical set-operations.
  * @param <E> Type of elements in the sets.
  */
-public class SetUtil<E extends Comparable<? super E>> {
+public final class SetUtil<E extends Comparable<? super E>> {
+
+  private SetUtil() {
+    // Private constructor for utility class
+  }
 
     /**
      * Computes a new set, that is the union of <i>set1</i> and <i>set2</i>.
@@ -42,7 +46,7 @@ public class SetUtil<E extends Comparable<? super E>> {
      * @param pSet2 the other Set
      * @return Setunion.
      */
-    public SortedSet<E> union(SortedSet<E> pSet1,SortedSet<E> pSet2){
+    public static <E> SortedSet<E> union(SortedSet<E> pSet1,SortedSet<E> pSet2){
       SortedSet<E> result=new TreeSet<>();
       E elem;
       Iterator<E> it1 = pSet1.iterator();
@@ -65,7 +69,7 @@ public class SetUtil<E extends Comparable<? super E>> {
      * @param pSet2 the other Set
      * @return Setintersection.
      */
-    public SortedSet<E> intersect(SortedSet<E> pSet1,SortedSet<E> pSet2){
+    public static <E extends Comparable<? super E>> SortedSet<E> intersect(SortedSet<E> pSet1,SortedSet<E> pSet2){
       SortedSet<E> result=new TreeSet<>();
       Iterator<E> it1 = pSet1.iterator();
       Iterator<E> it2 = pSet2.iterator();
@@ -115,7 +119,7 @@ public class SetUtil<E extends Comparable<? super E>> {
      * @param pSet2 the other Set
      * @return Setminus.
      */
-    public SortedSet<E> setminus(SortedSet<E> pSet1,SortedSet<E> pSet2){
+    public static <E> SortedSet<E> setminus(SortedSet<E> pSet1,SortedSet<E> pSet2){
       SortedSet<E> result=new TreeSet<>();
       Iterator<E> it1 = pSet1.iterator();
       while(it1.hasNext()){
@@ -132,7 +136,7 @@ public class SetUtil<E extends Comparable<? super E>> {
      * @param pSet1 a Set
      * @return Powerset.
      */
-    public java.util.SortedSet<java.util.SortedSet<E>> getPowerSet(SortedSet<E> pSet1){
+    public static <E extends Comparable<? super E>> java.util.SortedSet<java.util.SortedSet<E>> getPowerSet(SortedSet<E> pSet1){
       List<E> list = new ArrayList<>(pSet1);
       int n = list.size();
 

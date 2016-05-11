@@ -44,9 +44,7 @@ public class AggregationFlow<E extends Comparable<? super E>> extends Conglomera
    * @param pTo the to Part of the Edge
    */
   public AggregationFlow(E pFrom, SortedSet<E> pTo){
-    SetUtil<E> setutil=new SetUtil<>();
-    SetUtil<Edge<E>> setutil2=new SetUtil<>();
-    SortedSet<SortedSet<E>> powersets = setutil.getPowerSet(pTo);
+    SortedSet<SortedSet<E>> powersets = SetUtil.getPowerSet(pTo);
     Edge<E> edge;
     for(SortedSet<E> set:powersets){
       edge=new Edge<>(pFrom,set);
@@ -56,7 +54,7 @@ public class AggregationFlow<E extends Comparable<? super E>> extends Conglomera
     alphabet.add(pFrom);
     ConglomeratePolicy<E> toppol=new TopPolicy<>(alphabet);
 
-    this.setEdges(setutil2.union(this.getEdges(),toppol.getEdges()));
+    this.setEdges(SetUtil.union(this.getEdges(),toppol.getEdges()));
   }
 
 }

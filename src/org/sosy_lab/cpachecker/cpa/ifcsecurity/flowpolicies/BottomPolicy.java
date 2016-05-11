@@ -41,8 +41,7 @@ public class BottomPolicy<E extends Comparable<? super E>> extends ConglomerateP
    * @param pSets Domain
    */
   public BottomPolicy(SortedSet<E> pSets){
-    SetUtil<E> setutil=new SetUtil<>();
-    SortedSet<SortedSet<E>> powersets = setutil.getPowerSet(pSets);
+    SortedSet<SortedSet<E>> powersets = SetUtil.getPowerSet(pSets);
     Edge<E> edge;
     for(E elem:pSets){
       for(SortedSet<E> set:powersets){
