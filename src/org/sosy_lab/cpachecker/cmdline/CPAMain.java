@@ -391,8 +391,7 @@ public class CPAMain {
       }
 
       boolean generated =
-          reportGenerator.generate(
-              scriptsDir, mResult.getCfa(), mResult.getReached(), statistics.toString());
+          reportGenerator.generate(mResult.getCfa(), mResult.getReached(), statistics.toString());
 
       if (generated) {
         stream.println(

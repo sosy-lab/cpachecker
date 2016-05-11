@@ -131,6 +131,11 @@
     <target name="build-project" depends="build-dependencies">
         <property name="javac.compiler" value="modern"/> <!-- fallback value -->
         <depend srcdir="${source.dir}" destdir="${class.dir}"/>
+        <copy todir="${class.dir}">
+          <fileset dir="${source.dir}">
+            <exclude name="**/*.java" />
+          </fileset>
+        </copy>
         <echo message="Compiling CPAchecker"/>
         <javac debug="true"
                debuglevel="source,lines,vars"

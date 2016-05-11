@@ -28,9 +28,11 @@ import static com.google.common.collect.FluentIterable.from;
 import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Splitter;
+import com.google.common.io.Resources;
 
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.configuration.Configuration;
@@ -64,7 +66,7 @@ public class ReportGenerator {
   private static final Splitter LINE_SPLITTER = Splitter.on('\n');
   private static final Splitter COMMA_SPLITTER = Splitter.on(',').trimResults();
 
-  private static final String HTML_TEMPLATE = "report_template.html";
+  private static final String HTML_TEMPLATE = "report-template.html";
 
   private final Configuration config;
   private final LogManager logger;
@@ -109,9 +111,7 @@ public class ReportGenerator {
     sourceFiles = COMMA_SPLITTER.splitToList(programs);
   }
 
-  public boolean generate(
-      Path scriptsDir, CFA pCfa, UnmodifiableReachedSet pReached, String pStatistics) {
-    checkNotNull(scriptsDir);
+  public boolean generate(CFA pCfa, UnmodifiableReachedSet pReached, String pStatistics) {
     checkNotNull(pCfa);
     checkNotNull(pReached);
     checkNotNull(pStatistics);
@@ -119,8 +119,6 @@ public class ReportGenerator {
     if (!generateReport) {
       return false;
     }
-
-    Path templateFile = scriptsDir.resolve(HTML_TEMPLATE);
 
     Iterable<CounterexampleInfo> counterExamples =
         Optional.presentInstances(
@@ -132,7 +130,7 @@ public class ReportGenerator {
     if (!counterExamples.iterator().hasNext()) {
       if (reportFile != null) {
         DOTBuilder2 dotBuilder = new DOTBuilder2(pCfa);
-        fillOutTemplate(null, templateFile, reportFile, pCfa, dotBuilder, pStatistics);
+        fillOutTemplate(null, reportFile, pCfa, dotBuilder, pStatistics);
         return true;
       } else {
         return false;
@@ -143,7 +141,6 @@ public class ReportGenerator {
       for (CounterexampleInfo counterExample : counterExamples) {
         fillOutTemplate(
             counterExample,
-            templateFile,
             counterExampleFiles.getPath(counterExample.getUniqueId()),
             pCfa,
             dotBuilder,
@@ -166,7 +163,6 @@ public class ReportGenerator {
 
   private void fillOutTemplate(
       @Nullable CounterexampleInfo counterExample,
-      Path templateFile,
       Path reportPath,
       CFA cfa,
       DOTBuilder2 dotBuilder,
@@ -179,7 +175,8 @@ public class ReportGenerator {
     }
 
     try (BufferedReader template =
-            templateFile.asCharSource(Charset.defaultCharset()).openBufferedStream();
+            Resources.asCharSource(Resources.getResource(HTML_TEMPLATE), Charsets.UTF_8)
+                .openBufferedStream();
         Writer report = reportPath.asCharSink(Charset.defaultCharset()).openBufferedStream()) {
 
       String line;
