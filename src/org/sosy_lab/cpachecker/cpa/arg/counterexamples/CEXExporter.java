@@ -88,11 +88,6 @@ public class CEXExporter {
       description="export counterexample as source file")
   private boolean exportSource = true;
 
-  @Option(secure=true, name="json",
-      description="export counterexample as JSON file")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate errorPathJson = PathTemplate.ofFormatString("Counterexample.%d.json");
-
   @Option(secure=true, name="graph",
       description="export counterexample as graph")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -132,7 +127,7 @@ public class CEXExporter {
       errorPathAutomatonGraphmlFile = null;
     }
     if (errorPathCoreFile == null && errorPathFile == null
-        && errorPathGraphFile == null && errorPathJson == null && errorPathSourceFile == null
+        && errorPathGraphFile == null && errorPathSourceFile == null
         && errorPathAutomatonFile == null && errorPathAutomatonGraphmlFile == null) {
       exportErrorPath = false;
     }
@@ -176,13 +171,6 @@ public class CEXExporter {
       writeErrorPathFile(errorPathCoreFile,
           uniqueId, Appenders.forIterable(Joiner.on('\n'), shrinkedErrorPath));
     }
-
-    writeErrorPathFile(errorPathJson, uniqueId, new Appender() {
-      @Override
-      public void appendTo(Appendable pAppendable) throws IOException {
-        counterexample.toJSON(pAppendable);
-      }
-    });
 
     final Set<ARGState> pathElements;
     Appender pathProgram = null;

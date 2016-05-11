@@ -37,7 +37,6 @@ import com.google.common.collect.SetMultimap;
 
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -75,10 +74,6 @@ import java.util.Map.Entry;
  */
 public final class DOTBuilder2 {
 
-  public final static Path COMBINED_NODES = Paths.get("combinednodes.json");
-  public final static Path F_CALL_EDGES = Paths.get("fcalledges.json");
-  public final static Path CFA_INFO = Paths.get("cfainfo.json");
-
   private final CFA cfa;
   private final CFAJSONBuilder jsoner;
   private final DOTViewBuilder dotter;
@@ -95,14 +90,12 @@ public final class DOTBuilder2 {
   }
 
   /**
-   * output the CFA as DOT and JSON files
+   * output the CFA as DOT files
    */
-  public void writeReport(Path outdir) throws IOException {
+  public void writeGraphs(Path outdir) throws IOException {
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
       dotter.writeFunctionFile(entryNode.getFunctionName(), outdir);
     }
-    dotter.writeGlobalFiles(outdir);
-    JSON.writeJSONString(jsoner.getJSON(), outdir.resolve(CFA_INFO));
   }
 
   public void writeCfaInfo(Writer out) throws IOException {
@@ -254,11 +247,6 @@ public final class DOTBuilder2 {
         }
         out.write("}");
       }
-    }
-
-    void writeGlobalFiles(Path outdir) throws IOException {
-      JSON.writeJSONString(node2combo, outdir.resolve(COMBINED_NODES));
-      JSON.writeJSONString(virtFuncCallEdges, outdir.resolve(F_CALL_EDGES));
     }
 
     private String edgeToDot(CFAEdge edge) {

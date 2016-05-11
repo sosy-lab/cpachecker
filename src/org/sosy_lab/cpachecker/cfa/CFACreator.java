@@ -935,14 +935,14 @@ v.addInitializer(initializer);
       }
     }
 
-    // write the CFA to files (one file per function + some metainfo)
+    // write the CFA to files (one file per function)
     if (exportCfaPerFunction && exportCfaFile != null) {
       try {
         Path outdir = exportCfaFile.getParent();
-        new DOTBuilder2(cfa).writeReport(outdir);
+        new DOTBuilder2(cfa).writeGraphs(outdir);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,
-          "Could not write CFA to dot and json file");
+          "Could not write CFA to dot files");
         // continue with analysis
       }
     }
