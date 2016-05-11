@@ -326,22 +326,38 @@ public final class InterpolationManager {
             currentInterpolator.close();
           }
         }
-      } catch (SolverException e) {
-        logger.logUserException(Level.FINEST, e, "Interpolation failed, attempting to solve without interpolation");
+      } catch (SolverException itpException) {
+        logger.logUserException(
+            Level.FINEST,
+            itpException,
+            "Interpolation failed, attempting to solve without interpolation");
 
         // Maybe the solver can handle the formulas if we do not attempt to interpolate
-        try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+        // (this happens for example for MathSAT).
+        // If solving works but creating the model for the error path not,
+        // we at least return an empty model.
+        try (ProverEnvironment prover =
+            solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
           for (BooleanFormula block : f) {
             prover.push(block);
           }
           if (!prover.isUnsat()) {
-            return getErrorPath(f, prover, elementsOnPath);
+            try {
+              return getErrorPath(f, prover, elementsOnPath);
+            } catch (SolverException modelException) {
+              logger.log(
+                  Level.WARNING,
+                  "Solver could not produce model, variable assignment of error path can not be dumped.");
+              logger.logDebugException(modelException);
+              return CounterexampleTraceInfo.feasible(
+                  f, ImmutableList.<ValueAssignment>of(), ImmutableMap.<Integer, Boolean>of());
+            }
           }
-        } catch (SolverException e2) {
-          // in case of exception throw original one below
-          logger.logDebugException(e2, "Solving trace failed even without interpolation");
+        } catch (SolverException solvingException) {
+          // in case of exception throw original one below but do not forget e2
+          itpException.addSuppressed(solvingException);
         }
-        throw new RefinementFailedException(Reason.InterpolationFailed, null, e);
+        throw new RefinementFailedException(Reason.InterpolationFailed, null, itpException);
       }
 
     } finally {
@@ -587,7 +603,7 @@ public final class InterpolationManager {
 
     if (bfmgr.isTrue(branchingFormula)) {
       return CounterexampleTraceInfo.feasible(
-          f, getModel(pProver), ImmutableMap.<Integer, Boolean>of());
+          f, pProver.getModelAssignments(), ImmutableMap.<Integer, Boolean>of());
     }
 
     // add formula to solver environment
@@ -598,7 +614,7 @@ public final class InterpolationManager {
     boolean stillSatisfiable = !pProver.isUnsat();
 
     if (stillSatisfiable) {
-      List<ValueAssignment> model = getModel(pProver);
+      List<ValueAssignment> model = pProver.getModelAssignments();
       return CounterexampleTraceInfo.feasible(
           f, model, pmgr.getBranchingPredicateValuesFromModel(model));
 
@@ -611,16 +627,6 @@ public final class InterpolationManager {
 
       return CounterexampleTraceInfo.feasible(
           f, ImmutableList.<ValueAssignment>of(), ImmutableMap.<Integer, Boolean>of());
-    }
-  }
-
-  private List<ValueAssignment> getModel(BasicProverEnvironment<?> pItpProver) {
-    try {
-      return pItpProver.getModelAssignments();
-    } catch (SolverException e) {
-      logger.log(Level.WARNING, "Solver could not produce model, variable assignment of error path can not be dumped.");
-      logger.logDebugException(e);
-      return ImmutableList.of();
     }
   }
 
