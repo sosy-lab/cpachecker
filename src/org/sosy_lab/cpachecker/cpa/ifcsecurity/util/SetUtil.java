@@ -37,23 +37,6 @@ import java.util.TreeSet;
 public class SetUtil<E extends Comparable<? super E>> {
 
     /**
-     * Computes if <i>set1</i> is a subset of <i>set2</i>.
-     * @param pSet1 a Set.
-     * @param pSet2 the other Set
-     * @return <b>true</b>, if subset relation consists, <b>false</b> otherwise.
-     */
-    public boolean isSubset(SortedSet<E> pSet1,SortedSet<E> pSet2){
-      Iterator<E> it = pSet1.iterator();
-      while(it.hasNext()){
-        E elem=it.next();
-         if(!(pSet2.contains(elem))){
-           return false;
-         }
-      }
-      return true;
-    }
-
-    /**
      * Computes a new set, that is the union of <i>set1</i> and <i>set2</i>.
      * @param pSet1 a Set.
      * @param pSet2 the other Set

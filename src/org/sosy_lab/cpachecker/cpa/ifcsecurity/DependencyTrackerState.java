@@ -111,7 +111,7 @@ public class DependencyTrackerState implements AbstractState, Cloneable, Seriali
     for (Entry<Variable, SortedSet<Variable>> entry : this.dependencies.entrySet()) {
       Variable var=entry.getKey();
       if (pOther.dependencies.containsKey(var)) {
-        if (!(setutil.isSubset(this.dependencies.get(var),
+        if (!(this.dependencies.get(var).containsAll(
             pOther.dependencies.get(var)))) { return false; }
       } else {
         return false;
@@ -120,7 +120,7 @@ public class DependencyTrackerState implements AbstractState, Cloneable, Seriali
     for (Entry<Variable, SortedSet<Variable>> entry : pOther.dependencies.entrySet()) {
       Variable var=entry.getKey();
       if (this.dependencies.containsKey(var)) {
-        if (!(setutil.isSubset(pOther.dependencies.get(var),
+        if (!(pOther.dependencies.get(var).containsAll(
             this.dependencies.get(var)))) { return false; }
       } else {
         return false;
@@ -163,7 +163,7 @@ public class DependencyTrackerState implements AbstractState, Cloneable, Seriali
     for (Entry<Variable, SortedSet<Variable>> entry : this.dependencies.entrySet()) {
       Variable var=entry.getKey();
       if (pOther.dependencies.containsKey(var)) {
-        if (!(setutil.isSubset(this.dependencies.get(var),
+        if (!(this.dependencies.get(var).containsAll(
             pOther.dependencies.get(var)))) { return false; }
       } else {
         return false;

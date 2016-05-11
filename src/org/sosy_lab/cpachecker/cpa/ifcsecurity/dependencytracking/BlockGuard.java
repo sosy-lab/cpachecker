@@ -261,7 +261,7 @@ public class BlockGuard implements Cloneable, Serializable{
        SortedSet<Variable> othervariables=othervalue.second.second;
 
 
-       if(!(setutil.isSubset(variables, othervariables) && setutil.isSubset(othervariables, variables))){
+       if(!(variables.equals(othervariables))){
          return result;
        }
        result.addDependancy(node, node2, expr, truth);
