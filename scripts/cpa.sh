@@ -81,7 +81,7 @@ while [ $# -gt 0 ]; do
        ;;
    "-generateReport")
        EXEC=
-       POST_PROCESSING=scripts/generate-report-with-graphs.py
+       POST_PROCESSING=scripts/report-generator.py
        ;;
    *) # other params are only for CPAchecker
        OPTIONS+=("$1")
