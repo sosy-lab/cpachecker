@@ -23,10 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.flowpolicies;
 
+import com.google.common.collect.ComparisonChain;
+
+import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.InternalSetComparator;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.SetUtil;
 
 import java.io.Serializable;
-import java.util.Comparator;
+import java.util.Objects;
 import java.util.SortedSet;
 
 /**
@@ -36,11 +39,6 @@ import java.util.SortedSet;
 public class Edge<E extends Comparable<? super E>> implements Comparable<Edge<E>>, Serializable{
 
   private static final long serialVersionUID = -8116012552727270178L;
-
-  /**
-   * Internal Variable: Comparator that is used for comparing two Edges
-   */
-  private Comparator<Edge<E>> comp=new EdgeComparator<>();
 
   /**
    * Security Level, which can have information of Security Levels <i>to</i>
@@ -67,9 +65,29 @@ public class Edge<E extends Comparable<? super E>> implements Comparable<Edge<E>
 
   @Override
   public int compareTo(Edge<E> pOtherEdge) {
-    return comp.compare(this, pOtherEdge);
+    return ComparisonChain.start()
+        .compare(from, pOtherEdge.from)
+        .<SortedSet<E>>compare(to, pOtherEdge.to, new InternalSetComparator<E>())
+        .result();
   }
 
+  @Override
+  public boolean equals(Object pObj) {
+    if (this == pObj) {
+      return true;
+    }
+    if (pObj instanceof Edge) {
+      Edge<?> other = (Edge<?>) pObj;
+      return from.equals(other.from)
+          && to.equals(other.to);
+    }
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(from, to);
+  }
 
   @Override
   public String toString(){
