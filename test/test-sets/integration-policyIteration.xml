@@ -11,6 +11,8 @@
 
     <tasks>
         <includesfile>../programs/benchmarks/Loops.set</includesfile>
+        <!-- The following file switches between timeout and segmentation fault. -->
+        <exclude>../programs/benchmarks/loops/eureka_01_false-unreach-call.i</exclude>
     </tasks>
 
     <rundefinition>

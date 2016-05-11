@@ -36,6 +36,8 @@
       <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_11_false-unreach-call.cil.c</exclude>
       <exclude>../programs/benchmarks/systemc/pipeline_false-unreach-call_false-termination.cil.c</exclude>
       <exclude>../programs/benchmarks/systemc/token_ring.03_true-unreach-call_false-termination.cil.c</exclude>
+      <exclude>../programs/benchmarks/systemc/toy_true-unreach-call_false-termination.cil.c</exclude>
+      <exclude>../programs/benchmarks/systemc/transmitter.13_false-unreach-call_false-termination.cil.c</exclude>
     </tasks>
     <tasks>
       <includesfile>integration-DeviceDriversLinux64.set</includesfile>
