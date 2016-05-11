@@ -37,16 +37,6 @@ import java.util.TreeSet;
 public class SetUtil<E extends Comparable<? super E>> {
 
     /**
-     * Computes the Equality of two Sets.
-     * @param pSet1 a Set.
-     * @param pSet2 the other Set
-     * @return <b>true</b>, if equal, <b>false</b> otherwise.
-     */
-    public boolean isEqual(SortedSet<E> pSet1,SortedSet<E> pSet2){
-      return (isSubset(pSet1,pSet2) && isSubset(pSet2,pSet1));
-    }
-
-    /**
      * Computes if <i>set1</i> is a subset of <i>set2</i>.
      * @param pSet1 a Set.
      * @param pSet2 the other Set
