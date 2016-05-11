@@ -196,7 +196,7 @@ public class RCNFManager implements StatisticsProvider {
        */
       @Override
       public BooleanFormula visitAnd(List<BooleanFormula> processed) {
-        return bfmgr.and(bfmgr.toConjunctionArgs(bfmgr.and(processed), true));
+        return bfmgr.and(bfmgr.toConjunctionArgs(bfmgr.and(processed), false));
       }
 
       /**
@@ -208,7 +208,7 @@ public class RCNFManager implements StatisticsProvider {
         Set<BooleanFormula> intersection = null;
         ArrayList<Set<BooleanFormula>> argsAsConjunctions = new ArrayList<>();
         for (BooleanFormula op : processed) {
-          Set<BooleanFormula> args = bfmgr.toConjunctionArgs(op, true);
+          Set<BooleanFormula> args = bfmgr.toConjunctionArgs(op, false);
 
           argsAsConjunctions.add(args);
 
