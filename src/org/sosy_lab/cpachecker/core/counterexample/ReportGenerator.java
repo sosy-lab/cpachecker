@@ -47,6 +47,7 @@ import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder2;
+import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
@@ -56,12 +57,16 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Writer;
 import java.nio.charset.Charset;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 import javax.annotation.Nullable;
 
 @Options
 public class ReportGenerator {
+
+  private static final String DATE_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
   private static final Splitter LINE_SPLITTER = Splitter.on('\n');
   private static final Splitter COMMA_SPLITTER = Splitter.on(',').trimResults();
@@ -205,6 +210,8 @@ public class ReportGenerator {
           insertTitle(counterExample, report);
         } else if (line.contains("REPORT_NAME")) {
             insertReportName(counterExample, report);
+        } else if (line.contains("GENERATED")) {
+          insertDateAndVersion(report);
         } else {
           report.write(line + "\n");
         }
@@ -214,6 +221,15 @@ public class ReportGenerator {
       logger.logUserException(
           WARNING, e, "Could not create report: Procesing of HTML template failed.");
     }
+  }
+
+  private void insertDateAndVersion(Writer report) throws IOException {
+    String generated =
+        String.format(
+            "<em class=\"ng-binding\">Generated on %s <br /> by CPAchecker %s</em>",
+            new SimpleDateFormat(DATE_TIME_FORMAT).format(new Date()),
+            CPAchecker.getCPAcheckerVersion());
+    report.write(generated);
   }
 
   private void insertReportName(@Nullable CounterexampleInfo counterExample, Writer report) throws IOException {

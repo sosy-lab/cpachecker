@@ -77,7 +77,7 @@ height: 25px;
 }
 .header em{
     float: right;
-    margin-top: 15px;
+    margin-top: 3px;
     margin-right: 10px;
 }
 
@@ -321,7 +321,6 @@ div pre{
     var app = angular.module('report', []);
 
     app.controller('ReportController', ['$rootScope', '$scope', function($rootScope, $scope){
-        $scope.date = Date.now();
         $scope.logo = "https://cpachecker.sosy-lab.org/logo.svg";
         $scope.help_externalFiles = "<p><b>CFA</b> (control flow automaton) shows the control flow of the program (one CFA for one function in the source-code)</p>" +
             "<p>- the errorpath is highlighted in red</p>" +
@@ -921,10 +920,10 @@ function init(){
 <body ng-controller="ReportController" onload="prettyPrint(); init()">
 <header class="header">
 
-    <h3><img ng-src="{{logo}}"/> Report</h3>
+    <h3><a href="https://cpachecker.sosy-lab.org/"><img ng-src="{{logo}}"/></a> Report</h3>
     <!-- REPORT_NAME -->
 
-    <em> Generated: {{date | date:'yyyy-MM-dd HH:mm:ss'}}</em>
+    <em> Generated <br /> by CPAchecker</em><!-- GENERATED -->
 </header>
 
 <div class="sections" ng-mousemove="setWidth($event)" ng-mouseup="setMouseUp()">
