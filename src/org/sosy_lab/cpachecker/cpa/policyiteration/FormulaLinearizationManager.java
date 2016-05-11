@@ -6,7 +6,6 @@ import com.google.common.collect.Multimap;
 
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.NumeralFormulaManagerView;
@@ -74,7 +73,9 @@ public class FormulaLinearizationManager {
   /**
    * Annotate disjunctions with choice variables.
    */
-  public BooleanFormula annotateDisjunctions(BooleanFormula input) {
+  public BooleanFormula annotateDisjunctions(BooleanFormula input)
+      throws InterruptedException {
+    input = fmgr.applyTactic(input, Tactic.NNF);
     return bfmgr.transformRecursively(new BooleanFormulaTransformationVisitor(fmgr) {
       @Override
       public BooleanFormula visitOr(List<BooleanFormula> processed) {
@@ -103,6 +104,10 @@ public class FormulaLinearizationManager {
       final BooleanFormula input,
       final Model model
   ) {
+
+    // TODO: more efficient to call #evaluate() on the subset of variables
+    // which we actually use.
+    // These models can be seriously huge.
     Map<Formula, Formula> mapping = new HashMap<>();
     for (ValueAssignment entry : model) {
       String termName = entry.getName();
@@ -128,40 +133,10 @@ public class FormulaLinearizationManager {
     f = fmgr.applyTactic(f, Tactic.NNF);
 
     // Get rid of UFs.
-    BooleanFormula noUFs = processUFs(f, pModel);
-
-    // Get rid of ite-expressions.
-    BooleanFormula out = bfmgr.transformRecursively(new ReplaceITEVisitor(pModel), noUFs);
+    BooleanFormula out = processUFs(f, pModel);
     statistics.ackermannizationTimer.stop();
 
     return out;
-  }
-
-  /**
-   * TODO: does not correctly replace if-then-else's
-   * which occur INSIDE the formula.
-   */
-  private class ReplaceITEVisitor
-      extends BooleanFormulaManagerView.BooleanFormulaTransformationVisitor {
-
-    private final Model model;
-
-    private ReplaceITEVisitor(Model pModel) {
-      super(fmgr);
-      model = pModel;
-    }
-
-    @Override
-    public BooleanFormula visitIfThenElse(
-        BooleanFormula pCondition, BooleanFormula pThenFormula, BooleanFormula pElseFormula) {
-
-      Boolean cond = model.evaluate(pCondition);
-      if (cond != null && cond) {
-        return pThenFormula;
-      } else {
-        return pElseFormula;
-      }
-    }
   }
 
   /**
