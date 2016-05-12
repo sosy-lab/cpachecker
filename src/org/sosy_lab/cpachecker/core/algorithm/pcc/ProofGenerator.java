@@ -58,7 +58,7 @@ public class ProofGenerator {
   private PCCStrategy checkingStrategy;
 
   private final LogManager logger;
-  private final Timer writingTimer = new Timer();
+  private final Timer generationTimer = new Timer();
 
   private final Statistics proofGeneratorStats = new Statistics() {
 
@@ -67,7 +67,7 @@ public class ProofGenerator {
       pOut.println();
       pOut.println(getName() + " statistics");
       pOut.println("------------------------------------");
-      pOut.println("Time for proof writing: " + writingTimer);
+      pOut.println("Total time for proof generation: " + generationTimer);
 
       if (checkingStrategy != null) {
         for (Statistics stats : checkingStrategy.getAdditionalProofGenerationStatistics()) {
@@ -116,12 +116,12 @@ public class ProofGenerator {
     // saves the proof
     logger.log(Level.INFO, "Proof Generation started.");
 
-    writingTimer.start();
+    generationTimer.start();
 
     checkingStrategy.writeProof(pReached);
 
-    writingTimer.stop();
-    logger.log(Level.INFO, "Writing proof took " + writingTimer.getMaxTime().formatAs(TimeUnit.SECONDS));
+    generationTimer.stop();
+    logger.log(Level.INFO, "Writing proof took " + generationTimer.getMaxTime().formatAs(TimeUnit.SECONDS));
 
   }
 
