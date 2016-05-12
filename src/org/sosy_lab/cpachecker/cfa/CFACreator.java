@@ -31,8 +31,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 
+import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -913,14 +913,17 @@ v.addInitializer(initializer);
 
   private void exportCFAAsync(final CFA cfa) {
     // execute asynchronously, this may take several seconds for large programs on slow disks
-    Threads.newThread(new Runnable() {
-      @Override
-      public void run() {
-        // running the following in parallel is thread-safe
-        // because we don't modify the CFA from this point on
-        exportCFA(cfa);
-      }
-    }, "CFA export thread").start();
+    Concurrency.newThread(
+            "BDD cleanup thread",
+            new Runnable() {
+              @Override
+              public void run() {
+                // running the following in parallel is thread-safe
+                // because we don't modify the CFA from this point on
+                exportCFA(cfa);
+              }
+            })
+        .start();
   }
 
   private void exportCFA(final CFA cfa) {

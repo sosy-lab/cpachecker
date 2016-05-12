@@ -23,12 +23,9 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.parallel;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.logging.Level;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
@@ -42,6 +39,11 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.pcc.strategy.ReachedSetStrategy;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.concurrent.ThreadFactory;
+import java.util.logging.Level;
 
 @Options
 public class ReachedSetParallelStrategy extends ReachedSetStrategy{
@@ -77,10 +79,14 @@ public class ReachedSetParallelStrategy extends ReachedSetStrategy{
     Thread[] helperThreads = new Thread[numThreads-1];
     int length = reachedSet.length/numThreads;
 
+    ThreadFactory threadFactory =
+        new ThreadFactoryBuilder()
+            .setNameFormat("ReachedSetParallelStrategy-checkCertificate-%d")
+            .build();
     for (int i = 0; i < helper.length; i++) {
       shutdownNotifier.shutdownIfNecessary();
       helper[i] = new CheckingHelper(i * length, length, initialPrec);
-      helperThreads[i] = Threads.newThread(helper[i]);
+      helperThreads[i] = threadFactory.newThread(helper[i]);
       helperThreads[i].start();
     }
 

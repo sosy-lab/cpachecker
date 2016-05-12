@@ -40,7 +40,6 @@ import org.sosy_lab.common.LazyFutureTask;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
-import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
@@ -48,7 +47,6 @@ import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import java.nio.file.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -95,6 +93,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.solver.SolverException;
 
 import java.io.PrintStream;
+import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Collection;
@@ -345,7 +344,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
 
     if (async) {
       // start invariant generation asynchronously
-      ExecutorService executor = Executors.newSingleThreadExecutor(Threads.threadFactory());
+      ExecutorService executor = Executors.newSingleThreadExecutor();
       invariantGenerationFuture = executor.submit(task);
       executor.shutdown(); // will shutdown after task is finished
 

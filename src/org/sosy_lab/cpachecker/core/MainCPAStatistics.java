@@ -40,7 +40,7 @@ import com.google.common.collect.Multimaps;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Ordering;
 
-import org.sosy_lab.common.concurrency.Threads;
+import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -136,7 +136,8 @@ class MainCPAStatistics implements Statistics {
 
     if (monitorMemoryUsage) {
       memStats = new MemoryStatistics(pLogger);
-      memStatsThread = Threads.newThread(memStats, "CPAchecker memory statistics collector", true);
+      memStatsThread =
+          Concurrency.newDaemonThread("CPAchecker memory statistics collector", memStats);
       memStatsThread.start();
     } else {
       memStats = null;

@@ -32,7 +32,6 @@ import com.google.common.base.Preconditions;
 
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
@@ -133,7 +132,7 @@ public class CPAcheckerInvariantGenerator extends AbstractInvariantGenerator {
         cpa.getInitialPrecision(pInitialLocation, getDefaultPartition()));
 
     if (async) {
-      ExecutorService executor = Executors.newSingleThreadExecutor(Threads.threadFactory());
+      ExecutorService executor = Executors.newSingleThreadExecutor();
       executor.submit(computeInvariants());
       executor.shutdown();
     } else {

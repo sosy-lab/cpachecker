@@ -23,6 +23,18 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
+import com.google.common.base.Function;
+import com.google.common.base.Throwables;
+
+import org.sosy_lab.common.Classes.UnexpectedCheckedException;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+
 import java.util.Collection;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -31,19 +43,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-
-import org.sosy_lab.common.Classes.UnexpectedCheckedException;
-import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.concurrency.Threads;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-
-import com.google.common.base.Function;
-import com.google.common.base.Throwables;
 
 
 public class AutoAdjustingInvariantGenerator<T extends InvariantGenerator> extends AbstractInvariantGenerator implements StatisticsProvider {
@@ -69,7 +68,7 @@ public class AutoAdjustingInvariantGenerator<T extends InvariantGenerator> exten
   @Override
   public void start(final CFANode pInitialLocation) {
     invariantGenerator.start(pInitialLocation);
-    ExecutorService executor = Executors.newSingleThreadExecutor(Threads.threadFactory());
+    ExecutorService executor = Executors.newSingleThreadExecutor();
     taskFuture.set(executor.submit(new Callable<FormulaAndTreeSupplier>() {
 
       @Override
