@@ -113,7 +113,7 @@ Releasing a new Version
 
 2. Define a new version by setting "version.base" in "build.xml" to the new value.
 
-3. Build binary versions with "ant clean tar zip" and test them to ensure
+3. Build binary versions with "ant clean dist" and test them to ensure
    that all necessary files are contained in them.
 
 4. Update AppEngine version of CPAchecker:
