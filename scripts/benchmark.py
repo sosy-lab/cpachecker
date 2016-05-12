@@ -45,8 +45,7 @@ benchexec.tools.__path__ = [os.path.join(os.path.dirname(__file__), 'benchmark',
 class Benchmark(benchexec.benchexec.BenchExec):
     """
     An extension of BenchExec for use with CPAchecker
-    that supports executor modules for executing the benchmarks
-    in the VerifierCloud or in the Google App Engine.
+    that supports executing the benchmarks in the VerifierCloud.
     """
 
     DEFAULT_OUTPUT_PATH = "test/results/"
@@ -109,31 +108,6 @@ class Benchmark(benchexec.benchexec.BenchExec):
                           type=int,
                           help="The interval in seconds for polling results from the server (if using the web interface of the VerifierCloud).")
 
-        appengine_args = parser.add_argument_group('Options for using CPAchecker in the AppEngine')
-        appengine_args.add_argument("--appengine",
-                          dest="appengine",
-                          action="store_true",
-                          help="Use Google App Engine to execute benchmarks.")
-
-        appengine_args.add_argument("--appengineURI",
-                          dest="appengineURI",
-                          metavar="URI",
-                          default='http://cpachecker.appspot.com',
-                          type=str,
-                          help="Sets the URI to use when submitting tasks to App Engine.")
-
-        appengine_args.add_argument("--appenginePollInterval",
-                          dest="appenginePollInterval",
-                          metavar="SECONDS",
-                          default=60,
-                          type=int,
-                          help="Sets the interval in seconds after which App Engine is polled for results.")
-
-        appengine_args.add_argument("--appengineKeep",
-                            dest="appengineDeleteWhenDone",
-                            action="store_false",
-                            help="If set a task will NOT be deleted from App Engine after it has successfully been executed.")
-
         return parser
 
 
@@ -143,8 +117,6 @@ class Benchmark(benchexec.benchexec.BenchExec):
                 import benchmark.webclient_benchexec as executor
             else:
                 import benchmark.vcloud as executor
-        elif self.config.appengine:
-            import benchmark.appengine as executor
         else:
             executor = super(Benchmark, self).load_executor()
         return executor
