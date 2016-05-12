@@ -38,6 +38,8 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -65,6 +67,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
   protected LogManager logger;
   protected PCStrategyStatistics stats;
   protected ProofStatesInfoCollector proofInfo;
+  protected PCGenerationStatistics genStats;
   private Collection<Statistics> pccStats = new ArrayList<>();
 
   @Option(secure=true,
@@ -85,6 +88,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     numThreads = Math.min(Runtime.getRuntime().availableProcessors(), numThreads);
     logger = pLogger;
     proofInfo = new ProofStatesInfoCollector(pConfig);
+    genStats = new PCGenerationStatistics();
     stats = new PCStrategyStatistics(file);
     pccStats.add(stats);
   }
@@ -188,12 +192,30 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
 
   @Override
   public Collection<Statistics> getAdditionalProofGenerationStatistics(){
+    Collection<Statistics> stats = new ArrayList<>();
+    stats.add(genStats);
     if(proofInfo != null) {
-      Collection<Statistics> stats = new ArrayList<>();
       stats.add(proofInfo);
-      return stats;
     }
-    return Collections.emptySet();
+    stats.add(genStats);
+    return stats;
+  }
+
+  public static class PCGenerationStatistics implements Statistics {
+
+    public final Timer constructTimer = new Timer();
+
+    @Override
+    public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+      pOut.println("  Time for preparing proof construction:          " + constructTimer);
+    }
+
+    @Override
+    public @Nullable
+    String getName() {
+      return "PCC Generation statistics";
+    }
+
   }
 
   public static class PCStrategyStatistics implements Statistics {

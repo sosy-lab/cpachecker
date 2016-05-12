@@ -147,7 +147,7 @@ public class PartitionedReachedSetStrategy extends AbstractStrategy {
   @Override
   protected void writeProofToStream(ObjectOutputStream pOut, UnmodifiableReachedSet pReached) throws IOException,
       InvalidConfigurationException, InterruptedException {
-    ioHelper.writeProof(pOut, pReached);
+    ioHelper.writeProof(pOut, pReached, genStats.constructTimer);
   }
 
   @Override

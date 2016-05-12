@@ -148,7 +148,7 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
   @Override
   protected void writeProofToStream(final ObjectOutputStream pOut, final UnmodifiableReachedSet pReached)
       throws IOException, InvalidConfigurationException, InterruptedException {
-    ioHelper.constructInternalProofRepresentation(pReached);
+    ioHelper.constructInternalProofRepresentation(pReached, genStats.constructTimer);
 
     // write metadata
     ioHelper.writeMetadata(pOut, pReached.size(), ioHelper.getNumPartitions());

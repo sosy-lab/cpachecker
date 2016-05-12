@@ -41,7 +41,14 @@ public abstract class SequentialReadStrategy extends AbstractStrategy {
 
   @Override
   protected void writeProofToStream(ObjectOutputStream out, UnmodifiableReachedSet reached) throws IOException, InvalidConfigurationException {
-    out.writeObject(getProofToWrite(reached));
+    Object proof;
+    genStats.constructTimer.start();
+    try {
+      proof = getProofToWrite(reached);
+    } finally {
+      genStats.constructTimer.stop();
+    }
+    out.writeObject(proof);
   }
 
   @Override

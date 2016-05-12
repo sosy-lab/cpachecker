@@ -279,7 +279,12 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
 
   @Override
   protected Object getProofToWrite(UnmodifiableReachedSet pReached) {
-    constructInternalProofRepresentation(pReached);
+    genStats.constructTimer.start();
+    try {
+      constructInternalProofRepresentation(pReached);
+    } finally {
+      genStats.constructTimer.stop();
+    }
     return args;
   }
 

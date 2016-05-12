@@ -168,7 +168,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
   protected void writeProofToStream(final ObjectOutputStream pOut, final UnmodifiableReachedSet pReached)
       throws IOException, InvalidConfigurationException, InterruptedException {
     Pair<PartialReachedSetDirectedGraph, List<Set<Integer>>> partitioning =
-        ioHelper.computePartialReachedSetAndPartition(pReached);
+        ioHelper.computePartialReachedSetAndPartition(pReached, genStats.constructTimer);
 
     ioHelper.setProofInfoCollector(proofInfo);
 

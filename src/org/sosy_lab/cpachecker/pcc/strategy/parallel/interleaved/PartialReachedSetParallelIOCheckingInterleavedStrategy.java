@@ -192,7 +192,7 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
   @Override
   protected void writeProofToStream(final ObjectOutputStream pOut, final UnmodifiableReachedSet pReached)
       throws IOException, InvalidConfigurationException, InterruptedException {
-    ioHelper.constructInternalProofRepresentation(pReached);
+    ioHelper.constructInternalProofRepresentation(pReached, genStats.constructTimer);
 
     // write meta data
     ioHelper.writeMetadata(pOut, pReached.size(), ioHelper.getNumPartitions());

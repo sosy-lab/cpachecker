@@ -42,6 +42,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -107,6 +108,16 @@ public class PartitioningIOHelper {
     return null;
   }
 
+  public void constructInternalProofRepresentation(final UnmodifiableReachedSet pReached, final Timer pProofGenTimer)
+      throws InvalidConfigurationException, InterruptedException {
+    pProofGenTimer.start();
+    try {
+      constructInternalProofRepresentation(pReached);
+    } finally {
+      pProofGenTimer.stop();
+    }
+  }
+
   public void constructInternalProofRepresentation(final UnmodifiableReachedSet pReached)
       throws InvalidConfigurationException, InterruptedException {
     saveInternalProof(pReached.size(), computePartialReachedSetAndPartition(pReached));
@@ -127,26 +138,41 @@ public class PartitioningIOHelper {
   }
 
   public Pair<PartialReachedSetDirectedGraph, List<Set<Integer>>> computePartialReachedSetAndPartition(
-      final UnmodifiableReachedSet pReached) throws InvalidConfigurationException, InterruptedException {
-    AbstractState[] partialCertificate = partialConstructor.computePartialReachedSet(pReached);
-    ARGState[] argNodes = new ARGState[partialCertificate.length];
-    for (int i = 0; i < partialCertificate.length; i++) {
-      argNodes[i] = (ARGState) partialCertificate[i];
+      final UnmodifiableReachedSet pReached, final Timer pProofGenTimer) throws InvalidConfigurationException,
+      InterruptedException {
+    pProofGenTimer.start();
+    try {
+      return computePartialReachedSetAndPartition(pReached);
+    } finally {
+      pProofGenTimer.stop();
     }
+  }
 
-    PartialReachedSetDirectedGraph graph = new PartialReachedSetDirectedGraph(argNodes);
-    currentGraphStatistics = graph;
+  public Pair<PartialReachedSetDirectedGraph, List<Set<Integer>>> computePartialReachedSetAndPartition(
+      final UnmodifiableReachedSet pReached) throws InvalidConfigurationException, InterruptedException {
+    try {
+      AbstractState[] partialCertificate = partialConstructor.computePartialReachedSet(pReached);
+      ARGState[] argNodes = new ARGState[partialCertificate.length];
+      for (int i = 0; i < partialCertificate.length; i++) {
+        argNodes[i] = (ARGState) partialCertificate[i];
+      }
 
-    if (useGraphSizeToComputePartitionNumber) {
-      return Pair.of(graph,
-          partitioner.computePartitioning(
-              maxNumElemsPerPartition <= 0 ? 1
-                  : (int) Math.ceil(graph.getNumNodes() / (double) maxNumElemsPerPartition), graph));
-    } else {
-      return Pair.of(graph,
-          partitioner.computePartitioning(
-              maxNumElemsPerPartition <= 0 ? 1 : (int) Math.ceil(pReached.size() / (double) maxNumElemsPerPartition),
-              graph));
+      PartialReachedSetDirectedGraph graph = new PartialReachedSetDirectedGraph(argNodes);
+      currentGraphStatistics = graph;
+
+      if (useGraphSizeToComputePartitionNumber) {
+        return Pair.of(graph,
+            partitioner.computePartitioning(
+                maxNumElemsPerPartition <= 0 ? 1
+                    : (int) Math.ceil(graph.getNumNodes() / (double) maxNumElemsPerPartition), graph));
+      } else {
+        return Pair.of(graph,
+            partitioner.computePartitioning(
+                maxNumElemsPerPartition <= 0 ? 1 : (int) Math.ceil(pReached.size() / (double) maxNumElemsPerPartition),
+                graph));
+      }
+    } finally {
+
     }
   }
 
@@ -224,12 +250,12 @@ public class PartitioningIOHelper {
     pOut.writeObject(pAdjacentNodesOutside);
   }
 
-  public void writeProof(final ObjectOutputStream pOut, final UnmodifiableReachedSet pReached)
+  public void writeProof(final ObjectOutputStream pOut, final UnmodifiableReachedSet pReached, final Timer proofGenTimer)
       throws InvalidConfigurationException, IOException, InterruptedException {
     Pair<PartialReachedSetDirectedGraph, List<Set<Integer>>> partitionDescription =
-        computePartialReachedSetAndPartition(pReached);
+        computePartialReachedSetAndPartition(pReached, proofGenTimer);
 
-    writeMetadata(pOut, pReached.size(), partitionDescription.getSecond().size());
+   writeMetadata(pOut, pReached.size(), partitionDescription.getSecond().size());
     for (Set<Integer> partition : partitionDescription.getSecond()) {
       writePartition(pOut, partition, partitionDescription.getFirst());
     }
@@ -308,4 +334,5 @@ public class PartitioningIOHelper {
     }
 
   }
+
 }

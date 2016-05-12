@@ -118,7 +118,12 @@ public class ARG_CMCStrategy extends AbstractStrategy {
   @Override
   protected void writeProofToStream(ObjectOutputStream pOut, UnmodifiableReachedSet pReached) throws IOException,
       InvalidConfigurationException, InterruptedException {
-    constructInternalProofRepresentation(pReached);
+    genStats.constructTimer.start();
+    try {
+      constructInternalProofRepresentation(pReached);
+    } finally {
+      genStats.constructTimer.stop();
+    }
     if (proofKnown) {
       HistoryForwardingReachedSet historyReached = (HistoryForwardingReachedSet) pReached;
       if (historyReached.getAllReachedSetsUsedAsDelegates().size() != historyReached.getCPAs().size()) {

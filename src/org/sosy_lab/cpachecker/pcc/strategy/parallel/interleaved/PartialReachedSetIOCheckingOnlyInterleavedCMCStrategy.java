@@ -182,46 +182,53 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
   @Override
   protected void writeProofToStream(ObjectOutputStream pOut, UnmodifiableReachedSet pReached) throws IOException,
       InvalidConfigurationException, InterruptedException {
-    if (!(pReached instanceof HistoryForwardingReachedSet)) { throw new InvalidConfigurationException(
-        "Reached sets used by restart algorithm are not memorized. Please enable option analysis.memorizeReachedAfterRestart"); }
-
-    List<ReachedSet> partialReachedSets =
-        ((HistoryForwardingReachedSet) pReached).getAllReachedSetsUsedAsDelegates();
-
-    if (partialReachedSets == null || partialReachedSets.isEmpty()) {
-      logger.log(Level.SEVERE, "No proof parts available. Proof cannot be generated.");
-      return;
-    }
-
-    List<ConfigurableProgramAnalysis> cpas = ((HistoryForwardingReachedSet) pReached).getCPAs();
-
-    if (partialReachedSets.size() != cpas.size()) {
-      logger.log(Level.SEVERE, "Analysis inconsistent. Proof cannot be generated.");
-      return;
-    }
-
-    logger.log(Level.FINEST, "Write number of proof parts to proof");
-    pOut.writeInt(partialReachedSets.size());
-
-    CMCPartitioningIOHelper ioHelper;
-    Set<ARGState> unexplored;
+    genStats.constructTimer.start();
     try {
-      ReachedSet reached;
-      for (int i = 0; i < partialReachedSets.size(); i++) {
-        GlobalInfo.getInstance().setUpInfoFromCPA(cpas.get(i));
-        reached = partialReachedSets.get(i);
+      if (!(pReached instanceof HistoryForwardingReachedSet)) { throw new InvalidConfigurationException(
+          "Reached sets used by restart algorithm are not memorized. Please enable option analysis.memorizeReachedAfterRestart"); }
 
-        unexplored = Sets.newHashSetWithExpectedSize(reached.getWaitlist().size());
-        for (AbstractState toExplore : reached.getWaitlist()) {
-          unexplored.add((ARGState) toExplore);
+      List<ReachedSet> partialReachedSets =
+          ((HistoryForwardingReachedSet) pReached).getAllReachedSetsUsedAsDelegates();
+
+      if (partialReachedSets == null || partialReachedSets.isEmpty()) {
+        logger.log(Level.SEVERE, "No proof parts available. Proof cannot be generated.");
+        return;
+      }
+
+      List<ConfigurableProgramAnalysis> cpas = ((HistoryForwardingReachedSet) pReached).getCPAs();
+
+      if (partialReachedSets.size() != cpas.size()) {
+        logger.log(Level.SEVERE, "Analysis inconsistent. Proof cannot be generated.");
+        return;
+      }
+
+      logger.log(Level.FINEST, "Write number of proof parts to proof");
+      pOut.writeInt(partialReachedSets.size());
+
+      CMCPartitioningIOHelper ioHelper;
+      Set<ARGState> unexplored;
+      try {
+        ReachedSet reached;
+        for (int i = 0; i < partialReachedSets.size(); i++) {
+          GlobalInfo.getInstance().setUpInfoFromCPA(cpas.get(i));
+          reached = partialReachedSets.get(i);
+
+          unexplored = Sets.newHashSetWithExpectedSize(reached.getWaitlist().size());
+          for (AbstractState toExplore : reached.getWaitlist()) {
+            unexplored.add((ARGState) toExplore);
+          }
+
+          ioHelper = new CMCPartitioningIOHelper(config, logger, shutdown,
+              automatonWriter.getAllAncestorsFor(unexplored), unexplored, (ARGState) reached.getFirstState());
+          genStats.constructTimer.stop();
+          ioHelper.writeProof(pOut, reached, genStats.constructTimer);
+          genStats.constructTimer.start();
         }
-
-        ioHelper = new CMCPartitioningIOHelper(config, logger, shutdown,
-            automatonWriter.getAllAncestorsFor(unexplored), unexplored, (ARGState) reached.getFirstState());
-        ioHelper.writeProof(pOut, reached);
-     }
-    } catch (ClassCastException e) {
-      logger.log(Level.SEVERE, "Stop writing proof. Not all analysis use ARG CPA as top level CPA");
+      } catch (ClassCastException e) {
+        logger.log(Level.SEVERE, "Stop writing proof. Not all analysis use ARG CPA as top level CPA");
+      }
+    } finally {
+      genStats.constructTimer.stopIfRunning();
     }
   }
 
