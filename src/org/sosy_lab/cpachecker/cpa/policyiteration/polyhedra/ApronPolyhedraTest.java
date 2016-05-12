@@ -29,8 +29,7 @@ import java.util.logging.Level;
 
 public class ApronPolyhedraTest {
   static {
-    SetUp.init(
-        NativeLibraries.getNativeLibraryPath().resolve("apron").getAbsolutePath());
+    SetUp.init(NativeLibraries.getNativeLibraryPath().resolve("apron").toAbsolutePath().toString());
   }
 
   private PolyhedraWideningManager pwm;

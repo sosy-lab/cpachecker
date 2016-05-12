@@ -36,8 +36,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -53,6 +52,8 @@ import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -257,7 +258,7 @@ public class CEXExporter {
       Path file = template.getPath(uniqueId);
 
       try {
-        Files.writeFile(file, content);
+        MoreFiles.writeFile(file, Charset.defaultCharset(), content);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,
                 "Could not write information about the error path to file");

@@ -44,9 +44,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentException;
@@ -63,8 +61,14 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.StringWriter;
 import java.net.URISyntaxException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 public class CPAMain {
 
@@ -226,7 +230,8 @@ public class CPAMain {
       LogManager logManager) {
     if (options.configurationOutputFile != null) {
       try {
-        Files.writeFile(options.configurationOutputFile, config.asPropertiesString());
+        MoreFiles.writeFile(
+            options.configurationOutputFile, Charset.defaultCharset(), config.asPropertiesString());
       } catch (IOException e) {
         logManager.logUserException(Level.WARNING, e, "Could not dump configuration to file");
       }
@@ -341,8 +346,8 @@ public class CPAMain {
 
     if (options.exportStatistics && options.exportStatisticsFile != null) {
       try {
-        Files.createParentDirs(options.exportStatisticsFile);
-        file = closer.register(options.exportStatisticsFile.asByteSink().openStream());
+        MoreFiles.createParentDirs(options.exportStatisticsFile);
+        file = closer.register(Files.newOutputStream(options.exportStatisticsFile));
       } catch (IOException e) {
         logManager.logUserException(Level.WARNING, e, "Could not write statistics to file");
       }
@@ -383,18 +388,31 @@ public class CPAMain {
 
       if (generated) {
         try {
-          // TODO: relativize scriptsDir after AppEngine code is deleted
-          Path scriptsDir =
-              Paths.get(CPAMain.class.getProtectionDomain().getCodeSource().getLocation().toURI())
-                  .getParent()
-                  .resolve("scripts");
-          stream.println(
-              "Run " + scriptsDir.resolve("report-generator.py") + " to show graphical report.");
+          Path pathToReportGenerator = getPathToReportGenerator();
+          if (pathToReportGenerator != null) {
+            stream.println("Run " + pathToReportGenerator + " to show graphical report.");
+          }
         } catch (SecurityException | URISyntaxException e) {
           logManager.logUserException(WARNING, e, "Could not find script for generating report.");
         }
       }
     }
+  }
+
+  private static @Nullable Path getPathToReportGenerator() throws URISyntaxException {
+    Path curDir = Paths.get("").toAbsolutePath();
+    Path baseDir =
+        Paths.get(CPAMain.class.getProtectionDomain().getCodeSource().getLocation().toURI())
+            .getParent();
+
+    if (baseDir != null) {
+      Path reportGenerator =
+          curDir.relativize(baseDir.resolve("scripts").resolve("report-generator.py"));
+      if (Files.isExecutable(reportGenerator)) {
+        return reportGenerator;
+      }
+    }
+    return null;
   }
 
   @SuppressFBWarnings(value="DM_DEFAULT_ENCODING",

@@ -23,12 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.apron;
 
-import org.sosy_lab.common.NativeLibraries;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
-
 import apron.Box;
 import apron.Manager;
 import apron.Octagon;
@@ -36,12 +30,17 @@ import apron.Polka;
 import apron.PolkaEq;
 import apron.SetUp;
 
+import org.sosy_lab.common.NativeLibraries;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+
 @Options(prefix="cpa.apron")
 public class ApronManager {
 
   static {
-    SetUp.init(
-        NativeLibraries.getNativeLibraryPath().resolve("apron").getAbsolutePath());
+    SetUp.init(NativeLibraries.getNativeLibraryPath().resolve("apron").toAbsolutePath().toString());
   }
 
   @Option(secure=true, name="domain", toUppercase=true, values={"BOX", "OCTAGON", "POLKA", "POLKA_STRICT", "POLKA_EQ"},

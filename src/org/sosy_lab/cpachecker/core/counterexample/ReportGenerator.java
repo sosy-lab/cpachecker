@@ -40,10 +40,8 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.io.PathTemplate;
-import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder2;
@@ -57,6 +55,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Writer;
 import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -172,17 +172,11 @@ public class ReportGenerator {
       CFA cfa,
       DOTBuilder2 dotBuilder,
       String statistics) {
-    try {
-      Files.createParentDirs(reportPath);
-    } catch (IOException e) {
-      logger.logUserException(WARNING, e, "Could not create report.");
-      return;
-    }
 
     try (BufferedReader template =
             Resources.asCharSource(Resources.getResource(HTML_TEMPLATE), Charsets.UTF_8)
                 .openBufferedStream();
-        Writer report = reportPath.asCharSink(Charset.defaultCharset()).openBufferedStream()) {
+        Writer report = MoreFiles.openOutputFile(reportPath, Charsets.UTF_8)) {
 
       String line;
       while (null != (line = template.readLine())) {
@@ -263,7 +257,7 @@ public class ReportGenerator {
   private void insertSource(Path sourcePath, Writer report, int sourceFileNumber)
       throws IOException {
 
-    if (sourcePath.exists()) {
+    if (java.nio.file.Files.isReadable(sourcePath)) {
 
       int iterator = 0;
       try (BufferedReader source =
@@ -316,11 +310,9 @@ public class ReportGenerator {
   }
 
   private void insertLog(Writer bufferedWriter) throws IOException {
-    if (logFile != null && logFile.exists()) {
+    if (logFile != null && java.nio.file.Files.isReadable(logFile)) {
       try (BufferedReader log =
-          new BufferedReader(
-              new InputStreamReader(
-                  new FileInputStream(logFile.toFile()), Charset.defaultCharset()))) {
+          java.nio.file.Files.newBufferedReader(logFile, Charset.defaultCharset())) {
 
         int iterator = 0;
         String line;

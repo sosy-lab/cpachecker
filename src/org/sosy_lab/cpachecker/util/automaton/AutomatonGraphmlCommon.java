@@ -33,8 +33,7 @@ import com.google.common.io.BaseEncoding;
 import com.google.common.io.ByteSource;
 import com.google.common.io.CharStreams;
 
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -53,6 +52,8 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
@@ -416,7 +417,7 @@ public class AutomatonGraphmlCommon {
       Splitter commaSplitter = Splitter.on(',').omitEmptyStrings().trimResults();
       for (String programDenotation : commaSplitter.split(pProgramDenotations)) {
         Path programPath = Paths.get(programDenotation);
-        sources.add(programPath.asByteSource());
+        sources.add(MoreFiles.asByteSource(programPath));
       }
       HashCode hash = ByteSource.concat(sources).hash(Hashing.sha1());
       return BaseEncoding.base16().lowerCase().encode(hash.asBytes());

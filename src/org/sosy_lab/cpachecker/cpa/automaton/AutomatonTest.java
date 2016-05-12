@@ -28,13 +28,15 @@ import static com.google.common.truth.Truth.assertThat;
 import com.google.common.collect.ImmutableMap;
 
 import org.junit.Test;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 
 public class AutomatonTest {
@@ -53,11 +55,11 @@ public class AutomatonTest {
       Path tmpSpc = Paths.get("test/config/automata/tmpSpecification.spc");
       String content = "#include UninitializedVariablesTestAutomaton.txt \n" +
       "#include tmpSpecification.spc \n";
-      Files.writeFile(tmpSpc, content);
+      MoreFiles.writeFile(tmpSpc, StandardCharsets.US_ASCII, content);
       TestResults results = CPATestRunner.run(prop, "test/programs/simple/UninitVarsErrors.c");
       results.assertIsSafe();
       assertThat(results.getLog()).contains("test/config/automata/tmpSpecification.spc\" was referenced multiple times.");
-      assertThat(tmpSpc.delete()).named("deletion of temporary specification successful").isTrue();
+      Files.delete(tmpSpc);
   }
   @Test
   public void includeSpecificationTest() throws Exception {

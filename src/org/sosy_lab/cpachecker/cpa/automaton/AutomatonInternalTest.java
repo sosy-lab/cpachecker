@@ -23,23 +23,28 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import static com.google.common.truth.Truth.*;
-import static org.mockito.Matchers.*;
-import static org.mockito.Mockito.*;
+import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assert_;
+import static org.mockito.Matchers.anyVararg;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
-import java.io.IOException;
-import java.io.Reader;
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
+import com.google.common.io.CharSource;
+import com.google.common.io.CharStreams;
+import com.google.common.truth.FailureStrategy;
+import com.google.common.truth.Subject;
+import com.google.common.truth.SubjectFactory;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+import java_cup.runtime.ComplexSymbolFactory;
+import java_cup.runtime.Symbol;
 
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
@@ -52,15 +57,15 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
-import com.google.common.io.CharSource;
-import com.google.common.io.CharStreams;
-import com.google.common.truth.FailureStrategy;
-import com.google.common.truth.Subject;
-import com.google.common.truth.SubjectFactory;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java_cup.runtime.ComplexSymbolFactory;
-import java_cup.runtime.Symbol;
+import java.io.IOException;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
 
 /**
  * This class contains Tests for the AutomatonAnalysis
@@ -72,7 +77,8 @@ public class AutomatonInternalTest {
   private final CParser parser;
 
   private static final Path defaultSpecPath = Paths.get("test/config/automata/defaultSpecification.spc");
-  private static final CharSource defaultSpec = defaultSpecPath.asCharSource(StandardCharsets.UTF_8);
+  private static final CharSource defaultSpec =
+      MoreFiles.asCharSource(defaultSpecPath, StandardCharsets.UTF_8);
 
   public AutomatonInternalTest() throws InvalidConfigurationException {
     config = TestDataTools.configurationForTest().build();

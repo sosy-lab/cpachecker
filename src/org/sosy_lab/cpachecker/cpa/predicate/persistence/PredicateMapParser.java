@@ -30,12 +30,13 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Maps;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -54,6 +55,8 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -130,13 +133,14 @@ public class PredicateMapParser {
    * @throws IOException If the file cannot be read.
    * @throws PredicateParsingFailedException If there is a syntax error in the file.
    */
+  @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
   public PredicatePrecision parsePredicates(Path file)
           throws IOException, PredicateParsingFailedException {
 
-    Files.checkReadableFile(file);
+    MoreFiles.checkReadableFile(file);
 
-    try (BufferedReader reader = file.asCharSource(StandardCharsets.US_ASCII).openBufferedStream()) {
-      return parsePredicates(reader, file.getName());
+    try (BufferedReader reader = Files.newBufferedReader(file, StandardCharsets.US_ASCII)) {
+      return parsePredicates(reader, file.getFileName().toString());
     }
   }
 

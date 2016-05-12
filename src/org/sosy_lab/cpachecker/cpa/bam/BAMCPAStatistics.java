@@ -25,29 +25,18 @@ package org.sosy_lab.cpachecker.cpa.bam;
 
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.toPercent;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.io.PathTemplate;
-import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
@@ -59,11 +48,23 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.util.Pair;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * Prints some BAM related statistics
@@ -216,7 +217,7 @@ class BAMCPAStatistics implements Statistics {
   private void writeArg(final Path file,
                         final Multimap<ARGState, ARGState> connections,
                         final Set<ARGState> rootStates) {
-    try (Writer w = Files.openOutputFile(file)) {
+    try (Writer w = MoreFiles.openOutputFile(file, Charset.defaultCharset())) {
       ARGToDotWriter.write(w,
               rootStates,
               connections,

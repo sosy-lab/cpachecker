@@ -29,8 +29,7 @@ import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
@@ -86,6 +85,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -141,7 +142,7 @@ public class AppliedCustomInstructionParser {
 
   private void writeCustomInstructionSpecification(final CustomInstruction ci,
       final Path signatureFile) throws IOException {
-   try (Writer br = Files.openOutputFile(signatureFile)) {
+    try (Writer br = MoreFiles.openOutputFile(signatureFile, Charset.defaultCharset())) {
       br.write(ci.getSignature() + "\n");
       String ciString = ci.getFakeSMTDescription().getSecond();
       br.write(ciString.substring(ciString.indexOf("a")-1,ciString.length()-1) + ";");

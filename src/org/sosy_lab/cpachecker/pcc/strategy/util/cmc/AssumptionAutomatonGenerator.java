@@ -28,9 +28,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -39,6 +37,9 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
@@ -88,7 +89,7 @@ public class AssumptionAutomatonGenerator {
   public void writeAutomaton(final ARGState root, final List<ARGState> incompleteNodes) throws CPAException {
     assert(notCovered(incompleteNodes));
 
-    try (Writer w = Files.openOutputFile(assumptionsFile)) {
+    try (Writer w = MoreFiles.openOutputFile(assumptionsFile, Charset.defaultCharset())) {
       logger.log(Level.FINEST, "Write assumption automaton to file ", assumptionsFile);
       AssumptionCollectorAlgorithm.writeAutomaton(w, root, getAllAncestorsFor(incompleteNodes),
           new HashSet<AbstractState>(incompleteNodes), 0, true);

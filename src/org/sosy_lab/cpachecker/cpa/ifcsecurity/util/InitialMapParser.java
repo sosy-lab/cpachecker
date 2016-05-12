@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.util;
 
-import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking.Variable;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.policies.PredefinedPolicies;
@@ -32,6 +31,8 @@ import org.sosy_lab.cpachecker.cpa.ifcsecurity.policies.SecurityClasses;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -56,7 +57,7 @@ public class InitialMapParser {
 
     List<String> contents = null;
     try {
-      contents = pFile.asCharSource(Charset.defaultCharset()).readLines();
+      contents = Files.readAllLines(pFile, Charset.defaultCharset());
     } catch (IOException e) {
       pLogger.logUserException(Level.WARNING, e, "Could not read intial security mapping from file named " + pFile);
       return ;

@@ -46,8 +46,6 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.io.CharSink;
-import com.google.common.io.FileWriteMode;
 
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -57,7 +55,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
-import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.ForwardingLogManager;
 import org.sosy_lab.common.log.LogManager;
@@ -124,6 +122,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.StringReader;
 import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -905,8 +904,7 @@ class InvariantsManager implements StatisticsProvider {
       // may be null when -noout is specified
       if (dumpInvariantGenerationAutomata && dumpInvariantGenerationAutomataFile != null) {
         Path logPath = dumpInvariantGenerationAutomataFile.getFreshPath();
-        CharSink file = logPath.asCharSink(Charset.defaultCharset(), FileWriteMode.APPEND);
-        file.openStream().append(spc).close();
+        MoreFiles.writeFile(logPath, Charset.defaultCharset(), spc);
       }
 
       Scope scope =

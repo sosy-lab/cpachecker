@@ -50,8 +50,7 @@ import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -88,6 +87,8 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -475,7 +476,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     if (dumpPredicates && dumpPredicatesFile != null) {
       Path precFile = dumpPredicatesFile.getPath(precisionUpdate.getUpdateCount());
-      try (Writer w = Files.openOutputFile(precFile)) {
+      try (Writer w = MoreFiles.openOutputFile(precFile, Charset.defaultCharset())) {
         precisionWriter.writePredicateMap(
             ImmutableSetMultimap.copyOf(newPredicates),
             ImmutableSetMultimap.<CFANode, AbstractionPredicate>of(),

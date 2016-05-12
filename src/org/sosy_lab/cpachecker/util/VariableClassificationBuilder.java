@@ -43,9 +43,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
@@ -110,6 +108,9 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Writer;
 import java.math.BigInteger;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.HashSet;
@@ -270,7 +271,7 @@ public class VariableClassificationBuilder {
     }
 
     if (dumpfile != null) { // option -noout
-      try (Writer w = Files.openOutputFile(dumpfile)) {
+      try (Writer w = MoreFiles.openOutputFile(dumpfile, Charset.defaultCharset())) {
         w.append("IntBool\n\n");
         w.append(intBoolVars.toString());
         w.append("\n\nIntEq\n\n");
@@ -296,7 +297,7 @@ public class VariableClassificationBuilder {
   }
 
   private void dumpDomainTypeStatistics(Path pDomainTypeStatisticsFile, VariableClassification vc) {
-    try (Writer w = Files.openOutputFile(pDomainTypeStatisticsFile)) {
+    try (Writer w = MoreFiles.openOutputFile(pDomainTypeStatisticsFile, Charset.defaultCharset())) {
       try (PrintWriter p = new PrintWriter(w)) {
         Object[][] statMapping = {
               {"intBoolVars",           vc.getIntBoolVars().size()},
@@ -331,7 +332,7 @@ public class VariableClassificationBuilder {
   }
 
   private void dumpVariableTypeMapping(Path target, VariableClassification vc) {
-    try (Writer w = Files.openOutputFile(target)) {
+    try (Writer w = MoreFiles.openOutputFile(target, Charset.defaultCharset())) {
         for (String var : allVars) {
           int type = 0;
           if (vc.getIntBoolVars().contains(var)) {

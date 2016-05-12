@@ -26,8 +26,7 @@ package org.sosy_lab.cpachecker.cpa.smg;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownSymValue;
@@ -40,6 +39,8 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.optional.SMGOptionalObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedList;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -166,7 +167,10 @@ public final class SMGPlotter {
     Path outputFile = exportSMGFilePattern.getPath(pId);
     SMGPlotter plotter = new SMGPlotter();
 
-    Files.writeFile(outputFile, plotter.smgAsDot(pSmg, pId, "debug plot", explicitValues));
+    MoreFiles.writeFile(
+        outputFile,
+        Charset.defaultCharset(),
+        plotter.smgAsDot(pSmg, pId, "debug plot", explicitValues));
   }
 
   private final HashMap <SMGObject, SMGObjectNode> objectIndex = new HashMap<>();

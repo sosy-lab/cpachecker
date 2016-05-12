@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.ProcessExecutor;
 import org.sosy_lab.common.configuration.Configuration;
@@ -31,10 +33,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Files.DeleteOnCloseFile;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.MoreFiles.DeleteOnCloseFile;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
@@ -52,6 +52,9 @@ import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -62,7 +65,8 @@ import java.util.logging.Level;
  * The generated C program is ONE concrete path. There may and will be many other
  * possible concrete paths but only one is checked.
  */
-@Options(prefix="counterexample.concrete")
+@Options(prefix = "counterexample.concrete")
+@SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
 public class ConcretePathExecutionChecker implements CounterexampleChecker, Statistics {
 
   @Option(secure = false, description = "Path to the compiler. Can be absolute or"
@@ -104,7 +108,7 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
     } else {
 
       // This temp file will be automatically deleted when the try block terminates.
-      try (DeleteOnCloseFile tempFile = Files.createTempFile("concretePath", ".c")) {
+      try (DeleteOnCloseFile tempFile = MoreFiles.createTempFile("concretePath", ".c")) {
         return checkCounterexample(pRootState, pErrorState, pErrorPathStates, tempFile.toPath());
 
       } catch (IOException e) {
@@ -120,7 +124,9 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
    */
   private void compilePathProgram(String absFilePath) throws CounterexampleAnalysisFailed, InterruptedException, IOException, TimeoutException {
     logger.log(Level.FINE, "Compiling concrete error path.");
-    String[] cmdLine = {pathToCompiler.getAbsolutePath(), absFilePath, "-o", absFilePath + ".exe", "-w"};
+    String[] cmdLine = {
+      pathToCompiler.toAbsolutePath().toString(), absFilePath, "-o", absFilePath + ".exe", "-w"
+    };
 
     ProcessExecutor<CounterexampleAnalysisFailed> exec = new ProcessExecutor<>(logger, CounterexampleAnalysisFailed.class, System.getenv(), cmdLine);
     // 0 means compilation terminated without errors
@@ -164,18 +170,19 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
     Appender pathProgram = PathToConcreteProgramTranslator.translatePaths(pRootState, pErrorPathStates, ceInfo.getCFAPathWithAssignments());
 
     // write program to disk
-    try (Writer w = Files.openOutputFile(cFile)) {
+    try (Writer w = MoreFiles.openOutputFile(cFile, Charset.defaultCharset())) {
       pathProgram.appendTo(w);
     } catch (IOException e) {
       throw new CounterexampleAnalysisFailed("Could not write path program to file " + e.getMessage(), e);
     }
 
+    String absFile = cFile.toAbsolutePath().toString();
     try {
       // run compiler
-      compilePathProgram(cFile.getAbsolutePath());
+      compilePathProgram(absFile);
 
       // run program (if successfully compiled)
-      return runConcretePathProgram(cFile.getAbsolutePath());
+      return runConcretePathProgram(absFile);
 
     } catch (IOException e) {
       throw new CounterexampleAnalysisFailed(e.getMessage(), e);

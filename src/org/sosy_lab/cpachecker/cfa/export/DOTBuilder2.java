@@ -36,7 +36,6 @@ import com.google.common.collect.MultimapBuilder.SetMultimapBuilder;
 import com.google.common.collect.SetMultimap;
 
 import org.sosy_lab.common.JSON;
-import org.sosy_lab.common.io.Path;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -52,6 +51,8 @@ import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -213,10 +214,8 @@ public final class DOTBuilder2 {
     void writeFunctionFile(String funcname, Path outdir) throws IOException {
 
       try (Writer out =
-          outdir
-              .resolve("cfa__" + funcname + ".dot")
-              .asCharSink(StandardCharsets.UTF_8)
-              .openBufferedStream()) {
+          Files.newBufferedWriter(
+              outdir.resolve("cfa__" + funcname + ".dot"), StandardCharsets.UTF_8)) {
         out.write("digraph " + funcname + " {\n");
         StringBuilder outb = new StringBuilder();
 

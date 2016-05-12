@@ -28,9 +28,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -86,6 +84,9 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.math.BigInteger;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -641,7 +642,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     }
 
     if (dumpfile != null) { // option -noout
-      try (Writer w = Files.openOutputFile(dumpfile)) {
+      try (Writer w = MoreFiles.openOutputFile(dumpfile, Charset.defaultCharset())) {
         w.append("Boolean\n\n");
         w.append(trackedIntBool.toString());
         w.append("\n\nIntEq\n\n");

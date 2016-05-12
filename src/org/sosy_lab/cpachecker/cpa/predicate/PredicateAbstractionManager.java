@@ -40,7 +40,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.NestedTimer;
 import org.sosy_lab.common.time.TimeSpan;
@@ -71,7 +71,8 @@ import org.sosy_lab.solver.api.ProverEnvironment.AllSatCallback;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -449,7 +450,7 @@ public class PredicateAbstractionManager {
       fmgr.dumpFormulaToFile(f, dumpFile);
 
       dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "predicates", 0);
-      try (Writer w = dumpFile.asCharSink(StandardCharsets.UTF_8).openBufferedStream()) {
+      try (Writer w = MoreFiles.openOutputFile(dumpFile, Charset.defaultCharset())) {
         Joiner.on('\n').appendTo(w, pPredicates);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Failed to wrote predicates to file");

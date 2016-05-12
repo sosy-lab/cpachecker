@@ -24,21 +24,17 @@
 package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.*;
+import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.LINE_JOINER;
+import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.splitFormula;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
-import java.io.IOException;
-import java.io.Writer;
-import java.util.Deque;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Queues;
+import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Sets;
 
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -46,13 +42,19 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Queues;
-import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.Deque;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
 
 
 public class PredicateAbstractionsWriter {
@@ -100,7 +102,7 @@ public class PredicateAbstractionsWriter {
     worklist.add(rootState);
 
     // Write abstraction formulas of the abstraction states to the file
-    try (Writer writer = Files.openOutputFile(abstractionsFile)) {
+    try (Writer writer = MoreFiles.openOutputFile(abstractionsFile, Charset.defaultCharset())) {
       while (!worklist.isEmpty()) {
         ARGState state = worklist.pop();
 

@@ -26,6 +26,9 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import java.io.IOException;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -41,8 +44,6 @@ import java_cup.runtime.SymbolFactory;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.DummyParser;
@@ -52,7 +53,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
-
 
 import com.google.common.base.Throwables;
 import com.google.common.base.Optional;
@@ -112,7 +112,7 @@ parser code {:
   */
   public static List<Automaton> parseAutomatonFile(Path pInputFile, Configuration config, LogManager pLogger, MachineModel pMachine, Scope scope, Language pLanguage) throws InvalidConfigurationException {
 
-    try (Reader input = pInputFile.asCharSource(StandardCharsets.UTF_8).openBufferedStream()) {
+    try (Reader input = Files.newBufferedReader(pInputFile, StandardCharsets.UTF_8)) {
       return parseAutomaton(input, Optional.of(pInputFile), config, pLogger, pMachine, scope, pLanguage);
 
     } catch (IOException e) {

@@ -40,8 +40,7 @@ import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -121,6 +120,8 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -257,7 +258,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         Path outputFile = getOutputFile(exportSMGFilePattern, name);
         try {
           String dot = getDot(currentState, name, location);
-          Files.writeFile(outputFile, dot);
+          MoreFiles.writeFile(outputFile, Charset.defaultCharset(), dot);
         } catch (IOException e) {
           logger.logUserException(Level.WARNING, e, "Could not write SMG " + name + " to file");
         }

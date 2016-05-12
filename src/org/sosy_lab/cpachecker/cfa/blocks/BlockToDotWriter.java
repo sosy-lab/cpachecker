@@ -23,18 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cfa.blocks;
 
-import java.io.IOException;
-import java.io.Writer;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -44,10 +38,17 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
 
 /** This Writer can dump a cfa with blocks into a file. */
 public class BlockToDotWriter {
@@ -61,7 +62,7 @@ public class BlockToDotWriter {
 
   /** dump the cfa with blocks and colourful nodes. */
   public void dump(final Path filename, final LogManager logger) {
-    try (Writer w = Files.openOutputFile(filename)) {
+    try (Writer w = MoreFiles.openOutputFile(filename, Charset.defaultCharset())) {
       dump(w);
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Could not write blocks to dot file");

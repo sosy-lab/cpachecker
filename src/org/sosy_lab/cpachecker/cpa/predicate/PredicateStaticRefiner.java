@@ -40,8 +40,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -93,6 +92,8 @@ import org.sosy_lab.solver.api.BooleanFormulaManager;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -514,7 +515,7 @@ public class PredicateStaticRefiner extends StaticRefiner
   }
 
   private void dumpAssumePredicate(Path target) {
-    try (Writer w = Files.openOutputFile(target)) {
+    try (Writer w = MoreFiles.openOutputFile(target, Charset.defaultCharset())) {
       for (CFANode u : cfa.getAllNodes()) {
         for (CFAEdge e: CFAUtils.leavingEdges(u)) {
           if (e instanceof AssumeEdge) {

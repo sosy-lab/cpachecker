@@ -46,9 +46,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
@@ -73,6 +71,9 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
@@ -285,7 +286,7 @@ class MainCPAStatistics implements Statistics {
     assert reached != null : "ReachedSet may be null only if analysis not yet started";
 
     if (exportReachedSet && pOutputFile != null) {
-      try (Writer w = Files.openOutputFile(pOutputFile)) {
+      try (Writer w = MoreFiles.openOutputFile(pOutputFile, Charset.defaultCharset())) {
 
         if (writeDotFormat) {
 

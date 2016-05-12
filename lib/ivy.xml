@@ -31,7 +31,7 @@
     <dependencies>
 
         <!-- SoSy-Lab Common Library -->
-        <dependency org="org.sosy_lab" name="common" rev="0.2-23-gdf5f5f9" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="org.sosy_lab" name="common" rev="0.2-34-g946dec1" conf="runtime->runtime; contrib->sources"/>
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
@@ -102,7 +102,7 @@
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
 
         <!-- JavaSMT -->
-        <dependency org="org.sosy_lab" name="javasmt" rev="0.51-107-gb9aa059" conf="runtime->runtime; contrib->sources" />
+        <dependency org="org.sosy_lab" name="javasmt" rev="0.51-108-g9feaee2" conf="runtime->runtime; contrib->sources" />
 
         <!-- Guava has a dependency on error_prone_annotations without a revision number, need an override. -->
         <override org="com.google.errorprone" module="error_prone_annotations" rev="2.0.5"/>

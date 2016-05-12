@@ -39,9 +39,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -59,6 +57,9 @@ import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
@@ -158,7 +159,7 @@ public class CPAcheckerInvariantGenerator extends AbstractInvariantGenerator {
           generationCompleted = true;
 
           if (invExportPath != null) {
-            try (Writer w = Files.openOutputFile(invExportPath)) {
+            try (Writer w = MoreFiles.openOutputFile(invExportPath, Charset.defaultCharset())) {
               formulaWriter.write(reached, w);
             } catch (IOException e) {
               logger.logUserException(Level.WARNING, e, "Could not write formulas to file");

@@ -51,7 +51,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
@@ -119,6 +119,7 @@ import org.sosy_lab.cpachecker.util.expressions.Simplifier;
 import org.w3c.dom.Element;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -844,7 +845,7 @@ public class ARGPathExporter {
                           @Override
                           public String apply(Path pArg0) {
                             try {
-                              return pArg0.asCharSource(Charsets.UTF_8).read().trim();
+                              return MoreFiles.toString(pArg0, Charsets.UTF_8).trim();
                             } catch (IOException e) {
                               logger.logUserException(
                                   Level.WARNING, e, "Could not export specification to witness.");

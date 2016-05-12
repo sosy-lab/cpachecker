@@ -38,9 +38,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -84,6 +82,9 @@ import org.sosy_lab.solver.api.ProverEnvironment;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -311,7 +312,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             ARGState rootState =
                 AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class);
             if (rootState != null && invariantsExport != null) {
-              try (Writer w = Files.openOutputFile(invariantsExport)) {
+              try (Writer w = MoreFiles.openOutputFile(invariantsExport, StandardCharsets.UTF_8)) {
                 argPathExporter.writeProofWitness(
                     w,
                     rootState,
@@ -328,8 +329,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
                           CFANode node = pCFAEdge.getSuccessor();
                           ExpressionTree<Object> result =
                               invariantGenerator.getAsExpressionTree().getInvariantFor(node);
-                          if (ExpressionTrees.getFalse().equals(result)
-                              && !pStates.isPresent()) {
+                          if (ExpressionTrees.getFalse().equals(result) && !pStates.isPresent()) {
                             return ExpressionTrees.getTrue();
                           }
                           return result;

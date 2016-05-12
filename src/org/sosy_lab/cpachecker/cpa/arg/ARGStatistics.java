@@ -39,9 +39,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -63,6 +61,10 @@ import org.sosy_lab.cpachecker.util.Pair;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -138,7 +140,8 @@ public class ARGStatistics implements Statistics {
       // we continuously write into this file during analysis.
       // We do this lazily so that the file is written only if there are refinements.
       try {
-        refinementGraphUnderlyingWriter = Files.openOutputFile(refinementGraphFile);
+        refinementGraphUnderlyingWriter =
+            MoreFiles.openOutputFile(refinementGraphFile, Charset.defaultCharset());
         refinementGraphWriter = new ARGToDotWriter(refinementGraphUnderlyingWriter);
       } catch (IOException e) {
         if (refinementGraphUnderlyingWriter != null) {
@@ -200,9 +203,10 @@ public class ARGStatistics implements Statistics {
 
     final String partitionKey = partyState.getStateSpacePartition().getPartitionKey().toString();
 
-    int sepIx = pPath.getPath().lastIndexOf(".");
-    String prefix = pPath.getPath().substring(0, sepIx);
-    String extension = pPath.getPath().substring(sepIx, pPath.getPath().length());
+    String path = pPath.toString();
+    int sepIx = path.lastIndexOf(".");
+    String prefix = path.substring(0, sepIx);
+    String extension = path.substring(sepIx, path.length());
     return Paths.get(prefix + "-" + partitionKey + extension);
   }
 
@@ -232,7 +236,9 @@ public class ARGStatistics implements Statistics {
     Function<ARGState, Collection<ARGState>> relevantSuccessorFunction = Functions.forMap(relevantSuccessorRelation.asMap(), ImmutableSet.<ARGState>of());
 
     if (proofWitness != null) {
-      try (Writer w = Files.openOutputFile(adjustPathNameForPartitioning(rootState, proofWitness))) {
+      try (Writer w =
+          MoreFiles.openOutputFile(
+              adjustPathNameForPartitioning(rootState, proofWitness), StandardCharsets.UTF_8)) {
         argPathExporter.writeProofWitness(w, rootState,
             Predicates.alwaysTrue(),
             Predicates.alwaysTrue());
@@ -242,7 +248,9 @@ public class ARGStatistics implements Statistics {
     }
 
     if (argFile != null) {
-      try (Writer w = Files.openOutputFile(adjustPathNameForPartitioning(rootState, argFile))) {
+      try (Writer w =
+          MoreFiles.openOutputFile(
+              adjustPathNameForPartitioning(rootState, argFile), Charset.defaultCharset())) {
         ARGToDotWriter.write(w, rootState,
             ARGUtils.CHILDREN_OF_STATE,
             Predicates.alwaysTrue(),
@@ -253,7 +261,10 @@ public class ARGStatistics implements Statistics {
     }
 
     if (simplifiedArgFile != null) {
-      try (Writer w = Files.openOutputFile(adjustPathNameForPartitioning(rootState, simplifiedArgFile))) {
+      try (Writer w =
+          MoreFiles.openOutputFile(
+              adjustPathNameForPartitioning(rootState, simplifiedArgFile),
+              Charset.defaultCharset())) {
         ARGToDotWriter.write(w, rootState,
             relevantSuccessorFunction,
             Predicates.alwaysTrue(),
