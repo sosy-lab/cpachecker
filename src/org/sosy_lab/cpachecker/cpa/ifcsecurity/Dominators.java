@@ -53,11 +53,9 @@ public class Dominators {
   private int mode;
   private int n;
   private Collection<CFANode> nodes;
-  @SuppressWarnings("unused")
-  private CFA cfa;
 
+  @SuppressWarnings("unused")
   public Dominators(CFA pCfa, int pMode) {
-    this.cfa = pCfa;
     this.entry = pCfa.getMainFunction();
     this.exit = ((FunctionEntryNode) entry).getExitNode();
     this.mode = pMode;

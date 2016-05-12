@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 
-import java.util.Collection;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -42,20 +41,20 @@ public class DominanceFrontier {
   private Map<CFANode, CFANode> dominators;
   private CFANode entry;
   private CFANode exit;
-  @SuppressWarnings("unused")
-  private int mode;
-  @SuppressWarnings("unused")
-  private Collection<CFANode> nodes;
+// @SuppressWarnings("unused")
+// private int mode;
+// @SuppressWarnings("unused")
+// private Collection<CFANode> nodes;
   private Map<CFANode,TreeSet<CFANode>> df=new TreeMap<>();
 
-
-  public DominanceFrontier(CFA pCfa, Map<CFANode, CFANode> pDom, int pMode){
+  @SuppressWarnings("unused")
+  public DominanceFrontier(CFA pCfa, Map<CFANode, CFANode> pDom){
     this.dominators=pDom;
     this.cfa=pCfa;
     this.entry=pCfa.getMainFunction();
     this.exit=((FunctionEntryNode) entry).getExitNode();
-    this.mode=pMode;
-    this.nodes = pCfa.getAllNodes();
+//    this.mode=pMode;
+//    this.nodes = pCfa.getAllNodes();
     this.df=new TreeMap<>();
   }
 

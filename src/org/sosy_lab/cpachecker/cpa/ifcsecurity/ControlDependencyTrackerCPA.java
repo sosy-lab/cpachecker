@@ -109,7 +109,7 @@ public class ControlDependencyTrackerCPA implements ConfigurableProgramAnalysis 
     logger.log(Level.FINE, "Postdominators");
     logger.log(Level.FINE, postdominators);
 
-    DominanceFrontier domfron = new DominanceFrontier(cfa, postdominators, 1);
+    DominanceFrontier domfron = new DominanceFrontier(cfa, postdominators);
     domfron.execute();
     Map<CFANode, TreeSet<CFANode>> df = domfron.getDominanceFrontier();
     logger.log(Level.FINE, "Dominance Frontier");
