@@ -107,9 +107,11 @@ of the respective machine.
 Releasing a new Version
 -----------------------
 
-1. Update NEWS.txt with notes for all important changes since the last
+1. Preparations:
+   Update NEWS.txt with notes for all important changes since the last
    CPAchecker release (i.e., new analyses and features, important changes to
-   configuration etc.).
+   configuration etc.),
+   and ensure that Copyright.txt and Authors.txt are up-to-date.
 
 2. Define a new version by setting "version.base" in "build.xml" to the new value.
 
