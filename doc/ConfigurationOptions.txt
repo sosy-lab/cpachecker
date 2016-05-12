@@ -2308,7 +2308,7 @@ invariantGeneration.config = no default value
 invariantGeneration.cpachecker.async = false
 
 # Configuration file for invariant generation with a full CPAchecker run.
-invariantGeneration.cpachecker.config.path = "config/invgen-components/pred-Invgen-restart.properties"
+invariantGeneration.cpachecker.config.path = "config/invgen-components/pred-Invgen-restart-bitprecise.properties"
 
 # dump generated invariants
 invariantGeneration.cpachecker.invExportPath = no default value

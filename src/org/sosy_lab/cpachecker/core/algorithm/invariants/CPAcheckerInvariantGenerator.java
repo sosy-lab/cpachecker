@@ -72,7 +72,7 @@ public class CPAcheckerInvariantGenerator extends AbstractInvariantGenerator {
     description = "Configuration file for invariant generation with a full CPAchecker run."
   )
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-  private Path configPath = Paths.get("config/invgen-components/pred-Invgen-restart.properties");
+  private Path configPath = Paths.get("config/invgen-components/pred-Invgen-restart-bitprecise.properties");
 
   @Option(secure=true, description="generate invariants in parallel to the normal analysis")
   private boolean async = false;
