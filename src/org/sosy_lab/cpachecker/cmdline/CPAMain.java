@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cmdline;
 
 import static java.util.logging.Level.WARNING;
-import static org.sosy_lab.common.DuplicateOutputStream.mergeStreams;
+import static org.sosy_lab.common.io.DuplicateOutputStream.mergeStreams;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
@@ -94,7 +94,7 @@ public class CPAMain {
         System.exit(ERROR_EXIT_CODE);
       }
 
-      logManager = new BasicLogManager(cpaConfig);
+      logManager = BasicLogManager.create(cpaConfig);
 
     } catch (InvalidConfigurationException e) {
       ERROR_OUTPUT.println("Invalid configuration: " + e.getMessage());
