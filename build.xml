@@ -18,7 +18,7 @@
     <property name="jar.excludes" value=""/>
     <property name="project.url" value="http://cpachecker.sosy-lab.org"/>
     <property name="ivy.configurations" value="build, runtime, test, format-source, findbugs"/>
-    <property name="source.exclude" value="org/sosy_lab/cpachecker/appengine/**"/>
+    <property name="source.exclude" value=""/>
 
     <import file="build/build-ivy.xml"/>
     <import file="build/build-compile.xml"/>
@@ -33,7 +33,7 @@
 
     <path id="classpath">
         <pathelement location="${class.dir}"/>
-        <fileset dir="lib" includes="*.jar" excludes="appengine-*/**,gae/**"/>
+        <fileset dir="lib" includes="*.jar"/>
         <fileset dir="${ivy.lib.dir}" includes="runtime/*.jar test/*.jar build/annotations.jar build/error_prone_annotations.jar"/>
     </path>
 
@@ -52,7 +52,7 @@
 
     <target name="clean">
         <delete includeEmptyDirs="true">
-            <fileset dir="." includes="${class.dir}/** war/WEB-INF/classes/** war/WEB-INF/configurations/** war/WEB-INF/lib/** war/WEB-INF/specifications/** cpachecker.jar CPAchecker-*.zip CPAchecker-*.tar.*"/>
+            <fileset dir="." includes="${class.dir}/** cpachecker.jar CPAchecker-*.zip CPAchecker-*.tar.*"/>
         </delete>
 
         <!-- Clean subprojects -->
