@@ -2,11 +2,13 @@
 <html ng-app='report'>
 <head>
     <meta charset="UTF-8">
-    <title>CPAchecker Report</title> <!-- TITLE -->
+    <title>CPAchecker Report for
+      <!-- REPORT_NAME -->
+    </title>
 
-	<style type="text/css">
-	  <!--
-	  html{
+<style type="text/css">
+<!--
+html{
     position: relative;
     height: 100%;
 }
@@ -26,6 +28,7 @@ body {
     background-color: whitesmoke;
     border-bottom: solid 2px;
     border-bottom-color: lightgrey;
+    padding: 7px;
 }
 
 .sections{
@@ -67,18 +70,19 @@ body {
     fill: transparent;
 }
 
-.header h3 img{
-height: 25px;
-}
-.header h3{
+.header img.logo {
     float: left;
-    margin-top: 10px;
-    margin-left: 10px;
+    height: 30px;
+    margin-right: 5px;
 }
-.header em{
+.header h1 {
+    display: inline;
+    font-size: 20px;
+}
+.header .generated {
     float: right;
-    margin-top: 3px;
-    margin-right: 10px;
+    margin-left: 2em;
+    font-size: 80%;
 }
 
 
@@ -920,10 +924,14 @@ function init(){
 <body ng-controller="ReportController" onload="prettyPrint(); init()">
 <header class="header">
 
-    <h3><a href="https://cpachecker.sosy-lab.org/"><img ng-src="{{logo}}"/></a> Report</h3>
-    <!-- REPORT_NAME -->
+    <a href="https://cpachecker.sosy-lab.org/"><img class="logo" ng-src="{{logo}}"/></a>
+    <h1>Report for
+      <!-- REPORT_NAME -->
+    </h1>
 
-    <em> Generated <br /> by CPAchecker</em><!-- GENERATED -->
+    <span class="generated">
+      <!-- GENERATED -->
+    </span>
 </header>
 
 <div class="sections" ng-mousemove="setWidth($event)" ng-mouseup="setMouseUp()">

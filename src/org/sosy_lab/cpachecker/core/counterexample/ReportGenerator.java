@@ -206,8 +206,6 @@ public class ReportGenerator {
           insertCfaInfoData(report, dotBuilder);
         } else if (line.contains("FCALLEDGES")) {
           insertFCallEdges(report, dotBuilder);
-        } else if (line.contains("TITLE")) {
-          insertTitle(counterExample, report);
         } else if (line.contains("REPORT_NAME")) {
             insertReportName(counterExample, report);
         } else if (line.contains("GENERATED")) {
@@ -226,7 +224,7 @@ public class ReportGenerator {
   private void insertDateAndVersion(Writer report) throws IOException {
     String generated =
         String.format(
-            "<em class=\"ng-binding\">Generated on %s <br /> by CPAchecker %s</em>",
+            "Generated on %s by CPAchecker %s",
             new SimpleDateFormat(DATE_TIME_FORMAT).format(new Date()),
             CPAchecker.getCPAcheckerVersion());
     report.write(generated);
@@ -234,24 +232,11 @@ public class ReportGenerator {
 
   private void insertReportName(@Nullable CounterexampleInfo counterExample, Writer report) throws IOException {
     if (counterExample == null) {
-      report.write("<h3>" + sourceFiles.get(0) +  "</h3>");
+      report.write(sourceFiles.get(0));
 
     } else {
       String title = String.format(
-          "<h3>%s (Counterexample %s)</h3>",
-          sourceFiles.get(0),
-          counterExample.getUniqueId());
-      report.write(title);
-    }
-  }
-
-  private void insertTitle(@Nullable CounterexampleInfo counterExample, Writer report) throws IOException {
-    if (counterExample == null) {
-      report.write("<title>CPAchecker Report: " + sourceFiles.get(0) + "</title>");
-
-    } else {
-      String title = String.format(
-          "<title>CPAchecker Counterexample Report %s: %s</title>",
+          "%s (Counterexample %s)",
           sourceFiles.get(0),
           counterExample.getUniqueId());
       report.write(title);
