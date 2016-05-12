@@ -8,7 +8,7 @@
     <property file="build.properties"/>
     <property environment="env"/>
 
-    <property name="version.base" value="1.5-svn"/> <!-- change here for a release -->
+    <property name="version.base" value="1.6"/> <!-- change here for a release -->
 
     <!-- Customization of build process. -->
     <property name="jar.file" value="cpachecker.jar"/>

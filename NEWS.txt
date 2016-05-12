@@ -1,5 +1,5 @@
-Changes since CPAchecker 1.4
-----------------------------
+Changes from CPAchecker 1.4 to CPAchecker 1.6
+---------------------------------------------
 * Local Policy Iteration
   A new analysis has been added to CPAchecker
   that derives numerical invariants from linear templates
