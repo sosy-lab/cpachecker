@@ -117,6 +117,29 @@ public abstract class AutomatonAction {
 
   }
 
+  public static class SetMarkerVariable extends AutomatonAction {
+
+    static SetMarkerVariable instance = new SetMarkerVariable();
+
+    public static SetMarkerVariable getInstance() {
+      return instance;
+    }
+
+    private SetMarkerVariable() {
+    }
+
+    @Override
+    ResultValue<?> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
+      return defaultResultValue;
+    }
+
+    @Override
+    public String toString() {
+      return "SetMarkerVariable";
+    }
+
+  }
+
   /** Assigns the value of a AutomatonIntExpr to a AutomatonVariable determined by its name.
    */
   static class Assignment extends AutomatonAction {

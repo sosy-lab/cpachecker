@@ -56,23 +56,16 @@ import javax.annotation.Nullable;
 
 public class MarkingAutomatonBuilder {
 
-  private static class MarkedState {
-
-    @Nullable private final MarkedState predecessor;
+  private abstract static class BackLinkedState {
+    @Nullable private final BackLinkedState predecessor;
     private final AutomatonInternalState state;
-    @Nullable private final Integer markerId;
 
-    public static MarkedState of(@Nullable MarkedState pPred, AutomatonInternalState pState, @Nullable Integer pMarkerId) {
-      return new MarkedState(pPred, pState, pMarkerId);
-    }
-
-    private MarkedState(@Nullable MarkedState pPred, AutomatonInternalState pState, @Nullable Integer pMarkerId) {
+    private BackLinkedState(@Nullable BackLinkedState pPred, AutomatonInternalState pState) {
       state = Preconditions.checkNotNull(pState);
       predecessor = pPred;
-      markerId = pMarkerId;
     }
 
-    public Optional<MarkedState> getPredecessor() {
+    public Optional<BackLinkedState> getPredecessor() {
       return Optional.fromNullable(predecessor);
     }
 
@@ -93,13 +86,38 @@ public class MarkingAutomatonBuilder {
     public boolean equals(Object obj) {
       if (this == obj) { return true; }
       if (obj == null) { return false; }
-      if (!(obj instanceof MarkedState)) { return false; }
-      MarkedState other = (MarkedState) obj;
+      if (!(obj instanceof BackLinkedState)) { return false; }
+      BackLinkedState other = (BackLinkedState) obj;
       if (predecessor == null) {
         if (other.predecessor != null) { return false; }
       } else if (!predecessor.equals(other.predecessor)) { return false; }
       if (!state.equals(other.state)) { return false; }
       return true;
+    }
+  }
+
+  private static class UnmarkedState extends BackLinkedState {
+
+    public static UnmarkedState of(@Nullable BackLinkedState pPred, AutomatonInternalState pState) {
+      return new UnmarkedState(pPred, pState);
+    }
+
+    private UnmarkedState(@Nullable BackLinkedState pPred, AutomatonInternalState pState) {
+      super(pPred, pState);
+    }
+  }
+
+  private static class MarkedState extends BackLinkedState {
+
+    @Nullable private final Integer markerId;
+
+    public static MarkedState of(@Nullable BackLinkedState pPred, AutomatonInternalState pState, @Nullable Integer pMarkerId) {
+      return new MarkedState(pPred, pState, pMarkerId);
+    }
+
+    private MarkedState(@Nullable BackLinkedState pPred, AutomatonInternalState pState, @Nullable Integer pMarkerId) {
+      super(pPred, pState);
+      markerId = pMarkerId;
     }
   }
 
@@ -140,18 +158,18 @@ public class MarkingAutomatonBuilder {
     // Initialize the data structures
     Map<AutomatonTransition, Integer> edgeToMarkerMap = Maps.newHashMap();
     Set<AutomatonTransition> visited = Sets.newHashSet();
-    Deque<MarkedState> worklist = Lists.newLinkedList();
+    Deque<BackLinkedState> worklist = Lists.newLinkedList();
     Map<Integer, MarkerCode> markerCode = Maps.newHashMap();
-    Multimap<AutomatonTransition, MarkedState> markedTargetStates = HashMultimap.create();
+    Multimap<AutomatonTransition, BackLinkedState> targetStates = HashMultimap.create();
 
     int edgeId = 0;
 
     // We start from the initial automaton state
-    worklist.add(MarkedState.of(null, pInput.getInitialState(), null));
+    worklist.add(UnmarkedState.of(null, pInput.getInitialState()));
 
     // Perform the marking...
     while (worklist.size() > 0) {
-      MarkedState q = worklist.pop();
+      BackLinkedState q = worklist.pop();
 
       for (AutomatonTransition t: q.getState().getTransitions()) {
         if (!visited.add(t)) {
@@ -163,19 +181,26 @@ public class MarkingAutomatonBuilder {
           continue;
         }
 
-        final int markerId = edgeId++;
+        final BackLinkedState succ;
 
-        edgeToMarkerMap.put(t, Integer.valueOf(markerId));
+        if (shouldMark(q, t)) {
+          final int markerId = edgeId++;
 
-        final MarkedState ms = MarkedState.of(q, t.getFollowState(), markerId);
-        final MarkerCode mc = new MarkerCode(pInput.getName(), markerId);
-        markerCode.put(markerId, mc);
+          edgeToMarkerMap.put(t, Integer.valueOf(markerId));
 
-        if (ms.getState().isTarget()) {
-          markedTargetStates.put(t, ms);
+          succ = MarkedState.of(q, t.getFollowState(), markerId);
+          final MarkerCode mc = new MarkerCode(pInput.getName(), markerId);
+          markerCode.put(markerId, mc);
+
+        } else {
+          succ = UnmarkedState.of(q, t.getFollowState());
         }
 
-        worklist.add(ms);
+        if (succ.getState().isTarget()) {
+          targetStates.put(t, succ);
+        }
+
+        worklist.add(succ);
       }
     }
 
@@ -204,14 +229,15 @@ public class MarkingAutomatonBuilder {
         // -- in case of a target state: add an assumption on the markers
         List<AStatement> assumptions = Lists.newArrayList();
         if (t.getFollowState().isTarget()) {
-          Collection<MarkedState> markers = markedTargetStates.get(t);
-          for (MarkedState m: markers) {
+          Collection<BackLinkedState> markers = targetStates.get(t);
+          for (BackLinkedState m: markers) {
 
             List<Integer> pathMarkers = Lists.newArrayList();
-            MarkedState travers = m;
+            BackLinkedState travers = m;
             while (travers != null) {
-              if (travers.markerId != null) {
-                pathMarkers.add(travers.markerId);
+              if (travers instanceof MarkedState) {
+                MarkedState mm = (MarkedState) travers;
+                pathMarkers.add(mm.markerId);
               }
               travers = travers.predecessor;
             }
@@ -282,6 +308,10 @@ public class MarkingAutomatonBuilder {
       throw new RuntimeException("Conversion failed!", e);
     }
 
+  }
+
+  private static boolean shouldMark(BackLinkedState pQ, AutomatonTransition pT) {
+    return pT.getActions().contains(AutomatonAction.SetMarkerVariable.getInstance());
   }
 
 }
