@@ -28,6 +28,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -37,6 +38,7 @@ import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.NonMergeableAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -52,12 +54,10 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
 
   private static final long serialVersionUID = -265763837277453447L;
 
-  public final static Predicate<PredicateAbstractState> FILTER_ABSTRACTION_STATES = new Predicate<PredicateAbstractState>() {
-    @Override
-    public boolean apply(PredicateAbstractState ae) {
-      return ae.isAbstractionState();
-    }
-  };
+  public final static Predicate<AbstractState> CONTAINS_ABSTRACTION_STATE =
+      Predicates.compose(
+          PredicateAbstractState::isAbstractionState,
+          AbstractStates.toState(PredicateAbstractState.class));
 
   public static PredicateAbstractState getPredicateState(AbstractState pState) {
     return checkNotNull(extractStateByType(pState, PredicateAbstractState.class));

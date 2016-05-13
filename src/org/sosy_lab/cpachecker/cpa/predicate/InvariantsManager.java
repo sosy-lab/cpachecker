@@ -34,7 +34,6 @@ import static org.sosy_lab.cpachecker.core.algorithm.bmc.AbstractLocationFormula
 import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getAllStatesOnPathsTo;
 import static org.sosy_lab.cpachecker.util.AbstractStates.EXTRACT_LOCATION;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
 import com.google.common.base.Function;
@@ -90,7 +89,6 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 import org.sosy_lab.cpachecker.cpa.formulaslicing.LoopTransitionFinder;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.RCNFManager;
@@ -539,8 +537,7 @@ class InvariantsManager implements StatisticsProvider {
       CFANode node = extractLocation(state);
       // TODO what if loop structure does not exist?
       if (cfa.getLoopStructure().get().getAllLoopHeads().contains(node)) {
-        PredicateAbstractState predState =
-            extractStateByType(state, PredicateAbstractState.class);
+        PredicateAbstractState predState = PredicateAbstractState.getPredicateState(state);
         PathFormula pathFormula = predState.getPathFormula();
         argForPathFormulaBasedGeneration.add(Pair.of(pathFormula, node));
         listOfNodes.add(node);
@@ -951,8 +948,7 @@ class InvariantsManager implements StatisticsProvider {
         // the last one will always be false, we don't need it here
         if (s != abstractionStatesTrace.get(abstractionStatesTrace.size() - 1)) {
           CFANode location = extractLocation(s);
-          PredicateAbstractState pas =
-              AbstractStates.extractStateByType(s, PredicateAbstractState.class);
+          PredicateAbstractState pas = PredicateAbstractState.getPredicateState(s);
           BooleanFormula invariant =
               invSup.getInvariantFor(location, fmgr, pfmgr, pas.getPathFormula());
           invariants.add(Pair.of(invariant, location));

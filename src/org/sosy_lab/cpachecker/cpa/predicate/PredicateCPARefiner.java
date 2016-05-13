@@ -25,12 +25,10 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getAllStatesOnPathsTo;
-import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -481,11 +479,11 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   }
 
   static List<ARGState> filterAbstractionStates(ARGPath pPath) {
-    List<ARGState> result = from(pPath.asStatesList())
-      .skip(1)
-      .filter(Predicates.compose(PredicateAbstractState.FILTER_ABSTRACTION_STATES,
-                                 toState(PredicateAbstractState.class)))
-      .toList();
+    List<ARGState> result =
+        from(pPath.asStatesList())
+            .skip(1)
+            .filter(PredicateAbstractState.CONTAINS_ABSTRACTION_STATE)
+            .toList();
 
     assert from(result).allMatch(new Predicate<ARGState>() {
       @Override
