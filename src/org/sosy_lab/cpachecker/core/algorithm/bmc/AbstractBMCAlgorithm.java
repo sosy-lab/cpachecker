@@ -405,7 +405,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
                 return false;
               }
             })
-        .transformAndConcat(AbstractStates.EXTRACT_LOCATIONS)
+        .transformAndConcat(AbstractStates::extractLocations)
         .toSet();
   }
 

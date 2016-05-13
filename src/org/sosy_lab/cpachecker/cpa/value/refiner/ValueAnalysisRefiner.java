@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
@@ -250,10 +251,11 @@ public class ValueAnalysisRefiner
    */
   private PredicatePrecision mergePredicatePrecisionsForSubgraph(
       final ARGState pRefinementRoot, final ARGReachedSet pReached) {
+    UnmodifiableReachedSet reached = pReached.asReachedSet();
     return PredicatePrecision.unionOf(
         from(pRefinementRoot.getSubgraph())
             .filter(not(ARGState.IS_COVERED))
-            .transform(Precisions.forStateIn(pReached.asReachedSet())));
+            .transform(reached::getPrecision));
     }
 
   private VariableTrackingPrecision extractValuePrecision(final ARGReachedSet pReached,

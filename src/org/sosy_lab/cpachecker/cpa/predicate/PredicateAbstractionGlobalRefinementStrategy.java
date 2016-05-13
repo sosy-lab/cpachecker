@@ -282,7 +282,7 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
     return PredicatePrecision.unionOf(
         from(refinementRoot.getSubgraph())
             .filter(not(ARGState.IS_COVERED))
-            .transform(Precisions.forStateIn(reached)));
+            .transform(reached::getPrecision));
   }
 
   /**

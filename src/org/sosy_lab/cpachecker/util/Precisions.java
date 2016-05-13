@@ -23,33 +23,17 @@
  */
 package org.sosy_lab.cpachecker.util;
 
-import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.TreeTraverser;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
 public class Precisions {
 
   private Precisions() { }
-
-  /**
-   * Return a function that does a lookup for the precision of a state in the given reached set.
-   */
-  public static Function<AbstractState, Precision> forStateIn(
-      final UnmodifiableReachedSet reached) {
-    return new Function<AbstractState, Precision>() {
-      @Override
-      public Precision apply(AbstractState pInput) {
-        return reached.getPrecision(pInput);
-      }
-    };
-  }
 
   /**
    * Retrieve one of the wrapped precisions by type. If the hierarchy of

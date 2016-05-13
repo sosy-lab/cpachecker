@@ -559,7 +559,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     return PredicatePrecision.unionOf(
         from(refinementRoot.getSubgraph())
             .filter(not(ARGState.IS_COVERED))
-            .transform(Precisions.forStateIn(reached)));
+            .transform(reached::getPrecision));
   }
 
   private boolean isValuePrecisionAvailable(final ARGReachedSet pReached, ARGState root) {

@@ -321,9 +321,8 @@ public class ARGUtils {
     }
   };
 
-  public static final Predicate<AbstractState> AT_RELEVANT_LOCATION = Predicates.compose(
-      CONTAINS_RELEVANT_LOCATION,
-      AbstractStates.EXTRACT_LOCATIONS);
+  public static final Predicate<AbstractState> AT_RELEVANT_LOCATION =
+      Predicates.compose(CONTAINS_RELEVANT_LOCATION, AbstractStates::extractLocations);
 
   @SuppressWarnings("unchecked")
   public static final Predicate<ARGState> RELEVANT_STATE = Predicates.or(
