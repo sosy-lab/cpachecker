@@ -153,7 +153,7 @@ public class SymbolEncoding {
       int length = machineModel.getSizeof(cType) * machineModel.getSizeofCharInBits();
       fType = BitvectorType.getBitvectorTypeWithSize(length);
     }
-    Type<FormulaType<?>> type = new Type<FormulaType<?>>(fType);
+    Type<FormulaType<?>> type = new Type<>(fType);
     if (cType instanceof CSimpleType) {
       type.setSigness(!((CSimpleType)cType).isUnsigned());
     }
