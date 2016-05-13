@@ -156,6 +156,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -451,10 +452,10 @@ public class ValueAnalysisTransferRelation
         JArraySubscriptExpression arraySubscriptExpression = (JArraySubscriptExpression) op1;
 
         ArrayValue assignedArray = getInnerMostArray(arraySubscriptExpression);
-        Optional<Integer> maybeIndex = getIndex(arraySubscriptExpression);
+        OptionalInt maybeIndex = getIndex(arraySubscriptExpression);
 
         if (maybeIndex.isPresent() && assignedArray != null && valueExists) {
-          assignedArray.setValue(newValue, maybeIndex.get());
+          assignedArray.setValue(newValue, maybeIndex.getAsInt());
 
         } else {
           assignUnknownValueToEnclosingInstanceOfArray(arraySubscriptExpression);
@@ -540,14 +541,14 @@ public class ValueAnalysisTransferRelation
         && !((JFieldDeclaration) declaration).isStatic();
   }
 
-  private Optional<Integer> getIndex(JArraySubscriptExpression pExpression) {
+  private OptionalInt getIndex(JArraySubscriptExpression pExpression) {
     final ExpressionValueVisitor evv = getVisitor();
     final Value indexValue = pExpression.getSubscriptExpression().accept(evv);
 
     if (indexValue.isUnknown()) {
-      return Optional.absent();
+      return OptionalInt.empty();
     } else {
-      return Optional.of((int) ((NumericValue) indexValue).longValue());
+      return OptionalInt.of((int) ((NumericValue) indexValue).longValue());
     }
   }
 
@@ -1132,12 +1133,12 @@ public class ValueAnalysisTransferRelation
       // the array enclosing the array specified in the given array subscript expression
       ArrayValue enclosingArray = getInnerMostArray(arraySubscriptExpression);
 
-      Optional<Integer> maybeIndex = getIndex(arraySubscriptExpression);
+      OptionalInt maybeIndex = getIndex(arraySubscriptExpression);
       int index;
 
       if (maybeIndex.isPresent() && enclosingArray != null) {
 
-        index = maybeIndex.get();
+        index = maybeIndex.getAsInt();
 
       } else {
         return null;
@@ -1171,10 +1172,10 @@ public class ValueAnalysisTransferRelation
     } else {
       JArraySubscriptExpression enclosingSubscriptExpression = (JArraySubscriptExpression) enclosingExpression;
       ArrayValue enclosingArray = getInnerMostArray(enclosingSubscriptExpression);
-      Optional<Integer> maybeIndex = getIndex(enclosingSubscriptExpression);
+      OptionalInt maybeIndex = getIndex(enclosingSubscriptExpression);
 
       if (maybeIndex.isPresent() && enclosingArray != null) {
-        enclosingArray.setValue(UnknownValue.getInstance(), maybeIndex.get());
+        enclosingArray.setValue(UnknownValue.getInstance(), maybeIndex.getAsInt());
 
       }
       // if the index of unknown array in the enclosing array is also unknown, we assign unknown at this array's
