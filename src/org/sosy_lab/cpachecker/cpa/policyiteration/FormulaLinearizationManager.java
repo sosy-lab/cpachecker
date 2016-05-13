@@ -8,6 +8,7 @@ import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.FormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.NumeralFormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
@@ -21,7 +22,6 @@ import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
 import org.sosy_lab.solver.visitors.TraversalProcess;
 
-import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -76,24 +76,36 @@ public class FormulaLinearizationManager {
   public BooleanFormula annotateDisjunctions(BooleanFormula input)
       throws InterruptedException {
     input = fmgr.applyTactic(input, Tactic.NNF);
-    return bfmgr.transformRecursively(new BooleanFormulaTransformationVisitor(fmgr) {
-      @Override
-      public BooleanFormula visitOr(List<BooleanFormula> processed) {
-        IntegerFormula choiceVar = getFreshVar();
-        List<BooleanFormula> newArgs = new ArrayList<>();
-        for (int i = 0; i < processed.size(); i++) {
-          newArgs.add(
-              bfmgr.and(
-                  processed.get(i), fmgr.makeEqual(choiceVar, ifmgr.makeNumber(i))));
-        }
-        return bfmgr.or(newArgs);
-      }
-    }, input);
+    return fmgr.transformRecursively(new FormulaTransformationVisitor(fmgr) {
+          public Formula visitFunction(
+              Formula f, List<Formula> newArgs, FunctionDeclaration<?> functionDeclaration) {
+            if (functionDeclaration.getKind() == FunctionDeclarationKind.OR) {
+              return annotateDisjunction(newArgs);
+            } else {
+              return super.visitFunction(f, newArgs, functionDeclaration);
+            }
+          }
+
+        }, input);
   }
 
-  private IntegerFormula getFreshVar() {
-    String freshVarName = CHOICE_VAR_NAME + choiceVarCounter.getFreshId();
-    return ifmgr.makeVariable(freshVarName);
+  private BooleanFormula annotateDisjunction(List<Formula> args) {
+    if (args.size() == 1) {
+      return (BooleanFormula) args.get(0);
+    } else {
+      BooleanFormula choiceVar = bfmgr.makeVariable(getFreshVarName());
+      return bfmgr.or(
+          bfmgr.and(choiceVar, (BooleanFormula) args.get(0)),
+          bfmgr.and(
+              bfmgr.not(choiceVar),
+              annotateDisjunction(args.subList(1, args.size()))
+          )
+      );
+    }
+  }
+
+  private String getFreshVarName() {
+    return CHOICE_VAR_NAME + choiceVarCounter.getFreshId();
   }
 
   /**
@@ -107,13 +119,14 @@ public class FormulaLinearizationManager {
 
     // TODO: more efficient to call #evaluate() on the subset of variables
     // which we actually use.
-    // These models can be seriously huge.
+    // These models can be huge.
     Map<Formula, Formula> mapping = new HashMap<>();
     for (ValueAssignment entry : model) {
       String termName = entry.getName();
       if (termName.contains(CHOICE_VAR_NAME)) {
-        BigInteger value = (BigInteger) entry.getValue();
-        mapping.put(ifmgr.makeVariable(termName), ifmgr.makeNumber(value));
+          mapping.put(
+              bfmgr.makeVariable(termName),
+              bfmgr.makeBoolean((boolean) entry.getValue()));
       }
     }
 
