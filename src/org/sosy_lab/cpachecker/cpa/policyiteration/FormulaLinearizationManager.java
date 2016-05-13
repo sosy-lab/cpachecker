@@ -9,7 +9,6 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.FormulaTransformationVisitor;
-import org.sosy_lab.cpachecker.util.predicates.smt.NumeralFormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
@@ -17,7 +16,6 @@ import org.sosy_lab.solver.api.FunctionDeclaration;
 import org.sosy_lab.solver.api.FunctionDeclarationKind;
 import org.sosy_lab.solver.api.Model;
 import org.sosy_lab.solver.api.Model.ValueAssignment;
-import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
 import org.sosy_lab.solver.visitors.TraversalProcess;
@@ -30,19 +28,16 @@ import java.util.Map;
 public class FormulaLinearizationManager {
   private final BooleanFormulaManager bfmgr;
   private final FormulaManagerView fmgr;
-  private final NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifmgr;
   private final PolicyIterationStatistics statistics;
 
   public static final String CHOICE_VAR_NAME = "__POLICY_CHOICE_";
   private final UniqueIdGenerator choiceVarCounter = new UniqueIdGenerator();
 
   public FormulaLinearizationManager(
-      BooleanFormulaManager pBfmgr, FormulaManagerView pFmgr,
-      NumeralFormulaManagerView<IntegerFormula, IntegerFormula> pIfmgr,
+      FormulaManagerView pFmgr,
       PolicyIterationStatistics pStatistics) {
-    bfmgr = pBfmgr;
+    bfmgr = pFmgr.getBooleanFormulaManager();
     fmgr = pFmgr;
-    ifmgr = pIfmgr;
     statistics = pStatistics;
   }
 
@@ -77,16 +72,18 @@ public class FormulaLinearizationManager {
       throws InterruptedException {
     input = fmgr.applyTactic(input, Tactic.NNF);
     return fmgr.transformRecursively(new FormulaTransformationVisitor(fmgr) {
-          public Formula visitFunction(
-              Formula f, List<Formula> newArgs, FunctionDeclaration<?> functionDeclaration) {
-            if (functionDeclaration.getKind() == FunctionDeclarationKind.OR) {
-              return annotateDisjunction(newArgs);
-            } else {
-              return super.visitFunction(f, newArgs, functionDeclaration);
-            }
-          }
 
-        }, input);
+      @Override
+      public Formula visitFunction(
+          Formula f, List<Formula> newArgs, FunctionDeclaration<?> functionDeclaration) {
+        if (functionDeclaration.getKind() == FunctionDeclarationKind.OR) {
+          return annotateDisjunction(newArgs);
+        } else {
+          return super.visitFunction(f, newArgs, functionDeclaration);
+        }
+      }
+
+    }, input);
   }
 
   private BooleanFormula annotateDisjunction(List<Formula> args) {
