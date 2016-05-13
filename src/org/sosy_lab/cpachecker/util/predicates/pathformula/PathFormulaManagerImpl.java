@@ -28,7 +28,6 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.MapsDifference.collectMapsDifferenceTo;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
@@ -137,8 +136,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Option(secure=true, description="add special information to formulas about non-deterministic functions")
   private boolean useNondetFlags = false;
 
-  private final AnalysisDirection direction;
-
   @Deprecated
   public PathFormulaManagerImpl(FormulaManagerView pFmgr,
       Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
@@ -173,14 +170,12 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
 
-    direction = pDirection;
-
     if (handleArrays) {
       afmgr = fmgr.getArrayFormulaManager();
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
       typeHandler = new CtoFormulaTypeHandlerWithArrays(pLogger, pMachineModel);
       converter = new CToFormulaConverterWithArrays(options, fmgr, pMachineModel,
-          pVariableClassification, logger, shutdownNotifier, typeHandler, direction);
+          pVariableClassification, logger, shutdownNotifier, typeHandler, pDirection);
 
       logger.log(Level.WARNING,
           "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
@@ -200,11 +195,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
               + "theories!";
 
         converter = new CToFormulaConverterWithHeapArray(options, fmgr, pMachineModel,
-            pVariableClassification, logger, shutdownNotifier, aliasingTypeHandler, direction,
+            pVariableClassification, logger, shutdownNotifier, aliasingTypeHandler, pDirection,
             qfmgr);
       } else {
         converter = new CToFormulaConverterWithHeapArray(options, fmgr, pMachineModel,
-            pVariableClassification, logger, shutdownNotifier, aliasingTypeHandler, direction);
+            pVariableClassification, logger, shutdownNotifier, aliasingTypeHandler, pDirection);
       }
     } else if (handlePointerAliasing) {
       afmgr = null;
@@ -213,14 +208,14 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       typeHandler = aliasingTypeHandler;
       converter = new CToFormulaConverterWithPointerAliasing(options, fmgr,
           pMachineModel, pVariableClassification, logger, shutdownNotifier,
-          aliasingTypeHandler, direction);
+          aliasingTypeHandler, pDirection);
 
     } else {
       afmgr = null;
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
       typeHandler = new CtoFormulaTypeHandler(pLogger, pMachineModel);
       converter = new CtoFormulaConverter(options, fmgr, pMachineModel,
-          pVariableClassification, logger, shutdownNotifier, typeHandler, direction);
+          pVariableClassification, logger, shutdownNotifier, typeHandler, pDirection);
 
       logger.log(Level.WARNING, "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
     }
@@ -632,12 +627,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         }
 
         FluentIterable<CFAEdge> outgoingEdges = from(pathElement.getChildren()).transform(
-            new Function<ARGState, CFAEdge>() {
-              @Override
-              public CFAEdge apply(ARGState child) {
-                return pathElement.getEdgeToChild(child);
-              }
-        });
+            child -> pathElement.getEdgeToChild(child));
         if (!outgoingEdges.allMatch(Predicates.instanceOf(AssumeEdge.class))) {
           if (from(pathElement.getChildren()).anyMatch(AbstractStates.IS_TARGET_STATE)) {
             // We expect this situation of one of the children is a target state created by PredicateCPA.
