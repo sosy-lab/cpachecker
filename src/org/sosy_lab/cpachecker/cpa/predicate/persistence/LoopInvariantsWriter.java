@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
@@ -49,6 +48,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -106,8 +106,9 @@ public class LoopInvariantsWriter {
     }
 
     try (Writer writer = MoreFiles.openOutputFile(invariantsFile, Charset.defaultCharset())) {
-      for (CFANode loc : from(cfa.getAllLoopHeads().get())
-                           .toSortedSet(CFAUtils.NODE_NUMBER_COMPARATOR)) {
+      for (CFANode loc :
+          from(cfa.getAllLoopHeads().get())
+              .toSortedSet(Comparator.comparing(CFANode::getNodeNumber))) {
 
         Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
         BooleanFormula formula = absmgr.convertRegionToFormula(region);
@@ -136,8 +137,9 @@ public class LoopInvariantsWriter {
 
     try (Writer writer =
         MoreFiles.openOutputFile(invariantPrecisionsFile, Charset.defaultCharset())) {
-      for (CFANode loc : from(cfa.getAllLoopHeads().get())
-                           .toSortedSet(CFAUtils.NODE_NUMBER_COMPARATOR)) {
+      for (CFANode loc :
+          from(cfa.getAllLoopHeads().get())
+              .toSortedSet(Comparator.comparing(CFANode::getNodeNumber))) {
         Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
         BooleanFormula formula = absmgr.convertRegionToFormula(region);
         Pair<String, List<String>> locInvariant = PredicatePersistenceUtils.splitFormula(fmgr, formula);
