@@ -23,12 +23,7 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.List;
-import java.util.PriorityQueue;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -42,7 +37,12 @@ import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedGraph;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedNode;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.BestFirstEvaluationFunctionFactory.BestFirstEvaluationFunctions;
 
-import com.google.common.collect.Sets;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.List;
+import java.util.PriorityQueue;
+import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * Compute a greedy graph partitioning in best-first-manner
@@ -122,7 +122,7 @@ public class BestFirstWeightedBalancedGraphPartitioner implements WeightedBalanc
     @Override
     public int compareTo(NodePriority compNode) {
       if (compNode == null) { return -1; }
-      if (this.getPriority() == compNode.getPriority()) {
+      if (this.getPriority() != compNode.getPriority()) {
         return this.getPriority() - compNode.getPriority();
       } else {//same priority==> use node with higher number
         int n1 = this.getNode().getNodeNumber();
