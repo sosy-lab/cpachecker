@@ -26,15 +26,20 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.IntermediateTargetable;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import java.io.Serializable;
 import java.util.Collection;
@@ -43,7 +48,7 @@ import java.util.List;
 import java.util.Set;
 
 public class PowersetAutomatonState implements AbstractWrapperState,
-    Targetable, IntermediateTargetable, Serializable, Graphable, Iterable<AutomatonState> {
+    Targetable, IntermediateTargetable, AbstractStateWithAssumptions, Serializable, Graphable, Iterable<AutomatonState> {
 
   private static class TopPowersetAutomatonState extends PowersetAutomatonState {
 
@@ -174,6 +179,24 @@ public class PowersetAutomatonState implements AbstractWrapperState,
       }
     }
     return false;
+  }
+
+  @Override
+  public ImmutableList<Pair<AStatement, Boolean>> getAssumptions() {
+    Builder<Pair<AStatement, Boolean>> builder = ImmutableList.builder();
+    for (AbstractStateWithAssumptions e : states) {
+      builder.addAll(e.getAssumptions());
+    }
+    return builder.build();
+  }
+
+  @Override
+  public List<AssumeEdge> getAsAssumeEdges(String pFunctionName) {
+    Builder<AssumeEdge> builder = ImmutableList.builder();
+    for (AbstractStateWithAssumptions e : states) {
+      builder.addAll(e.getAsAssumeEdges(pFunctionName));
+    }
+    return builder.build();
   }
 
 }
