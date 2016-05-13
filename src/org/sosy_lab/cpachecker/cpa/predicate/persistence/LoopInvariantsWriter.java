@@ -108,7 +108,7 @@ public class LoopInvariantsWriter {
     try (Writer writer = MoreFiles.openOutputFile(invariantsFile, Charset.defaultCharset())) {
       for (CFANode loc :
           from(cfa.getAllLoopHeads().get())
-              .toSortedSet(Comparator.comparing(CFANode::getNodeNumber))) {
+              .toSortedSet(Comparator.comparingInt(CFANode::getNodeNumber))) {
 
         Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
         BooleanFormula formula = absmgr.convertRegionToFormula(region);
@@ -139,7 +139,7 @@ public class LoopInvariantsWriter {
         MoreFiles.openOutputFile(invariantPrecisionsFile, Charset.defaultCharset())) {
       for (CFANode loc :
           from(cfa.getAllLoopHeads().get())
-              .toSortedSet(Comparator.comparing(CFANode::getNodeNumber))) {
+              .toSortedSet(Comparator.comparingInt(CFANode::getNodeNumber))) {
         Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
         BooleanFormula formula = absmgr.convertRegionToFormula(region);
         Pair<String, List<String>> locInvariant = PredicatePersistenceUtils.splitFormula(fmgr, formula);

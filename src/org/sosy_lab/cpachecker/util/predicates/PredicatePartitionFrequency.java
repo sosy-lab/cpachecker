@@ -23,13 +23,13 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import java.util.Comparator;
-import java.util.List;
-import java.util.PriorityQueue;
-
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+
+import java.util.Comparator;
+import java.util.List;
+import java.util.PriorityQueue;
 
 /**
  * The class <code>PredicatePartitionFrequency</code> represents a concrete partition of predicates and hence it
@@ -43,11 +43,9 @@ public class PredicatePartitionFrequency extends PredicatePartition {
 
   public PredicatePartitionFrequency(FormulaManagerView fmgr, Solver solver, LogManager logger) {
     super(fmgr, solver, logger);
-    predicatesSortedByVarFrequency = new PriorityQueue<>(1, new Comparator<AbstractionPredicate>() {
-      @Override
-      public int compare(AbstractionPredicate pred1, AbstractionPredicate pred2) {
-        return pred2.getVariableNumber() - pred1.getVariableNumber();
-      }});
+    predicatesSortedByVarFrequency =
+        new PriorityQueue<>(
+            1, Comparator.comparingInt(AbstractionPredicate::getVariableNumber).reversed());
   }
 
   /**

@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.ci.redundancyremover;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import com.google.common.collect.Ordering;
+
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -37,6 +41,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -192,17 +197,16 @@ public class RedundantRequirementsRemover {
 
       @Override
       public int compare(final V[] arg0, final V[] arg1) {
-        if (arg0 == null || arg1 == null) { throw new NullPointerException(); }
+        checkNotNull(arg0);
+        checkNotNull(arg1);
 
-        if (arg0.length == 0 || arg1.length == 0) { return -(arg0.length - arg1.length); }
-
-        int r;
-        for (int i = 0; i < arg0.length; i++) {
-          r = RedundantRequirementsRemoverImplementation.this.compare(arg0[i], arg1[i]);
-          if (r != 0) { return r; }
+        if (arg0.length == 0 || arg1.length == 0) {
+          return Integer.compare(arg1.length, arg0.length); // reverse
         }
 
-        return 0;
+        return Ordering.from(RedundantRequirementsRemoverImplementation.this)
+            .lexicographical()
+            .compare(Arrays.asList(arg0), Arrays.asList(arg1));
       }
 
     }
@@ -228,25 +232,24 @@ public class RedundantRequirementsRemover {
         if (firstArg.length == 0 || secondArg.length == 0) { return -(firstArg.length - secondArg.length); }
 
         // compare first
-        if (firstArg[0].length != secondArg[0].length) { return -(firstArg[0].length - secondArg[0].length); }
+        if (firstArg[0].length != secondArg[0].length) {
+          return Integer.compare(secondArg[0].length, firstArg[0].length); // reverse
+        }
 
         int r = sortHelper.compare(secondArg[0],firstArg[0]);
 
         if (r != 0) { return r; }
 
         // compare remaining parts
-        if (firstArg.length != secondArg.length) { return -(firstArg.length - secondArg.length); }
-
-
-        for (int i = 1; i < firstArg.length; i++) {
-          r = sortHelper.compare(firstArg[i], secondArg[i]);
-          if (r != 0) {
-            return r;
-          }
+        if (firstArg.length != secondArg.length) {
+          return Integer.compare(secondArg.length, firstArg.length); // reverse
         }
 
-        return 0;
-
+        return Ordering.from(sortHelper)
+            .lexicographical()
+            .compare(
+                Arrays.asList(firstArg).subList(1, firstArg.length),
+                Arrays.asList(secondArg).subList(1, secondArg.length));
       }
     }
 

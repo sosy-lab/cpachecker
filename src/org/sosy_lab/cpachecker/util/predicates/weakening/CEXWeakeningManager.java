@@ -248,13 +248,9 @@ public class CEXWeakeningManager {
             if (depth >= leastRemovalsDepthLimit) {
               return TraversalProcess.custom(operands.iterator().next());
             }
-            BooleanFormula out = Collections.min(operands, new Comparator<BooleanFormula>() {
-              @Override
-              public int compare(BooleanFormula o1, BooleanFormula o2) {
-                return Integer.compare(
-                    recursivelyCallSelf(o1).size(), recursivelyCallSelf(o2).size());
-              }
-            });
+            BooleanFormula out =
+                Collections.min(
+                    operands, Comparator.comparingInt((f) -> recursivelyCallSelf(f).size()));
             return TraversalProcess.custom(out);
           default:
             throw new UnsupportedOperationException("Unexpected strategy");

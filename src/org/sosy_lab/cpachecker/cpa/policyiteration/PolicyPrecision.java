@@ -1,13 +1,11 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Ordering;
 
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Set;
@@ -19,18 +17,12 @@ public class PolicyPrecision implements Precision, Iterable<Template> {
   private final ImmutableList<Template> templates;
 
   public PolicyPrecision(Set<Template> pTemplates) {
-    ArrayList<Template> t = new ArrayList<>(pTemplates);
-    Collections.sort(t, new Comparator<Template>() {
-      @Override
-      public int compare(
-          Template o1, Template o2) {
-        return ComparisonChain.start()
-            .compare(o1.getLinearExpression().size(),
-                o2.getLinearExpression().size())
-            .compare(o1.toString(), o2.toString()).result();
-      }
-    });
-    templates = ImmutableList.copyOf(t);
+    templates =
+        Ordering.from(
+                Comparator.<Template>comparingInt(
+                        (template) -> template.getLinearExpression().size())
+                    .thenComparing(Template::toString))
+            .immutableSortedCopy(pTemplates);
   }
 
   public static PolicyPrecision empty() {

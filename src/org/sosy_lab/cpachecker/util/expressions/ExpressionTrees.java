@@ -23,16 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.expressions;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Set;
-
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
@@ -43,6 +33,17 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Set;
 
 
 
@@ -947,20 +948,9 @@ public final class ExpressionTrees {
   }
 
   private static class ExpressionTreeComparator<LeafType>
-      implements Comparator<ExpressionTree<LeafType>> {
+      implements Comparator<ExpressionTree<LeafType>>, Serializable {
 
-    private final Comparator<LeafType> leafExpressionComparator;
-
-    public ExpressionTreeComparator() {
-      leafExpressionComparator =
-          new Comparator<LeafType>() {
-
-            @Override
-            public int compare(LeafType pO1, LeafType pO2) {
-              return pO1.toString().compareTo(pO2.toString());
-            }
-          };
-    }
+    private static final long serialVersionUID = -8004131077972723263L;
 
     @Override
     public int compare(final ExpressionTree<LeafType> pO1, final ExpressionTree<LeafType> pO2) {
@@ -972,7 +962,7 @@ public final class ExpressionTrees {
       int typeOrder2 =
           pO2.accept(
               (ExpressionTreeVisitor<LeafType, Integer, RuntimeException>) TYPE_ORDER_VISITOR);
-      final int typeOrderComp = typeOrder1 - typeOrder2;
+      final int typeOrderComp = Integer.compare(typeOrder1, typeOrder2);
       final Ordering<Iterable<ExpressionTree<LeafType>>> lexicographicalOrdering =
           Ordering.<ExpressionTree<LeafType>>from(this).lexicographical();
       return pO1.accept(
@@ -1002,7 +992,7 @@ public final class ExpressionTrees {
                 LeafExpression<LeafType> other = (LeafExpression<LeafType>) pO2;
                 LeafType o1 = pLeafExpression.getExpression();
                 LeafType o2 = other.getExpression();
-                int leafComp = leafExpressionComparator.compare(o1, o2);
+                int leafComp = Ordering.usingToString().compare(o1, o2);
                 if (leafComp != 0) {
                   return leafComp;
                 }
