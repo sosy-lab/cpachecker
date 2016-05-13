@@ -94,12 +94,12 @@ import org.sosy_lab.solver.api.FormulaType;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 /**
  * Implements a converter for C code into SMT formulae.
@@ -647,10 +647,11 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
     final CType variableType = CTypeUtils.simplifyType(pDeclaration.getType());
     final CLeftHandSide lhs = new CIdExpression(pDeclaration.getFileLocation(),
         variableType, pDeclaration.getName(), pDeclaration);
-    final Set<String> alreadyAssigned = new HashSet<>();
-    for (CExpressionAssignmentStatement statement : pExplicitAssignments) {
-      alreadyAssigned.add(statement.getLeftHandSide().toString());
-    }
+    final Set<String> alreadyAssigned =
+        pExplicitAssignments
+            .stream()
+            .map(statement -> statement.getLeftHandSide().toString())
+            .collect(Collectors.toSet());
 
     final List<CExpressionAssignmentStatement> defaultAssignments = new ArrayList<>();
     expandAssignmentList(variableType, lhs, alreadyAssigned, defaultAssignments);
