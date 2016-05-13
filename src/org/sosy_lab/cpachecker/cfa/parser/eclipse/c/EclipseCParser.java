@@ -176,25 +176,21 @@ class EclipseCParser implements CParser {
   public ParseResult parseFile(List<FileToParse> pFilenames, CSourceOriginMapping sourceOriginMapping)
       throws CParserException, IOException, InvalidConfigurationException {
 
-    return parseSomething(pFilenames, sourceOriginMapping, new FileParseWrapper() {
-      @Override
-      public FileContent wrap(String pFileName, FileToParse pContent) throws IOException {
-        return wrapFile(pFileName);
-      }
-    });
+    return parseSomething(
+        pFilenames, sourceOriginMapping, (pFileName, pContent) -> wrapFile(pFileName));
   }
 
   @Override
   public ParseResult parseString(List<FileContentToParse> pCodeFragments, CSourceOriginMapping sourceOriginMapping)
       throws CParserException, InvalidConfigurationException {
 
-    return parseSomething(pCodeFragments, sourceOriginMapping, new FileParseWrapper() {
-      @Override
-      public FileContent wrap(String pFileName, FileToParse pContent) throws IOException {
-        Preconditions.checkArgument(pContent instanceof FileContentToParse);
-        return wrapCode(pFileName, ((FileContentToParse)pContent).getFileContent());
-      }
-    });
+    return parseSomething(
+        pCodeFragments,
+        sourceOriginMapping,
+        (pFileName, pContent) -> {
+          Preconditions.checkArgument(pContent instanceof FileContentToParse);
+          return wrapCode(pFileName, ((FileContentToParse) pContent).getFileContent());
+        });
 
   }
 
@@ -415,22 +411,14 @@ class EclipseCParser implements CParser {
    * one file (we expect the user to know its name in this case).
    */
   private Function<String, String> createNiceFileNameFunction(List<IASTTranslationUnit> asts) {
-    Iterator<String> fileNames = Lists.transform(asts, new Function<IASTTranslationUnit, String>() {
-      @Override
-      public String apply(IASTTranslationUnit pInput) {
-        return pInput.getFilePath();
-      }}).iterator();
+    Iterator<String> fileNames = Lists.transform(asts, IASTTranslationUnit::getFilePath).iterator();
 
     if (asts.size() == 1) {
       final String mainFileName = fileNames.next();
-      return new Function<String, String>() {
-        @Override
-        public String apply(String pInput) {
-          return mainFileName.equals(pInput)
+      return pInput ->
+          (mainFileName.equals(pInput)
               ? "" // no file name necessary for main file if there is only one
-              : pInput;
-          }
-        };
+              : pInput);
 
     } else {
       String commonStringPrefix = fileNames.next();
@@ -446,22 +434,19 @@ class EclipseCParser implements CParser {
         commonPathPrefix = commonStringPrefix.substring(0, pos+1);
       }
 
-      return new Function<String, String>() {
-          @Override
-          public String apply(String pInput) {
-            if (pInput.isEmpty()) {
-              return pInput;
-            }
-            if (pInput.charAt(0) == '"' && pInput.charAt(pInput.length()-1) == '"') {
-              pInput = pInput.substring(1, pInput.length()-1);
-            }
-            if (pInput.startsWith(commonPathPrefix)) {
-              return pInput.substring(commonPathPrefix.length()).intern();
-            } else {
-              return pInput.intern();
-            }
-          }
-        };
+      return pInput -> {
+        if (pInput.isEmpty()) {
+          return pInput;
+        }
+        if (pInput.charAt(0) == '"' && pInput.charAt(pInput.length() - 1) == '"') {
+          pInput = pInput.substring(1, pInput.length() - 1);
+        }
+        if (pInput.startsWith(commonPathPrefix)) {
+          return pInput.substring(commonPathPrefix.length()).intern();
+        } else {
+          return pInput.intern();
+        }
+      };
     }
   }
 

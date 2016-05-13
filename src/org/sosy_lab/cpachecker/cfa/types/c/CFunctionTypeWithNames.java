@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -57,13 +56,11 @@ public final class CFunctionTypeWithNames extends CFunctionType implements CType
       List<CParameterDeclaration> pParameters,
       boolean pTakesVarArgs) {
 
-    super(pConst, pVolatile, pReturnType,
-        FluentIterable.from(pParameters).transform(new Function<CParameterDeclaration, CType>() {
-          @Override
-          public CType apply(CParameterDeclaration pInput) {
-            return pInput.getType();
-          }
-        }).toList(),
+    super(
+        pConst,
+        pVolatile,
+        pReturnType,
+        FluentIterable.from(pParameters).transform(CParameterDeclaration::getType).toList(),
         pTakesVarArgs);
 
     parameters = ImmutableList.copyOf(pParameters);

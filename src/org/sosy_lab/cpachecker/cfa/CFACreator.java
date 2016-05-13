@@ -912,18 +912,9 @@ v.addInitializer(initializer);
   }
 
   private void exportCFAAsync(final CFA cfa) {
-    // execute asynchronously, this may take several seconds for large programs on slow disks
-    Concurrency.newThread(
-            "BDD cleanup thread",
-            new Runnable() {
-              @Override
-              public void run() {
-                // running the following in parallel is thread-safe
-                // because we don't modify the CFA from this point on
-                exportCFA(cfa);
-              }
-            })
-        .start();
+    // Execute asynchronously, this may take several seconds for large programs on slow disks.
+    // This is safe because we don't modify the CFA from this point on.
+    Concurrency.newThread("BDD cleanup thread", () -> exportCFA(cfa)).start();
   }
 
   private void exportCFA(final CFA cfa) {

@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
-import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
@@ -177,43 +176,39 @@ public class CFunctionPointerResolver {
       case ALL:
         // do nothing
         break;
-      case EQ_PARAM_COUNT:
-        predicates.add(new Predicate<Pair<CFunctionCall, CFunctionType>>() {
-          @Override
-          public boolean apply(Pair<CFunctionCall, CFunctionType> pInput) {
-            boolean result = checkParamSizes(pInput.getFirst().getFunctionCallExpression(), pInput.getSecond());
-            if (!result) {
-              logger.log(Level.FINEST, "Function call", pInput.getFirst().toASTString(),
-                  "does not match function", pInput.getSecond(), "because of number of parameters.");
-            }
-            return result;
-          }
-        });
-        break;
-      case EQ_PARAM_SIZES:
-        predicates.add(new Predicate<Pair<CFunctionCall, CFunctionType>>() {
-          @Override
-          public boolean apply(Pair<CFunctionCall, CFunctionType> pInput) {
-            return checkReturnAndParamSizes(pInput.getFirst().getFunctionCallExpression(), pInput.getSecond());
-          }
-        });
-        break;
-      case EQ_PARAM_TYPES:
-        predicates.add(new Predicate<Pair<CFunctionCall, CFunctionType>>() {
-          @Override
-          public boolean apply(Pair<CFunctionCall, CFunctionType> pInput) {
-            return checkReturnAndParamTypes(pInput.getFirst().getFunctionCallExpression(), pInput.getSecond());
-          }
-        });
-        break;
-      case RETURN_VALUE:
-        predicates.add(new Predicate<Pair<CFunctionCall, CFunctionType>>() {
-          @Override
-          public boolean apply(Pair<CFunctionCall, CFunctionType> pInput) {
-            return checkReturnValue(pInput.getFirst(), pInput.getSecond());
-          }
-        });
-        break;
+        case EQ_PARAM_COUNT:
+          predicates.add(
+              pInput -> {
+                boolean result =
+                    checkParamSizes(
+                        pInput.getFirst().getFunctionCallExpression(), pInput.getSecond());
+                if (!result) {
+                  logger.log(
+                      Level.FINEST,
+                      "Function call",
+                      pInput.getFirst().toASTString(),
+                      "does not match function",
+                      pInput.getSecond(),
+                      "because of number of parameters.");
+                }
+                return result;
+              });
+          break;
+        case EQ_PARAM_SIZES:
+          predicates.add(
+              pInput ->
+                  checkReturnAndParamSizes(
+                      pInput.getFirst().getFunctionCallExpression(), pInput.getSecond()));
+          break;
+        case EQ_PARAM_TYPES:
+          predicates.add(
+              pInput ->
+                  checkReturnAndParamTypes(
+                      pInput.getFirst().getFunctionCallExpression(), pInput.getSecond()));
+          break;
+        case RETURN_VALUE:
+          predicates.add(pInput -> checkReturnValue(pInput.getFirst(), pInput.getSecond()));
+          break;
       case USED_IN_CODE:
         // Not necessary, only matching functions are in the
         // candidateFunctions set
@@ -301,14 +296,14 @@ public class CFunctionPointerResolver {
       return;
     }
 
-    logger.log(Level.FINEST, "Inserting edges for the function pointer",
-        nameExp.toASTString(), "with type", nameExp.getExpressionType().toASTString("*"),
-        "to the functions", from(funcs).transform(new Function<CFANode, String>() {
-            @Override
-            public String apply(CFANode pInput) {
-              return pInput.getFunctionName();
-            }
-          }));
+    logger.log(
+        Level.FINEST,
+        "Inserting edges for the function pointer",
+        nameExp.toASTString(),
+        "with type",
+        nameExp.getExpressionType().toASTString("*"),
+        "to the functions",
+        from(funcs).transform(CFunctionEntryNode::getFunctionName));
 
     FileLocation fileLocation = statement.getFileLocation();
     CFANode start = statement.getPredecessor();
@@ -443,15 +438,11 @@ public class CFunctionPointerResolver {
 
   private List<CFunctionEntryNode> getFunctionSet(final CFunctionCall call) {
     return from(candidateFunctions)
-            .filter(CFunctionEntryNode.class)
-            .filter(Predicates.compose(matchingFunctionCall,
-                      new Function<CFunctionEntryNode, Pair<CFunctionCall, CFunctionType>>() {
-                        @Override
-                        public Pair<CFunctionCall, CFunctionType> apply(CFunctionEntryNode f) {
-                          return Pair.of(call, f.getFunctionDefinition().getType());
-                        }
-                      }))
-            .toList();
+        .filter(CFunctionEntryNode.class)
+        .filter(
+            Predicates.compose(
+                matchingFunctionCall, f -> Pair.of(call, f.getFunctionDefinition().getType())))
+        .toList();
   }
 
   private boolean checkReturnAndParamSizes(

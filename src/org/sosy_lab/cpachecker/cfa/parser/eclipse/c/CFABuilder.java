@@ -383,12 +383,10 @@ class CFABuilder extends ASTVisitor {
     }
     cfas.put(functionName, startNode);
     cfaNodes.putAll(functionName, functionBuilder.getCfaNodes());
-    globalDeclarations.addAll(from(functionBuilder.getGlobalDeclarations()).transform(new Function<Pair<ADeclaration, String>, Triple<ADeclaration, String, GlobalScope>>() {
-
-      @Override
-      public Triple<ADeclaration, String, GlobalScope> apply(Pair<ADeclaration, String> pInput) {
-        return Triple.of(pInput.getFirst(), pInput.getSecond(), actScope);
-      }}).toList());
+    globalDeclarations.addAll(
+        from(functionBuilder.getGlobalDeclarations())
+            .transform(pInput -> Triple.of(pInput.getFirst(), pInput.getSecond(), actScope))
+            .toList());
     globalDecls.addAll(functionBuilder.getGlobalDeclarations());
 
     encounteredAsm |= functionBuilder.didEncounterAsm();

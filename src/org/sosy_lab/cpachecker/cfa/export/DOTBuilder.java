@@ -57,12 +57,7 @@ public final class DOTBuilder {
   private static final int NODE_SHAPE_CHANGE_CHAR_LIMIT = 10;
 
   private static final Function<CFANode, String> DEFAULT_NODE_FORMATTER =
-      new Function<CFANode, String>() {
-        @Override
-        public String apply(CFANode node) {
-          return "N" + node.getNodeNumber() + "\\n" + node.getReversePostorderId();
-        }
-      };
+      node -> "N" + node.getNodeNumber() + "\\n" + node.getReversePostorderId();
 
 
   public static void generateDOT(Appendable sb, CFA cfa) throws IOException {

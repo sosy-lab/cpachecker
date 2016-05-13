@@ -100,12 +100,9 @@ public class BlockToDotWriter {
 
     // sort blocks, largest blocks first
     List<Block> sortedBlocks = Lists.newArrayList(blockPartitioning.getBlocks());
-    Collections.sort(sortedBlocks, new Comparator<Block>() {
-      @Override
-      public int compare(Block b1, Block b2) {
-        return b2.getNodes().size() - b1.getNodes().size();
-      }
-    });
+    Collections.sort(
+        sortedBlocks,
+        Comparator.<Block>comparingInt((block) -> block.getNodes().size()).reversed());
 
     // build hierarchy, worst case runtime O(n^2), iff mainBlock contains all other blocks 'directly'.
     final Multimap<Block, Block> hierarchy = HashMultimap.create();

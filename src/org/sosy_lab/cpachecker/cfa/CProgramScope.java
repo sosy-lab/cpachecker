@@ -69,11 +69,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
@@ -530,16 +528,10 @@ public class CProgramScope implements Scope {
     }
 
     // Construct multimap that may contain duplicates
-    Multimap<String, CComplexType> typesMap = from(typeCollector.getCollectedTypes())
-        .filter(CComplexType.class)
-        .index(new Function<CComplexType, String>() {
-
-      @Override
-      public String apply(CComplexType pArg0) {
-        return pArg0.getQualifiedName();
-      }
-
-    });
+    Multimap<String, CComplexType> typesMap =
+        from(typeCollector.getCollectedTypes())
+            .filter(CComplexType.class)
+            .index(CComplexType::getQualifiedName);
 
     // Get unique types
     Map<String, CComplexType> uniqueTypes = Maps.newHashMap();
@@ -557,28 +549,16 @@ public class CProgramScope implements Scope {
     FluentIterable<CTypeDefDeclaration> plainTypeDefs = pTypeDcls.filter(CTypeDefDeclaration.class);
 
     // Construct multimap that may contain duplicates
-    Multimap<String, CTypeDefDeclaration> typeDefDeclarationsMap = plainTypeDefs.index(new Function<CTypeDefDeclaration, String>() {
-
-      @Override
-      public String apply(CTypeDefDeclaration pArg0) {
-        return pArg0.getQualifiedName();
-      }
-
-    });
+    Multimap<String, CTypeDefDeclaration> typeDefDeclarationsMap =
+        plainTypeDefs.index(CTypeDefDeclaration::getQualifiedName);
 
     // Get unique type defs
     Map<String, CType> uniqueTypeDefs = Maps.newHashMap();
 
     for (Map.Entry<String, Collection<CTypeDefDeclaration>> typeDefEntry : typeDefDeclarationsMap.asMap().entrySet()) {
       String qualifiedName = typeDefEntry.getKey();
-      FluentIterable<CType> types = from(typeDefEntry.getValue()).transform(new Function<CTypeDefDeclaration, CType>() {
-
-        @Override
-        public CType apply(CTypeDefDeclaration pArg0) {
-          return pArg0.getType();
-        }
-
-      });
+      FluentIterable<CType> types =
+          from(typeDefEntry.getValue()).transform(CTypeDefDeclaration::getType);
       putIfUnique(uniqueTypeDefs, qualifiedName, types, pLogger);
     }
 
@@ -587,21 +567,11 @@ public class CProgramScope implements Scope {
 
   private static Map<String, CSimpleDeclaration> extractUniqueSimpleDeclarations(
       Map<String, CSimpleDeclaration> pQualifiedDeclarations) {
-    return Maps.transformEntries(Maps.filterEntries(from(pQualifiedDeclarations.values()).index(GET_NAME).asMap(), new Predicate<Map.Entry<String, Collection<CSimpleDeclaration>>>() {
-
-      @Override
-      public boolean apply(Entry<String, Collection<CSimpleDeclaration>> pArg0) {
-        return pArg0.getValue().size() == 1;
-      }
-
-    }), new Maps.EntryTransformer<String, Collection<CSimpleDeclaration>, CSimpleDeclaration>() {
-
-      @Override
-      public CSimpleDeclaration transformEntry(String pArg0, @Nonnull Collection<CSimpleDeclaration> pArg1) {
-        return pArg1.iterator().next();
-      }
-
-    });
+    return Maps.transformEntries(
+        Maps.filterEntries(
+            from(pQualifiedDeclarations.values()).index(GET_NAME).asMap(),
+            entry -> entry.getValue().size() == 1),
+        (key, values) -> Iterables.getOnlyElement(values));
   }
 
   private static <T extends CType> void putIfUnique(Map<String, ? super T> pTarget, String pQualifiedName, Iterable<? extends T> pValues, LogManager pLogger) {
