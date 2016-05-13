@@ -29,9 +29,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
 
-import com.google.common.base.Function;
 import com.google.common.base.Optional;
-import com.google.common.base.Predicate;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.UniqueIdGenerator;
@@ -420,23 +418,8 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
   }
 
   private Iterable<Integer> stateIdsOf(Iterable<ARGState> elements) {
-    return from(elements).transform(TO_STATE_ID);
+    return from(elements).transform(ARGState::getStateId);
   }
-
-  private static final Function<ARGState, Integer> TO_STATE_ID = new Function<ARGState, Integer>() {
-    @Override
-    public Integer apply(ARGState pInput) {
-      return pInput.stateId;
-    }
-  };
-
-  public static final Predicate<ARGState> IS_COVERED =
-      new Predicate<ARGState>() {
-        @Override
-        public boolean apply(ARGState pInput) {
-          return pInput.isCovered();
-        }
-      };
 
   // removal from ARG
 

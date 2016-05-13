@@ -290,11 +290,11 @@ public class ARGReachedSet {
       return;
     }
 
-    SetMultimap<ARGState, ARGState> successors = ARGUtils.projectARG(e,
-        ARGUtils.CHILDREN_OF_STATE, ARGUtils.RELEVANT_STATE);
+    SetMultimap<ARGState, ARGState> successors =
+        ARGUtils.projectARG(e, ARGState::getChildren, ARGUtils.RELEVANT_STATE);
 
-    SetMultimap<ARGState, ARGState> predecessors = ARGUtils.projectARG(e,
-        ARGUtils.PARENTS_OF_STATE, ARGUtils.RELEVANT_STATE);
+    SetMultimap<ARGState, ARGState> predecessors =
+        ARGUtils.projectARG(e, ARGState::getParents, ARGUtils.RELEVANT_STATE);
 
     try {
       refinementGraph.enterSubgraph("cluster_" + refinementNumber,

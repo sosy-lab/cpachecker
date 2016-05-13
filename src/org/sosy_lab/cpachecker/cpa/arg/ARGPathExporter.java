@@ -821,8 +821,6 @@ public class ARGPathExporter {
         GraphBuilder pGraphBuilder)
         throws IOException {
 
-      final Function<? super ARGState, ? extends Iterable<ARGState>> successorFunction = ARGUtils.CHILDREN_OF_STATE;
-
       Map<ARGState, CFAEdgeWithAssumptions> valueMap = null;
       if (pCounterExample.isPresent() && pCounterExample.get().isPreciseCounterExample()) {
         valueMap = pCounterExample.get().getExactVariableValues();
@@ -860,7 +858,7 @@ public class ARGPathExporter {
       String entryStateNodeId = pGraphBuilder.getId(pRootState);
 
       // Collect node flags in advance
-      for (ARGState s : collectPathNodes(pRootState, successorFunction, pIsRelevantState)) {
+      for (ARGState s : collectPathNodes(pRootState, ARGState::getChildren, pIsRelevantState)) {
         String sourceStateNodeId = pGraphBuilder.getId(s);
         EnumSet<NodeFlag> sourceNodeFlags = EnumSet.noneOf(NodeFlag.class);
         if (sourceStateNodeId.equals(entryStateNodeId)) {
@@ -874,7 +872,14 @@ public class ARGPathExporter {
       nodeFlags.put(SINK_NODE_ID, NodeFlag.ISSINKNODE);
 
       // Build the actual graph
-      pGraphBuilder.buildGraph(pRootState, pIsRelevantState, pIsRelevantEdge, valueMap, doc, collectPathEdges(pRootState, successorFunction, pIsRelevantState), this);
+      pGraphBuilder.buildGraph(
+          pRootState,
+          pIsRelevantState,
+          pIsRelevantEdge,
+          valueMap,
+          doc,
+          collectPathEdges(pRootState, ARGState::getChildren, pIsRelevantState),
+          this);
 
       // Remove edges that lead to the sink but have a sibling edge that has the same label
       Collection<Edge> toRemove = Sets.newHashSet();

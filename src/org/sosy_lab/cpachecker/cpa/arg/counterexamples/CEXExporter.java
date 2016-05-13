@@ -216,24 +216,27 @@ public class CEXExporter {
       writeErrorPathFile(errorPathSourceFile, uniqueId, pathProgram);
     }
 
-    writeErrorPathFile(errorPathGraphFile, uniqueId, new Appender() {
-      @Override
-      public void appendTo(Appendable pAppendable) throws IOException {
-        ARGToDotWriter.write(pAppendable, rootState,
-                ARGUtils.CHILDREN_OF_STATE,
-                Predicates.in(pathElements),
-                isTargetPathEdge);
-      }
-    });
+    writeErrorPathFile(
+        errorPathGraphFile,
+        uniqueId,
+        (Appender)
+            (pAppendable) -> {
+              ARGToDotWriter.write(
+                  pAppendable,
+                  rootState,
+                  ARGState::getChildren,
+                  Predicates.in(pathElements),
+                  isTargetPathEdge);
+            });
 
-    writeErrorPathFile(errorPathAutomatonFile, uniqueId, new Appender() {
-      @Override
-      public void appendTo(Appendable pAppendable) throws IOException {
-        ARGUtils.producePathAutomaton(pAppendable, rootState, pathElements,
-                "ErrorPath" + uniqueId,
-                counterexample);
-      }
-    });
+    writeErrorPathFile(
+        errorPathAutomatonFile,
+        uniqueId,
+        (Appender)
+            (pAppendable) -> {
+              ARGUtils.producePathAutomaton(
+                  pAppendable, rootState, pathElements, "ErrorPath" + uniqueId, counterexample);
+            });
 
     for (Pair<Object, PathTemplate> info : counterexample.getAllFurtherInformation()) {
       if (info.getSecond() != null) {
@@ -241,15 +244,18 @@ public class CEXExporter {
       }
     }
 
-    writeErrorPathFile(errorPathAutomatonGraphmlFile, uniqueId, new Appender() {
-      @Override
-      public void appendTo(Appendable pAppendable) throws IOException {
-        witnessExporter.writeErrorWitness(pAppendable, rootState,
-                Predicates.in(pathElements),
-                isTargetPathEdge,
-                counterexample);
-      }
-    });
+    writeErrorPathFile(
+        errorPathAutomatonGraphmlFile,
+        uniqueId,
+        (Appender)
+            (pAppendable) -> {
+              witnessExporter.writeErrorWitness(
+                  pAppendable,
+                  rootState,
+                  Predicates.in(pathElements),
+                  isTargetPathEdge,
+                  counterexample);
+            });
   }
 
   private void writeErrorPathFile(PathTemplate template, int uniqueId, Object content) {

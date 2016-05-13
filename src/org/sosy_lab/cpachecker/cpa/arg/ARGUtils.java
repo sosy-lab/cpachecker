@@ -188,16 +188,15 @@ public class ARGUtils {
     states.add(currentARGState);
     seenElements.add(currentARGState);
 
-    Collection<PathPosition> tracePrefixesToAvoid = Collections2.transform(pOtherPathThan,
-        new Function<ARGPath, PathPosition>() {
-          @Override
-          public PathPosition apply(ARGPath pArg0) {
-            PathPosition result = pArg0.reversePathIterator().getPosition();
-            CFANode expectedPostfixLoc = AbstractStates.extractLocation(pEndState);
-            Verify.verify(result.getLocation().equals(expectedPostfixLoc));
-            return result;
-          }
-    });
+    Collection<PathPosition> tracePrefixesToAvoid =
+        Collections2.transform(
+            pOtherPathThan,
+            pArg0 -> {
+              PathPosition result = pArg0.reversePathIterator().getPosition();
+              CFANode expectedPostfixLoc = AbstractStates.extractLocation(pEndState);
+              Verify.verify(result.getLocation().equals(expectedPostfixLoc));
+              return result;
+            });
 
     // Get all traces from pTryCoverOtherStatesThan that start at the same location
     tracePrefixesToAvoid = getTracePrefixesBeforePostfix(tracePrefixesToAvoid, currentLocation);
@@ -291,56 +290,25 @@ public class ARGUtils {
     return new ARGPath(states);
   }
 
-  public static final Function<ARGState, Collection<ARGState>> CHILDREN_OF_STATE = new Function<ARGState, Collection<ARGState>>() {
-        @Override
-        public Collection<ARGState> apply(ARGState pInput) {
-          return pInput.getChildren();
-        }
-      };
+  private static final Predicate<CFANode> IS_RELEVANT_LOCATION =
+      pInput ->
+          pInput.isLoopStart()
+              || pInput instanceof FunctionEntryNode
+              || pInput instanceof FunctionExitNode;
 
-  public static final Function<ARGState, Collection<ARGState>> PARENTS_OF_STATE = new Function<ARGState, Collection<ARGState>>() {
-        @Override
-        public Collection<ARGState> apply(ARGState pInput) {
-          return pInput.getParents();
-        }
-      };
+  private static final Predicate<Iterable<CFANode>> CONTAINS_RELEVANT_LOCATION =
+      nodes -> Iterables.any(nodes, IS_RELEVANT_LOCATION);
 
-  private static final Predicate<CFANode> IS_RELEVANT_LOCATION = new Predicate<CFANode>() {
-    @Override
-    public boolean apply(CFANode pInput) {
-      return pInput.isLoopStart()
-          || pInput instanceof FunctionEntryNode
-          || pInput instanceof FunctionExitNode;
-    }
-  };
-
-  private static final Predicate<Iterable<CFANode>> CONTAINS_RELEVANT_LOCATION = new Predicate<Iterable<CFANode>>() {
-    @Override
-    public boolean apply(Iterable<CFANode> nodes) {
-      return Iterables.any(nodes, IS_RELEVANT_LOCATION);
-    }
-  };
-
-  public static final Predicate<AbstractState> AT_RELEVANT_LOCATION =
+  private static final Predicate<AbstractState> AT_RELEVANT_LOCATION =
       Predicates.compose(CONTAINS_RELEVANT_LOCATION, AbstractStates::extractLocations);
 
   @SuppressWarnings("unchecked")
-  public static final Predicate<ARGState> RELEVANT_STATE = Predicates.or(
-      AbstractStates.IS_TARGET_STATE,
-      AT_RELEVANT_LOCATION,
-      new Predicate<ARGState>() {
-          @Override
-          public boolean apply(ARGState pInput) {
-            return !pInput.wasExpanded();
-          }
-        },
-      new Predicate<ARGState>() {
-          @Override
-          public boolean apply(ARGState pInput) {
-            return pInput.shouldBeHighlighted();
-          }
-        }
-      );
+  static final Predicate<ARGState> RELEVANT_STATE =
+      Predicates.or(
+          AbstractStates.IS_TARGET_STATE,
+          AT_RELEVANT_LOCATION,
+          pInput -> !pInput.wasExpanded(),
+          ARGState::shouldBeHighlighted);
 
   /**
    * Project the ARG to a subset of "relevant" states.

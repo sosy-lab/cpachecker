@@ -254,7 +254,7 @@ public class ValueAnalysisRefiner
     UnmodifiableReachedSet reached = pReached.asReachedSet();
     return PredicatePrecision.unionOf(
         from(pRefinementRoot.getSubgraph())
-            .filter(not(ARGState.IS_COVERED))
+            .filter(not(ARGState::isCovered))
             .transform(reached::getPrecision));
     }
 

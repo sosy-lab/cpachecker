@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
-import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
 import java.io.IOException;
@@ -218,12 +217,13 @@ class BAMCPAStatistics implements Statistics {
                         final Multimap<ARGState, ARGState> connections,
                         final Set<ARGState> rootStates) {
     try (Writer w = MoreFiles.openOutputFile(file, Charset.defaultCharset())) {
-      ARGToDotWriter.write(w,
-              rootStates,
-              connections,
-              ARGUtils.CHILDREN_OF_STATE,
-              Predicates.alwaysTrue(),
-              highlightSummaryEdge);
+      ARGToDotWriter.write(
+          w,
+          rootStates,
+          connections,
+          ARGState::getChildren,
+          Predicates.alwaysTrue(),
+          highlightSummaryEdge);
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, String.format("Could not write ARG to file: %s", file));
     }

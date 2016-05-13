@@ -232,7 +232,8 @@ public class ARGStatistics implements Statistics {
   }
 
   private void exportARG0(final ARGState rootState, final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge) {
-    SetMultimap<ARGState, ARGState> relevantSuccessorRelation = ARGUtils.projectARG(rootState, ARGUtils.CHILDREN_OF_STATE, ARGUtils.RELEVANT_STATE);
+    SetMultimap<ARGState, ARGState> relevantSuccessorRelation =
+        ARGUtils.projectARG(rootState, ARGState::getChildren, ARGUtils.RELEVANT_STATE);
     Function<ARGState, Collection<ARGState>> relevantSuccessorFunction = Functions.forMap(relevantSuccessorRelation.asMap(), ImmutableSet.<ARGState>of());
 
     if (proofWitness != null) {
@@ -251,10 +252,8 @@ public class ARGStatistics implements Statistics {
       try (Writer w =
           MoreFiles.openOutputFile(
               adjustPathNameForPartitioning(rootState, argFile), Charset.defaultCharset())) {
-        ARGToDotWriter.write(w, rootState,
-            ARGUtils.CHILDREN_OF_STATE,
-            Predicates.alwaysTrue(),
-            isTargetPathEdge);
+        ARGToDotWriter.write(
+            w, rootState, ARGState::getChildren, Predicates.alwaysTrue(), isTargetPathEdge);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
       }

@@ -281,7 +281,7 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
       ARGState refinementRoot, UnmodifiableReachedSet reached) {
     return PredicatePrecision.unionOf(
         from(refinementRoot.getSubgraph())
-            .filter(not(ARGState.IS_COVERED))
+            .filter(not(ARGState::isCovered))
             .transform(reached::getPrecision));
   }
 
