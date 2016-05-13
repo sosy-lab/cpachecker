@@ -19,8 +19,12 @@
  */
 package org.sosy_lab.cpachecker.util;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Ordering.from;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Ordering;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -32,9 +36,6 @@ import java.util.Objects;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
-import com.google.common.base.Function;
-import com.google.common.collect.Ordering;
 
 /**
  * A generic Pair class. Code borrowed from here:
@@ -193,6 +194,6 @@ public class Pair<A, B> implements Serializable {
 
     return from(firstOrdering)
         .onResultOf(Pair.<A>getProjectionToFirst())
-        .compound(from(secondOrdering).onResultOf(Pair.<B>getProjectionToSecond()));
+        .compound(from(secondOrdering).onResultOf(Pair::getSecond));
   }
 }

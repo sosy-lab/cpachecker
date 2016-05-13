@@ -55,13 +55,12 @@ This also works with GitHub.
 Develop CPAchecker from within Eclipse
 --------------------------------------
 
-0. Install a Java 7 compatible JDK (c.f. INSTALL.txt).
+0. Install a Java 8 compatible JDK (c.f. INSTALL.txt).
 
-1. Install Eclipse with at least version 3.7, with JDT.
+1. Install Eclipse with at least version 4.4, with JDT.
    http://www.eclipse.org/
 
-2. Install an SVN plugin for Eclipse, e.g. SubClipse (http://subclipse.tigris.org,
-   Eclipse update site: http://subclipse.tigris.org/update_1.6.x)
+2. Install an SVN plugin for Eclipse, e.g. SubClipse (http://subclipse.tigris.org).
    Create new project from SVN repository (or use GIT as described above).
    URL: https://svn.sosy-lab.org/software/cpachecker/trunk
 
@@ -69,9 +68,9 @@ Develop CPAchecker from within Eclipse
    and (if necessary) adjust the path to the CPAchecker directory within it.
 
 4. If Eclipse complains about a missing JDK
-   ("Unbound classpath container: 'JRE System Library [JavaSE-1.7]'"),
+   ("Unbound classpath container: 'JRE System Library [JavaSE-1.8]'"),
    go to Window -> Preferences -> Java -> Installed JREs,
-   click the "Search" button and select the path where your Java 7 installation
+   click the "Search" button and select the path where your Java 8 installation
    can be found (on Ubuntu "/usr/lib/jvm" will do).
 
 5. Ignore warnings "Unsatisfied version constraint: 'org.eclipse.cdt.core ...'"
