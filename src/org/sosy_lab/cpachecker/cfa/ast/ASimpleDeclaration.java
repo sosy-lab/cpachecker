@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-import com.google.common.base.Function;
-
 /**
  * This interface represents the core components that occur in each declaration:
  * a type and an (optional) name.
@@ -48,12 +46,4 @@ public interface ASimpleDeclaration extends AAstNode {
    * Get globally unique name of this declaration, qualified with the function name.
    */
   public String getQualifiedName();
-
-  public static final Function<ASimpleDeclaration, String> GET_QUALIFIED_NAME =
-      new Function<ASimpleDeclaration, String>() {
-        @Override
-        public String apply(ASimpleDeclaration pInput) {
-          return pInput.getQualifiedName();
-        }
-      };
 }

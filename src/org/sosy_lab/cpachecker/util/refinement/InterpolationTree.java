@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.refinement;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
@@ -202,11 +202,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
    * This method extracts all targets states from the target paths.
    */
   private Set<ARGState> extractTargets(final Collection<ARGPath> targetsPaths) {
-    return FluentIterable.from(targetsPaths).transform(new Function<ARGPath, ARGState>() {
-      @Override
-      public ARGState apply(ARGPath targetsPath) {
-        return targetsPath.getLastState();
-      }}).toSet();
+    return FluentIterable.from(targetsPaths).transform(ARGPath::getLastState).toSet();
   }
 
   public ARGState getRoot() {
@@ -431,11 +427,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
    * @return the target states that were interpolated
    */
   public Collection<ARGState> getInterpolatedTargetsInSubtree(ARGState state) {
-    return FluentIterable.from(getTargetsInSubtree(state)).filter(new Predicate<ARGState>() {
-      @Override
-      public boolean apply(ARGState targetState) {
-        return interpolants.containsKey(targetState);
-      }}).toSet();
+    return from(getTargetsInSubtree(state)).filter(interpolants::containsKey).toSet();
   }
 
   /**

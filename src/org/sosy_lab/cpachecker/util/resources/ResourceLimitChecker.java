@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.ShutdownNotifier.interruptCurrentThreadOnShutdown;
 
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -51,7 +50,6 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
-import javax.annotation.Nonnull;
 import javax.management.JMException;
 
 /**
@@ -132,14 +130,10 @@ public final class ResourceLimitChecker {
 
     ImmutableList<ResourceLimit> limitsList = limits.build();
     if (!limitsList.isEmpty()) {
-      logger.log(Level.INFO, "Using the following resource limits:",
-          Joiner.on(", ").join(Lists.transform(limitsList,
-              new Function<ResourceLimit, String>() {
-                @Override
-                public String apply(@Nonnull ResourceLimit pInput) {
-                  return pInput.getName();
-                }
-              })));
+      logger.log(
+          Level.INFO,
+          "Using the following resource limits:",
+          Joiner.on(", ").join(Lists.transform(limitsList, ResourceLimit::getName)));
     }
     return new ResourceLimitChecker(shutdownManager, limitsList);
   }

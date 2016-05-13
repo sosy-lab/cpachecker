@@ -78,16 +78,12 @@ public class AssumptionWithLocation implements Appender {
     return Appenders.toString(this);
   }
 
-  private static final Function<Entry<CFANode, BooleanFormula>, String> assumptionFormatter
-      = new Function<Entry<CFANode, BooleanFormula>, String>() {
-
-    @Override
-    public String apply(Map.Entry<CFANode, BooleanFormula> entry) {
-      int nodeId = entry.getKey().getNodeNumber();
-      BooleanFormula assumption = entry.getValue();
-      return "pc = " + nodeId + "\t =====>  " + assumption.toString();
-    }
-  };
+  private static final Function<Entry<CFANode, BooleanFormula>, String> assumptionFormatter =
+      entry -> {
+        int nodeId = entry.getKey().getNodeNumber();
+        BooleanFormula assumption = entry.getValue();
+        return "pc = " + nodeId + "\t =====>  " + assumption.toString();
+      };
 
   public void add(CFANode node, BooleanFormula assumption) {
     checkNotNull(node);

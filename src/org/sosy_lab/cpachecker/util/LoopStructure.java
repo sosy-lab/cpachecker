@@ -313,29 +313,21 @@ public final class LoopStructure {
    */
   public ImmutableSet<CFANode> getAllLoopHeads() {
     if (loopHeads == null) {
-      loopHeads = from(loops.values())
-          .transformAndConcat(new Function<Loop, Iterable<CFANode>>() {
-            @Override
-            public Iterable<CFANode> apply(Loop loop) {
-              return loop.getLoopHeads();
-            }
-          })
-          .toSet();
+      loopHeads = from(loops.values()).transformAndConcat(Loop::getLoopHeads).toSet();
     }
     return loopHeads;
   }
 
   public ImmutableSet<Loop> getLoopsForLoopHead(final CFANode loopHead) {
     return from(loops.values())
-        .transform(new Function<Loop, Loop>() {
-          @Override
-          public Loop apply(Loop loop) {
-            if (loop.getLoopHeads().contains(loopHead)) {
-              return loop;
-            } else {
-              return null;
-            }
-          }})
+        .transform(
+            loop -> {
+              if (loop.getLoopHeads().contains(loopHead)) {
+                return loop;
+              } else {
+                return null;
+              }
+            })
         .filter(Predicates.notNull())
         .toSet();
   }
@@ -575,12 +567,7 @@ public final class LoopStructure {
     // We use the reverse post-order id of each node as the array index for that node,
     // because this id is unique, without gaps, and its minimum is 0.
     // It's important to not use the node number because it has large gaps.
-    final Function<CFANode, Integer> arrayIndexForNode = new Function<CFANode, Integer>() {
-        @Override
-        public Integer apply(CFANode n) {
-          return n.getReversePostorderId();
-        }
-      };
+    final Function<CFANode, Integer> arrayIndexForNode = CFANode::getReversePostorderId;
     // this is the size of the arrays
     int size = nodes.size();
 
