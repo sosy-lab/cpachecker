@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 
+import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -121,14 +122,14 @@ public class BestFirstWeightedBalancedGraphPartitioner implements WeightedBalanc
 
     @Override
     public int compareTo(NodePriority compNode) {
-      if (compNode == null) { return -1; }
-      if (this.getPriority() != compNode.getPriority()) {
-        return this.getPriority() - compNode.getPriority();
-      } else {//same priority==> use node with higher number
-        int n1 = this.getNode().getNodeNumber();
-        int n2 = compNode.getNode().getNodeNumber();
-        return n2 - n1;
+      if (compNode == null) {
+        return -1;
       }
+      return ComparisonChain.start()
+          .compare(this.getPriority(), compNode.getPriority())
+          // same priority ==> use node with higher number
+          .compare(compNode.getNode().getNodeNumber(), this.getNode().getNodeNumber())
+          .result();
     }
 
     @Override

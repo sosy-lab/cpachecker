@@ -23,12 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
+import com.google.common.base.Optional;
+import com.google.common.primitives.Longs;
+
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import com.google.common.base.Optional;
 
 /**
  * Identifier for basic symbolic values.
@@ -154,13 +155,7 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
 
   @Override
   public int compareTo(SymbolicIdentifier o) {
-    if (getId() == o.getId()) {
-      return 0;
-    } else if (getId() > o.getId()) {
-      return 1;
-    } else {
-      return -1;
-    }
+    return Longs.compare(getId(), o.getId());
   }
 
 
