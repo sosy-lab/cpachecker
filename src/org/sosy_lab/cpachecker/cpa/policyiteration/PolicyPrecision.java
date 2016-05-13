@@ -26,7 +26,7 @@ public class PolicyPrecision implements Precision, Iterable<Template> {
           Template o1, Template o2) {
         return ComparisonChain.start()
             .compare(o1.getLinearExpression().size(),
-                o1.getLinearExpression().size())
+                o2.getLinearExpression().size())
             .compare(o1.toString(), o2.toString()).result();
       }
     });
