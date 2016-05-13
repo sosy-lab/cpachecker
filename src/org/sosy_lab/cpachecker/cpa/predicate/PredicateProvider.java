@@ -23,10 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import java.io.IOException;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.configuration.Configuration;
@@ -34,8 +33,6 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -56,10 +53,13 @@ import org.sosy_lab.cpachecker.util.predicates.precisionConverter.FormulaParser;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.OptionalInt;
+import java.util.Set;
 
 /**
  * This class provides additional predicates for a given source of information.
@@ -127,9 +127,9 @@ public class PredicateProvider {
 
       abstractions = HashMultimap.create();
       for (AbstractionNode absNode : abstractionStorage.getAbstractions().values()) {
-        Optional<Integer> location = absNode.getLocationId();
+        OptionalInt location = absNode.getLocationId();
         if (location.isPresent()) {
-          abstractions.put(location.get(), absNode.getFormula());
+          abstractions.put(location.getAsInt(), absNode.getFormula());
         }
       }
     }

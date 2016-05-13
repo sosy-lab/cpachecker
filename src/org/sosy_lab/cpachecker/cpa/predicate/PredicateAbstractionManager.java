@@ -511,7 +511,7 @@ public class PredicateAbstractionManager {
           }
 
           if (an.getLocationId().isPresent()) {
-            if (location.getNodeNumber() != an.getLocationId().get()) {
+            if (location.getNodeNumber() != an.getLocationId().getAsInt()) {
               candidateIterator.remove();
               continue;
             }

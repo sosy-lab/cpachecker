@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
@@ -52,6 +51,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.regex.Pattern;
@@ -62,10 +62,10 @@ public class PredicateAbstractionsStorage {
 
   public static class AbstractionNode {
     private final int id;
-    private final Optional<Integer> locationId;
+    private final OptionalInt locationId;
     private final BooleanFormula formula;
 
-    public AbstractionNode(int pId, BooleanFormula pFormula, Optional<Integer> pLocationId) {
+    public AbstractionNode(int pId, BooleanFormula pFormula, OptionalInt pLocationId) {
       this.id = pId;
       this.formula = pFormula;
       this.locationId = pLocationId;
@@ -79,7 +79,7 @@ public class PredicateAbstractionsStorage {
       return id;
     }
 
-    public Optional<Integer> getLocationId() {
+    public OptionalInt getLocationId() {
       return locationId;
     }
 
@@ -141,7 +141,7 @@ public class PredicateAbstractionsStorage {
 
       String currentLine;
       int currentAbstractionId = -1;
-      Optional<Integer> currentLocationId = Optional.absent();
+      OptionalInt currentLocationId = OptionalInt.empty();
       Set<Integer> currentSuccessors = Sets.newTreeSet();
 
       AbstractionsParserState parserState = AbstractionsParserState.EXPECT_NODE_DECLARATION;
@@ -181,7 +181,7 @@ public class PredicateAbstractionsStorage {
             String token = declarationTokenizer.nextToken().trim();
             if (token.length() > 0) {
               if (token.startsWith("@")) {
-                currentLocationId = Optional.of(Integer.parseInt(token.substring(1)));
+                currentLocationId = OptionalInt.of(Integer.parseInt(token.substring(1)));
               } else {
                 int successorId = Integer.parseInt(token);
                 currentSuccessors.add(successorId);
