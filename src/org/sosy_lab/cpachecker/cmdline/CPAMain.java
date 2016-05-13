@@ -47,6 +47,7 @@ import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LoggingOptions;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentException;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
@@ -79,7 +80,7 @@ public class CPAMain {
   public static void main(String[] args) {
     // initialize various components
     Configuration cpaConfig = null;
-    LogManager logManager = null;
+    LoggingOptions logOptions;
     String outputDirectory = null;
     try {
       try {
@@ -94,13 +95,14 @@ public class CPAMain {
         System.exit(ERROR_EXIT_CODE);
       }
 
-      logManager = BasicLogManager.create(cpaConfig);
+      logOptions = new LoggingOptions(cpaConfig);
 
     } catch (InvalidConfigurationException e) {
       ERROR_OUTPUT.println("Invalid configuration: " + e.getMessage());
       System.exit(ERROR_EXIT_CODE);
       return;
     }
+    final LogManager logManager = BasicLogManager.create(logOptions);
     cpaConfig.enableLogging(logManager);
 
     // create everything
@@ -125,7 +127,7 @@ public class CPAMain {
       if (options.doPCC) {
         proofGenerator = new ProofGenerator(cpaConfig, logManager, shutdownNotifier);
       }
-      reportGenerator = new ReportGenerator(cpaConfig, logManager);
+      reportGenerator = new ReportGenerator(cpaConfig, logManager, logOptions.getOutputFile());
     } catch (InvalidConfigurationException e) {
       logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
       System.exit(ERROR_EXIT_CODE);

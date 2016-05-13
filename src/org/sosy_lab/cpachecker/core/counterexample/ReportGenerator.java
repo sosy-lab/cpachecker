@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.counterexample;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
+import static java.nio.file.Files.isReadable;
 import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
@@ -55,6 +56,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Writer;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
@@ -83,10 +85,6 @@ public class ReportGenerator {
   )
   private String programs;
 
-  @Option(secure = true, name = "log.file", description = "name of the log file")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path logFile = Paths.get("CPALog.txt");
-
   @Option(
     secure = true,
     name = "report.export",
@@ -106,12 +104,14 @@ public class ReportGenerator {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate counterExampleFiles = PathTemplate.ofFormatString("Counterexample.%d.html");
 
+  private final @Nullable Path logFile;
   private final List<String> sourceFiles;
 
-  public ReportGenerator(Configuration pConfig, LogManager pLogger)
+  public ReportGenerator(Configuration pConfig, LogManager pLogger, @Nullable Path pLogFile)
       throws InvalidConfigurationException {
     config = checkNotNull(pConfig);
     logger = checkNotNull(pLogger);
+    logFile = pLogFile;
     config.inject(this);
     sourceFiles = COMMA_SPLITTER.splitToList(programs);
   }
@@ -257,8 +257,7 @@ public class ReportGenerator {
   private void insertSource(Path sourcePath, Writer report, int sourceFileNumber)
       throws IOException {
 
-    if (java.nio.file.Files.isReadable(sourcePath)) {
-
+    if (isReadable(sourcePath)) {
       int iterator = 0;
       try (BufferedReader source =
           new BufferedReader(
@@ -310,9 +309,8 @@ public class ReportGenerator {
   }
 
   private void insertLog(Writer bufferedWriter) throws IOException {
-    if (logFile != null && java.nio.file.Files.isReadable(logFile)) {
-      try (BufferedReader log =
-          java.nio.file.Files.newBufferedReader(logFile, Charset.defaultCharset())) {
+    if (logFile != null && Files.isReadable(logFile)) {
+      try (BufferedReader log = Files.newBufferedReader(logFile, Charset.defaultCharset())) {
 
         int iterator = 0;
         String line;
