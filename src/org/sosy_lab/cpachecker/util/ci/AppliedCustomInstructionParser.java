@@ -210,8 +210,8 @@ public class AppliedCustomInstructionParser {
    */
   protected ImmutableSet<CFANode> getCFANodes (final String[] pNodes, final CFAInfo cfaInfo) throws AppliedCustomInstructionParsingFailedException {
     ImmutableSet.Builder<CFANode> builder = new ImmutableSet.Builder<>();
-    for (int i=0; i<pNodes.length; i++) {
-      builder.add(getCFANode(pNodes[i], cfaInfo));
+    for (String pNode : pNodes) {
+      builder.add(getCFANode(pNode, cfaInfo));
     }
     return builder.build();
   }
