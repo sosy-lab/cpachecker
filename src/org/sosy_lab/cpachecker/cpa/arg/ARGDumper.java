@@ -49,7 +49,7 @@ public class ARGDumper implements PostProcessor {
   @Option(secure=true, name = "addInclude", description = "whether or not add #include <stdio.h> in front of transformed program")
   private boolean addDefaultInclude = true;
 
-  @Option(name="dumpFile", description="export final ARG as .c file")
+  @Option(secure=true, name="dumpFile", description="export final ARG as .c file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private File dumpFile = new File("ARG.c");
 
