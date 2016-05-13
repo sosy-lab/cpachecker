@@ -23,12 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.ci.redundancyremover;
 
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -40,7 +35,12 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
 
 public class RedundantRequirementsRemover {
@@ -239,7 +239,7 @@ public class RedundantRequirementsRemover {
 
 
         for (int i = 1; i < firstArg.length; i++) {
-          r = sortHelper.compare(firstArg[i], secondArg[2]);
+          r = sortHelper.compare(firstArg[i], secondArg[i]);
           if (r != 0) {
             return r;
           }
