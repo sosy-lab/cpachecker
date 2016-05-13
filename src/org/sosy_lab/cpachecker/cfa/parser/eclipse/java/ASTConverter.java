@@ -23,18 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
@@ -143,10 +138,16 @@ import org.sosy_lab.cpachecker.cfa.types.java.JMethodType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 
 class ASTConverter {
@@ -467,7 +468,6 @@ class ASTConverter {
 
     private final JInitializerExpression initializer;
 
-    @Nullable
     public NameAndInitializer(String pName, JInitializerExpression pInitializer) {
 
       checkNotNull(pName);
