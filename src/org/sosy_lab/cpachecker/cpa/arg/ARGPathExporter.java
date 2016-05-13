@@ -729,9 +729,8 @@ public class ARGPathExporter {
         final ARGState pInitialState,
         final Function<? super ARGState, ? extends Iterable<ARGState>> pSuccessorFunction,
         final Predicate<? super ARGState> pPathStates) {
-      return FluentIterable
-          .from(collectPathEdges(pInitialState, pSuccessorFunction, pPathStates))
-          .transform(Pair.<ARGState>getProjectionToFirst());
+      return FluentIterable.from(collectPathEdges(pInitialState, pSuccessorFunction, pPathStates))
+          .transform(Pair::getFirst);
     }
 
     /**

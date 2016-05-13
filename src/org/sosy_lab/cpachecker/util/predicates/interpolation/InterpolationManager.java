@@ -528,9 +528,9 @@ public final class InterpolationManager {
                                                                                                    loopStructure,
                                                                                                    fmgr);
     assert traceFormulas.size() == result.size();
-    assert ImmutableMultiset.copyOf(from(result).transform(Triple.<BooleanFormula>getProjectionToFirst()))
+    assert ImmutableMultiset.copyOf(from(result).transform(Triple::getFirst))
             .equals(ImmutableMultiset.copyOf(traceFormulas))
-            : "Ordered list does not contain the same formulas with the same count";
+        : "Ordered list does not contain the same formulas with the same count";
     return result;
   }
 
@@ -878,8 +878,9 @@ public final class InterpolationManager {
         }
       }
 
-      assert Iterables.elementsEqual(from(traceFormulas).transform(Triple.getProjectionToFirst()),
-              from(currentlyAssertedFormulas).transform(Triple.getProjectionToFirst()));
+      assert Iterables.elementsEqual(
+          from(traceFormulas).transform(Triple::getFirst),
+          from(currentlyAssertedFormulas).transform(Triple::getFirst));
 
       // we have to do the sat check every time, as it could be that also
       // with incremental checking it was missing (when the path is infeasible

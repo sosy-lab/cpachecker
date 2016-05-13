@@ -204,8 +204,11 @@ public class IntConverter extends Converter {
       return Pair.of(terms.get(0).getFirst().substring(2), new Type<FormulaType<?>>(FormulaType.IntegerType));
 
     } else if (terms.size() == 1 && unaryOps.containsKey(op.getFirst())) {
-      return Pair.of(format("(%s %s)",unaryOps.get(op.getFirst()),
-          Joiner.on(' ').join(Lists.transform(terms, Pair.getProjectionToFirst()))),
+      return Pair.of(
+          format(
+              "(%s %s)",
+              unaryOps.get(op.getFirst()),
+              Joiner.on(' ').join(Lists.transform(terms, Pair::getFirst))),
           Iterables.getOnlyElement(terms).getSecond());
 
     } else if (terms.size() == 1 && ignorableFunctions.contains(op.getFirst())) {
@@ -249,8 +252,10 @@ public class IntConverter extends Converter {
 
     } else if (binBooleanOps.contains(op.getFirst())) {
       return Pair.of(
-          format("(%s %s)",
-              op.getFirst(), Joiner.on(' ').join(Lists.transform(terms, Pair.getProjectionToFirst()))),
+          format(
+              "(%s %s)",
+              op.getFirst(),
+              Joiner.on(' ').join(Lists.transform(terms, Pair::getFirst))),
           new Type<FormulaType<?>>(FormulaType.BooleanType));
 
     } else if (symbolEncoding.containsSymbol(op.getFirst())) {
@@ -270,8 +275,10 @@ public class IntConverter extends Converter {
         logger.log(Level.SEVERE, "unhandled term:", op, terms);
       }
       return Pair.of(
-          format("(%s %s)",
-              op.getFirst(), Joiner.on(' ').join(Lists.transform(terms, Pair.getProjectionToFirst()))),
+          format(
+              "(%s %s)",
+              op.getFirst(),
+              Joiner.on(' ').join(Lists.transform(terms, Pair::getFirst))),
           op.getSecond());
     }
   }

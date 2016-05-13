@@ -22,10 +22,7 @@ package org.sosy_lab.cpachecker.util;
 import java.io.Serializable;
 import java.util.Objects;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
-import com.google.common.base.Function;
 
 /**
  * A generic Triple class based on Pair.java.
@@ -106,57 +103,5 @@ public class Triple<A, B, C> implements Serializable {
     } else {
       return first.hashCode() * 17 + second.hashCode() * 5 + third.hashCode();
     }
-  }
-
-  public static <T> Function<Triple<? extends T, ?, ?>, T> getProjectionToFirst() {
-    return Holder.<T>getInstance().PROJECTION_TO_FIRST;
-  }
-
-  public static <T> Function<Triple<?, ? extends T, ?>, T> getProjectionToSecond() {
-    return Holder.<T>getInstance().PROJECTION_TO_SECOND;
-  }
-
-  public static <T> Function<Triple<?, ?, ? extends T>, T> getProjectionToThird() {
-    return Holder.<T>getInstance().PROJECTION_TO_THIRD;
-  }
-
-  /*
-   * Static holder class for several function objects because if these fields
-   * were static fields of the Triple class, they couldn't be generic.
-   */
-  @SuppressWarnings("membername") // members are in effect static final constantss
-  private static final class Holder<T> {
-
-    private static final Holder<?> INSTANCE = new Holder<Void>();
-
-    // Cast is safe because class has no mutable state
-    @SuppressWarnings("unchecked")
-    public static <T> Holder<T> getInstance() {
-      return (Holder<T>) INSTANCE;
-    }
-
-    private final Function<Triple<? extends T, ?, ?>, T> PROJECTION_TO_FIRST =
-        new Function<Triple<? extends T, ?, ?>, T>() {
-          @Override
-          public T apply(@Nonnull Triple<? extends T, ?, ?> pArg0) {
-            return pArg0.getFirst();
-          }
-        };
-
-    private final Function<Triple<?, ? extends T, ?>, T> PROJECTION_TO_SECOND =
-        new Function<Triple<?, ? extends T, ?>, T>() {
-          @Override
-          public T apply(@Nonnull Triple<?, ? extends T, ?> pArg0) {
-            return pArg0.getSecond();
-          }
-        };
-
-    private final Function<Triple<?, ?, ? extends T>, T> PROJECTION_TO_THIRD =
-        new Function<Triple<?, ?, ? extends T>, T>() {
-          @Override
-          public T apply(@Nonnull Triple<?, ?, ? extends T> pArg0) {
-            return pArg0.getThird();
-          }
-        };
   }
 }

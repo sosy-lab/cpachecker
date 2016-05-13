@@ -219,7 +219,7 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
         useDefRelation,
         cfa.getMachineModel()).obtainInterpolants();
 
-    return InfeasiblePrefix.buildForValueDomain(infeasiblePrefix,
-        FluentIterable.from(interpolants).transform(Pair.<ValueAnalysisInterpolant>getProjectionToSecond()).toList());
+    return InfeasiblePrefix.buildForValueDomain(
+        infeasiblePrefix, FluentIterable.from(interpolants).transform(Pair::getSecond).toList());
   }
 }

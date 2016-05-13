@@ -962,7 +962,7 @@ class InvariantsManager implements StatisticsProvider {
 
       boolean wasSuccessful =
           !from(invariants)
-              .transform(Pair.<BooleanFormula>getProjectionToFirst())
+              .transform(Pair::getFirst)
               .allMatch(equalTo(fmgr.getBooleanFormulaManager().makeBoolean(true)));
 
       if (wasSuccessful) {
@@ -1013,7 +1013,7 @@ class InvariantsManager implements StatisticsProvider {
         // if we found invariants at least one of them may not be "TRUE"
         boolean wasSuccessful =
             !from(invariants)
-                .transform(Pair.<BooleanFormula>getProjectionToFirst())
+                .transform(Pair::getFirst)
                 .allMatch(equalTo(fmgr.getBooleanFormulaManager().makeBoolean(true)));
         if (wasSuccessful) {
           for (Pair<BooleanFormula, CFANode> invariant : invariants) {
