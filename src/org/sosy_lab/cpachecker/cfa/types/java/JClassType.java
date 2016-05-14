@@ -58,9 +58,15 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
   private static final JClassType typeOfObject = new JClassType();
 
   private static final JClassType UNRESOLVABLE_TYPE =
-      new JClassType("_unspecified_", "_unspecified_",
-          VisibilityModifier.NONE, false, false, false,
-          JClassType.getTypeOfObject(), new HashSet<JInterfaceType>());
+      new JClassType(
+          "_unspecified_",
+          "_unspecified_",
+          VisibilityModifier.NONE,
+          false,
+          false,
+          false,
+          JClassType.getTypeOfObject(),
+          new HashSet<>());
 
   private final boolean isFinal;
   private final boolean isAbstract;

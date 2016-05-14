@@ -143,11 +143,11 @@ class CFABuilder extends ASTVisitor {
     artificialScope = pFallbackScope;
     fileScope =
         new GlobalScope(
-            new HashMap<String, CSimpleDeclaration>(),
-            new HashMap<String, CSimpleDeclaration>(),
-            new HashMap<String, CFunctionDeclaration>(),
-            new HashMap<String, CComplexTypeDeclaration>(),
-            new HashMap<String, CTypeDefDeclaration>(),
+            new HashMap<>(),
+            new HashMap<>(),
+            new HashMap<>(),
+            new HashMap<>(),
+            new HashMap<>(),
             programDeclarations,
             staticVariablePrefix,
             artificialScope);

@@ -58,9 +58,9 @@ class Sideassignments {
   }
 
   public void enterBlock() {
-    preSideAssignments.push(new ArrayList<CAstNode>());
-    postSideAssignments.push(new ArrayList<CAstNode>());
-    conditionalExpressions.push(new ArrayList<Pair<IASTExpression, CIdExpression>>());
+    preSideAssignments.push(new ArrayList<>());
+    postSideAssignments.push(new ArrayList<>());
+    conditionalExpressions.push(new ArrayList<>());
   }
 
   public void leaveBlock() {

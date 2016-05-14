@@ -39,7 +39,7 @@ public class SimpleWaitlist extends AbstractWaitlist<Deque<AbstractState>> {
   private final TraversalMethod traversal;
 
   protected SimpleWaitlist(TraversalMethod pTraversal) {
-    super(new ArrayDeque<AbstractState>());
+    super(new ArrayDeque<>());
     Preconditions.checkArgument(pTraversal == TraversalMethod.BFS || pTraversal == TraversalMethod.DFS);
     traversal = pTraversal;
   }

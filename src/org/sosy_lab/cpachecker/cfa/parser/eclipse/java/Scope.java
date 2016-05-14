@@ -123,7 +123,7 @@ class Scope {
   }
 
   private void enterProgramScope() {
-    varsStack.addLast(new HashMap<String, JSimpleDeclaration>());
+    varsStack.addLast(new HashMap<>());
     varsList.addLast(varsStack.getLast());
   }
 
@@ -247,7 +247,7 @@ class Scope {
    * enters a Block while traversing the JDT AST.
    */
   public void enterBlock() {
-    varsStack.addLast(new HashMap<String, JSimpleDeclaration>());
+    varsStack.addLast(new HashMap<>());
     varsList.addLast(varsStack.getLast());
   }
 

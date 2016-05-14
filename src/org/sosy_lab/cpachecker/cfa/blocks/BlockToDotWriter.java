@@ -80,7 +80,7 @@ public class BlockToDotWriter {
     final List<CFAEdge> edges = new ArrayList<>();
 
     // dump nodes of all blocks
-    dumpBlock(app, new HashSet<CFANode>(), blockPartitioning.getMainBlock(), hierarchy, edges, 0);
+    dumpBlock(app, new HashSet<>(), blockPartitioning.getMainBlock(), hierarchy, edges, 0);
 
     // we have to dump edges after the nodes and sub-graphs,
     // because Dot generates wrong graphs for edges from an inner block to an outer block.

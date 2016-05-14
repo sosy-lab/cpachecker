@@ -708,7 +708,9 @@ public class CFASingleLoopTransformation {
               removeFromNodes(toRemove);
             }
             CFANode terminationNode = new CFATerminationNode(assumePredecessor.getFunctionName());
-            CFAEdge newEdge = copyCFAEdgeWithNewNodes(edge, assumePredecessor, terminationNode, new LinkedHashMap<CFANode, CFANode>());
+            CFAEdge newEdge =
+                copyCFAEdgeWithNewNodes(
+                    edge, assumePredecessor, terminationNode, new LinkedHashMap<>());
             addToNodes(newEdge);
             toAdd.add(terminationNode);
           }
@@ -1044,7 +1046,7 @@ public class CFASingleLoopTransformation {
     Queue<CFANode> waitlist = new ArrayDeque<>();
     Queue<Deque<FunctionSummaryEdge>> callstacks = new ArrayDeque<>();
     waitlist.add(pStartNode);
-    callstacks.offer(new ArrayDeque<FunctionSummaryEdge>());
+    callstacks.offer(new ArrayDeque<>());
     Set<CFANode> ignoredNodes = new HashSet<>();
     while (!waitlist.isEmpty()) {
       CFANode current = waitlist.poll();

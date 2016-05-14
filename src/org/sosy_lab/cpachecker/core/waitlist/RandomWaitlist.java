@@ -40,7 +40,7 @@ public class RandomWaitlist extends AbstractWaitlist<LinkedList<AbstractState>> 
   private final Random rand = new Random();
 
   protected RandomWaitlist() {
-    super(new LinkedList<AbstractState>());
+    super(new LinkedList<>());
   }
 
   @Override

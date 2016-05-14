@@ -76,7 +76,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
   private final Timer checkTime = new Timer();
   private int numberOfInfeasiblePaths = 0;
 
-  private final Set<ARGState> checkedTargetStates = Collections.newSetFromMap(new WeakHashMap<ARGState, Boolean>());
+  private final Set<ARGState> checkedTargetStates = Collections.newSetFromMap(new WeakHashMap<>());
 
   @Option(secure=true, name="checker",
           description="Which model checker to use for verifying counterexamples as a second check.\n"
