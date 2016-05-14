@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.counterexample;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
@@ -37,6 +38,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.common.rationals.Rational;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
@@ -216,9 +218,9 @@ public class AssumptionToEdgeAllocator {
   }
 
   private String handleReturnStatementComment(AReturnStatementEdge pCfaEdge, ConcreteState pConcreteState) {
-
-    if (pCfaEdge.getExpression() instanceof CExpression) {
-      CExpression returnExp = (CExpression) pCfaEdge.getExpression();
+    Optional<? extends AExpression> returnExpression = pCfaEdge.getExpression();
+    if (returnExpression.isPresent() && returnExpression.get() instanceof CExpression) {
+      CExpression returnExp = (CExpression) returnExpression.get();
 
       if (returnExp instanceof CLiteralExpression) {
         /*boring expression*/
