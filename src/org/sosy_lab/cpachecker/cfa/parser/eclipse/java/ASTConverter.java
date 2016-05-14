@@ -146,6 +146,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -404,18 +405,11 @@ class ASTConverter {
    */
   public List<JDeclaration> convert(FieldDeclaration fd) {
 
-    List<JDeclaration> result = new ArrayList<>();
-
     @SuppressWarnings("unchecked")
     List<VariableDeclarationFragment> vdfs =
         fd.fragments();
 
-    for (VariableDeclarationFragment vdf : vdfs) {
-
-      result.add(handleFieldDeclarationFragment(vdf));
-    }
-
-    return result;
+    return vdfs.stream().map(this::handleFieldDeclarationFragment).collect(Collectors.toList());
   }
 
 

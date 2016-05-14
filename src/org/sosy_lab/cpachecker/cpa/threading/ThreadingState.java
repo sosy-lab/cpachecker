@@ -28,7 +28,6 @@ import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.ex
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.getLockId;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.isLastNodeOfThread;
 
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
@@ -194,38 +193,17 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
 
   private FluentIterable<AbstractStateWithLocations> getLocations() {
     return FluentIterable.from(threads.values()).transform(
-        new Function<ThreadState, AbstractStateWithLocations>() {
-          @Override
-          public AbstractStateWithLocations apply(ThreadState s) {
-            return (AbstractStateWithLocations) s.getLocation();
-          }
-        });
+        s -> (AbstractStateWithLocations) s.getLocation());
   }
-
-  private final static Function<AbstractStateWithLocations, Iterable<CFANode>> LOCATION_NODES =
-      new Function<AbstractStateWithLocations, Iterable<CFANode>>() {
-        @Override
-        public Iterable<CFANode> apply(AbstractStateWithLocations loc) {
-          return loc.getLocationNodes();
-        }
-      };
-
-  private final static Function<AbstractStateWithLocations, Iterable<CFAEdge>> OUTGOING_EDGES =
-      new Function<AbstractStateWithLocations, Iterable<CFAEdge>>() {
-        @Override
-        public Iterable<CFAEdge> apply(AbstractStateWithLocations loc) {
-          return loc.getOutgoingEdges();
-        }
-      };
 
   @Override
   public Iterable<CFANode> getLocationNodes() {
-    return getLocations().transformAndConcat(LOCATION_NODES);
+    return getLocations().transformAndConcat(AbstractStateWithLocations::getLocationNodes);
   }
 
   @Override
   public Iterable<CFAEdge> getOutgoingEdges() {
-    return getLocations().transformAndConcat(OUTGOING_EDGES);
+    return getLocations().transformAndConcat(AbstractStateWithLocations::getOutgoingEdges);
   }
 
   @Override

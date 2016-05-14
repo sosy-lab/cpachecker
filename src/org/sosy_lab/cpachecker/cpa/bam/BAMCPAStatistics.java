@@ -38,7 +38,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -83,13 +82,8 @@ class BAMCPAStatistics implements Statistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path simplifiedArgFile = Paths.get("BlockedARGSimplified.dot");
 
-  private final Predicate<Pair<ARGState,ARGState>> highlightSummaryEdge = new Predicate<Pair<ARGState, ARGState>>() {
-    @Override
-    public boolean apply(Pair<ARGState, ARGState> input) {
-      final CFAEdge edge = input.getFirst().getEdgeToChild(input.getSecond());
-      return edge instanceof FunctionSummaryEdge;
-    }
-  };
+  private final Predicate<Pair<ARGState,ARGState>> highlightSummaryEdge = input ->
+    input.getFirst().getEdgeToChild(input.getSecond()) instanceof FunctionSummaryEdge;
 
   private final BAMCPA cpa;
   private final BAMDataManager data;
