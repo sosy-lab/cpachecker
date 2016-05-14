@@ -1,0 +1,8 @@
+*:
+main::lk1
+main::lk2
+main::lk3
+main::lk4
+main::lk5
+main::lk6
+main::flag
