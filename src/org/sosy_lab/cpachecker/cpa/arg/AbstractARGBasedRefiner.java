@@ -92,18 +92,7 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
   }
 
   private static final Function<CFAEdge, String> pathToFunctionCalls
-        = new Function<CFAEdge, String>() {
-    @Override
-    public String apply(CFAEdge arg) {
-
-      if (arg instanceof CFunctionCallEdge) {
-        CFunctionCallEdge funcEdge = (CFunctionCallEdge)arg;
-        return funcEdge.toString();
-      } else {
-        return null;
-      }
-    }
-  };
+        = arg ->  arg instanceof CFunctionCallEdge ? arg.toString() : null;
 
   @Override
   public final boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {

@@ -337,10 +337,7 @@ class EclipseCParser implements CParser {
 
       return result;
 
-    } catch (CFAGenerationRuntimeException e) {
-      // thrown by StubCodeReaderFactory
-      throw new CParserException(e);
-    } catch (CoreException e) {
+    } catch (CFAGenerationRuntimeException | CoreException e) {
       throw new CParserException(e);
     } finally {
       parseTimer.stop();

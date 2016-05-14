@@ -136,13 +136,6 @@ public class CFASingleLoopTransformation {
    */
   private static final String DUMMY_EDGE = "DummyEdge";
 
-  private static final Predicate<CFAEdge> DUMMY_EDGE_PREDICATE = new Predicate<CFAEdge>() {
-
-      @Override
-      public boolean apply(@Nullable CFAEdge pArg0) {
-        return isDummyEdge(pArg0);
-      }};
-
   /**
    * The log manager.
    */
@@ -329,7 +322,7 @@ public class CFASingleLoopTransformation {
         }
       }
     }
-    for (CFAEdge oldDummyEdge : findEdges(DUMMY_EDGE_PREDICATE, pStartNode)) {
+    for (CFAEdge oldDummyEdge : findEdges(CFASingleLoopTransformation::isDummyEdge, pStartNode)) {
       this.shutdownNotifier.shutdownIfNecessary();
       CFANode successor = pGlobalNewToOld.get(oldDummyEdge.getSuccessor());
       for (CFAEdge edge : CFAUtils.enteringEdges(successor).toList()) {
@@ -808,17 +801,7 @@ public class CFASingleLoopTransformation {
       this.shutdownNotifier.shutdownIfNecessary();
       CFAReversePostorder sorter = new CFAReversePostorder();
       sorter.assignSorting(nodesWithNoIdAssigned.iterator().next());
-      nodesWithNoIdAssigned = from(nodesWithNoIdAssigned).filter(new Predicate<CFANode>() {
-
-        @Override
-        public boolean apply(@Nullable CFANode pArg0) {
-          if (pArg0 == null) {
-            return false;
-          }
-          return pArg0.getReversePostorderId() < 0;
-        }
-
-      }).toList();
+      nodesWithNoIdAssigned = from(nodesWithNoIdAssigned).filter(pArg0 -> pArg0 == null ? false : pArg0.getReversePostorderId() < 0).toList();
     }
     return allNodes;
   }

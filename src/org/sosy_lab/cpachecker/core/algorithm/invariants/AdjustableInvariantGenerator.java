@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 import java.util.Collection;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -182,14 +181,7 @@ public class AdjustableInvariantGenerator<T extends InvariantGenerator> extends 
   }
 
   private void setSupplier(final FormulaAndTreeSupplier pSupplier) {
-    currentInvariantSupplier.set(new LazyFutureTask<>(new Callable<FormulaAndTreeSupplier>() {
-
-      @Override
-      public FormulaAndTreeSupplier call() throws Exception {
-        return pSupplier;
-      }
-
-    }));
+    currentInvariantSupplier.set(new LazyFutureTask<>(() -> pSupplier));
   }
 
 }
