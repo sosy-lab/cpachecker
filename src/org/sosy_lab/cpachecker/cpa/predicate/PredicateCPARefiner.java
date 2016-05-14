@@ -228,6 +228,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     // directly stop the analysis from here, we need to remove the infeasible
     // error state from the reached set, and clear the waitlist
     if (shortcutForSafeProgram && invariantsManager.isProgramSafe()) {
+      invariantsManager.cancelAsyncInvariantGeneration();
       pReached.removeSubtree(allStatesTrace.getLastState());
       pReached.clearWaitlist();
       totalRefinement.stop();
@@ -303,6 +304,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
           return pathChecker.handleFeasibleCounterexample(allStatesTrace, counterexample, branchingOccurred);
         } finally {
           errorPathProcessing.stop();
+          invariantsManager.cancelAsyncInvariantGeneration();
         }
       }
 
