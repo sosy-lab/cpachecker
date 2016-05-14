@@ -1269,7 +1269,7 @@ class InvariantsManager implements StatisticsProvider {
           new CPAcheckerInvariantGenerator(
               config,
               shutdownNotifier,
-              new OnlyWarningsLogmanager(logger.withComponentName("Async Invgen")),
+              new OnlyWarningsLogmanager(logger.withComponentName("CPAchecker Invgen")),
               cfa,
               ""));
     }
