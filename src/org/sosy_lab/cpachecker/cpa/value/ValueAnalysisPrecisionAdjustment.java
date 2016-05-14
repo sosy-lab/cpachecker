@@ -66,8 +66,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-import javax.annotation.Nullable;
-
 @Options(prefix="cpa.value.abstraction")
 public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, StatisticsProvider {
 
