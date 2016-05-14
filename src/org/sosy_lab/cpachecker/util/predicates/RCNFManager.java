@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.collect.Sets;
 import com.google.common.math.LongMath;
 
@@ -175,12 +174,7 @@ public class RCNFManager implements StatisticsProvider {
 
     Optional<BooleanFormula> body = fmgr.visit(quantifiedBodyExtractor, input);
     if (body.isPresent()) {
-      return fmgr.filterLiterals(body.get(), new Predicate<BooleanFormula>() {
-        @Override
-        public boolean apply(BooleanFormula input) {
-          return !hasBoundVariables(input);
-        }
-      });
+      return fmgr.filterLiterals(body.get(), input1 -> !hasBoundVariables(input1));
     } else {
 
       // Does not have quantified variables.
