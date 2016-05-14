@@ -23,23 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
-import java.util.List;
+import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableList;
+import java.util.List;
 
-public class CompositePrecision implements WrapperPrecision {
-  private final List<Precision> precisions;
+class CompositePrecision implements WrapperPrecision {
 
-  public CompositePrecision(List<Precision> precisions) {
+  private final ImmutableList<Precision> precisions;
+
+  CompositePrecision(List<Precision> precisions) {
     this.precisions = ImmutableList.copyOf(precisions);
-  }
-
-  public List<Precision> getPrecisions() {
-    return precisions;
   }
 
   @Override
@@ -58,7 +55,7 @@ public class CompositePrecision implements WrapperPrecision {
     return precisions.hashCode();
   }
 
-  public Precision get(int idx) {
+  Precision get(int idx) {
     return precisions.get(idx);
   }
 
@@ -117,7 +114,7 @@ public class CompositePrecision implements WrapperPrecision {
   }
 
   @Override
-  public Iterable<Precision> getWrappedPrecisions() {
+  public ImmutableList<Precision> getWrappedPrecisions() {
     return precisions;
   }
 }

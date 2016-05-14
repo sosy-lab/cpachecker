@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
-import java.util.logging.Level;
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -34,35 +37,28 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
+import java.util.logging.Level;
 
-public class CompositePrecisionAdjustment implements PrecisionAdjustment {
-  protected final ImmutableList<PrecisionAdjustment> precisionAdjustments;
-  protected final ImmutableList<StateProjectionFunction> stateProjectionFunctions;
-  protected final ImmutableList<PrecisionProjectionFunction> precisionProjectionFunctions;
+class CompositePrecisionAdjustment implements PrecisionAdjustment {
+  private final ImmutableList<PrecisionAdjustment> precisionAdjustments;
+  private final ImmutableList<StateProjectionFunction> stateProjectionFunctions;
 
   private final LogManager logger;
 
-  public CompositePrecisionAdjustment(
+  CompositePrecisionAdjustment(
       ImmutableList<PrecisionAdjustment> precisionAdjustments, LogManager pLogger) {
     this.precisionAdjustments = precisionAdjustments;
     logger = pLogger;
 
     ImmutableList.Builder<StateProjectionFunction> stateProjectionFunctions = ImmutableList.builder();
-    ImmutableList.Builder<PrecisionProjectionFunction> precisionProjectionFunctions = ImmutableList.builder();
 
     for (int i = 0; i < precisionAdjustments.size(); i++) {
       stateProjectionFunctions.add(new StateProjectionFunction(i));
-      precisionProjectionFunctions.add(new PrecisionProjectionFunction(i));
     }
     this.stateProjectionFunctions = stateProjectionFunctions.build();
-    this.precisionProjectionFunctions = precisionProjectionFunctions.build();
   }
 
-  protected static class StateProjectionFunction implements Function<AbstractState, AbstractState> {
+  private static class StateProjectionFunction implements Function<AbstractState, AbstractState> {
 
     private final int dimension;
 
@@ -73,20 +69,6 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
     @Override
     public AbstractState apply(AbstractState from) {
       return ((CompositeState)from).get(dimension);
-    }
-  }
-
-  protected static class PrecisionProjectionFunction
-  implements Function<Precision, Precision> {
-    private final int dimension;
-
-    public PrecisionProjectionFunction(int d) {
-      dimension = d;
-    }
-
-    @Override
-    public Precision apply(Precision from) {
-      return ((CompositePrecision)from).get(dimension);
     }
   }
 
@@ -103,17 +85,18 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
     return prec0(pElement, pPrecision, pElements, projection, fullState, 1);
   }
 
-  public Optional<PrecisionAdjustmentResult> prec0(
+  private Optional<PrecisionAdjustmentResult> prec0(
       AbstractState pElement,
       Precision pPrecision,
       UnmodifiableReachedSet pElements,
       Function<AbstractState, AbstractState> projection,
       AbstractState fullState,
-      int depth) throws CPAException, InterruptedException {
+      int depth)
+      throws CPAException, InterruptedException {
 
     CompositeState comp = (CompositeState) pElement;
     CompositePrecision prec = (CompositePrecision) pPrecision;
-    assert (comp.getWrappedStates().size() == prec.getPrecisions().size());
+    assert (comp.getWrappedStates().size() == prec.getWrappedPrecisions().size());
     int dim = comp.getWrappedStates().size();
 
     ImmutableList.Builder<AbstractState> outElements = ImmutableList.builder();
