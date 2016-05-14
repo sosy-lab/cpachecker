@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.toPercent;
 
-import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 
 import org.sosy_lab.common.ShutdownNotifier;
@@ -44,7 +43,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -165,15 +163,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
               "Error path found, but identified as infeasible by counterexample check with "
                   + checkerType
                   + ".",
-              from(infeasibleErrorPaths)
-                  .transform(
-                      new Function<ARGState, ARGPath>() {
-                        @Override
-                        public ARGPath apply(ARGState pInput) {
-                          return ARGUtils.getOnePathTo(pInput);
-                        }
-                      })
-                  .toList());
+              from(infeasibleErrorPaths).transform(ARGUtils::getOnePathTo).toList());
         }
       } finally {
         checkTime.stop();

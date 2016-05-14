@@ -30,7 +30,6 @@ import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Charsets;
-import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Splitter;
 import com.google.common.io.Resources;
@@ -130,7 +129,7 @@ public class ReportGenerator {
             from(pReached)
                 .filter(IS_TARGET_STATE)
                 .filter(ARGState.class)
-                .transform(new ExtractCounterExampleInfo()));
+                .transform(ARGState::getCounterexampleInformation));
 
     if (!counterExamples.iterator().hasNext()) {
       if (reportFile != null) {
@@ -154,15 +153,6 @@ public class ReportGenerator {
       return true;
     } else {
       return false;
-    }
-  }
-
-  private static class ExtractCounterExampleInfo
-      implements Function<ARGState, Optional<CounterexampleInfo>> {
-
-    @Override
-    public Optional<CounterexampleInfo> apply(ARGState state) {
-      return state.getCounterexampleInformation();
     }
   }
 

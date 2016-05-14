@@ -33,7 +33,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -54,13 +53,7 @@ public class AssumptionToEdgeAllocatorTest {
   private ConcreteState full;
   private static final String MEMORYNAME = "Test_Heap";
 
-  private MemoryName memoryName = new MemoryName() {
-
-    @Override
-    public String getMemoryName(CRightHandSide pExp, Address pAddress) {
-      return MEMORYNAME;
-    }
-  };
+  private MemoryName memoryName = (pExp, pAddress) -> MEMORYNAME;
 
   @Before
   public void setUp() throws Exception {

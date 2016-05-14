@@ -41,7 +41,7 @@ import java.util.logging.Level;
 
 class CompositePrecisionAdjustment implements PrecisionAdjustment {
   private final ImmutableList<PrecisionAdjustment> precisionAdjustments;
-  private final ImmutableList<StateProjectionFunction> stateProjectionFunctions;
+  private final ImmutableList<Function<AbstractState, AbstractState>> stateProjectionFunctions;
 
   private final LogManager logger;
 
@@ -50,26 +50,16 @@ class CompositePrecisionAdjustment implements PrecisionAdjustment {
     this.precisionAdjustments = precisionAdjustments;
     logger = pLogger;
 
-    ImmutableList.Builder<StateProjectionFunction> stateProjectionFunctions = ImmutableList.builder();
-
+    ImmutableList.Builder<Function<AbstractState, AbstractState>> stateProjectionFunctions =
+        ImmutableList.builder();
     for (int i = 0; i < precisionAdjustments.size(); i++) {
-      stateProjectionFunctions.add(new StateProjectionFunction(i));
+      stateProjectionFunctions.add(getStateProjectionFunction(i));
     }
     this.stateProjectionFunctions = stateProjectionFunctions.build();
   }
 
-  private static class StateProjectionFunction implements Function<AbstractState, AbstractState> {
-
-    private final int dimension;
-
-    public StateProjectionFunction(int d) {
-      dimension = d;
-    }
-
-    @Override
-    public AbstractState apply(AbstractState from) {
-      return ((CompositeState)from).get(dimension);
-    }
+  private final Function<AbstractState, AbstractState> getStateProjectionFunction(int i) {
+    return compState -> ((CompositeState) compState).get(i);
   }
 
   /* (non-Javadoc)
