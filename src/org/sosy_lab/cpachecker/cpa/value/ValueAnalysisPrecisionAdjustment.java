@@ -107,7 +107,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
 
   private final Optional<LiveVariables> liveVariables;
 
-  private @Nullable Boolean performPrecisionBasedAbstraction = null;
+  private boolean performPrecisionBasedAbstraction = false;
 
   private final Statistics statistics;
 
@@ -204,25 +204,31 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
 
   /**
    * This method decides whether or not to perform abstraction computations. These are computed
-   * if the iteration threshold is deactivated, or if the level of determinism, by the time the
-   * iteration threshold was reached, is lower then the threshold for the level of determinism.
+   * if the iteration threshold is deactivated, or if the level of determinism ever gets below
+   * the threshold for the level of determinism.
    *
    * @return true, if abstractions should be computed, else false
    */
   private boolean performPrecisionBasedAbstraction() {
+    // always compute abstraction if option is disabled
     if (iterationThreshold == -1) {
       return true;
     }
 
+    // else, delay abstraction computation as long as iteration threshold is not reached
     if (transfer.getCurrentNumberOfIterations() < iterationThreshold) {
       return false;
     }
 
-    if (performPrecisionBasedAbstraction == null) {
-      performPrecisionBasedAbstraction = (transfer.getCurrentLevelOfDeterminism() < determinismThreshold)
-          ? true
-          : false;
+    // else, always compute abstraction if computed abstraction before
+    if (performPrecisionBasedAbstraction) {
+      return true;
     }
+
+    // else, determine current setting and return that
+    performPrecisionBasedAbstraction = (transfer.getCurrentLevelOfDeterminism() < determinismThreshold)
+        ? true
+        : false;
 
     return performPrecisionBasedAbstraction;
   }
