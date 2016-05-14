@@ -1,0 +1,11 @@
+*:
+c_m_lock
+m_run_pc
+c_empty_req
+m_run::a
+c_m_ev
+s_run_pc
+c_write_req_ev
+c_empty_rsp
+c_read_req_ev
+c_write_rsp_ev
