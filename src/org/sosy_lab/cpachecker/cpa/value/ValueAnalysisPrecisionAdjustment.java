@@ -105,6 +105,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
 
   private final Optional<LiveVariables> liveVariables;
 
+  @SuppressFBWarnings(value = "URF_UNREAD_FIELD", justification = "false alarm")
   private boolean performPrecisionBasedAbstraction = false;
 
   private final Statistics statistics;
