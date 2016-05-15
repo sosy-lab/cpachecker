@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableSet;
@@ -48,7 +49,8 @@ import java.util.List;
 import java.util.Set;
 
 public class PowersetAutomatonState implements AbstractWrapperState,
-    Targetable, IntermediateTargetable, AbstractStateWithAssumptions, Serializable, Graphable, Iterable<AutomatonState> {
+    Targetable, IntermediateTargetable, AbstractStateWithAssumptions,
+    Serializable, Graphable, Iterable<AutomatonState> {
 
   private static class TopPowersetAutomatonState extends PowersetAutomatonState {
 
@@ -80,6 +82,7 @@ public class PowersetAutomatonState implements AbstractWrapperState,
   private final Set<AutomatonState> states;
 
   public PowersetAutomatonState(Collection<AutomatonState> elements) {
+    Preconditions.checkNotNull(elements);
     this.states = ImmutableSet.copyOf(elements);
   }
 
@@ -112,7 +115,7 @@ public class PowersetAutomatonState implements AbstractWrapperState,
   @Override
   public String toString() {
     StringBuilder builder = new StringBuilder();
-    builder.append('(');
+    builder.append('{');
     if (states.size() > 10) {
       builder.append(String.format("%d different automata states!", states.size()));
     } else {
@@ -121,7 +124,7 @@ public class PowersetAutomatonState implements AbstractWrapperState,
         builder.append("\n ");
       }
     }
-    builder.replace(builder.length() - 1, builder.length(), ")");
+    builder.replace(builder.length() - 1, builder.length(), "}");
 
     return builder.toString();
   }
@@ -179,6 +182,24 @@ public class PowersetAutomatonState implements AbstractWrapperState,
       }
     }
     return false;
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + states.hashCode();
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (obj == null) { return false; }
+    if (!(obj instanceof PowersetAutomatonState)) { return false; }
+
+    PowersetAutomatonState other = (PowersetAutomatonState) obj;
+    return this.states.equals(other.states);
   }
 
   @Override

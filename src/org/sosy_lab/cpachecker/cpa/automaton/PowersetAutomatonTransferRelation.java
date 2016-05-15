@@ -23,12 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import java.util.Collection;
-import java.util.List;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
-import javax.annotation.Nullable;
-
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -36,25 +40,125 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Cartesian;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
-import com.google.common.collect.Lists;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
 
+import javax.annotation.Nullable;
+
+@Options
 public final class PowersetAutomatonTransferRelation extends SingleEdgeTransferRelation {
 
-  private final AutomatonTransferRelation componentTransfer;
+  public static enum TransferProductMode {
+    CARTESIAN, JOIN, JOIN_SEP_TARGETS;
+  }
+  @Option(secure=true, description="Mode of the automaton powerset transfer relation.")
+  private TransferProductMode transferMode = TransferProductMode.JOIN_SEP_TARGETS;
 
-  public PowersetAutomatonTransferRelation(AutomatonTransferRelation pComponentTransferRelation)
+  private final AutomatonTransferRelation componentTransfer;
+  private final PowersetAutomatonDomain domain;
+
+  public PowersetAutomatonTransferRelation(Configuration pConfig,
+      AutomatonTransferRelation pComponentTransferRelation, PowersetAutomatonDomain pDomain)
       throws InvalidConfigurationException {
 
-    this.componentTransfer = pComponentTransferRelation;
+    Preconditions.checkNotNull(pConfig);
+    pConfig.inject(this);
+
+    componentTransfer = Preconditions.checkNotNull(pComponentTransferRelation);
+    domain = Preconditions.checkNotNull(pDomain);
   }
 
   @Override
   public Collection<PowersetAutomatonState> getAbstractSuccessorsForEdge(
       AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
         throws CPATransferException, InterruptedException {
+
+    switch (transferMode) {
+      case JOIN: return joiningProductTransfer(pElement, pPrecision, pCfaEdge);
+      case JOIN_SEP_TARGETS: return joiningButSepTargetsProductTransfer(pElement, pPrecision, pCfaEdge);
+      default: return cartesianProductTransfer(pElement, pPrecision, pCfaEdge);
+    }
+  }
+
+  private PowersetAutomatonState buildSuccessorState(PowersetAutomatonState pPred,
+      Set<AutomatonState> successorElements) {
+
+    PowersetAutomatonState candidateSuccessor = new PowersetAutomatonState(successorElements);
+    if (domain.isLessOrEqual(candidateSuccessor, pPred)) {
+      return pPred;
+    }
+
+    return candidateSuccessor;
+  }
+
+  private Collection<PowersetAutomatonState> joiningButSepTargetsProductTransfer(AbstractState pElement,
+      Precision pPrecision, CFAEdge pCfaEdge) throws CPATransferException {
+
+    final PowersetAutomatonState element = (PowersetAutomatonState) pElement;
+    Set<AutomatonState> nonTargetSuccessors = Sets.newLinkedHashSet();
+    Set<AutomatonState> targetSuccessors = Sets.newLinkedHashSet();
+
+    // Given a composite automaton state e = [q1, q2]
+    //  Successors of the states:
+    //    succ(q1) = [q3]
+    //    succ(q2) = [q4,q5]
+    //
+    //  This should result in ONE composite state:
+    //    e'  = [q3, q4, q5]
+    //
+    //    (which is the join of [q3] and [q4,q5]
+    //
+    // BUT... each target state should be provided in
+    //    a separate successor state!
+
+    for (AutomatonState comp: element) {
+      Collection<AutomatonState> succOfComp = componentTransfer.getAbstractSuccessorsForEdge(comp, pPrecision, pCfaEdge);
+      for (AutomatonState succ: succOfComp) {
+        if (succ.isTarget()) {
+          targetSuccessors.add(succ);
+        } else {
+          nonTargetSuccessors.add(succ);
+        }
+      }
+    }
+
+    Builder<PowersetAutomatonState> result = ImmutableSet.<PowersetAutomatonState>builder();
+    for (AutomatonState e: targetSuccessors) {
+      result.add(new PowersetAutomatonState(ImmutableSet.of(e)));
+    }
+    if (nonTargetSuccessors.size() > 0) {
+      result.add(buildSuccessorState(element, nonTargetSuccessors));
+    }
+    return result.build();
+  }
+
+  private Collection<PowersetAutomatonState> joiningProductTransfer(AbstractState pElement,
+      Precision pPrecision, CFAEdge pCfaEdge) throws CPATransferException {
+
+    final PowersetAutomatonState element = (PowersetAutomatonState) pElement;
+    Set<AutomatonState> successors = Sets.newLinkedHashSet();
+
+    // Given a composite automaton state e = [q1, q2]
+    //  Successors of the states:
+    //    succ(q1) = [q3]
+    //    succ(q2) = [q4,q5]
+    //
+    //  This should result in ONE composite state:
+    //    e'  = [q3, q4, q5]
+    //
+    //    (which is the join of [q3] and [q4,q5]
+
+    for (AutomatonState comp: element) {
+      Collection<AutomatonState> succOfComp = componentTransfer.getAbstractSuccessorsForEdge(comp, pPrecision, pCfaEdge);
+      successors.addAll(succOfComp);
+    }
+
+    return ImmutableSet.of(buildSuccessorState(element, successors));
+  }
+
+  private Collection<PowersetAutomatonState> cartesianProductTransfer(AbstractState pElement,
+      Precision pPrecision, CFAEdge pCfaEdge) throws CPATransferException {
 
     PowersetAutomatonState compositeState = (PowersetAutomatonState) pElement;
     Collection<Collection<AutomatonState>> componentSuccessors = Lists.newArrayList();

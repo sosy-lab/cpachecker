@@ -23,13 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
+
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 
 public class PowersetAutomatonDomain implements AbstractDomain {
@@ -55,7 +55,7 @@ public class PowersetAutomatonDomain implements AbstractDomain {
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractState pNewState, AbstractState pReachedState) throws CPAException {
+  public boolean isLessOrEqual(AbstractState pNewState, AbstractState pReachedState) {
 
     final PowersetAutomatonState newState = (PowersetAutomatonState) pNewState;
     final PowersetAutomatonState reachedState = (PowersetAutomatonState) pReachedState;

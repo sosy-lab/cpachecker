@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import java.util.Collection;
+import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-import com.google.common.collect.ImmutableSet;
+import java.util.Collection;
 
 /**
  * Represents one automaton.
@@ -74,7 +74,7 @@ public class PowersetAutomatonCPA implements ConfigurableProgramAnalysis, Statis
 
     automatonCpa = new ControlAutomatonCPA(pAutomaton, pConfig, pLogger, pCFA);
     domain = new PowersetAutomatonDomain(PowersetAutomatonState.TOP);
-    transfer = new PowersetAutomatonTransferRelation(automatonCpa.getTransferRelation());
+    transfer = new PowersetAutomatonTransferRelation(pConfig, automatonCpa.getTransferRelation(), domain);
     prec = new PowersetAutomatonPrecisionAdjustent(automatonCpa.getPrecisionAdjustment());
     merge = new MergeJoinOperator(domain);
     stop = new StopSepOperator(domain);
