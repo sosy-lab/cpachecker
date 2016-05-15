@@ -250,6 +250,7 @@ private boolean classifyNodes = false;
     private Timer conversionTime;
     private final Timer checkTime = new Timer();
     private final Timer processingTime = new Timer();
+    private final Timer loopStructureDetectionTime = new Timer();
     private final Timer pruningTime = new Timer();
     private final Timer variableClassificationTime = new Timer();
     private final Timer exportTime = new Timer();
@@ -267,6 +268,7 @@ private boolean classifyNodes = false;
       out.println("    Time for AST to CFA:      " + conversionTime);
       out.println("    Time for CFA sanity check:" + checkTime);
       out.println("    Time for post-processing: " + processingTime);
+      out.println("      Time for loop structure detection:" + loopStructureDetectionTime);
       if (pruningTime.getNumberOfIntervals() > 0) {
         out.println("      Time for CFA pruning:   " + pruningTime);
       }
@@ -433,12 +435,14 @@ private boolean classifyNodes = false;
 
     // get loop information
     // (needs post-order information)
+    stats.loopStructureDetectionTime.start();
     if (detectLoops) {
       Optional<LoopStructure> loopStructure = getLoopStructure(cfa);
       cfa.setLoopStructure(loopStructure);
     } else {
       cfa.setLoopStructure(Optional.<LoopStructure> absent());
     }
+    stats.loopStructureDetectionTime.stop();
 
     // FOURTH, insert call and return edges and build the supergraph
     if (interprocedural) {
