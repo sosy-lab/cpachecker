@@ -25,13 +25,10 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.base.Preconditions.*;
 
-import java.io.IOException;
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
@@ -57,10 +54,13 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import java.io.IOException;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * This class combines a AutomatonInternal State with a variable Configuration.
@@ -304,7 +304,8 @@ public class AutomatonState
         && this.vars.equals(otherState.vars)
         && this.leavingTransitions.equals(otherState.leavingTransitions)
         // the same state of the internal automata might be instantiated with different assumptions.
-        && this.assumptions.equals(otherState.assumptions);
+        && this.assumptions.equals(otherState.assumptions)
+        && this.shadowCode.equals(otherState.shadowCode);
   }
 
   @Override
@@ -464,6 +465,7 @@ public class AutomatonState
       if (this == pObj) { return true; }
       if (pObj == null) { return false; }
       if (!pObj.getClass().equals(this.getClass())) { return false; }
+
       AutomatonUnknownState otherState = (AutomatonUnknownState) pObj;
       return previousState.equals(otherState.previousState);
     }
