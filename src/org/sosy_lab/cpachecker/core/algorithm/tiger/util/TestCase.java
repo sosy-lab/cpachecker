@@ -25,8 +25,8 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
-import org.sosy_lab.cpachecker.util.predicates.regions.Region;
+import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
+import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceConditionManager;
 
 import java.util.List;
 
@@ -34,22 +34,24 @@ import java.util.List;
 public class TestCase {
 
   private int id;
-  private List<TestStep> testSteps;
-  private ARGPath argPath;
-  private List<CFAEdge> errorPath;
-  private NamedRegionManager bddCpaNamedRegionManager;
-  private Region presenceCondition;
   private long generationTime;
   private int numberOfNewlyCoveredGoals;
   private int numberOfNewlyPartiallyCoveredGoals;
 
-  public TestCase(int pId, List<TestStep> pTestSteps, ARGPath pArgPath, List<CFAEdge> pList, Region pPresenceCondition,
-      NamedRegionManager pBddCpaNamedRegionManager, long pGenerationTime) {
+  private List<TestStep> testSteps;
+  private ARGPath argPath;
+  private List<CFAEdge> errorPath;
+  private PresenceConditionManager pcManager;
+  private PresenceCondition presenceCondition;
+
+  public TestCase(int pId, List<TestStep> pTestSteps, ARGPath pArgPath,
+      List<CFAEdge> pList, PresenceCondition pPresenceCondition,
+      PresenceConditionManager pPcManager, long pGenerationTime) {
     id = pId;
     testSteps = pTestSteps;
     argPath = pArgPath;
     errorPath = pList;
-    bddCpaNamedRegionManager = pBddCpaNamedRegionManager;
+    pcManager = pPcManager;
     presenceCondition = pPresenceCondition;
     generationTime = pGenerationTime;
   }
@@ -70,7 +72,7 @@ public class TestCase {
     return testSteps;
   }
 
-  public Region getPresenceCondition() {
+  public PresenceCondition getPresenceCondition() {
     return presenceCondition;
   }
 
@@ -113,7 +115,8 @@ public class TestCase {
     String returnStr = testSteps.toString();
 
     if (presenceCondition != null) {
-      returnStr += " with configurations " + bddCpaNamedRegionManager.dumpRegion(getPresenceCondition());
+      returnStr += " with configurations "
+          + pcManager.dump(getPresenceCondition());
     }
 
     return returnStr;

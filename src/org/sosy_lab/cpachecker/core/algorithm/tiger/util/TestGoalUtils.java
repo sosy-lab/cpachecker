@@ -23,10 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -46,9 +43,11 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering.InfeasibilityPropagation.Prediction;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
-import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 
-import com.google.common.collect.Sets;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.Set;
+import java.util.logging.Level;
 
 public class TestGoalUtils {
 
@@ -59,8 +58,8 @@ public class TestGoalUtils {
   private InverseGuardedEdgeLabel mInverseAlphaLabel;
 
   public TestGoalUtils(LogManager pLogger, boolean pUseTigerAlgorithm_with_pc,
-      NamedRegionManager pBddCpaNamedRegionManager, GuardedEdgeLabel pAlphaLabel,
-      InverseGuardedEdgeLabel pInverseAlphaLabel, GuardedEdgeLabel pOmegaLabel) {
+      GuardedEdgeLabel pAlphaLabel, InverseGuardedEdgeLabel pInverseAlphaLabel,
+      GuardedEdgeLabel pOmegaLabel) {
     logger = pLogger;
 
     mAlphaLabel = pAlphaLabel;

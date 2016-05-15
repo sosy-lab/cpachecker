@@ -35,6 +35,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.PropertyStats;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.PropertyBudgeting;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -49,7 +50,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
-import org.sosy_lab.cpachecker.util.predicates.regions.Region;
+import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
 
 import java.util.Map;
 import java.util.Set;
@@ -153,7 +154,7 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
       default: stateOnHandledTarget = state;
     }
 
-    Map<SafetyProperty, Optional<Region>> exhaustedProperties = Maps.newHashMap();
+    Map<SafetyProperty, Optional<PresenceCondition>> exhaustedProperties = Maps.newHashMap();
 
     Set<? extends SafetyProperty> encoded = automaton.getEncodedProperties();
     Set<? extends SafetyProperty> disabled = pi.getBlacklist().keySet();
@@ -167,7 +168,7 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
 
     for (SafetyProperty p: activeProperties) {
       if (budgeting.get().isTransitionBudgedExhausted(p)) {
-        exhaustedProperties.put(p, Optional.<Region>absent()); // FIXME: Make it variability aware!
+        exhaustedProperties.put(p, Optional.<PresenceCondition>absent()); // FIXME: Make it variability aware!
       }
     }
 
@@ -176,9 +177,10 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
 
       // A property might have already been disabled!
       //    Handling of blacklisted (disabled) states:
-      Set<SafetyProperty> violated = AbstractStates.extractViolatedProperties(state, SafetyProperty.class);
+      final Set<SafetyProperty> violated = AbstractStates.extractViolatedProperties(state, SafetyProperty.class);
+      final Optional<PresenceCondition> targetRegion = Optional.absent();
 
-      if (pi.areBlackListed(violated, Optional.<Region>absent())) { // FIXME: Make it variability aware!
+      if (areBlacklisted(pi, violated, targetRegion)) { // FIXME: Make it variability aware!
         return Optional.of(PrecisionAdjustmentResult.create(
             stateOnHandledTarget,
             pi, Action.CONTINUE));
@@ -190,7 +192,7 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
       if (onHandledTarget != TargetStateVisitBehaviour.SIGNAL) {
         for (SafetyProperty p: violated) {
           if (isPropertyBudgetExhausted(p)) {
-            exhaustedProperties.put(p, Optional.<Region>absent());
+            exhaustedProperties.put(p, Optional.<PresenceCondition>absent());
           }
         }
       }
@@ -212,6 +214,18 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
 
     // No precision adjustment
     return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, Action.CONTINUE));
+  }
+
+  private boolean areBlacklisted(final AutomatonPrecision pPrecision,
+      final Set<SafetyProperty> pProperties, final Optional<PresenceCondition> pForRegion)
+          throws InterruptedException, CPAException {
+
+    boolean result = pPrecision.areBlackListed(pProperties, pForRegion);
+    if (!result) {
+      result = PropertyStats.INSTANCE.checkAllBlacklisted(pProperties, pForRegion);
+    }
+
+    return result;
   }
 
 }

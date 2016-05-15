@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AnalysisCache;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MultiPropertyAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.PresenceCondition;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.PropertySummary;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -77,8 +76,10 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.InterruptProvider;
 import org.sosy_lab.cpachecker.util.Precisions;
-import org.sosy_lab.cpachecker.util.predicates.regions.Region;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
+import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
+import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceConditionManager;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTimeLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
@@ -400,7 +401,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
           //    (or identify more feasible counterexamples)
 
           // Add the properties that were violated in this run.
-          violated = TargetSummary.union(rm, violated, runViolated);
+          violated = TargetSummary.union(violated, runViolated);
 
           // The partitioning operator might remove the violated properties
           //  if we have found sufficient counterexamples
@@ -550,13 +551,13 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
 
       @Override
       public ImmutableMap<Property, PresenceCondition> getConditionalViolatedProperties() {
+        PresenceConditionManager pcMgr = GlobalInfo.getInstance().getPresenceConditionManager();
         Builder<Property, PresenceCondition> builder = ImmutableMap.<Property, PresenceCondition>builder();
-        for (final Entry<Property, Optional<Region>> e: pTargetSummary.getViolationConditions().entrySet()) {
+        for (final Entry<Property, Optional<PresenceCondition>> e: pTargetSummary.getViolationConditions().entrySet()) {
           if (e.getValue().isPresent()) {
-            Preconditions.checkState(rm != null);
-            if (!e.getValue().get().isTrue()) {
+            if (!pcMgr.checkSat(e.getValue().get())) {
               builder.put(e.getKey(), new PresenceCondition() {
-                private final Region pc = e.getValue().get();
+                private final PresenceCondition pc = e.getValue().get();
 
                 @Override
                 public String toString() {

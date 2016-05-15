@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpa;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -31,10 +32,15 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.PresenceConditions;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.automaton.SafetyProperty;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
+import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceConditionManager;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.NoTimeMeasurement;
@@ -47,6 +53,7 @@ import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -61,6 +68,7 @@ public enum PropertyStats implements Statistics {
   private Multimap<Property, AbstractionPredicate> loopRelatedPredicates = HashMultimap.create();
   private Multimap<Property, AbstractionPredicate> loopUnrelatedPredicates = HashMultimap.create();
   private Multimap<Property, AbstractionPredicate> allPredicates = HashMultimap.create();
+  private Map<Property, Optional<PresenceCondition>> propertyFinishedFor = Maps.newHashMap();
 
   public synchronized void clear() {
     refinementCount.clear();
@@ -280,6 +288,52 @@ public enum PropertyStats implements Statistics {
         loopUnrelatedPredicates.put(prop, pPredicate);
       }
     }
+  }
+
+  public void singnalPropertyFinishedFor(Map<Property, Optional<PresenceCondition>> pToBlacklist,
+      PresenceConditionManager pPcMgr) {
+
+    Preconditions.checkNotNull(pToBlacklist);
+    Preconditions.checkNotNull(pPcMgr);
+
+    for (Entry<Property, Optional<PresenceCondition>> e: pToBlacklist.entrySet()) {
+      final Property prop = e.getKey();
+
+      Optional<PresenceCondition> alreadyFinishedFor = propertyFinishedFor.get(prop);
+      if (alreadyFinishedFor == null) {
+        alreadyFinishedFor = Optional.absent();
+      }
+
+      Optional<PresenceCondition> nowFinishedFor;
+      if (alreadyFinishedFor.isPresent()) {
+        nowFinishedFor = Optional.of(pPcMgr.makeOr(alreadyFinishedFor.get(), e.getValue().get()));
+      } else {
+        nowFinishedFor = e.getValue();
+      }
+
+      propertyFinishedFor.put(prop, nowFinishedFor);
+    }
+  }
+
+  public boolean checkAllBlacklisted(Set<SafetyProperty> pProperties,
+      Optional<PresenceCondition> pForRegion)
+          throws InterruptedException {
+
+    final PresenceConditionManager regionMgr = GlobalInfo.getInstance().getPresenceConditionManager();
+
+    Preconditions.checkNotNull(pProperties);
+    Preconditions.checkNotNull(pForRegion);
+
+    final PresenceCondition forRegion = PresenceConditions.orTrue(pForRegion);
+
+    for (Property p: pProperties) {
+      final PresenceCondition finishedForRegion = PresenceConditions.orFalse(propertyFinishedFor.get(p));
+      if (!regionMgr.checkEntails(forRegion, finishedForRegion)) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
 }

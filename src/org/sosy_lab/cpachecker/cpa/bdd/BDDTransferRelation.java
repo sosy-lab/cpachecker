@@ -116,11 +116,6 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   private final PredicateManager predmgr;
   private final MachineModel machineModel;
 
-  /**
-   * All states for which (stateBDD AND globalConstraint) == FALSE will be ignored.
-   */
-  private Region globalConstraint;
-
   /** The Constructor of BDDVectorTransferRelation sets the NamedRegionManager
    * and the BitVectorManager. Both are used to build and manipulate BDDs,
    * that represent the regions. */
@@ -151,15 +146,6 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       return Collections.emptyList();
     }
     return null;
-  }
-
-  /**
-   * Adds a constraint that must be satisfied after each transition.
-   * If it is not satisfied, the new state is ignored by the analysis.
-   * @param pConstraint
-   */
-  public void setGlobalConstraint(Region pConstraint) {
-    this.globalConstraint = pConstraint;
   }
 
   /** This function handles statements like "a = 0;" and "b = !a;" and

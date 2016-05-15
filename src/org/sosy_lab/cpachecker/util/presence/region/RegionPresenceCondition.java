@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2016  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,25 +21,42 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.interfaces;
+package org.sosy_lab.cpachecker.util.presence.region;
 
-import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 
+import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
 
-/**
- * Sub-interface for {@link AbstractState}s that marks states
- *  with a presence condition (program configurations for which this state is relevant)
- */
-public interface AbstractStateWithPresenceCondition extends AbstractState {
 
-  /**
-   * Get the presence condition of the abstract state.
-   *
-   * @return Optional.absent() if the CPA is not
-   *    enabled for tracking the presence condition
-   *    at the moment (but would support it).
-   */
-  public Optional<PresenceCondition> getPresenceCondition();
+public class RegionPresenceCondition implements PresenceCondition {
+
+  private final Region region;
+
+  public RegionPresenceCondition(Region pRegion) {
+    region = Preconditions.checkNotNull(pRegion);
+  }
+
+  public Region getRegion() {
+    return region;
+  }
+
+  @Override
+  public String toString() {
+    return region.toString();
+  }
+
+  @Override
+  public int hashCode() {
+    return region.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object pObj) {
+    if (!(pObj instanceof RegionPresenceCondition)) {
+      return false;
+    }
+    return this.region.equals(((RegionPresenceCondition) pObj).region);
+  }
 
 }

@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.bdd;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
@@ -32,6 +33,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
+import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
+import org.sosy_lab.cpachecker.util.presence.region.RegionPresenceCondition;
 import org.sosy_lab.solver.SolverException;
 
 import javax.annotation.Nullable;
@@ -190,7 +193,7 @@ public class BDDState implements AbstractStateWithPresenceCondition,
   }
 
   @Override
-  public Region getPresenceCondition() {
-    return currentState;
+  public Optional<PresenceCondition> getPresenceCondition() {
+    return Optional.<PresenceCondition>of(new RegionPresenceCondition(currentState));
   }
 }

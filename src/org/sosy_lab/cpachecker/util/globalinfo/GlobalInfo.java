@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.globalinfo;
 
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -30,13 +33,14 @@ import org.sosy_lab.cpachecker.cpa.apron.ApronCPA;
 import org.sosy_lab.cpachecker.cpa.apron.ApronManager;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
+import org.sosy_lab.cpachecker.cpa.bdd.BDDCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
+import org.sosy_lab.cpachecker.util.presence.binary.BinaryPresenceConditionManager;
+import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceConditionManager;
+import org.sosy_lab.cpachecker.util.presence.region.RegionPresenceConditionManager;
 
 
 public class GlobalInfo {
@@ -49,6 +53,7 @@ public class GlobalInfo {
   private AbstractionManager absManager;
   private ApronManager apronManager;
   private LogManager apronLogger;
+  private PresenceConditionManager pcMgr;
 
   private GlobalInfo() {
 
@@ -97,8 +102,13 @@ public class GlobalInfo {
         } else if (c instanceof AssumptionStorageCPA) {
           Preconditions.checkState(assumptionFormulaManagerView == null);
           assumptionFormulaManagerView = ((AssumptionStorageCPA) c).getFormulaManager();
+        } else if (c instanceof BDDCPA) {
+          pcMgr = new RegionPresenceConditionManager(((BDDCPA) c).getManager());
         }
       }
+    }
+    if (pcMgr == null) {
+      pcMgr = new BinaryPresenceConditionManager();
     }
   }
 
@@ -123,6 +133,11 @@ public class GlobalInfo {
 
   public LogManager getApronLogManager() {
     return apronLogger;
+  }
+
+
+  public PresenceConditionManager getPresenceConditionManager() {
+    return pcMgr;
   }
 
   public FormulaManagerView getAssumptionStorageFormulaManager() {

@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.predicates.regions.Region;
+import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
 
 import java.util.List;
 
@@ -80,7 +80,7 @@ public class AdjustAutomatonPrecisionAdjustment extends WrappingPrecisionAdjustm
         for (AutomatonTransition trans: state.getLeavingTransitions()) {
 
           ImmutableSet<? extends SafetyProperty> transProps = a.getIsRelevantForProperties(trans);
-          final boolean transRelevantForActiveProps = !(pi.areBlackListed(transProps, Optional.<Region>absent()));
+          final boolean transRelevantForActiveProps = !(pi.areBlackListed(transProps, Optional.<PresenceCondition>absent()));
 
           if (transRelevantForActiveProps) {
             relevantTransitions.add(trans);

@@ -30,9 +30,9 @@ import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.cpachecker.core.counterexample.RichModel;
-import org.sosy_lab.cpachecker.core.interfaces.PresenceCondition;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
 
 import java.util.Collection;
 import java.util.Collections;

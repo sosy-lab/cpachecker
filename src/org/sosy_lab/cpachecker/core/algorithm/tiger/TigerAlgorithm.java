@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmWithResult;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.PropertyStats;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.PredefinedCoverageCriteria;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.Edges;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.FQLSpecification;
@@ -68,8 +69,8 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering.ClusteredElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering.InfeasibilityPropagation;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering.InfeasibilityPropagation.Prediction;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.util.BDDUtils;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.PrecisionCallback;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.PresenceConditions;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestGoalUtils;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestStep;
@@ -119,13 +120,15 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton.State;
-import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
-import org.sosy_lab.cpachecker.util.predicates.regions.Region;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
+import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceConditionManager;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.NoTimeMeasurement;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.StatCpuTimer;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 
 import java.io.BufferedWriter;
@@ -386,7 +389,7 @@ public class TigerAlgorithm
   private MainCPAStatistics stats;
   private int testCaseId = 0;
 
-  NamedRegionManager bddCpaNamedRegionManager = null;
+  PresenceConditionManager pcManager = null;
 
   private Map<Goal, List<List<BooleanFormula>>> targetStateFormulas;
 
@@ -395,9 +398,10 @@ public class TigerAlgorithm
 
   private final ReachedSetFactory reachedSetFactory;
 
-  public TigerAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa, ShutdownManager pShutdownManager,
-      CFA pCfa, Configuration pConfig, LogManager pLogger, String pProgramDenotation,
-      @Nullable final MainCPAStatistics pStatistics, ReachedSetFactory pReachedSetFactory) throws InvalidConfigurationException {
+  public TigerAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
+      ShutdownManager pShutdownManager, CFA pCfa, Configuration pConfig, LogManager pLogger,
+      String pProgramDenotation, @Nullable final MainCPAStatistics pStatistics, ReachedSetFactory pReachedSetFactory)
+          throws InvalidConfigurationException {
 
     reachedSetFactory = pReachedSetFactory;
     programDenotation = pProgramDenotation;
@@ -413,9 +417,9 @@ public class TigerAlgorithm
     cfa = pCfa;
 
     // Check if BDD is enabled for variability-aware test-suite generation
-    bddCpaNamedRegionManager = BDDUtils.getBddCpaNamedRegionManagerFromCpa(cpa, useTigerAlgorithm_with_pc);
+    pcManager = GlobalInfo.getInstance().getPresenceConditionManager();
 
-    testsuite = new TestSuite(bddCpaNamedRegionManager, printLabels, useTigerAlgorithm_with_pc);
+    testsuite = new TestSuite(pcManager, printLabels, useTigerAlgorithm_with_pc);
     inputVariables = new TreeSet<>();
     for (String variable : inputInterface.split(",")) {
       inputVariables.add(variable.trim());
@@ -439,7 +443,7 @@ public class TigerAlgorithm
    edgeToTgaMapping = new HashMap<>();
    targetStateFormulas = new HashMap<>();
 
-    testGoalUtils = new TestGoalUtils(logger, useTigerAlgorithm_with_pc, bddCpaNamedRegionManager, mAlphaLabel,
+   testGoalUtils = new TestGoalUtils(logger, useTigerAlgorithm_with_pc, mAlphaLabel,
         mInverseAlphaLabel, mOmegaLabel);
 
     // get internal representation of FQL query
@@ -615,7 +619,7 @@ public class TigerAlgorithm
             cpuTimelimitPerGoal += timeoutIncrement;
             logger.logf(Level.INFO, "Incremented timeout from %d to %d seconds.", oldCPUTimeLimitPerGoal,
                 cpuTimelimitPerGoal);
-            Collection<Entry<Integer, Pair<Goal, Region>>> set;
+            Collection<Entry<Integer, Pair<Goal, PresenceCondition>>> set;
             if (useOrder) {
               if (inverseOrder) {
                 order = !order;
@@ -635,7 +639,7 @@ public class TigerAlgorithm
             }
 
             pGoalsToCover.clear();
-            for (Entry<Integer, Pair<Goal, Region>> entry : set) {
+            for (Entry<Integer, Pair<Goal, PresenceCondition>> entry : set) {
               pGoalsToCover.add(entry.getValue().getFirst());
             }
 
@@ -758,7 +762,9 @@ public class TigerAlgorithm
     return null;
   }
 
-  private Set<Goal> updateTestsuiteByCoverageOf(TestCase pTestcase, Set<Goal> pCheckCoverageOf) {
+  private Set<Goal> updateTestsuiteByCoverageOf(TestCase pTestcase, Set<Goal> pCheckCoverageOf)
+      throws InterruptedException {
+
     try (StatCpuTimer t = tigerStats.updateTestsuiteByCoverageOfTime.start()) {
       Set<Goal> checkCoverageOf = new HashSet<>();
       checkCoverageOf.addAll(pCheckCoverageOf);
@@ -856,14 +862,13 @@ public class TigerAlgorithm
           Preconditions.checkState(criticalState != null,
               "Each ARG path of a counterexample must be along a critical edge!");
 
-          Region statePresenceCondition = BDDUtils.getRegionFromWrappedBDDstate(criticalState);
+          PresenceCondition statePresenceCondition = PresenceConditions.extractPresenceCondition(criticalState);
           Preconditions.checkState(statePresenceCondition != null,
               "Each critical state must be annotated with a presence condition!");
 
           if (allCoveredGoalsPerTestCase
-              || !bddCpaNamedRegionManager
-                  .makeAnd(testsuite.getRemainingPresenceCondition(goal), statePresenceCondition)
-                  .isFalse()) {
+              || pcManager.checkConjunction(testsuite.getRemainingPresenceCondition(goal),
+                  statePresenceCondition)) {
 
             // configurations in testGoalPCtoCover and testcase.pc have a non-empty intersection
 
@@ -873,7 +878,7 @@ public class TigerAlgorithm
                 "Covered some PCs for Goal %d (%s) for a PC by test case %d!",
                 goal.getIndex(), testsuite.getTestGoalLabel(goal), pTestcase.getId());
 
-            if (testsuite.getRemainingPresenceCondition(goal).isFalse()) {
+            if (!pcManager.checkSat(testsuite.getRemainingPresenceCondition(goal))) {
               coveredGoals.add(goal);
             }
           }
@@ -1044,8 +1049,8 @@ public class TigerAlgorithm
     initializeReachedSet(cpa);
     //    }
 
-    Region presenceConditionToCover = BDDUtils.composeRemainingPresenceConditions(
-        pTestGoalsToBeProcessed, testsuite, bddCpaNamedRegionManager);
+    PresenceCondition presenceConditionToCover = PresenceConditions.composeRemainingPresenceConditions(
+        pTestGoalsToBeProcessed, testsuite);
 
     ShutdownManager shutdownManager =
         ShutdownManager.createWithParent(mainShutdownManager.getNotifier());
@@ -1062,7 +1067,7 @@ public class TigerAlgorithm
       Set<Goal> pUncoveredGoals,
       final Set<Goal> pTestGoalsToBeProcessed,
       final ARGCPA pARTCPA, Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation,
-      final Region pRemainingPresenceCondition,
+      final PresenceCondition pRemainingPresenceCondition,
       final ShutdownManager pShutdownNotifier,
       final Algorithm pAlgorithm)
           throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
@@ -1118,25 +1123,25 @@ public class TigerAlgorithm
           if (reachedSet.hasWaitingState()) {
 
             if (useTigerAlgorithm_with_pc) {
-              Region remainingPC =
-                  BDDUtils.composeRemainingPresenceConditions(pTestGoalsToBeProcessed, testsuite,
-                      bddCpaNamedRegionManager);
+              PresenceCondition remainingPC =
+                  PresenceConditions.composeRemainingPresenceConditions(pTestGoalsToBeProcessed, testsuite);
               restrictBdd(remainingPC);
             }
             // Exclude covered goals from further exploration
-            Map<Property, Optional<Region>> toBlacklist = Maps.newHashMap();
+            Map<Property, Optional<PresenceCondition>> toBlacklist = Maps.newHashMap();
             for (Goal goal : pTestGoalsToBeProcessed) {
 
               if (testsuite.isGoalCoveredOrInfeasible(goal)) {
-                toBlacklist.put(goal, Optional.<Region>absent());
+                toBlacklist.put(goal, Optional.of(pcManager.makeTrue()));
               } else if (useTigerAlgorithm_with_pc) {
-                Region remainingPc = testsuite.getRemainingPresenceCondition(goal);
-                Region coveredFor = bddCpaNamedRegionManager.makeNot(remainingPc);
+                PresenceCondition remainingPc = testsuite.getRemainingPresenceCondition(goal);
+                PresenceCondition coveredFor = pcManager.makeNegation(remainingPc);
                 toBlacklist.put(goal, Optional.of(coveredFor));
               }
             }
 
-            Precisions.disablePropertiesForWaitlist(pARTCPA, reachedSet, toBlacklist, bddCpaNamedRegionManager);
+            PropertyStats.INSTANCE.singnalPropertyFinishedFor(toBlacklist, pcManager);
+            Precisions.disablePropertiesForWaitlist(pARTCPA, reachedSet, toBlacklist, pcManager);
           }
         }
 
@@ -1218,7 +1223,7 @@ public class TigerAlgorithm
     }
   }
 
-  private void restrictBdd(Region pRemainingPresenceCondition) {
+  private void restrictBdd(PresenceCondition pRemainingPresenceCondition) {
     try (StatCpuTimer t = tigerStats.restrictBddTime.start()) {
       // inject goal Presence Condition in BDDCPA
       BDDCPA bddcpa = null;
@@ -1229,15 +1234,15 @@ public class TigerAlgorithm
         bddcpa = (BDDCPA) cpa;
       }
       if (bddcpa.getTransferRelation() instanceof BDDTransferRelation) {
-        ((BDDTransferRelation) bddcpa.getTransferRelation()).setGlobalConstraint(pRemainingPresenceCondition);
-        logger.logf(Level.INFO, "Restrict global BDD.");
+        // FIXME. Set the constraint!
+        logger.logf(Level.INFO, "Restrict global BDD. FIXME!!!");
 //        logger.logf(Level.INFO, "Restrict BDD to %s.",
 //            bddCpaNamedRegionManager.dumpRegion(pRemainingPresenceCondition));
       }
     }
   }
 
-  private Algorithm initializeAlgorithm(Region pRemainingPresenceCondition, ARGCPA lARTCPA,
+  private Algorithm initializeAlgorithm(PresenceCondition pRemainingPresenceCondition, ARGCPA lARTCPA,
       ShutdownManager algNotifier) throws CPAException {
     try (StatCpuTimer t = tigerStats.initializeAlgorithmTime.start()) {
 
@@ -1305,9 +1310,12 @@ public class TigerAlgorithm
    * @param pRemainingGoals
    * @param pCex
    * @param pInfeasibilityPropagation
+   * @throws InterruptedException
+   * @throws SolverException
    */
   private Set<Goal> addTestToSuite(Set<Goal> pRemainingGoals,
-      CounterexampleInfo pCex, Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation) {
+      CounterexampleInfo pCex, Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation)
+          throws InterruptedException {
     try (StatCpuTimer t = tigerStats.addTestToSuiteTime.start()) {
 
       Preconditions.checkNotNull(pInfeasibilityPropagation);
@@ -1318,8 +1326,8 @@ public class TigerAlgorithm
 
       // TODO check whether a last state might remain from an earlier run and a reuse of the ARG
 
-      Region testCasePresenceCondition = useTigerAlgorithm_with_pc
-          ? BDDUtils.getRegionFromWrappedBDDstate(lastState)
+      PresenceCondition testCasePresenceCondition = useTigerAlgorithm_with_pc
+          ? PresenceConditions.extractPresenceCondition(lastState)
           : null;
 
       TestCase testcase = createTestcase(pCex, testCasePresenceCondition);
@@ -1332,7 +1340,7 @@ public class TigerAlgorithm
     }
   }
 
-  private TestCase createTestcase(final CounterexampleInfo pCex, final Region pPresenceCondition) {
+  private TestCase createTestcase(final CounterexampleInfo pCex, final PresenceCondition pPresenceCondition) {
     try (StatCpuTimer t = tigerStats.createTestcaseTime.start()) {
 
       final RichModel model = pCex.getTargetPathModel();
@@ -1343,7 +1351,7 @@ public class TigerAlgorithm
           pCex.getTargetPath(),
           pCex.getTargetPath().getInnerEdges(),
           pPresenceCondition,
-          bddCpaNamedRegionManager,
+          pcManager,
           getCpuTime());
 
       if (useTigerAlgorithm_with_pc) {
@@ -1416,7 +1424,7 @@ public class TigerAlgorithm
       if (useTigerAlgorithm_with_pc) {
         testsuite.addInfeasibleGoal(pGoal, testsuite.getRemainingPresenceCondition(pGoal), lGoalPrediction);
         testsuite.setInfeasiblePresenceCondition(pGoal, testsuite.getRemainingPresenceCondition(pGoal));
-        testsuite.setRemainingPresenceCondition(pGoal, bddCpaNamedRegionManager.makeFalse());
+        testsuite.setRemainingPresenceCondition(pGoal, pcManager.makeFalse());
         logger.logf(Level.WARNING, "Goal %d is infeasible for remaining PC!", pGoal.getIndex());
       } else {
         logger.logf(Level.WARNING, "Goal %d is infeasible!", pGoal.getIndex());

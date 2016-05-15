@@ -43,8 +43,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonPrecision;
 import org.sosy_lab.cpachecker.cpa.automaton.SafetyProperty;
 import org.sosy_lab.cpachecker.cpa.composite.CompositePrecision;
-import org.sosy_lab.cpachecker.util.predicates.regions.Region;
-import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
+import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
+import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceConditionManager;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -171,9 +171,9 @@ public class Precisions {
   }
 
   public static Precision withPropertyBlacklist(final Precision pi, final HashSet<SafetyProperty> toBlacklist) {
-    final Map<SafetyProperty, Optional<Region>> blacklist = Maps.asMap(toBlacklist, new Function<SafetyProperty, Optional<Region>>() {
+    final Map<SafetyProperty, Optional<PresenceCondition>> blacklist = Maps.asMap(toBlacklist, new Function<SafetyProperty, Optional<PresenceCondition>>() {
       @Override
-      public Optional<Region> apply(SafetyProperty pArg0) {
+      public Optional<PresenceCondition> apply(SafetyProperty pArg0) {
         return Optional.absent();
       }
     });
@@ -192,10 +192,11 @@ public class Precisions {
   }
 
   public static void disablePropertiesForWaitlist(ARGCPA pCpa, final ReachedSet pReachedSet,
-      final Map<Property, Optional<Region>> pToBlacklist, final RegionManager pRegionManager) {
+      final Map<Property, Optional<PresenceCondition>> pToBlacklist,
+      final PresenceConditionManager pRegionManager) {
 
-    Map<SafetyProperty, Optional<Region>> toBlackList = Maps.newHashMap();
-    for (Entry<Property, Optional<Region>> e: pToBlacklist.entrySet()) {
+    Map<SafetyProperty, Optional<PresenceCondition>> toBlackList = Maps.newHashMap();
+    for (Entry<Property, Optional<PresenceCondition>> e: pToBlacklist.entrySet()) {
       toBlackList.put((SafetyProperty)e.getKey(), e.getValue());
     }
 
@@ -214,7 +215,8 @@ public class Precisions {
   }
 
   public static Precision blacklistProperties(final Precision pi,
-      final Map<SafetyProperty, Optional<Region>> toBlacklist, final RegionManager pRegionManager) {
+      final Map<SafetyProperty, Optional<PresenceCondition>> toBlacklist,
+      final PresenceConditionManager pRegionManager) {
     final Precision piPrime = Precisions.replaceByFunction(pi, new Function<Precision, Precision>() {
       @Override
       public Precision apply(Precision pPrecision) {

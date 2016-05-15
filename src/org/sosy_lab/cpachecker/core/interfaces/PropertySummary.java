@@ -27,6 +27,8 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
+import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
+
 public interface PropertySummary {
 
   public ImmutableSet<Property> getViolatedProperties();

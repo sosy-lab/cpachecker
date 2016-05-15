@@ -36,13 +36,10 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithPresenceCondition;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.bdd.BDDCPA;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
-import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
-import org.sosy_lab.cpachecker.util.predicates.regions.Region;
-import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
+import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
+import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceConditionManager;
 
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -56,7 +53,7 @@ public class TargetSummary {
 
   static class TargetStateInfo {
     private Set<Property> violatedProperties = Sets.newLinkedHashSet();
-    private Optional<Region> presenceCondition = Optional.absent();
+    private Optional<PresenceCondition> presenceCondition = Optional.absent();
   }
 
   private Collection<TargetStateInfo> targetStateSummaries = Lists.newArrayList();
@@ -74,14 +71,9 @@ public class TargetSummary {
 
       String presenceConditionText = stateSummary.presenceCondition.toString();
 
-      BDDCPA bddCpa = CPAs.retrieveCPA(GlobalInfo.getInstance().getCPA().get(), BDDCPA.class);
-      if (bddCpa != null) {
-        NamedRegionManager rm = bddCpa.getManager();
-        if (rm != null) {
-          if (stateSummary.presenceCondition.isPresent()) {
-            presenceConditionText = rm.dumpRegion(stateSummary.presenceCondition.get()).toString();
-          }
-        }
+      PresenceConditionManager pcMgr = GlobalInfo.getInstance().getPresenceConditionManager();
+      if (stateSummary.presenceCondition.isPresent()) {
+        presenceConditionText = pcMgr.dump(stateSummary.presenceCondition.get()).toString();
       }
 
       result.targetStateSummaries.add(stateSummary);
@@ -95,13 +87,12 @@ public class TargetSummary {
   }
 
 
-  private static Optional<Region> getPresenceCondition(AbstractState pTargetState) {
+  private static Optional<PresenceCondition> getPresenceCondition(AbstractState pTargetState) {
     final AbstractStateWithPresenceCondition targetStateWithPc = AbstractStates.extractStateByType(pTargetState,
         AbstractStateWithPresenceCondition.class);
 
     if (targetStateWithPc != null) {
-      final Region targetCondition = targetStateWithPc.getPresenceCondition();
-      return Optional.of(targetCondition);
+      return targetStateWithPc.getPresenceCondition();
     }
 
     return Optional.absent();
@@ -120,8 +111,8 @@ public class TargetSummary {
     return result;
   }
 
-  public Map<Property, Optional<Region>> getViolationConditions() {
-    Map<Property, Optional<Region>> result = Maps.newLinkedHashMap();
+  public Map<Property, Optional<PresenceCondition>> getViolationConditions() {
+    Map<Property, Optional<PresenceCondition>> result = Maps.newLinkedHashMap();
     for (TargetStateInfo s: targetStateSummaries) {
       for (Property p: s.violatedProperties) {
         Preconditions.checkState(result.get(p) == null);
@@ -131,10 +122,11 @@ public class TargetSummary {
     return result;
   }
 
-  private static Optional<Region> unionOfConditions(
-      RegionManager pRm,
-      @Nullable Optional<Region> pCondition1,
-      @Nullable Optional<Region> pCondition2) {
+  private static Optional<PresenceCondition> unionOfConditions(
+      @Nullable Optional<PresenceCondition> pCondition1,
+      @Nullable Optional<PresenceCondition> pCondition2) {
+
+    PresenceConditionManager pcMgr = GlobalInfo.getInstance().getPresenceConditionManager();
 
     boolean noCond = ((pCondition1 == null || !pCondition1.isPresent())
         && (pCondition2 == null || !pCondition2.isPresent()));
@@ -143,47 +135,45 @@ public class TargetSummary {
       return Optional.absent();
     }
 
-    Preconditions.checkNotNull(pRm);
-
-    Region pRegion1;
-    Region pRegion2;
+    PresenceCondition pRegion1;
+    PresenceCondition pRegion2;
 
     if (pCondition1 == null || !pCondition1.isPresent()) {
-      pRegion1 = pRm.makeTrue();
+      pRegion1 = pcMgr.makeTrue();
     } else {
       pRegion1 = pCondition1.get();
     }
 
     if (pCondition2 == null || !pCondition2.isPresent()) {
-      pRegion2 = pRm.makeTrue();
+      pRegion2 = pcMgr.makeTrue();
     } else {
       pRegion2 = pCondition2.get();
     }
 
-    return Optional.of(pRm.makeOr(pRegion1, pRegion2));
+    return Optional.of(pcMgr.makeOr(pRegion1, pRegion2));
   }
 
-  public static TargetSummary union (RegionManager pRm, TargetSummary pSummary1, TargetSummary pSummary2) {
+  public static TargetSummary union (TargetSummary pSummary1, TargetSummary pSummary2) {
     Set<Property> properties = Sets.newLinkedHashSet();
     properties.addAll(pSummary1.getViolatedProperties());
     properties.addAll(pSummary2.getViolatedProperties());
 
     TargetSummary result = new TargetSummary();
 
-    Map<Property, Optional<Region>> conditions1 = pSummary1.getViolationConditions();
-    Map<Property, Optional<Region>> conditions2 = pSummary2.getViolationConditions();
+    Map<Property, Optional<PresenceCondition>> conditions1 = pSummary1.getViolationConditions();
+    Map<Property, Optional<PresenceCondition>> conditions2 = pSummary2.getViolationConditions();
 
     for (Property p: properties) {
-      Optional<Region> cond1 = conditions1.get(p);
-      Optional<Region> cond2 = conditions2.get(p);
+      Optional<PresenceCondition> cond1 = conditions1.get(p);
+      Optional<PresenceCondition> cond2 = conditions2.get(p);
 
-      Optional<Region> condUnion;
+      Optional<PresenceCondition> condUnion;
       if (cond1 == null) {
         condUnion = cond2;
       } else if (cond2 == null) {
         condUnion = cond1;
       } else {
-        condUnion = unionOfConditions(pRm, cond1, cond2);
+        condUnion = unionOfConditions(cond1, cond2);
       }
 
       TargetStateInfo sum = new TargetStateInfo();
