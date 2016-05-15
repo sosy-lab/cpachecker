@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -34,6 +35,8 @@ import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.ClassOption;
@@ -42,10 +45,12 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -123,6 +128,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   private final PrecisionAdjustment precisionAdjustment;
   private final Reducer reducer;
   private final ARGStatistics stats;
+  private final ARGToCStatistics postProcessingStats;
   private final ProofChecker wrappedProofChecker;
   private final PostProcessor innerPostProcessor;
   private final Collection<PostProcessor> postProcessors;
@@ -192,6 +198,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
       postProcessors.add(new RVARGSimplifier(config, this, pShutdownNotifier));
     }
     postProcessors.add(new ARGDumper(config, this, logger));
+    postProcessingStats = new ARGToCStatistics();
 
   }
 
@@ -262,6 +269,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
+    pStatsCollection.add(postProcessingStats);
     super.collectStatistics(pStatsCollection);
   }
 
@@ -314,8 +322,13 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     if (innerPostProcessor != null) {
       innerPostProcessor.postProcess(pReached);
     }
-    for (PostProcessor postProcessor : postProcessors) {
-      postProcessor.postProcess(pReached);
+    postProcessingStats.argTranslationTime.start();
+    try {
+      for (PostProcessor postProcessor : postProcessors) {
+        postProcessor.postProcess(pReached);
+      }
+    } finally {
+      postProcessingStats.argTranslationTime.stop();
     }
   }
 
@@ -332,5 +345,21 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
 
   public MachineModel getMachineModel() {
     return machineModel;
+  }
+
+  private static class ARGToCStatistics implements Statistics {
+    private Timer argTranslationTime = new Timer();
+
+    @Override
+    public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+      pOut.println("Total time for ARG to C translation:          " + argTranslationTime);
+    }
+
+    @Override
+    public @Nullable
+    String getName() {
+      return null;
+    }
+
   }
 }
