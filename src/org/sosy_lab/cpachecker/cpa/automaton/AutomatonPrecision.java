@@ -184,7 +184,7 @@ public class AutomatonPrecision implements Precision {
 
         boolean covered;
         try {
-          covered = regionManager.entails(pcRegion, propBlacklistedFor.get());
+          covered = regionManager.entails(propBlacklistedFor.get(), pcRegion);
         } catch (SolverException e) {
           throw new CPAException("Solving the presence condition entailment failed!", e);
         }
