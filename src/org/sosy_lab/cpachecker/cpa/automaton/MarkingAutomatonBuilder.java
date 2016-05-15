@@ -140,10 +140,10 @@ public class MarkingAutomatonBuilder {
 
       markerDeclaration = new CVariableDeclaration(
           FileLocation.DUMMY, true, CStorageClass.AUTO,
-          CNumericTypes.BOOL, varName, varName, varName,
+          CNumericTypes.INT, varName, varName, varName,
           new CInitializerExpression(FileLocation.DUMMY, CIntegerLiteralExpression.ZERO) );
 
-      markerVariable = new CIdExpression(FileLocation.DUMMY, CNumericTypes.BOOL, varName, markerDeclaration);
+      markerVariable = new CIdExpression(FileLocation.DUMMY, CNumericTypes.INT, varName, markerDeclaration);
 
       markerDeclarationStatement = markerDeclaration;
       markerIncrementStatement = new CExpressionAssignmentStatement(FileLocation.DUMMY,
@@ -247,7 +247,7 @@ public class MarkingAutomatonBuilder {
               Preconditions.checkState(mc != null);
               assumptions.add(new CExpressionStatement(FileLocation.DUMMY,
                   new CBinaryExpression(FileLocation.DUMMY,
-                      CNumericTypes.BOOL, CNumericTypes.BOOL,
+                      CNumericTypes.INT, CNumericTypes.INT,
                       mc.markerVariable,
                       CIntegerLiteralExpression.ONE, CBinaryExpression.BinaryOperator.EQUALS)));
             }
