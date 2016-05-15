@@ -34,16 +34,19 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 
 public class PowersetAutomatonDomainTest {
 
   private PowersetAutomatonState e_q1_q2;
+  private PowersetAutomatonState e_q1enc_q2;
   private PowersetAutomatonState e_q2_q3;
   private PowersetAutomatonState e_q2_q3_copy;
 
@@ -81,6 +84,26 @@ public class PowersetAutomatonDomainTest {
                 ImmutableList.<AAstNode> of(),
                 0, 0, false, ImmutableMap.<Property, ResultValue<?>>of())
     }));
+
+    e_q1enc_q2 = new PowersetAutomatonState(ImmutableSet.copyOf(
+        new AutomatonState[]{
+            AutomatonState.automatonStateFactory(
+                ImmutableMap.<String, AutomatonVariable>of(),
+                q1,
+                cpa,
+                ImmutableList.<Pair<AStatement, Boolean>>of(),
+                ImmutableList.<AAstNode> of(TestDataTools.makeDeclaration("test", CNumericTypes.INT, null).getSecond()),
+                0, 0, false, ImmutableMap.<Property, ResultValue<?>>of()),
+
+            AutomatonState.automatonStateFactory(
+                ImmutableMap.<String, AutomatonVariable>of(),
+                q2,
+                cpa,
+                ImmutableList.<Pair<AStatement, Boolean>>of(),
+                ImmutableList.<AAstNode> of(),
+                0, 0, false, ImmutableMap.<Property, ResultValue<?>>of())
+    }));
+
 
     e_q2_q3 = new PowersetAutomatonState(ImmutableSet.copyOf(
         new AutomatonState[]{
@@ -128,6 +151,19 @@ public class PowersetAutomatonDomainTest {
     assertThat(result).isInstanceOf(PowersetAutomatonState.class);
     assertThat(((PowersetAutomatonState) result).containsAtLeast(3)).isTrue();
   }
+
+  @Test
+  public void testJoin2() throws CPAException {
+    AbstractState result = dom.join(e_q1_q2, e_q1enc_q2);
+
+    assertThat(result).isInstanceOf(PowersetAutomatonState.class);
+    assertThat(((PowersetAutomatonState) result).containsAtLeast(3)).isTrue();
+
+    assertThat(dom.isLessOrEqual(e_q1_q2, result)).isTrue();
+    assertThat(dom.isLessOrEqual(result, e_q1_q2)).isFalse();
+    assertThat(dom.isLessOrEqual(e_q1enc_q2, result)).isTrue();
+  }
+
 
   @Test
   public void testJoinWithTop() throws CPAException {
