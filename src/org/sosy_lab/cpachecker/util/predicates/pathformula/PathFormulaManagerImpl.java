@@ -568,7 +568,10 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     for (final ARGState e : pElementsOnPath) {
 
       // Skip states without a branching
-      if (e.getChildren().size() <= 1) {
+      final boolean shouldCheck = (e.getChildren().size() == 1 && e.getChildren().iterator().next().isTarget())
+            || (e.getChildren().size() > 1);
+
+      if (!shouldCheck) {
         continue;
       }
 
