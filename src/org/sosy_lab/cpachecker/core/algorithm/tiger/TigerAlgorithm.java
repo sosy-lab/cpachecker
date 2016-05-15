@@ -34,6 +34,7 @@ import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -223,6 +224,9 @@ public class TigerAlgorithm
 
   @Option(secure = true, name = "usePowerset", description = "Construct the powerset of automata states.")
   private boolean usePowerset = true;
+
+  @Option(secure = true, name = "useComposite", description = "Handle all automata CPAs as one composite CPA.")
+  private boolean useComposite = false;
 
   @Option(secure = true, name = "testsuiteFile", description = "Filename for output of generated test suite")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -1513,7 +1517,7 @@ public class TigerAlgorithm
       logger.logf(Level.INFO, "Analyzing %d test goals with %d observer automata.", pGoalsToBeProcessed.size(),
           componentAutomata.size());
 
-      Collection<ConfigurableProgramAnalysis> automataCPAs = Lists.newArrayList();
+      List<ConfigurableProgramAnalysis> automataCPAs = Lists.newArrayList();
 
       for (Automaton componentAutomaton : componentAutomata) {
 
@@ -1531,7 +1535,22 @@ public class TigerAlgorithm
 
       // Add one automata CPA for each goal
       LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<>();
-      lComponentAnalyses.addAll(automataCPAs);
+      if (useComposite) {
+        ConfigurationBuilder compConfigBuilder = Configuration.builder();
+        compConfigBuilder.setOption("cpa.composite.separateTargetStates", "true");
+        Configuration compositeConfig = compConfigBuilder.build();
+
+        CPAFactory compositeCpaFactory = CompositeCPA.factory();
+        compositeCpaFactory.setChildren(automataCPAs);
+        compositeCpaFactory.setConfiguration(compositeConfig);
+        compositeCpaFactory.setLogger(logger);
+        compositeCpaFactory.set(cfa, CFA.class);
+
+        ConfigurableProgramAnalysis compositeAutomatonCPA = compositeCpaFactory.createInstance();
+        lComponentAnalyses.add(compositeAutomatonCPA);
+      } else {
+        lComponentAnalyses.addAll(automataCPAs);
+      }
 
       // Add the old composite components
       Preconditions.checkState(oldArgCPA.getWrappedCPAs().iterator().next() instanceof CompositeCPA);
