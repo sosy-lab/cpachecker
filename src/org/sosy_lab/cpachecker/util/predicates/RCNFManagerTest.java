@@ -34,7 +34,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.TestLogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.SolverContextFactory.Solvers;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -63,7 +63,7 @@ public class RCNFManagerTest extends SolverBasedTest0{
         "rcnf.boundVarsHandling", "drop"
     ).build();
     FormulaManagerView mgrView = new FormulaManagerView(
-        mgr, d, TestLogManager.getInstance());
+        mgr, d, LogManager.createTestLogManager());
     RCNFManager = new RCNFManager(mgrView, d);
     bfmgr = mgrView.getBooleanFormulaManager();
   }

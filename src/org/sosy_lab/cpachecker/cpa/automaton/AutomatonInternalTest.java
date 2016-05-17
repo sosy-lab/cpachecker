@@ -46,7 +46,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CParser.ParserOptions;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
@@ -82,7 +81,7 @@ public class AutomatonInternalTest {
 
   public AutomatonInternalTest() throws InvalidConfigurationException {
     config = TestDataTools.configurationForTest().build();
-    logger = TestLogManager.getInstance();
+    logger = LogManager.createTestLogManager();
 
     ParserOptions options = CParser.Factory.getDefaultOptions();
     parser = CParser.Factory.getParser(config, logger, options, MachineModel.LINUX32);

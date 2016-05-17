@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.log.TestLogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
@@ -41,7 +41,7 @@ public class SMGJoinValuesTest {
   private SMG smg2;
   private SMG smgDest;
 
-  SMGState dummyState = new SMGState(TestLogManager.getInstance(), MachineModel.LINUX32, false, false,
+  SMGState dummyState = new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX32, false, false,
       null, 4, false);
 
   private SMGNodeMapping mapping1;

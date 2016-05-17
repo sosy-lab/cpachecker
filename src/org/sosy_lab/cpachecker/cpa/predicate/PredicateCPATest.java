@@ -36,7 +36,6 @@ import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -82,7 +81,7 @@ public class PredicateCPATest {
   private FluentIterable<String> loadPredicateCPA(Configuration config) throws Exception {
     ClassLoader myClassLoader = PredicateCPATest.class.getClassLoader();
     assume().that(myClassLoader).isInstanceOf(URLClassLoader.class);
-    LogManager logger = TestLogManager.getInstance();
+    LogManager logger = LogManager.createTestLogManager();
 
     try (LoggingClassLoader cl = new LoggingClassLoader(
           Pattern.compile("(org\\.sosy_lab\\.cpachecker\\..*(predicate|bdd|BDD|formulaslicing|FormulaReportingState).*)|(org\\.sosy_lab\\.solver\\..*)"),

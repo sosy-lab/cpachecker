@@ -40,7 +40,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.TestLogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -86,7 +86,7 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
         .setOption("cpa.predicate.encodeFloatAs", "INTEGER")
         .build();
     mgrv = new FormulaManagerView(context.getFormulaManager(),
-        viewConfig, TestLogManager.getInstance());
+        viewConfig, LogManager.createTestLogManager());
     bmgrv = mgrv.getBooleanFormulaManager();
     imgrv = mgrv.getIntegerFormulaManager();
   }
