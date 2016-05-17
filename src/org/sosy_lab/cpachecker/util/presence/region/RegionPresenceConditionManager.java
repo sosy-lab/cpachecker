@@ -131,4 +131,24 @@ public class RegionPresenceConditionManager implements PresenceConditionManager 
     return nmgr.dumpRegion(cond.getRegion());
   }
 
+  @Override
+  public boolean checkEqualsTrue(PresenceCondition pCond) {
+    Preconditions.checkArgument(mgr instanceof NamedRegionManager);
+    Preconditions.checkArgument(pCond instanceof RegionPresenceCondition);
+
+    RegionPresenceCondition cond = (RegionPresenceCondition) pCond;
+
+    return cond.getRegion().isTrue();
+  }
+
+  @Override
+  public boolean checkEqualsFalse(PresenceCondition pCond) {
+    Preconditions.checkArgument(mgr instanceof NamedRegionManager);
+    Preconditions.checkArgument(pCond instanceof RegionPresenceCondition);
+
+    RegionPresenceCondition cond = (RegionPresenceCondition) pCond;
+
+    return cond.getRegion().isFalse();
+  }
+
 }

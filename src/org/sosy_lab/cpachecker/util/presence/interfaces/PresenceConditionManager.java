@@ -47,4 +47,8 @@ public interface PresenceConditionManager {
 
   public boolean checkSat(PresenceCondition pCond);
 
+  public boolean checkEqualsTrue(PresenceCondition pCond);
+
+  public boolean checkEqualsFalse(PresenceCondition pCond);
+
 }

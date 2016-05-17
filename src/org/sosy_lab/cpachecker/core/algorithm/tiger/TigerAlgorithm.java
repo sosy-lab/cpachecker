@@ -725,9 +725,6 @@ public class TigerAlgorithm
           }
           //        previousAutomaton = currentAutomaton;
 
-          if (result.equals(ReachabilityAnalysisResult.TIMEOUT)) {
-            break;
-          }
         }
 
         // reprocess timed-out goals
@@ -878,7 +875,7 @@ public class TigerAlgorithm
                 "Covered some PCs for Goal %d (%s) for a PC by test case %d!",
                 goal.getIndex(), testsuite.getTestGoalLabel(goal), pTestcase.getId());
 
-            if (!pcManager.checkSat(testsuite.getRemainingPresenceCondition(goal))) {
+            if (!pcManager.checkEqualsTrue(testsuite.getRemainingPresenceCondition(goal))) {
               coveredGoals.add(goal);
             }
           }

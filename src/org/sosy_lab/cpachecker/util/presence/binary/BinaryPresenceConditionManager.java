@@ -117,4 +117,20 @@ public class BinaryPresenceConditionManager implements PresenceConditionManager 
     return cond.getValue();
   }
 
+  @Override
+  public boolean checkEqualsTrue(PresenceCondition pCond) {
+    Preconditions.checkArgument(pCond instanceof BinaryPresenceCondition);
+    final BinaryPresenceCondition cond = (BinaryPresenceCondition) pCond;
+
+    return cond.getValue();
+  }
+
+  @Override
+  public boolean checkEqualsFalse(PresenceCondition pCond) {
+    Preconditions.checkArgument(pCond instanceof BinaryPresenceCondition);
+    final BinaryPresenceCondition cond = (BinaryPresenceCondition) pCond;
+
+    return !cond.getValue();
+  }
+
 }

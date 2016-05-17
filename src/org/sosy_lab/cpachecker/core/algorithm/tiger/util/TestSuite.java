@@ -191,7 +191,7 @@ public class TestSuite extends AlgorithmResult {
 
   private boolean isGoalPariallyCovered(Goal pGoal) {
     if (useTigerAlgorithm_with_pc) {
-      if (!pcManager.checkSat(remainingPresenceConditions.get(pGoal))) {
+      if (pcManager.checkEqualsFalse(remainingPresenceConditions.get(pGoal))) {
         return true;
       }
     }
@@ -401,7 +401,7 @@ public class TestSuite extends AlgorithmResult {
 
   public boolean isGoalCovered(Goal pGoal) {
     if (useTigerAlgorithm_with_pc) {
-      return !pcManager.checkSat(remainingPresenceConditions.get(pGoal));
+      return pcManager.checkEqualsFalse(remainingPresenceConditions.get(pGoal));
     } else {
       List<TestCase> testCases = coveringTestCases.get(pGoal);
       return (testCases != null && testCases.size() > 0);

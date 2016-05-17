@@ -555,7 +555,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
         Builder<Property, PresenceCondition> builder = ImmutableMap.<Property, PresenceCondition>builder();
         for (final Entry<Property, Optional<PresenceCondition>> e: pTargetSummary.getViolationConditions().entrySet()) {
           if (e.getValue().isPresent()) {
-            if (!pcMgr.checkSat(e.getValue().get())) {
+            if (!pcMgr.checkEqualsTrue(e.getValue().get())) {
               builder.put(e.getKey(), new PresenceCondition() {
                 private final PresenceCondition pc = e.getValue().get();
 
