@@ -30,6 +30,8 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.base.Throwables;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -45,7 +47,6 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import java.nio.file.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
@@ -68,6 +69,7 @@ import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState;
@@ -87,6 +89,7 @@ import org.sosy_lab.solver.api.BooleanFormulaManager;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -634,7 +637,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
         }
       }
 
-      if (!from(taskReached).anyMatch(IS_TARGET_STATE)) {
+      if (!from(taskReached).anyMatch(Predicates.<AbstractState>or(IS_TARGET_STATE, HAS_ASSUMPTIONS))) {
         // program is safe (waitlist is empty, algorithm was sound, no target states present)
         logger.log(Level.INFO, SAFE_MESSAGE);
         programIsSafe = true;
@@ -651,4 +654,10 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
           new ReachedSetBasedExpressionTreeSupplier(lazyLocationMapping, cfa));
     }
   }
+
+
+  private final Predicate<AbstractState> HAS_ASSUMPTIONS = state -> {
+      AssumptionStorageState assumption = AbstractStates.extractStateByType(state, AssumptionStorageState.class);
+      return assumption != null && !assumption.isStopFormulaTrue();
+    };
 }
