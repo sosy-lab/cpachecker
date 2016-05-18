@@ -23,15 +23,15 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
-import java.util.Set;
-import java.util.regex.Pattern;
+import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 
-import com.google.common.collect.ImmutableSet;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * This class collects some configurations options for
@@ -61,6 +61,9 @@ public class FormulaEncodingOptions {
      + "call would be replaced by an externally defined expression over the program variables."
      + " This will only work when all variables referenced by the dimacs file are global and declared before this function is called.")
   private String externModelFunctionName = "__VERIFIER_externModelSatisfied";
+
+  @Option(secure=true, description="Add a prefix to the feature variables of the external feature model.")
+  private String externModelVariablePrefix = "";
 
   @Option(secure=true, description = "Set of functions that non-deterministically provide new memory on the heap, " +
                         "i.e. they can return either a valid pointer or zero.")
@@ -149,5 +152,9 @@ public class FormulaEncodingOptions {
 
   public boolean encodeOverflowsWithUFs() {
     return encodeOverflowsWithUFs;
+  }
+
+  public String externModelVariablePrefix() {
+    return externModelVariablePrefix;
   }
 }

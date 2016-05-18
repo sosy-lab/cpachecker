@@ -21,14 +21,18 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
+package org.sosy_lab.cpachecker.util.presence;
 
+import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -42,44 +46,60 @@ import java.util.List;
 import java.util.Map;
 
 
-public class ExternModelLoader {
+public class DimacsLoader {
 
   private final CtoFormulaTypeHandler typeHandler;
   private final BooleanFormulaManagerView bfmgr;
   private final FormulaManagerView fmgr;
+  private final FormulaEncodingOptions options;
 
-  public ExternModelLoader(CtoFormulaTypeHandler pTypeHandler, BooleanFormulaManagerView pBfmgr,
+  public DimacsLoader(FormulaEncodingOptions pOptions, CtoFormulaTypeHandler pTypeHandler, BooleanFormulaManagerView pBfmgr,
       FormulaManagerView pFmgr) {
-    typeHandler = pTypeHandler;
-    bfmgr = pBfmgr;
-    fmgr = pFmgr;
+
+    typeHandler = Preconditions.checkNotNull(pTypeHandler);
+    bfmgr = Preconditions.checkNotNull(pBfmgr);
+    fmgr = Preconditions.checkNotNull(pFmgr);
+    options = Preconditions.checkNotNull(pOptions);
   }
 
   public BooleanFormula handleExternModelFunction(List<CExpression> parameters, SSAMapBuilder ssa) {
     assert (parameters.size()>0): "No external model given!";
+
     // the parameter comes in C syntax (with ")
     String filename = parameters.get(0).toASTString().replaceAll("\"", "");
     Path modelFile = Paths.get(filename);
-    return loadExternalFormula(modelFile, ssa);
+
+    return loadExternalFormula(modelFile, ssa, new Function<String, String>() {
+      @Override
+      public String apply(String pArg0) {
+        return options.externModelVariablePrefix().trim() + pArg0.toLowerCase();
+      }
+    });
   }
 
   /**
    * Loads a formula from an external dimacs file and returns it as BooleanFormula object.
-   * Each variable in the dimacs file will be associated with a program variable if a corresponding (name equality) variable is known.
+   * Each variable in the dimacs file will be associated with a program variable if a
+   * corresponding (name equality) variable is known.
    * Otherwise we use internal SMT variable to represent the dimacs variable and do not introduce a program variable.
    * Might lead to problems when the program variable is introduced afterwards.
+   *
    * @param pModelFile File with the dimacs model.
    * @return BooleanFormula
    */
-  private BooleanFormula loadExternalFormula(Path pModelFile, SSAMapBuilder ssa) {
-    if (! pModelFile.getName().endsWith(".dimacs")) {
+  private BooleanFormula loadExternalFormula(Path pModelFile, SSAMapBuilder ssa,
+      Function<String, String> pFeatureVariableMapping) {
+
+    if (!pModelFile.getName().endsWith(".dimacs")) {
       throw new UnsupportedOperationException("Sorry, we can only load dimacs models.");
     }
+
     try (BufferedReader br =  pModelFile.asCharSource(StandardCharsets.UTF_8).openBufferedStream()) {
       Map<Integer, String> predicates = Maps.newHashMap();
+
       //var ids in dimacs files start with 1, so we want the first var at position 1
       predicates.put(0, "RheinDummyVar");
-      BooleanFormula externalModel = bfmgr.makeBoolean(true);
+      BooleanFormula result = bfmgr.makeBoolean(true);
       Formula zero = fmgr.makeNumber(FormulaType.getBitvectorTypeWithSize(32), 0);
 
       String line = "";
@@ -90,8 +110,9 @@ public class ExternModelLoader {
           // c 80255$ _X31351_m
           // starting with id1
           String[] parts = line.split(" ");
-          int varID = Integer.parseInt(parts[1].replace("$", ""));
-          predicates.put(varID, parts[2]);
+          int varId = Integer.parseInt(parts[1].replace("$", ""));
+          String varName = pFeatureVariableMapping.apply(parts[2]);
+          predicates.put(varId, varName);
         } else if (line.startsWith("p ")) {
           //p cnf 80258 388816
           // 80258 vars
@@ -106,12 +127,14 @@ public class ExternModelLoader {
           for (String elementStr : parts) {
             if (!elementStr.equals("0") && !elementStr.isEmpty()) {
               int elem = Integer.parseInt(elementStr);
+
               String predName = "";
               if (predicates.containsKey(Math.abs(elem))) {
                 predName = predicates.get(Math.abs(elem));
               } else {
                 predName = "RheinDummyVar_" + Math.abs(elem);
               }
+
               int ssaIndex = ssa.getIndex(predName);
               BooleanFormula constraintPart = null;
               if (ssaIndex != -1) {
@@ -135,10 +158,11 @@ public class ExternModelLoader {
               constraint = bfmgr.or(constraint, constraintPart);
             }
           }
-          externalModel = bfmgr.and(externalModel, constraint);
+          result = bfmgr.and(result, constraint);
         }
-      }// end of while
-      return externalModel;
+      }
+      // end of while
+      return result;
     } catch (IOException e) {
       throw new RuntimeException(e); //TODO: find the proper exception
     }
