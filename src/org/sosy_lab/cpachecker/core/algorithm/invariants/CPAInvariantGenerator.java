@@ -656,8 +656,12 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
   }
 
 
-  private final Predicate<AbstractState> HAS_ASSUMPTIONS = state -> {
-      AssumptionStorageState assumption = AbstractStates.extractStateByType(state, AssumptionStorageState.class);
-      return assumption != null && !assumption.isStopFormulaTrue();
-    };
+  private final Predicate<AbstractState> HAS_ASSUMPTIONS =
+      state -> {
+        AssumptionStorageState assumption =
+            AbstractStates.extractStateByType(state, AssumptionStorageState.class);
+        return assumption != null
+            && !assumption.isStopFormulaTrue()
+            && !assumption.isAssumptionTrue();
+      };
 }
