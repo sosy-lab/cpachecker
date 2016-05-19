@@ -298,9 +298,7 @@ class InvariantsManager implements StatisticsProvider {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bfmgr;
   private final PathFormulaManager pfmgr;
-  private final InterpolationManager imgr;
 
-  private final InductiveWeakeningManager inductiveWeakeningMgr;
   private final RCNFManager semiCNFConverter;
   private final CFA cfa;
 
@@ -339,19 +337,6 @@ class InvariantsManager implements StatisticsProvider {
     bfmgr = fmgr.getBooleanFormulaManager();
     pfmgr = pPfmgr;
     semiCNFConverter = new RCNFManager(pConfig);
-
-    imgr =
-        new InterpolationManager(
-            pPfmgr,
-            pSolver,
-            pCfa.getLoopStructure(),
-            pCfa.getVarClassification(),
-            pConfig,
-            pShutdownNotifier,
-            pLogger);
-
-    inductiveWeakeningMgr = new InductiveWeakeningManager(pConfig, pSolver, pLogger,
-        pShutdownNotifier);
 
     if (generationStrategy.contains(InvariantGenerationStrategy.ASYNC_CPA)) {
       asyncCPAInvariantSupplierSingleton = new AsyncCPAInvariantsSupplier();
@@ -794,9 +779,8 @@ class InvariantsManager implements StatisticsProvider {
               fmgr.uninstantiate(pBlockFormula.getFormula()), fmgr);
 
       Set<BooleanFormula> inductiveLemmas =
-          inductiveWeakeningMgr.findInductiveWeakeningForRCNF(
-              ssa, loopFormula, lemmas
-          );
+          new InductiveWeakeningManager(config, solver, logger, shutdownNotifier)
+              .findInductiveWeakeningForRCNF(ssa, loopFormula, lemmas);
 
       if (lemmas.isEmpty()) {
         logger.log(Level.FINER, "Invariant for location", pLocation, "is true, ignoring it");
@@ -1036,13 +1020,23 @@ class InvariantsManager implements StatisticsProvider {
     private final List<ARGState> abstractionStatesTrace;
     private final List<InfeasiblePrefix> infeasiblePrefixes;
     private final List<AbstractLocationFormulaInvariant> foundInvariants = new ArrayList<>();
+    private final InterpolationManager imgr;
 
     private InvCandidateGenerator(ARGPath pPath, List<ARGState> pAbstractionStatesTrace)
-        throws CPAException, InterruptedException {
+        throws CPAException, InterruptedException, InvalidConfigurationException {
       argPath = pPath;
       abstractionNodes = from(pAbstractionStatesTrace).transform(EXTRACT_LOCATION).toList();
       elementsOnPath = getAllStatesOnPathsTo(argPath.getLastState());
       abstractionStatesTrace = pAbstractionStatesTrace;
+      imgr =
+          new InterpolationManager(
+              pfmgr,
+              solver,
+              cfa.getLoopStructure(),
+              cfa.getVarClassification(),
+              config,
+              shutdownNotifier,
+              logger);
 
       infeasiblePrefixes = new PredicateBasedPrefixProvider(config, logger, solver, pfmgr).extractInfeasiblePrefixes(argPath);
     }
