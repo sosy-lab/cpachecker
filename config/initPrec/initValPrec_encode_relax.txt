@@ -8,3 +8,9 @@ encode_ie::index
 encode_ie::leader_len
 is_relaxed_prefix::i
 is_relaxed_prefix::shift
+main::i
+main::n
+main::shift
+main::__tmp_9
+main::__tmp_6
+main::i__1
