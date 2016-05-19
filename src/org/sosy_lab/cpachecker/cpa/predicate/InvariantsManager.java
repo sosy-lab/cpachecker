@@ -101,7 +101,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager;
 import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
-import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
@@ -304,7 +303,6 @@ class InvariantsManager implements StatisticsProvider {
   private final InductiveWeakeningManager inductiveWeakeningMgr;
   private final RCNFManager semiCNFConverter;
   private final CFA cfa;
-  private final PrefixProvider prefixProvider;
 
   // TODO Configuration should not be used at runtime, only during constructor
   private final Configuration config;
@@ -326,8 +324,7 @@ class InvariantsManager implements StatisticsProvider {
       ShutdownNotifier pShutdownNotifier,
       CFA pCfa,
       Solver pSolver,
-      PathFormulaManager pPfmgr,
-      PrefixProvider pPrefixProvider)
+      PathFormulaManager pPfmgr)
       throws InvalidConfigurationException, CPAException {
     pConfig.inject(this);
 
@@ -353,7 +350,6 @@ class InvariantsManager implements StatisticsProvider {
             pShutdownNotifier,
             pLogger);
 
-    prefixProvider = pPrefixProvider;
     inductiveWeakeningMgr = new InductiveWeakeningManager(pConfig, pSolver, pLogger,
         pShutdownNotifier);
 
@@ -1048,7 +1044,7 @@ class InvariantsManager implements StatisticsProvider {
       elementsOnPath = getAllStatesOnPathsTo(argPath.getLastState());
       abstractionStatesTrace = pAbstractionStatesTrace;
 
-      infeasiblePrefixes = prefixProvider.extractInfeasiblePrefixes(argPath);
+      infeasiblePrefixes = new PredicateBasedPrefixProvider(config, logger, solver, pfmgr).extractInfeasiblePrefixes(argPath);
     }
 
     @Override

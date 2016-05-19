@@ -180,8 +180,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
             pShutdownNotifier,
             pCfa,
             solver,
-            pfMgr,
-            prefixProvider);
+            pfMgr);
 
     predicateManager =
         new PredicateAbstractionManager(
