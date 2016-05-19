@@ -38,6 +38,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableSortedSet;
@@ -330,17 +331,19 @@ public class LiveVariables {
     return Optional.of((LiveVariables)new AllVariablesAsLiveVariables(pCFA, globalsList));
   }
 
-  public static Optional<LiveVariables> create(final Optional<VariableClassification> variableClassification,
-                                               final List<Pair<ADeclaration, String>> globalsList,
-                                               final MutableCFA pCFA,
-                                               final LogManager logger,
-                                               final ShutdownNotifier shutdownNotifier,
-                                               final Configuration config) throws InvalidConfigurationException {
+  public static Optional<LiveVariables> create(
+      final Optional<VariableClassification> variableClassification,
+      final List<Pair<ADeclaration, String>> globalsList,
+      final MutableCFA pCFA,
+      final LogManager logger,
+      final ShutdownNotifier pShutdownNotifier,
+      final Configuration config)
+      throws InvalidConfigurationException {
     checkNotNull(variableClassification);
     checkNotNull(globalsList);
     checkNotNull(pCFA);
     checkNotNull(logger);
-    checkNotNull(shutdownNotifier);
+    checkNotNull(pShutdownNotifier);
 
     // we cannot make any assumptions about c programs where we do not know
     // about the addressed variables
@@ -355,28 +358,35 @@ public class LiveVariables {
     // be chosen later on
     LiveVariablesConfiguration liveVarConfig = new LiveVariablesConfiguration(config);
 
-    ShutdownManager liveVarsShutdown = ShutdownManager.createWithParent(shutdownNotifier);
-    List<ResourceLimit> limits;
-    if (liveVarConfig.overallLivenessCheckTime.isEmpty()) {
-      limits = Collections.emptyList();
+    final ResourceLimitChecker limitChecker;
+    final ShutdownNotifier shutdownNotifier;
+    if (!liveVarConfig.overallLivenessCheckTime.isEmpty()) {
+      ShutdownManager liveVarsShutdown = ShutdownManager.createWithParent(pShutdownNotifier);
+      shutdownNotifier = liveVarsShutdown.getNotifier();
+      ResourceLimit limit = WalltimeLimit.fromNowOn(liveVarConfig.overallLivenessCheckTime);
+      limitChecker = new ResourceLimitChecker(liveVarsShutdown, ImmutableList.of(limit));
+      limitChecker.start();
     } else {
-      limits = Collections.singletonList((ResourceLimit)WalltimeLimit.fromNowOn(liveVarConfig.overallLivenessCheckTime));
+      shutdownNotifier = pShutdownNotifier;
+      limitChecker = null;
     }
-    ResourceLimitChecker limitChecker = new ResourceLimitChecker(liveVarsShutdown, limits);
 
-    limitChecker.start();
     LiveVariables liveVarObject = create0(variableClassification.orNull(), globalsList, logger, shutdownNotifier, cfa, liveVarConfig);
-    limitChecker.cancel();
+    if (limitChecker != null) {
+      limitChecker.cancel();
+    }
 
     return Optional.of(liveVarObject);
   }
 
-  private static LiveVariables create0(final VariableClassification variableClassification,
-                                                 final List<Pair<ADeclaration, String>> globalsList,
-                                                 final LogManager logger,
-                                                 final ShutdownNotifier shutdownNotifier,
-                                                 final CFA cfa,
-                                                 final LiveVariablesConfiguration config) throws AssertionError {
+  private static LiveVariables create0(
+      final VariableClassification variableClassification,
+      final List<Pair<ADeclaration, String>> globalsList,
+      final LogManager logger,
+      final ShutdownNotifier pShutdownNotifier,
+      final CFA cfa,
+      final LiveVariablesConfiguration config)
+      throws AssertionError {
     // prerequisites for creating the live variables
     Set<Wrapper<ASimpleDeclaration>> globalVariables;
     switch (config.evaluationStrategy) {
@@ -398,26 +408,31 @@ public class LiveVariables {
       throw new AssertionError("Unhandled case statement: " + config.evaluationStrategy);
     }
 
-    ShutdownManager liveVarsShutdown = ShutdownManager.createWithParent(shutdownNotifier);
-    List<ResourceLimit> limits;
-    if (config.partwiseLivenessCheckTime.isEmpty()) {
-      limits = Collections.emptyList();
+    final ResourceLimitChecker limitChecker;
+    final ShutdownNotifier shutdownNotifier;
+    if (!config.partwiseLivenessCheckTime.isEmpty()) {
+      ShutdownManager liveVarsShutdown = ShutdownManager.createWithParent(pShutdownNotifier);
+      shutdownNotifier = liveVarsShutdown.getNotifier();
+      ResourceLimit limit = WalltimeLimit.fromNowOn(config.partwiseLivenessCheckTime);
+      limitChecker = new ResourceLimitChecker(liveVarsShutdown, ImmutableList.of(limit));
+      limitChecker.start();
     } else {
-      limits = Collections.singletonList((ResourceLimit)WalltimeLimit.fromNowOn(config.partwiseLivenessCheckTime));
+      shutdownNotifier = pShutdownNotifier;
+      limitChecker = null;
     }
-    ResourceLimitChecker limitChecker = new ResourceLimitChecker(liveVarsShutdown, limits);
 
-    Optional<AnalysisParts> parts = getNecessaryAnalysisComponents(cfa, logger, liveVarsShutdown.getNotifier(), config.evaluationStrategy);
+    Optional<AnalysisParts> parts =
+        getNecessaryAnalysisComponents(cfa, logger, shutdownNotifier, config.evaluationStrategy);
     Multimap<CFANode, Wrapper<ASimpleDeclaration>> liveVariables = null;
-
-    limitChecker.start();
 
     // create live variables
     if (parts.isPresent()) {
       liveVariables = addLiveVariablesFromCFA(cfa, logger, parts.get(), config.evaluationStrategy);
     }
 
-    limitChecker.cancel();
+    if (limitChecker != null) {
+      limitChecker.cancel();
+    }
 
     // when the analysis did not finish or could even not be created we return
     // an absent optional, but before we try the function-wise analysis if we
@@ -425,7 +440,7 @@ public class LiveVariables {
     if (liveVariables == null && config.evaluationStrategy != EvaluationStrategy.FUNCTION_WISE) {
       logger.log(Level.INFO, "Global live variables collection failed, fallback to function-wise analysis.");
       config.evaluationStrategy = EvaluationStrategy.FUNCTION_WISE;
-      return create0(variableClassification, globalsList, logger, shutdownNotifier, cfa, config);
+      return create0(variableClassification, globalsList, logger, pShutdownNotifier, cfa, config);
     } else if (liveVariables == null) {
       return new AllVariablesAsLiveVariables(cfa, globalsList);
     }
