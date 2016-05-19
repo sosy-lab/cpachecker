@@ -23,14 +23,14 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.partialcertificate;
 
-import java.util.ArrayList;
-
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PartialReachedConstructionAlgorithm;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+
+import java.util.ArrayList;
 
 
 public class HeuristicPartialReachedSetConstructionAlgorithm implements PartialReachedConstructionAlgorithm {
@@ -39,7 +39,7 @@ public class HeuristicPartialReachedSetConstructionAlgorithm implements PartialR
   public AbstractState[] computePartialReachedSet(final UnmodifiableReachedSet pReached) {
     ArrayList<AbstractState> result = new ArrayList<>();
     CFANode node;
-    for (AbstractState state : pReached.asCollection()) {
+    for (AbstractState state : pReached) {
       node = AbstractStates.extractLocation(state);
       if (node == null || node.getNumEnteringEdges() > 1
           || (node.getNumLeavingEdges() > 0 && node.getLeavingEdge(0).getEdgeType() == CFAEdgeType.FunctionCallEdge)) {
