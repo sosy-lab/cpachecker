@@ -34,7 +34,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -232,17 +231,14 @@ public class ARGReachedSet {
       Predicate<? super Precision> pPrecisionType) {
     Map<Precision, Precision> precisionUpdateCache = Maps.newIdentityHashMap();
 
-    for (AbstractState s : mReached) {
-      Precision oldPrecision = mReached.getPrecision(s);
+    mReached.forEach(
+        (s, oldPrecision) -> {
+          Precision newPrecision =
+              precisionUpdateCache.computeIfAbsent(
+                  oldPrecision, oldPrec -> adaptPrecision(oldPrec, pNewPrecision, pPrecisionType));
 
-      Precision newPrecision = precisionUpdateCache.get(oldPrecision);
-      if (newPrecision == null) {
-        newPrecision = adaptPrecision(oldPrecision, pNewPrecision, pPrecisionType);
-        precisionUpdateCache.put(oldPrecision, newPrecision);
-      }
-
-      mReached.updatePrecision(s, newPrecision);
-    }
+          mReached.updatePrecision(s, newPrecision);
+        });
   }
 
   /**
