@@ -1981,23 +1981,17 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
       @Override
       public Void visit(CCharLiteralExpression pE) throws CPATransferException {
-
-        assert false;
-        return null;
+        throw new AssertionError();
       }
 
       @Override
       public Void visit(CFloatLiteralExpression pE) throws CPATransferException {
-
-        assert false;
-        return null;
+        throw new AssertionError();
       }
 
       @Override
       public Void visit(CIntegerLiteralExpression pE) throws CPATransferException {
-
-        assert false;
-        return null;
+        throw new AssertionError();
       }
 
 
@@ -2075,15 +2069,13 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
         switch (op) {
         case AMPER:
-          assert false : "In this case, the assume should be able to be calculated";
-          return null;
+          throw new AssertionError("In this case, the assume should be able to be calculated");
         case MINUS:
         case TILDE:
           // don't change the truth value
           return operand.accept(this);
         case SIZEOF:
-          assert false : "At the moment, this cae should be able to be calculated";
-          break;
+          throw new AssertionError("At the moment, this case should be able to be calculated");
         default:
           // TODO alignof is not handled
         }

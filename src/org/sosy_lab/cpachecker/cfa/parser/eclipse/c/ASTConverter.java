@@ -1821,7 +1821,7 @@ class ASTConverter {
           type = typeConverter.convert((IASTPointerOperator)modifier, type);
 
         } else {
-          assert false;
+          throw new AssertionError();
         }
       }
 

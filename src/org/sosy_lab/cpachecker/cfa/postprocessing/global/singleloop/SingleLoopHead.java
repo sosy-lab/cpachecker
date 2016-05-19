@@ -67,7 +67,7 @@ public class SingleLoopHead extends CFANode {
       Preconditions.checkArgument(!enteringPCValueAssignmentEdges.containsKey(pcValue), "All entering program counter value assignment edges must be unique.");
       enteringPCValueAssignmentEdges.put(pcValue, edge);
     } else {
-      assert false;
+      throw new AssertionError();
     }
     super.addEnteringEdge(pEnteringEdge);
   }

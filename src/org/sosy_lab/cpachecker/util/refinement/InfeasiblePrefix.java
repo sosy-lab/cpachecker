@@ -111,9 +111,7 @@ public class InfeasiblePrefix {
 
       depth++;
     }
-    assert false : "There must be at least one trivial interpolant along the prefix";
-
-    return -1;
+    throw new AssertionError("There must be at least one trivial interpolant along the prefix");
   }
 
   public ARGPath getPath() {

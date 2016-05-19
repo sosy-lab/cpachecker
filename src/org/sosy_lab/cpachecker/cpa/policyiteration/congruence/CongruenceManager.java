@@ -166,8 +166,7 @@ public class CongruenceManager {
           remainder = makeBv(fmgr.getBitvectorFormulaManager(), formula, 0);
           break;
         default:
-          remainder = null;
-          assert false : "Unexpected case";
+          throw new AssertionError("Unexpected case");
       }
 
       constraints.add(fmgr.makeModularCongruence(formula, remainder, 2));

@@ -2672,9 +2672,9 @@ class ASTConverter {
           case Modifier.SYNCHRONIZED:
             isSynchronized = true;
             break;
-          default:
-            assert false : " Unkown  Modifier";
 
+          default:
+            throw new AssertionError("Unkown  Modifier");
           }
         }
       }

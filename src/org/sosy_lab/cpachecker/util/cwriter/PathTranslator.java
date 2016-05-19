@@ -322,7 +322,7 @@ public abstract class PathTranslator {
         } else if (ind == 1) {
           cond = "else if ";
         } else {
-          assert false;
+          throw new AssertionError();
         }
         ind++;
 
