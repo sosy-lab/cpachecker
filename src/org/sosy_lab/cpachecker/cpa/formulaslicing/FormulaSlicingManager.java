@@ -252,7 +252,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     BooleanFormula quantified = fmgr.quantifyDeadVariables(
         transition, ssa);
 
-    Set<BooleanFormula> lemmas = rcnfManager.toLemmas(quantified);
+    Set<BooleanFormula> lemmas = rcnfManager.toLemmas(quantified, fmgr);
 
     Set<BooleanFormula> finalLemmas = new HashSet<>();
     for (BooleanFormula lemma : lemmas) {

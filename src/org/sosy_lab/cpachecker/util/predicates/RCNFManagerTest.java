@@ -56,15 +56,15 @@ public class RCNFManagerTest extends SolverBasedTest0{
 
   private RCNFManager RCNFManager;
   private BooleanFormulaManager bfmgr;
+  private FormulaManagerView mgrView;
 
   @Before
   public void setUp() throws InvalidConfigurationException {
     Configuration d = Configuration.builder().setOption(
         "rcnf.boundVarsHandling", "drop"
     ).build();
-    FormulaManagerView mgrView = new FormulaManagerView(
-        mgr, d, LogManager.createTestLogManager());
-    RCNFManager = new RCNFManager(mgrView, d);
+    mgrView = new FormulaManagerView(mgr, d, LogManager.createTestLogManager());
+    RCNFManager = new RCNFManager(d);
     bfmgr = mgrView.getBooleanFormulaManager();
   }
 
@@ -80,7 +80,7 @@ public class RCNFManagerTest extends SolverBasedTest0{
     );
     BooleanFormula c = bfmgr.or(a, b);
 
-    BooleanFormula converted = bfmgr.and(RCNFManager.toLemmas(c));
+    BooleanFormula converted = bfmgr.and(RCNFManager.toLemmas(c, mgrView));
     assertThatFormula(converted).isEquivalentTo(c);
     assertThatFormula(converted).isEqualTo(
         bfmgr.and(
@@ -105,7 +105,7 @@ public class RCNFManagerTest extends SolverBasedTest0{
             )
         )
     );
-    BooleanFormula converted = bfmgr.and(RCNFManager.toLemmas(input));
+    BooleanFormula converted = bfmgr.and(RCNFManager.toLemmas(input, mgrView));
     assertThatFormula(converted).isEquivalentTo(input);
     BooleanFormula expected =
         bfmgr.and(
@@ -125,7 +125,7 @@ public class RCNFManagerTest extends SolverBasedTest0{
         bfmgr.and(ImmutableList.of(v("a"), v("b"), v("c"))),
         bfmgr.and(ImmutableList.of(v("d"), v("e"), v("f")))
     );
-    BooleanFormula converted = bfmgr.and(RCNFManager.toLemmas(input));
+    BooleanFormula converted = bfmgr.and(RCNFManager.toLemmas(input, mgrView));
     assertThatFormula(converted).isEquivalentTo(input);
     BooleanFormula expected =
         bfmgr.and(

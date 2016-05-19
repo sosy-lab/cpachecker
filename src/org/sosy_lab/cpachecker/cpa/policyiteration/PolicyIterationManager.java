@@ -215,7 +215,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       }
     }
     loopStructure = loopStructureBuilder.build();
-    rcnfManager = new RCNFManager(fmgr, config);
+    rcnfManager = new RCNFManager(config);
 
     TargetLocationProvider targetProvider = new TargetLocationProviderImpl(
         pReachedSetFactory, pShutdownNotifier, pLogger, config, pCfa);
@@ -769,7 +769,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         return bfmgr.toConjunctionArgs(
             fmgr.applyTactic(formula, Tactic.TSEITIN_CNF), true);
       case "RCNF":
-        return rcnfManager.toLemmas(formula);
+        return rcnfManager.toLemmas(formula, fmgr);
       case "NONE":
         return ImmutableSet.of(formula);
       default:

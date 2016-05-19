@@ -341,7 +341,7 @@ class InvariantsManager implements StatisticsProvider {
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     pfmgr = pPfmgr;
-    semiCNFConverter = new RCNFManager(fmgr, pConfig);
+    semiCNFConverter = new RCNFManager(pConfig);
 
     imgr =
         new InterpolationManager(
@@ -795,7 +795,7 @@ class InvariantsManager implements StatisticsProvider {
 
       Set<BooleanFormula> lemmas =
           semiCNFConverter.toLemmas(
-              fmgr.uninstantiate(pBlockFormula.getFormula()));
+              fmgr.uninstantiate(pBlockFormula.getFormula()), fmgr);
 
       Set<BooleanFormula> inductiveLemmas =
           inductiveWeakeningMgr.findInductiveWeakeningForRCNF(
@@ -824,7 +824,7 @@ class InvariantsManager implements StatisticsProvider {
       BooleanFormula cnfFormula = bfmgr.and(semiCNFConverter.toLemmas
           (pPathFormula
           .getFormula
-          ()));
+          (), fmgr));
       Collection<BooleanFormula> conjuncts =
           bfmgr.visit(
               new DefaultBooleanFormulaVisitor<List<BooleanFormula>>() {
