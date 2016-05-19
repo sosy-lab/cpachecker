@@ -37,8 +37,11 @@ public class UninitializedVariablesDomain implements AbstractDomain {
       UninitializedVariablesState uninitVarsElement1 = (UninitializedVariablesState)element1;
       UninitializedVariablesState uninitVarsElement2 = (UninitializedVariablesState)element2;
 
-    if (uninitVarsElement2.getGlobalVariables().containsAll(uninitVarsElement1.getGlobalVariables())
-        && uninitVarsElement2.getLocalVariables().containsAll(uninitVarsElement1.getLocalVariables())) {
+    if (uninitVarsElement1 == uninitVarsElement2
+        || (uninitVarsElement2.getGlobalVariables() == uninitVarsElement1.getGlobalVariables() ||
+        uninitVarsElement2.getGlobalVariables().containsAll(uninitVarsElement1.getGlobalVariables()))
+        && (uninitVarsElement2.getLocalVariables() == uninitVarsElement1.getLocalVariables()
+        || uninitVarsElement2.getLocalVariables().containsAll(uninitVarsElement1.getLocalVariables()))) {
       return uninitVarsElement2;
     }
 
