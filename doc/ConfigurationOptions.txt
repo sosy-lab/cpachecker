@@ -275,6 +275,9 @@ analysis.unknownIfUnrestrictedProgram = false
 # add declarations for global variables before entry function
 analysis.useGlobalVars = true
 
+# use analyses parallely
+analysis.useParallelAnalyses = false
+
 # Add a threshold to the automaton, after so many branches on a path the
 # automaton will be ignored (0 to disable)
 assumptions.automatonBranchingThreshold = 0
@@ -2397,6 +2400,9 @@ overflow.check = false
 # When checking for the overflow property, use this configuration file
 # instead of the current one.
 overflow.config = no default value
+
+# List of files with configurations to use.
+parallelAlgorithm.configFiles = no default value
 
 # C dialect for parser
 parser.dialect = GNUC

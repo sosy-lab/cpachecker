@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtractingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithmWithARGReplay;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
@@ -106,6 +107,15 @@ public class CoreComponentsFactory {
   @Option(secure=true, name="restartAfterUnknown",
       description="restart the analysis using a different configuration after unknown result")
   private boolean useRestartingAlgorithm = false;
+
+  @Option(
+    secure = true,
+    name = "useParallelAnalyses",
+    description =
+        "Use analyses parallely. The resulting reachedset is the one of the first"
+        + " analysis finishing in time. All other analyses are terminated."
+  )
+  private boolean useParallelAlgorithm = false;
 
   @Option(secure=true,
       description="memorize previously used (incomplete) reached sets after a restart of the analysis")
@@ -209,6 +219,9 @@ public class CoreComponentsFactory {
     } else if (runCBMCasExternalTool) {
       algorithm = new ExternalCBMCAlgorithm(programDenotation, config, logger);
 
+    } else if (useParallelAlgorithm) {
+      algorithm = new ParallelAlgorithm(config, logger, shutdownNotifier, cfa, programDenotation);
+
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 
@@ -277,7 +290,7 @@ public class CoreComponentsFactory {
   public ReachedSet createReachedSet() {
     ReachedSet reached = reachedSetFactory.create();
 
-    if (useRestartingAlgorithm || useRestartAlgorithmWithARGReplay) {
+    if (useRestartingAlgorithm || useRestartAlgorithmWithARGReplay || useParallelAlgorithm) {
       // this algorithm needs an indirection so that it can change
       // the actual reached set instance on the fly
       if (memorizeReachedAfterRestart) {
