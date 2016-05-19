@@ -23,15 +23,16 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
+import com.google.common.collect.Iterators;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
-import com.google.common.collect.Iterators;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.function.BiConsumer;
 
 public class UnmodifiableReachedSetWrapper implements UnmodifiableReachedSet {
 
@@ -90,6 +91,11 @@ public class UnmodifiableReachedSetWrapper implements UnmodifiableReachedSet {
   public Precision getPrecision(AbstractState pState)
       throws UnsupportedOperationException {
     return delegate.getPrecision(pState);
+  }
+
+  @Override
+  public void forEach(BiConsumer<? super AbstractState, ? super Precision> pAction) {
+    delegate.forEach(pAction);
   }
 
   @Override

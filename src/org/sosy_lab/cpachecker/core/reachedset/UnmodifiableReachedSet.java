@@ -23,12 +23,13 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
-import java.util.Collection;
-import java.util.Iterator;
-
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.function.BiConsumer;
 
 /**
  * Interface representing an unmodifiable reached set
@@ -105,6 +106,10 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
   public Precision getPrecision(AbstractState state)
     throws UnsupportedOperationException;
 
+  /**
+   * Iterate over all (state, precision) pairs in the reached set and apply an action for them.
+   */
+  public void forEach(BiConsumer<? super AbstractState, ? super Precision> action);
 
   public boolean contains(AbstractState state);
 

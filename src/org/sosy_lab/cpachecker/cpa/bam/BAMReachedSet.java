@@ -23,12 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -39,11 +38,13 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
-import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Collections2;
-import com.google.common.collect.Lists;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.function.BiConsumer;
+
+import javax.annotation.Nullable;
 
 
 public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
@@ -131,6 +132,11 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
       @Override
       public Precision getPrecision(AbstractState state) {
         return GET_PRECISION.apply(state);
+      }
+
+      @Override
+      public void forEach(BiConsumer<? super AbstractState, ? super Precision> pAction) {
+        subgraph.forEach(state -> pAction.accept(state, GET_PRECISION.apply(state)));
       }
 
       @Override
