@@ -57,7 +57,9 @@ import org.sosy_lab.cpachecker.util.cwriter.LoopCollectingEdgeVisitor;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
@@ -151,7 +153,9 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   private final PrefixSelector prefixSelector;
   private final LogManager logger;
   private final BlockFormulaStrategy blockFormulaStrategy;
+  private final Solver solver;
   private final FormulaManagerView fmgr;
+  private final PathFormulaManager pfmgr;
   private final InterpolationManager interpolationManager;
   private final RefinementStrategy strategy;
 
@@ -160,7 +164,8 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       final LogManager pLogger,
       final Optional<LoopStructure> pLoopStructure,
       final BlockFormulaStrategy pBlockFormulaStrategy,
-      final FormulaManagerView pFmgr,
+      final Solver pSolver,
+      final PathFormulaManager pPfgmr,
       final InterpolationManager pInterpolationManager,
       final PathChecker pPathChecker,
       final PrefixProvider pPrefixProvider,
@@ -174,7 +179,9 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     logger = pLogger;
     loopStructure = pLoopStructure;
     blockFormulaStrategy = pBlockFormulaStrategy;
-    fmgr = pFmgr;
+    solver = pSolver;
+    fmgr = solver.getFormulaManager();
+    pfmgr = pPfgmr;
 
     interpolationManager = pInterpolationManager;
     pathChecker = pPathChecker;
@@ -359,7 +366,8 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     if (counterexample.isSpurious()) {
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
 
-      invariantsManager.findInvariants(allStatesTrace, abstractionStatesTrace, loopsInPath);
+      invariantsManager.findInvariants(
+          allStatesTrace, abstractionStatesTrace, loopsInPath, pfmgr, solver);
 
       // add invariant precision increment if necessary
       if (invariantsManager.shouldInvariantsBeUsedForRefinement()) {

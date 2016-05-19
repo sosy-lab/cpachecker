@@ -294,10 +294,10 @@ class InvariantsManager implements StatisticsProvider {
   )
   private int kInductionTries = 3;
 
-  private final Solver solver;
-  private final FormulaManagerView fmgr;
-  private final BooleanFormulaManager bfmgr;
-  private final PathFormulaManager pfmgr;
+  private Solver solver;
+  private FormulaManagerView fmgr;
+  private BooleanFormulaManager bfmgr;
+  private PathFormulaManager pfmgr;
 
   private final RCNFManager semiCNFConverter;
   private final CFA cfa;
@@ -317,12 +317,7 @@ class InvariantsManager implements StatisticsProvider {
   private final InvariantsSupplier cpaCheckerInvariantSupplierSingleton;
 
   public InvariantsManager(
-      Configuration pConfig,
-      LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier,
-      CFA pCfa,
-      Solver pSolver,
-      PathFormulaManager pPfmgr)
+      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
       throws InvalidConfigurationException, CPAException {
     pConfig.inject(this);
 
@@ -332,10 +327,6 @@ class InvariantsManager implements StatisticsProvider {
 
     locationInvariantsCache = CacheBuilder.newBuilder().recordStats().build();
     cfa = pCfa;
-    solver = pSolver;
-    fmgr = solver.getFormulaManager();
-    bfmgr = fmgr.getBooleanFormulaManager();
-    pfmgr = pPfmgr;
     semiCNFConverter = new RCNFManager(pConfig);
 
     if (generationStrategy.contains(InvariantGenerationStrategy.ASYNC_CPA)) {
@@ -452,7 +443,7 @@ class InvariantsManager implements StatisticsProvider {
 
   /**
    * This method returns the invariants computed for the given locations in
-   * {@link #findInvariants(ARGPath, List, Set)}
+   * {@link #findInvariants(ARGPath, List, Set, PathFormulaManager, Solver)}
    * in the given order.
    */
   public List<BooleanFormula> getInvariantsForRefinement() {
@@ -504,12 +495,20 @@ class InvariantsManager implements StatisticsProvider {
    * The computed invariants (if there are some) are cached for later usage in
    * precision adjustment.
    */
-  public void findInvariants(final ARGPath allStatesTrace,
-      final List<ARGState> abstractionStatesTrace, final Set<Loop> loopsInPath) {
+  public void findInvariants(
+      final ARGPath allStatesTrace,
+      final List<ARGState> abstractionStatesTrace,
+      final Set<Loop> loopsInPath,
+      final PathFormulaManager pPfmgr,
+      final Solver pSolver) {
     // shortcut if we do not need to compute anything
     if (!shouldInvariantsBeComputed()) {
       return;
     }
+    pfmgr = Preconditions.checkNotNull(pPfmgr);
+    solver = Preconditions.checkNotNull(pSolver);
+    fmgr = solver.getFormulaManager();
+    bfmgr = fmgr.getBooleanFormulaManager();
 
     List<Pair<PathFormula, CFANode>> argForPathFormulaBasedGeneration = new ArrayList<>();
     List<CFANode> listOfNodes = new ArrayList<>();
