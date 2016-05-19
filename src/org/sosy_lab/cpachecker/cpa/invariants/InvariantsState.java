@@ -122,21 +122,9 @@ public class InvariantsState implements AbstractState,
   private static final SplitConjunctionsVisitor<CompoundInterval> SPLIT_CONJUNCTIONS_VISITOR =
       new SplitConjunctionsVisitor<>();
 
-  private static final Predicate<? super MemoryLocation> IS_UNSUPPORTED_VARIABLE_NAME = new Predicate<MemoryLocation>() {
-
-      @Override
-      public boolean apply(MemoryLocation pMemoryLocation) {
-        return pMemoryLocation == null || pMemoryLocation.getIdentifier().contains("[");
-      }};
-
-  private final Predicate<BooleanFormula<CompoundInterval>> implies = new Predicate<BooleanFormula<CompoundInterval>>() {
-
-    @Override
-    public boolean apply(BooleanFormula<CompoundInterval> pArg0) {
-      return definitelyImplies(pArg0);
-    }
-
-  };
+  private static boolean isUnsupportedVariableName(MemoryLocation pMemoryLocation) {
+    return pMemoryLocation == null || pMemoryLocation.getIdentifier().contains("[");
+  }
 
   /**
    * A visitor used to evaluate formulas as exactly as possible.
@@ -447,10 +435,10 @@ public class InvariantsState implements AbstractState,
   private InvariantsState assignInternal(MemoryLocation pMemoryLocation, NumeralFormula<CompoundInterval> pValue) {
     Preconditions.checkNotNull(pValue);
     // Only use information from supported variables
-    if (IS_UNSUPPORTED_VARIABLE_NAME.apply(pMemoryLocation)) {
+    if (isUnsupportedVariableName(pMemoryLocation)) {
       return this;
     }
-    if (FluentIterable.from(pValue.accept(COLLECT_VARS_VISITOR)).anyMatch(IS_UNSUPPORTED_VARIABLE_NAME)) {
+    if (FluentIterable.from(pValue.accept(COLLECT_VARS_VISITOR)).anyMatch(InvariantsState::isUnsupportedVariableName)) {
       return assignInternal(pMemoryLocation, allPossibleValuesFormula(pValue.getTypeInfo()));
     }
 
@@ -844,7 +832,7 @@ public class InvariantsState implements AbstractState,
     }
 
     // Only use information from supported variables
-    if (FluentIterable.from(assumption.accept(COLLECT_VARS_VISITOR)).anyMatch(IS_UNSUPPORTED_VARIABLE_NAME)) {
+    if (FluentIterable.from(assumption.accept(COLLECT_VARS_VISITOR)).anyMatch(InvariantsState::isUnsupportedVariableName)) {
       return this;
     }
 
@@ -1418,13 +1406,8 @@ public class InvariantsState implements AbstractState,
 
     for (BooleanFormula<CompoundInterval> hint : FluentIterable
         .from(pWideningHints)
-        .filter(new Predicate<BooleanFormula<CompoundInterval>>() {
-
-          @Override
-          public boolean apply(BooleanFormula<CompoundInterval> pHint) {
-            return wideningTargets.containsAll(pHint.accept(COLLECT_VARS_VISITOR));
-          }})
-        .filter(implies)) {
+        .filter(pHint -> wideningTargets.containsAll(pHint.accept(COLLECT_VARS_VISITOR)))
+        .filter(this::definitelyImplies)) {
       result = result.assume(hint);
     }
     if (equals(result)) {

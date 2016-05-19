@@ -23,10 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.expressions;
 
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.core.counterexample.CExpressionToOrinalCodeVisitor;
-
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
@@ -34,27 +30,9 @@ import com.google.common.collect.FluentIterable;
 
 public class ToCodeVisitor<LeafType> extends CachingVisitor<LeafType, String, RuntimeException> {
 
-  private static final Function<String, String> WRAP_IN_PARENTHESES =
-      new Function<String, String>() {
-
-        @Override
-        public String apply(String pCode) {
-          return "(" + pCode + ")";
-        }
-      };
-
-  public static ToCodeVisitor<AExpression> A_EXPRESSION_TREE_TO_CODE_VISITOR =
-      new ToCodeVisitor<>(
-          new Function<AExpression, String>() {
-
-            @Override
-            public String apply(AExpression pAExpression) {
-              if (!(pAExpression instanceof CExpression)) {
-                throw new AssertionError("Unsupported expression.");
-              }
-              return ((CExpression) pAExpression).accept(CExpressionToOrinalCodeVisitor.INSTANCE);
-            }
-          });
+  private static String wrapInParentheses(String pCode) {
+    return "(" + pCode + ")";
+  }
 
   private final Function<? super LeafType, String> leafExpressionToCodeFunction;
 
@@ -72,12 +50,12 @@ public class ToCodeVisitor<LeafType> extends CachingVisitor<LeafType, String, Ru
 
               @Override
               public String visit(And<LeafType> pAnd) {
-                return WRAP_IN_PARENTHESES.apply(pAnd.accept(ToCodeVisitor.this));
+                return wrapInParentheses(pAnd.accept(ToCodeVisitor.this));
               }
 
               @Override
               public String visit(Or<LeafType> pOr) {
-                return WRAP_IN_PARENTHESES.apply(pOr.accept(ToCodeVisitor.this));
+                return wrapInParentheses(pOr.accept(ToCodeVisitor.this));
               }
 
               @Override
@@ -121,7 +99,7 @@ public class ToCodeVisitor<LeafType> extends CachingVisitor<LeafType, String, Ru
       return expressionCode;
     }
     if (!expressionCode.startsWith("(") || !expressionCode.endsWith(")")) {
-      expressionCode = WRAP_IN_PARENTHESES.apply(expressionCode);
+      expressionCode = wrapInParentheses(expressionCode);
     }
     return "!" + expressionCode;
   }

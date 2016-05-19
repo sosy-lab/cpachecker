@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.expressions;
 
-import java.math.BigInteger;
-import java.util.Objects;
-
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
@@ -36,24 +33,15 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 
-import com.google.common.base.Function;
+import java.math.BigInteger;
+import java.util.Objects;
 
 public class LeafExpression<LeafType> extends AbstractExpressionTree<LeafType> {
-
-  public static final Function<AExpressionStatement, ExpressionTree<AExpression>>
-      FROM_EXPRESSION_STATEMENT =
-          new Function<AExpressionStatement, ExpressionTree<AExpression>>() {
-
-            @Override
-            public ExpressionTree<AExpression> apply(AExpressionStatement pExpressionStatement) {
-              return of(pExpressionStatement.getExpression());
-            }
-          };
 
   public static ExpressionTree<AExpression> fromStatement(
       AStatement pStatement, CBinaryExpressionBuilder pBinaryExpressionBuilder) {
     if (pStatement instanceof AExpressionStatement) {
-      return FROM_EXPRESSION_STATEMENT.apply((AExpressionStatement) pStatement);
+      return of(((AExpressionStatement) pStatement).getExpression());
     }
     if (pStatement instanceof CAssignment) {
       CAssignment assignment = (CAssignment) pStatement;
