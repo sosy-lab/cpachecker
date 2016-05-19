@@ -39,14 +39,13 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -74,6 +73,8 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -174,6 +175,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
+  private final ShutdownRequestListener logShutdownListener;
   private final RestartAlgorithmStatistics stats;
   private final String filename;
   private final CFA cfa;
@@ -200,6 +202,14 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     this.filename = pFilename;
     this.cfa = pCfa;
     this.globalConfig = config;
+
+    logShutdownListener =
+        reason ->
+            logger.logf(
+                Level.WARNING,
+                "Shutdown of analysis %d requested (%s).",
+                stats.noOfAlgorithmsUsed,
+                reason);
   }
 
   public static Algorithm create(
@@ -415,6 +425,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
     ResourceLimitChecker singleLimits = ResourceLimitChecker.fromConfiguration(singleConfig, singleLogger, singleShutdownManager);
     singleLimits.start();
+    singleShutdownManager.getNotifier().register(logShutdownListener);
 
     CoreComponentsFactory coreComponents =
         new CoreComponentsFactory(singleConfig, singleLogger, singleShutdownManager.getNotifier());
