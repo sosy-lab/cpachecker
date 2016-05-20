@@ -25,6 +25,7 @@ CPAchecker web page:
 # prepare for Python 3
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import collections
 import sys
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
@@ -325,7 +326,7 @@ IGNORED_VALUES = set(['command', 'timeLimit', 'coreLimit', 'returnvalue', 'exits
 """result values that are ignored because they are redundant"""
 
 def parseCloudRunResultFile(filePath):
-    values = {}
+    values = collections.OrderedDict()
 
     def parseTimeValue(s):
         if s[-1] != 's':

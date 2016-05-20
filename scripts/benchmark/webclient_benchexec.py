@@ -25,6 +25,7 @@ CPAchecker web page:
 # prepare for Python 3
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import collections
 import sys
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
@@ -217,7 +218,7 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
     """
     Call handle_result with appropriate parameters to fit into the BenchExec expectations.
     """
-    result_values = {}
+    result_values = collections.OrderedDict()
 
     def _open_output_log(output_path):
         log_file = open(run.log_file, 'wb')
