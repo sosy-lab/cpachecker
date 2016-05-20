@@ -23,12 +23,30 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
+import com.google.common.collect.Sets;
+
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
+import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
+
+import java.util.Objects;
+import java.util.Set;
+import java.util.logging.Level;
 
 class FormulaAndTreeSupplier implements InvariantSupplier, ExpressionTreeSupplier {
 
@@ -39,6 +57,12 @@ class FormulaAndTreeSupplier implements InvariantSupplier, ExpressionTreeSupplie
   public FormulaAndTreeSupplier(InvariantSupplier pInvariantSupplier, ExpressionTreeSupplier pExpressionTreeSupplier) {
     this.invariantSupplier = pInvariantSupplier;
     this.expressionTreeSupplier = pExpressionTreeSupplier;
+  }
+
+  public FormulaAndTreeSupplier(LazyLocationMapping pLazyLocationMapping, LogManager pLogger,
+      CFA pCfa) {
+    invariantSupplier = new ReachedSetBasedInvariantSupplier(pLazyLocationMapping, pLogger);
+    expressionTreeSupplier = new ReachedSetBasedExpressionTreeSupplier(pLazyLocationMapping, pCfa);
   }
 
   @Override
@@ -52,4 +76,115 @@ class FormulaAndTreeSupplier implements InvariantSupplier, ExpressionTreeSupplie
     return invariantSupplier.getInvariantFor(pNode, pFmgr, pPfmgr, pContext);
   }
 
+  /**
+   * {@link InvariantSupplier} that extracts invariants from a {@link ReachedSet}
+   * with {@link FormulaReportingState}s.
+   */
+  private static class ReachedSetBasedInvariantSupplier implements InvariantSupplier {
+
+    private final LazyLocationMapping lazyLocationMapping;
+    private final LogManager logger;
+
+    ReachedSetBasedInvariantSupplier(LazyLocationMapping pLazyLocationMapping, LogManager pLogger) {
+      logger = Objects.requireNonNull(pLogger);
+      lazyLocationMapping = Objects.requireNonNull(pLazyLocationMapping);
+    }
+
+    @Override
+    public BooleanFormula getInvariantFor(
+        CFANode pLocation,
+        FormulaManagerView fmgr,
+        PathFormulaManager pfmgr,
+        PathFormula pContext) {
+      BooleanFormulaManager bfmgr = fmgr.getBooleanFormulaManager();
+      BooleanFormula invariant = bfmgr.makeBoolean(false);
+
+      for (AbstractState locState : lazyLocationMapping.get(pLocation)) {
+        BooleanFormula f = AbstractStates.extractReportedFormulas(fmgr, locState, pfmgr);
+        logger.log(Level.ALL, "Invariant for", pLocation + ":", f);
+
+        invariant = bfmgr.or(invariant, f);
+      }
+      return invariant;
+    }
+  }
+
+  private static class ReachedSetBasedExpressionTreeSupplier implements ExpressionTreeSupplier {
+
+    private final LazyLocationMapping lazyLocationMapping;
+    private final CFA cfa;
+
+    ReachedSetBasedExpressionTreeSupplier(LazyLocationMapping pLazyLocationMapping, CFA pCFA) {
+      lazyLocationMapping = Objects.requireNonNull(pLazyLocationMapping);
+      cfa = Objects.requireNonNull(pCFA);
+    }
+
+    @Override
+    public ExpressionTree<Object> getInvariantFor(CFANode pLocation) {
+      ExpressionTree<Object> locationInvariant = ExpressionTrees.getFalse();
+
+      Set<InvariantsState> invStates = Sets.newHashSet();
+      boolean otherReportingStates = false;
+
+      for (AbstractState locState : lazyLocationMapping.get(pLocation)) {
+        ExpressionTree<Object> stateInvariant = ExpressionTrees.getTrue();
+
+        for (ExpressionTreeReportingState expressionTreeReportingState :
+            AbstractStates.asIterable(locState).filter(ExpressionTreeReportingState.class)) {
+          if (expressionTreeReportingState instanceof InvariantsState) {
+            InvariantsState invState = (InvariantsState) expressionTreeReportingState;
+            boolean skip = false;
+            for (InvariantsState other : invStates) {
+              if (invState.isLessOrEqual(other)) {
+                skip = true;
+                break;
+              }
+            }
+            if (skip) {
+              stateInvariant = ExpressionTrees.getFalse();
+              continue;
+            }
+            invStates.add(invState);
+          } else {
+            otherReportingStates = true;
+          }
+          stateInvariant =
+              And.of(
+                  stateInvariant,
+                  expressionTreeReportingState.getFormulaApproximation(
+                      cfa.getFunctionHead(pLocation.getFunctionName()), pLocation));
+        }
+
+        locationInvariant = Or.of(locationInvariant, stateInvariant);
+      }
+
+      if (!otherReportingStates && invStates.size() > 1) {
+        Set<InvariantsState> newInvStates = Sets.newHashSet();
+        for (InvariantsState a : invStates) {
+          boolean skip = false;
+          for (InvariantsState b : invStates) {
+            if (a != b && a.isLessOrEqual(b)) {
+              skip = true;
+              break;
+            }
+          }
+          if (!skip) {
+            newInvStates.add(a);
+          }
+        }
+        if (newInvStates.size() < invStates.size()) {
+          locationInvariant = ExpressionTrees.getFalse();
+          for (InvariantsState state : newInvStates) {
+            locationInvariant =
+                Or.of(
+                    locationInvariant,
+                    state.getFormulaApproximation(
+                        cfa.getFunctionHead(pLocation.getFunctionName()), pLocation));
+          }
+        }
+      }
+
+      return locationInvariant;
+    }
+  }
 }
