@@ -27,7 +27,6 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
@@ -208,17 +207,47 @@ public class TigerTest {
   /**
    * Type:        variant
    * Analysis:    predicate
-   * Specialties: uses cross product for test goal representation
+   * Specialties: uses test goal annotations
    */
   @Test
-  @Ignore
-  public void variants_crossProduct_miniExample() throws Exception {
+  public void variants_annotating_miniExample() throws Exception {
+    Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
+        new File("config/tiger-variants-annotating.properties"));
+    prop.put("cpa.arg.dumpAfterIteration", "false");
+    prop.put("tiger.numberOfTestGoalsPerRun", "-1");
+    prop.put("tiger.usePowerset", "false");
+    prop.put("tiger.useAutomataCrossProduct", "false");
+    prop.put("tiger.checkCoverage", "true");
+    prop.put("tiger.allCoveredGoalsPerTestCase", "false");
+    prop.put("tiger.fqlQuery", "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))).\"EDGES(ID)*\"");
+
+    TestResults results = CPATestRunner.run(prop, MINI_EXAMPLE_C);
+    AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
+
+    assertThat(result).isInstanceOf(TestSuite.class);
+    TestSuite testSuite = (TestSuite) result;
+
+    assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 1);
+    assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 0);
+    assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
+
+    assertTrue(testSuite.getGoals().size() == miniExampleTS.size());
+    assertTrue(TigerTestHelper.validTestCases(testSuite, miniExampleTS, null));
+  }
+
+  /**
+   * Type:        variant
+   * Analysis:    predicate
+   * Specialties: uses power set for test goals representation
+   */
+  @Test
+  public void variants_powerset_miniExample() throws Exception {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variants.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
-    prop.put("tiger.usePowerset", "false");
-    prop.put("tiger.useAutomataCrossProduct", "true");
+    prop.put("tiger.usePowerset", "true");
+    prop.put("tiger.useAutomataCrossProduct", "false");
     prop.put("tiger.checkCoverage", "true");
     prop.put("tiger.allCoveredGoalsPerTestCase", "false");
     prop.put("tiger.fqlQuery", "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))).\"EDGES(ID)*\"");
@@ -240,12 +269,12 @@ public class TigerTest {
   /**
    * Type:        variant
    * Analysis:    predicate
-   * Specialties: uses power set for test goals representation
+   * Specialties: uses power set for test goals representation + test goal annotations
    */
   @Test
-  public void variants_powerset_miniExample() throws Exception {
+  public void variants_powerset_annotating_miniExample() throws Exception {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
-        new File("config/tiger-variants.properties"));
+        new File("config/tiger-variants-annotating.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "true");
@@ -302,17 +331,16 @@ public class TigerTest {
   /**
    * Type:        variant
    * Analysis:    value + predicate
-   * Specialties: uses cross product for test goal representation
+   * Specialties: uses test goal annotations
    */
   @Test
-  @Ignore
-  public void variantsValue_crossProduct_miniExample() throws Exception {
+  public void variantsValue_annotating_miniExample() throws Exception {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
-        new File("config/tiger-variants-value.properties"));
+        new File("config/tiger-variants-value-annotating.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "false");
-    prop.put("tiger.useAutomataCrossProduct", "true");
+    prop.put("tiger.useAutomataCrossProduct", "false");
     prop.put("tiger.checkCoverage", "true");
     prop.put("tiger.allCoveredGoalsPerTestCase", "false");
     prop.put("tiger.fqlQuery", "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))).\"EDGES(ID)*\"");
@@ -364,17 +392,16 @@ public class TigerTest {
 
   /**
    * Type:        variant
-   * Analysis:    predicate
-   * Specialties: target state sat check
+   * Analysis:    value + predicate
+   * Specialties: uses power set for test goals representation + test goal annotations
    */
   @Test
-  public void variants_miniExample_tagetStateSatCheck() throws Exception {
+  public void variantsValue_powerset_annotating_miniExample() throws Exception {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
-        new File("config/tiger-variants.properties"));
+        new File("config/tiger-variants-value-annotating.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
-    prop.put("tiger.limitsPerGoal.time.cpu", "-1");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
-    prop.put("tiger.usePowerset", "false");
+    prop.put("tiger.usePowerset", "true");
     prop.put("tiger.useAutomataCrossProduct", "false");
     prop.put("tiger.checkCoverage", "true");
     prop.put("tiger.allCoveredGoalsPerTestCase", "false");
@@ -433,18 +460,16 @@ public class TigerTest {
   /**
    * Type:        variant
    * Analysis:    predicate
-   * Specialties: uses cross product for test goal representation
-   *              multiple test goals
+   * Specialties: multiple test goals + uses test goal annotations
    */
   @Test
-  @Ignore
-  public void variants_crossProduct_example() throws Exception {
+  public void variants_annotating_example() throws Exception {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
-        new File("config/tiger-variants.properties"));
+        new File("config/tiger-variants-annotating.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "false");
-    prop.put("tiger.useAutomataCrossProduct", "true");
+    prop.put("tiger.useAutomataCrossProduct", "false");
     prop.put("tiger.checkCoverage", "true");
     prop.put("tiger.allCoveredGoalsPerTestCase", "false");
     prop.put("tiger.fqlQuery",
@@ -476,6 +501,46 @@ public class TigerTest {
 
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variants.properties"));
+    prop.put("cpa.arg.dumpAfterIteration", "false");
+    prop.put("tiger.numberOfTestGoalsPerRun", "-1");
+    prop.put("tiger.usePowerset", "true");
+    prop.put("tiger.useAutomataCrossProduct", "false");
+    prop.put("tiger.checkCoverage", "true");
+    prop.put("tiger.allCoveredGoalsPerTestCase", "false");
+    prop.put("tiger.fqlQuery",
+        "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))+EDGES(@LABEL(G5))).\"EDGES(ID)*\"");
+
+    TestResults results = CPATestRunner.run(prop, EXAMPLE_C);
+    AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
+
+    assertThat(result).isInstanceOf(TestSuite.class);
+    TestSuite testSuite = (TestSuite) result;
+
+    TestRunStatisticsParser stat = new TestRunStatisticsParser();
+    results.getCheckerResult().printStatistics(stat.getPrintStream());
+    stat.assertThatNumber("Number of feasible test goals")
+        .isEqualTo(testSuite.getNumberOfFeasibleTestGoals());
+
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(4);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+
+    assertTrue(testSuite.getGoals().size() == exampleTS.size());
+    assertTrue(TigerTestHelper.validTestCases(testSuite, exampleTS, null));
+  }
+
+  /**
+   * Type:        variant
+   * Analysis:    predicate
+   * Specialties: uses power set for test goals representation
+   *              multiple test goals + test goal annotations
+   */
+  @Test
+  public void variants_powerset_annotating_example()
+      throws Exception {
+
+    Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
+        new File("config/tiger-variants-annotating.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "true");
@@ -539,18 +604,16 @@ public class TigerTest {
   /**
    * Type:        variant
    * Analysis:    value + predicate
-   * Specialties: uses cross product for test goal representation
-   *              multiple test goals
+   * Specialties: multiple test goals + test goal annotations
    */
   @Test
-  @Ignore
-  public void variantsValue_crossProduct_example() throws Exception {
+  public void variantsValue_annotating_example() throws Exception {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
-        new File("config/tiger-variants-value.properties"));
+        new File("config/tiger-variants-value-annotating.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "false");
-    prop.put("tiger.useAutomataCrossProduct", "true");
+    prop.put("tiger.useAutomataCrossProduct", "false");
     prop.put("tiger.checkCoverage", "true");
     prop.put("tiger.allCoveredGoalsPerTestCase", "false");
     prop.put("tiger.fqlQuery",
@@ -580,6 +643,40 @@ public class TigerTest {
   public void variantsValue_powerset_example() throws Exception {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variants-value.properties"));
+    prop.put("cpa.arg.dumpAfterIteration", "false");
+    prop.put("tiger.numberOfTestGoalsPerRun", "-1");
+    prop.put("tiger.usePowerset", "true");
+    prop.put("tiger.useAutomataCrossProduct", "false");
+    prop.put("tiger.checkCoverage", "true");
+    prop.put("tiger.allCoveredGoalsPerTestCase", "false");
+    prop.put("tiger.fqlQuery",
+        "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))+EDGES(@LABEL(G5))).\"EDGES(ID)*\"");
+
+    TestResults results = CPATestRunner.run(prop, EXAMPLE_C);
+    AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
+
+    assertThat(result).isInstanceOf(TestSuite.class);
+    TestSuite testSuite = (TestSuite) result;
+
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(4);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+
+    assertTrue(testSuite.getGoals().size() == exampleTS.size());
+    assertTrue(TigerTestHelper.validTestCases(testSuite, exampleTS, null));
+  }
+
+  /**
+   * Type:        variant
+   * Analysis:    value + predicate
+   * Specialties: uses power set for test goals representation
+   *              multiple test goals
+   *              test goal annotations
+   */
+  @Test
+  public void variantsValue_powerset_annotating_example() throws Exception {
+    Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
+        new File("config/tiger-variants-value-annotating.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "true");
@@ -641,17 +738,16 @@ public class TigerTest {
   /**
    * Type:        simulator
    * Analysis:    predicate
-   * Specialties: uses cross product for test goal representation
+   * Specialties: uses test goal annotations
    */
   @Test
-  @Ignore
-  public void simulator_crossProduct_miniFase() throws Exception {
+  public void simulator_miniFase_annotating() throws Exception {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
-        new File("config/tiger-variabilityAware.properties"));
+        new File("config/tiger-variabilityAware-annotating.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "false");
-    prop.put("tiger.useAutomataCrossProduct", "true");
+    prop.put("tiger.useAutomataCrossProduct", "false");
     prop.put("tiger.checkCoverage", "true");
     prop.put("tiger.allCoveredGoalsPerTestCase", "false");
     prop.put("tiger.fqlQuery", "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))).\"EDGES(ID)*\"");
@@ -694,7 +790,39 @@ public class TigerTest {
     TestSuite testSuite = (TestSuite) result;
 
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
-    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+
+    assertTrue(testSuite.getGoals().size() == miniFaseTS.size());
+    assertTrue(TigerTestHelper.validTestCases(testSuite, miniFaseTS, miniFaseFm));
+  }
+
+  /**
+   * Type:        simulator
+   * Analysis:    predicate
+   * Specialties: uses power set for test goals representation
+   *              uses test goal annotations
+   */
+  @Test
+  public void simulator_powerset_miniFase_annotating() throws Exception {
+    Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
+        new File("config/tiger-variabilityAware-annotating.properties"));
+    prop.put("cpa.arg.dumpAfterIteration", "false");
+    prop.put("tiger.numberOfTestGoalsPerRun", "-1");
+    prop.put("tiger.usePowerset", "true");
+    prop.put("tiger.useAutomataCrossProduct", "false");
+    prop.put("tiger.checkCoverage", "true");
+    prop.put("tiger.allCoveredGoalsPerTestCase", "false");
+    prop.put("tiger.fqlQuery", "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))).\"EDGES(ID)*\"");
+
+    TestResults results = CPATestRunner.run(prop, MINI_FASE_C);
+    AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
+
+    assertThat(result).isInstanceOf(TestSuite.class);
+    TestSuite testSuite = (TestSuite) result;
+
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == miniFaseTS.size());
@@ -735,17 +863,16 @@ public class TigerTest {
   /**
    * Type:        simulator
    * Analysis:    value + predicate
-   * Specialties: uses cross product for test goal representation
+   * Specialties: uses test goal annotations
    */
   @Test
-  @Ignore
-  public void simulatorValue_crossProduct_miniFase() throws Exception {
+  public void simulatorValue_miniFase_annotating() throws Exception {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
-        new File("config/tiger-variabilityAware-value.properties"));
+        new File("config/tiger-variabilityAware-value-annotating.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "false");
-    prop.put("tiger.useAutomataCrossProduct", "true");
+    prop.put("tiger.useAutomataCrossProduct", "false");
     prop.put("tiger.checkCoverage", "true");
     prop.put("tiger.allCoveredGoalsPerTestCase", "false");
     prop.put("tiger.fqlQuery", "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))).\"EDGES(ID)*\"");
@@ -773,6 +900,39 @@ public class TigerTest {
   public void simulatorValue_powerset_miniFase() throws Exception {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variabilityAware-value.properties"));
+    prop.put("cpa.arg.dumpAfterIteration", "false");
+    prop.put("tiger.numberOfTestGoalsPerRun", "-1");
+    prop.put("tiger.usePowerset", "true");
+    prop.put("tiger.useAutomataCrossProduct", "false");
+    prop.put("tiger.checkCoverage", "true");
+    prop.put("tiger.allCoveredGoalsPerTestCase", "false");
+    prop.put("tiger.fqlQuery", "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))).\"EDGES(ID)*\"");
+
+    TestResults results =
+        CPATestRunner.run(prop, MINI_FASE_C, true);
+    AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
+
+    assertThat(result).isInstanceOf(TestSuite.class);
+    TestSuite testSuite = (TestSuite) result;
+
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+
+    assertTrue(testSuite.getGoals().size() == miniFaseTS.size());
+    assertTrue(TigerTestHelper.validTestCases(testSuite, miniFaseTS, miniFaseFm));
+  }
+
+  /**
+   * Type:        simulator
+   * Analysis:    value + predicate
+   * Specialties: uses power set for test goals representation
+   *              uses test goal annotations
+   */
+  @Test
+  public void simulatorValue_powerset_miniFase_annotating() throws Exception {
+    Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
+        new File("config/tiger-variabilityAware-value-annotating.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "true");
@@ -829,17 +989,25 @@ public class TigerTest {
     assertTrue(TigerTestHelper.validTestCases(testSuite, faseTS, faseFm));
   }
 
+  /**
+   * Type:        simulator
+   * Analysis:    predicate
+   * Specialties: multiple test goals
+   *              uses test goal annotations
+   */
   @Test
-  public void simulator_fase_powerset() throws Exception {
+  public void simulator_fase_annotating() throws Exception {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
-        new File("config/tiger-variabilityAware.properties"));
+        new File("config/tiger-variabilityAware-annotating.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
-    prop.put("tiger.usePowerset", "true");
+    prop.put("tiger.usePowerset", "false");
     prop.put("tiger.useAutomataCrossProduct", "false");
     prop.put("tiger.checkCoverage", "true");
+    prop.put("tiger.limitsPerGoal.time.cpu", "-1");
     prop.put("tiger.allCoveredGoalsPerTestCase", "false");
-    prop.put("tiger.fqlQuery", "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))+EDGES(@LABEL(G5))+EDGES(@LABEL(G6))+EDGES(@LABEL(G7))).\"EDGES(ID)*\"");
+    prop.put("tiger.fqlQuery",
+        "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))+EDGES(@LABEL(G5))+EDGES(@LABEL(G6))+EDGES(@LABEL(G7))).\"EDGES(ID)*\"");
 
     TestResults results = CPATestRunner.run(prop, FASE_C);
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
@@ -854,7 +1022,6 @@ public class TigerTest {
     assertTrue(testSuite.getGoals().size() == faseTS.size());
     assertTrue(TigerTestHelper.validTestCases(testSuite, faseTS, faseFm));
   }
-
 
   @Test
   public void simulator_fase_powerset_noomega() throws Exception {
@@ -913,17 +1080,16 @@ public class TigerTest {
   /**
    * Type:        simulator
    * Analysis:    predicate
-   * Specialties: uses cross product for test goal representation
+   * Specialties: uses power set for test goals representation
    */
   @Test
-  @Ignore
-  public void simulator_crossProduct_fase() throws Exception {
+  public void simulator_powerset_fase() throws Exception {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variabilityAware.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
-    prop.put("tiger.usePowerset", "false");
-    prop.put("tiger.useAutomataCrossProduct", "true");
+    prop.put("tiger.usePowerset", "true");
+    prop.put("tiger.useAutomataCrossProduct", "false");
     prop.put("tiger.checkCoverage", "true");
     prop.put("tiger.allCoveredGoalsPerTestCase", "false");
     prop.put("tiger.fqlQuery",
@@ -947,11 +1113,12 @@ public class TigerTest {
    * Type:        simulator
    * Analysis:    predicate
    * Specialties: uses power set for test goals representation
+   *              uses test goal annotations
    */
   @Test
-  public void simulator_powerset_fase() throws Exception {
+  public void simulator_powerset_fase_annotating() throws Exception {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
-        new File("config/tiger-variabilityAware.properties"));
+        new File("config/tiger-variabilityAware-annotating.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "true");
@@ -1011,17 +1178,17 @@ public class TigerTest {
   /**
    * Type:        simulator
    * Analysis:    value + predicate
-   * Specialties: uses cross product for test goal representation
+   * Specialties: uses test goal annotations
    */
   @Test
-  @Ignore
-  public void simulatorValue_crossProduct_fase() throws Exception {
+  public void simulatorValue_fase_annotating() throws Exception {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
-        new File("config/tiger-variabilityAware-value.properties"));
+        new File("config/tiger-variabilityAware-value-annotating.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
+    prop.put("tiger.limitsPerGoal.time.cpu", "-1");
     prop.put("tiger.usePowerset", "false");
-    prop.put("tiger.useAutomataCrossProduct", "true");
+    prop.put("tiger.useAutomataCrossProduct", "false");
     prop.put("tiger.checkCoverage", "true");
     prop.put("tiger.allCoveredGoalsPerTestCase", "false");
     prop.put("tiger.fqlQuery",
@@ -1050,6 +1217,39 @@ public class TigerTest {
   public void simulatorValue_powerset_fase() throws Exception {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variabilityAware-value.properties"));
+    prop.put("cpa.arg.dumpAfterIteration", "false");
+    prop.put("tiger.numberOfTestGoalsPerRun", "-1");
+    prop.put("tiger.usePowerset", "true");
+    prop.put("tiger.useAutomataCrossProduct", "false");
+    prop.put("tiger.checkCoverage", "true");
+    prop.put("tiger.allCoveredGoalsPerTestCase", "false");
+    prop.put("tiger.fqlQuery",
+        "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))+EDGES(@LABEL(G5))+EDGES(@LABEL(G6))+EDGES(@LABEL(G7))).\"EDGES(ID)*\"");
+
+    TestResults results = CPATestRunner.run(prop, FASE_C);
+    AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
+
+    assertThat(result).isInstanceOf(TestSuite.class);
+    TestSuite testSuite = (TestSuite) result;
+
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(7);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(7);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+
+    assertTrue(testSuite.getGoals().size() == faseTS.size());
+    assertTrue(TigerTestHelper.validTestCases(testSuite, faseTS, faseFm));
+  }
+
+  /**
+   * Type:        simulator
+   * Analysis:    value + predicate
+   * Specialties: uses power set for test goals representation
+   *              uses test goal annotations
+   */
+  @Test
+  public void simulatorValue_powerset_fase_annotating() throws Exception {
+    Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
+        new File("config/tiger-variabilityAware-value-annotating.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "true");
