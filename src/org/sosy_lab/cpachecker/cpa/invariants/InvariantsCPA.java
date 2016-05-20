@@ -23,23 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
-import java.util.WeakHashMap;
-import java.util.logging.Level;
-
-import javax.annotation.concurrent.GuardedBy;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -54,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
@@ -77,15 +63,11 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.CompoundIntervalFormulaManager;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.AcceptAllVariableSelection;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.AcceptSpecifiedVariableSelection;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.VariableSelection;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
@@ -93,10 +75,21 @@ import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Queue;
+import java.util.Set;
+import java.util.WeakHashMap;
+import java.util.logging.Level;
+
+import javax.annotation.concurrent.GuardedBy;
 
 /**
  * This is a CPA for collecting simple invariants about integer variables.
@@ -172,9 +165,6 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
   private final WeakHashMap<CFANode, InvariantsPrecision> initialPrecisionMap = new WeakHashMap<>();
 
   private boolean relevantVariableLimitReached = false;
-
-  private final Map<CFANode, BooleanFormula<CompoundInterval>> invariants
-      = Collections.synchronizedMap(new HashMap<CFANode, BooleanFormula<CompoundInterval>>());
 
   private final ConditionAdjuster conditionAdjuster;
 
@@ -375,18 +365,6 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
     initialPrecisionMap.put(pNode, precision);
 
-    BooleanFormula<CompoundInterval> invariant = invariants.get(pNode);
-    if (invariant != null) {
-      InvariantsState state = new InvariantsState(
-          variableSelection,
-          compoundIntervalManagerFactory,
-          machineModel,
-          abstractionState,
-          false,
-          options.includeTypeInformation);
-      state = state.assume(invariant);
-    }
-
     // Create the configured initial state
     return new InvariantsState(
         variableSelection,
@@ -414,27 +392,6 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
               machineModel));
     }
     return precision;
-  }
-
-  public void injectInvariant(CFANode pLocation, AssumeEdge pAssumption) throws UnrecognizedCodeException {
-    if (pAssumption instanceof CAssumeEdge) {
-      CAssumeEdge assumeEdge = (CAssumeEdge) pAssumption;
-      MemoryLocationExtractor vne = new MemoryLocationExtractor(
-          compoundIntervalManagerFactory,
-          machineModel,
-          pAssumption);
-      ExpressionToFormulaVisitor etfv = new ExpressionToFormulaVisitor(compoundIntervalManagerFactory, machineModel, vne);
-      CompoundIntervalFormulaManager compoundIntervalFormulaManager = new CompoundIntervalFormulaManager(compoundIntervalManagerFactory);
-      BooleanFormula<CompoundInterval> assumption = compoundIntervalFormulaManager.fromNumeral(assumeEdge.getExpression().accept(etfv));
-      if (!pAssumption.getTruthAssumption()) {
-        assumption = compoundIntervalFormulaManager.logicalNot(assumption);
-      }
-      injectInvariant(pLocation, assumption);
-    }
-  }
-
-  public void injectInvariant(CFANode pLocation, BooleanFormula<CompoundInterval> pAssumption) {
-    invariants.put(pLocation, pAssumption);
   }
 
   public void addInterestingVariables(Iterable<MemoryLocation> pInterestingVariables) {

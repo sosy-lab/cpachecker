@@ -23,10 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 
 public abstract class AbstractInvariantGenerator implements InvariantGenerator {
@@ -49,11 +47,5 @@ public abstract class AbstractInvariantGenerator implements InvariantGenerator {
 
   @Override
   public abstract boolean isProgramSafe();
-
-  @Override
-  public void injectInvariant(CFANode pLocation, AssumeEdge pAssumption)
-      throws UnrecognizedCodeException {
-    // Do nothing
-  }
 
 }

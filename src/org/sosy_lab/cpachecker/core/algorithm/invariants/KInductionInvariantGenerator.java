@@ -398,11 +398,6 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
   }
 
   @Override
-  public void injectInvariant(CFANode pLocation, AssumeEdge pAssumption) {
-    // ignore for now (never called anyway)
-  }
-
-  @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     algorithm.collectStatistics(pStatsCollection);
     pStatsCollection.add(stats);

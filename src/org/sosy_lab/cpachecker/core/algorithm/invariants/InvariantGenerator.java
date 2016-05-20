@@ -23,10 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 
 /**
@@ -90,14 +88,4 @@ public interface InvariantGenerator {
    */
   boolean isProgramSafe();
 
-  /**
-   * Add a specific invariant that is guaranteed to hold to the set of facts
-   * this invariant generator may return.
-   * Note that it is not guaranteed that the invariant returned
-   * by a call to {@link #get()} includes or implies the injected invariant.
-   * @param pLocation The location where the invariant holds.
-   * @param pAssumption A guard that is guaranteed to hold at the given location.
-   * @throws UnrecognizedCodeException if a problem occurred during the injection.
-   */
-  void injectInvariant(CFANode pLocation, AssumeEdge pAssumption) throws UnrecognizedCodeException;
 }
