@@ -46,11 +46,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.LoopInvariantsWriter;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsWriter;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter;
+import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
@@ -243,8 +243,9 @@ class PredicateCPAStatistics extends AbstractStatistics {
         Set<Precision> seenPrecisions = Collections.newSetFromMap(new IdentityHashMap<Precision, Boolean>());
 
         for (Precision precision : reached.getPrecisions()) {
-          if (seenPrecisions.add(precision) && precision instanceof WrapperPrecision) {
-            PredicatePrecision preds = ((WrapperPrecision)precision).retrieveWrappedPrecision(PredicatePrecision.class);
+          PredicatePrecision preds =
+              Precisions.extractPrecisionByType(precision, PredicatePrecision.class);
+          if (preds != null && seenPrecisions.add(preds)) {
             predicates.locationInstance.putAll(preds.getLocationInstancePredicates());
             predicates.location.putAll(preds.getLocalPredicates());
             predicates.function.putAll(preds.getFunctionPredicates());
