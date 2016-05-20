@@ -28,7 +28,9 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.BeforeClass;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.test.Interval.Comparators;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
@@ -46,8 +48,8 @@ import java.util.Map;
 
 public class TigerTest {
 
-//  @Rule
-//  public Timeout globalTimeout = Timeout.seconds(20); // 20 seconds max per method tested
+  @Rule
+  public Timeout globalTimeout = Timeout.seconds(20); // 20 seconds max per method tested
 
   private static final String FASE_C = "test/programs/tiger/simulator/FASE2015.c";
   private static final String MINI_FASE_C = "test/programs/tiger/simulator/mini_FASE2015.c";
@@ -182,7 +184,6 @@ public class TigerTest {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variants.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
-    prop.put("cpa.predicate.targetStateSatCheck", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "false");
     prop.put("tiger.useAutomataCrossProduct", "false");
@@ -215,7 +216,6 @@ public class TigerTest {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variants.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
-    prop.put("cpa.predicate.targetStateSatCheck", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "false");
     prop.put("tiger.useAutomataCrossProduct", "true");
@@ -247,7 +247,6 @@ public class TigerTest {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variants.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
-    prop.put("cpa.predicate.targetStateSatCheck", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "true");
     prop.put("tiger.useAutomataCrossProduct", "false");
@@ -279,7 +278,6 @@ public class TigerTest {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variants-value.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
-    prop.put("cpa.predicate.targetStateSatCheck", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "false");
     prop.put("tiger.useAutomataCrossProduct", "false");
@@ -312,7 +310,6 @@ public class TigerTest {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variants-value.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
-    prop.put("cpa.predicate.targetStateSatCheck", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "false");
     prop.put("tiger.useAutomataCrossProduct", "true");
@@ -344,7 +341,6 @@ public class TigerTest {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variants-value.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
-    prop.put("cpa.predicate.targetStateSatCheck", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "true");
     prop.put("tiger.useAutomataCrossProduct", "false");
@@ -376,7 +372,6 @@ public class TigerTest {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variants.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
-    prop.put("cpa.predicate.targetStateSatCheck", "true");
     prop.put("tiger.limitsPerGoal.time.cpu", "-1");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "false");
@@ -413,7 +408,6 @@ public class TigerTest {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variants.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
-    prop.put("cpa.predicate.targetStateSatCheck", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "false");
     prop.put("tiger.useAutomataCrossProduct", "false");
@@ -448,7 +442,6 @@ public class TigerTest {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variants.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
-    prop.put("cpa.predicate.targetStateSatCheck", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "false");
     prop.put("tiger.useAutomataCrossProduct", "true");
@@ -484,7 +477,6 @@ public class TigerTest {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variants.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
-    prop.put("cpa.predicate.targetStateSatCheck", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "true");
     prop.put("tiger.useAutomataCrossProduct", "false");
@@ -522,7 +514,6 @@ public class TigerTest {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variants-value.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
-    prop.put("cpa.predicate.targetStateSatCheck", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "false");
     prop.put("tiger.useAutomataCrossProduct", "false");
@@ -557,7 +548,6 @@ public class TigerTest {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variants-value.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
-    prop.put("cpa.predicate.targetStateSatCheck", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "false");
     prop.put("tiger.useAutomataCrossProduct", "true");
@@ -591,7 +581,6 @@ public class TigerTest {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variants-value.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
-    prop.put("cpa.predicate.targetStateSatCheck", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "true");
     prop.put("tiger.useAutomataCrossProduct", "false");
@@ -628,7 +617,6 @@ public class TigerTest {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variabilityAware.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
-    prop.put("cpa.predicate.targetStateSatCheck", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "false");
     prop.put("tiger.useAutomataCrossProduct", "false");
@@ -643,7 +631,7 @@ public class TigerTest {
     TestSuite testSuite = (TestSuite) result;
 
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
-    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == miniFaseTS.size());
@@ -661,7 +649,6 @@ public class TigerTest {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variabilityAware.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
-    prop.put("cpa.predicate.targetStateSatCheck", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "false");
     prop.put("tiger.useAutomataCrossProduct", "true");
@@ -693,7 +680,6 @@ public class TigerTest {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variabilityAware.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
-    prop.put("cpa.predicate.targetStateSatCheck", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "true");
     prop.put("tiger.useAutomataCrossProduct", "false");
@@ -725,7 +711,6 @@ public class TigerTest {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variabilityAware-value.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
-    prop.put("cpa.predicate.targetStateSatCheck", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "false");
     prop.put("tiger.useAutomataCrossProduct", "false");
@@ -758,7 +743,6 @@ public class TigerTest {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variabilityAware-value.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
-    prop.put("cpa.predicate.targetStateSatCheck", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "false");
     prop.put("tiger.useAutomataCrossProduct", "true");
@@ -790,7 +774,6 @@ public class TigerTest {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variabilityAware-value.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
-    prop.put("cpa.predicate.targetStateSatCheck", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "true");
     prop.put("tiger.useAutomataCrossProduct", "false");
@@ -823,7 +806,6 @@ public class TigerTest {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variabilityAware.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
-    prop.put("cpa.predicate.targetStateSatCheck", "true");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "false");
     prop.put("tiger.useAutomataCrossProduct", "false");
@@ -852,7 +834,6 @@ public class TigerTest {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variabilityAware.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
-    prop.put("cpa.predicate.targetStateSatCheck", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "true");
     prop.put("tiger.useAutomataCrossProduct", "false");
@@ -880,7 +861,6 @@ public class TigerTest {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variabilityAware-powerset-noOmega.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
-    prop.put("cpa.predicate.targetStateSatCheck", "true");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "true");
     prop.put("tiger.useAutomataCrossProduct", "false");
@@ -909,7 +889,6 @@ public class TigerTest {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variabilityAware.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
-    prop.put("cpa.predicate.targetStateSatCheck", "true");
     prop.put("tiger.numberOfTestGoalsPerRun", "1");
     prop.put("tiger.usePowerset", "false");
     prop.put("tiger.useAutomataCrossProduct", "false");
@@ -942,7 +921,6 @@ public class TigerTest {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variabilityAware.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
-    prop.put("cpa.predicate.targetStateSatCheck", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "false");
     prop.put("tiger.useAutomataCrossProduct", "true");
@@ -975,7 +953,6 @@ public class TigerTest {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variabilityAware.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
-    prop.put("cpa.predicate.targetStateSatCheck", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "true");
     prop.put("tiger.useAutomataCrossProduct", "false");
@@ -1008,7 +985,6 @@ public class TigerTest {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variabilityAware-value.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
-    prop.put("cpa.predicate.targetStateSatCheck", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.limitsPerGoal.time.cpu", "-1");
     prop.put("tiger.usePowerset", "false");
@@ -1043,7 +1019,6 @@ public class TigerTest {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variabilityAware-value.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
-    prop.put("cpa.predicate.targetStateSatCheck", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "false");
     prop.put("tiger.useAutomataCrossProduct", "true");
@@ -1076,7 +1051,6 @@ public class TigerTest {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variabilityAware-value.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
-    prop.put("cpa.predicate.targetStateSatCheck", "false");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "true");
     prop.put("tiger.useAutomataCrossProduct", "false");
