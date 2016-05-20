@@ -129,7 +129,9 @@ def _submitRunsParallel(runSet, benchmark):
 
     logging.info('Submitting runs...')
     
-    meta_information = json.dumps({"tool": {"name": _webclient.tool_name(), "revision": _webclient.tool_revision()}, \
+    meta_information = json.dumps({"tool": {"name": _webclient.tool_name(), \
+                                            "revision": _webclient.tool_revision(), \
+                                            "benchexec-module" : benchmark.tool_module}, \
                                        "benchmark" : benchmark.name,
                                        "timestamp" : benchmark.instance,
                                        "runSet" : runSet.real_name or "",

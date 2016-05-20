@@ -68,10 +68,12 @@ def execute_benchmark(benchmark, output_handler):
             cloudInputFile = os.path.join(benchmark.log_folder, 'cloudInput.txt')
             util.write_file(cloudInput, cloudInputFile)
             output_handler.all_created_files.add(cloudInputFile)
-        meta_information = json.dumps({"tool": {"name": benchmark.tool_name, "revision": benchmark.tool_version}, \
+        meta_information = json.dumps({"tool": {"name": benchmark.tool_name,\
+                                                "revision": benchmark.tool_version, \
+                                                "benchexec-module" : benchmark.tool_module}, \
                                        "benchmark" : benchmark.name,
                                        "timestamp" : benchmark.instance,
-                                        "generator": "benchmark.vcloud.py"})
+                                       "generator": "benchmark.vcloud.py"})
 
         # install cloud and dependencies
         ant = subprocess.Popen(["ant", "resolve-benchmark-dependencies"],
