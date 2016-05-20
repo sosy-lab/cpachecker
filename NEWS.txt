@@ -1,6 +1,13 @@
-Changes since CPAchecker 1.6
-----------------------------
+Changes since CPAchecker 1.6.1
+------------------------------
 * CPAchecker requires Java 8.
+
+
+Changes from CPAchecker 1.6 to CPAchecker 1.6.1
+-----------------------------------------------
+* Important bug fix for all configurations that use a sequential combination
+  of analyses, for the example the -sv-comp16 configuration
+  (internal time limits were not handled correctly).
 
 
 Changes from CPAchecker 1.4 to CPAchecker 1.6
