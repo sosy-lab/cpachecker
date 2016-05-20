@@ -56,7 +56,7 @@ import javax.annotation.Nullable;
 /**
  * Policy iteration CPA.
  */
-@Options(prefix="cpa.stator.policy")
+@Options(prefix="cpa.lpi", deprecatedPrefix="cpa.stator.policy")
 public class PolicyCPA extends SingleEdgeTransferRelation
     implements ConfigurableProgramAnalysis,
                StatisticsProvider,

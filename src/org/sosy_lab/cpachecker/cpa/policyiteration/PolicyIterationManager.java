@@ -78,7 +78,7 @@ import java.util.logging.Level;
 /**
  * Main logic in a single class.
  */
-@Options(prefix="cpa.stator.policy")
+@Options(prefix = "cpa.lpi", deprecatedPrefix = "cpa.stator.policy")
 public class PolicyIterationManager implements IPolicyIterationManager {
 
   @Option(secure=true, description="Do not explore nodes which syntactically "

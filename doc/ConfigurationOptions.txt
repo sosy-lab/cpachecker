@@ -275,7 +275,8 @@ analysis.unknownIfUnrestrictedProgram = false
 # add declarations for global variables before entry function
 analysis.useGlobalVars = true
 
-# use analyses parallely
+# Use analyses parallely. The resulting reachedset is the one of the first
+# analysis finishing in time. All other analyses are terminated.
 analysis.useParallelAnalyses = false
 
 # Add a threshold to the automaton, after so many branches on a path the
@@ -1153,6 +1154,101 @@ cpa.loopstack.maxLoopIterations = 0
 # adjuster.
 cpa.loopstack.maxLoopIterationsUpperBound = 0
 
+# Where to perform abstraction
+cpa.lpi.abstractionLocations = LOOPHEAD
+  enum:     [ALL, LOOPHEAD, MERGE]
+
+# Check whether the policy depends on the initial value
+cpa.lpi.checkPolicyInitialCondition = true
+
+# Check target states reachability
+cpa.lpi.checkTargetStates = true
+
+# Compute abstraction for larger templates using decomposition
+cpa.lpi.computeAbstractionByDecomposition = false
+
+# Ignore the template type and encode with a rational variable
+cpa.lpi.encodeTemplatesAsRationals = false
+
+# Value to substitute for the epsilon
+cpa.lpi.epsilon = Rational.ONE
+
+# Use only variables which appear in IntAddVars in variable classification
+cpa.lpi.filterIntAddVars = false
+
+# Generate cubic constraints: templates +/- x +/- y +/- z for every
+# combination (x, y, z)
+cpa.lpi.generateCube = false
+
+# Generate templates from assert statements
+cpa.lpi.generateFromAsserts = true
+
+# Generate templates from all program statements
+cpa.lpi.generateFromStatements = true
+
+# Generate templates for the lower bounds of each variable
+cpa.lpi.generateLowerBound = true
+
+# Generate even more templates (try coeff. 2 for each variable)
+cpa.lpi.generateMoreTemplates = false
+
+# Generate octagon templates for all combinations of variables. 
+cpa.lpi.generateOctagons = false
+
+# Generate new templates using polyhedra convex hull
+cpa.lpi.generateTemplatesUsingConvexHull = false
+
+# Generate templates for the upper bounds of each variable
+cpa.lpi.generateUpperBound = true
+
+# Remove UFs and ITEs from policies.
+cpa.lpi.linearizePolicy = true
+
+# Do not explore nodes which syntactically can not lead to an error state.
+cpa.lpi.reduceCfa = true
+
+# Run simple congruence analysis
+cpa.lpi.runCongruence = true
+
+# Run naive value determination first, switch to namespaced if it fails.
+cpa.lpi.runHopefulValueDetermination = true
+
+# Do not generate templates with threshold larger than specified. Set to '-1'
+# for no limit.
+cpa.lpi.templateConstantThreshold = 100
+
+# Algorithm for converting a formula to a set of lemmas
+cpa.lpi.toLemmasAlgorithm = "RCNF"
+  allowed values: [CNF, RCNF, NONE]
+
+# Use unguided template refinement, progressively brute-forcing the possible
+# template space.
+cpa.lpi.unguidedTemplateRefinement = true
+
+# Number of refinements after which the unrolling depth is increased
+cpa.lpi.unrollingRefinementThreshold = 2
+
+# Use caching optimization solver
+cpa.lpi.useCachingOptSolver = false
+
+# Cache formulas produced by path formula manager
+cpa.lpi.useCachingPathFormulaManager = true
+
+# Generate invariants and strengthen the formulas during abstraction with
+# them.
+cpa.lpi.useInvariantsForAbstraction = false
+
+# Syntactically pre-compute dependencies for value determination
+cpa.lpi.valDetSyntacticCheck = true
+
+# Strategy for filtering variables out of templates
+cpa.lpi.varFiltering = ALL_LIVE
+  enum:     [ALL_LIVE, ONE_LIVE, ALL]
+
+# Number of value determination steps allowed before widening is run. Value
+# of '-1' runs value determination until convergence.
+cpa.lpi.wideningThreshold = -1
+
 # time limit for a single post computation (use milliseconds or specify a
 # unit; 0 for infinite)
 cpa.monitor.limit = 0
@@ -1951,101 +2047,6 @@ cpa.statistics.statisticsCPAFile = no default value
 # Generate congruences for sums of variables (<=> x and y have same/different
 # evenness)
 cpa.stator.congruence.trackCongruenceSum = false
-
-# Where to perform abstraction
-cpa.stator.policy.abstractionLocations = LOOPHEAD
-  enum:     [ALL, LOOPHEAD, MERGE]
-
-# Check whether the policy depends on the initial value
-cpa.stator.policy.checkPolicyInitialCondition = true
-
-# Check target states reachability
-cpa.stator.policy.checkTargetStates = true
-
-# Compute abstraction for larger templates using decomposition
-cpa.stator.policy.computeAbstractionByDecomposition = false
-
-# Ignore the template type and encode with a rational variable
-cpa.stator.policy.encodeTemplatesAsRationals = false
-
-# Value to substitute for the epsilon
-cpa.stator.policy.epsilon = Rational.ONE
-
-# Use only variables which appear in IntAddVars in variable classification
-cpa.stator.policy.filterIntAddVars = false
-
-# Generate cubic constraints: templates +/- x +/- y +/- z for every
-# combination (x, y, z)
-cpa.stator.policy.generateCube = false
-
-# Generate templates from assert statements
-cpa.stator.policy.generateFromAsserts = true
-
-# Generate templates from all program statements
-cpa.stator.policy.generateFromStatements = true
-
-# Generate templates for the lower bounds of each variable
-cpa.stator.policy.generateLowerBound = true
-
-# Generate even more templates (try coeff. 2 for each variable)
-cpa.stator.policy.generateMoreTemplates = false
-
-# Generate octagon templates for all combinations of variables. 
-cpa.stator.policy.generateOctagons = false
-
-# Generate new templates using polyhedra convex hull
-cpa.stator.policy.generateTemplatesUsingConvexHull = false
-
-# Generate templates for the upper bounds of each variable
-cpa.stator.policy.generateUpperBound = true
-
-# Remove UFs and ITEs from policies.
-cpa.stator.policy.linearizePolicy = true
-
-# Do not explore nodes which syntactically can not lead to an error state.
-cpa.stator.policy.reduceCfa = true
-
-# Run simple congruence analysis
-cpa.stator.policy.runCongruence = true
-
-# Run naive value determination first, switch to namespaced if it fails.
-cpa.stator.policy.runHopefulValueDetermination = true
-
-# Do not generate templates with threshold larger than specified. Set to '-1'
-# for no limit.
-cpa.stator.policy.templateConstantThreshold = 100
-
-# Algorithm for converting a formula to a set of lemmas
-cpa.stator.policy.toLemmasAlgorithm = "RCNF"
-  allowed values: [CNF, RCNF, NONE]
-
-# Use unguided template refinement, progressively brute-forcing the possible
-# template space.
-cpa.stator.policy.unguidedTemplateRefinement = true
-
-# Number of refinements after which the unrolling depth is increased
-cpa.stator.policy.unrollingRefinementThreshold = 2
-
-# Use caching optimization solver
-cpa.stator.policy.useCachingOptSolver = false
-
-# Cache formulas produced by path formula manager
-cpa.stator.policy.useCachingPathFormulaManager = true
-
-# Generate invariants and strengthen the formulas during abstraction with
-# them.
-cpa.stator.policy.useInvariantsForAbstraction = false
-
-# Syntactically pre-compute dependencies for value determination
-cpa.stator.policy.valDetSyntacticCheck = true
-
-# Strategy for filtering variables out of templates
-cpa.stator.policy.varFiltering = ALL_LIVE
-  enum:     [ALL_LIVE, ONE_LIVE, ALL]
-
-# Number of value determination steps allowed before widening is run. Value
-# of '-1' runs value determination until convergence.
-cpa.stator.policy.wideningThreshold = -1
 
 # allow assignments of a new thread to the same left-hand-side as an existing
 # thread.

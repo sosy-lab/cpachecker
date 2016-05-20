@@ -72,7 +72,7 @@ public class PolicyIterationTest {
   public void pointer_past_abstraction_true_assert() throws Exception {
     check("pointers/pointer_past_abstraction_true_assert.c", ImmutableMap.of(
             "CompositeCPA.cpas", CPAS_W_SLICING,
-            "cpa.stator.policy.generateOctagons", "true"
+            "cpa.lpi.generateOctagons", "true"
         )
     );
   }
@@ -82,7 +82,7 @@ public class PolicyIterationTest {
     check("pointers/pointer_past_abstraction_false_assert.c",
         ImmutableMap.of(
             "CompositeCPA.cpas", CPAS_W_SLICING,
-            "cpa.stator.policy.runCongruence", "false"
+            "cpa.lpi.runCongruence", "false"
         )
     );
   }
@@ -93,19 +93,19 @@ public class PolicyIterationTest {
     check("pointers/pointers_loop_true_assert.c",
         ImmutableMap.of(
             "CompositeCPA.cpas", CPAS_W_SLICING,
-            "cpa.stator.policy.generateOctagons", "true",
-            "cpa.stator.policy.linearizePolicy", "false"
+            "cpa.lpi.generateOctagons", "true",
+            "cpa.lpi.linearizePolicy", "false"
         ));
   }
 
   @Test public void octagons_loop_true_assert() throws Exception {
     check("octagons/octagons_loop_true_assert.c",
-       ImmutableMap.of("cpa.stator.policy.generateOctagons", "true"));
+       ImmutableMap.of("cpa.lpi.generateOctagons", "true"));
   }
 
   @Test public void octagons_loop_false_assert() throws Exception {
     check("octagons/octagons_loop_false_assert.c",
-        ImmutableMap.of("cpa.stator.policy.generateOctagons", "true"));
+        ImmutableMap.of("cpa.lpi.generateOctagons", "true"));
   }
 
   @Test public void ineqality_true_assert() throws Exception {
@@ -130,12 +130,12 @@ public class PolicyIterationTest {
 
   @Test public void valdet_prefixing_true_assert() throws Exception {
     check("valdet_prefixing_true_assert.c",
-        ImmutableMap.of("cpa.stator.policy.generateOctagons", "true",
+        ImmutableMap.of("cpa.lpi.generateOctagons", "true",
 
             // Enabling two options below make non-prefixing variation of
             // val.det. work.
-            "cpa.stator.policy.shortCircuitSyntactic", "false",
-            "cpa.stator.policy.checkPolicyInitialCondition", "false"));
+            "cpa.lpi.shortCircuitSyntactic", "false",
+            "cpa.lpi.checkPolicyInitialCondition", "false"));
   }
 
   @Test public void array_false_assert() throws Exception {
@@ -148,9 +148,9 @@ public class PolicyIterationTest {
 
   @Test public void formula_fail_true_assert() throws Exception {
     check("formula_fail_true_assert.c",
-        ImmutableMap.of("cpa.stator.policy.generateLowerBound", "false",
-                        "cpa.stator.policy.generateFromAsserts", "false",
-                        "cpa.stator.policy.abstractionLocations", "all"));
+        ImmutableMap.of("cpa.lpi.generateLowerBound", "false",
+                        "cpa.lpi.generateFromAsserts", "false",
+                        "cpa.lpi.abstractionLocations", "all"));
   }
 
   @Test public void unrolling_true_assert() throws Exception {
@@ -165,7 +165,7 @@ public class PolicyIterationTest {
   @Test public void boolean_true_assert() throws Exception {
     // Use explicit value analysis to track boolean variables.
     check("boolean_true_assert.c",
-        ImmutableMap.of("cpa.stator.policy.generateOctagons", "true",
+        ImmutableMap.of("cpa.lpi.generateOctagons", "true",
             "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.functionpointer.FunctionPointerCPA, cpa.loopstack.LoopstackCPA, cpa.value.ValueAnalysisCPA, cpa.policyiteration.PolicyCPA",
             "precision.trackIntAddVariables", "false",
             "precision.trackVariablesBesidesEqAddBool", "false"));
@@ -217,7 +217,7 @@ public class PolicyIterationTest {
         .put("parser.usePreprocessor", "true")
         .put("cfa.findLiveVariables", "true")
 
-        .put("cpa.stator.policy.linearizePolicy", "true")
+        .put("cpa.lpi.linearizePolicy", "true")
 
         // Traversal options.
         .put("analysis.traversal.order", "dfs")

@@ -57,7 +57,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 
-@Options(prefix="cpa.stator.policy")
+@Options(prefix = "cpa.lpi", deprecatedPrefix = "cpa.stator.policy")
 public class TemplateManager {
   @Option(secure=true,
       description="Generate templates for the lower bounds of each variable")
