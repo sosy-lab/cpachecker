@@ -27,7 +27,6 @@ import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.TruthJUnit.assume;
 
-import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.reflect.Invokable;
@@ -101,12 +100,7 @@ public class PredicateCPATest {
       if (cpa instanceof AutoCloseable) {
         ((AutoCloseable)cpa).close();
       }
-      return from(cl.getLoadedClasses()).transform(new Function<Class<?>, String>() {
-            @Override
-            public String apply(Class<?> pInput) {
-              return pInput.getName();
-            }
-          });
+      return from(cl.getLoadedClasses()).transform(Class::getName);
     }
   }
 }
