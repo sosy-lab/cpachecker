@@ -447,8 +447,9 @@ class WebInterface:
 
         return self._create_and_add_run_future(run_id)
 
-    def submit(self, run, limits, cpu_model, result_files_pattern, meta_information=None, \
-               priority='IDLE', user_pwd=None, svn_branch=None, svn_revision=None):
+    def submit(self, run, limits, cpu_model, result_files_pattern=None, meta_information=None, \
+               priority='IDLE', user_pwd=None, svn_branch=None, svn_revision=None,
+               result_files_patterns=[]):
         """
         Submits a single run to the VerifierCloud.
         @note: flush() should be called after the submission of the last run.
@@ -464,11 +465,18 @@ class WebInterface:
         @param user_pwd: overrides the user name and password given in the constructor (optional)
         @param svn_branch: overrids the svn branch given in the constructor (optional)
         @param svn_revision: overrides the svn revision given in the constructor (optional)
+        @param result_files_patterns: list of result_files_pattern (optional)
         """
-        return self._submit(run, limits, cpu_model, result_files_pattern, meta_information,
+        if result_files_pattern:
+            if result_files_patterns:
+                raise ValueError("Cannot specify result_files_pattern and result_files_patterns "
+                                 "at the same time.")
+            result_files_patterns = [result_files_pattern]
+
+        return self._submit(run, limits, cpu_model, result_files_patterns, meta_information,
                             priority, user_pwd, svn_branch, svn_revision)
 
-    def _submit(self, run, limits, cpu_model, result_files_pattern, meta_information, 
+    def _submit(self, run, limits, cpu_model, result_files_patterns, meta_information,
                 priority, user_pwd, svn_branch, svn_revision, counter=0):
 
         params = []
@@ -496,8 +504,9 @@ class WebInterface:
         if cpu_model:
             params.append(('cpuModel', cpu_model))
 
-        if result_files_pattern:
-            params.append(('resultFilesPattern', result_files_pattern))
+        if result_files_patterns:
+            for pattern in result_files_patterns:
+                params.append(('resultFilesPattern', pattern))
         else:
             params.append(('resultFilesPattern', ''))
         
@@ -536,7 +545,7 @@ class WebInterface:
                                    expectedStatusCodes=[200, 204], user_pwd=user_pwd)
 
             # retry submission of run
-            return self._submit(run, limits, cpu_model, result_files_pattern, meta_information, 
+            return self._submit(run, limits, cpu_model, result_files_patterns, meta_information,
                                 priority, user_pwd, svn_branch, svn_revision, counter + 1)
 
         else:
@@ -847,11 +856,12 @@ def _handle_special_files(result_zip_file, files, output_path):
             result_zip_file.extract(file, output_path)
 
 
-def handle_result(zip_content, output_path, run_identifier, result_files_pattern='*',
+def handle_result(zip_content, output_path, run_identifier, result_files_pattern=None,
                   open_output_log=_open_output_log,
                   handle_run_info=_handle_run_info,
                   handle_host_info=_handle_host_info,
                   handle_special_files=_handle_special_files,
+                  result_files_patterns=['*'],
                   ):
     """
     Parses the given result ZIP archive: Extract meta information
@@ -859,6 +869,11 @@ def handle_result(zip_content, output_path, run_identifier, result_files_pattern
     The default handler functions print some relevant info and write it all to 'output_path'.
     @return: the return value of CPAchecker
     """
+    if result_files_pattern:
+        if result_files_patterns:
+            raise ValueError("Cannot specify result_files_pattern and result_files_patterns "
+                             "at the same time.")
+        result_files_patterns = [result_files_pattern]
 
     # unzip and read result
     return_value = None
@@ -867,7 +882,7 @@ def handle_result(zip_content, output_path, run_identifier, result_files_pattern
             with zipfile.ZipFile(io.BytesIO(zip_content)) as result_zip_file:
                 return_value = _handle_result(result_zip_file, output_path,
                     open_output_log, handle_run_info, handle_host_info, handle_special_files,
-                    result_files_pattern, run_identifier)
+                    result_files_patterns, run_identifier)
 
         except zipfile.BadZipfile:
             logging.warning('Server returned illegal zip file with results of run %s.', run_identifier)
@@ -883,7 +898,7 @@ def handle_result(zip_content, output_path, run_identifier, result_files_pattern
 
 def _handle_result(resultZipFile, output_path,
                    open_output_log, handle_run_info, handle_host_info, handle_special_files,
-                   result_files_pattern, run_identifier):
+                   result_files_patterns, run_identifier):
 
     files = set(resultZipFile.namelist())
 
@@ -914,11 +929,13 @@ def _handle_result(resultZipFile, output_path,
     handle_special_files(resultZipFile, files, output_path)
 
     # extract result files:
-    if result_files_pattern:
-        files = files - SPECIAL_RESULT_FILES
-        files = fnmatch.filter(files, result_files_pattern)
-        if files:
-            resultZipFile.extractall(output_path, files)
+    if result_files_patterns:
+        result_files = set()
+        for pattern in result_files_patterns:
+            result_files.update(fnmatch.filter(files, pattern))
+        result_files = result_files - SPECIAL_RESULT_FILES
+        if result_files:
+            resultZipFile.extractall(output_path, result_files)
 
     return return_value
 

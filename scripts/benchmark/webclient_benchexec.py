@@ -148,13 +148,18 @@ def _submitRunsParallel(runSet, benchmark):
         
     cpu_model = benchmark.requirements.cpu_model
     priority = benchmark.config.cloudPriority
-    result_files_pattern = benchmark.result_files_pattern
-    if result_files_pattern is None:
+    result_files_patterns = benchmark.result_files_patterns
+    if not result_files_patterns:
         logging.warning("No result files pattern is given and the result will not contain any result files.")
 
     for run in runSet.runs:
-        submisson_future = executor.submit(_webclient.submit, run, limits, cpu_model, 
-                                           result_files_pattern, meta_information, priority)
+        submisson_future = executor.submit(_webclient.submit,
+                                           run=run,
+                                           limits=limits,
+                                           cpu_model=cpu_model,
+                                           meta_information=meta_information,
+                                           priority=priority,
+                                           result_files_patterns=result_files_patterns)
         submission_futures[submisson_future] = run
 
     executor.shutdown(wait=False)
@@ -260,8 +265,12 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
             os.rmdir(output_path)
 
     handle_result(
-        zip_content, run.log_file + ".output", run.identifier, benchmark.result_files_pattern,
-        _open_output_log, _handle_run_info, _handle_host_info, _handle_stderr_file)
+        zip_content, run.log_file + ".output", run.identifier,
+        result_files_patterns=benchmark.result_files_patterns,
+        open_output_log=_open_output_log,
+        handle_run_info=_handle_run_info,
+        handle_host_info=_handle_host_info,
+        handle_special_files=_handle_stderr_file)
 
     if result_values:
         with _print_lock:

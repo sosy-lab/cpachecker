@@ -166,8 +166,10 @@ def getCloudInput(benchmark):
                 toTabList([absBaseDir, absOutputDir, absWorkingDir]),
                 toTabList(requirements)
             ]
-    if benchmark.result_files_pattern:
-        cloudInput.append(benchmark.result_files_pattern)
+    if benchmark.result_files_patterns:
+        if len(benchmark.result_files_patterns) > 1:
+            sys.exit("Multiple result-files patterns not supported in cloud mode.")
+        cloudInput.append(benchmark.result_files_patterns[0])
 
     cloudInput.extend([
                 toTabList(numOfRunDefLinesAndPriorityStr),
