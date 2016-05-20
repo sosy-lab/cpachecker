@@ -217,7 +217,7 @@ public class AppliedCustomInstructionParserTest {
   }
 
   @Test
-  public void testParse() throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException, SecurityException, ParserException {
+  public void testParse() throws Exception {
     String testProgram = ""
         + "void main() {"
           + "int x;"
@@ -229,7 +229,7 @@ public class AppliedCustomInstructionParserTest {
           + "y = y + x;"
         + "}";
 
-    CFA cfa = TestDataTools.makeCFA(testProgram);
+    cfa = TestDataTools.makeCFA(testProgram);
     GlobalInfo.getInstance().storeCFA(cfa);
     aciParser =
         new AppliedCustomInstructionParser(
@@ -256,6 +256,19 @@ public class AppliedCustomInstructionParserTest {
       file.flush();
     }
 
+    Path signatureFile = MoreFiles.createTempFile("ci_spec", ".txt", null);
+    try {
+      testParse(p, signatureFile);
+    } finally {
+      try {
+        java.nio.file.Files.deleteIfExists(p);
+        java.nio.file.Files.deleteIfExists(signatureFile);
+      } catch (IOException e) {
+      }
+    }
+  }
+
+  private void testParse(Path p, Path signatureFile) throws Exception {
     CFANode expectedStart = null;
     for(CLabelNode n: getLabelNodes(cfa)){
       if(n.getLabel().startsWith("start_ci") && n.getFunctionName().equals("main")) {
@@ -264,8 +277,7 @@ public class AppliedCustomInstructionParserTest {
     }
     int startNodeNr = expectedStart.getNodeNumber();
 
-    CustomInstructionApplications cia =
-        aciParser.parse(p, MoreFiles.createTempFile("ci_spec", "txt", null));
+    CustomInstructionApplications cia = aciParser.parse(p, signatureFile);
     Map<CFANode, AppliedCustomInstruction> cis = cia.getMapping();
     Truth.assertThat(cis.size()).isEqualTo(4);
     List<CFANode> aciNodes = new ArrayList<>(2);
