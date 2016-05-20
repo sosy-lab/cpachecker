@@ -2,7 +2,7 @@ extern int __VERIFIER_nondet_int();
 extern int input();
 
 int foobar(int x, int y, int z) {
-	int a = __VERIFIER_nondet_int();
+	int a = 0;
 	
 	if (x < y) {
 		G1: a = x;

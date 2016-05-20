@@ -1,5 +1,5 @@
 extern int __VERIFIER_nondet_int();
-extern int input();
+extern int __VERIFIER_nondet_bool();
 
 int __SELECTED_FEATURE_FOOBAR_SPL;
 int __SELECTED_FEATURE_LE;
@@ -43,24 +43,29 @@ int foobar(int x, int y, int z) {
 	return z;
 }
 
+int avc(int a) {
+	return 0;
+}
 
 int main() {
-	int x = input();
-	int y = input();
-	int z = input();
+	int o1;
+	int i1 = __VERIFIER_nondet_int();
+	int i2 = __VERIFIER_nondet_int();
+	int i3 = __VERIFIER_nondet_int();
 
-	__SELECTED_FEATURE_FOOBAR_SPL = __VERIFIER_nondet_int();
-	__SELECTED_FEATURE_GR = __VERIFIER_nondet_int();
-	__SELECTED_FEATURE_LE = __VERIFIER_nondet_int();
-	__SELECTED_FEATURE_MINUS = __VERIFIER_nondet_int();
-	__SELECTED_FEATURE_NOTNEGATIVE = __VERIFIER_nondet_int();
-	__SELECTED_FEATURE_PLUS = __VERIFIER_nondet_int();
-    __SELECTED_FEATURE_COMP = __VERIFIER_nondet_int();
-    __SELECTED_FEATURE_OP = __VERIFIER_nondet_int();
+	__SELECTED_FEATURE_FOOBAR_SPL = __VERIFIER_nondet_bool();
+	__SELECTED_FEATURE_GR = __VERIFIER_nondet_bool();
+	__SELECTED_FEATURE_LE = __VERIFIER_nondet_bool();
+	__SELECTED_FEATURE_MINUS = __VERIFIER_nondet_bool();
+	__SELECTED_FEATURE_NOTNEGATIVE = __VERIFIER_nondet_bool();
+	__SELECTED_FEATURE_PLUS = __VERIFIER_nondet_bool();
+    __SELECTED_FEATURE_COMP = __VERIFIER_nondet_bool();
+    __SELECTED_FEATURE_OP = __VERIFIER_nondet_bool();
 
 	if (validProduct()) {
-		foobar(x, y, z);
+		o1 = foobar(i1, i2, i3);
+		o1 = o1 + o1;
 	}
-
+	
 	return 0;
 }
