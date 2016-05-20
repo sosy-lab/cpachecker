@@ -39,6 +39,10 @@ import javax.annotation.Nullable;
 
 public class PresenceConditions {
 
+  public static PresenceConditionManager manager() {
+    return GlobalInfo.getInstance().getPresenceConditionManager();
+  }
+
   public static PresenceCondition extractPresenceCondition(AbstractState pAbstractState) {
     AbstractStateWithPresenceCondition e = AbstractStates.extractStateByType(pAbstractState, AbstractStateWithPresenceCondition.class);
     if (e != null) {
@@ -48,17 +52,15 @@ public class PresenceConditions {
       }
     }
 
-    return GlobalInfo.getInstance().getPresenceConditionManager().makeTrue();
+    return manager().makeTrue();
   }
 
   public static PresenceCondition composeRemainingPresenceConditions(Set<Goal> pTestGoalsToBeProcessed,
       TestSuite testsuite) {
 
-    PresenceConditionManager pcManager = GlobalInfo.getInstance().getPresenceConditionManager();
-
-    PresenceCondition presenceCondition = pcManager.makeFalse();
+    PresenceCondition presenceCondition = manager().makeFalse();
     for (Goal goal : pTestGoalsToBeProcessed) {
-      presenceCondition = pcManager.makeOr(presenceCondition, testsuite.getRemainingPresenceCondition(goal));
+      presenceCondition = manager().makeOr(presenceCondition, testsuite.getRemainingPresenceCondition(goal));
     }
 
     return presenceCondition;
@@ -66,28 +68,28 @@ public class PresenceConditions {
 
   public static PresenceCondition orTrue(Optional<PresenceCondition> pPc) {
     if (pPc == null || !pPc.isPresent()) {
-      return GlobalInfo.getInstance().getPresenceConditionManager().makeTrue();
+      return manager().makeTrue();
     }
     return pPc.get();
   }
 
   public static PresenceCondition orTrue(@Nullable PresenceCondition pPc) {
     if (pPc == null) {
-      return GlobalInfo.getInstance().getPresenceConditionManager().makeTrue();
+      return manager().makeTrue();
     }
     return pPc;
   }
 
   public static PresenceCondition orFalse(Optional<PresenceCondition> pPc) {
     if (pPc == null || !pPc.isPresent()) {
-      return GlobalInfo.getInstance().getPresenceConditionManager().makeFalse();
+      return manager().makeFalse();
     }
     return pPc.get();
   }
 
   public static PresenceCondition orFalse(@Nullable PresenceCondition pPc) {
     if (pPc == null) {
-      return GlobalInfo.getInstance().getPresenceConditionManager().makeFalse();
+      return manager().makeFalse();
     }
     return pPc;
   }

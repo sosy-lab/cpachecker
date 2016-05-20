@@ -44,7 +44,6 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonPrecision;
 import org.sosy_lab.cpachecker.cpa.automaton.SafetyProperty;
 import org.sosy_lab.cpachecker.cpa.composite.CompositePrecision;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
-import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceConditionManager;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -183,7 +182,7 @@ public class Precisions {
       @Override
       public Precision apply(Precision pPrecision) {
         if (pPrecision instanceof AutomatonPrecision) {
-          return AutomatonPrecision.initBlacklist(blacklist, null);
+          return AutomatonPrecision.initBlacklist(blacklist);
         }
         return null;
       }
@@ -191,9 +190,8 @@ public class Precisions {
     return piPrime;
   }
 
-  public static void disablePropertiesForWaitlist(ARGCPA pCpa, final ReachedSet pReachedSet,
-      final Map<Property, Optional<PresenceCondition>> pToBlacklist,
-      final PresenceConditionManager pRegionManager) {
+  public static void disablePropertiesForWaitlist(final ReachedSet pReachedSet,
+      final Map<Property, Optional<PresenceCondition>> pToBlacklist) {
 
     Map<SafetyProperty, Optional<PresenceCondition>> toBlackList = Maps.newHashMap();
     for (Entry<Property, Optional<PresenceCondition>> e: pToBlacklist.entrySet()) {
@@ -205,7 +203,7 @@ public class Precisions {
     for (AbstractState e: pReachedSet.getWaitlist()) {
 
       final Precision pi = pReachedSet.getPrecision(e);
-      final Precision piPrime = blacklistProperties(pi, toBlackList, pRegionManager);
+      final Precision piPrime = blacklistProperties(pi, toBlackList);
 
       if (piPrime != null) {
         pReachedSet.updatePrecision(e, piPrime);
@@ -215,14 +213,14 @@ public class Precisions {
   }
 
   public static Precision blacklistProperties(final Precision pi,
-      final Map<SafetyProperty, Optional<PresenceCondition>> toBlacklist,
-      final PresenceConditionManager pRegionManager) {
+      final Map<SafetyProperty, Optional<PresenceCondition>> toBlacklist) {
+
     final Precision piPrime = Precisions.replaceByFunction(pi, new Function<Precision, Precision>() {
       @Override
       public Precision apply(Precision pPrecision) {
         if (pPrecision instanceof AutomatonPrecision) {
           AutomatonPrecision pi = (AutomatonPrecision) pPrecision;
-          return pi.cloneAndAddBlacklisted(toBlacklist, pRegionManager);
+          return pi.cloneAndAddBlacklisted(toBlacklist);
         }
         return null;
       }

@@ -37,6 +37,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.PropertyStats;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.PropertyBudgeting;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.PresenceConditions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -178,7 +179,7 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
       // A property might have already been disabled!
       //    Handling of blacklisted (disabled) states:
       final Set<SafetyProperty> violated = AbstractStates.extractViolatedProperties(state, SafetyProperty.class);
-      final Optional<PresenceCondition> targetRegion = Optional.absent();
+      final PresenceCondition targetRegion = PresenceConditions.extractPresenceCondition(pFullState);
 
       if (areBlacklisted(pi, violated, targetRegion)) { // FIXME: Make it variability aware!
         return Optional.of(PrecisionAdjustmentResult.create(
@@ -199,7 +200,7 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
     }
 
     if (exhaustedProperties.size() > 0) {
-      final AutomatonPrecision piPrime = pi.cloneAndAddBlacklisted(exhaustedProperties, null);
+      final AutomatonPrecision piPrime = pi.cloneAndAddBlacklisted(exhaustedProperties);
       signalDisablingProperties(exhaustedProperties.keySet()); // FIXME: Make it variability aware!
 
       return Optional.of(PrecisionAdjustmentResult.create(
@@ -217,7 +218,7 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
   }
 
   private boolean areBlacklisted(final AutomatonPrecision pPrecision,
-      final Set<SafetyProperty> pProperties, final Optional<PresenceCondition> pForRegion)
+      final Set<SafetyProperty> pProperties, final PresenceCondition pForRegion)
           throws InterruptedException, CPAException {
 
     boolean result = pPrecision.areBlackListed(pProperties, pForRegion);

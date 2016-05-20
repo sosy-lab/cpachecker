@@ -864,8 +864,7 @@ public class TigerAlgorithm
               "Each critical state must be annotated with a presence condition!");
 
           if (allCoveredGoalsPerTestCase
-              || pcManager.checkConjunction(testsuite.getRemainingPresenceCondition(goal),
-                  statePresenceCondition)) {
+              || pcManager.checkConjunction(testsuite.getRemainingPresenceCondition(goal), statePresenceCondition)) {
 
             // configurations in testGoalPCtoCover and testcase.pc have a non-empty intersection
 
@@ -1138,7 +1137,7 @@ public class TigerAlgorithm
             }
 
             PropertyStats.INSTANCE.singnalPropertyFinishedFor(toBlacklist, pcManager);
-            Precisions.disablePropertiesForWaitlist(pARTCPA, reachedSet, toBlacklist, pcManager);
+            Precisions.disablePropertiesForWaitlist(reachedSet, toBlacklist);
           }
         }
 

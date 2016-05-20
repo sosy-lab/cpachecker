@@ -30,6 +30,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Table;
 
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.PresenceConditions;
 import org.sosy_lab.cpachecker.core.defaults.WrappingPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -76,11 +77,12 @@ public class AdjustAutomatonPrecisionAdjustment extends WrappingPrecisionAdjustm
 
       } else {
         relevantTransitions = Lists.newArrayListWithExpectedSize(state.getLeavingTransitions().size());
+        final PresenceCondition pc = PresenceConditions.extractPresenceCondition(pFullState);
 
         for (AutomatonTransition trans: state.getLeavingTransitions()) {
 
           ImmutableSet<? extends SafetyProperty> transProps = a.getIsRelevantForProperties(trans);
-          final boolean transRelevantForActiveProps = !(pi.areBlackListed(transProps, Optional.<PresenceCondition>absent()));
+          final boolean transRelevantForActiveProps = !(pi.areBlackListed(transProps, pc));
 
           if (transRelevantForActiveProps) {
             relevantTransitions.add(trans);

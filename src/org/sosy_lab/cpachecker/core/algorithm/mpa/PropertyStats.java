@@ -315,8 +315,7 @@ public enum PropertyStats implements Statistics {
     }
   }
 
-  public boolean checkAllBlacklisted(Set<SafetyProperty> pProperties,
-      Optional<PresenceCondition> pForRegion)
+  public boolean checkAllBlacklisted(Set<SafetyProperty> pProperties, PresenceCondition pForRegion)
           throws InterruptedException {
 
     final PresenceConditionManager regionMgr = GlobalInfo.getInstance().getPresenceConditionManager();

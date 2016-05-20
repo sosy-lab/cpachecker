@@ -96,7 +96,7 @@ public class RegionPresenceConditionManager implements PresenceConditionManager 
     RegionPresenceCondition cond1 = (RegionPresenceCondition) pCond1;
     RegionPresenceCondition cond2 = (RegionPresenceCondition) pCond2;
 
-    return mgr.makeAnd(cond1.getRegion(), cond2.getRegion()).isTrue();
+    return !mgr.makeAnd(cond1.getRegion(), cond2.getRegion()).isFalse();
   }
 
   @Override
