@@ -48,7 +48,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 
-class FormulaAndTreeSupplier implements InvariantSupplier, ExpressionTreeSupplier {
+public class FormulaAndTreeSupplier implements InvariantSupplier, ExpressionTreeSupplier {
 
   private final InvariantSupplier invariantSupplier;
 
