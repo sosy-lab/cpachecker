@@ -87,15 +87,20 @@ public class FormulaLinearizationManager {
   }
 
   private BooleanFormula annotateDisjunction(List<Formula> args) {
+    assert args.size() != 0;
     if (args.size() == 1) {
       return (BooleanFormula) args.get(0);
     } else {
       BooleanFormula choiceVar = bfmgr.makeVariable(getFreshVarName());
+      int pivot = args.size() / 2;
       return bfmgr.or(
-          bfmgr.and(choiceVar, (BooleanFormula) args.get(0)),
+          bfmgr.and(
+              choiceVar,
+              annotateDisjunction(args.subList(0, pivot))
+          ),
           bfmgr.and(
               bfmgr.not(choiceVar),
-              annotateDisjunction(args.subList(1, args.size()))
+              annotateDisjunction(args.subList(pivot, args.size()))
           )
       );
     }
