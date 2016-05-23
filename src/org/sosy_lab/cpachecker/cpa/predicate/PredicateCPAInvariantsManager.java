@@ -611,10 +611,8 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     try {
       stats.pfKindTime.start();
 
-      BooleanFormula cnfFormula = bfmgr.and(semiCNFConverter.toLemmas
-          (pPathFormula
-          .getFormula
-          (), fmgr));
+      BooleanFormula cnfFormula =
+          bfmgr.and(semiCNFConverter.toLemmas(pPathFormula.getFormula(), fmgr));
       Collection<BooleanFormula> conjuncts =
           bfmgr.visit(
               new DefaultBooleanFormulaVisitor<List<BooleanFormula>>() {
