@@ -99,31 +99,32 @@ def execute_benchmark(benchmark, output_handler):
     STOPPED_BY_INTERRUPT = False
     try:
         for runSet in benchmark.run_sets:
+            if STOPPED_BY_INTERRUPT:
+                break
+
             if not runSet.should_be_executed():
                 output_handler.output_for_skipping_run_set(runSet)
                 continue
 
             output_handler.output_before_run_set(runSet)
-            result_futures = _submitRunsParallel(runSet, benchmark, output_handler)
+            try:
+                result_futures = _submitRunsParallel(runSet, benchmark, output_handler)
 
-            _handle_results(result_futures, output_handler, benchmark, runSet)
+                _handle_results(result_futures, output_handler, benchmark, runSet)
+            except KeyboardInterrupt:
+                STOPPED_BY_INTERRUPT = True
+                output_handler.set_error('interrupted', runSet)
             output_handler.output_after_run_set(runSet)
 
-    except KeyboardInterrupt as e:
-        STOPPED_BY_INTERRUPT = True
-        raise e
-    except:
-        stop()
-        raise
     finally:
+        stop()
         output_handler.output_after_benchmark(STOPPED_BY_INTERRUPT)
-
-    stop()
 
 def stop():
     global _webclient
-    _webclient.shutdown()
-    _webclient = None
+    if _webclient:
+        _webclient.shutdown()
+        _webclient = None
 
 def _submitRunsParallel(runSet, benchmark, output_handler):
     global _webclient
