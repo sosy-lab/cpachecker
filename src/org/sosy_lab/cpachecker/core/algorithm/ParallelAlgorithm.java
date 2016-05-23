@@ -174,6 +174,7 @@ public class ParallelAlgorithm implements Algorithm {
     final Algorithm algorithm;
     final ReachedSet reached;
     final LogManager singleLogger;
+    final ConfigurableProgramAnalysis cpa;
     String invariantType = "";
 
     try {
@@ -203,8 +204,7 @@ public class ParallelAlgorithm implements Algorithm {
       CoreComponentsFactory coreComponents =
           new CoreComponentsFactory(
               singleConfig, singleLogger, singleShutdownManager.getNotifier());
-      ConfigurableProgramAnalysis cpa =
-          coreComponents.createCPA(cfa, SpecAutomatonCompositionType.TARGET_SPEC);
+      cpa = coreComponents.createCPA(cfa, SpecAutomatonCompositionType.TARGET_SPEC);
 
       // add invariants supplier to all cpas where it is necessary
       for (ConfigurableProgramAnalysis innerCPA : CPAs.asIterable(cpa)) {
@@ -241,6 +241,23 @@ public class ParallelAlgorithm implements Algorithm {
       invariantsAggregator.invariantSuppliers.add((InvariantSupplier) algorithmToUse);
     } else {
       algorithmToUse = algorithm;
+    }
+
+    if (invariantType.equals("cpa-inv-sup")) {
+      List<InvariantSupplier> invSups = new ArrayList<>();
+      // add invariants supplier to all cpas where it is necessary
+      for (ConfigurableProgramAnalysis innerCPA : CPAs.asIterable(cpa)) {
+        if (innerCPA instanceof InvariantSupplier) {
+          invSups.add((InvariantSupplier) innerCPA);
+        }
+      }
+
+      if (invSups.isEmpty()) {
+        logger.log(
+            Level.WARNING,
+            "Generation of invariants via a CPA specified but no CPA found which provides invariants.");
+      }
+      invariantsAggregator.invariantSuppliers.addAll(invSups);
     }
 
     return () -> {
