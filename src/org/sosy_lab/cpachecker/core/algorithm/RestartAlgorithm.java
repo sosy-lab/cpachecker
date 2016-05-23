@@ -156,7 +156,9 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(secure=true, required=true, description = "List of files with configurations to use. "
       + "A filename can be suffixed with :if-interrupted, :if-failed, and :if-terminated "
-      + "which means that this configuration will only be used if the previous configuration ended with a matching condition.")
+      + "which means that this configuration will only be used if the previous configuration "
+      + "ended with a matching condition. What also can be added is :use-invariants then the "
+      + "reached set of the preceding analysis is taken and invariants arge generated out of it.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> configFiles;
 
@@ -175,13 +177,6 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
             + " directly after the components computation is finished"
   )
   private boolean printIntermediateStatistics = true;
-
-  @Option(
-    secure = true,
-    description =
-        "Provide invariants generated out of the reached set of the previous analysis to the next analysis (if possible)"
-  )
-  private boolean provideInvariantsForNextAlgorithm = false;
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -253,6 +248,8 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     PeekingIterator<Path> configFilesIterator = Iterators.peekingIterator(configFiles.iterator());
 
     AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_PRECISE;
+    boolean provideInvariantsForNextAlgorithm = false;
+
     while (configFilesIterator.hasNext()) {
       stats.totalTime.start();
       @Nullable ConfigurableProgramAnalysis currentCpa = null;
@@ -291,6 +288,9 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
               .setInvariantSupplier(
                   new FormulaAndTreeSupplier(
                       new LazyLocationMapping(reached.getDelegate()), logger, cfa));
+
+          // reset boolean flag
+          provideInvariantsForNextAlgorithm = false;
         }
 
         if (reached instanceof HistoryForwardingReachedSet) {
@@ -384,6 +384,10 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
               break;
             case "if-concurrent":
               foundConfig = concurrencyFound;
+              break;
+            case "use-invariants":
+              provideInvariantsForNextAlgorithm = true;
+              foundConfig = true;
               break;
             default:
               logger.logf(Level.WARNING, "Ignoring invalid restart condition '%s'.", condition);
