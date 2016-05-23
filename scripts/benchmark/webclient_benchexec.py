@@ -104,9 +104,9 @@ def execute_benchmark(benchmark, output_handler):
                 continue
 
             output_handler.output_before_run_set(runSet)
-            result_futures = _submitRunsParallel(runSet, benchmark)
+            result_futures = _submitRunsParallel(runSet, benchmark, output_handler)
 
-            _handle_results(result_futures, output_handler, benchmark)
+            _handle_results(result_futures, output_handler, benchmark, runSet)
             output_handler.output_after_run_set(runSet)
 
     except KeyboardInterrupt as e:
@@ -125,7 +125,7 @@ def stop():
     _webclient.shutdown()
     _webclient = None
 
-def _submitRunsParallel(runSet, benchmark):
+def _submitRunsParallel(runSet, benchmark, output_handler):
     global _webclient
 
     logging.info('Submitting runs...')
@@ -178,6 +178,7 @@ def _submitRunsParallel(runSet, benchmark):
 
 
             except (HTTPError, WebClientError) as e:
+                output_handler.set_error("VerifierCloud problem", runSet)
                 logging.warning('Could not submit run %s: %s.', run.identifier, e)
                 return result_futures # stop submitting runs 
             
@@ -196,7 +197,7 @@ def _log_future_exception(result):
     if result.exception() is not None:
         logging.warning('Error during result processing.', exc_info=True)
 
-def _handle_results(result_futures, output_handler, benchmark):
+def _handle_results(result_futures, output_handler, benchmark, run_set):
     executor = ThreadPoolExecutor(max_workers=_webclient.thread_count)
 
     for result_future in as_completed(result_futures.keys()):
@@ -207,6 +208,7 @@ def _handle_results(result_futures, output_handler, benchmark):
             f.add_done_callback(_log_future_exception)
         
         except WebClientError as e:
+            output_handler.set_error("VerifierCloud problem", run_set)
             logging.warning("Execution of %s failed: %s", run.identifier, e)
             
     executor.shutdown(wait=True)
