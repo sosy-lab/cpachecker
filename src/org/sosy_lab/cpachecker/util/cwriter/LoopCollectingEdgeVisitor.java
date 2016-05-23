@@ -77,6 +77,17 @@ public class LoopCollectingEdgeVisitor implements EdgeVisitor {
     loopStructure = pLoopStructure;
   }
 
+  /**
+   * Resets the state of this visitor, such that it works as if it was created newly.
+   */
+  public void reset() {
+    cfaPath.clear();
+    loopStack.clear();
+    relevantLoops.clear();
+    finishedLoops.clear();
+    lastLoopFound = false;
+  }
+
   @Override
   public void visit(ARGState childElement, CFAEdge edge, Stack<FunctionBody> functionStack) {
     cfaPath.add(Pair.of(edge, childElement));

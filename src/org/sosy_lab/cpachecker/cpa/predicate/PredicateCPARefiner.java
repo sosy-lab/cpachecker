@@ -124,13 +124,10 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   private final PathChecker pathChecker;
 
   private final PredicateCPAInvariantsManager invariantsManager;
-  private final Optional<LoopStructure> loopStructure;
+  private final LoopCollectingEdgeVisitor loopFinder;
 
   private boolean wereInvariantsUsedInLastRefinement = false;
   private boolean wereInvariantsusedInCurrentRefinement = false;
-
-  // TODO Configuration should not be used at runtime, only during constructor
-  private final Configuration config;
 
   private final PrefixProvider prefixProvider;
   private final PrefixSelector prefixSelector;
@@ -158,9 +155,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       throws InvalidConfigurationException {
     pConfig.inject(this, PredicateCPARefiner.class);
 
-    config = pConfig;
     logger = pLogger;
-    loopStructure = pLoopStructure;
     blockFormulaStrategy = pBlockFormulaStrategy;
     solver = pSolver;
     fmgr = solver.getFormulaManager();
@@ -172,6 +167,17 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     prefixProvider = pPrefixProvider;
     prefixSelector = pPrefixSelector;
     invariantsManager = pInvariantsManager;
+
+    if (pLoopStructure.isPresent()) {
+      loopFinder = new LoopCollectingEdgeVisitor(pLoopStructure.get(), pConfig);
+    } else {
+      loopFinder = null;
+      if (invariantsManager.shouldInvariantsBeComputed() || invariantsManager.addToPrecision()) {
+        logger.log(
+            Level.WARNING,
+            "Invariants should be used during refinement, but loop information is not present.");
+      }
+    }
 
     logger.log(Level.INFO, "Using refinement for predicate analysis with " + strategy.getClass().getSimpleName() + " strategy.");
   }
@@ -392,18 +398,12 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
    * ARGPath.
    */
   private Set<Loop> getRelevantLoops(final ARGPath allStatesTrace) {
-    LoopCollectingEdgeVisitor loopFinder = null;
-
-    try {
-      // TODO what if loop structure does not exist?
-      loopFinder = new LoopCollectingEdgeVisitor(loopStructure.get(), config);
-    } catch (InvalidConfigurationException e1) {
-      // this will never happen, but for the case it does, we just return
-      // the empty set, therefore the refinement will be done without invariant
-      // generation definitely and only with interpolation / static refinement
-      // TODO of course this can happen and it should not be swallowed!
+    // in the case we have no loop informaion we cannot find loops
+    if (loopFinder == null) {
       return Collections.emptySet();
     }
+
+    loopFinder.reset();
 
     PathIterator pathIt = allStatesTrace.fullPathIterator();
     while (pathIt.hasNext()) {
