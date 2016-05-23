@@ -68,6 +68,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -78,7 +79,7 @@ import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 @Options(prefix = "parallelAlgorithm")
-public class ParallelAlgorithm implements Algorithm {
+public class ParallelAlgorithm implements Algorithm, InvariantsConsumer {
 
   @Option(
     secure = true,
@@ -120,6 +121,11 @@ public class ParallelAlgorithm implements Algorithm {
     shutdownManager = ShutdownManager.createWithParent(checkNotNull(pShutdownNotifier));
     cfa = checkNotNull(pCfa);
     filename = checkNotNull(pFilename);
+  }
+
+  @Override
+  public void setInvariantSupplier(InvariantSupplier pInvSup) {
+    invariantsAggregator.invariantSuppliers.add(pInvSup);
   }
 
   @Override
@@ -333,7 +339,7 @@ public class ParallelAlgorithm implements Algorithm {
 
   private static class InvariantsAggregator implements InvariantSupplier {
 
-    private List<InvariantSupplier> invariantSuppliers = new ArrayList<>();
+    private Set<InvariantSupplier> invariantSuppliers = new HashSet<>();
 
     @Override
     public Set<BooleanFormula> getInvariantsFor(
