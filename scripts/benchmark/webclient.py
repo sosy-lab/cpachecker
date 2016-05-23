@@ -169,8 +169,16 @@ try:
             self._state_receive_executor = ThreadPoolExecutor(max_workers=1)
 
         def _log_future_exception_and_fallback(self, result):
-            if result.exception() is not None:
-                logging.warning('Error during result processing.', exc_info=True)
+            e = result.exception()
+            if e is not None:
+                if (self._shutdown and
+                        isinstance(e, AttributeError) and
+                        str(e) == "'NoneType' object has no attribute 'read'"):
+                    # This is harmless, it occurs because SSEClient reads on closed connection.
+                    logging.debug('Error during result processing:', exc_info=True)
+                else:
+                    logging.warning('Error during result processing:', exc_info=True)
+
                 if not self._shutdown:
                     self._fall_back()
 
