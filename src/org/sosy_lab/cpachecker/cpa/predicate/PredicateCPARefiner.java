@@ -25,10 +25,12 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getAllStatesOnPathsTo;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -71,6 +73,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.solver.api.BooleanFormula;
 
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -116,14 +119,6 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
                                  + "as predicates, and not the whole interpolant")
   private boolean atomicInterpolants = true;
 
-  @Option(
-      secure = true,
-      description = "If the invariant generator can prove that a program is safe"
-          + " regarding the given specification we can directly stop the analysis."
-          + " This is done by clearing the waitlist and removing the last found"
-          + " (infeasible) error state from the reached set.")
-  private boolean shortcutForSafeProgram = false;
-
   // statistics
   private final StatInt totalPathLength = new StatInt(StatKind.AVG, "Avg. length of target path (in blocks)"); // measured in blocks
   private final StatTimer totalRefinement = new StatTimer("Time for refinement");
@@ -140,7 +135,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
 
   private final PathChecker pathChecker;
 
-  private final InvariantsManager invariantsManager;
+  private final PredicateCPAInvariantsManager invariantsManager;
   private final Optional<LoopStructure> loopStructure;
   private final Map<Loop, Integer> loopOccurrences = new HashMap<>();
   private boolean wereInvariantsUsedInLastRefinement = false;
@@ -170,7 +165,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       final PathChecker pPathChecker,
       final PrefixProvider pPrefixProvider,
       final PrefixSelector pPrefixSelector,
-      final InvariantsManager pInvariantsManager,
+      final PredicateCPAInvariantsManager pInvariantsManager,
       final RefinementStrategy pStrategy)
       throws InvalidConfigurationException {
     pConfig.inject(this, PredicateCPARefiner.class);
@@ -229,18 +224,6 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   @Override
   public CounterexampleInfo performRefinementForPath(final ARGReachedSet pReached, final ARGPath allStatesTrace) throws CPAException, InterruptedException {
     totalRefinement.start();
-
-    // shortcut, if we know that the invariant generator can prove that the
-    // program is safe we do not need to continue the analysis as we cannot
-    // directly stop the analysis from here, we need to remove the infeasible
-    // error state from the reached set, and clear the waitlist
-    if (shortcutForSafeProgram && invariantsManager.isProgramSafe()) {
-      invariantsManager.cancelAsyncInvariantGeneration();
-      pReached.removeSubtree(allStatesTrace.getLastState());
-      pReached.clearWaitlist();
-      totalRefinement.stop();
-      return CounterexampleInfo.spurious();
-    }
 
     try {
       final List<CFANode> errorPath =
@@ -311,7 +294,6 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
           return pathChecker.handleFeasibleCounterexample(allStatesTrace, counterexample, branchingOccurred);
         } finally {
           errorPathProcessing.stop();
-          invariantsManager.cancelAsyncInvariantGeneration();
         }
       }
 
@@ -360,7 +342,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
             formulas,
             Lists.<AbstractState>newArrayList(abstractionStatesTrace),
             elementsOnPath,
-            !invariantsManager.shouldInvariantsBeUsedForRefinement());
+            !invariantsManager.addToPrecision());
 
     // if error is spurious refine
     if (counterexample.isSpurious()) {
@@ -370,8 +352,23 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
           allStatesTrace, abstractionStatesTrace, loopsInPath, pfmgr, solver);
 
       // add invariant precision increment if necessary
-      if (invariantsManager.shouldInvariantsBeUsedForRefinement()) {
-        List<BooleanFormula> precisionIncrement = invariantsManager.getInvariantsForRefinement();
+      if (invariantsManager.addToPrecision()) {
+        List<BooleanFormula> precisionIncrement = new ArrayList<>();
+        boolean invIsTriviallyTrue = true;
+
+        // we do not need the last state from the trace, so we exclude it here
+        for (ARGState state :
+            from(abstractionStatesTrace).limit(abstractionStatesTrace.size() - 1)) {
+          Set<BooleanFormula> invs =
+              invariantsManager.getInvariantsFor(extractLocation(state), fmgr, pfmgr, null);
+          if (invIsTriviallyTrue
+              && !(invs.size() == 1
+                  && fmgr.getBooleanFormulaManager().isTrue(Iterables.getOnlyElement(invs)))) {
+            invIsTriviallyTrue = false;
+          }
+          precisionIncrement.add(fmgr.getBooleanFormulaManager().and(invs));
+        }
+        assert precisionIncrement.size() == abstractionStatesTrace.size();
 
         if (precisionIncrement.isEmpty()) {
           // fall-back to interpolation

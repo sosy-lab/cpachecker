@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.ForwardingInvariantSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
@@ -43,6 +44,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.InvariantsConsumer;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -74,8 +76,10 @@ import java.util.logging.Level;
 /**
  * CPA that defines symbolic predicate abstraction.
  */
-@Options(prefix="cpa.predicate")
-public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProvider, ProofChecker, AutoCloseable {
+@Options(prefix = "cpa.predicate")
+public class PredicateCPA
+    implements ConfigurableProgramAnalysis, StatisticsProvider, ProofChecker, AutoCloseable,
+        InvariantsConsumer {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PredicateCPA.class).withOptions(BlockOperator.class);
@@ -99,11 +103,9 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
       description="which stop operator to use for predicate cpa (usually SEP should be used in analysis)")
   private String stopType = "SEP";
 
-  @Option(secure=true, description="Generate invariants and strengthen the formulas during abstraction with them.")
-  private boolean useInvariantsForAbstraction = false;
-
   @Option(secure=true, description="Direction of the analysis?")
   private AnalysisDirection direction = AnalysisDirection.FORWARD;
+
 
   protected final Configuration config;
   protected final LogManager logger;
@@ -124,8 +126,11 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final CFA cfa;
   private final AbstractionManager abstractionManager;
   private final PrefixProvider prefixProvider;
-  private final InvariantsManager invariantsManager;
+  private final PredicateCPAInvariantsManager invariantsManager;
   private final BlockOperator blk;
+
+  private final ForwardingInvariantSupplier globalInvariantsSupplier =
+      new ForwardingInvariantSupplier();
 
   protected PredicateCPA(
       Configuration config,
@@ -173,7 +178,9 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     abstractionManager = new AbstractionManager(regionManager, config, logger, solver);
 
     prefixProvider = new PredicateBasedPrefixProvider(config, logger, solver, pathFormulaManager);
-    invariantsManager = new InvariantsManager(config, logger, pShutdownNotifier, pCfa);
+    invariantsManager =
+        new PredicateCPAInvariantsManager(
+            config, logger, pShutdownNotifier, pCfa, globalInvariantsSupplier);
 
     predicateManager =
         new PredicateAbstractionManager(
@@ -183,9 +190,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
             config,
             logger,
             pShutdownNotifier,
-            invariantsManager.shouldInvariantsBeUsedForAbstraction()
-                ? invariantsManager.asInvariantsSupplier()
-                : null);
+            invariantsManager.appendToAbstractionFormula() ? invariantsManager : null);
 
     transfer =
         new PredicateTransferRelation(
@@ -218,8 +223,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
             pfMgr,
             blk,
             predicateManager,
-            useInvariantsForAbstraction
-                ? invariantsManager.asAsyncInvariantsSupplier()
+            invariantsManager.appendToPathFormula()
+                ? invariantsManager
                 : InvariantSupplier.TrivialInvariantSupplier.INSTANCE,
             predicateProvider);
 
@@ -322,7 +327,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   @Override
   public void close() {
     solver.close();
-    invariantsManager.cancelAsyncInvariantGeneration();
   }
 
   @Override
@@ -364,11 +368,16 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return abstractionManager;
   }
 
-  public InvariantsManager getInvariantsManager() {
+  public PredicateCPAInvariantsManager getInvariantsManager() {
     return invariantsManager;
   }
 
   public void changeExplicitAbstractionNodes(final ImmutableSet<CFANode> explicitlyAbstractAt) {
     blk.setExplicitAbstractionNodes(explicitlyAbstractAt);
+  }
+
+  @Override
+  public void setInvariantSupplier(InvariantSupplier pInvSup) {
+    globalInvariantsSupplier.setInvariantSupplier(pInvSup);
   }
 }

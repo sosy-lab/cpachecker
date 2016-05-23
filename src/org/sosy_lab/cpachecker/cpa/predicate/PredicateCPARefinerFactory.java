@@ -139,7 +139,7 @@ public class PredicateCPARefinerFactory {
     Optional<LoopStructure> loopStructure = cfa.getLoopStructure();
 
     PredicateAbstractionManager predAbsManager = predicateCpa.getPredicateManager();
-    InvariantsManager invariantsManager = predicateCpa.getInvariantsManager();
+    PredicateCPAInvariantsManager invariantsManager = predicateCpa.getInvariantsManager();
 
     PrefixProvider prefixProvider = predicateCpa.getPrefixProvider();
     PrefixSelector prefixSelector = new PrefixSelector(variableClassification, loopStructure);

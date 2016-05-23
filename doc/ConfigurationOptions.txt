@@ -1404,6 +1404,23 @@ cpa.predicate.ignoreIrrelevantVariables = true
 # do not include assumptions of states into path formula during strengthening
 cpa.predicate.ignoreStateAssumptions = false
 
+# Add computed invariants to the precision. Invariants do not need to be
+# generated with the PredicateCPA they can also be given from outside.
+cpa.predicate.invariants.addToPrecision = false
+
+# Strengthen the abstraction formula during abstraction with invariants if
+# some are generated. Invariants do not need to be generated with the
+# PredicateCPA they can also be given from outside.
+cpa.predicate.invariants.appendToAbstractionFormula = false
+
+# Strengthen the pathformula during abstraction with invariants if some are
+# generated. Invariants do not need to be generated with the PredicateCPA
+# they can also be given from outside.
+cpa.predicate.invariants.appendToPathFormula = false
+
+# Compute invariants with PredicateCPA
+cpa.predicate.invariants.computeInvariants = false
+
 # Should the automata used for invariant generation be dumped to files?
 cpa.predicate.invariants.dumpInvariantGenerationAutomata = false
 
@@ -1422,8 +1439,8 @@ cpa.predicate.invariants.file = "invariants.txt"
 
 # Which strategy should be used for generating invariants, a comma separated
 # list can be specified. Usually later specified strategies serve as fallback
-# for earlier ones.
-cpa.predicate.invariants.generationStrategy = Lists.newArrayList(InvariantGenerationStrategy.RF_INVARIANT_GENERATION)
+# for earlier ones. (default is no invariant generation at all)
+cpa.predicate.invariants.generationStrategy = new ArrayList<>()
 
 # How often should generating invariants from sliced prefixes with
 # k-induction be tried?
@@ -1436,14 +1453,14 @@ cpa.predicate.invariants.precisionFile = "invariantPrecs.txt"
 # (Use seconds or specify a unit; 0 for infinite)
 cpa.predicate.invariants.timeForInvariantGeneration = 10s
 
-# Where should the generated invariants (if there are some) be used?
-cpa.predicate.invariants.usageStrategy = NONE
-  enum:     [REFINEMENT, ABSTRACTION_FORMULA, COMBINATION, NONE]
-
 # Should the strategies be used all-together or only as fallback. If all
 # together, the computation is done until the timeout is hit and the results
 # up to this point are taken.
 cpa.predicate.invariants.useAllStrategies = false
+
+# Provide invariants generated with other analyses via the
+# PredicateCPAInvariantsManager.
+cpa.predicate.invariants.useGlobalInvariants = no default value
 
 # Invariants that are not strong enough to refute the counterexample can be
 # ignored with this option. (Weak invariants will lead to repeated
@@ -1609,12 +1626,6 @@ cpa.predicate.refinement.reuseInterpolationEnvironment = false
 # states in the reached set.
 cpa.predicate.refinement.sharePredicates = false
 
-# If the invariant generator can prove that a program is safe regarding the
-# given specification we can directly stop the analysis. This is done by
-# clearing the waitlist and removing the last found (infeasible) error state
-# from the reached set.
-cpa.predicate.refinement.shortcutForSafeProgram = false
-
 # slice block formulas, experimental feature!
 cpa.predicate.refinement.sliceBlockFormulas = false
 
@@ -1718,10 +1729,6 @@ cpa.predicate.trackFunctionPointers = true
 # (which are encoded as UFs): essentially, we simply collect all the numbers
 # used in bitwise operations, and add axioms like (0 & n = 0)
 cpa.predicate.useBitwiseAxioms = false
-
-# Generate invariants and strengthen the formulas during abstraction with
-# them.
-cpa.predicate.useInvariantsForAbstraction = false
 
 # add special information to formulas about non-deterministic functions
 cpa.predicate.useNondetFlags = false

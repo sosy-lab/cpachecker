@@ -46,7 +46,7 @@ import org.sosy_lab.common.time.NestedTimer;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cpa.predicate.InvariantsManager.LocationInvariantSupplier;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage.AbstractionNode;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
@@ -193,7 +193,7 @@ public class PredicateAbstractionManager {
   // 1: predicate is true
   private final Map<Pair<BooleanFormula, AbstractionPredicate>, Byte> cartesianAbstractionCache;
 
-  private final LocationInvariantSupplier locationBasedInvariantSupplier;
+  private final InvariantSupplier invariantSupplier;
 
   private final BooleanFormulaManagerView bfmgr;
 
@@ -208,7 +208,7 @@ public class PredicateAbstractionManager {
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      @Nullable LocationInvariantSupplier invariantsSupplier)
+      @Nullable InvariantSupplier pInvariantsSupplier)
       throws InvalidConfigurationException, PredicateParsingFailedException {
     shutdownNotifier = pShutdownNotifier;
     config = pConfig;
@@ -222,7 +222,7 @@ public class PredicateAbstractionManager {
     rmgr = amgr.getRegionCreator();
     pfmgr = pPfmgr;
     solver = pSolver;
-    locationBasedInvariantSupplier = invariantsSupplier;
+    invariantSupplier = pInvariantsSupplier;
 
     if (cartesianAbstraction) {
       abstractionType = AbstractionType.CARTESIAN;
@@ -352,8 +352,8 @@ public class PredicateAbstractionManager {
 
     // add invariants to abstraction formula if available
     Set<BooleanFormula> invariants;
-    if (locationBasedInvariantSupplier != null) {
-      invariants = locationBasedInvariantSupplier.getInvariantFor(location);
+    if (invariantSupplier != null) {
+      invariants = invariantSupplier.getInvariantsFor(location, fmgr, pfmgr, pathFormula);
     } else {
       invariants = Collections.emptySet();
     }
