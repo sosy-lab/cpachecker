@@ -303,7 +303,6 @@ public class PredicateCPA
 
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition pPartition) {
-    invariantsManager.setInitialLocation(node);
     return topState;
   }
 

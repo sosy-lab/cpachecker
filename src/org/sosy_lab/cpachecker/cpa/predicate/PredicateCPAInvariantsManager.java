@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Predicates.equalTo;
 import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.concat;
@@ -69,7 +68,6 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.StaticCandidateProvider;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAcheckerInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantChecker;
@@ -128,7 +126,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 @Options(prefix = "cpa.predicate.invariants", deprecatedPrefix = "cpa.predicate")
@@ -152,17 +149,6 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
      * with k-Induction.
      */
     RF_INTERPOLANT_KIND,
-
-    /**
-     * Runs an additional analysis that can consist of <b>any</b> configuration, e.g.
-     * a restart algorithm is allowed. As soon as the analysis finished computation
-     * the invariants can be computed and are, from that point on, always the same. They
-     * are not refined further on.
-     * This strategy computes the invariants before the actual analysis is started.
-     *
-     * To make this option work you need to call {@link PredicateCPAInvariantsManager#setInitialLocation(CFANode)}.
-     */
-    CPACHECKER;
   }
 
   @Option(
@@ -275,9 +261,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
 
   private final Map<CFANode, BooleanFormula> loopFormulaCache = new HashMap<>();
   private final Map<CFANode, Set<BooleanFormula>> locationInvariantsCache = new HashMap<>();
-  private LocationInvariantSupplier invariantSupplierSingleton = null;
 
-  private final InvariantsSupplier cpaCheckerInvariantSupplierSingleton;
   private final InvariantSupplier globalInvariantSupplier;
 
   public PredicateCPAInvariantsManager(
@@ -286,7 +270,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       ShutdownNotifier pShutdownNotifier,
       CFA pCfa,
       InvariantSupplier pGlobalInvariantsSupplier)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException {
     pConfig.inject(this);
 
     config = pConfig;
@@ -296,24 +280,6 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
 
     cfa = pCfa;
     semiCNFConverter = new RCNFManager(pConfig);
-
-    if (generationStrategy.contains(InvariantGenerationStrategy.CPACHECKER)) {
-      InvariantsSupplier tmpSupplier;
-      try {
-        tmpSupplier = new CPAcheckerInvariantsSupplier();
-      } catch (IOException e) {
-        logger.logUserException(
-            Level.WARNING,
-            e,
-            "Falling back to not using invariants of the strategy "
-                + InvariantGenerationStrategy.CPACHECKER);
-        tmpSupplier = null;
-      }
-      cpaCheckerInvariantSupplierSingleton = tmpSupplier;
-
-    } else {
-      cpaCheckerInvariantSupplierSingleton = null;
-    }
   }
 
   public boolean shouldInvariantsBeComputed() {
@@ -340,27 +306,6 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     }
     // TODO add other invariants to returned value
     return null;
-  }
-
-  /**
-   * Sets the initial location for asynchronous invariant generation. This method
-   * needs to be called if asynchronous invariants should be computed.
-   * @param node The starting node of the invariant generation
-   */
-  public void setInitialLocation(CFANode node) {
-    if (cpaCheckerInvariantSupplierSingleton != null) {
-      cpaCheckerInvariantSupplierSingleton.setInitialLocation(node);
-    }
-  }
-
-  /**
-   * @return an immutable view of all currently computed invariants for each location.
-   */
-  public LocationInvariantSupplier asInvariantsSupplier() {
-    if (invariantSupplierSingleton == null) {
-      invariantSupplierSingleton = new LocationInvariantSupplier();
-    }
-    return invariantSupplierSingleton;
   }
 
   /**
@@ -528,20 +473,6 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
                     allStatesTrace,
                     abstractionStatesTrace,
                     invariantShutdown.getNotifier());
-            break;
-
-          case CPACHECKER:
-            for (Pair<PathFormula, CFANode> pair : argForPathFormulaBasedGeneration) {
-              if (pair.getFirst() != null) {
-                BooleanFormula invariant = Iterables.getOnlyElement(
-                    cpaCheckerInvariantSupplierSingleton.getInvariantsFor(
-                        pair.getSecond(), fmgr, pfmgr, pair.getFirst()));
-                wasSuccessful = wasSuccessful || !bfmgr.isTrue(invariant);
-                addResultToCache(invariant, pair.getSecond());
-              } else {
-                addResultToCache(bfmgr.makeBoolean(true), pair.getSecond());
-              }
-            }
             break;
 
           default:
@@ -1054,99 +985,6 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     }
   }
 
-  abstract class InvariantsSupplier implements InvariantSupplier {
-
-    private InvariantGenerator invGen;
-    private InvariantSupplier invSup;
-
-    private InvariantsSupplier(InvariantGenerator pInvGen) {
-      invGen = pInvGen;
-    }
-
-    protected void setInitialLocation(CFANode pInitialLocation) {
-      invGen.start(pInitialLocation);
-
-      try {
-        invSup = invGen.get();
-
-      } catch (InterruptedException | CPAException e) {
-        invGen.cancel();
-        // we cannot throw any checked exception here as this is not compatible
-        // with the (allowed) declared exceptions for the caller of this method
-        // CPA#getInitialState so we just log a warning and swallow the exception
-        // such that the analysis cane move on without invariants
-        logger.logUserException(Level.WARNING, e, "Asynchronous invariant generation skipped.");
-        invSup = TrivialInvariantSupplier.INSTANCE;
-      }
-    }
-
-    /**
-     * Returns the invariants for a given location.
-     *
-     * @param pLocation the location for which invariants are needed
-     * @return the invariants for the given location, or null if not available
-     */
-    @Override
-    public Set<BooleanFormula> getInvariantsFor(
-        CFANode pLocation,
-        FormulaManagerView pFmgr,
-        PathFormulaManager pPfmgr,
-        PathFormula pContext) {
-      checkState(invSup != null, "Before getting invariants an initial location has to be set.");
-      return invSup.getInvariantsFor(pLocation, pFmgr, pPfmgr, pContext);
-    }
-
-    /**
-     * @return Indicates whether the invariant generation could prove the specification
-     * to hold or not.
-     */
-    public boolean isProgramSafe() {
-      return invGen.isProgramSafe();
-    }
-  }
-
-  private class CPAcheckerInvariantsSupplier extends InvariantsSupplier {
-    /**
-     * private constructor so that this object can only be created from within
-     * InvariantsGenerator
-     * @throws IOException in the case a file is missing or can not be created
-     */
-    private CPAcheckerInvariantsSupplier()
-        throws InvalidConfigurationException, CPAException, IOException {
-      super(
-          new CPAcheckerInvariantGenerator(
-              config,
-              shutdownNotifier,
-              new OnlyWarningsLogmanager(logger.withComponentName("CPAchecker Invgen")),
-              cfa,
-              ""));
-    }
-  }
-
-  public class LocationInvariantSupplier {
-
-    /**
-     * private constructor so that this object can only be created from within
-     * InvariantsGenerator
-     */
-    private LocationInvariantSupplier() {}
-
-    /**
-     * Returns the invariants for a given location.
-     *
-     * @param pLocation the location for which invariants are needed
-     * @return the invariants for the given location, or null if not available
-     */
-    public @Nonnull Set<BooleanFormula> getInvariantFor(CFANode pLocation) {
-      Set<BooleanFormula> invariants = locationInvariantsCache.get(pLocation);
-      if (invariants == null) {
-        return Collections.emptySet();
-      } else {
-        return invariants;
-      }
-    }
-  }
-
   /**
    * This class is used for removing all logging output besides warnings and higher
    * from the standard output of the analysis. This is useful when running the
@@ -1266,12 +1104,6 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
-
-    if (cpaCheckerInvariantSupplierSingleton != null
-        && cpaCheckerInvariantSupplierSingleton.invGen instanceof StatisticsProvider) {
-      ((StatisticsProvider) cpaCheckerInvariantSupplierSingleton.invGen)
-          .collectStatistics(pStatsCollection);
-    }
   }
 
 }
