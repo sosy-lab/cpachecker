@@ -172,7 +172,7 @@ class InvariantsManager implements StatisticsProvider {
      * Runs an additional analysis concurrent to the main analysis and asks
      * for invariants when needed. The generated invariants will be added everywhere
      * they are need (e.g. refinement + abstraction formula) additionally they
-     * can be retrieved by calling {@link InvariantsSupplier#getInvariantFor(CFANode,
+     * can be retrieved by calling {@link InvariantsSupplier#getInvariantsFor(CFANode,
      * FormulaManagerView, PathFormulaManager, PathFormula)}
      *
      * To make this option work you need to call {@link InvariantsManager#setInitialLocation(CFANode)}.
@@ -221,7 +221,7 @@ class InvariantsManager implements StatisticsProvider {
      * No invariants should be used. This means that every approach besides
      * the concurrent invariant generation will not be executed at all. The invariants
      * computed by the concurrent approach (if selected) can still be retrieved
-     * by calling {@link InvariantsSupplier#getInvariantFor(CFANode,
+     * by calling {@link InvariantsSupplier#getInvariantsFor(CFANode,
      * FormulaManagerView, PathFormulaManager, PathFormula)}
      */
     NONE;
@@ -601,9 +601,9 @@ class InvariantsManager implements StatisticsProvider {
           case ASYNC_CPA:
             for (Pair<PathFormula, CFANode> pair : argForPathFormulaBasedGeneration) {
               if (pair.getFirst() != null) {
-                BooleanFormula invariant =
-                    asyncCPAInvariantSupplierSingleton.getInvariantFor(
-                        pair.getSecond(), fmgr, pfmgr, pair.getFirst());
+                BooleanFormula invariant = Iterables.getOnlyElement(
+                    asyncCPAInvariantSupplierSingleton.getInvariantsFor(
+                        pair.getSecond(), fmgr, pfmgr, pair.getFirst()));
                 wasSuccessful = wasSuccessful || !bfmgr.isTrue(invariant);
                 addResultToCache(invariant, pair.getSecond());
               } else {
@@ -615,9 +615,9 @@ class InvariantsManager implements StatisticsProvider {
           case CPACHECKER:
             for (Pair<PathFormula, CFANode> pair : argForPathFormulaBasedGeneration) {
               if (pair.getFirst() != null) {
-                BooleanFormula invariant =
-                    cpaCheckerInvariantSupplierSingleton.getInvariantFor(
-                        pair.getSecond(), fmgr, pfmgr, pair.getFirst());
+                BooleanFormula invariant = Iterables.getOnlyElement(
+                    cpaCheckerInvariantSupplierSingleton.getInvariantsFor(
+                        pair.getSecond(), fmgr, pfmgr, pair.getFirst()));
                 wasSuccessful = wasSuccessful || !bfmgr.isTrue(invariant);
                 addResultToCache(invariant, pair.getSecond());
               } else {
@@ -928,8 +928,7 @@ class InvariantsManager implements StatisticsProvider {
         if (s != abstractionStatesTrace.get(abstractionStatesTrace.size() - 1)) {
           CFANode location = extractLocation(s);
           PredicateAbstractState pas = PredicateAbstractState.getPredicateState(s);
-          BooleanFormula invariant =
-              invSup.getInvariantFor(location, fmgr, pfmgr, pas.getPathFormula());
+          BooleanFormula invariant = Iterables.getOnlyElement(invSup.getInvariantsFor(location, fmgr, pfmgr, pas.getPathFormula()));
           invariants.add(Pair.of(invariant, location));
           logger.log(Level.FINEST, "Invariant for location", location, "is", invariant);
         }
@@ -1212,13 +1211,13 @@ class InvariantsManager implements StatisticsProvider {
      * @return the invariants for the given location, or null if not available
      */
     @Override
-    public BooleanFormula getInvariantFor(
+    public Set<BooleanFormula> getInvariantsFor(
         CFANode pLocation,
         FormulaManagerView pFmgr,
         PathFormulaManager pPfmgr,
         PathFormula pContext) {
       checkState(invSup != null, "Before getting invariants an initial location has to be set.");
-      return invSup.getInvariantFor(pLocation, pFmgr, pPfmgr, pContext);
+      return invSup.getInvariantsFor(pLocation, pFmgr, pPfmgr, pContext);
     }
 
     /**

@@ -70,10 +70,12 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 @Options(prefix = "parallelAlgorithm")
 public class ParallelAlgorithm implements Algorithm {
@@ -306,9 +308,9 @@ public class ParallelAlgorithm implements Algorithm {
     }
 
     @Override
-    public BooleanFormula getInvariantFor(
+    public Set<BooleanFormula> getInvariantsFor(
         CFANode pNode, FormulaManagerView pFmgr, PathFormulaManager pPfmgr, PathFormula pContext) {
-      return invSupplier.getInvariantFor(pNode, pFmgr, pPfmgr, pContext);
+      return invSupplier.getInvariantsFor(pNode, pFmgr, pPfmgr, pContext);
     }
   }
 
@@ -317,24 +319,15 @@ public class ParallelAlgorithm implements Algorithm {
     private List<InvariantSupplier> invariantSuppliers = new ArrayList<>();
 
     @Override
-    public BooleanFormula getInvariantFor(
+    public Set<BooleanFormula> getInvariantsFor(
         CFANode pNode, FormulaManagerView pFmgr, PathFormulaManager pPfmgr, PathFormula pContext) {
       BooleanFormulaManager bfmgr = pFmgr.getBooleanFormulaManager();
 
       return invariantSuppliers
           .stream()
-          .<BooleanFormula>map(s -> s.getInvariantFor(pNode, pFmgr, pPfmgr, pContext))
-          .reduce(
-              bfmgr.makeBoolean(true),
-              (a, b) -> {
-                if (bfmgr.isTrue(a)) {
-                  return b;
-                } else if (bfmgr.isTrue(b)) {
-                  return a;
-                } else {
-                  return bfmgr.and(a, b);
-                }
-              });
+          .flatMap(s -> s.getInvariantsFor(pNode, pFmgr, pPfmgr, pContext).stream())
+          .filter(f -> !bfmgr.isTrue(f))
+          .collect(Collectors.toSet());
     }
   }
 }
