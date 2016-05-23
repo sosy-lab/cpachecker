@@ -288,6 +288,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
               .setInvariantSupplier(
                   new FormulaAndTreeSupplier(
                       new LazyLocationMapping(reached.getDelegate()), logger, cfa));
+          logger.log(Level.INFO, "Added reached set based invariants to next analysis");
 
           // reset boolean flag
           provideInvariantsForNextAlgorithm = false;
@@ -465,6 +466,11 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     reached =
         createInitialReachedSetForRestart(
             cpa, mainFunction, coreComponents.getReachedSetFactory(), singleLogger);
+
+    if (algorithm instanceof ParallelAlgorithm) {
+      reached = new ForwardingReachedSet(reached);
+    }
+
     return Triple.of(algorithm, cpa, reached);
   }
 
