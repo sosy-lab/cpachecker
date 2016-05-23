@@ -42,6 +42,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -301,11 +302,12 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
   @Override
   public Set<BooleanFormula> getInvariantsFor(
       CFANode pNode, FormulaManagerView pFmgr, PathFormulaManager pPfmgr, PathFormula pContext) {
+    Set<BooleanFormula> localInvariants = locationInvariantsCache.get(pNode);
     if (useGlobalInvariants) {
-      return globalInvariantSupplier.getInvariantsFor(pNode, fmgr, pfmgr, pContext);
+      return Sets.union(localInvariants, globalInvariantSupplier.getInvariantsFor(pNode, fmgr, pfmgr, pContext));
     }
-    // TODO add other invariants to returned value
-    return null;
+
+    return localInvariants;
   }
 
   /**
