@@ -76,9 +76,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -97,16 +95,6 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
 
   @Option(secure=true, description="which sliced prefix should be used for interpolation")
   private List<PrefixPreference> prefixPreference = PrefixSelector.NO_SELECTION;
-
-  @Option(
-    secure = true,
-    description =
-        "For differing errorpaths, the loop for which"
-            + " invariants should be generated may still be the same, with this option"
-            + " you can set the maximal amount of invariant generation runs per loop."
-            + " 0 means no upper limit given."
-  )
-  private int maxInvariantGenerationsPerLoop = 2;
 
   @Option(
     secure = true,
@@ -137,7 +125,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
 
   private final PredicateCPAInvariantsManager invariantsManager;
   private final Optional<LoopStructure> loopStructure;
-  private final Map<Loop, Integer> loopOccurrences = new HashMap<>();
+
   private boolean wereInvariantsUsedInLastRefinement = false;
   private boolean wereInvariantsusedInCurrentRefinement = false;
 
@@ -330,7 +318,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     Set<Loop> loopsInPath;
 
     // check if invariants can be used at all
-    if ((loopsInPath = canInvariantsBeUsed(allStatesTrace)).isEmpty()) {
+    if ((loopsInPath = getRelevantLoops(allStatesTrace)).isEmpty()) {
       logger.log(
           Level.FINEST,
           "Starting interpolation-based refinement because invariants cannot be generated.");
@@ -397,52 +385,6 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     } else {
       return counterexample;
     }
-  }
-
-  /**
-   * Checks if necessary conditions for invariant generation are met. These are
-   * - the loops for which invariants should be generated was not in the counter
-   *     example path too often (depending on configuration). Most likely computing
-   *     invariants over and over for the same loop doesn't make much sense, this
-   *     is almost the same as for repeated counterexamples.
-   *
-   * @return An empty set signalizes that invariants cannot be used. Otherwise the
-   *         loops occuring in the current path are given
-   */
-  private Set<Loop> canInvariantsBeUsed(final ARGPath allStatesTrace) {
-    // get the relevant loops in the ARGPath and the number of occurrences of
-    // the most often found one
-    Set<Loop> loopsInPath = getRelevantLoops(allStatesTrace);
-    int maxFoundLoop = getMaxCountOfOccuredLoop(loopsInPath);
-
-    // no loops found, use normal interpolation refinement
-    if (maxFoundLoop > maxInvariantGenerationsPerLoop || loopsInPath.isEmpty()) {
-      return Collections.emptySet();
-    }
-    return loopsInPath;
-  }
-
-  /**
-   * Returns the maximal number of occurences of one of the loops given in the
-   * parameter. This method takes loops found in earlier refinements into account.
-   */
-  private int getMaxCountOfOccuredLoop(Set<Loop> loopsInPath) {
-    int maxFoundLoop = 0;
-    for (Loop loop : loopsInPath) {
-      if (loopOccurrences.containsKey(loop)) {
-        int tmpFoundLoop = loopOccurrences.get(loop) + 1;
-        if (tmpFoundLoop > maxFoundLoop) {
-          maxFoundLoop = tmpFoundLoop;
-        }
-        loopOccurrences.put(loop, tmpFoundLoop);
-      } else {
-        loopOccurrences.put(loop, 1);
-        if (maxFoundLoop == 0) {
-          maxFoundLoop = 1;
-        }
-      }
-    }
-    return maxFoundLoop;
   }
 
   /**
