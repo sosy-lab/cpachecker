@@ -671,8 +671,13 @@ class WebInterface:
 
         params = {"groupId": self._group_id}
         path = "runs/flush"
-        self._request("POST", path, data=params, headers=headers, expectedStatusCodes=[200, 204])
-
+        (response, _) = self._request("POST", path, data=params, headers=headers, expectedStatusCodes=[200, 204])
+        run_collections = response.decode('utf-8').split(",")
+        if len(run_collections) == 0:
+            logging.warning('No runs were submitted to the VerifierCloud before or a rate limit is hit.')
+        else:
+            logging.info('Submitted %s run collection: %s', len(run_collections), ",".join(run_collections))
+            
         self._result_downloader.start()
 
     def _is_finished(self, run_id):
