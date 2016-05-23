@@ -32,7 +32,6 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.logging.Level;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -72,9 +71,15 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
 
   @Option(secure=true,
       name = "proofFile",
-      description = "file in which proof representation needed for proof checking is stored")
+      description = "file in which proof representation will be stored")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   protected Path file = Paths.get("arg.obj");
+
+  @Option(secure=true,
+      name = "proof",
+      description = "file in which proof representation needed for proof checking is stored")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  protected Path proofFile = Paths.get("arg.obj");
 
   @Option(secure=true,
       name = "useCores",
@@ -89,7 +94,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     logger = pLogger;
     proofInfo = new ProofStatesInfoCollector(pConfig);
     genStats = new PCGenerationStatistics();
-    stats = new PCStrategyStatistics(file);
+    stats = new PCStrategyStatistics(proofFile);
     pccStats.add(stats);
   }
 
@@ -158,7 +163,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
   }
 
   protected Triple<InputStream, ZipInputStream, ObjectInputStream> openProofStream() throws IOException {
-    InputStream fis = file.asByteSource().openStream();
+    InputStream fis = proofFile.asByteSource().openStream();
     ZipInputStream zis = new ZipInputStream(fis);
     ZipEntry entry = zis.getNextEntry();
     assert entry.getName().equals("Proof");
@@ -168,7 +173,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
   public Triple<InputStream, ZipInputStream, ObjectInputStream> openAdditionalProofStream(final int index)
       throws IOException {
     if (index < 0) { throw new IllegalArgumentException("Not a valid index. Indices must be at least zero."); }
-    InputStream fis = file.asByteSource().openStream();
+    InputStream fis = proofFile.asByteSource().openStream();
     ZipInputStream zis = new ZipInputStream(fis);
     ZipEntry entry = null;
     for (int i = 0; i <= 1 + index; i++) {
