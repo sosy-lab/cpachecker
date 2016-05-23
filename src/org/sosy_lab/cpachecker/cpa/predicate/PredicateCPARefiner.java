@@ -29,6 +29,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -76,6 +77,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -106,6 +108,13 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   @Option(secure=true, description="use only the atoms from the interpolants"
                                  + "as predicates, and not the whole interpolant")
   private boolean atomicInterpolants = true;
+
+  @Option(
+    secure = true,
+    description =
+        "Should the path invariants be created and used (potentially additionally to the other invariants)"
+  )
+  private boolean usePathInvariants = false;
 
   // statistics
   private final StatInt totalPathLength = new StatInt(StatKind.AVG, "Avg. length of target path (in blocks)"); // measured in blocks
@@ -321,15 +330,8 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       final List<BooleanFormula> formulas)
       throws CPAException, InterruptedException {
 
-    Set<Loop> loopsInPath;
-
-    // check if invariants can be used at all
-    if ((loopsInPath = getRelevantLoops(allStatesTrace)).isEmpty()) {
-      logger.log(
-          Level.FINEST,
-          "Starting interpolation-based refinement because invariants cannot be generated.");
-      return performInterpolatingRefinement(abstractionStatesTrace, elementsOnPath, formulas);
-    }
+    // find new invariants
+    invariantsManager.findInvariants(allStatesTrace, abstractionStatesTrace, pfmgr, solver);
 
     CounterexampleTraceInfo counterexample =
         interpolationManager.buildCounterexampleTrace(
@@ -342,27 +344,14 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     if (counterexample.isSpurious()) {
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
 
-      invariantsManager.findInvariants(
-          allStatesTrace, abstractionStatesTrace, loopsInPath, pfmgr, solver);
-
       // add invariant precision increment if necessary
       if (invariantsManager.addToPrecision()) {
-        List<BooleanFormula> precisionIncrement = new ArrayList<>();
-        boolean invIsTriviallyTrue = true;
+        List<BooleanFormula> precisionIncrement = addInvariants(abstractionStatesTrace);
 
-        // we do not need the last state from the trace, so we exclude it here
-        for (ARGState state :
-            from(abstractionStatesTrace).limit(abstractionStatesTrace.size() - 1)) {
-          Set<BooleanFormula> invs =
-              invariantsManager.getInvariantsFor(extractLocation(state), fmgr, pfmgr, null);
-          if (invIsTriviallyTrue
-              && !(invs.size() == 1
-                  && fmgr.getBooleanFormulaManager().isTrue(Iterables.getOnlyElement(invs)))) {
-            invIsTriviallyTrue = false;
-          }
-          precisionIncrement.add(fmgr.getBooleanFormulaManager().and(invs));
+        if (usePathInvariants) {
+          precisionIncrement =
+              addPathInvariants(allStatesTrace, abstractionStatesTrace, precisionIncrement);
         }
-        assert precisionIncrement.size() == abstractionStatesTrace.size();
 
         if (precisionIncrement.isEmpty()) {
           // fall-back to interpolation
@@ -391,6 +380,61 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     } else {
       return counterexample;
     }
+  }
+
+  private List<BooleanFormula> addInvariants(final List<ARGState> abstractionStatesTrace) {
+    List<BooleanFormula> precisionIncrement = new ArrayList<>();
+    boolean invIsTriviallyTrue = true;
+
+    // we do not need the last state from the trace, so we exclude it here
+    for (ARGState state : from(abstractionStatesTrace).limit(abstractionStatesTrace.size() - 1)) {
+      Set<BooleanFormula> invs =
+          invariantsManager.getInvariantsFor(extractLocation(state), fmgr, pfmgr, null);
+      if (invIsTriviallyTrue
+          && !(invs.size() == 1
+              && fmgr.getBooleanFormulaManager().isTrue(Iterables.getOnlyElement(invs)))) {
+        invIsTriviallyTrue = false;
+      }
+      precisionIncrement.add(fmgr.getBooleanFormulaManager().and(invs));
+    }
+    assert precisionIncrement.size() == abstractionStatesTrace.size();
+
+    if (invIsTriviallyTrue) {
+      precisionIncrement.clear();
+    }
+    return precisionIncrement;
+  }
+
+  private List<BooleanFormula> addPathInvariants(
+      final ARGPath allStatesTrace,
+      final List<ARGState> abstractionStatesTrace,
+      List<BooleanFormula> precisionIncrement) {
+    Set<Loop> loopsInPath = getRelevantLoops(allStatesTrace);
+    if (!loopsInPath.isEmpty()) {
+      List<BooleanFormula> pathInvariants =
+          invariantsManager.findPathInvariants(
+              allStatesTrace, abstractionStatesTrace, loopsInPath, pfmgr, solver);
+
+      if (precisionIncrement.isEmpty()) {
+        precisionIncrement = pathInvariants;
+
+      } else {
+        Preconditions.checkState(precisionIncrement.size() == pathInvariants.size());
+
+        Iterator<BooleanFormula> invIt = precisionIncrement.iterator();
+        Iterator<BooleanFormula> pathInvIt = pathInvariants.iterator();
+        List<BooleanFormula> mergeFormulas = new ArrayList<>();
+        while (invIt.hasNext()) {
+          mergeFormulas.add(fmgr.getBooleanFormulaManager().and(invIt.next(), pathInvIt.next()));
+        }
+        precisionIncrement = mergeFormulas;
+      }
+
+    } else {
+      logger.log(
+          Level.WARNING, "Path invariants could not be computed, loop information is missing");
+    }
+    return precisionIncrement;
   }
 
   /**
