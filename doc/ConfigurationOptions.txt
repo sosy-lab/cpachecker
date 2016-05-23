@@ -1585,11 +1585,6 @@ cpa.predicate.refinement.global.restartAfterRefinement = false
 # infeasible prefix
 cpa.predicate.refinement.incrementalCexTraceCheck = false
 
-# For differing errorpaths, the loop for which invariants should be generated
-# may still be the same, with this option you can set the maximal amount of
-# invariant generation runs per loop. 0 means no upper limit given.
-cpa.predicate.refinement.maxInvariantGenerationsPerLoop = 2
-
 # Max. number of prefixes to extract
 cpa.predicate.refinement.maxPrefixCount = 64
 
@@ -1658,6 +1653,10 @@ cpa.predicate.refinement.timelimit = 0ms
 
 # Use BDDs to simplify interpolants (removing irrelevant predicates)
 cpa.predicate.refinement.useBddInterpolantSimplification = false
+
+# Should the path invariants be created and used (potentially additionally to
+# the other invariants)
+cpa.predicate.refinement.usePathInvariants = false
 
 # verify if the interpolants fulfill the interpolant properties
 cpa.predicate.refinement.verifyInterpolants = false
@@ -2635,6 +2634,10 @@ restartAlgorithm.configFiles = no default value
 # print the statistics of each component of the restart algorithm directly
 # after the components computation is finished
 restartAlgorithm.printIntermediateStatistics = true
+
+# Provide invariants generated out of the reached set of the previous
+# analysis to the next analysis (if possible)
+restartAlgorithm.provideInvariantsForNextAlgorithm = false
 
 # List of files with configurations to use. 2 filenames expected.
 restartAlgorithmWithARGReplay.configFiles = no default value

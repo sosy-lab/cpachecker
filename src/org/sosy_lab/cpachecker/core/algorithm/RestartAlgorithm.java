@@ -53,9 +53,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory.SpecAutomatonCompositionType;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.FormulaAndTreeSupplier;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.LazyLocationMapping;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.PartialARGsCombiner;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.InvariantsConsumer;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -173,6 +176,13 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
   )
   private boolean printIntermediateStatistics = true;
 
+  @Option(
+    secure = true,
+    description =
+        "Provide invariants generated out of the reached set of the previous analysis to the next analysis (if possible)"
+  )
+  private boolean provideInvariantsForNextAlgorithm = false;
+
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final ShutdownRequestListener logShutdownListener;
@@ -271,6 +281,16 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
         } catch (IOException e) {
           logger.logUserException(Level.WARNING, e, "Skipping one analysis because the configuration file " + singleConfigFileName.toString() + " could not be read");
           continue;
+        }
+
+        // for the first analysis we have no reached set we can use
+        if (provideInvariantsForNextAlgorithm
+            && stats.noOfAlgorithmsUsed > 0
+            && currentAlgorithm instanceof InvariantsConsumer) {
+          ((InvariantsConsumer) currentAlgorithm)
+              .setInvariantSupplier(
+                  new FormulaAndTreeSupplier(
+                      new LazyLocationMapping(reached.getDelegate()), logger, cfa));
         }
 
         if (reached instanceof HistoryForwardingReachedSet) {
