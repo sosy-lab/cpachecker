@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.core.algorithm.pcc.AlgorithmWithPropertyCheck;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -164,8 +165,14 @@ public class CoreComponentsFactory {
 
   private final ReachedSetFactory reachedSetFactory;
   private final CPABuilder cpaFactory;
+  private final AggregatedReachedSets aggregatedReachedSets;
 
-  public CoreComponentsFactory(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+  public CoreComponentsFactory(
+      Configuration pConfig,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      AggregatedReachedSets pAggregatedReachedSets)
+      throws InvalidConfigurationException {
     config = pConfig;
     logger = pLogger;
 
@@ -180,6 +187,7 @@ public class CoreComponentsFactory {
     }
 
     reachedSetFactory = new ReachedSetFactory(config);
+    aggregatedReachedSets = pAggregatedReachedSets;
     cpaFactory = new CPABuilder(config, logger, shutdownNotifier, reachedSetFactory);
   }
 
@@ -220,7 +228,9 @@ public class CoreComponentsFactory {
       algorithm = new ExternalCBMCAlgorithm(programDenotation, config, logger);
 
     } else if (useParallelAlgorithm) {
-      algorithm = new ParallelAlgorithm(config, logger, shutdownNotifier, cfa, programDenotation);
+      algorithm =
+          new ParallelAlgorithm(
+              config, logger, shutdownNotifier, cfa, programDenotation, aggregatedReachedSets);
 
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
@@ -303,8 +313,9 @@ public class CoreComponentsFactory {
     return reached;
   }
 
-  public ConfigurableProgramAnalysis createCPA(final CFA cfa,
-      SpecAutomatonCompositionType composeWithSpecificationCPAs) throws InvalidConfigurationException, CPAException {
+  public ConfigurableProgramAnalysis createCPA(
+      final CFA cfa, SpecAutomatonCompositionType composeWithSpecificationCPAs)
+      throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
 
     if (useRestartingAlgorithm) {
@@ -314,12 +325,14 @@ public class CoreComponentsFactory {
 
     final ConfigurableProgramAnalysis cpa;
     switch (composeWithSpecificationCPAs) {
-    case TARGET_SPEC:
-      cpa = cpaFactory.buildCPAWithSpecAutomatas(cfa); break;
-    case BACKWARD_TO_ENTRY_SPEC:
-      cpa = cpaFactory.buildCPAWithBackwardSpecAutomatas(cfa); break;
-    default:
-      cpa = cpaFactory.buildCPAs(cfa, null);
+      case TARGET_SPEC:
+        cpa = cpaFactory.buildCPAWithSpecAutomatas(cfa, aggregatedReachedSets);
+        break;
+      case BACKWARD_TO_ENTRY_SPEC:
+        cpa = cpaFactory.buildCPAWithBackwardSpecAutomatas(cfa, aggregatedReachedSets);
+        break;
+      default:
+        cpa = cpaFactory.buildCPAs(cfa, null, aggregatedReachedSets);
     }
 
     return cpa;

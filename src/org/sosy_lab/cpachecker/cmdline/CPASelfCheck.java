@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
@@ -141,10 +142,12 @@ public class CPASelfCheck {
     Method factoryMethod = pCpa.getMethod("factory", new Class<?>[0]);
 
     CPAFactory factory = (CPAFactory)factoryMethod.invoke(null, new Object[0]);
-    return factory.setLogger(logManager)
-                  .setConfiguration(config)
-                  .set(cfa, CFA.class)
-                  .createInstance();
+    return factory
+        .setLogger(logManager)
+        .setConfiguration(config)
+        .set(cfa, CFA.class)
+        .set(new AggregatedReachedSets(), AggregatedReachedSets.class)
+        .createInstance();
   }
 
   private static boolean ensure(boolean pB, String pString) {

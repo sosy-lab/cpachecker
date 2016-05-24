@@ -76,6 +76,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
@@ -309,7 +310,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
 
     CPABuilder invGenBMCBuilder =
         new CPABuilder(config, logger, shutdownManager.getNotifier(), pReachedSetFactory);
-    cpa = invGenBMCBuilder.buildCPAWithSpecAutomatas(cfa);
+    cpa = invGenBMCBuilder.buildCPAWithSpecAutomatas(cfa, new AggregatedReachedSets());
     Algorithm cpaAlgorithm = CPAAlgorithm.create(cpa, logger, config, shutdownManager.getNotifier());
     algorithm =
         new BMCAlgorithmForInvariantGeneration(

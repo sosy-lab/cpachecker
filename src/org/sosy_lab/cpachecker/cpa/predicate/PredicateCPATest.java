@@ -39,6 +39,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.util.test.LoggingClassLoader;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
@@ -94,6 +95,7 @@ public class PredicateCPATest {
       factory.setConfiguration(config);
       factory.setLogger(logger);
       factory.setShutdownNotifier(ShutdownNotifier.createDummy());
+      factory.set(new AggregatedReachedSets(), AggregatedReachedSets.class);
       factory.set(TestDataTools.makeCFA("void main() { }", config), CFA.class);
       factory.set(new ReachedSetFactory(config), ReachedSetFactory.class);
 

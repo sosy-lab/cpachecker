@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -170,7 +171,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
       CPABuilder builder =
           new CPABuilder(
               pConfig, stepCaseLogger, pShutdownManager.getNotifier(), pReachedSetFactory);
-      stepCaseCPA = builder.buildCPAWithSpecAutomatas(cfa);
+      stepCaseCPA = builder.buildCPAWithSpecAutomatas(cfa, new AggregatedReachedSets());
       stepCaseAlgorithm =
           CPAAlgorithm.create(stepCaseCPA, stepCaseLogger, pConfig, pShutdownManager.getNotifier());
     } else {

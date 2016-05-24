@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.CoreComponentsFactory.SpecAutomatonCompositi
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
@@ -112,7 +113,8 @@ public class CPAcheckerInvariantGenerator extends AbstractInvariantGenerator {
     shutdownNotifier = ShutdownManager.createWithParent(pShutdownNotifier);
 
     CoreComponentsFactory componentsFactory =
-        new CoreComponentsFactory(invgenConfig, logger, shutdownNotifier.getNotifier());
+        new CoreComponentsFactory(
+            invgenConfig, logger, shutdownNotifier.getNotifier(), new AggregatedReachedSets());
     reached = componentsFactory.createReachedSet();
 
     cpa = componentsFactory.createCPA(pCfa, SpecAutomatonCompositionType.TARGET_SPEC);

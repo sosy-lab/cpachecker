@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.util.automaton;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import java.util.logging.Level;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -38,6 +40,7 @@ import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
@@ -45,9 +48,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
+import java.util.logging.Level;
 
 
 public class TargetLocationProviderImpl implements TargetLocationProvider {
@@ -90,9 +91,9 @@ public class TargetLocationProviderImpl implements TargetLocationProvider {
       if (pAutomaton.isPresent()) {
         cpa =
             cpaBuilder.buildsCPAWithWitnessAutomataAndSpecification(
-                cfa, Lists.newArrayList(pAutomaton.get()));
+                cfa, Lists.newArrayList(pAutomaton.get()), new AggregatedReachedSets());
       } else {
-        cpa = cpaBuilder.buildCPAWithSpecAutomatas(cfa);
+        cpa = cpaBuilder.buildCPAWithSpecAutomatas(cfa, new AggregatedReachedSets());
       }
 
       ReachedSet reached = reachedSetFactory.create();

@@ -23,10 +23,6 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.util.cmc;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.logging.Level;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -34,13 +30,18 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import java.nio.file.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.logging.Level;
 
 @Options(prefix = "pcc.cmc")
 public class PartialCPABuilder {
@@ -86,7 +87,8 @@ public class PartialCPABuilder {
     // create CPA to check current partial ARG
     logger.log(Level.FINEST, "Create CPA instance");
 
-    return new CPABuilder(singleConfig, logger, shutdown, pFactory).buildCPAWithSpecAutomatas(cfa);
+    return new CPABuilder(singleConfig, logger, shutdown, pFactory)
+        .buildCPAWithSpecAutomatas(cfa, new AggregatedReachedSets());
  }
 
 

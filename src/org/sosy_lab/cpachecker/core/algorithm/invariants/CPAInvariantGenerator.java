@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
@@ -331,7 +332,8 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     cfa = pCFA;
     cpa =
         new CPABuilder(invariantConfig, logger, shutdownManager.getNotifier(), reachedSetFactory)
-            .buildsCPAWithWitnessAutomataAndSpecification(cfa, pAdditionalAutomata);
+            .buildsCPAWithWitnessAutomataAndSpecification(
+                cfa, pAdditionalAutomata, new AggregatedReachedSets());
     algorithm = CPAAlgorithm.create(cpa, logger, invariantConfig, shutdownManager.getNotifier());
   }
 

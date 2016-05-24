@@ -23,19 +23,12 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.pcc;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.logging.Level;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import java.nio.file.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -48,9 +41,17 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.error.DummyErrorState;
+
+import java.io.IOException;
+import java.io.PrintStream;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.logging.Level;
 
 @Options
 public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
@@ -189,7 +190,8 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
 
   private ReachedSet initializeReachedSetForChecking(Configuration pConfig,
       ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
-   CoreComponentsFactory factory = new CoreComponentsFactory(pConfig, logger, shutdownNotifier);
+    CoreComponentsFactory factory =
+        new CoreComponentsFactory(pConfig, logger, shutdownNotifier, new AggregatedReachedSets());
    ReachedSet reached = factory.createReachedSet();
 
    reached.add(pCpa.getInitialState(analyzedProgram.getMainFunction(),
@@ -211,10 +213,11 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
       try {
         checkConfig = Configuration.builder().copyFrom(config).loadFromFile(checkerConfig).build();
         CoreComponentsFactory factory =
-            new CoreComponentsFactory(checkConfig, logger, shutdownNotifier);
+            new CoreComponentsFactory(
+                checkConfig, logger, shutdownNotifier, new AggregatedReachedSets());
         checkerCPA =
             new CPABuilder(checkConfig, logger, shutdownNotifier, factory.getReachedSetFactory())
-                .buildCPAWithSpecAutomatas(analyzedProgram);
+                .buildCPAWithSpecAutomatas(analyzedProgram, new AggregatedReachedSets());
 
       } catch (IOException e) {
         logger.log(Level.SEVERE,"Cannot read proof checking configuration.");

@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.InvariantsConsumer;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
@@ -84,17 +85,16 @@ import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 @Options(prefix = "parallelAlgorithm")
-public class ParallelAlgorithm implements Algorithm, InvariantsConsumer {
+public class ParallelAlgorithm implements Algorithm {
 
   @Option(
     secure = true,
     required = true,
     description =
         "List of files with configurations to use. Files can be suffixed with"
-            + " ::reached-inv-sup or ::cpa-inv-sup which mean that"
-            + " either invariants are supplied reachedSet-based or on CPA-level."
-            + " The parallely generated invariants are then supplied to all CPAs"
-            + " implementing the InvariantConsumer interface."
+            + " ::use-reached which means that the configuration would like to use"
+            + " the reached set of other (finished) analyses. This could e.g. be"
+            + " helpful for invariant generation."
   )
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> configFiles;
@@ -109,15 +109,17 @@ public class ParallelAlgorithm implements Algorithm, InvariantsConsumer {
 
   private volatile ReachedSet finalReachedSet = null;
   private CFANode mainEntryNode = null;
+  private final AggregatedReachedSets aggregatedReachedSets;
 
-  private final InvariantsAggregator invariantsAggregator = new InvariantsAggregator();
+  private final ReachedSetAggregator invariantsAggregator = new ReachedSetAggregator();
 
   public ParallelAlgorithm(
       Configuration config,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       CFA pCfa,
-      String pFilename)
+      String pFilename,
+      AggregatedReachedSets pAggregatedReachedSets)
       throws InvalidConfigurationException {
     config.inject(this);
 
@@ -126,11 +128,7 @@ public class ParallelAlgorithm implements Algorithm, InvariantsConsumer {
     shutdownManager = ShutdownManager.createWithParent(checkNotNull(pShutdownNotifier));
     cfa = checkNotNull(pCfa);
     filename = checkNotNull(pFilename);
-  }
-
-  @Override
-  public void setInvariantSupplier(InvariantSupplier pInvSup) {
-    invariantsAggregator.invariantSuppliers.add(pInvSup);
+    aggregatedReachedSets = checkNotNull(pAggregatedReachedSets);
   }
 
   @Override
@@ -227,7 +225,10 @@ public class ParallelAlgorithm implements Algorithm, InvariantsConsumer {
 
       CoreComponentsFactory coreComponents =
           new CoreComponentsFactory(
-              singleConfig, singleLogger, singleShutdownManager.getNotifier());
+              singleConfig,
+              singleLogger,
+              singleShutdownManager.getNotifier(),
+              aggregatedReachedSets);
       cpa = coreComponents.createCPA(cfa, SpecAutomatonCompositionType.TARGET_SPEC);
 
       // add invariants supplier to all cpas where it is necessary
@@ -237,6 +238,8 @@ public class ParallelAlgorithm implements Algorithm, InvariantsConsumer {
         }
       }
 
+      // TODO global info will not work correctly with parallel analyses
+      // as it is a mutable singleton object
       GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
       algorithm = coreComponents.createAlgorithm(cpa, filename, cfa);
@@ -265,23 +268,6 @@ public class ParallelAlgorithm implements Algorithm, InvariantsConsumer {
       invariantsAggregator.invariantSuppliers.add((InvariantSupplier) algorithmToUse);
     } else {
       algorithmToUse = algorithm;
-    }
-
-    if (invariantType.equals("cpa-inv-sup")) {
-      List<InvariantSupplier> invSups = new ArrayList<>();
-      // add invariants supplier to all cpas where it is necessary
-      for (ConfigurableProgramAnalysis innerCPA : CPAs.asIterable(cpa)) {
-        if (innerCPA instanceof InvariantSupplier) {
-          invSups.add((InvariantSupplier) innerCPA);
-        }
-      }
-
-      if (invSups.isEmpty()) {
-        logger.log(
-            Level.WARNING,
-            "Generation of invariants via a CPA specified but no CPA found which provides invariants.");
-      }
-      invariantsAggregator.invariantSuppliers.addAll(invSups);
     }
 
     return () -> {
@@ -356,7 +342,7 @@ public class ParallelAlgorithm implements Algorithm, InvariantsConsumer {
     }
   }
 
-  private static class InvariantsAggregator implements InvariantSupplier {
+  private static class ReachedSetAggregator implements InvariantSupplier {
 
     private Set<InvariantSupplier> invariantSuppliers = new HashSet<>();
 
