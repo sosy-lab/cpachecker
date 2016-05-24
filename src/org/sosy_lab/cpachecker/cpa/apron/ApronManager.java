@@ -47,17 +47,13 @@ public class ApronManager {
 
   public ApronManager(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
+    SetUp.init(NativeLibraries.getNativeLibraryPath().resolve("apron").toAbsolutePath().toString());
     manager = getManager(domainType);
-  }
-
-  public ApronManager(String pDomainType) throws InvalidConfigurationException {
-    manager = getManager(pDomainType);
   }
 
   private Manager getManager(String pDomainType)
       throws InvalidConfigurationException {
 
-    SetUp.init(NativeLibraries.getNativeLibraryPath().resolve("apron").toAbsolutePath().toString());
     switch (pDomainType) {
       case "BOX":
         return new Box();

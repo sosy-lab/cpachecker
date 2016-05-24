@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.LinearExpression;
@@ -45,8 +46,10 @@ public class PolyhedraWideningManager {
       LogManager pLogger) throws InvalidConfigurationException {
     statistics = pStatistics;
     logger = pLogger;
+    ApronManager apronManager = new ApronManager(
+        Configuration.builder().setOption("cpa.apron.domain", "POLKA").build());
 
-    manager = new ApronManager("POLKA").getManager();
+    manager = apronManager.getManager();
     types = new HashMap<>();
   }
 
