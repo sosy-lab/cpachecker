@@ -78,6 +78,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -456,7 +457,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
     AggregatedReachedSets aggregateReached;
     if (pProvideReachedForNextAlgorithm && pCurrentReached != null) {
-      aggregateReached = new AggregatedReachedSets(pCurrentReached);
+      aggregateReached = new AggregatedReachedSets(Collections.singleton(pCurrentReached));
     } else {
       aggregateReached = new AggregatedReachedSets();
     }

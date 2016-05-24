@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.util.concurrent.MoreExecutors.listeningDecorator;
+import static java.util.concurrent.Executors.newFixedThreadPool;
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
 
 import com.google.common.base.Splitter;
@@ -32,7 +34,6 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
 
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -47,40 +48,29 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory.SpecAutomatonCompositionType;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.FormulaAndTreeSupplier;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.LazyLocationMapping;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.BooleanFormulaManager;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 
 @Options(prefix = "parallelAlgorithm")
 public class ParallelAlgorithm implements Algorithm {
@@ -90,9 +80,9 @@ public class ParallelAlgorithm implements Algorithm {
     required = true,
     description =
         "List of files with configurations to use. Files can be suffixed with"
-            + " ::use-reached which means that the configuration would like to use"
-            + " the reached set of other (finished) analyses. This could e.g. be"
-            + " helpful for invariant generation."
+            + " ::supply-reached this signalizes that the (finished) reached set"
+            + " of an analysis can be used in other analyses"
+            + " (e.g. for invariants computation)."
   )
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> configFiles;
@@ -107,9 +97,7 @@ public class ParallelAlgorithm implements Algorithm {
 
   private volatile ReachedSet finalReachedSet = null;
   private CFANode mainEntryNode = null;
-  private final AggregatedReachedSets aggregatedReachedSets;
-
-  private final ReachedSetAggregator invariantsAggregator = new ReachedSetAggregator();
+  private final AggregatedReachedSetManager aggregatedReachedSetManager;
 
   public ParallelAlgorithm(
       Configuration config,
@@ -126,7 +114,9 @@ public class ParallelAlgorithm implements Algorithm {
     shutdownManager = ShutdownManager.createWithParent(checkNotNull(pShutdownNotifier));
     cfa = checkNotNull(pCfa);
     filename = checkNotNull(pFilename);
-    aggregatedReachedSets = checkNotNull(pAggregatedReachedSets);
+
+    aggregatedReachedSetManager = new AggregatedReachedSetManager();
+    aggregatedReachedSetManager.addAggregated(pAggregatedReachedSets);
   }
 
   @Override
@@ -134,7 +124,7 @@ public class ParallelAlgorithm implements Algorithm {
     mainEntryNode = AbstractStates.extractLocation(pReachedSet.getFirstState());
     ForwardingReachedSet forwardingReachedSet = (ForwardingReachedSet) pReachedSet;
 
-    ListeningExecutorService exec = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(configFiles.size()));
+    ListeningExecutorService exec = listeningDecorator(newFixedThreadPool(configFiles.size()));
     List<ListenableFuture<Optional<ReachedSet>>> futures = new ArrayList<>();
     int counter = 1;
     for (Path p : configFiles) {
@@ -177,7 +167,7 @@ public class ParallelAlgorithm implements Algorithm {
             throw (CPAException) cause;
           }
       } else {
-        throw new CPAException("Un unexpected exception occured", e);
+        throw new CPAException("An unexpected exception occured", e);
       }
     }
 
@@ -195,7 +185,7 @@ public class ParallelAlgorithm implements Algorithm {
     final ReachedSet reached;
     final LogManager singleLogger;
     final ConfigurableProgramAnalysis cpa;
-    String invariantType = "";
+    final boolean supplyReached;
 
     try {
       Iterable<String> parts =
@@ -207,9 +197,7 @@ public class ParallelAlgorithm implements Algorithm {
       }
       Iterator<String> configIt = parts.iterator();
       singleConfigFileName = Paths.get(configIt.next());
-      if (configIt.hasNext()) {
-        invariantType = configIt.next();
-      }
+      supplyReached = Iterables.contains(parts, "supply-reached");
 
       singleConfig = createSingleConfig(singleConfigFileName);
 
@@ -226,7 +214,7 @@ public class ParallelAlgorithm implements Algorithm {
               singleConfig,
               singleLogger,
               singleShutdownManager.getNotifier(),
-              aggregatedReachedSets);
+              aggregatedReachedSetManager.asView());
       cpa = coreComponents.createCPA(cfa, SpecAutomatonCompositionType.TARGET_SPEC);
 
       // TODO global info will not work correctly with parallel analyses
@@ -253,22 +241,17 @@ public class ParallelAlgorithm implements Algorithm {
       return () -> { return Optional.empty(); };
     }
 
-    final Algorithm algorithmToUse;
-    if (invariantType.equals("reached-inv-sup")) {
-      algorithmToUse = new ReachedSetInvariantGeneration(algorithm, cfa, singleLogger);
-      invariantsAggregator.invariantSuppliers.add((InvariantSupplier) algorithmToUse);
-    } else {
-      algorithmToUse = algorithm;
-    }
 
     return () -> {
       try {
-        AlgorithmStatus status = algorithmToUse.run(reached);
+        AlgorithmStatus status = algorithm.run(reached);
 
-        // if we do not have reliable information about the analysis we
-        // just ignore the result
+        // if we do not have reliable information about the analysis we just ignore the result
         if (status.isPrecise() && status.isSound()) {
           singleLogger.log(Level.INFO, "Analysis finished successfully");
+          if (supplyReached) {
+            aggregatedReachedSetManager.addReachedSet(reached);
+          }
           return Optional.of(reached);
         }
       } catch (CPAException e) {
@@ -305,48 +288,4 @@ public class ParallelAlgorithm implements Algorithm {
     return reached;
   }
 
-  private static class ReachedSetInvariantGeneration implements Algorithm, InvariantSupplier {
-
-    private final Algorithm algorithm;
-    private final CFA cfa;
-    private final LogManager logger;
-
-    private InvariantSupplier invSupplier = InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
-
-    public ReachedSetInvariantGeneration(Algorithm pInnerAlgorithm, CFA pCfa, LogManager pLogger) {
-      algorithm = pInnerAlgorithm;
-      cfa = pCfa;
-      logger = pLogger;
-    }
-
-    @Override
-    public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
-      AlgorithmStatus result = algorithm.run(pReachedSet);
-      invSupplier = new FormulaAndTreeSupplier(new LazyLocationMapping(pReachedSet), logger, cfa);
-      return result;
-    }
-
-    @Override
-    public Set<BooleanFormula> getInvariantsFor(
-        CFANode pNode, FormulaManagerView pFmgr, PathFormulaManager pPfmgr, PathFormula pContext) {
-      return invSupplier.getInvariantsFor(pNode, pFmgr, pPfmgr, pContext);
-    }
-  }
-
-  private static class ReachedSetAggregator implements InvariantSupplier {
-
-    private Set<InvariantSupplier> invariantSuppliers = new HashSet<>();
-
-    @Override
-    public Set<BooleanFormula> getInvariantsFor(
-        CFANode pNode, FormulaManagerView pFmgr, PathFormulaManager pPfmgr, PathFormula pContext) {
-      BooleanFormulaManager bfmgr = pFmgr.getBooleanFormulaManager();
-
-      return invariantSuppliers
-          .stream()
-          .flatMap(s -> s.getInvariantsFor(pNode, pFmgr, pPfmgr, pContext).stream())
-          .filter(f -> !bfmgr.isTrue(f))
-          .collect(Collectors.toSet());
-    }
-  }
 }
