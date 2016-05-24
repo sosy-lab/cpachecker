@@ -23,9 +23,10 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractReportedFormulas;
+
 import com.google.common.collect.Sets;
 
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -47,7 +48,6 @@ import org.sosy_lab.solver.api.BooleanFormulaManager;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
-import java.util.logging.Level;
 
 public class FormulaAndTreeSupplier implements InvariantSupplier, ExpressionTreeSupplier {
 
@@ -60,9 +60,8 @@ public class FormulaAndTreeSupplier implements InvariantSupplier, ExpressionTree
     this.expressionTreeSupplier = pExpressionTreeSupplier;
   }
 
-  public FormulaAndTreeSupplier(LazyLocationMapping pLazyLocationMapping, LogManager pLogger,
-      CFA pCfa) {
-    invariantSupplier = new ReachedSetBasedInvariantSupplier(pLazyLocationMapping, pLogger);
+  public FormulaAndTreeSupplier(LazyLocationMapping pLazyLocationMapping, CFA pCfa) {
+    invariantSupplier = new ReachedSetBasedInvariantSupplier(pLazyLocationMapping);
     expressionTreeSupplier = new ReachedSetBasedExpressionTreeSupplier(pLazyLocationMapping, pCfa);
   }
 
@@ -84,10 +83,8 @@ public class FormulaAndTreeSupplier implements InvariantSupplier, ExpressionTree
   public static class ReachedSetBasedInvariantSupplier implements InvariantSupplier {
 
     private final LazyLocationMapping lazyLocationMapping;
-    private final LogManager logger;
 
-    public ReachedSetBasedInvariantSupplier(LazyLocationMapping pLazyLocationMapping, LogManager pLogger) {
-      logger = Objects.requireNonNull(pLogger);
+    public ReachedSetBasedInvariantSupplier(LazyLocationMapping pLazyLocationMapping) {
       lazyLocationMapping = Objects.requireNonNull(pLazyLocationMapping);
     }
 
@@ -101,10 +98,7 @@ public class FormulaAndTreeSupplier implements InvariantSupplier, ExpressionTree
       BooleanFormula invariant = bfmgr.makeBoolean(false);
 
       for (AbstractState locState : lazyLocationMapping.get(pLocation)) {
-        BooleanFormula f = AbstractStates.extractReportedFormulas(fmgr, locState, pfmgr);
-        logger.log(Level.ALL, "Invariant for", pLocation + ":", f);
-
-        invariant = bfmgr.or(invariant, f);
+        invariant = bfmgr.or(invariant, extractReportedFormulas(fmgr, locState, pfmgr));
       }
       return Collections.singleton(invariant);
     }
