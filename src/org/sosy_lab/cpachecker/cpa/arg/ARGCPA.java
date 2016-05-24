@@ -352,7 +352,9 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
 
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
-      pOut.println("Total time for ARG to C translation:          " + argTranslationTime);
+      if (argTranslationTime.getNumberOfIntervals() > 0) {
+        pOut.println("Total time for ARG to C translation:          " + argTranslationTime);
+      }
     }
 
     @Override
