@@ -32,20 +32,20 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, RuntimeException> {
+public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, UnsupportedOperationException> {
 
-  public static interface SubstituteProvider {
-    public @Nullable CAstNode findSubstitute(CAstNode pNode);
-    public @Nullable CAstNode adjustTypesAfterSubstitution(CAstNode pNode);
+  public interface SubstituteProvider {
+    @Nullable CAstNode findSubstitute(CAstNode pNode);
+    @Nullable CAstNode adjustTypesAfterSubstitution(CAstNode pNode);
   }
 
   private SubstituteProvider sp;
 
-  public SubstitutingCAstNodeVisitor(SubstituteProvider pSubstituteProvider) {
+  public SubstitutingCAstNodeVisitor(final SubstituteProvider pSubstituteProvider) {
     this.sp = Preconditions.checkNotNull(pSubstituteProvider);
   }
 
-  private @Nullable CAstNode findSubstitute(CAstNode pNode) {
+  private @Nullable CAstNode findSubstitute(final CAstNode pNode) {
     final CAstNode preTypeCheck = sp.findSubstitute(pNode);
     final CAstNode postTypeCheck;
     if (preTypeCheck != null) {
@@ -61,7 +61,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
     }
   }
 
-  private <T> T firstNotNull(T pExpr1, T pExpr2) {
+  private <T> T firstNotNull(final T pExpr1, final T pExpr2) {
     if (pExpr1 != null) {
       return pExpr1;
     }
@@ -72,7 +72,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
   }
 
   @Override
-  public CAstNode visit(CArrayDesignator pNode) throws RuntimeException {
+  public CAstNode visit(final CArrayDesignator pNode) {
     final CAstNode result = findSubstitute(pNode);
     if (result != null) {
       return result;
@@ -90,7 +90,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
   }
 
   @Override
-  public CAstNode visit(CArrayRangeDesignator pNode) throws RuntimeException {
+  public CAstNode visit(final CArrayRangeDesignator pNode)  {
     final CAstNode result = findSubstitute(pNode);
     if (result != null) {
       return result;
@@ -113,7 +113,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
   }
 
   @Override
-  public CAstNode visit(CFieldDesignator pNode) throws RuntimeException {
+  public CAstNode visit(final CFieldDesignator pNode) {
     final CAstNode result = findSubstitute(pNode);
     if (result != null) {
       return result;
@@ -123,7 +123,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
   }
 
   @Override
-  public CAstNode visit(CInitializerList pNode) throws RuntimeException {
+  public CAstNode visit(final CInitializerList pNode) {
     final CAstNode result = findSubstitute(pNode);
     if (result != null) {
       return result;
@@ -148,27 +148,27 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
   }
 
   @Override
-  public CAstNode visit(CReturnStatement pNode) throws RuntimeException {
-    throw new RuntimeException("Not yet implemented! Implement me!");
+  public CAstNode visit(final CReturnStatement pNode) {
+    throw new UnsupportedOperationException("Not yet implemented! Implement me!");
   }
 
   @Override
-  public CAstNode visit(CDesignatedInitializer pNode) throws RuntimeException {
-    throw new RuntimeException("Not yet implemented! Implement me!");
+  public CAstNode visit(final CDesignatedInitializer pNode) {
+    throw new UnsupportedOperationException("Not yet implemented! Implement me!");
   }
 
   @Override
-  public CAstNode visit(CInitializerExpression pNode) throws RuntimeException {
-    throw new RuntimeException("Not yet implemented! Implement me!");
+  public CAstNode visit(final CInitializerExpression pNode) {
+    throw new UnsupportedOperationException("Not yet implemented! Implement me!");
   }
 
   @Override
-  public CAstNode visit(CFunctionCallExpression pNode) throws RuntimeException {
-    throw new RuntimeException("Not yet implemented! Implement me!");
+  public CAstNode visit(final CFunctionCallExpression pNode) {
+    throw new UnsupportedOperationException("Not yet implemented! Implement me!");
   }
 
   @Override
-  public CAstNode visit(CBinaryExpression pNode) throws RuntimeException {
+  public CAstNode visit(final CBinaryExpression pNode) {
     CAstNode subst = substituteOnBinExpr(pNode);
     if (subst == null) {
       return pNode;
@@ -177,7 +177,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
     }
   }
 
-  private CAstNode substituteOnBinExpr(CBinaryExpression pNode) {
+  private CAstNode substituteOnBinExpr(final CBinaryExpression pNode) {
     final CAstNode result = findSubstitute(pNode);
     if (result != null) {
       return result;
@@ -203,7 +203,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
   }
 
   @Override
-  public CAstNode visit(CCastExpression pNode) throws RuntimeException {
+  public CAstNode visit(final CCastExpression pNode) {
     final CAstNode result = findSubstitute(pNode);
     if (result != null) {
       return result;
@@ -223,7 +223,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
   }
 
   @Override
-  public CAstNode visit(CTypeIdExpression pNode) throws RuntimeException {
+  public CAstNode visit(final CTypeIdExpression pNode) {
     final CAstNode result = findSubstitute(pNode);
     if (result != null) {
       return result;
@@ -233,7 +233,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
   }
 
   @Override
-  public CAstNode visit(CUnaryExpression pNode) throws RuntimeException {
+  public CAstNode visit(final CUnaryExpression pNode) {
     final CAstNode result = findSubstitute(pNode);
     if (result != null) {
       return result;
@@ -254,7 +254,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
   }
 
   @Override
-  public CAstNode visit(CArraySubscriptExpression pNode) throws RuntimeException {
+  public CAstNode visit(final CArraySubscriptExpression pNode) {
     final CAstNode result = findSubstitute(pNode);
     if (result != null) {
       return result;
@@ -278,12 +278,12 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
   }
 
   @Override
-  public CAstNode visit(CComplexCastExpression pNode) throws RuntimeException {
-    throw new RuntimeException("Not yet implemented! Implement me!");
+  public CAstNode visit(final CComplexCastExpression pNode) {
+    throw new UnsupportedOperationException("Not yet implemented! Implement me!");
   }
 
   @Override
-  public CAstNode visit(CFieldReference pNode) throws RuntimeException {
+  public CAstNode visit(final CFieldReference pNode) {
     final CAstNode result = findSubstitute(pNode);
     if (result != null) {
       return result;
@@ -293,7 +293,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
   }
 
   @Override
-  public CAstNode visit(CIdExpression pNode) throws RuntimeException {
+  public CAstNode visit(final CIdExpression pNode) {
     CAstNode subst = findSubstitute(pNode);
     if (subst == null) {
       return pNode;
@@ -303,7 +303,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
   }
 
   @Override
-  public CAstNode visit(CPointerExpression pNode) throws RuntimeException {
+  public CAstNode visit(final CPointerExpression pNode) {
     final CAstNode result = findSubstitute(pNode);
     if (result != null) {
       return result;
@@ -323,7 +323,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
   }
 
   @Override
-  public CAstNode visit(CCharLiteralExpression pNode) throws RuntimeException {
+  public CAstNode visit(final CCharLiteralExpression pNode) {
     final CAstNode result = findSubstitute(pNode);
     if (result != null) {
       return result;
@@ -333,7 +333,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
   }
 
   @Override
-  public CAstNode visit(CFloatLiteralExpression pNode) throws RuntimeException {
+  public CAstNode visit(final CFloatLiteralExpression pNode) {
     final CAstNode result = findSubstitute(pNode);
     if (result != null) {
       return result;
@@ -343,7 +343,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
   }
 
   @Override
-  public CAstNode visit(CImaginaryLiteralExpression pNode) throws RuntimeException {
+  public CAstNode visit(final CImaginaryLiteralExpression pNode) {
     final CAstNode result = findSubstitute(pNode);
     if (result != null) {
       return result;
@@ -353,7 +353,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
   }
 
   @Override
-  public CAstNode visit(CIntegerLiteralExpression pNode) throws RuntimeException {
+  public CAstNode visit(final CIntegerLiteralExpression pNode) {
     final CAstNode result = findSubstitute(pNode);
     if (result != null) {
       return result;
@@ -363,7 +363,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
   }
 
   @Override
-  public CAstNode visit(CStringLiteralExpression pNode) throws RuntimeException {
+  public CAstNode visit(final CStringLiteralExpression pNode) {
     final CAstNode result = findSubstitute(pNode);
     if (result != null) {
       return result;
@@ -373,32 +373,32 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
   }
 
   @Override
-  public CAstNode visit(CAddressOfLabelExpression pNode) throws RuntimeException {
-    throw new RuntimeException("Not yet implemented! Implement me!");
+  public CAstNode visit(final CAddressOfLabelExpression pNode) {
+    throw new UnsupportedOperationException("Not yet implemented! Implement me!");
   }
 
   @Override
-  public CAstNode visit(CParameterDeclaration pNode) throws RuntimeException {
-    throw new RuntimeException("Not yet implemented! Implement me!");
+  public CAstNode visit(final CParameterDeclaration pNode) {
+    throw new UnsupportedOperationException("Not yet implemented! Implement me!");
   }
 
   @Override
-  public CAstNode visit(CFunctionDeclaration pNode) throws RuntimeException {
-    throw new RuntimeException("Not yet implemented! Implement me!");
+  public CAstNode visit(final CFunctionDeclaration pNode) {
+    throw new UnsupportedOperationException("Not yet implemented! Implement me!");
   }
 
   @Override
-  public CAstNode visit(CComplexTypeDeclaration pNode) throws RuntimeException {
-    throw new RuntimeException("Not yet implemented! Implement me!");
+  public CAstNode visit(final CComplexTypeDeclaration pNode) {
+    throw new UnsupportedOperationException("Not yet implemented! Implement me!");
   }
 
   @Override
-  public CAstNode visit(CTypeDefDeclaration pNode) throws RuntimeException {
-    throw new RuntimeException("Not yet implemented! Implement me!");
+  public CAstNode visit(final CTypeDefDeclaration pNode) {
+    throw new UnsupportedOperationException("Not yet implemented! Implement me!");
   }
 
   @Override
-  public CAstNode visit(CVariableDeclaration pNode) throws RuntimeException {
+  public CAstNode visit(final CVariableDeclaration pNode) {
     final CAstNode result = findSubstitute(pNode);
     if (result != null) {
       return result;
@@ -416,7 +416,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
   }
 
   @Override
-  public CAstNode visit(CExpressionAssignmentStatement pNode) throws RuntimeException {
+  public CAstNode visit(final CExpressionAssignmentStatement pNode) {
     final CAstNode result = findSubstitute(pNode);
     if (result != null) {
       return result;
@@ -439,7 +439,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
   }
 
   @Override
-  public CAstNode visit(CExpressionStatement pNode) throws RuntimeException {
+  public CAstNode visit(final CExpressionStatement pNode) {
     final CAstNode result = findSubstitute(pNode);
     if (result != null) {
       return result;
@@ -458,18 +458,18 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
   }
 
   @Override
-  public CAstNode visit(CFunctionCallAssignmentStatement pNode) throws RuntimeException {
-    throw new RuntimeException("Not yet implemented! Implement me!");
+  public CAstNode visit(final CFunctionCallAssignmentStatement pNode) {
+    throw new UnsupportedOperationException("Not yet implemented! Implement me!");
   }
 
   @Override
-  public CAstNode visit(CFunctionCallStatement pNode) throws RuntimeException {
-    throw new RuntimeException("Not yet implemented! Implement me!");
+  public CAstNode visit(final CFunctionCallStatement pNode) {
+    throw new UnsupportedOperationException("Not yet implemented! Implement me!");
   }
 
   @Override
-  public CAstNode visit(CEnumerator pCEnumerator) {
-    throw new RuntimeException("Not yet implemented! Implement me!");
+  public CAstNode visit(final CEnumerator pCEnumerator) {
+    throw new UnsupportedOperationException("Not yet implemented! Implement me!");
   }
 
 
