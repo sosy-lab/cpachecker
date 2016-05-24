@@ -23,12 +23,22 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor.SubstituteProvider;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+
+import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.annotation.Nullable;
 
@@ -70,11 +80,41 @@ public class SubstitutingCAstNodeVisitorTest {
     }
   }
 
+  private class RealSubstitutionProvider implements SubstituteProvider {
+
+    Map<String, CAstNode> expressions;
+
+    RealSubstitutionProvider(final Map<String, CAstNode> pExpressions) {
+      expressions = pExpressions;
+    }
+
+    @Nullable
+    @Override
+    public CAstNode findSubstitute(final CAstNode pNode) {
+      if (expressions.containsKey(pNode.getClass().toString())) {
+        return expressions.get(pNode.getClass().toString());
+      } else {
+        return null;
+      }
+    }
+
+    @Nullable
+    @Override
+    public CAstNode adjustTypesAfterSubstitution(final CAstNode pNode) {
+      if (expressions.containsKey(pNode.getClass().toString())) {
+        return expressions.get(pNode.getClass().toString());
+      } else {
+        return null;
+      }
+    }
+  }
+
   @Rule
   public final ExpectedException exception = ExpectedException.none();
 
   private SubstitutingCAstNodeVisitor nullVisitor;
   private SubstitutingCAstNodeVisitor identityVisitor;
+  private SubstitutingCAstNodeVisitor realSubstitutionVisitor;
 
   private CArrayDesignator arrayDesignator;
   private CArrayRangeDesignator arrayRangeDesignator;
@@ -133,6 +173,28 @@ public class SubstitutingCAstNodeVisitorTest {
     enumerator = null;
 
     // Initialization for other types
+    variableDeclaration =
+        new CVariableDeclaration(
+            FileLocation.DUMMY,
+            true,
+            CStorageClass.AUTO,
+            CNumericTypes.INT,
+            "tmp",
+            "tmp",
+            "tmp",
+            new CInitializerExpression(FileLocation.DUMMY, CIntegerLiteralExpression.ZERO));
+    idExpression = new CIdExpression(FileLocation.DUMMY, variableDeclaration);
+    charLiteralExpression = new CCharLiteralExpression(FileLocation.DUMMY, CNumericTypes.CHAR, 'x');
+    floatLiteralExpression =
+        new CFloatLiteralExpression(FileLocation.DUMMY, CNumericTypes.FLOAT, new BigDecimal(42.0));
+    imaginaryLiteralExpression =
+        new CImaginaryLiteralExpression(
+            FileLocation.DUMMY, CNumericTypes.FLOAT, floatLiteralExpression);
+    integerLiteralExpression = CIntegerLiteralExpression.ONE;
+    expressionAssignmentStatement =
+        new CExpressionAssignmentStatement(
+            FileLocation.DUMMY, idExpression, CIntegerLiteralExpression.ONE);
+    expressionStatement = new CExpressionStatement(FileLocation.DUMMY, idExpression);
     arrayDesignator = null;
     arrayRangeDesignator = null;
     fieldDesignator = null;
@@ -143,37 +205,29 @@ public class SubstitutingCAstNodeVisitorTest {
     unaryExpression = null;
     arraySubscriptExpression = null;
     fieldReference = null;
-    idExpression = null;
     pointerExpression = null;
-    charLiteralExpression = null;
-    floatLiteralExpression = null;
-    imaginaryLiteralExpression = null;
-    integerLiteralExpression = null;
     stringLiteralExpression = null;
-    variableDeclaration = null;
-    expressionAssignmentStatement = null;
-    expressionStatement = null;
+
+    Map<String, CAstNode> substitutionMap = new HashMap<>();
+    realSubstitutionVisitor =
+        new SubstitutingCAstNodeVisitor(new RealSubstitutionProvider(substitutionMap));
   }
 
+  @Ignore
   @Test
-  public void visitCArrayDesignator() {
+  public void visitCArrayDesignator() {}
 
-  }
-
+  @Ignore
   @Test
-  public void visitCArrayRangeDesignator() {
+  public void visitCArrayRangeDesignator() {}
 
-  }
-
+  @Ignore
   @Test
-  public void visitCFieldDesignator() {
+  public void visitCFieldDesignator() {}
 
-  }
-
+  @Ignore
   @Test
-  public void visitCInitializerList() {
-
-  }
+  public void visitCInitializerList() {}
 
   @Test
   public void visitCReturnStatement() {
@@ -199,30 +253,25 @@ public class SubstitutingCAstNodeVisitorTest {
     nullVisitor.visit(functionCallExpression);
   }
 
+  @Ignore
   @Test
-  public void visitCBinaryExpression() {
+  public void visitCBinaryExpression() {}
 
-  }
-
+  @Ignore
   @Test
-  public void visitCCastExpression() {
+  public void visitCCastExpression() {}
 
-  }
-
+  @Ignore
   @Test
-  public void visitCTypeIdExpression() {
+  public void visitCTypeIdExpression() {}
 
-  }
-
+  @Ignore
   @Test
-  public void visitCUnaryExpression() {
+  public void visitCUnaryExpression() {}
 
-  }
-
+  @Ignore
   @Test
-  public void visitCArraySubscriptExpression() {
-
-  }
+  public void visitCArraySubscriptExpression() {}
 
   @Test
   public void visitCComplexCastException() {
@@ -230,45 +279,48 @@ public class SubstitutingCAstNodeVisitorTest {
     nullVisitor.visit(complexCastExpression);
   }
 
+  @Ignore
   @Test
-  public void visitCFieldReference() {
-
-  }
+  public void visitCFieldReference() {}
 
   @Test
   public void visitCIdExpression() {
-
+    assertThat(nullVisitor.visit(idExpression)).isEqualTo(idExpression);
+    assertThat(identityVisitor.visit(idExpression)).isEqualTo(idExpression);
   }
 
+  @Ignore
   @Test
-  public void visitCPointerExpression() {
-
-  }
+  public void visitCPointerExpression() {}
 
   @Test
   public void visitCCharLiteralExpression() {
-
+    assertThat(nullVisitor.visit(charLiteralExpression)).isEqualTo(charLiteralExpression);
+    assertThat(identityVisitor.visit(charLiteralExpression)).isEqualTo(charLiteralExpression);
   }
 
   @Test
   public void visitCFloatLiteralExpression() {
-
+    assertThat(nullVisitor.visit(floatLiteralExpression)).isEqualTo(floatLiteralExpression);
+    assertThat(identityVisitor.visit(floatLiteralExpression)).isEqualTo(floatLiteralExpression);
   }
 
   @Test
   public void visitCImaginaryLiteralExpression() {
-
+    assertThat(nullVisitor.visit(imaginaryLiteralExpression)).isEqualTo(imaginaryLiteralExpression);
+    assertThat(identityVisitor.visit(imaginaryLiteralExpression))
+        .isEqualTo(imaginaryLiteralExpression);
   }
 
   @Test
   public void visitCIntegerLiteralExpression() {
-
+    assertThat(nullVisitor.visit(integerLiteralExpression)).isEqualTo(integerLiteralExpression);
+    assertThat(identityVisitor.visit(integerLiteralExpression)).isEqualTo(integerLiteralExpression);
   }
 
+  @Ignore
   @Test
-  public void visitStringLiteralExpression() {
-
-  }
+  public void visitStringLiteralExpression() {}
 
   @Test
   public void visitCAddressOfLabelExpression() {
@@ -302,17 +354,22 @@ public class SubstitutingCAstNodeVisitorTest {
 
   @Test
   public void visitCVariableDeclaration() {
-
+    assertThat(nullVisitor.visit(variableDeclaration)).isEqualTo(variableDeclaration);
+    assertThat(identityVisitor.visit(variableDeclaration)).isEqualTo(variableDeclaration);
   }
 
   @Test
   public void visitCExpressionAssignmentStatement() {
-
+    assertThat(nullVisitor.visit(expressionAssignmentStatement))
+        .isEqualTo(expressionAssignmentStatement);
+    assertThat(identityVisitor.visit(expressionAssignmentStatement))
+        .isEqualTo(expressionAssignmentStatement);
   }
 
   @Test
   public void visitCExpressionStatement() {
-
+    assertThat(nullVisitor.visit(expressionStatement)).isEqualTo(expressionStatement);
+    assertThat(identityVisitor.visit(expressionStatement)).isEqualTo(expressionStatement);
   }
 
   @Test
