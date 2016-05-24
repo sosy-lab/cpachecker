@@ -47,6 +47,7 @@ import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier.TrivialInvariantSupplier;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage.AbstractionNode;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
@@ -76,7 +77,6 @@ import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -86,6 +86,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -208,7 +209,7 @@ public class PredicateAbstractionManager {
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      @Nullable InvariantSupplier pInvariantsSupplier)
+      InvariantSupplier pInvariantsSupplier)
       throws InvalidConfigurationException, PredicateParsingFailedException {
     shutdownNotifier = pShutdownNotifier;
     config = pConfig;
@@ -351,23 +352,25 @@ public class PredicateAbstractionManager {
     }
 
     // add invariants to abstraction formula if available
-    Set<BooleanFormula> invariants;
-    if (invariantSupplier != null) {
-      invariants = invariantSupplier.getInvariantsFor(location, fmgr, pfmgr, pathFormula);
-    } else {
-      invariants = Collections.emptySet();
-    }
+    if (invariantSupplier != TrivialInvariantSupplier.INSTANCE) {
+      Set<BooleanFormula> invariants =
+          invariantSupplier
+              .getInvariantsFor(location, fmgr, pfmgr, pathFormula)
+              .stream()
+              .filter(i -> !bfmgr.isTrue(i))
+              .collect(Collectors.toSet());
 
-    if (!invariants.isEmpty()) {
-      Collection<AbstractionPredicate> invPredicates = new ArrayList<>();
-      for (BooleanFormula inv : invariants) {
-        AbstractionPredicate absPred = amgr.makePredicate(inv);
-        invPredicates.add(absPred);
-        abs = rmgr.makeAnd(abs, absPred.getAbstractVariable());
+      if (!invariants.isEmpty()) {
+        Collection<AbstractionPredicate> invPredicates = new ArrayList<>();
+        for (BooleanFormula inv : invariants) {
+          AbstractionPredicate absPred = amgr.makePredicate(inv);
+          invPredicates.add(absPred);
+          abs = rmgr.makeAnd(abs, absPred.getAbstractVariable());
+        }
+
+        // Calculate the set of predicates we still need to use for abstraction.
+        Iterables.removeIf(remainingPredicates, in(invPredicates));
       }
-
-      // Calculate the set of predicates we still need to use for abstraction.
-      Iterables.removeIf(remainingPredicates, in(invPredicates));
     }
 
     try (ProverEnvironment thmProver = solver.newProverEnvironment()) {

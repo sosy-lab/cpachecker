@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.ForwardingInvariantSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier.TrivialInvariantSupplier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
@@ -190,7 +191,9 @@ public class PredicateCPA
             config,
             logger,
             pShutdownNotifier,
-            invariantsManager.appendToAbstractionFormula() ? invariantsManager : null);
+            invariantsManager.appendToAbstractionFormula()
+                ? invariantsManager
+                : TrivialInvariantSupplier.INSTANCE);
 
     transfer =
         new PredicateTransferRelation(
@@ -225,7 +228,7 @@ public class PredicateCPA
             predicateManager,
             invariantsManager.appendToPathFormula()
                 ? invariantsManager
-                : InvariantSupplier.TrivialInvariantSupplier.INSTANCE,
+                : TrivialInvariantSupplier.INSTANCE,
             predicateProvider);
 
     if (stopType.equals("SEP")) {
