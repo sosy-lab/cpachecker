@@ -1,27 +1,17 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra;
 
-import apron.Abstract1;
-import apron.Coeff;
-import apron.Environment;
-import apron.Lincons1;
-import apron.Linexpr1;
-import apron.Linterm1;
-import apron.Manager;
-import apron.MpqScalar;
-import apron.Polka;
-import apron.SetUp;
-
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import org.sosy_lab.common.NativeLibraries;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.LinearExpression;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cpa.apron.ApronManager;
 import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyAbstractedState;
 import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyBound;
 import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationStatistics;
@@ -35,10 +25,16 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 
+import apron.Abstract1;
+import apron.Coeff;
+import apron.Environment;
+import apron.Lincons1;
+import apron.Linexpr1;
+import apron.Linterm1;
+import apron.Manager;
+import apron.MpqScalar;
+
 public class PolyhedraWideningManager {
-  static {
-    SetUp.init(NativeLibraries.getNativeLibraryPath().resolve("apron").toAbsolutePath().toString());
-  }
 
   private final Manager manager;
   private final Map<String, CIdExpression> types;
@@ -46,10 +42,11 @@ public class PolyhedraWideningManager {
   private final LogManager logger;
 
   public PolyhedraWideningManager(PolicyIterationStatistics pStatistics,
-      LogManager pLogger) {
+      LogManager pLogger) throws InvalidConfigurationException {
     statistics = pStatistics;
     logger = pLogger;
-    manager = new Polka(false);
+
+    manager = new ApronManager("POLKA").getManager();
     types = new HashMap<>();
   }
 
@@ -57,12 +54,8 @@ public class PolyhedraWideningManager {
     return manager;
   }
 
-  private static final Function<PolicyBound, Rational> DATA_GETTER = new Function<PolicyBound, Rational>() {
-    @Override
-    public Rational apply(PolicyBound input) {
-      return input.getBound();
-    }
-  };
+  private static final Function<PolicyBound, Rational> DATA_GETTER =
+      PolicyBound::getBound;
 
   public Set<Template> generateWideningTemplates(
       PolicyAbstractedState oldState,

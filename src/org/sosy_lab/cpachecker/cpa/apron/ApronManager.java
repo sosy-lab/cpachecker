@@ -23,6 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.apron;
 
+import org.sosy_lab.common.NativeLibraries;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+
 import apron.Box;
 import apron.Manager;
 import apron.Octagon;
@@ -30,18 +36,8 @@ import apron.Polka;
 import apron.PolkaEq;
 import apron.SetUp;
 
-import org.sosy_lab.common.NativeLibraries;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
-
 @Options(prefix="cpa.apron")
 public class ApronManager {
-
-  static {
-    SetUp.init(NativeLibraries.getNativeLibraryPath().resolve("apron").toAbsolutePath().toString());
-  }
 
   @Option(secure=true, name="domain", toUppercase=true, values={"BOX", "OCTAGON", "POLKA", "POLKA_STRICT", "POLKA_EQ"},
       description="Use this to change the underlying abstract domain in the APRON library")
@@ -51,20 +47,32 @@ public class ApronManager {
 
   public ApronManager(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
+    manager = getManager(domainType);
+  }
 
-    if (domainType.equals("BOX")) {
-      manager = new Box();
-    } else if (domainType.equals("OCTAGON")) {
-      manager = new Octagon();
-    } else if (domainType.equals("POLKA")) {
-      manager = new Polka(false);
-    } else if (domainType.equals("POLKA_STRICT")) {
-      manager = new Polka(true);
-    } else if (domainType.equals("POLKA_EQ")) {
-      manager = new PolkaEq();
-    } else {
-      throw new InvalidConfigurationException("Invalid argument for domain option.");
+  public ApronManager(String pDomainType) throws InvalidConfigurationException {
+    manager = getManager(pDomainType);
+  }
+
+  private Manager getManager(String pDomainType)
+      throws InvalidConfigurationException {
+
+    SetUp.init(NativeLibraries.getNativeLibraryPath().resolve("apron").toAbsolutePath().toString());
+    switch (pDomainType) {
+      case "BOX":
+        return new Box();
+      case "OCTAGON":
+        return new Octagon();
+      case "POLKA":
+        return new Polka(false);
+      case "POLKA_STRICT":
+        return new Polka(true);
+      case "POLKA_EQ":
+        return new PolkaEq();
+      default:
+        throw new InvalidConfigurationException("Invalid argument for domain option.");
     }
+
   }
 
   public Manager getManager() {
