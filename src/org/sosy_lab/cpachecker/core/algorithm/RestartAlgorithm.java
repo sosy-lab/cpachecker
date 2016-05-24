@@ -249,6 +249,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
     AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_PRECISE;
     boolean provideInvariantsForNextAlgorithm = false;
+    final List<ConfigurableProgramAnalysis> cpasToClose = new ArrayList<>();
 
     while (configFilesIterator.hasNext()) {
       stats.totalTime.start();
@@ -411,14 +412,18 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
         }
         stats.resetSubStatistics();
 
-        if (currentCpa != null) {
+        if (currentCpa != null && ! provideInvariantsForNextAlgorithm) {
           CPAs.closeCpaIfPossible(currentCpa, logger);
+        } else {
+          cpasToClose.add(currentCpa);
         }
         CPAs.closeIfPossible(currentAlgorithm, logger);
 
         logger.log(Level.INFO, "RestartAlgorithm switches to the next configuration...");
       }
     }
+
+    cpasToClose.forEach(cpa -> CPAs.closeCpaIfPossible(cpa, logger));
 
     // no further configuration available, and analysis has not finished
     logger.log(Level.INFO, "No further configuration available.");
