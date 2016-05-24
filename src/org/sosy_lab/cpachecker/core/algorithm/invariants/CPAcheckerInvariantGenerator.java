@@ -186,7 +186,7 @@ public class CPAcheckerInvariantGenerator extends AbstractInvariantGenerator {
     if (generationCompleted) {
       checkState(programIsSafe || !reached.hasWaitingState());
       checkState(!reached.isEmpty());
-      return new FormulaAndTreeSupplier(new LazyLocationMapping(reached), logger, cfa);
+      return new FormulaAndTreeSupplier(new LazyLocationMapping(reached), cfa);
     } else {
       return InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
     }

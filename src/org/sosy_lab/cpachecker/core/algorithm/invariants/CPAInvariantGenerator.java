@@ -478,7 +478,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
 
       checkState(!taskReached.hasWaitingState());
       checkState(!taskReached.isEmpty());
-      return new FormulaAndTreeSupplier(new LazyLocationMapping(taskReached), logger, cfa);
+      return new FormulaAndTreeSupplier(new LazyLocationMapping(taskReached), cfa);
     }
   }
 
