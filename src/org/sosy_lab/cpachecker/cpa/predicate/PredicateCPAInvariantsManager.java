@@ -307,7 +307,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       localInvariants = Collections.emptySet();
     }
     if (useGlobalInvariants) {
-      return Sets.union(localInvariants, globalInvariantSupplier.getInvariantsFor(pNode, fmgr, pfmgr, pContext));
+      return Sets.union(localInvariants, globalInvariantSupplier.getInvariantsFor(pNode, pFmgr, pPfmgr, pContext));
     }
 
     return localInvariants;
