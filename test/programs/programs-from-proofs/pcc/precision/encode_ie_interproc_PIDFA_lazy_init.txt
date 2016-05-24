@@ -1,0 +1,13 @@
+(set-info :source |printed by MathSAT|)
+(declare-fun |main::index| () Int)
+
+main N29:
+(assert (let ((.def_148 (<= |main::index| 1))).def_148))
+(assert (let ((.def_304 (<= |main::index| 3))).def_304))
+
+main N60:
+(assert false)
+
+main N63:
+(assert false)
+

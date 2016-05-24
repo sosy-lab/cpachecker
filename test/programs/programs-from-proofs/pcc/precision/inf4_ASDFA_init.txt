@@ -1,0 +1,7 @@
+
+main:
+main::a
+main::b
+main::c
+
+*:

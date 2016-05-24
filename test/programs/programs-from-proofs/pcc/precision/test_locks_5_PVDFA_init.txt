@@ -1,0 +1,67 @@
+(set-info :source |printed by MathSAT|)
+(declare-fun |main::p1| () Int)
+(declare-fun |main::p2| () Int)
+(declare-fun |main::p3| () Int)
+(declare-fun |main::p4| () Int)
+(declare-fun |main::p5| () Int)
+
+main N33:
+(assert (let ((.def_97 (<= |main::p1| 0))).def_97))
+
+main N37:
+(assert (let ((.def_97 (<= |main::p1| 0))).def_97))
+(assert (let ((.def_142 (<= |main::p2| 0))).def_142))
+
+main N41:
+(assert (let ((.def_211 (<= |main::p3| 0))).def_211))
+(assert (let ((.def_97 (<= |main::p1| 0))).def_97))
+(assert (let ((.def_142 (<= |main::p2| 0))).def_142))
+
+main N45:
+(assert (let ((.def_211 (<= |main::p3| 0))).def_211))
+(assert (let ((.def_97 (<= |main::p1| 0))).def_97))
+(assert (let ((.def_338 (<= |main::p4| 0))).def_338))
+(assert (let ((.def_142 (<= |main::p2| 0))).def_142))
+
+main N49:
+(assert (let ((.def_211 (<= |main::p3| 0))).def_211))
+(assert (let ((.def_97 (<= |main::p1| 0))).def_97))
+(assert (let ((.def_338 (<= |main::p4| 0))).def_338))
+(assert (let ((.def_546 (<= |main::p5| 0))).def_546))
+(assert (let ((.def_142 (<= |main::p2| 0))).def_142))
+
+main N53:
+(assert (let ((.def_211 (<= |main::p3| 0))).def_211))
+(assert (let ((.def_338 (<= |main::p4| 0))).def_338))
+(assert (let ((.def_546 (<= |main::p5| 0))).def_546))
+(assert (let ((.def_142 (<= |main::p2| 0))).def_142))
+
+main N58:
+(assert (let ((.def_211 (<= |main::p3| 0))).def_211))
+(assert (let ((.def_338 (<= |main::p4| 0))).def_338))
+(assert false)
+(assert (let ((.def_546 (<= |main::p5| 0))).def_546))
+
+main N63:
+(assert (let ((.def_546 (<= |main::p5| 0))).def_546))
+(assert (let ((.def_338 (<= |main::p4| 0))).def_338))
+
+main N68:
+(assert false)
+(assert (let ((.def_546 (<= |main::p5| 0))).def_546))
+
+main N91:
+(assert false)
+
+main N96:
+(assert false)
+
+main N106:
+(assert false)
+
+main N111:
+(assert false)
+
+main N121:
+(assert false)
+

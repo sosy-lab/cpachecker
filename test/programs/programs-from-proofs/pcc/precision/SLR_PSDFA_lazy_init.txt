@@ -1,0 +1,9 @@
+(set-info :source |printed by MathSAT|)
+(declare-fun |main::f| () Int)
+
+main N6:
+(assert (let ((.def_38 (<= |main::f| 0))).def_38))
+
+main N18:
+(assert false)
+

@@ -1,0 +1,32 @@
+(set-info :source |printed by MathSAT|)
+(declare-fun |memcpy::n| () Int)
+(declare-fun |encode_ie::leader_len| () Int)
+(declare-fun |encode_ie::index| () Int)
+(declare-fun |memcpy::i| () Int)
+
+memcpy N1:
+(assert (let ((.def_468 (<= 1 |memcpy::n|))).def_468))
+(assert (let ((.def_881 (+ |encode_ie::leader_len| |encode_ie::index|)))(let ((.def_882 (<= .def_881 1))).def_882)))
+
+memcpy N9:
+(assert (let ((.def_471 (<= 0 |memcpy::i|))).def_471))
+(assert (let ((.def_881 (+ |encode_ie::leader_len| |encode_ie::index|)))(let ((.def_882 (<= .def_881 1))).def_882)))
+
+encode_ie N21:
+(assert (let ((.def_465 (<= 1 |encode_ie::leader_len|))).def_465))
+(assert (let ((.def_878 (<= |encode_ie::leader_len| 1))).def_878))
+
+encode_ie N33:
+(assert false)
+(assert (let ((.def_881 (+ |encode_ie::leader_len| |encode_ie::index|)))(let ((.def_882 (<= .def_881 1))).def_882)))
+
+encode_ie N37:
+(assert (let ((.def_884 (<= |encode_ie::index| 1))).def_884))
+(assert (let ((.def_1333 (<= |encode_ie::index| 3))).def_1333))
+
+encode_ie N82:
+(assert false)
+
+encode_ie N85:
+(assert false)
+

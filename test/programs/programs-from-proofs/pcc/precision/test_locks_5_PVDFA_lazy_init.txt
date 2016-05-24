@@ -1,0 +1,145 @@
+(set-info :source |printed by MathSAT|)
+(declare-fun |main::p1| () Int)
+(declare-fun |main::p2| () Int)
+(declare-fun |main::p3| () Int)
+(declare-fun |main::p4| () Int)
+(declare-fun |main::p5| () Int)
+
+main N33:
+(assert (let ((.def_97 (<= |main::p1| 0))).def_97))
+
+main N37:
+(assert (let ((.def_97 (<= |main::p1| 0))).def_97))
+(assert (let ((.def_142 (<= |main::p2| 0))).def_142))
+
+main N41:
+(assert (let ((.def_97 (<= |main::p1| 0))).def_97))
+(assert (let ((.def_142 (<= |main::p2| 0))).def_142))
+(assert (let ((.def_218 (<= |main::p3| 0))).def_218))
+
+main N45:
+(assert (let ((.def_97 (<= |main::p1| 0))).def_97))
+(assert (let ((.def_142 (<= |main::p2| 0))).def_142))
+(assert (let ((.def_218 (<= |main::p3| 0))).def_218))
+(assert (let ((.def_359 (<= |main::p4| 0))).def_359))
+
+main N49:
+(assert (let ((.def_97 (<= |main::p1| 0))).def_97))
+(assert (let ((.def_142 (<= |main::p2| 0))).def_142))
+(assert (let ((.def_218 (<= |main::p3| 0))).def_218))
+(assert (let ((.def_359 (<= |main::p4| 0))).def_359))
+(assert (let ((.def_593 (<= |main::p5| 0))).def_593))
+
+main N53:
+(assert (let ((.def_142 (<= |main::p2| 0))).def_142))
+(assert (let ((.def_218 (<= |main::p3| 0))).def_218))
+(assert (let ((.def_359 (<= |main::p4| 0))).def_359))
+(assert (let ((.def_593 (<= |main::p5| 0))).def_593))
+
+main N58:
+(assert false)
+(assert (let ((.def_218 (<= |main::p3| 0))).def_218))
+(assert (let ((.def_359 (<= |main::p4| 0))).def_359))
+(assert (let ((.def_593 (<= |main::p5| 0))).def_593))
+
+main N63:
+(assert (let ((.def_359 (<= |main::p4| 0))).def_359))
+(assert (let ((.def_593 (<= |main::p5| 0))).def_593))
+
+main N68:
+(assert false)
+(assert (let ((.def_593 (<= |main::p5| 0))).def_593))
+
+main N91:
+(assert false)
+
+main N96:
+(assert false)
+
+main N101:
+(assert false)
+
+main N111:
+(assert false)
+
+main N116:
+(assert false)
+
+main N121:
+(assert false)
+
+main N126:
+(assert false)
+
+main N131:
+(assert false)
+
+main N136:
+(assert false)
+
+main N141:
+(assert false)
+
+main N146:
+(assert false)
+
+main N151:
+(assert false)
+
+main N156:
+(assert false)
+
+main N161:
+(assert false)
+
+main N166:
+(assert false)
+
+main N176:
+(assert false)
+
+main N181:
+(assert false)
+
+main N186:
+(assert false)
+
+main N191:
+(assert false)
+
+main N196:
+(assert false)
+
+main N201:
+(assert false)
+
+main N206:
+(assert false)
+
+main N211:
+(assert false)
+
+main N216:
+(assert false)
+
+main N221:
+(assert false)
+
+main N226:
+(assert false)
+
+main N231:
+(assert false)
+
+main N236:
+(assert false)
+
+main N241:
+(assert false)
+
+main N246:
+(assert false)
+
+main N251:
+(assert false)
+

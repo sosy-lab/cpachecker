@@ -1,0 +1,7 @@
+
+main:
+main::index
+main::leader_len
+
+*:
+flag

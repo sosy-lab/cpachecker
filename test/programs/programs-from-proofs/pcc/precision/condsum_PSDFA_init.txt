@@ -1,0 +1,19 @@
+(set-info :source |printed by MathSAT|)
+(declare-fun |main::x| () Int)
+
+main N7:
+(assert (let ((.def_55 (<= 1 |main::x|))).def_55))
+
+main N12:
+(assert (let ((.def_55 (<= 1 |main::x|))).def_55))
+(assert (let ((.def_100 (<= 2 |main::x|))).def_100))
+
+main N15:
+(assert (let ((.def_100 (<= 2 |main::x|))).def_100))
+
+main N25:
+(assert false)
+
+main N28:
+(assert false)
+

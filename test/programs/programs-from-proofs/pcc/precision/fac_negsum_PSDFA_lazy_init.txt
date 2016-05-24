@@ -1,0 +1,18 @@
+(set-info :source |printed by MathSAT|)
+(declare-fun |main::flag| () Int)
+
+main N8:
+(assert (let ((.def_56 (= |main::flag| 1))).def_56))
+
+main N11:
+(assert (let ((.def_56 (= |main::flag| 1))).def_56))
+
+main N14:
+(assert (let ((.def_56 (= |main::flag| 1))).def_56))
+
+main N24:
+(assert false)
+
+main N27:
+(assert false)
+

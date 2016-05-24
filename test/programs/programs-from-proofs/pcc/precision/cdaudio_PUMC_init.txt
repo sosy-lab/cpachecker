@@ -1,0 +1,149 @@
+(set-info :source |printed by MathSAT|)
+(declare-fun routine () Int)
+(declare-fun s () Int)
+(declare-fun NP () Int)
+
+errorFn N1:
+(assert false)
+(assert (let ((.def_363 (= routine 0))).def_363))
+
+_BLAST_init N7:
+(assert (let ((.def_363 (= routine 0))).def_363))
+
+CdAudioStartDevice N74:
+(assert (let ((.def_363 (= routine 0))).def_363))
+
+CdAudioPnp N139:
+(assert (let ((.def_363 (= routine 0))).def_363))
+(assert (let ((.def_612 (= s NP))).def_612))
+
+CdAudioPnp N187:
+(assert (let ((.def_363 (= routine 0))).def_363))
+
+CdAudioDeviceControl N224:
+(assert (let ((.def_363 (= routine 0))).def_363))
+(assert (let ((.def_612 (= s NP))).def_612))
+
+CdAudioSendToNextDriver N273:
+(assert (let ((.def_363 (= routine 0))).def_363))
+(assert (let ((.def_612 (= s NP))).def_612))
+
+CdAudioSendToNextDriver N286:
+(assert (let ((.def_363 (= routine 0))).def_363))
+
+CdAudioIsPlayActive N296:
+(assert (let ((.def_363 (= routine 0))).def_363))
+(assert (let ((.def_612 (= s NP))).def_612))
+
+CdAudioIsPlayActive N327:
+(assert (let ((.def_363 (= routine 0))).def_363))
+
+CdAudio535DeviceControl N340:
+(assert (let ((.def_363 (= routine 0))).def_363))
+
+CdAudio535DeviceControl N746:
+(assert (let ((.def_363 (= routine 0))).def_363))
+
+CdAudio435DeviceControl N766:
+(assert (let ((.def_363 (= routine 0))).def_363))
+(assert (let ((.def_612 (= s NP))).def_612))
+
+CdAudio435DeviceControl N1252:
+(assert (let ((.def_363 (= routine 0))).def_363))
+(assert (let ((.def_612 (= s NP))).def_612))
+
+CdAudioAtapiDeviceControl N1285:
+(assert (let ((.def_363 (= routine 0))).def_363))
+(assert (let ((.def_612 (= s NP))).def_612))
+
+CdAudioHPCdrDeviceControl N1361:
+(assert (let ((.def_363 (= routine 0))).def_363))
+(assert (let ((.def_612 (= s NP))).def_612))
+
+CdAudioHPCdrDeviceControl N1390:
+(assert (let ((.def_363 (= routine 0))).def_363))
+
+CdAudioForwardIrpSynchronous N1400:
+(assert (let ((.def_363 (= routine 0))).def_363))
+
+CdAudioForwardIrpSynchronous N1411:
+(assert (let ((.def_363 (= routine 0))).def_363))
+
+CdAudioForwardIrpSynchronous N1415:
+(assert (let ((.def_363 (= routine 0))).def_363))
+
+CdAudioPower N1431:
+(assert (let ((.def_363 (= routine 0))).def_363))
+(assert (let ((.def_612 (= s NP))).def_612))
+
+stub_driver_init N1454:
+(assert (let ((.def_363 (= routine 0))).def_363))
+
+main N1504:
+(assert (let ((.def_363 (= routine 0))).def_363))
+
+main N1520:
+(assert (let ((.def_363 (= routine 0))).def_363))
+(assert (let ((.def_612 (= s NP))).def_612))
+
+IofCallDriver N1623:
+(assert (let ((.def_1142 (= routine 1))).def_1142))
+(assert (let ((.def_363 (= routine 0))).def_363))
+
+KeWaitForSingleObject N1718:
+(assert (let ((.def_363 (= routine 0))).def_363))
+
+KeWaitForSingleObject N1737:
+(assert (let ((.def_363 (= routine 0))).def_363))
+
+PoCallDriver N1755:
+(assert (let ((.def_363 (= routine 0))).def_363))
+
+PoCallDriver N1904:
+(assert false)
+
+IofCallDriver N1906:
+(assert false)
+
+IofCallDriver N1908:
+(assert false)
+
+IofCallDriver N1909:
+(assert false)
+
+IofCallDriver N1910:
+(assert false)
+
+IofCallDriver N1911:
+(assert false)
+
+IofCallDriver N1912:
+(assert false)
+
+IofCallDriver N1913:
+(assert false)
+
+IofCallDriver N1915:
+(assert false)
+
+IofCallDriver N1917:
+(assert false)
+
+IofCallDriver N1918:
+(assert false)
+
+IofCallDriver N1920:
+(assert false)
+
+IofCallDriver N1922:
+(assert false)
+
+IofCallDriver N1923:
+(assert false)
+
+IofCallDriver N1925:
+(assert false)
+
+IofCallDriver N1926:
+(assert false)
+

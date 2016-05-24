@@ -1,0 +1,7 @@
+*:
+N_generate_i
+N_generate_st
+main_clk_ev
+main_clk_pos_edge
+main_clk_val
+main_clk_val_t

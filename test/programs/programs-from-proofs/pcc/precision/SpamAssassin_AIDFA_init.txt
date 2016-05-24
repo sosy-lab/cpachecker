@@ -1,0 +1,6 @@
+
+main:
+main::i
+
+*:
+flag2

@@ -1,0 +1,11 @@
+*:
+D_print_i
+D_print_st
+N_generate_i
+N_generate_st
+S1_addsub_st
+S2_presdbl_i
+S2_presdbl_st
+S3_zero_st
+main_clk_pos_edge
+main_clk_req_up

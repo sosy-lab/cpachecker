@@ -1,0 +1,10 @@
+
+pop:
+pop::__CPAchecker_TMP_0
+
+push:
+push::__CPAchecker_TMP_0
+
+*:
+pc1
+pc4

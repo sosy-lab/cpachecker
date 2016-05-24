@@ -1,0 +1,8 @@
+
+main:
+main::a
+main::b
+main::bs
+main::status
+
+*:

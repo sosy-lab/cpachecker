@@ -1,0 +1,12 @@
+
+main:
+main::p1
+main::p2
+main::p3
+main::p4
+main::p5
+main::p6
+main::p7
+main::p8
+
+*:

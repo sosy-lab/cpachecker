@@ -1,0 +1,16 @@
+(set-info :source |printed by MathSAT|)
+(declare-fun |main::i| () Int)
+(declare-fun |main::lastLock| () Int)
+
+main N8:
+(assert (let ((.def_52 (* (- 1) |main::lastLock|)))(let ((.def_53 (+ |main::i| .def_52)))(let ((.def_54 (<= .def_53 1))).def_54))))
+(assert (let ((.def_52 (* (- 1) |main::lastLock|)))(let ((.def_53 (+ |main::i| .def_52)))(let ((.def_109 (<= 1 .def_53))).def_109))))
+(assert (let ((.def_52 (* (- 1) |main::lastLock|)))(let ((.def_53 (+ |main::i| .def_52)))(let ((.def_111 (<= .def_53 2))).def_111))))
+(assert (let ((.def_52 (* (- 1) |main::lastLock|)))(let ((.def_53 (+ |main::i| .def_52)))(let ((.def_113 (<= 2 .def_53))).def_113))))
+
+main N23:
+(assert false)
+
+main N24:
+(assert false)
+
