@@ -173,7 +173,7 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
       extends org.sosy_lab.solver.visitors.BooleanFormulaTransformationVisitor {
 
     protected BooleanFormulaTransformationVisitor(FormulaManagerView pFmgr) {
-      super(pFmgr.getRawFormulaManager().getBooleanFormulaManager());
+      super(pFmgr.getRawFormulaManager());
     }
   }
 }
