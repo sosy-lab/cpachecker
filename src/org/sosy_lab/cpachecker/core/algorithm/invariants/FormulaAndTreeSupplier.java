@@ -81,12 +81,12 @@ public class FormulaAndTreeSupplier implements InvariantSupplier, ExpressionTree
    * {@link InvariantSupplier} that extracts invariants from a {@link ReachedSet}
    * with {@link FormulaReportingState}s.
    */
-  private static class ReachedSetBasedInvariantSupplier implements InvariantSupplier {
+  public static class ReachedSetBasedInvariantSupplier implements InvariantSupplier {
 
     private final LazyLocationMapping lazyLocationMapping;
     private final LogManager logger;
 
-    ReachedSetBasedInvariantSupplier(LazyLocationMapping pLazyLocationMapping, LogManager pLogger) {
+    public ReachedSetBasedInvariantSupplier(LazyLocationMapping pLazyLocationMapping, LogManager pLogger) {
       logger = Objects.requireNonNull(pLogger);
       lazyLocationMapping = Objects.requireNonNull(pLazyLocationMapping);
     }
