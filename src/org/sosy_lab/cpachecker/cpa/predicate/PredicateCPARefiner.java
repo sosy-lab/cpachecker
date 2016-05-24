@@ -397,7 +397,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       }
       precisionIncrement.add(fmgr.getBooleanFormulaManager().and(invs));
     }
-    assert precisionIncrement.size() == abstractionStatesTrace.size();
+    assert precisionIncrement.size() == abstractionStatesTrace.size() - 1;
 
     if (invIsTriviallyTrue) {
       precisionIncrement.clear();
