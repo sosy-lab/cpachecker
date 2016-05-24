@@ -52,7 +52,6 @@ import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.LazyLocationMapping;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.InvariantsConsumer;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
@@ -60,7 +59,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -230,13 +228,6 @@ public class ParallelAlgorithm implements Algorithm {
               singleShutdownManager.getNotifier(),
               aggregatedReachedSets);
       cpa = coreComponents.createCPA(cfa, SpecAutomatonCompositionType.TARGET_SPEC);
-
-      // add invariants supplier to all cpas where it is necessary
-      for (ConfigurableProgramAnalysis innerCPA : CPAs.asIterable(cpa)) {
-        if (innerCPA instanceof InvariantsConsumer) {
-          ((InvariantsConsumer)innerCPA).setInvariantSupplier(invariantsAggregator);
-        }
-      }
 
       // TODO global info will not work correctly with parallel analyses
       // as it is a mutable singleton object

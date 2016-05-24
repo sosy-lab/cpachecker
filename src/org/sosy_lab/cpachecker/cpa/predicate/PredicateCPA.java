@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.ForwardingInvariantSupplier;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier.TrivialInvariantSupplier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
@@ -45,7 +44,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.InvariantsConsumer;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -79,8 +77,7 @@ import java.util.logging.Level;
  */
 @Options(prefix = "cpa.predicate")
 public class PredicateCPA
-    implements ConfigurableProgramAnalysis, StatisticsProvider, ProofChecker, AutoCloseable,
-        InvariantsConsumer {
+    implements ConfigurableProgramAnalysis, StatisticsProvider, ProofChecker, AutoCloseable {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PredicateCPA.class).withOptions(BlockOperator.class);
@@ -376,10 +373,5 @@ public class PredicateCPA
 
   public void changeExplicitAbstractionNodes(final ImmutableSet<CFANode> explicitlyAbstractAt) {
     blk.setExplicitAbstractionNodes(explicitlyAbstractAt);
-  }
-
-  @Override
-  public void setInvariantSupplier(InvariantSupplier pInvSup) {
-    globalInvariantsSupplier.setInvariantSupplier(pInvSup);
   }
 }
