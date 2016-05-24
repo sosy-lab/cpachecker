@@ -75,6 +75,7 @@ import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantChec
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -263,21 +264,21 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
   private final Map<CFANode, BooleanFormula> loopFormulaCache = new HashMap<>();
   private final Map<CFANode, Set<BooleanFormula>> locationInvariantsCache = new HashMap<>();
 
-  private final InvariantSupplier globalInvariantSupplier;
+  private final AggregatedReachedSets aggregatedReachedSets;
 
   public PredicateCPAInvariantsManager(
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       CFA pCfa,
-      InvariantSupplier pGlobalInvariantsSupplier)
+      AggregatedReachedSets pAggregatedReachedSets)
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
     config = pConfig;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
-    globalInvariantSupplier = pGlobalInvariantsSupplier;
+    aggregatedReachedSets = pAggregatedReachedSets;
 
     cfa = pCfa;
     semiCNFConverter = new RCNFManager(pConfig);
@@ -307,7 +308,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       localInvariants = Collections.emptySet();
     }
     if (useGlobalInvariants) {
-      return Sets.union(localInvariants, globalInvariantSupplier.getInvariantsFor(pNode, pFmgr, pPfmgr, pContext));
+      return Sets.union(localInvariants, aggregatedReachedSets.asInvariantSupplier().getInvariantsFor(pNode, pFmgr, pPfmgr, pContext));
     }
 
     return localInvariants;

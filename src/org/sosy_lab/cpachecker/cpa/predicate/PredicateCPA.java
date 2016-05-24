@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.ForwardingInvariantSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier.TrivialInvariantSupplier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
@@ -52,6 +51,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
@@ -127,15 +127,13 @@ public class PredicateCPA
   private final PredicateCPAInvariantsManager invariantsManager;
   private final BlockOperator blk;
 
-  private final ForwardingInvariantSupplier globalInvariantsSupplier =
-      new ForwardingInvariantSupplier();
-
   protected PredicateCPA(
       Configuration config,
       LogManager logger,
       BlockOperator pBlk,
       CFA pCfa,
-      ShutdownNotifier pShutdownNotifier)
+      ShutdownNotifier pShutdownNotifier,
+      AggregatedReachedSets pAggregatedReachedSets)
       throws InvalidConfigurationException, CPAException {
     config.inject(this, PredicateCPA.class);
 
@@ -178,7 +176,7 @@ public class PredicateCPA
     prefixProvider = new PredicateBasedPrefixProvider(config, logger, solver, pathFormulaManager);
     invariantsManager =
         new PredicateCPAInvariantsManager(
-            config, logger, pShutdownNotifier, pCfa, globalInvariantsSupplier);
+            config, logger, pShutdownNotifier, pCfa, pAggregatedReachedSets);
 
     predicateManager =
         new PredicateAbstractionManager(

@@ -23,18 +23,36 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.FormulaAndTreeSupplier.ReachedSetBasedInvariantSupplier;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.LazyLocationMapping;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.solver.api.BooleanFormula;
+
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
 public class AggregatedReachedSets {
   protected Set<UnmodifiableReachedSet> reachedSets;
+
+  private Set<UnmodifiableReachedSet> lastUsedReachedSets = null;
+
+  private final Map<UnmodifiableReachedSet, InvariantSupplier> singleInvariantSuppliers =
+      new HashMap<>();
 
   public AggregatedReachedSets() {
     reachedSets = Collections.emptySet();
@@ -46,6 +64,50 @@ public class AggregatedReachedSets {
 
   public Set<UnmodifiableReachedSet> snapShot() {
     return reachedSets;
+  }
+
+  public synchronized InvariantSupplier asInvariantSupplier() {
+    Set<UnmodifiableReachedSet> tmp = snapShot();
+    if (lastUsedReachedSets.equals(tmp)) {
+      return new AggregatedInvariantSupplier(singleInvariantSuppliers.values());
+    }
+
+    // new reachedsets added so we need to compute the necessary invariant suppliers
+    // from the new reached sets
+
+    if (lastUsedReachedSets != null) {
+      Set<UnmodifiableReachedSet> oldElements = Sets.difference(lastUsedReachedSets, tmp);
+      Set<UnmodifiableReachedSet> newElements = Sets.difference(tmp, lastUsedReachedSets);
+
+      oldElements.forEach(r -> singleInvariantSuppliers.remove(r));
+      newElements.forEach(
+          r ->
+              singleInvariantSuppliers.put(
+                  r, new ReachedSetBasedInvariantSupplier(new LazyLocationMapping(r))));
+    } else {
+      tmp.forEach(r -> new ReachedSetBasedInvariantSupplier(new LazyLocationMapping(r)));
+    }
+
+    return new AggregatedInvariantSupplier(singleInvariantSuppliers.values());
+  }
+
+  private static class AggregatedInvariantSupplier implements InvariantSupplier {
+
+    private final Collection<InvariantSupplier> invariantSuppliers;
+
+    private AggregatedInvariantSupplier(Collection<InvariantSupplier> pInvariantSuppliers) {
+      invariantSuppliers = Preconditions.checkNotNull(pInvariantSuppliers);
+    }
+
+    @Override
+    public Set<BooleanFormula> getInvariantsFor(
+        CFANode pNode, FormulaManagerView pFmgr, PathFormulaManager pPfmgr, PathFormula pContext) {
+      return invariantSuppliers
+          .stream()
+          .flatMap(s -> s.getInvariantsFor(pNode, pFmgr, pPfmgr, pContext).stream())
+          .filter(f -> !pFmgr.getBooleanFormulaManager().isTrue(f))
+          .collect(Collectors.toSet());
+    }
   }
 
   private static class AggregatedThreadedReachedSets extends AggregatedReachedSets {
@@ -79,8 +141,9 @@ public class AggregatedReachedSets {
   public static class AggregatedReachedSetManager {
 
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
-    private AggregatedThreadedReachedSets reachedView = new AggregatedThreadedReachedSets(lock);
-    private Set<UnmodifiableReachedSet> reachedSets = new HashSet<>();
+    private final AggregatedThreadedReachedSets reachedView =
+        new AggregatedThreadedReachedSets(lock);
+    private final Set<UnmodifiableReachedSet> reachedSets = new HashSet<>();
 
     public void addReachedSet(UnmodifiableReachedSet reached) {
       synchronized (reachedSets) {
