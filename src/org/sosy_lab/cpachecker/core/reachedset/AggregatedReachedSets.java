@@ -68,7 +68,7 @@ public class AggregatedReachedSets {
 
   public synchronized InvariantSupplier asInvariantSupplier() {
     Set<UnmodifiableReachedSet> tmp = snapShot();
-    if (lastUsedReachedSets.equals(tmp)) {
+    if (tmp.equals(lastUsedReachedSets)) {
       return new AggregatedInvariantSupplier(singleInvariantSuppliers.values());
     }
 
