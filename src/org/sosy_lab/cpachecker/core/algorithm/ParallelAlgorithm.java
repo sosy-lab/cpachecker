@@ -26,9 +26,13 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -71,10 +75,11 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
@@ -133,30 +138,51 @@ public class ParallelAlgorithm implements Algorithm, InvariantsConsumer {
     mainEntryNode = AbstractStates.extractLocation(pReachedSet.getFirstState());
     ForwardingReachedSet forwardingReachedSet = (ForwardingReachedSet) pReachedSet;
 
-    ExecutorService exec = Executors.newFixedThreadPool(configFiles.size());
+    ListeningExecutorService exec = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(configFiles.size()));
+    List<ListenableFuture<Optional<ReachedSet>>> futures = new ArrayList<>();
     int counter = 1;
     for (Path p : configFiles) {
-      exec.submit(createAlgorithm(p, counter++));
+      futures.add(exec.submit(createAlgorithm(p, counter++)));
     }
-
-    exec.shutdown();
-
-    boolean shouldShutdown =
-        shutdownManager.getNotifier().shouldShutdown() || finalReachedSet != null;
-
-    // timelimits of analyses are handled via shutdownmanager
-    // we check every 10 seconds if the analyses were already shutdown
-    // and if not although they should be, shut them down forcefully
-    while (!exec.awaitTermination(10, TimeUnit.SECONDS)) {
-
-      // no shutdown although it should have been done
-      if (shouldShutdown) {
-        exec.shutdownNow();
-        logger.log(Level.WARNING, "Forcefully shutdown analyses that didn't do it on their own");
-        break;
+    final FutureCallback<Optional<ReachedSet>> callback = new FutureCallback<Optional<ReachedSet>>() {
+      @Override
+      public void onSuccess(Optional<ReachedSet> pResult) {
+        if (pResult.isPresent() && finalReachedSet == null) {
+          // at first cancel other computations
+          logger.log(Level.INFO, "One of the parallel analyses has finished, cancelling all other runs.");
+          futures.forEach(f -> f.cancel(true));
+          finalReachedSet = pResult.get();
+        }
       }
 
-      shouldShutdown = shutdownManager.getNotifier().shouldShutdown() || finalReachedSet != null;
+      @Override
+      public void onFailure(Throwable pT) {
+        logger.logUserException(Level.WARNING, pT, "Analysis did not finish normally");
+      }};
+    futures.forEach(f -> Futures.addCallback(f, callback));
+
+    exec.shutdown();
+    try {
+      Futures.allAsList(futures).get();
+    } catch (ExecutionException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof RuntimeException) {
+        throw (RuntimeException) cause;
+      } else if (cause instanceof Error) {
+        throw (Error) cause;
+      } else if (cause instanceof CPAException) {
+          if (cause.getMessage().contains("recursion")) {
+            logger.logUserException(Level.WARNING, e, "Analysis not completed due to recursion");
+          }
+          if (cause.getMessage().contains("pthread_create")) {
+            logger.logUserException(Level.WARNING, e, "Analysis not completed due to concurrency");
+          }
+          if (finalReachedSet == null) {
+            throw (CPAException) cause;
+          }
+      } else {
+        throw new CPAException("Un unexpected exception occured", e);
+      }
     }
 
     if (finalReachedSet != null) {
@@ -167,15 +193,7 @@ public class ParallelAlgorithm implements Algorithm, InvariantsConsumer {
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
   }
 
-  private synchronized void setFinalReachedSet(ReachedSet set) {
-    Preconditions.checkState(finalReachedSet == null);
-
-    //globally terminate all analyses which are not needed anymore
-    shutdownManager.requestShutdown("One of the parallel analyses has finished");
-    finalReachedSet = set;
-  }
-
-  private Runnable createAlgorithm(Path singleConfigFileName, int numberOfAnalysis) {
+  private Callable<Optional<ReachedSet>> createAlgorithm(Path singleConfigFileName, int numberOfAnalysis) {
     final Configuration singleConfig;
     final Algorithm algorithm;
     final ReachedSet reached;
@@ -232,13 +250,13 @@ public class ParallelAlgorithm implements Algorithm, InvariantsConsumer {
           "Skipping one analysis because the configuration file "
               + singleConfigFileName.toString()
               + " could not be read");
-      return () -> {};
+      return () -> { return Optional.empty(); };
     } catch (CPAException e) {
       logger.logUserException(
           Level.WARNING,
           e,
           "Skipping analysis due to problems while creating the necessary components.");
-      return () -> {};
+      return () -> { return Optional.empty(); };
     }
 
     final Algorithm algorithmToUse;
@@ -273,14 +291,15 @@ public class ParallelAlgorithm implements Algorithm, InvariantsConsumer {
         // if we do not have reliable information about the analysis we
         // just ignore the result
         if (status.isPrecise() && status.isSound()) {
-          setFinalReachedSet(reached);
           singleLogger.log(Level.INFO, "Analysis finished successfully");
+          return Optional.of(reached);
         }
       } catch (CPAException e) {
         singleLogger.logUserException(Level.WARNING, e, "Analysis did not finish properly");
       } catch (InterruptedException e) {
         singleLogger.log(Level.INFO, "Analysis was terminated");
       }
+      return Optional.empty();
     };
   }
 
