@@ -172,7 +172,7 @@ public class PolicyIterationTest {
   }
 
   private void check(String filename) throws Exception {
-    check(filename, new HashMap<String, String>());
+    check(filename, new HashMap<>());
   }
 
   private void check(String filename, Map<String, String> extra) throws Exception {
@@ -202,6 +202,7 @@ public class PolicyIterationTest {
                 .add("cpa.functionpointer.FunctionPointerCPA")
                 .add("cpa.loopstack.LoopstackCPA")
                 .add("cpa.policyiteration.PolicyCPA")
+                .add("cpa.targetreachability.TargetReachabilityCPA")
                 .add("cpa.assumptions.storage.AssumptionStorageCPA")
                 .build()
             ))

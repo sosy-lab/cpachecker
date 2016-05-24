@@ -107,8 +107,7 @@ public class StateFormulaConversionManager {
         fmgr, attachExtraInvariant
     );
 
-    return PolicyIntermediateState.of(
-        node, generatingFormula, abstractState, true);
+    return PolicyIntermediateState.of(node, generatingFormula, abstractState);
   }
 
   /**

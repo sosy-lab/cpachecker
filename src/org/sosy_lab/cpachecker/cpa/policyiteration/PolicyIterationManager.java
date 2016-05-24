@@ -1,17 +1,15 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import static com.google.common.collect.Iterables.filter;
 import static org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationManager.DecompositionStatus.ABSTRACTION_REQUIRED;
 import static org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationManager.DecompositionStatus.BOUND_COMPUTED;
 import static org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationManager.DecompositionStatus.UNBOUNDED;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.ShutdownNotifier;
@@ -32,8 +30,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackState;
 import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationStatistics.TemplateUpdateEvent;
@@ -45,11 +43,9 @@ import org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra.PolyhedraWideningMa
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
-import org.sosy_lab.cpachecker.util.automaton.TargetLocationProviderImpl;
 import org.sosy_lab.cpachecker.util.predicates.RCNFManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -74,16 +70,13 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.StreamSupport;
 
 /**
  * Main logic in a single class.
  */
 @Options(prefix = "cpa.lpi", deprecatedPrefix = "cpa.stator.policy")
 public class PolicyIterationManager implements IPolicyIterationManager {
-
-  @Option(secure=true, description="Do not explore nodes which syntactically "
-      + "can not lead to an error state.")
-  private boolean reduceCfa = true;
 
   @Option(secure = true,
       description = "Where to perform abstraction")
@@ -168,7 +161,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   private final InvariantGenerator invariantGenerator;
   private final StateFormulaConversionManager stateFormulaConversionManager;
   private final RCNFManager rcnfManager;
-  private final ImmutableSet<CFANode> targetReachableFrom;
 
   public PolicyIterationManager(
       Configuration config,
@@ -185,8 +177,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       CongruenceManager pCongruenceManager,
       PolyhedraWideningManager pPwm,
       InvariantGenerator pInvariantGenerator,
-      StateFormulaConversionManager pStateFormulaConversionManager,
-      ReachedSetFactory pReachedSetFactory)
+      StateFormulaConversionManager pStateFormulaConversionManager)
       throws InvalidConfigurationException {
     pwm = pPwm;
     stateFormulaConversionManager = pStateFormulaConversionManager;
@@ -206,38 +197,23 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     invariantGenerator = pInvariantGenerator;
 
     /** Compute the cache for loops */
-    ImmutableMap.Builder<CFANode, LoopStructure.Loop> loopStructureBuilder =
+    Builder<CFANode, Loop> loopStructureBuilder =
         ImmutableMap.builder();
     LoopStructure loopStructure1 = pCfa.getLoopStructure().get();
-    for (LoopStructure.Loop l : loopStructure1.getAllLoops()) {
+    for (Loop l : loopStructure1.getAllLoops()) {
       for (CFANode n : l.getLoopHeads()) {
         loopStructureBuilder.put(n, l);
       }
     }
     loopStructure = loopStructureBuilder.build();
     rcnfManager = new RCNFManager(config);
-
-    TargetLocationProvider targetProvider = new TargetLocationProviderImpl(
-        pReachedSetFactory, pShutdownNotifier, pLogger, config, pCfa);
-    Set<CFANode> targetNodes =
-        targetProvider.tryGetAutomatonTargetLocations(pCfa.getMainFunction());
-    if (reduceCfa) {
-      ImmutableSet.Builder<CFANode> builder = ImmutableSet.builder();
-      for (CFANode target : targetNodes) {
-        builder.addAll(CFATraversal.dfs().backwards()
-            .collectNodesReachableFrom(target));
-      }
-      targetReachableFrom = builder.build();
-    } else {
-      targetReachableFrom = ImmutableSet.copyOf(pCfa.getAllNodes());
-    }
   }
 
   /**
    * Static caches
    */
   // Mapping from loop-heads to the associated loops.
-  private final ImmutableMap<CFANode, LoopStructure.Loop> loopStructure;
+  private final ImmutableMap<CFANode, Loop> loopStructure;
 
   /**
    * The concept of a "location" is murky in a CPA.
@@ -288,8 +264,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     PolicyIntermediateState out = PolicyIntermediateState.of(
         node,
         outPath,
-        iOldState.getGeneratingState(),
-        targetReachableFrom.contains(node));
+        iOldState.getGeneratingState());
 
     return Collections.singleton(out);
   }
@@ -312,8 +287,9 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       iState = inputState.asIntermediate();
     }
 
-    final boolean hasTargetState = filter(
-        AbstractStates.asIterable(pArgState), AbstractStates.IS_TARGET_STATE).iterator().hasNext();
+    final boolean hasTargetState = StreamSupport
+        .stream(AbstractStates.asIterable(pArgState).spliterator(), false)
+        .filter(AbstractStates::isTargetState).iterator().hasNext();
     // Formulas reported by other CPAs.
     BooleanFormula extraInvariant = extractFormula(pArgState);
 
@@ -393,7 +369,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   private Optional<PrecisionAdjustmentResult> continueResult(PolicyState s, Precision p) {
     return Optional.of(
         PrecisionAdjustmentResult.create(
-            s, p, PrecisionAdjustmentResult.Action.CONTINUE));
+            s, p, Action.CONTINUE));
   }
 
   private PolicyAbstractedState emulateLargeStep(
@@ -474,9 +450,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     PolicyIntermediateState out = PolicyIntermediateState.of(
         newState.getNode(),
         mergedPath,
-        oldState.getGeneratingState(),
-        newState.getIsRelevantToTarget() || oldState.getIsRelevantToTarget()
-    );
+        oldState.getGeneratingState());
 
     newState.setMergedInto(out);
     oldState.setMergedInto(out);
@@ -582,9 +556,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     statistics.valueDeterminationTimer.start();
     try (OptimizationProverEnvironment optEnvironment = solver.newOptEnvironment()) {
 
-      for (BooleanFormula constraint : valDetConstraints.constraints) {
-        optEnvironment.addConstraint(constraint);
-      }
+      valDetConstraints.constraints.forEach(optEnvironment::addConstraint);
 
       for (Entry<Template, PolicyBound> policyValue : updated.entrySet()) {
         shutdownNotifier.shutdownIfNecessary();
@@ -669,7 +641,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     }
 
     // At least one of updated values comes from inside the loop.
-    LoopStructure.Loop l = loopStructure.get(node);
+    Loop l = loopStructure.get(node);
     if (l == null) {
       // NOTE: sometimes there is no loop-structure when there's
       // one self-edge.
@@ -883,7 +855,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         // TODO: evaluate whether we need the code in "usePreviousBound".
         int handle = optEnvironment.maximize(objective);
 
-        OptimizationProverEnvironment.OptStatus status;
+        OptStatus status;
         try {
           statistics.optTimer.start();
           status = optEnvironment.check();
@@ -1037,7 +1009,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     }
 
     // One unbounded => all unbounded (sign is taken into account).
-    if (Iterables.filter(policyBounds, Predicates.<PolicyBound>isNull())
+    if (policyBounds.stream().filter(policyBound -> policyBound == null)
         .iterator().hasNext()) {
       return Pair.of(UNBOUNDED, null);
     }
