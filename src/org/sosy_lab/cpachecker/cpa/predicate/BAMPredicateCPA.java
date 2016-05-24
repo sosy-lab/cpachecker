@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.AuxiliaryComputer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.CachingRelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RefineableOccurrenceComputer;
@@ -61,9 +62,9 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
 
 
   private BAMPredicateCPA(Configuration config, LogManager logger,
-      BAMBlockOperator pBlk, CFA pCfa, ShutdownNotifier pShutdownNotifier)
+      BAMBlockOperator pBlk, CFA pCfa, ShutdownNotifier pShutdownNotifier, AggregatedReachedSets pAggregatedReachedSets)
           throws InvalidConfigurationException, CPAException {
-    super(config, logger, pBlk, pCfa, pShutdownNotifier);
+    super(config, logger, pBlk, pCfa, pShutdownNotifier, pAggregatedReachedSets);
 
     config.inject(this, BAMPredicateCPA.class);
 
