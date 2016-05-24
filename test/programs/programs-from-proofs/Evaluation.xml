@@ -1,11 +1,14 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark PUBLIC "+/IDN sosy-lab.org/DTD BenchExec benchmark 1.0/EN" "http:/www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="900" hardtimelimit="1000" cpuCores="4">
+  <!-- program analysis tasks with lazy refinement which timed out in our evaluation after 15 min are put into comments
+       We do not have proofs or transformed programs for analysis tasks which timed out
+  -->
   <option name="-disable-java-assertions"/>
   <option name="-heap">5000M</option>
   <option name="-noout"/>
   <option name="-nolog"/>
-  <option name="-setprop">statistics.memory=false</option>
+  <option name="-setprop">statistics.memory=false</option><!--enable to also measure memory consumption-->
   <option name="-setprop">analysis.postProcessing=false</option>
   <option name="-setprop">cpa.apron.splitDisequalities=false</option>
   <option name="-setprop">solver.solver=MATHSAT5</option>
@@ -92,11 +95,6 @@
 	  <option name="-PfP-Apron+UninitVars"/>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=DOMAIN_MIN,LENGTH_MIN</option>
 	  <include>pipeline.cil.c</include>
-	</tasks>
-	<tasks>
-	  <option name="-PfP-Apron+UninitVars"/>
-	  <option name="-setprop">cpa.value.refinement.prefixPreference=LENGTH_MIN</option>
-	  <include>pipeline2.cil.c</include>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+UninitVars"/>
@@ -271,292 +269,286 @@
 	  <option name="-setprop">specification=config/specification/pfp/locks_ops.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=false</option>
 	  <include>locks.c</include>
-	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=pcc/precision/locks_PLMC_init.txt</option>
+	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/programs-from-proofs/pcc/precision/locks_PLMC_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/tokenring03.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=false</option>
 	  <include>token_ring.03.cil.c</include>
-	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=pcc/precision/token_ring.03_PLMC_init.txt</option>
+	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/programs-from-proofs/pcc/precision/token_ring.03_PLMC_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/memslave_ops.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=false</option>
 	  <include>mem_slave_tlm.1.cil.c</include>
-	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=pcc/precision/mem_slave_tlm.1_PLMC_init.txt</option>
+	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/programs-from-proofs/pcc/precision/mem_slave_tlm.1_PLMC_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/ssh_ops.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=false</option>
 	  <include>s3_srvr.cil.c</include>
-	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=pcc/precision/s3_srvr_PLMC_init.txt</option>
+	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/programs-from-proofs/pcc/precision/s3_srvr_PLMC_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/tokenring02.spc</option>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=LENGTH_MIN</option>
 	  <include>token_ring.02.cil.c</include>
-	  <option name="-setprop">cpa.value.initialPrecisionFile=pcc/precision/token_ring.02_VLMC_init.txt</option>
+	  <option name="-setprop">cpa.value.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/token_ring.02_VLMC_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/tokenring04.spc</option>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=LENGTH_MAX</option>
 	  <include>token_ring.04.cil.c</include>
-	  <option name="-setprop">cpa.value.initialPrecisionFile=pcc/precision/token_ring.04_VLMC_init.txt</option>
+	  <option name="-setprop">cpa.value.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/token_ring.04_VLMC_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/transmitter_ops.spc</option>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=LENGTH_MAX</option>
 	  <include>transmitter.03.cil.c</include>
-	  <option name="-setprop">cpa.value.initialPrecisionFile=pcc/precision/transmitter.03_VLMC_init.txt</option>
+	  <option name="-setprop">cpa.value.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/transmitter.03_VLMC_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/ssh_ops.spc</option>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=NONE</option>
 	  <include>s3_srvr.cil.c</include>
-	  <option name="-setprop">cpa.apron.initialPrecisionFile=pcc/precision/s3_srvr_ALMC_init.txt</option>
+	  <option name="-setprop">cpa.apron.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/s3_srvr_ALMC_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/transmitter_ops.spc</option>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=LENGTH_MAX</option>
 	  <include>transmitter.01.cil.c</include>
-	  <option name="-setprop">cpa.apron.initialPrecisionFile=pcc/precision/transmitter.01_ALMC_init.txt</option>
+	  <option name="-setprop">cpa.apron.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/transmitter.01_ALMC_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/transmitter_ops.spc</option>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=LENGTH_MAX</option>
 	  <include>transmitter.02.cil.c</include>
-	  <option name="-setprop">cpa.apron.initialPrecisionFile=pcc/precision/transmitter.02_ALMC_init.txt</option>
+	  <option name="-setprop">cpa.apron.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/transmitter.02_ALMC_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+UninitVars"/>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=false</option>
 	  <include>pipeline.cil.c</include>
-	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=pcc/precision/pipeline_PUMC_init.txt</option>
+	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/programs-from-proofs/pcc/precision/pipeline_PUMC_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+UninitVars"/>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=false</option>
 	  <include>cdaudio.cil.c</include>
-	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=pcc/precision/cdaudio_PUMC_init.txt</option>
+	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/programs-from-proofs/pcc/precision/cdaudio_PUMC_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+UninitVars"/>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=false</option>
 	  <include>diskperf.cil.c</include>
-	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=pcc/precision/diskperf_PUMC_init.txt</option>
+	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/programs-from-proofs/pcc/precision/diskperf_PUMC_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+UninitVars"/>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=DOMAIN_MIN,LENGTH_MIN</option>
 	  <include>pipeline.cil.c</include>
-	  <option name="-setprop">cpa.apron.initialPrecisionFile=pcc/precision/pipeline_AUMC_init.txt</option>
-	</tasks>
-	<tasks>
-	  <option name="-PfP-Apron+UninitVars"/>
-	  <option name="-setprop">cpa.value.refinement.prefixPreference=LENGTH_MIN</option>
-	  <include>pipeline2.cil.c</include>
-	  <option name="-setprop">cpa.apron.initialPrecisionFile=pcc/precision/pipeline2_AUMC_init.txt</option>
+	  <option name="-setprop">cpa.apron.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/pipeline_AUMC_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+UninitVars"/>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=LENGTH_MIN</option>
 	  <include>s3_srvr.cil.c</include>
-	  <option name="-setprop">cpa.apron.initialPrecisionFile=pcc/precision/s3_srvr_AUMC_init.txt</option>
+	  <option name="-setprop">cpa.apron.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/s3_srvr_AUMC_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+UninitVars"/>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=LENGTH_MAX</option>
 	  <include>s3_srvr.cil.c</include>
-	  <option name="-setprop">cpa.value.initialPrecisionFile=pcc/precision/s3_srvr_VUMC_init.txt</option>
+	  <option name="-setprop">cpa.value.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/s3_srvr_VUMC_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+UninitVars"/>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=LENGTH_MAX</option>
 	  <include>cdaudio.cil.c</include>
-	  <option name="-setprop">cpa.value.initialPrecisionFile=pcc/precision/cdaudio_VUMC_init.txt</option>
+	  <option name="-setprop">cpa.value.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/cdaudio_VUMC_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+UninitVars"/>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=LENGTH_MAX</option>
 	  <include>pipeline2.cil.c</include>
-	  <option name="-setprop">cpa.value.initialPrecisionFile=pcc/precision/pipeline2_VUMC_init.txt</option>
+	  <option name="-setprop">cpa.value.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/pipeline2_VUMC_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_condsum.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>condsum.c</include>
-	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=pcc/precision/condsum_PSDFA_init.txt</option>
+	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/programs-from-proofs/pcc/precision/condsum_PSDFA_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_PfP_propertyInFlag_SLR.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>SLR.c</include>
-	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=pcc/precision/SLR_PSDFA_init.txt</option>
+	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/programs-from-proofs/pcc/precision/SLR_PSDFA_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_fac_negsum.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>fac_negsum.c</include>
-	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=pcc/precision/fac_negsum_PSDFA_init.txt</option>
+	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/programs-from-proofs/pcc/precision/fac_negsum_PSDFA_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_memsafety.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>lockfree-3.0.c</include>
-	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=pcc/precision/lockfree-3.0_PSDFA_init.txt</option>
+	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/programs-from-proofs/pcc/precision/lockfree-3.0_PSDFA_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_test_locks7.spc</option>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=LENGTH_MAX</option>
 	  <include>test_locks_7.c</include>
-	  <option name="-setprop">cpa.apron.initialPrecisionFile=pcc/precision/test_locks_7_ASDFA_init.txt</option>
+	  <option name="-setprop">cpa.apron.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/test_locks_7_ASDFA_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_test_locks8.spc</option>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=LENGTH_MIN</option>
 	  <include>test_locks_8.c</include>
-	  <option name="-setprop">cpa.apron.initialPrecisionFile=pcc/precision/test_locks_8_ASDFA_init.txt</option>
+	  <option name="-setprop">cpa.apron.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/test_locks_8_ASDFA_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_inf4.spc</option>
       <option name="-setprop">cpa.value.refinement.prefixPreference=LENGTH_MAX</option>
 	  <include>inf4.c</include>
-	  <option name="-setprop">cpa.apron.initialPrecisionFile=pcc/precision/inf4_ASDFA_init.txt</option>
+	  <option name="-setprop">cpa.apron.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/inf4_ASDFA_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_memsafety.spc</option>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=NONE</option>
 	  <include>addIterations.c</include>
-	  <option name="-setprop">cpa.apron.initialPrecisionFile=pcc/precision/addIterations_ASDFA_init.txt</option>
+	  <option name="-setprop">cpa.apron.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/addIterations_ASDFA_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_PfP_propertyInFlag_SLR.spc</option>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=NONE</option>
 	  <include>SLRb.c</include>
-	  <option name="-setprop">cpa.value.initialPrecisionFile=pcc/precision/SLRb_VSDFA_init.txt</option>
+	  <option name="-setprop">cpa.value.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/SLRb_VSDFA_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_PfP_propertyInFlag_SLR.spc</option>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=NONE</option>
 	  <include>SLR.c</include>
-	  <option name="-setprop">cpa.value.initialPrecisionFile=pcc/precision/SLR_VSDFA_init.txt</option>
+	  <option name="-setprop">cpa.value.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/SLR_VSDFA_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_inf6_8.spc</option>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=DOMAIN_MIN</option>
 	  <include>inf6.c</include>
-	  <option name="-setprop">cpa.value.initialPrecisionFile=pcc/precision/inf6_VSDFA_init.txt</option>
+	  <option name="-setprop">cpa.value.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/inf6_VSDFA_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_memsafety.spc</option>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=LENGTH_MAX</option>
 	  <include>lockfree-3.1.c</include>
-	  <option name="-setprop">cpa.value.initialPrecisionFile=pcc/precision/lockfree-3.1_VSDFA_init.txt</option>
+	  <option name="-setprop">cpa.value.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/lockfree-3.1_VSDFA_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Value"/>
 	  <option name="-setprop">specification=config/specification/pfp/Value_test_locks5_5d_12_12d.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>test_locks_5.c</include>
-	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=pcc/precision/test_locks_5_PVDFA_init.txt</option>
+	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/programs-from-proofs/pcc/precision/test_locks_5_PVDFA_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Value"/>
 	  <option name="-setprop">specification=config/specification/pfp/Value_ntdrivers.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>kbfiltr_simpl1.cil.c</include>
-	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=pcc/precision/kbfiltr_simpl1_PVDFA_init.txt</option>
+	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/programs-from-proofs/pcc/precision/kbfiltr_simpl1_PVDFA_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Value"/>
 	  <option name="-setprop">specification=config/specification/pfp/Value_ntdrivers.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>kbfiltr_simpl2.cil.c</include>
-	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=pcc/precision/kbfiltr_simpl2_PVDFA_init.txt</option>
+	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/programs-from-proofs/pcc/precision/kbfiltr_simpl2_PVDFA_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Value"/>
 	  <option name="-setprop">specification=config/specification/pfp/Value_memslave.spc</option>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=LENGTH_MAX</option>
 	  <include>mem_slave_tlm.1.cil.c</include>
-	  <option name="-setprop">cpa.apron.initialPrecisionFile=pcc/precision/mem_slave_tlm.1_AVDFA_init.txt</option>
+	  <option name="-setprop">cpa.apron.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/mem_slave_tlm.1_AVDFA_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Value"/>
 	  <option name="-setprop">specification=config/specification/pfp/Value_memslave.spc</option>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=LENGTH_MAX</option>
 	  <include>mem_slave_tlm.2.cil.c</include>
-	  <option name="-setprop">cpa.apron.initialPrecisionFile=pcc/precision/mem_slave_tlm.2_AVDFA_init.txt</option>
+	  <option name="-setprop">cpa.apron.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/mem_slave_tlm.2_AVDFA_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Value"/>
 	  <option name="-setprop">specification=config/specification/pfp/Value_test_locks6.spc</option>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=DOMAIN_MIN,LENGTH_MIN</option>
 	  <include>test_locks_6.c</include>
-	  <option name="-setprop">cpa.apron.initialPrecisionFile=pcc/precision/test_locks_6_AVDFA_init.txt</option>
+	  <option name="-setprop">cpa.apron.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/test_locks_6_AVDFA_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Interval"/>
 	  <option name="-setprop">specification=config/specification/pfp/Interval_encode_invert_relax.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>encode_ie_nosprintf.cil.c</include>
-	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=pcc/precision/encode_ie_nosprintf_PIDFA_init.txt</option>
+	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/programs-from-proofs/pcc/precision/encode_ie_nosprintf_PIDFA_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Interval"/>
 	  <option name="-setprop">specification=config/specification/pfp/Interval_encode_invert_relax.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>encode_ie_interproc.cil.c</include>
-	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=pcc/precision/encode_ie_interproc_PIDFA_init.txt</option>
+	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/programs-from-proofs/pcc/precision/encode_ie_interproc_PIDFA_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Interval"/>
 	  <option name="-setprop">specification=config/specification/pfp/Interval_NetBSD_anyMeta.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>NetBSD_anyMeta.cil.c</include>
-	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=pcc/precision/NetBSD_anyMeta_PIDFA_init.txt</option>
+	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/programs-from-proofs/pcc/precision/NetBSD_anyMeta_PIDFA_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Interval"/>
 	  <option name="-setprop">specification=config/specification/pfp/Interval_encode_invert_relax.spc</option>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=LENGTH_MAX</option>
 	  <include>encode_ie_interproc.cil.c</include>
-	  <option name="-setprop">cpa.apron.initialPrecisionFile=pcc/precision/encode_ie_interproc_AIDFA_init.txt</option>
+	  <option name="-setprop">cpa.apron.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/encode_ie_interproc_AIDFA_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Interval"/>
 	  <option name="-setprop">specification=config/specification/pfp/Interval_SpamAssassin.spc</option>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=NONE</option>
 	  <include>SpamAssassin.cil.c</include>
-	  <option name="-setprop">cpa.apron.initialPrecisionFile=pcc/precision/SpamAssassin_AIDFA_init.txt</option>
+	  <option name="-setprop">cpa.apron.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/SpamAssassin_AIDFA_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Interval"/>
 	  <option name="-setprop">specification=config/specification/pfp/Interval_sendmail_fromqp.spc</option>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=DOMAIN_MIN</option>
 	  <include>sendmail_fromqp.cil.c</include>
-	  <option name="-setprop">cpa.apron.initialPrecisionFile=pcc/precision/sendmail_fromqp_AIDFA_init.txt</option>
+	  <option name="-setprop">cpa.apron.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/sendmail_fromqp_AIDFA_init.txt</option>
 	</tasks>	
   </rundefinition>
 
@@ -576,292 +568,286 @@
 	  <option name="-setprop">specification=config/specification/pfp/locks_ops.spc</option>
 	  
 	  <include>locks.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/locks_PLMC_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/locks_PLMC_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/tokenring03.spc</option>
 	  
 	  <include>token_ring.03.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/token_ring.03_PLMC_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/token_ring.03_PLMC_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/memslave_ops.spc</option>
 	  
 	  <include>mem_slave_tlm.1.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/mem_slave_tlm.1_PLMC_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/mem_slave_tlm.1_PLMC_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/ssh_ops.spc</option>
 	  
 	  <include>s3_srvr.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/s3_srvr_PLMC_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/s3_srvr_PLMC_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/tokenring02.spc</option>
 	  
 	  <include>token_ring.02.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/token_ring.02_VLMC_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/token_ring.02_VLMC_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/tokenring04.spc</option>
 	  
 	  <include>token_ring.04.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/token_ring.04_VLMC_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/token_ring.04_VLMC_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/transmitter_ops.spc</option>
 	  
 	  <include>transmitter.03.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/transmitter.03_VLMC_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/transmitter.03_VLMC_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/ssh_ops.spc</option>
 	  
 	  <include>s3_srvr.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/s3_srvr_ALMC_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/s3_srvr_ALMC_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/transmitter_ops.spc</option>
 	  
 	  <include>transmitter.01.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/transmitter.01_ALMC_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/transmitter.01_ALMC_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/transmitter_ops.spc</option>
 	  
 	  <include>transmitter.02.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/transmitter.02_ALMC_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/transmitter.02_ALMC_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+UninitVars"/>
 	  
 	  <include>pipeline.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/pipeline_PUMC_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/pipeline_PUMC_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+UninitVars"/>
 	  
 	  <include>cdaudio.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/cdaudio_PUMC_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/cdaudio_PUMC_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+UninitVars"/>
 	  
 	  <include>diskperf.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/diskperf_PUMC_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/diskperf_PUMC_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+UninitVars"/>
 	  
 	  <include>pipeline.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/pipeline_AUMC_arg.obj</option>
-	</tasks>
-	<tasks>
-	  <option name="-PfP-Apron+UninitVars"/>
-	  
-	  <include>pipeline2.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/pipeline2_AUMC_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/pipeline_AUMC_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+UninitVars"/>
 	  
 	  <include>s3_srvr.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/s3_srvr_AUMC_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/s3_srvr_AUMC_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+UninitVars"/>
 	  
 	  <include>s3_srvr.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/s3_srvr_VUMC_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/s3_srvr_VUMC_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+UninitVars"/>
 	  
 	  <include>cdaudio.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/cdaudio_VUMC_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/cdaudio_VUMC_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+UninitVars"/>
 	  
 	  <include>pipeline2.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/pipeline2_VUMC_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/pipeline2_VUMC_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_condsum.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>condsum.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/condsum_PSDFA_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/condsum_PSDFA_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_PfP_propertyInFlag_SLR.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>SLR.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/SLR_PSDFA_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/SLR_PSDFA_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_fac_negsum.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>fac_negsum.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/fac_negsum_PSDFA_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/fac_negsum_PSDFA_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_memsafety.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>lockfree-3.0.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/lockfree-3.0_PSDFA_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/lockfree-3.0_PSDFA_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_test_locks7.spc</option>
 	  
 	  <include>test_locks_7.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/test_locks_7_ASDFA_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/test_locks_7_ASDFA_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_test_locks8.spc</option>
 	  
 	  <include>test_locks_8.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/test_locks_8_ASDFA_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/test_locks_8_ASDFA_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_inf4.spc</option>
       
 	  <include>inf4.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/inf4_ASDFA_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/inf4_ASDFA_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_memsafety.spc</option>
 	  
 	  <include>addIterations.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/addIterations_ASDFA_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/addIterations_ASDFA_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_PfP_propertyInFlag_SLR.spc</option>
 	  
 	  <include>SLRb.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/SLRb_VSDFA_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/SLRb_VSDFA_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_PfP_propertyInFlag_SLR.spc</option>
 	  
 	  <include>SLR.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/SLR_VSDFA_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/SLR_VSDFA_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_inf6_8.spc</option>
 	  
 	  <include>inf6.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/inf6_VSDFA_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/inf6_VSDFA_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_memsafety.spc</option>
 	  
 	  <include>lockfree-3.1.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/lockfree-3.1_VSDFA_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/lockfree-3.1_VSDFA_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Value"/>
 	  <option name="-setprop">specification=config/specification/pfp/Value_test_locks5_5d_12_12d.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>test_locks_5.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/test_locks_5_PVDFA_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/test_locks_5_PVDFA_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Value"/>
 	  <option name="-setprop">specification=config/specification/pfp/Value_ntdrivers.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>kbfiltr_simpl1.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/kbfiltr_simpl1_PVDFA_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/kbfiltr_simpl1_PVDFA_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Value"/>
 	  <option name="-setprop">specification=config/specification/pfp/Value_ntdrivers.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>kbfiltr_simpl2.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/kbfiltr_simpl2_PVDFA_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/kbfiltr_simpl2_PVDFA_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Value"/>
 	  <option name="-setprop">specification=config/specification/pfp/Value_memslave.spc</option>
 	  
 	  <include>mem_slave_tlm.1.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/mem_slave_tlm.1_AVDFA_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/mem_slave_tlm.1_AVDFA_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Value"/>
 	  <option name="-setprop">specification=config/specification/pfp/Value_memslave.spc</option>
 	  
 	  <include>mem_slave_tlm.2.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/mem_slave_tlm.2_AVDFA_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/mem_slave_tlm.2_AVDFA_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Value"/>
 	  <option name="-setprop">specification=config/specification/pfp/Value_test_locks6.spc</option>
 	  
 	  <include>test_locks_6.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/test_locks_6_AVDFA_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/test_locks_6_AVDFA_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Interval"/>
 	  <option name="-setprop">specification=config/specification/pfp/Interval_encode_invert_relax.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>encode_ie_nosprintf.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/encode_ie_nosprintf_PIDFA_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/encode_ie_nosprintf_PIDFA_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Interval"/>
 	  <option name="-setprop">specification=config/specification/pfp/Interval_encode_invert_relax.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>encode_ie_interproc.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/encode_ie_interproc_PIDFA_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/encode_ie_interproc_PIDFA_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Interval"/>
 	  <option name="-setprop">specification=config/specification/pfp/Interval_NetBSD_anyMeta.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>NetBSD_anyMeta.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/NetBSD_anyMeta_PIDFA_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/NetBSD_anyMeta_PIDFA_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Interval"/>
 	  <option name="-setprop">specification=config/specification/pfp/Interval_encode_invert_relax.spc</option>
 	  
 	  <include>encode_ie_interproc.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/encode_ie_interproc_AIDFA_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/encode_ie_interproc_AIDFA_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Interval"/>
 	  <option name="-setprop">specification=config/specification/pfp/Interval_SpamAssassin.spc</option>
 	  
 	  <include>SpamAssassin.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/SpamAssassin_AIDFA_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/SpamAssassin_AIDFA_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Interval"/>
 	  <option name="-setprop">specification=config/specification/pfp/Interval_sendmail_fromqp.spc</option>
 	  
 	  <include>sendmail_fromqp.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/sendmail_fromqp_AIDFA_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/sendmail_fromqp_AIDFA_arg.obj</option>
 	</tasks>	
   </rundefinition>
 
@@ -880,292 +866,286 @@
 	  <option name="-setprop">specification=config/specification/pfp/locks_ops.spc</option>
 	  
 	  <include>locks.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/locks_PLMC_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/locks_PLMC_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/tokenring03.spc</option>
 	  
 	  <include>token_ring.03.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/token_ring.03_PLMC_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/token_ring.03_PLMC_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/memslave_ops.spc</option>
 	  
 	  <include>mem_slave_tlm.1.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/mem_slave_tlm.1_PLMC_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/mem_slave_tlm.1_PLMC_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/ssh_ops.spc</option>
 	  
 	  <include>s3_srvr.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/s3_srvr_PLMC_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/s3_srvr_PLMC_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/tokenring02.spc</option>
 	  
 	  <include>token_ring.02.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/token_ring.02_VLMC_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/token_ring.02_VLMC_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/tokenring04.spc</option>
 	  
 	  <include>token_ring.04.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/token_ring.04_VLMC_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/token_ring.04_VLMC_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/transmitter_ops.spc</option>
 	  
 	  <include>transmitter.03.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/transmitter.03_VLMC_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/transmitter.03_VLMC_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/ssh_ops.spc</option>
 	  
 	  <include>s3_srvr.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/s3_srvr_ALMC_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/s3_srvr_ALMC_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/transmitter_ops.spc</option>
 	  
 	  <include>transmitter.01.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/transmitter.01_ALMC_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/transmitter.01_ALMC_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/transmitter_ops.spc</option>
 	  
 	  <include>transmitter.02.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/transmitter.02_ALMC_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/transmitter.02_ALMC_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+UninitVars"/>
 	  
 	  <include>pipeline.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/pipeline_PUMC_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/pipeline_PUMC_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+UninitVars"/>
 	  
 	  <include>cdaudio.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/cdaudio_PUMC_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/cdaudio_PUMC_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+UninitVars"/>
 	  
 	  <include>diskperf.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/diskperf_PUMC_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/diskperf_PUMC_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+UninitVars"/>
 	  
 	  <include>pipeline.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/pipeline_AUMC_reached.obj</option>
-	</tasks>
-	<tasks>
-	  <option name="-PfP-Apron+UninitVars"/>
-	  
-	  <include>pipeline2.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/pipeline2_AUMC_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/pipeline_AUMC_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+UninitVars"/>
 	  
 	  <include>s3_srvr.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/s3_srvr_AUMC_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/s3_srvr_AUMC_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+UninitVars"/>
 	  
 	  <include>s3_srvr.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/s3_srvr_VUMC_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/s3_srvr_VUMC_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+UninitVars"/>
 	  
 	  <include>cdaudio.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/cdaudio_VUMC_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/cdaudio_VUMC_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+UninitVars"/>
 	  
 	  <include>pipeline2.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/pipeline2_VUMC_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/pipeline2_VUMC_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_condsum.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>condsum.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/condsum_PSDFA_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/condsum_PSDFA_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_PfP_propertyInFlag_SLR.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>SLR.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/SLR_PSDFA_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/SLR_PSDFA_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_fac_negsum.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>fac_negsum.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/fac_negsum_PSDFA_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/fac_negsum_PSDFA_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_memsafety.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>lockfree-3.0.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/lockfree-3.0_PSDFA_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/lockfree-3.0_PSDFA_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_test_locks7.spc</option>
 	  
 	  <include>test_locks_7.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/test_locks_7_ASDFA_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/test_locks_7_ASDFA_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_test_locks8.spc</option>
 	  
 	  <include>test_locks_8.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/test_locks_8_ASDFA_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/test_locks_8_ASDFA_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_inf4.spc</option>
       
 	  <include>inf4.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/inf4_ASDFA_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/inf4_ASDFA_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_memsafety.spc</option>
 	  
 	  <include>addIterations.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/addIterations_ASDFA_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/addIterations_ASDFA_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_PfP_propertyInFlag_SLR.spc</option>
 	  
 	  <include>SLRb.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/SLRb_VSDFA_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/SLRb_VSDFA_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_PfP_propertyInFlag_SLR.spc</option>
 	  
 	  <include>SLR.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/SLR_VSDFA_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/SLR_VSDFA_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_inf6_8.spc</option>
 	  
 	  <include>inf6.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/inf6_VSDFA_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/inf6_VSDFA_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_memsafety.spc</option>
 	  
 	  <include>lockfree-3.1.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/lockfree-3.1_VSDFA_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/lockfree-3.1_VSDFA_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Value"/>
 	  <option name="-setprop">specification=config/specification/pfp/Value_test_locks5_5d_12_12d.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>test_locks_5.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/test_locks_5_PVDFA_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/test_locks_5_PVDFA_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Value"/>
 	  <option name="-setprop">specification=config/specification/pfp/Value_ntdrivers.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>kbfiltr_simpl1.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/kbfiltr_simpl1_PVDFA_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/kbfiltr_simpl1_PVDFA_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Value"/>
 	  <option name="-setprop">specification=config/specification/pfp/Value_ntdrivers.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>kbfiltr_simpl2.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/kbfiltr_simpl2_PVDFA_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/kbfiltr_simpl2_PVDFA_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Value"/>
 	  <option name="-setprop">specification=config/specification/pfp/Value_memslave.spc</option>
 	  
 	  <include>mem_slave_tlm.1.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/mem_slave_tlm.1_AVDFA_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/mem_slave_tlm.1_AVDFA_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Value"/>
 	  <option name="-setprop">specification=config/specification/pfp/Value_memslave.spc</option>
 	  
 	  <include>mem_slave_tlm.2.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/mem_slave_tlm.2_AVDFA_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/mem_slave_tlm.2_AVDFA_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Value"/>
 	  <option name="-setprop">specification=config/specification/pfp/Value_test_locks6.spc</option>
 	  
 	  <include>test_locks_6.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/test_locks_6_AVDFA_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/test_locks_6_AVDFA_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Interval"/>
 	  <option name="-setprop">specification=config/specification/pfp/Interval_encode_invert_relax.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>encode_ie_nosprintf.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/encode_ie_nosprintf_PIDFA_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/encode_ie_nosprintf_PIDFA_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Interval"/>
 	  <option name="-setprop">specification=config/specification/pfp/Interval_encode_invert_relax.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>encode_ie_interproc.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/encode_ie_interproc_PIDFA_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/encode_ie_interproc_PIDFA_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Interval"/>
 	  <option name="-setprop">specification=config/specification/pfp/Interval_NetBSD_anyMeta.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>NetBSD_anyMeta.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/NetBSD_anyMeta_PIDFA_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/NetBSD_anyMeta_PIDFA_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Interval"/>
 	  <option name="-setprop">specification=config/specification/pfp/Interval_encode_invert_relax.spc</option>
 	  
 	  <include>encode_ie_interproc.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/encode_ie_interproc_AIDFA_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/encode_ie_interproc_AIDFA_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Interval"/>
 	  <option name="-setprop">specification=config/specification/pfp/Interval_SpamAssassin.spc</option>
 	  
 	  <include>SpamAssassin.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/SpamAssassin_AIDFA_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/SpamAssassin_AIDFA_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Interval"/>
 	  <option name="-setprop">specification=config/specification/pfp/Interval_sendmail_fromqp.spc</option>
 	  
 	  <include>sendmail_fromqp.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/sendmail_fromqp_AIDFA_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/sendmail_fromqp_AIDFA_reached.obj</option>
 	</tasks>	
   </rundefinition>
 
@@ -1183,124 +1163,118 @@
 	  <option name="-setprop">specification=config/specification/pfp/locks_ops.spc</option>
 	  <option name="-setprop">pcc.strategy=parallel.PartialReachedSetPartitioningParallelStrategy</option>
 	  <include>locks.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/locks_PLMC_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/locks_PLMC_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/tokenring03.spc</option>
 	  <option name="-setprop">pcc.strategy=parallel.PartialReachedSetPartitioningParallelStrategy</option>
 	  <include>token_ring.03.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/token_ring.03_PLMC_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/token_ring.03_PLMC_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/memslave_ops.spc</option>
 	  <option name="-setprop">pcc.strategy=parallel.PartialReachedSetPartitioningParallelStrategy</option>
 	  <include>mem_slave_tlm.1.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/mem_slave_tlm.1_PLMC_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/mem_slave_tlm.1_PLMC_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/ssh_ops.spc</option>
 	  <option name="-setprop">pcc.strategy=parallel.PartialReachedSetPartitioningParallelStrategy</option>
 	  <include>s3_srvr.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/s3_srvr_PLMC_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/s3_srvr_PLMC_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/tokenring02.spc</option>
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>token_ring.02.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/token_ring.02_VLMC_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/token_ring.02_VLMC_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/tokenring04.spc</option>
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>token_ring.04.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/token_ring.04_VLMC_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/token_ring.04_VLMC_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/transmitter_ops.spc</option>
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>transmitter.03.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/transmitter.03_VLMC_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/transmitter.03_VLMC_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/ssh_ops.spc</option>
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>s3_srvr.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/s3_srvr_ALMC_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/s3_srvr_ALMC_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/transmitter_ops.spc</option>
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>transmitter.01.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/transmitter.01_ALMC_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/transmitter.01_ALMC_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/transmitter_ops.spc</option>
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>transmitter.02.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/transmitter.02_ALMC_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/transmitter.02_ALMC_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+UninitVars"/>
 	  <option name="-setprop">pcc.strategy=parallel.PartialReachedSetPartitioningParallelStrategy</option>
 	  <include>pipeline.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/pipeline_PUMC_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/pipeline_PUMC_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+UninitVars"/>
 	  <option name="-setprop">pcc.strategy=parallel.PartialReachedSetPartitioningParallelStrategy</option>
 	  <include>cdaudio.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/cdaudio_PUMC_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/cdaudio_PUMC_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+UninitVars"/>
 	  <option name="-setprop">pcc.strategy=parallel.PartialReachedSetPartitioningParallelStrategy</option>
 	  <include>diskperf.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/diskperf_PUMC_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/diskperf_PUMC_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+UninitVars"/>
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>pipeline.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/pipeline_AUMC_part.obj</option>
-	</tasks>
-	<tasks>
-	  <option name="-PfP-Apron+UninitVars"/>
-	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
-	  <include>pipeline2.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/pipeline2_AUMC_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/pipeline_AUMC_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+UninitVars"/>
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>s3_srvr.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/s3_srvr_AUMC_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/s3_srvr_AUMC_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+UninitVars"/>
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>s3_srvr.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/s3_srvr_VUMC_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/s3_srvr_VUMC_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+UninitVars"/>
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>cdaudio.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/cdaudio_VUMC_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/cdaudio_VUMC_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+UninitVars"/>
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>pipeline2.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/pipeline2_VUMC_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/pipeline2_VUMC_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Sign"/>
@@ -1308,7 +1282,7 @@
 	  <option name="-setprop">pcc.strategy=parallel.PartialReachedSetPartitioningParallelStrategy</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>condsum.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/condsum_PSDFA_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/condsum_PSDFA_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Sign"/>
@@ -1316,7 +1290,7 @@
 	  <option name="-setprop">pcc.strategy=parallel.PartialReachedSetPartitioningParallelStrategy</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>SLR.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/SLR_PSDFA_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/SLR_PSDFA_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Sign"/>
@@ -1324,7 +1298,7 @@
 	  <option name="-setprop">pcc.strategy=parallel.PartialReachedSetPartitioningParallelStrategy</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>fac_negsum.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/fac_negsum_PSDFA_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/fac_negsum_PSDFA_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Sign"/>
@@ -1332,63 +1306,63 @@
 	  <option name="-setprop">pcc.strategy=parallel.PartialReachedSetPartitioningParallelStrategy</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>lockfree-3.0.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/lockfree-3.0_PSDFA_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/lockfree-3.0_PSDFA_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_test_locks7.spc</option>
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>test_locks_7.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/test_locks_7_ASDFA_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/test_locks_7_ASDFA_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_test_locks8.spc</option>
 	 <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option> 
 	  <include>test_locks_8.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/test_locks_8_ASDFA_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/test_locks_8_ASDFA_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_inf4.spc</option>
       <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>inf4.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/inf4_ASDFA_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/inf4_ASDFA_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_memsafety.spc</option>
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>addIterations.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/addIterations_ASDFA_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/addIterations_ASDFA_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_PfP_propertyInFlag_SLR.spc</option>
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>SLRb.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/SLRb_VSDFA_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/SLRb_VSDFA_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_PfP_propertyInFlag_SLR.spc</option>
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>SLR.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/SLR_VSDFA_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/SLR_VSDFA_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_inf6_8.spc</option>
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>inf6.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/inf6_VSDFA_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/inf6_VSDFA_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_memsafety.spc</option>
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>lockfree-3.1.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/lockfree-3.1_VSDFA_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/lockfree-3.1_VSDFA_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Value"/>
@@ -1396,7 +1370,7 @@
 	  <option name="-setprop">pcc.strategy=parallel.PartialReachedSetPartitioningParallelStrategy</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>test_locks_5.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/test_locks_5_PVDFA_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/test_locks_5_PVDFA_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Value"/>
@@ -1404,7 +1378,7 @@
 	  <option name="-setprop">pcc.strategy=parallel.PartialReachedSetPartitioningParallelStrategy</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>kbfiltr_simpl1.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/kbfiltr_simpl1_PVDFA_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/kbfiltr_simpl1_PVDFA_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Value"/>
@@ -1412,28 +1386,28 @@
 	  <option name="-setprop">pcc.strategy=parallel.PartialReachedSetPartitioningParallelStrategy</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>kbfiltr_simpl2.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/kbfiltr_simpl2_PVDFA_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/kbfiltr_simpl2_PVDFA_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Value"/>
 	  <option name="-setprop">specification=config/specification/pfp/Value_memslave.spc</option>
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>mem_slave_tlm.1.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/mem_slave_tlm.1_AVDFA_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/mem_slave_tlm.1_AVDFA_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Value"/>
 	  <option name="-setprop">specification=config/specification/pfp/Value_memslave.spc</option>
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>mem_slave_tlm.2.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/mem_slave_tlm.2_AVDFA_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/mem_slave_tlm.2_AVDFA_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Value"/>
 	  <option name="-setprop">specification=config/specification/pfp/Value_test_locks6.spc</option>
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>test_locks_6.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/test_locks_6_AVDFA_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/test_locks_6_AVDFA_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Interval"/>
@@ -1441,7 +1415,7 @@
 	  <option name="-setprop">pcc.strategy=parallel.PartialReachedSetPartitioningParallelStrategy</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>encode_ie_nosprintf.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/encode_ie_nosprintf_PIDFA_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/encode_ie_nosprintf_PIDFA_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Interval"/>
@@ -1449,7 +1423,7 @@
 	  <option name="-setprop">pcc.strategy=parallel.PartialReachedSetPartitioningParallelStrategy</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>encode_ie_interproc.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/encode_ie_interproc_PIDFA_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/encode_ie_interproc_PIDFA_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Interval"/>
@@ -1457,33 +1431,32 @@
 	  <option name="-setprop">pcc.strategy=parallel.PartialReachedSetPartitioningParallelStrategy</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>NetBSD_anyMeta.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/NetBSD_anyMeta_PIDFA_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/NetBSD_anyMeta_PIDFA_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Interval"/>
 	  <option name="-setprop">specification=config/specification/pfp/Interval_encode_invert_relax.spc</option>
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>encode_ie_interproc.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/encode_ie_interproc_AIDFA_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/encode_ie_interproc_AIDFA_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Interval"/>
 	  <option name="-setprop">specification=config/specification/pfp/Interval_SpamAssassin.spc</option>
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>SpamAssassin.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/SpamAssassin_AIDFA_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/SpamAssassin_AIDFA_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Interval"/>
 	  <option name="-setprop">specification=config/specification/pfp/Interval_sendmail_fromqp.spc</option>
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>sendmail_fromqp.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/sendmail_fromqp_AIDFA_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/sendmail_fromqp_AIDFA_part.obj</option>
 	</tasks>	
   </rundefinition>
 
 <rundefinition name="CPA1+CPA2_Analysis trans">
-	
    <tasks>
 	  <option name="-PfP-Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/locks_ops.spc</option>
@@ -1549,10 +1522,6 @@
 	<tasks>
 	  <option name="-PfP-UninitVars"/>
 	  <include>transformed/pipeline_AUMC_trans.c</include>
-	</tasks>
-	<tasks>
-	  <option name="-PfP-UninitVars"/>
-	  <include>transformed/pipeline2_AUMC_trans.c</include>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-UninitVars"/>
@@ -1774,10 +1743,6 @@
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+UninitVars"/>
-	  <include>pipeline2.cil.c</include>
-	</tasks>
-	<tasks>
-	  <option name="-PfP-Apron+UninitVars"/>
 	  <include>s3_srvr.cil.c</include>
 	</tasks>-->
 	<tasks>
@@ -1934,7 +1899,7 @@
 	</tasks>-->	
   </rundefinition>
 
-  <rundefinition name="CPA1+CPA2_Analysis lazy regression">
+ <!-- <rundefinition name="CPA1+CPA2_Analysis lazy regression">
 	<option name="-setprop">enabledanalysis.allowLazyRefinement=true</option>
 	
    <tasks>
@@ -1942,134 +1907,134 @@
 	  <option name="-setprop">specification=config/specification/pfp/locks_ops.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=false</option>
 	  <include>locks.c</include>
-	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=pcc/precision/locks_PLMC_lazy_init.txt</option>
+	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/programs-from-proofs/pcc/precision/locks_PLMC_lazy_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/tokenring03.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=false</option>
 	  <include>token_ring.03.cil.c</include>
-	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=pcc/precision/token_ring.03_PLMC_lazy_init.txt</option>
+	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/programs-from-proofs/pcc/precision/token_ring.03_PLMC_lazy_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/memslave_ops.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=false</option>
 	  <include>mem_slave_tlm.1.cil.c</include>
-	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=pcc/precision/mem_slave_tlm.1_PLMC_lazy_init.txt</option>
+	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/programs-from-proofs/pcc/precision/mem_slave_tlm.1_PLMC_lazy_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/ssh_ops.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=false</option>
 	  <include>s3_srvr.cil.c</include>
-	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=pcc/precision/s3_srvr_PLMC_lazy_init.txt</option>
+	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/programs-from-proofs/pcc/precision/s3_srvr_PLMC_lazy_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/tokenring02.spc</option>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=LENGTH_MIN</option>
 	  <include>token_ring.02.cil.c</include>
-	  <option name="-setprop">cpa.value.initialPrecisionFile=pcc/precision/token_ring.02_VLMC_lazy_init.txt</option>
+	  <option name="-setprop">cpa.value.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/token_ring.02_VLMC_lazy_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/tokenring04.spc</option>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=LENGTH_MAX</option>
 	  <include>token_ring.04.cil.c</include>
-	  <option name="-setprop">cpa.value.initialPrecisionFile=pcc/precision/token_ring.04VLMC_lazy_init.txt</option>
+	  <option name="-setprop">cpa.value.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/token_ring.04VLMC_lazy_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/transmitter_ops.spc</option>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=LENGTH_MAX</option>
 	  <include>transmitter.03.cil.c</include>
-	  <option name="-setprop">cpa.value.initialPrecisionFile=pcc/precision/transmitter.03_VLMC_lazy_init.txt</option>
+	  <option name="-setprop">cpa.value.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/transmitter.03_VLMC_lazy_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/transmitter_ops.spc</option>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=LENGTH_MAX</option>
 	  <include>transmitter.01.cil.c</include>
-	  <option name="-setprop">cpa.apron.initialPrecisionFile=pcc/precision/transmitter.01_ALMC_lazy_init.txt</option>
+	  <option name="-setprop">cpa.apron.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/transmitter.01_ALMC_lazy_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/transmitter_ops.spc</option>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=LENGTH_MAX</option>
 	  <include>transmitter.02.cil.c</include>
-	  <option name="-setprop">cpa.apron.initialPrecisionFile=pcc/precision/transmitter.02_ALMC_lazy_init.txt</option>
+	  <option name="-setprop">cpa.apron.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/transmitter.02_ALMC_lazy_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+UninitVars"/>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=false</option>
 	  <include>pipeline.cil.c</include>
-	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=pcc/precision/pipeline_PUMC_lazy_init.txt</option>
+	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/programs-from-proofs/pcc/precision/pipeline_PUMC_lazy_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+UninitVars"/>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=false</option>
 	  <include>cdaudio.cil.c</include>
-	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=pcc/precision/cdaudio_PUMC_lazy_init.txt</option>
+	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/programs-from-proofs/pcc/precision/cdaudio_PUMC_lazy_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+UninitVars"/>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=false</option>
 	  <include>diskperf.cil.c</include>
-	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=pcc/precision/diskperf_PUMC_lazy_init.txt</option>
+	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/programs-from-proofs/pcc/precision/diskperf_PUMC_lazy_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+UninitVars"/>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=LENGTH_MAX</option>
 	  <include>s3_srvr.cil.c</include>
-	  <option name="-setprop">cpa.value.initialPrecisionFile=pcc/precision/s3_srvr_VUMC_lazy_init.txt</option>
+	  <option name="-setprop">cpa.value.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/s3_srvr_VUMC_lazy_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+UninitVars"/>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=DOMAIN_MIN</option>
 	  <include>cdaudio.cil.c</include>
-	  <option name="-setprop">cpa.value.initialPrecisionFile=pcc/precision/cdaudio_VUMC_lazy_init.txt</option>
+	  <option name="-setprop">cpa.value.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/cdaudio_VUMC_lazy_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+UninitVars"/>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=DOMAIN_MIN,LENGTH_MIN</option>
 	  <include>pipeline2.cil.c</include>
-	  <option name="-setprop">cpa.value.initialPrecisionFile=pcc/precision/pipeline2_VUMC_lazy_init.txt</option>
+	  <option name="-setprop">cpa.value.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/pipeline2_VUMC_lazy_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_condsum.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>condsum.c</include>
-	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=pcc/precision/condsum_PSDFA_lazy_init.txt</option>
+	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/programs-from-proofs/pcc/precision/condsum_PSDFA_lazy_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_PfP_propertyInFlag_SLR.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>SLR.c</include>
-	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=pcc/precision/SLR_PSDFA_lazy_init.txt</option>
+	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/programs-from-proofs/pcc/precision/SLR_PSDFA_lazy_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_fac_negsum.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>fac_negsum.c</include>
-	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=pcc/precision/fac_negsum_PSDFA_lazy_init.txt</option>
+	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/programs-from-proofs/pcc/precision/fac_negsum_PSDFA_lazy_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_memsafety.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>lockfree-3.0.c</include>
-	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=pcc/precision/lockfree-3.0_PSDFA_lazy_init.txt</option>
+	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/programs-from-proofs/pcc/precision/lockfree-3.0_PSDFA_lazy_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_inf4.spc</option>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=DOMAIN_MIN,LENGTH_MIN</option>
 	  <include>inf4.c</include>
-	  <option name="-setprop">cpa.apron.initialPrecisionFile=pcc/precision/inf4_ASDFA_lazy_init.txt</option>
+	  <option name="-setprop">cpa.apron.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/inf4_ASDFA_lazy_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Sign"/>
@@ -2077,77 +2042,77 @@
 	  <option name="-setprop">analysis.traversal.order=dfs</option>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=NONE</option>
 	  <include>addIterations.c</include>
-	  <option name="-setprop">cpa.apron.initialPrecisionFile=pcc/precision/addIterations_ASDFA_lazy_init.txt</option>
+	  <option name="-setprop">cpa.apron.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/addIterations_ASDFA_lazy_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_PfP_propertyInFlag_SLR.spc</option>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=NONE</option>
 	  <include>SLRb.c</include>
-	  <option name="-setprop">cpa.value.initialPrecisionFile=pcc/precision/SLRb_VSDFA_lazy_init.txt</option>
+	  <option name="-setprop">cpa.value.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/SLRb_VSDFA_lazy_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_PfP_propertyInFlag_SLR.spc</option>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=NONE</option>
 	  <include>SLR.c</include>
-	  <option name="-setprop">cpa.value.initialPrecisionFile=pcc/precision/SLR_VSDFA_lazy_init.txt</option>
+	  <option name="-setprop">cpa.value.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/SLR_VSDFA_lazy_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_inf6_8.spc</option>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=DOMAIN_MIN,LENGTH_MIN</option>
 	  <include>inf6.c</include>
-	  <option name="-setprop">cpa.value.initialPrecisionFile=pcc/precision/inf6_VSDFA_lazy_init.txt</option>
+	  <option name="-setprop">cpa.value.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/inf6_VSDFA_lazy_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_memsafety.spc</option>
 	  <option name="-setprop">cpa.value.refinement.prefixPreference=LENGTH_MIN</option>
 	  <include>lockfree-3.1.c</include>
-	  <option name="-setprop">cpa.value.initialPrecisionFile=pcc/precision/lockfree-3.1_VSDFA_lazy_init.txt</option>
+	  <option name="-setprop">cpa.value.initialPrecisionFile=test/programs/programs-from-proofs/pcc/precision/lockfree-3.1_VSDFA_lazy_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Value"/>
 	  <option name="-setprop">specification=config/specification/pfp/Value_test_locks5_5d_12_12d.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>test_locks_5.c</include>
-	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=pcc/precision/test_locks_5_PVDFA_lazy_init.txt</option>
+	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/programs-from-proofs/pcc/precision/test_locks_5_PVDFA_lazy_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Value"/>
 	  <option name="-setprop">specification=config/specification/pfp/Value_ntdrivers.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>kbfiltr_simpl1.cil.c</include>
-	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=pcc/precision/kbfiltr_simpl1_PVDFA_lazy_init.txt</option>
+	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/programs-from-proofs/pcc/precision/kbfiltr_simpl1_PVDFA_lazy_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Value"/>
 	  <option name="-setprop">specification=config/specification/pfp/Value_ntdrivers.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>kbfiltr_simpl2.cil.c</include>
-	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=pcc/precision/kbfiltr_simpl2_PVDFA_lazy_init.txt</option>
+	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/programs-from-proofs/pcc/precision/kbfiltr_simpl2_PVDFA_lazy_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Interval"/>
 	  <option name="-setprop">specification=config/specification/pfp/Interval_encode_invert_relax.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>encode_ie_nosprintf.cil.c</include>
-	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=pcc/precision/encode_ie_nosprintf_PIDFA_lazy_init.txt</option>
+	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/programs-from-proofs/pcc/precision/encode_ie_nosprintf_PIDFA_lazy_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Interval"/>
 	  <option name="-setprop">specification=config/specification/pfp/Interval_encode_invert_relax.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>encode_ie_interproc.cil.c</include>
-	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=pcc/precision/encode_ie_interproc_PIDFA_lazy_init.txt</option>
+	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/programs-from-proofs/pcc/precision/encode_ie_interproc_PIDFA_lazy_init.txt</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Interval"/>
 	  <option name="-setprop">specification=config/specification/pfp/Interval_NetBSD_anyMeta.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>NetBSD_anyMeta.cil.c</include>
-	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=pcc/precision/NetBSD_anyMeta_PIDFA_lazy_init.txt</option>
+	  <option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/programs-from-proofs/pcc/precision/NetBSD_anyMeta_PIDFA_lazy_init.txt</option>
 	</tasks>
 	</rundefinition>
 
@@ -2167,134 +2132,134 @@
 	  <option name="-setprop">specification=config/specification/pfp/locks_ops.spc</option>
 	  
 	  <include>locks.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/locks_PLMC_lazy_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/locks_PLMC_lazy_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/tokenring03.spc</option>
 	  
 	  <include>token_ring.03.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/token_ring.03_PLMC_lazy_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/token_ring.03_PLMC_lazy_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/memslave_ops.spc</option>
 	  
 	  <include>mem_slave_tlm.1.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/mem_slave_tlm.1_PLMC_lazy_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/mem_slave_tlm.1_PLMC_lazy_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/ssh_ops.spc</option>
 	  
 	  <include>s3_srvr.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/s3_srvr_PLMC_lazy_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/s3_srvr_PLMC_lazy_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/tokenring02.spc</option>
 	  
 	  <include>token_ring.02.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/token_ring.02_VLMC_lazy_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/token_ring.02_VLMC_lazy_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/tokenring04.spc</option>
 	  
 	  <include>token_ring.04.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/token_ring.04VLMC_lazy_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/token_ring.04VLMC_lazy_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/transmitter_ops.spc</option>
 	  
 	  <include>transmitter.03.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/transmitter.03_VLMC_lazy_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/transmitter.03_VLMC_lazy_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/transmitter_ops.spc</option>
 	  
 	  <include>transmitter.01.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/transmitter.01_ALMC_lazy_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/transmitter.01_ALMC_lazy_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/transmitter_ops.spc</option>
 	  
 	  <include>transmitter.02.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/transmitter.02_ALMC_lazy_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/transmitter.02_ALMC_lazy_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+UninitVars"/>
 	  
 	  <include>pipeline.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/pipeline_PUMC_lazy_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/pipeline_PUMC_lazy_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+UninitVars"/>
 	  
 	  <include>cdaudio.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/cdaudio_PUMC_lazy_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/cdaudio_PUMC_lazy_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+UninitVars"/>
 	  
 	  <include>diskperf.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/diskperf_PUMC_lazy_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/diskperf_PUMC_lazy_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+UninitVars"/>
 	  
 	  <include>s3_srvr.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/s3_srvr_VUMC_lazy_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/s3_srvr_VUMC_lazy_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+UninitVars"/>
 	  
 	  <include>cdaudio.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/cdaudio_VUMC_lazy_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/cdaudio_VUMC_lazy_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+UninitVars"/>
 	  
 	  <include>pipeline2.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/pipeline2_VUMC_lazy_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/pipeline2_VUMC_lazy_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_condsum.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>condsum.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/condsum_PSDFA_lazy_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/condsum_PSDFA_lazy_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_PfP_propertyInFlag_SLR.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>SLR.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/SLR_PSDFA_lazy_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/SLR_PSDFA_lazy_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_fac_negsum.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>fac_negsum.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/fac_negsum_PSDFA_lazy_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/fac_negsum_PSDFA_lazy_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_memsafety.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>lockfree-3.0.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/lockfree-3.0_PSDFA_lazy_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/lockfree-3.0_PSDFA_lazy_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_inf4.spc</option>
 	  
 	  <include>inf4.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/inf4_ASDFA_lazy_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/inf4_ASDFA_lazy_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Sign"/>
@@ -2302,77 +2267,77 @@
 	  <option name="-setprop">analysis.traversal.order=dfs</option>
 	  
 	  <include>addIterations.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/addIterations_ASDFA_lazy_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/addIterations_ASDFA_lazy_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_PfP_propertyInFlag_SLR.spc</option>
 	  
 	  <include>SLRb.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/SLRb_VSDFA_lazy_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/SLRb_VSDFA_lazy_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_PfP_propertyInFlag_SLR.spc</option>
 	  
 	  <include>SLR.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/SLR_VSDFA_lazy_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/SLR_VSDFA_lazy_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_inf6_8.spc</option>
 	  
 	  <include>inf6.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/inf6_VSDFA_lazy_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/inf6_VSDFA_lazy_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_memsafety.spc</option>
 	  
 	  <include>lockfree-3.1.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/lockfree-3.1_VSDFA_lazy_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/lockfree-3.1_VSDFA_lazy_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Value"/>
 	  <option name="-setprop">specification=config/specification/pfp/Value_test_locks5_5d_12_12d.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>test_locks_5.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/test_locks_5_PVDFA_lazy_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/test_locks_5_PVDFA_lazy_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Value"/>
 	  <option name="-setprop">specification=config/specification/pfp/Value_ntdrivers.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>kbfiltr_simpl1.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/kbfiltr_simpl1_PVDFA_lazy_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/kbfiltr_simpl1_PVDFA_lazy_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Value"/>
 	  <option name="-setprop">specification=config/specification/pfp/Value_ntdrivers.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>kbfiltr_simpl2.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/kbfiltr_simpl2_PVDFA_lazy_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/kbfiltr_simpl2_PVDFA_lazy_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Interval"/>
 	  <option name="-setprop">specification=config/specification/pfp/Interval_encode_invert_relax.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>encode_ie_nosprintf.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/encode_ie_nosprintf_PIDFA_lazy_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/encode_ie_nosprintf_PIDFA_lazy_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Interval"/>
 	  <option name="-setprop">specification=config/specification/pfp/Interval_encode_invert_relax.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>encode_ie_interproc.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/encode_ie_interproc_PIDFA_lazy_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/encode_ie_interproc_PIDFA_lazy_arg.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Interval"/>
 	  <option name="-setprop">specification=config/specification/pfp/Interval_NetBSD_anyMeta.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>NetBSD_anyMeta.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/arg/NetBSD_anyMeta_PIDFA_lazy_arg.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/arg/NetBSD_anyMeta_PIDFA_lazy_arg.obj</option>
 	</tasks>
 	</rundefinition>
 
@@ -2391,134 +2356,134 @@
 	  <option name="-setprop">specification=config/specification/pfp/locks_ops.spc</option>
 	  
 	  <include>locks.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/locks_PLMC_lazy_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/locks_PLMC_lazy_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/tokenring03.spc</option>
 	  
 	  <include>token_ring.03.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/token_ring.03_PLMC_lazy_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/token_ring.03_PLMC_lazy_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/memslave_ops.spc</option>
 	  
 	  <include>mem_slave_tlm.1.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/mem_slave_tlm.1_PLMC_lazy_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/mem_slave_tlm.1_PLMC_lazy_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/ssh_ops.spc</option>
 	  
 	  <include>s3_srvr.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/s3_srvr_PLMC_lazy_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/s3_srvr_PLMC_lazy_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/tokenring02.spc</option>
 	  
 	  <include>token_ring.02.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/token_ring.02_VLMC_lazy_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/token_ring.02_VLMC_lazy_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/tokenring04.spc</option>
 	  
 	  <include>token_ring.04.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/token_ring.04VLMC_lazy_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/token_ring.04VLMC_lazy_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/transmitter_ops.spc</option>
 	  
 	  <include>transmitter.03.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/transmitter.03_VLMC_lazy_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/transmitter.03_VLMC_lazy_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/transmitter_ops.spc</option>
 	  
 	  <include>transmitter.01.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/transmitter.01_ALMC_lazy_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/transmitter.01_ALMC_lazy_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/transmitter_ops.spc</option>
 	  
 	  <include>transmitter.02.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/transmitter.02_ALMC_lazy_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/transmitter.02_ALMC_lazy_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+UninitVars"/>
 	  
 	  <include>pipeline.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/pipeline_PUMC_lazy_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/pipeline_PUMC_lazy_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+UninitVars"/>
 	  
 	  <include>cdaudio.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/cdaudio_PUMC_lazy_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/cdaudio_PUMC_lazy_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+UninitVars"/>
 	  
 	  <include>diskperf.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/diskperf_PUMC_lazy_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/diskperf_PUMC_lazy_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+UninitVars"/>
 	  
 	  <include>s3_srvr.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/s3_srvr_VUMC_lazy_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/s3_srvr_VUMC_lazy_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+UninitVars"/>
 	  
 	  <include>cdaudio.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/cdaudio_VUMC_lazy_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/cdaudio_VUMC_lazy_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+UninitVars"/>
 	  
 	  <include>pipeline2.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/pipeline2_VUMC_lazy_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/pipeline2_VUMC_lazy_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_condsum.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>condsum.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/condsum_PSDFA_lazy_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/condsum_PSDFA_lazy_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_PfP_propertyInFlag_SLR.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>SLR.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/SLR_PSDFA_lazy_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/SLR_PSDFA_lazy_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_fac_negsum.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>fac_negsum.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/fac_negsum_PSDFA_lazy_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/fac_negsum_PSDFA_lazy_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_memsafety.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>lockfree-3.0.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/lockfree-3.0_PSDFA_lazy_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/lockfree-3.0_PSDFA_lazy_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_inf4.spc</option>
 	  
 	  <include>inf4.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/inf4_ASDFA_lazy_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/inf4_ASDFA_lazy_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Sign"/>
@@ -2526,77 +2491,77 @@
 	  <option name="-setprop">analysis.traversal.order=dfs</option>
 	  
 	  <include>addIterations.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/addIterations_ASDFA_lazy_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/addIterations_ASDFA_lazy_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_PfP_propertyInFlag_SLR.spc</option>
 	  
 	  <include>SLRb.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/SLRb_VSDFA_lazy_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/SLRb_VSDFA_lazy_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_PfP_propertyInFlag_SLR.spc</option>
 	  
 	  <include>SLR.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/SLR_VSDFA_lazy_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/SLR_VSDFA_lazy_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_inf6_8.spc</option>
 	  
 	  <include>inf6.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/inf6_VSDFA_lazy_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/inf6_VSDFA_lazy_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_memsafety.spc</option>
 	  
 	  <include>lockfree-3.1.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/lockfree-3.1_VSDFA_lazy_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/lockfree-3.1_VSDFA_lazy_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Value"/>
 	  <option name="-setprop">specification=config/specification/pfp/Value_test_locks5_5d_12_12d.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>test_locks_5.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/test_locks_5_PVDFA_lazy_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/test_locks_5_PVDFA_lazy_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Value"/>
 	  <option name="-setprop">specification=config/specification/pfp/Value_ntdrivers.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>kbfiltr_simpl1.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/kbfiltr_simpl1_PVDFA_lazy_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/kbfiltr_simpl1_PVDFA_lazy_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Value"/>
 	  <option name="-setprop">specification=config/specification/pfp/Value_ntdrivers.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>kbfiltr_simpl2.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/kbfiltr_simpl2_PVDFA_lazy_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/kbfiltr_simpl2_PVDFA_lazy_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Interval"/>
 	  <option name="-setprop">specification=config/specification/pfp/Interval_encode_invert_relax.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>encode_ie_nosprintf.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/encode_ie_nosprintf_PIDFA_lazy_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/encode_ie_nosprintf_PIDFA_lazy_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Interval"/>
 	  <option name="-setprop">specification=config/specification/pfp/Interval_encode_invert_relax.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>encode_ie_interproc.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/encode_ie_interproc_PIDFA_lazy_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/encode_ie_interproc_PIDFA_lazy_reached.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Interval"/>
 	  <option name="-setprop">specification=config/specification/pfp/Interval_NetBSD_anyMeta.spc</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>NetBSD_anyMeta.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/reached/NetBSD_anyMeta_PIDFA_lazy_reached.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/reached/NetBSD_anyMeta_PIDFA_lazy_reached.obj</option>
 	</tasks>
 	</rundefinition>
 	
@@ -2614,99 +2579,100 @@
 	  <option name="-setprop">specification=config/specification/pfp/locks_ops.spc</option>
 	  <option name="-setprop">pcc.strategy=parallel.PartialReachedSetPartitioningParallelStrategy</option>
 	  <include>locks.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/locks_PLMC_lazy_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/locks_PLMC_lazy_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/tokenring03.spc</option>
 	  <option name="-setprop">pcc.strategy=parallel.PartialReachedSetPartitioningParallelStrategy</option>
+	  <option name="-stack">4096k</option>
 	  <include>token_ring.03.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/token_ring.03_PLMC_lazy_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/token_ring.03_PLMC_lazy_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/memslave_ops.spc</option>
 	  <option name="-setprop">pcc.strategy=parallel.PartialReachedSetPartitioningParallelStrategy</option>
 	  <include>mem_slave_tlm.1.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/mem_slave_tlm.1_PLMC_lazy_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/mem_slave_tlm.1_PLMC_lazy_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/ssh_ops.spc</option>
 	  <option name="-setprop">pcc.strategy=parallel.PartialReachedSetPartitioningParallelStrategy</option>
 	  <include>s3_srvr.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/s3_srvr_PLMC_lazy_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/s3_srvr_PLMC_lazy_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/tokenring02.spc</option>
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>token_ring.02.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/token_ring.02_VLMC_lazy_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/token_ring.02_VLMC_lazy_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/tokenring04.spc</option>
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>token_ring.04.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/token_ring.04VLMC_lazy_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/token_ring.04VLMC_lazy_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/transmitter_ops.spc</option>
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>transmitter.03.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/transmitter.03_VLMC_lazy_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/transmitter.03_VLMC_lazy_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/transmitter_ops.spc</option>
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>transmitter.01.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/transmitter.01_ALMC_lazy_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/transmitter.01_ALMC_lazy_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Location"/>
 	  <option name="-setprop">specification=config/specification/pfp/transmitter_ops.spc</option>
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>transmitter.02.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/transmitter.02_ALMC_lazy_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/transmitter.02_ALMC_lazy_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+UninitVars"/>
 	  <option name="-setprop">pcc.strategy=parallel.PartialReachedSetPartitioningParallelStrategy</option>
 	  <include>pipeline.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/pipeline_PUMC_lazy_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/pipeline_PUMC_lazy_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+UninitVars"/>
 	  <option name="-setprop">pcc.strategy=parallel.PartialReachedSetPartitioningParallelStrategy</option>
 	  <include>cdaudio.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/cdaudio_PUMC_lazy_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/cdaudio_PUMC_lazy_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+UninitVars"/>
 	  <option name="-setprop">pcc.strategy=parallel.PartialReachedSetPartitioningParallelStrategy</option>
 	  <include>diskperf.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/diskperf_PUMC_lazy_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/diskperf_PUMC_lazy_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+UninitVars"/>
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>s3_srvr.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/s3_srvr_VUMC_lazy_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/s3_srvr_VUMC_lazy_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+UninitVars"/>
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>cdaudio.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/cdaudio_VUMC_lazy_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/cdaudio_VUMC_lazy_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+UninitVars"/>
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>pipeline2.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/pipeline2_VUMC_lazy_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/pipeline2_VUMC_lazy_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Sign"/>
@@ -2714,7 +2680,7 @@
 	  <option name="-setprop">pcc.strategy=parallel.PartialReachedSetPartitioningParallelStrategy</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>condsum.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/condsum_PSDFA_lazy_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/condsum_PSDFA_lazy_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Sign"/>
@@ -2722,7 +2688,7 @@
 	  <option name="-setprop">pcc.strategy=parallel.PartialReachedSetPartitioningParallelStrategy</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>SLR.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/SLR_PSDFA_lazy_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/SLR_PSDFA_lazy_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Sign"/>
@@ -2730,7 +2696,7 @@
 	  <option name="-setprop">pcc.strategy=parallel.PartialReachedSetPartitioningParallelStrategy</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>fac_negsum.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/fac_negsum_PSDFA_lazy_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/fac_negsum_PSDFA_lazy_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Sign"/>
@@ -2738,14 +2704,14 @@
 	  <option name="-setprop">pcc.strategy=parallel.PartialReachedSetPartitioningParallelStrategy</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>lockfree-3.0.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/lockfree-3.0_PSDFA_lazy_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/lockfree-3.0_PSDFA_lazy_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_inf4.spc</option>
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>inf4.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/inf4_ASDFA_lazy_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/inf4_ASDFA_lazy_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Apron+Sign"/>
@@ -2753,35 +2719,35 @@
 	  <option name="-setprop">analysis.traversal.order=dfs</option>
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>addIterations.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/addIterations_ASDFA_lazy_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/addIterations_ASDFA_lazy_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_PfP_propertyInFlag_SLR.spc</option>
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>SLRb.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/SLRb_VSDFA_lazy_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/SLRb_VSDFA_lazy_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_PfP_propertyInFlag_SLR.spc</option>
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>SLR.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/SLR_VSDFA_lazy_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/SLR_VSDFA_lazy_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_inf6_8.spc</option>
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>inf6.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/inf6_VSDFA_lazy_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/inf6_VSDFA_lazy_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Value+Sign"/>
 	  <option name="-setprop">specification=config/specification/pfp/Sign_memsafety.spc</option>
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <include>lockfree-3.1.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/lockfree-3.1_VSDFA_lazy_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/lockfree-3.1_VSDFA_lazy_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Value"/>
@@ -2789,7 +2755,7 @@
 	  <option name="-setprop">pcc.strategy=parallel.PartialReachedSetPartitioningParallelStrategy</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>test_locks_5.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/test_locks_5_PVDFA_lazy_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/test_locks_5_PVDFA_lazy_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Value"/>
@@ -2797,7 +2763,7 @@
 	  <option name="-setprop">pcc.strategy=parallel.PartialReachedSetPartitioningParallelStrategy</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>kbfiltr_simpl1.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/kbfiltr_simpl1_PVDFA_lazy_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/kbfiltr_simpl1_PVDFA_lazy_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Value"/>
@@ -2805,7 +2771,7 @@
 	  <option name="-setprop">pcc.strategy=parallel.PartialReachedSetPartitioningParallelStrategy</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>kbfiltr_simpl2.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/kbfiltr_simpl2_PVDFA_lazy_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/kbfiltr_simpl2_PVDFA_lazy_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Interval"/>
@@ -2813,7 +2779,7 @@
 	  <option name="-setprop">pcc.strategy=parallel.PartialReachedSetPartitioningParallelStrategy</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>encode_ie_nosprintf.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/encode_ie_nosprintf_PIDFA_lazy_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/encode_ie_nosprintf_PIDFA_lazy_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Interval"/>
@@ -2821,7 +2787,7 @@
 	  <option name="-setprop">pcc.strategy=parallel.PartialReachedSetPartitioningParallelStrategy</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>encode_ie_interproc.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/encode_ie_interproc_PIDFA_lazy_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/encode_ie_interproc_PIDFA_lazy_part.obj</option>
 	</tasks>
 	<tasks>
 	  <option name="-PfP-Predicate+Interval"/>
@@ -2829,7 +2795,7 @@
 	  <option name="-setprop">pcc.strategy=parallel.PartialReachedSetPartitioningParallelStrategy</option>
 	  <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	  <include>NetBSD_anyMeta.cil.c</include>
-	  <option name="-setprop">pcc.proof=pcc/optimized_reached/NetBSD_anyMeta_PIDFA_lazy_part.obj</option>
+	  <option name="-setprop">pcc.proof=test/programs/programs-from-proofs/pcc/optimized_reached/NetBSD_anyMeta_PIDFA_lazy_part.obj</option>
 	</tasks>
 	</rundefinition>
 
@@ -2983,18 +2949,22 @@
 	  <option name="-setprop">specification=config/specification/pfp/Interval_NetBSD_anyMeta.spc</option>
 	  <include>transformed/lazy/NetBSD_anyMeta_PIDFA_lazy_trans.c</include>
 	</tasks>
-	</rundefinition>
+</rundefinition>
 
 <columns>
 <column title="Total time">Total time for CPAchecker</column>
 <column title="Set up time">Time for analysis setup</column>
 <column title="Parse time">Time for CFA construction</column>
 <column title="Analysis time">Time for Analysis</column>
+<column title="#Merge">Number of times merged</column>
 <column title="Precision read time">Initial precision read time</column>
 <column title="Proof check time">Total time for proof check algorithm</column>
 <column title="#Proof elements">Number of proof elements</column>
 <column title="#Refine">Number of refinements</column>
 <column title="#Loc">Number of program locations</column>
+<column title="#Join">Number of join program locations</column>
+<column title="#Edges">Number of CFA edges</column>
+<column title="#Var">Number of relevant variables</column>
 <column title="memory heap">Used heap memory</column>
 <column title="memory non-heap">Used non-heap memory</column>
 </columns>
