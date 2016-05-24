@@ -409,6 +409,7 @@ public class LoopstatsTest {
         .put("cfa.useMultiEdges", "false")
         .put("automata.properties.granularity", "BASENAME")
         .put("analysis.checkCounterexamples", "false")
+        .put("cfa.printDetailedStatistics", "true")
         .put("CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, "
             + "cpa.loopstats.LoopstatsCPA, cpa.functionpointer.FunctionPointerCPA, "
             + "cpa.predicate.PredicateCPA, cpa.coverage.CoverageCPA")
@@ -432,6 +433,7 @@ public class LoopstatsTest {
         .put("cfa.useMultiEdges", "false")
         .put("automata.properties.granularity", "BASENAME")
         .put("analysis.checkCounterexamples", "false")
+        .put("cfa.printDetailedStatistics", "true")
         .put("CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, "
             + "cpa.loopstats.LoopstatsCPA, cpa.functionpointer.FunctionPointerCPA, "
             + "cpa.predicate.PredicateCPA, cpa.assumptions.storage.AssumptionStorageCPA, "
