@@ -228,7 +228,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     description =
         "Provide invariants generated with other analyses via the PredicateCPAInvariantsManager."
   )
-  private boolean useGlobalInvariants;
+  private boolean useGlobalInvariants = true;
 
   @Option(
     secure = true,
@@ -303,6 +303,9 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
   public Set<BooleanFormula> getInvariantsFor(
       CFANode pNode, FormulaManagerView pFmgr, PathFormulaManager pPfmgr, PathFormula pContext) {
     Set<BooleanFormula> localInvariants = locationInvariantsCache.get(pNode);
+    if (localInvariants == null) {
+      localInvariants = Collections.emptySet();
+    }
     if (useGlobalInvariants) {
       return Sets.union(localInvariants, globalInvariantSupplier.getInvariantsFor(pNode, fmgr, pfmgr, pContext));
     }
