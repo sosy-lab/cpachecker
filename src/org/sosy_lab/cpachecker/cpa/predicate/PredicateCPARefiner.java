@@ -257,7 +257,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
 
       // Compute invariants if desired, and if the counterexample is not a repeated one
       // (otherwise invariants for the same location didn't help before, so they won't help now).
-      if (!repeatedCounterexample && invariantsManager.shouldInvariantsBeComputed()) {
+      if (!repeatedCounterexample && (invariantsManager.shouldInvariantsBeComputed() || invariantsManager.addToPrecision())) {
         counterexample =
             performInvariantsRefinement(
                 allStatesTrace,
