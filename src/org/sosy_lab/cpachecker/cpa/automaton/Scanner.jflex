@@ -38,15 +38,15 @@ import java.util.logging.Level;
     this.sf = sf;
     this.logger = logger;
   }
-   
+
   private Path getFile(String pYytext) throws FileNotFoundException {
     assert pYytext.startsWith("#include ");
     String fileName = pYytext.replaceFirst("#include ", "").trim();
-    
+
     Path file = Paths.get(fileName);
     if (!file.isAbsolute()) {
       Path currentFile = filesStack.peek();
-      file = Paths.get(currentFile.getParent().getPath(), file.getPath());    
+      file = Paths.get(currentFile.getParent().getPath(), file.getPath());
     }
 
     if (scannedFiles.contains(file)) {
@@ -59,7 +59,7 @@ import java.util.logging.Level;
     filesStack.push(file);
     return file;
   }
-  
+
   private Location getStartLocation() {
     return new Location(filesStack.peek().getPath(), yyline+1,yycolumn+1-yylength());
   }
@@ -67,7 +67,7 @@ import java.util.logging.Level;
   private Location getEndLocation() {
     return new Location(filesStack.peek().getPath(), yyline+1,yycolumn+1);
   }
-  
+
   private Symbol symbol(String name, int sym) {
     return sf.newSymbol(name, sym, getStartLocation(), getEndLocation());
   }
@@ -75,7 +75,7 @@ import java.util.logging.Level;
   private Symbol symbol(String name, int sym, String val) {
     return sf.newSymbol(name, sym, getStartLocation(), getEndLocation(), val);
   }
-  
+
   private void error() throws IOException {
     Location start = getStartLocation();
     StringBuilder msg = new StringBuilder();
@@ -121,8 +121,8 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 
 /* keywords */
 <YYINITIAL>
-        "#include" {InputCharacter}+ 
-        { Path file = getFile(yytext()); 
+        "#include" {InputCharacter}+
+        { Path file = getFile(yytext());
           if (file != null) {
             yypushStream(file.asCharSource(StandardCharsets.US_ASCII).openBufferedStream());
           }
@@ -157,6 +157,9 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 <YYINITIAL> "MODIFY"            { return symbol("MODIFY", AutomatonSym.MODIFY); }
 <YYINITIAL> "DO"                { return symbol("DO", AutomatonSym.DO); }
 <YYINITIAL> "ENCODE"            { return symbol("ENCODE", AutomatonSym.ENCODE); }
+<YYINITIAL> "TRACK"             { return symbol("TRACK", AutomatonSym.TRACK); }
+<YYINITIAL> "UNTRACK"           { return symbol("UNTRACK", AutomatonSym.UNTRACK); }
+<YYINITIAL> "ISEMPTY"           { return symbol("ISEMPTY", AutomatonSym.ISEMPTY); }
 <YYINITIAL> "GOTO"              { return symbol("GOTO", AutomatonSym.GOTO); }
 <YYINITIAL> "SPLIT"             { return symbol("SPLIT", AutomatonSym.SPLIT); }
 <YYINITIAL> "NEGATION"          { return symbol("NEGATION", AutomatonSym.NEGATION); }
@@ -172,9 +175,9 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 <YYINITIAL> ","                 { return symbol("COMMA", AutomatonSym.COMMA); }
 
 <YYINITIAL> {
-  /* identifiers */ 
+  /* identifiers */
   {Identifier}                   { return symbol("ID", AutomatonSym.IDENTIFIER, yytext()); }
- 
+
   /* literals */
   {DecIntegerLiteral}            { return symbol("INT", AutomatonSym.INTEGER_LITERAL, yytext()); }
   \"                             { string.setLength(0); yybegin(STRING); }
@@ -193,14 +196,14 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 
   /* comments */
   {Comment}                      { /* ignore */ }
- 
+
   /* whitespace */
   {WhiteSpace}                   { /* ignore */ }
 }
 
 <STRING> {
-  \"                             { yybegin(YYINITIAL); 
-                                   return symbol("STRING", AutomatonSym.STRING_LITERAL, 
+  \"                             { yybegin(YYINITIAL);
+                                   return symbol("STRING", AutomatonSym.STRING_LITERAL,
                                    string.toString()); }
   [^\n\r\"\\]+                   { string.append( yytext() ); }
   \\t                            { string.append('\t'); }
@@ -211,8 +214,8 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
   \\\\                           { string.append('\\'); }
 }
 <CURLYEXPR> {
-  \}                             { yybegin(YYINITIAL); 
-                                   return symbol("CURLYEXPR", AutomatonSym.CURLYEXPR, 
+  \}                             { yybegin(YYINITIAL);
+                                   return symbol("CURLYEXPR", AutomatonSym.CURLYEXPR,
                                    string.toString()); }
   [^\n\r\}\\]+                   { string.append( yytext() ); }
   \\t                            { string.append('\t'); }
@@ -224,8 +227,8 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
   \\\\                           { string.append('\\'); }
 }
 <SQUAREEXPR> {
-  \]                             { yybegin(YYINITIAL); 
-                                   return symbol("CURLYEXPR", AutomatonSym.SQUAREEXPR, 
+  \]                             { yybegin(YYINITIAL);
+                                   return symbol("CURLYEXPR", AutomatonSym.SQUAREEXPR,
                                    string.toString()); }
   [^\n\r\]\\]+                   { string.append( yytext() ); }
   \\t                            { string.append('\t'); }
