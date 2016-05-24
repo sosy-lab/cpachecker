@@ -31,14 +31,17 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor.SubstituteProvider;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 
 import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.annotation.Nullable;
 
@@ -80,41 +83,11 @@ public class SubstitutingCAstNodeVisitorTest {
     }
   }
 
-  private class RealSubstitutionProvider implements SubstituteProvider {
-
-    Map<String, CAstNode> expressions;
-
-    RealSubstitutionProvider(final Map<String, CAstNode> pExpressions) {
-      expressions = pExpressions;
-    }
-
-    @Nullable
-    @Override
-    public CAstNode findSubstitute(final CAstNode pNode) {
-      if (expressions.containsKey(pNode.getClass().toString())) {
-        return expressions.get(pNode.getClass().toString());
-      } else {
-        return null;
-      }
-    }
-
-    @Nullable
-    @Override
-    public CAstNode adjustTypesAfterSubstitution(final CAstNode pNode) {
-      if (expressions.containsKey(pNode.getClass().toString())) {
-        return expressions.get(pNode.getClass().toString());
-      } else {
-        return null;
-      }
-    }
-  }
-
   @Rule
   public final ExpectedException exception = ExpectedException.none();
 
   private SubstitutingCAstNodeVisitor nullVisitor;
   private SubstitutingCAstNodeVisitor identityVisitor;
-  private SubstitutingCAstNodeVisitor realSubstitutionVisitor;
 
   private CArrayDesignator arrayDesignator;
   private CArrayRangeDesignator arrayRangeDesignator;
@@ -195,39 +168,64 @@ public class SubstitutingCAstNodeVisitorTest {
         new CExpressionAssignmentStatement(
             FileLocation.DUMMY, idExpression, CIntegerLiteralExpression.ONE);
     expressionStatement = new CExpressionStatement(FileLocation.DUMMY, idExpression);
-    arrayDesignator = null;
-    arrayRangeDesignator = null;
-    fieldDesignator = null;
-    initializerList = null;
-    binaryExpression = null;
-    castExpression = null;
-    typeIdExpression = null;
-    unaryExpression = null;
+    arrayDesignator = new CArrayDesignator(FileLocation.DUMMY, idExpression);
+    arrayRangeDesignator =
+        new CArrayRangeDesignator(
+            FileLocation.DUMMY, CIntegerLiteralExpression.ZERO, CIntegerLiteralExpression.ONE);
+    fieldDesignator = new CFieldDesignator(FileLocation.DUMMY, "dummy");
+    List<CInitializer> tmp = new ArrayList<>();
+    tmp.add(new CInitializerExpression(FileLocation.DUMMY, CIntegerLiteralExpression.ZERO));
+    tmp.add(new CInitializerExpression(FileLocation.DUMMY, CIntegerLiteralExpression.ONE));
+    initializerList = new CInitializerList(FileLocation.DUMMY, tmp);
+    binaryExpression =
+        new CBinaryExpression(
+            FileLocation.DUMMY,
+            CNumericTypes.INT,
+            CNumericTypes.INT,
+            CIntegerLiteralExpression.ZERO,
+            CIntegerLiteralExpression.ONE,
+            BinaryOperator.LESS_THAN);
+    castExpression =
+        new CCastExpression(FileLocation.DUMMY, CNumericTypes.INT, CIntegerLiteralExpression.ZERO);
+    typeIdExpression =
+        new CTypeIdExpression(
+            FileLocation.DUMMY, CNumericTypes.INT, TypeIdOperator.SIZEOF, CNumericTypes.INT);
+    unaryExpression =
+        new CUnaryExpression(
+            FileLocation.DUMMY,
+            CNumericTypes.INT,
+            CIntegerLiteralExpression.ONE,
+            UnaryOperator.MINUS);
     arraySubscriptExpression = null;
     fieldReference = null;
     pointerExpression = null;
-    stringLiteralExpression = null;
-
-    Map<String, CAstNode> substitutionMap = new HashMap<>();
-    realSubstitutionVisitor =
-        new SubstitutingCAstNodeVisitor(new RealSubstitutionProvider(substitutionMap));
+    stringLiteralExpression =
+        new CStringLiteralExpression(FileLocation.DUMMY, CNumericTypes.UNSIGNED_CHAR, "test");
   }
 
-  @Ignore
   @Test
-  public void visitCArrayDesignator() {}
+  public void visitCArrayDesignator() {
+    assertThat(nullVisitor.visit(arrayDesignator)).isEqualTo(arrayDesignator);
+    assertThat(identityVisitor.visit(arrayDesignator)).isEqualTo(arrayDesignator);
+  }
 
-  @Ignore
   @Test
-  public void visitCArrayRangeDesignator() {}
+  public void visitCArrayRangeDesignator() {
+    assertThat(nullVisitor.visit(arrayRangeDesignator)).isEqualTo(arrayRangeDesignator);
+    assertThat(identityVisitor.visit(arrayRangeDesignator)).isEqualTo(arrayRangeDesignator);
+  }
 
-  @Ignore
   @Test
-  public void visitCFieldDesignator() {}
+  public void visitCFieldDesignator() {
+    assertThat(nullVisitor.visit(fieldDesignator)).isEqualTo(fieldDesignator);
+    assertThat(identityVisitor.visit(fieldDesignator)).isEqualTo(fieldDesignator);
+  }
 
-  @Ignore
   @Test
-  public void visitCInitializerList() {}
+  public void visitCInitializerList() {
+    exception.expect(UnsupportedOperationException.class);
+    nullVisitor.visit(initializerList);
+  }
 
   @Test
   public void visitCReturnStatement() {
@@ -253,21 +251,29 @@ public class SubstitutingCAstNodeVisitorTest {
     nullVisitor.visit(functionCallExpression);
   }
 
-  @Ignore
   @Test
-  public void visitCBinaryExpression() {}
+  public void visitCBinaryExpression() {
+    assertThat(nullVisitor.visit(binaryExpression)).isEqualTo(binaryExpression);
+    assertThat(identityVisitor.visit(binaryExpression)).isEqualTo(binaryExpression);
+  }
 
-  @Ignore
   @Test
-  public void visitCCastExpression() {}
+  public void visitCCastExpression() {
+    assertThat(nullVisitor.visit(castExpression)).isEqualTo(castExpression);
+    assertThat(identityVisitor.visit(castExpression)).isEqualTo(castExpression);
+  }
 
-  @Ignore
   @Test
-  public void visitCTypeIdExpression() {}
+  public void visitCTypeIdExpression() {
+    assertThat(nullVisitor.visit(typeIdExpression)).isEqualTo(typeIdExpression);
+    assertThat(identityVisitor.visit(typeIdExpression)).isEqualTo(typeIdExpression);
+  }
 
-  @Ignore
   @Test
-  public void visitCUnaryExpression() {}
+  public void visitCUnaryExpression() {
+    assertThat(nullVisitor.visit(unaryExpression)).isEqualTo(unaryExpression);
+    assertThat(identityVisitor.visit(unaryExpression)).isEqualTo(unaryExpression);
+  }
 
   @Ignore
   @Test
@@ -318,9 +324,11 @@ public class SubstitutingCAstNodeVisitorTest {
     assertThat(identityVisitor.visit(integerLiteralExpression)).isEqualTo(integerLiteralExpression);
   }
 
-  @Ignore
   @Test
-  public void visitStringLiteralExpression() {}
+  public void visitStringLiteralExpression() {
+    assertThat(nullVisitor.visit(stringLiteralExpression)).isEqualTo(stringLiteralExpression);
+    assertThat(identityVisitor.visit(stringLiteralExpression)).isEqualTo(stringLiteralExpression);
+  }
 
   @Test
   public void visitCAddressOfLabelExpression() {
