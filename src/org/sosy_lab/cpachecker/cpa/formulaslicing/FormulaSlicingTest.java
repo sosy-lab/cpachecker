@@ -11,11 +11,11 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
-import java.nio.file.Paths;
 import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager.WEAKENING_STRATEGY;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -27,7 +27,7 @@ public class FormulaSlicingTest {
     return WEAKENING_STRATEGY.values();
   }
 
-  @Parameter(0)
+  @Parameter
   public WEAKENING_STRATEGY weakeningStrategy;
 
   private static final String TEST_DIR_PATH = "test/programs/formulaslicing/";
@@ -80,7 +80,7 @@ public class FormulaSlicingTest {
   }
 
   private void check(String filename) throws Exception {
-    check(filename, new HashMap<String, String>());
+    check(filename, new HashMap<>());
   }
 
   private void check(String filename, Map<String, String> extra) throws Exception {
@@ -105,13 +105,14 @@ public class FormulaSlicingTest {
         .put("ARGCPA.cpa", "cpa.composite.CompositeCPA")
         .put("CompositeCPA.cpas",
             Joiner.on(", ").join(ImmutableList.<String>builder()
-                    .add("cpa.location.LocationCPA")
-                    .add("cpa.callstack.CallstackCPA")
-                    .add("cpa.functionpointer.FunctionPointerCPA")
-                    .add("cpa.loopstack.LoopstackCPA")
-                    .add("cpa.formulaslicing.FormulaSlicingCPA")
-                    .add("cpa.assumptions.storage.AssumptionStorageCPA")
-                    .build()
+                .add("cpa.location.LocationCPA")
+                .add("cpa.callstack.CallstackCPA")
+                .add("cpa.functionpointer.FunctionPointerCPA")
+                .add("cpa.loopstack.LoopstackCPA")
+                .add("cpa.formulaslicing.FormulaSlicingCPA")
+                .add("cpa.targetreachability.TargetReachabilityCPA")
+                .add("cpa.assumptions.storage.AssumptionStorageCPA")
+                .build()
             ))
     )
         .put("solver.z3.requireProofs", "false")

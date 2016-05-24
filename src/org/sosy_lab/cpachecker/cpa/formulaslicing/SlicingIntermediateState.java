@@ -1,18 +1,14 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.solver.api.BooleanFormula;
 
 import java.util.Objects;
 
 /**
  * Intermediate state: a formula describing all possible executions at a point.
  */
-class SlicingIntermediateState extends SlicingState
-    implements AvoidanceReportingState {
+class SlicingIntermediateState extends SlicingState {
 
   private final CFANode node;
 
@@ -22,8 +18,6 @@ class SlicingIntermediateState extends SlicingState
   /** Starting point for the formula */
   private final SlicingAbstractedState start;
 
-  private final boolean isRelevantToTarget;
-
   /** Checking coverage */
   private transient SlicingIntermediateState mergedInto;
 
@@ -31,22 +25,18 @@ class SlicingIntermediateState extends SlicingState
 
   private SlicingIntermediateState(
       CFANode pNode, PathFormula pPathFormula,
-      SlicingAbstractedState pStart,
-      boolean pIsRelevantToTarget) {
+      SlicingAbstractedState pStart) {
     node = pNode;
     pathFormula = pPathFormula;
     start = pStart;
-    isRelevantToTarget = pIsRelevantToTarget;
   }
 
   public static SlicingIntermediateState of(
       CFANode pNode,
       PathFormula pPathFormula,
-      SlicingAbstractedState pStart,
-      boolean pIsRelevantToTarget
+      SlicingAbstractedState pStart
       ) {
-    return new SlicingIntermediateState(pNode, pPathFormula, pStart,
-        pIsRelevantToTarget);
+    return new SlicingIntermediateState(pNode, pPathFormula, pStart);
   }
 
   public CFANode getNode() {
@@ -59,10 +49,6 @@ class SlicingIntermediateState extends SlicingState
 
   public SlicingAbstractedState getAbstractParent() {
     return start;
-  }
-
-  public boolean getIsRelevantToTarget() {
-    return isRelevantToTarget;
   }
 
   /** Coverage checking for intermediate states */
@@ -99,16 +85,5 @@ class SlicingIntermediateState extends SlicingState
       hashCache = Objects.hash(node, pathFormula, start);
     }
     return hashCache;
-  }
-
-  @Override
-  public boolean mustDumpAssumptionForAvoidance() {
-    return !isRelevantToTarget;
-  }
-
-  @Override
-  public BooleanFormula getReasonFormula(FormulaManagerView mgr) {
-    // TODO?
-    return mgr.getBooleanFormulaManager().makeBoolean(true);
   }
 }
