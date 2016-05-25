@@ -48,8 +48,7 @@ public enum ReachabilityState implements AvoidanceReportingState {
 
   @Override
   public BooleanFormula getReasonFormula(FormulaManagerView mgr) {
-    // TODO?
-    return mgr.getBooleanFormulaManager().makeBoolean(true);
+    return mgr.getBooleanFormulaManager().makeVariable("IRRELEVANT_FOR_SPECIFICATION");
   }
 
 }
