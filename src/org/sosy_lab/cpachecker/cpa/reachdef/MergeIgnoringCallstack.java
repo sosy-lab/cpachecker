@@ -80,12 +80,8 @@ public class MergeIgnoringCallstack implements MergeOperator{
         changed = true;
       } else {
         unionResult = new HashSet<>();
-        for (DefinitionPoint p : map1.get(var)) {
-          unionResult.add(p);
-        }
-        for (DefinitionPoint p : map2.get(var)) {
-          unionResult.add(p);
-        }
+        unionResult.addAll(map1.get(var));
+        unionResult.addAll(map2.get(var));
         if (unionResult.size() != map2.get(var).size()) {
           changed = true;
         }
