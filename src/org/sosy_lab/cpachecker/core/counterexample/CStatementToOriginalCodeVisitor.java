@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.core.counterexample;
 
 import static com.google.common.collect.Iterables.transform;
 
+import com.google.common.base.Joiner;
+
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -33,8 +35,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
-
-import com.google.common.base.Joiner;
 
 /**
  * Like toASTString, but with original names.
@@ -92,7 +92,9 @@ enum CStatementToOriginalCodeVisitor implements CStatementVisitor<String, Runtim
             lASTString,
             transform(
                 pFunctionCallExpression.getParameterExpressions(),
-                pInput -> pInput.accept(CExpressionToOrinalCodeVisitor.INSTANCE)));
+                pInput -> pInput.<String, RuntimeException>accept
+                    (CExpressionToOrinalCodeVisitor
+        .INSTANCE)));
     lASTString.append(")");
 
     return lASTString.toString();

@@ -30,7 +30,6 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
-import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ArrayListMultimap;
@@ -600,30 +599,12 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   private static Iterable<Map.Entry<String, AbstractionPredicate>> mergePredicatesPerFunction(
       Iterable<Map.Entry<LocationInstance, AbstractionPredicate>> predicates) {
     return from(predicates)
-        .transform(
-            new Function<
-                Map.Entry<LocationInstance, AbstractionPredicate>,
-                Map.Entry<String, AbstractionPredicate>>() {
-              @Override
-              public Map.Entry<String, AbstractionPredicate> apply(
-                  Map.Entry<LocationInstance, AbstractionPredicate> pInput) {
-                return Maps.immutableEntry(pInput.getKey().getFunctionName(), pInput.getValue());
-              }
-            });
+        .transform(e -> Maps.immutableEntry(e.getKey().getFunctionName(), e.getValue()));
   }
 
   private static Iterable<Map.Entry<CFANode, AbstractionPredicate>> mergePredicatesPerLocation(
       Iterable<Map.Entry<LocationInstance, AbstractionPredicate>> predicates) {
     return from(predicates)
-        .transform(
-            new Function<
-                Map.Entry<LocationInstance, AbstractionPredicate>,
-                Map.Entry<CFANode, AbstractionPredicate>>() {
-              @Override
-              public Map.Entry<CFANode, AbstractionPredicate> apply(
-                  Map.Entry<LocationInstance, AbstractionPredicate> pInput) {
-                return Maps.immutableEntry(pInput.getKey().getLocation(), pInput.getValue());
-              }
-            });
+        .transform(e -> Maps.immutableEntry(e.getKey().getLocation(), e.getValue()));
   }
 }

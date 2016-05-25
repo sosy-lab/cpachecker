@@ -362,26 +362,30 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         try {
           List<AbstractState> toRemove = new ArrayList<>();
           List<Pair<AbstractState, Precision>> toAdd = new ArrayList<>();
+          try {
+            logger.log(
+                Level.FINER, "Considering", reached.size(), "states from reached set for merge");
+            for (AbstractState reachedState : reached) {
+              shutdownNotifier.shutdownIfNecessary();
+              AbstractState mergedState =
+                  mergeOperator.merge(successor, reachedState, successorPrecision);
 
-          logger.log(
-              Level.FINER, "Considering", reached.size(), "states from reached set for merge");
-          for (AbstractState reachedState : reached) {
-            shutdownNotifier.shutdownIfNecessary();
-            AbstractState mergedState =
-                mergeOperator.merge(successor, reachedState, successorPrecision);
+              if (!mergedState.equals(reachedState)) {
+                logger.log(Level.FINER, "Successor was merged with state from reached set");
+                logger.log(
+                    Level.ALL, "Merged", successor, "\nand", reachedState, "\n-->", mergedState);
+                stats.countMerge++;
 
-            if (!mergedState.equals(reachedState)) {
-              logger.log(Level.FINER, "Successor was merged with state from reached set");
-              logger.log(
-                  Level.ALL, "Merged", successor, "\nand", reachedState, "\n-->", mergedState);
-              stats.countMerge++;
-
-              toRemove.add(reachedState);
-              toAdd.add(Pair.of(mergedState, successorPrecision));
+                toRemove.add(reachedState);
+                toAdd.add(Pair.of(mergedState, successorPrecision));
+              }
             }
+          } finally {
+            // If we terminate, we should still update the reachedSet if necessary
+            // because ARGCPA doesn't like states in toRemove to be in the reachedSet.
+            reachedSet.removeAll(toRemove);
+            reachedSet.addAll(toAdd);
           }
-          reachedSet.removeAll(toRemove);
-          reachedSet.addAll(toAdd);
 
           if (mergeOperator instanceof ARGMergeJoinCPAEnabledAnalysis) {
             ((ARGMergeJoinCPAEnabledAnalysis) mergeOperator).cleanUp(reachedSet);

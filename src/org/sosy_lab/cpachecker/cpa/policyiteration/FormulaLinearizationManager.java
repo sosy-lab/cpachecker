@@ -8,7 +8,6 @@ import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.FormulaTransformationVisitor;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
@@ -71,31 +70,31 @@ public class FormulaLinearizationManager {
   public BooleanFormula annotateDisjunctions(BooleanFormula input)
       throws InterruptedException {
     input = fmgr.applyTactic(input, Tactic.NNF);
-    return fmgr.transformRecursively(new FormulaTransformationVisitor(fmgr) {
+    return bfmgr.transformRecursively(
+        new BooleanFormulaTransformationVisitor(fmgr) {
 
       @Override
-      public Formula visitFunction(
-          Formula f, List<Formula> newArgs, FunctionDeclaration<?> functionDeclaration) {
-        if (functionDeclaration.getKind() == FunctionDeclarationKind.OR) {
-          return annotateDisjunction(newArgs);
-        } else {
-          return super.visitFunction(f, newArgs, functionDeclaration);
-        }
+      public BooleanFormula visitOr(List<BooleanFormula> processedOperands) {
+        return annotateDisjunction(processedOperands);
       }
-
     }, input);
   }
 
-  private BooleanFormula annotateDisjunction(List<Formula> args) {
+  private BooleanFormula annotateDisjunction(List<BooleanFormula> args) {
+    assert args.size() != 0;
     if (args.size() == 1) {
-      return (BooleanFormula) args.get(0);
+      return args.get(0);
     } else {
       BooleanFormula choiceVar = bfmgr.makeVariable(getFreshVarName());
+      int pivot = args.size() / 2;
       return bfmgr.or(
-          bfmgr.and(choiceVar, (BooleanFormula) args.get(0)),
+          bfmgr.and(
+              choiceVar,
+              annotateDisjunction(args.subList(0, pivot))
+          ),
           bfmgr.and(
               bfmgr.not(choiceVar),
-              annotateDisjunction(args.subList(1, args.size()))
+              annotateDisjunction(args.subList(pivot, args.size()))
           )
       );
     }

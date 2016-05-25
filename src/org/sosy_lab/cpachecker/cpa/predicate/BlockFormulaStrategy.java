@@ -23,16 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 
-import java.util.List;
+import com.google.common.base.Function;
 
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import com.google.common.base.Function;
+import java.util.List;
 
 /**
  * This class represents a strategy to get the sequence of block formulas
@@ -44,13 +45,9 @@ import com.google.common.base.Function;
 public class BlockFormulaStrategy {
 
   static final Function<PredicateAbstractState, BooleanFormula> GET_BLOCK_FORMULA =
-      new Function<PredicateAbstractState, BooleanFormula>() {
-
-        @Override
-        public BooleanFormula apply(PredicateAbstractState e) {
-          assert e.isAbstractionState();
-          return e.getAbstractionFormula().getBlockFormula().getFormula();
-        }
+      e -> {
+        checkArgument(e.isAbstractionState());
+        return e.getAbstractionFormula().getBlockFormula().getFormula();
       };
 
   /**

@@ -1,16 +1,12 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra;
 
-import apron.Abstract1;
-import apron.Environment;
-import apron.SetUp;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sosy_lab.common.NativeLibraries;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.LinearExpression;
 import org.sosy_lab.common.rationals.Rational;
@@ -26,16 +22,16 @@ import org.sosy_lab.cpachecker.cpa.policyiteration.Template;
 import java.util.Map;
 import java.util.logging.Level;
 
+import apron.Abstract1;
+import apron.Environment;
+
 public class ApronPolyhedraTest {
-  static {
-    SetUp.init(NativeLibraries.getNativeLibraryPath().resolve("apron").toAbsolutePath().toString());
-  }
 
   private PolyhedraWideningManager pwm;
   private LogManager logger;
 
   @Before
-  public void setUp() {
+  public void setUp() throws InvalidConfigurationException {
     logger = LogManager.createTestLogManager();
     PolicyIterationStatistics stats = Mockito.mock(PolicyIterationStatistics.class);
 

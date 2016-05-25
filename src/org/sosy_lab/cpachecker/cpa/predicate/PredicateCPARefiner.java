@@ -30,7 +30,6 @@ import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingSt
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
@@ -478,14 +477,8 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
             .filter(PredicateAbstractState.CONTAINS_ABSTRACTION_STATE)
             .toList();
 
-    assert from(result).allMatch(new Predicate<ARGState>() {
-      @Override
-      public boolean apply(ARGState pInput) {
-        boolean correct = pInput.getParents().size() <= 1;
-        assert correct : "PredicateCPARefiner expects abstraction states to have only one parent, but this state has more:" + pInput;
-        return correct;
-      }
-    });
+    assert from(result).allMatch(state -> state.getParents().size() <= 1)
+        : "PredicateCPARefiner expects abstraction states to have only one parent, but at least one state has more.";
 
     assert pPath.getLastState() == result.get(result.size()-1);
     return result;

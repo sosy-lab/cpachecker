@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableList;
@@ -229,45 +228,10 @@ public class PredicatePrecision implements Precision {
     }
 
     return new PredicatePrecision(
-        from(precisions)
-            .transformAndConcat(
-                new Function<
-                    PredicatePrecision,
-                    Iterable<Map.Entry<LocationInstance, AbstractionPredicate>>>() {
-                  @Override
-                  public Iterable<Map.Entry<LocationInstance, AbstractionPredicate>> apply(
-                      PredicatePrecision pInput) {
-                    return pInput.getLocationInstancePredicates().entries();
-                  }
-                }),
-        from(precisions)
-            .transformAndConcat(
-                new Function<
-                    PredicatePrecision, Iterable<Map.Entry<CFANode, AbstractionPredicate>>>() {
-                  @Override
-                  public Iterable<Map.Entry<CFANode, AbstractionPredicate>> apply(
-                      PredicatePrecision pInput) {
-                    return pInput.getLocalPredicates().entries();
-                  }
-                }),
-        from(precisions)
-            .transformAndConcat(
-                new Function<
-                    PredicatePrecision, Iterable<Map.Entry<String, AbstractionPredicate>>>() {
-                  @Override
-                  public Iterable<Map.Entry<String, AbstractionPredicate>> apply(
-                      PredicatePrecision pInput) {
-                    return pInput.getFunctionPredicates().entries();
-                  }
-                }),
-        from(precisions)
-            .transformAndConcat(
-                new Function<PredicatePrecision, Iterable<AbstractionPredicate>>() {
-                  @Override
-                  public Iterable<AbstractionPredicate> apply(PredicatePrecision pInput) {
-                    return pInput.getGlobalPredicates();
-                  }
-                }));
+        from(precisions).transformAndConcat(prec -> prec.getLocationInstancePredicates().entries()),
+        from(precisions).transformAndConcat(prec -> prec.getLocalPredicates().entries()),
+        from(precisions).transformAndConcat(prec -> prec.getFunctionPredicates().entries()),
+        from(precisions).transformAndConcat(prec -> prec.getGlobalPredicates()));
   }
 
   /**

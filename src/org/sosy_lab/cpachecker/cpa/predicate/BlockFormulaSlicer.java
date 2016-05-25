@@ -26,11 +26,11 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.Predicates.in;
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -93,15 +93,6 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
 
   private final PathFormulaManager pfmgr;
 
-  private static final Function<PathFormula, BooleanFormula> GET_BOOLEAN_FORMULA =
-      new Function<PathFormula, BooleanFormula>() {
-
-        @Override
-        public BooleanFormula apply(PathFormula pf) {
-          return pf.getFormula();
-        }
-      };
-
   BlockFormulaSlicer(PathFormulaManager pPfmgr) {
     this.pfmgr = pPfmgr;
   }
@@ -144,23 +135,18 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
 
     // build new pathformulas, forwards
     PathFormula pf = pfmgr.makeEmptyPathFormula();
-    final List<PathFormula> pfs = new ArrayList<>(path.size());
+    final ImmutableList.Builder<BooleanFormula> pfs = ImmutableList.builder();
     for (int i = 0; i < path.size(); i++) {
       final ARGState start = i > 0 ? path.get(i - 1) : initialState;
       final ARGState end = path.get(i);
-
-      // we do not need the block later, so we can remove it.
-      // the list gets shorter each iteration, so this is equal to "blocks.get(i)"
-      final Set<ARGState> block = blocks.remove(0);
+      final Set<ARGState> block = blocks.get(i);
 
       final PathFormula oldPf = pfmgr.makeEmptyPathFormula(pf);
       pf = buildFormula(start, end, block, oldPf, importantEdges);
-      pfs.add(pf);
+      pfs.add(pf.getFormula());
     }
 
-    return from(pfs)
-        .transform(GET_BOOLEAN_FORMULA)
-        .toList();
+    return pfs.build();
   }
 
   /** This function returns all states, that are contained in a block.

@@ -79,7 +79,7 @@
             <emptyLine />
             <package name="de" withSubpackages="true" static="false" />
             <emptyLine />
-            <package name="EDU" withSubpackages="true" static="false" />
+            <package name="edu" withSubpackages="true" static="false" />
             <emptyLine />
             <package name="eg" withSubpackages="true" static="false" />
             <emptyLine />
