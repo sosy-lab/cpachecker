@@ -71,6 +71,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 
@@ -174,6 +175,8 @@ public class ParallelAlgorithm implements Algorithm {
       } else {
         throw new CPAException("An unexpected exception occured", e);
       }
+    } catch (CancellationException e) {
+      // do nothing, this is normal if we cancel other analyses
     }
 
     if (finalReachedSet != null) {
@@ -283,7 +286,7 @@ public class ParallelAlgorithm implements Algorithm {
         }
 
         // if we do not have reliable information about the analysis we just ignore the result
-        if (status.isPrecise() && status.isSound()) {
+        if (status.isPrecise() && status.isSound() && !reached.hasWaitingState()) {
           singleLogger.log(Level.INFO, "Analysis finished successfully");
           if (supplyReached && !supplyRefinableReached) {
             aggregatedReachedSetManager.addReachedSet(currentReached);
