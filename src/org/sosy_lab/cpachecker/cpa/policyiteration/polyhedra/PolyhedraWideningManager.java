@@ -5,7 +5,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.LinearExpression;
 import org.sosy_lab.common.rationals.Rational;
@@ -43,7 +42,7 @@ public class PolyhedraWideningManager {
   private final LogManager logger;
 
   public PolyhedraWideningManager(PolicyIterationStatistics pStatistics,
-      LogManager pLogger) throws InvalidConfigurationException {
+      LogManager pLogger) {
     statistics = pStatistics;
     logger = pLogger;
     ApronManager apronManager = new ApronManager(AbstractDomain.POLKA);
