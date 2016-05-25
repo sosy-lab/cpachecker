@@ -295,6 +295,9 @@ public class VariableClassificationBuilder {
         w.append(intAddVars.toString());
         w.append("\n\nALL\n\n");
         w.append(allVars.toString());
+        if (regionsMaker != null) {
+          w.append(regionsMaker.statsToString());
+        }
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write variable classification to file");
       }

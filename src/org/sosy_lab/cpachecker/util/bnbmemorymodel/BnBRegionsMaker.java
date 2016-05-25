@@ -26,10 +26,18 @@ package org.sosy_lab.cpachecker.util.bnbmemorymodel;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Writer;
 import java.util.*;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.*;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils;
@@ -40,6 +48,8 @@ public class BnBRegionsMaker {
   private Set<BnBRegion> regions = new HashSet<>();
   private static final String GLOBAL = "global";
   private final LogManager logger;
+  private final Timer regionCreationTime = new Timer();
+  private ComplexTypeFieldStatistics ctfs;
 
   public BnBRegionsMaker(LogManager logger) {
     this.logger = logger;
@@ -50,7 +60,7 @@ public class BnBRegionsMaker {
    * @param parent - element's base
    * @param memberType
    * @param name - name of element
-   * @return true if global, else otherwise
+   * @return true if not global, else otherwise
    */
   public boolean notInGlobalRegion(final CType parent, final CType memberType, final String name){
 
@@ -60,26 +70,24 @@ public class BnBRegionsMaker {
 
     BnBRegion toCheck = new BnBRegionImpl(CTypeUtils.simplifyType(memberType),
                                           CTypeUtils.simplifyType(parent), name);
-    if (regions.contains(toCheck)){
-      return true;
-    } else {
-      return false;
-    }
+    return regions.contains(toCheck);
   }
 
   /**
-   * Gathers information about struct field usage and constructs regions
+   * Constructs regions using information about field usages in CFA
    * @param cfa - program CFA
    */
   public void makeRegions(final CFA cfa) throws BnBException{
-    ComplexTypeFieldStatistics ctfs = new ComplexTypeFieldStatistics(logger);
+    ctfs = new ComplexTypeFieldStatistics(logger);
     ctfs.findFieldsInCFA(cfa);
+
+    regionCreationTime.start();
 
     Map<CType, HashMap<CType, HashSet<String>>> usedFields = ctfs.getUsedFields();
     Map<CType, HashMap<CType, HashSet<String>>> refdFields = ctfs.getRefdFields();
     Map<CType, HashSet<String>> sub;
 
-    // remove all fields present in both maps
+    // removing all fields present in both maps
     for (CType basicType : refdFields.keySet()){
       if (usedFields.containsKey(basicType)){
         sub = usedFields.get(basicType);
@@ -94,7 +102,7 @@ public class BnBRegionsMaker {
       }
     }
 
-    // fill regions
+    // filling regions
     for (CType basicType : usedFields.keySet()){
       for (CType structType : usedFields.get(basicType).keySet()){
 
@@ -107,31 +115,17 @@ public class BnBRegionsMaker {
         }
       }
     }
-  }
 
-  /**
-   * Writes information about regions in the specified file
-   * @param filename - desired filename
-   */
-  public void dumpRegions(final String filename){
-    File dump = new File(filename);
-
-    try{
-      FileWriter writer = new FileWriter(dump);
-
-      String result = toString();
-
-      writer.write(result);
-      writer.close();
-
-    } catch (IOException e){
-      logger.logException(Level.WARNING, e, "Exception while writing the regions statistics");
-    }
+    regionCreationTime.stop();
   }
 
   @Override
   public String toString() {
-    String result = "";
+    String result = "Regions information\n\n";
+
+    result += "Time for region creation:    " + regionCreationTime + "\n\n";
+
+    result += "Total number of regions:     " + regions.size() + "\n\n";
 
     if (!regions.isEmpty()) {
       int i = 0;
@@ -142,6 +136,20 @@ public class BnBRegionsMaker {
     } else {
       result += "Empty regions\n";
     }
+    return result;
+  }
+
+  /**
+   * Returns string representation of the region information and of the used/referenced fields
+   * information
+   * @return statistics string representation
+   */
+  public String statsToString(){
+    String result = "\n-----------------------------------------------------\n";
+    result += toString();
+    result += "\n-----------------------------------------------------\n";
+    result += ctfs.toString();
+
     return result;
   }
 

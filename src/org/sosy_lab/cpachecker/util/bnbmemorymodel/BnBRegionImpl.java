@@ -32,8 +32,8 @@ public class BnBRegionImpl implements BnBRegion {
   private final String elemName;
 
   /**
-   * @param pType - types that will be present in this region
-   * @param pStructType - struct with fields or null if global
+   * @param pType - field type
+   * @param pStructType - type of the parent struct
    * @param name - field name
    */
   public BnBRegionImpl(CType pType, CType pStructType, String name){

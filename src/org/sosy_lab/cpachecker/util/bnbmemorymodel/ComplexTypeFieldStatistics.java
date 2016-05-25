@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -56,20 +57,32 @@ public class ComplexTypeFieldStatistics {
   private final BnBExpressionVisitor expressionVisitor = new BnBExpressionVisitor();
   private final BnBMapMerger merger = new BnBMapMerger();
   private final LogManager logger;
+  private final Timer creationTime = new Timer();
 
   public ComplexTypeFieldStatistics(LogManager logger) {
     this.logger = logger;
   }
 
+  /**
+   * Finds information about field usages and taking fields' addresses
+   * @param cfa - program CFA
+   * @throws BnBException
+   */
   public void findFieldsInCFA(CFA cfa) throws BnBException {
+    creationTime.start();
     for (CFANode node : cfa.getAllNodes()){
       for (int i = 0; i < node.getNumEnteringEdges(); ++i){
         visitEdge(node.getEnteringEdge(i));
       }
     }
+    creationTime.stop();
   }
 
-  //Searching for address-taking and calling of the structure field
+  /**
+   * Finds the required information in current CFA edge
+   * @param edge - current edge
+   * @throws BnBException
+   */
   private void visitEdge(CFAEdge edge) throws BnBException {
     CFAEdgeType edgeType;
     edgeType = edge.getEdgeType();
@@ -78,7 +91,9 @@ public class ComplexTypeFieldStatistics {
     try {
       switch (edgeType){
         case StatementEdge:
-          result = (((CStatementEdge) edge).getStatement()).accept(statementVisitor);
+          statementVisitor.clearVisitResult();
+          (((CStatementEdge) edge).getStatement()).accept(statementVisitor);
+          result = statementVisitor.getVisitResult();
 
           if (result != null) {
             usedFields = merger.mergeMaps(usedFields, result.get(false));
@@ -88,7 +103,9 @@ public class ComplexTypeFieldStatistics {
 
         case FunctionCallEdge:
           for (CExpression param : ((CFunctionCallEdge) edge).getArguments()) {
-              result = param.accept(expressionVisitor);
+              expressionVisitor.clearVisitResult();
+              param.accept(expressionVisitor);
+              result = expressionVisitor.getVisitResult();
 
               if (result != null) {
                 usedFields = merger.mergeMaps(usedFields, result.get(false));
@@ -102,7 +119,9 @@ public class ComplexTypeFieldStatistics {
           if (decl instanceof CVariableDeclaration) {
             CInitializer init = ((CVariableDeclaration) decl).getInitializer();
             if (init != null && init instanceof CInitializerExpression) {
-                result = ((CInitializerExpression) init).getExpression().accept(expressionVisitor);
+                expressionVisitor.clearVisitResult();
+                ((CInitializerExpression) init).getExpression().accept(expressionVisitor);
+                result = expressionVisitor.getVisitResult();
 
                 if (result != null) {
                   usedFields = merger.mergeMaps(usedFields, result.get(false));
@@ -118,54 +137,45 @@ public class ComplexTypeFieldStatistics {
     }
   }
 
-  public void dumpStat(String filename){
-    File dump = new File(filename);
+  @Override
+  public String toString() {
+    Map<CType, HashSet<String>> sub;
+    String output = "Used/referenced fields\n\n";
+    String sub_output;
+    int used;
 
-    try {
-      FileWriter writer = new FileWriter(dump);
+    output += "Time for searching field references in CFA:    " + creationTime + "\n\n";
 
-      Map<CType, HashSet<String>> sub;
-      String output = "";
-      String sub_output;
-      int used;
-
-      output += "USED_FIELDS:\n";
-      for (CType type : usedFields.keySet()){
-        sub = usedFields.get(type);
-        used = 0;
-        sub_output = "";
-        for (CType struct_name : sub.keySet()){
-          sub_output += "\t\tSTRUCT: " + struct_name + '\n';
-          used += sub.get(struct_name).size();
-          for (String fieldName : sub.get(struct_name)){
-            sub_output += "\t\t\tFIELD: " + fieldName + '\n';
-          }
+    output += "USED_FIELDS:\n";
+    for (CType type : usedFields.keySet()){
+      sub = usedFields.get(type);
+      used = 0;
+      sub_output = "";
+      for (CType struct_name : sub.keySet()){
+        sub_output += "\t\tSTRUCT: " + struct_name + '\n';
+        used += sub.get(struct_name).size();
+        for (String fieldName : sub.get(struct_name)){
+          sub_output += "\t\t\tFIELD: " + fieldName + '\n';
         }
-        output += "\tFIELD_TYPE: " + type + "\n\tTIMES USED: " + used + '\n' + sub_output;
       }
-
-      output += "\nREFERENCED_FIELDS:\n";
-      for (CType type : refdFields.keySet()){
-        sub = refdFields.get(type);
-        used = 0;
-        sub_output = "";
-        for (CType struct_name : sub.keySet()){
-          sub_output += "\t\tSTRUCT: " + struct_name + '\n';
-          used += sub.get(struct_name).size();
-          for (String fieldName : sub.get(struct_name)){
-            sub_output += "\t\t\tFIELD: " + fieldName + '\n';
-          }
-        }
-        output += "\tFIELD_TYPE: " + type + "\n\tTIMES USED: " + used + '\n' + sub_output;
-      }
-
-      writer.write(output);
-      writer.close();
-
-    } catch (IOException e) {
-      logger.logException(Level.WARNING, e, "Exception while writing field usage information");
+      output += "\tFIELD_TYPE: " + type + "\n\tTIMES USED: " + used + '\n' + sub_output;
     }
 
+    output += "\nREFERENCED_FIELDS:\n";
+    for (CType type : refdFields.keySet()){
+      sub = refdFields.get(type);
+      used = 0;
+      sub_output = "";
+      for (CType struct_name : sub.keySet()){
+        sub_output += "\t\tSTRUCT: " + struct_name + '\n';
+        used += sub.get(struct_name).size();
+        for (String fieldName : sub.get(struct_name)){
+          sub_output += "\t\t\tFIELD: " + fieldName + '\n';
+        }
+      }
+      output += "\tFIELD_TYPE: " + type + "\n\tTIMES USED: " + used + '\n' + sub_output;
+    }
+    return output;
   }
 
   public Map<CType, HashMap<CType, HashSet<String>>> getUsedFields() {

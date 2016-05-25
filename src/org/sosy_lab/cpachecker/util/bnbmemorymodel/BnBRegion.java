@@ -27,10 +27,22 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public interface BnBRegion {
 
+  /**
+   * Get type of the struct field in this region
+   * @return field type
+   */
   CType getType();
 
+  /**
+   * Get type of the struct-parent for the field in this region
+   * @return parent struct type
+   */
   CType getRegionParent();
 
+  /**
+   * Get the name of the field present in this region
+   * @return field name
+   */
   String getElem();
 
 }

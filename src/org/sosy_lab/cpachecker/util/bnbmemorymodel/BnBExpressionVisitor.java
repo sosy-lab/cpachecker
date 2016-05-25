@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.bnbmemorymodel;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -51,74 +52,76 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 
-public class BnBExpressionVisitor implements CRightHandSideVisitor<Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>>, BnBException> {
-
-  private final BnBMapMerger merger = new BnBMapMerger();
+public class BnBExpressionVisitor implements CRightHandSideVisitor<Void, BnBException> {
 
   private Boolean refd = false;
 
-  @Override
-  public Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> visit(
-      CFunctionCallExpression pIastFunctionCallExpression) throws BnBException{
-    Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> result = new HashMap<>();
+  private Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> visitResult = new HashMap();
 
-    for(CExpression param : pIastFunctionCallExpression.getParameterExpressions()){
-      result = merger.mergeMaps(result, param.accept(this));
-    }
+  public Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> getVisitResult() {
+    return visitResult;
+  }
 
-    return result;
+  public void clearVisitResult(){
+    visitResult.clear();
   }
 
   @Override
-  public Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> visit(
-      CUnaryExpression pIastUnaryExpression) throws BnBException {
+  public Void visit(CFunctionCallExpression pIastFunctionCallExpression) throws BnBException{
+
+    for(CExpression param : pIastFunctionCallExpression.getParameterExpressions()){
+      param.accept(this);
+    }
+
+    return null;
+  }
+
+  @Override
+  public Void visit(CUnaryExpression pIastUnaryExpression) throws BnBException {
     CExpression operand = pIastUnaryExpression.getOperand();
     if (pIastUnaryExpression.getOperator() == UnaryOperator.AMPER &&
         operand instanceof CFieldReference) {
 
       refd = true;
-      Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> result =
-          operand.accept(this);
+      operand.accept(this);
       refd = false;
 
-      return result;
     } else {
-      return operand.accept(this);
+      operand.accept(this);
     }
+    return null;
   }
 
   @Override
-  public Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> visit(
-      CBinaryExpression pIastBinaryExpression) throws BnBException {
-    Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> first =
-        pIastBinaryExpression.getOperand1().accept(this);
-    Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> second =
-        pIastBinaryExpression.getOperand2().accept(this);
-
-    return merger.mergeMaps(first, second);
+  public Void visit(CBinaryExpression pIastBinaryExpression) throws BnBException {
+    pIastBinaryExpression.getOperand1().accept(this);
+    pIastBinaryExpression.getOperand2().accept(this);
+    return null;
   }
 
   @Override
-  public Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> visit(
+  public Void visit(
       CCastExpression pIastCastExpression) throws BnBException {
-    return pIastCastExpression.getOperand().accept(this);
+    pIastCastExpression.getOperand().accept(this);
+    return null;
   }
 
   @Override
-  public Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> visit(
+  public Void visit(
       CPointerExpression pointerExpression) throws BnBException {
-    return pointerExpression.getOperand().accept(this);
+    pointerExpression.getOperand().accept(this);
+    return null;
   }
 
   @Override
-  public Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> visit(
+  public Void visit(
       CComplexCastExpression complexCastExpression) throws BnBException {
-    return complexCastExpression.getOperand().accept(this);
+    complexCastExpression.getOperand().accept(this);
+    return null;
   }
 
   @Override
-  public Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> visit(
-      CFieldReference pIastFieldReference) throws BnBException {
+  public Void visit(CFieldReference pIastFieldReference) throws BnBException {
     CExpression parent = pIastFieldReference.getFieldOwner();
     CType parentType = parent.getExpressionType();
 
@@ -134,7 +137,6 @@ public class BnBExpressionVisitor implements CRightHandSideVisitor<Map<Boolean, 
 
     CType fieldType = pIastFieldReference.getExpressionType();
 
-    Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> result = new HashMap<>();
     HashMap<CType, HashMap<CType, HashSet<String>>> part = new HashMap<>();
     HashMap<CType, HashSet<String>> part2 = new HashMap<>();
     HashSet<String> set = new HashSet<>();
@@ -142,65 +144,62 @@ public class BnBExpressionVisitor implements CRightHandSideVisitor<Map<Boolean, 
     set.add(pIastFieldReference.getFieldName());
     part2.put(parentType, set);
     part.put(fieldType, part2);
-    result.put(refd, part);
 
-    return result;
+    if (visitResult.isEmpty() || !visitResult.containsKey(refd)){
+      visitResult.put(refd, part);
+    } else if (!visitResult.get(refd).containsKey(fieldType)){
+      visitResult.get(refd).put(fieldType, part2);
+    } else if (!visitResult.get(refd).get(fieldType).containsKey(parentType)){
+      visitResult.get(refd).get(fieldType).put(parentType, set);
+    } else {
+      visitResult.get(refd).get(fieldType).get(parentType).addAll(set);
+    }
+    return null;
   }
 
   //Don't think we even need this
   @Override
-  public Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> visit(
-      CIdExpression pIastIdExpression) throws BnBException {
+  public Void visit(CIdExpression pIastIdExpression) throws BnBException {
     return null;
   }
 
   @Override
-  public Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> visit(
-      CCharLiteralExpression pIastCharLiteralExpression) throws BnBException {
+  public Void visit(CCharLiteralExpression pIastCharLiteralExpression) throws BnBException {
     return null;
   }
 
   @Override
-  public Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> visit(
-      CFloatLiteralExpression pIastFloatLiteralExpression) throws BnBException {
+  public Void visit(CFloatLiteralExpression pIastFloatLiteralExpression) throws BnBException {
     return null;
   }
 
   @Override
-  public Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> visit(
-      CIntegerLiteralExpression pIastIntegerLiteralExpression)
-      throws BnBException {
+  public Void visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) throws BnBException {
     return null;
   }
 
   @Override
-  public Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> visit(
-      CStringLiteralExpression pIastStringLiteralExpression) throws BnBException {
+  public Void visit(CStringLiteralExpression pIastStringLiteralExpression) throws BnBException {
     return null;
   }
 
   @Override
-  public Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> visit(
-      CTypeIdExpression pIastTypeIdExpression) throws BnBException {
+  public Void visit(CTypeIdExpression pIastTypeIdExpression) throws BnBException {
     return null;
   }
 
   @Override
-  public Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> visit(
-      CImaginaryLiteralExpression pIastLiteralExpression) throws BnBException {
+  public Void visit(CImaginaryLiteralExpression pIastLiteralExpression) throws BnBException {
     return null;
   }
 
   @Override
-  public Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> visit(
-      CAddressOfLabelExpression pAddressOfLabelExpression) throws BnBException {
+  public Void visit(CAddressOfLabelExpression pAddressOfLabelExpression) throws BnBException {
     return null;
   }
 
   @Override
-  public Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> visit(
-      CArraySubscriptExpression pIastArraySubscriptExpression)
-      throws BnBException {
+  public Void visit(CArraySubscriptExpression pIastArraySubscriptExpression) throws BnBException {
     return null;
   }
 

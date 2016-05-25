@@ -35,57 +35,63 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public class BnBStatementVisitor implements CStatementVisitor<Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>>, BnBException> {
+public class BnBStatementVisitor implements CStatementVisitor<Void, BnBException> {
   private final BnBExpressionVisitor visitor = new BnBExpressionVisitor();
   private final BnBMapMerger merger = new BnBMapMerger();
 
-  @Override
-  public Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> visit(
-      CExpressionStatement pIastExpressionStatement) throws BnBException {
-    return pIastExpressionStatement.getExpression().accept(visitor);
+  private Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> visitResult = new HashMap();
+
+  public Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> getVisitResult() {
+    return visitResult;
+  }
+
+  public void clearVisitResult() {
+    visitResult.clear();
   }
 
   @Override
-  public Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> visit(
-      CExpressionAssignmentStatement pIastExpressionAssignmentStatement)
-      throws BnBException {
-    Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> result =
-        pIastExpressionAssignmentStatement.getLeftHandSide().accept(visitor);
+  public Void visit(CExpressionStatement pIastExpressionStatement) throws BnBException {
+    visitor.clearVisitResult();
 
-    Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> right =
-        pIastExpressionAssignmentStatement.getRightHandSide().accept(visitor);
+    pIastExpressionStatement.getExpression().accept(visitor);
 
-    return merger.mergeMaps(result, right);
+    visitResult = merger.mergeMaps(visitResult, visitor.getVisitResult());
+    return null;
   }
 
   @Override
-  public Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> visit(
-      CFunctionCallAssignmentStatement pIastFunctionCallAssignmentStatement)
-      throws BnBException {
-    Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> result = new HashMap<>();
-    Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> first =
-        pIastFunctionCallAssignmentStatement.getLeftHandSide().accept(visitor);
+  public Void visit(CExpressionAssignmentStatement pIastExpressionAssignmentStatement) throws BnBException {
+    visitor.clearVisitResult();
 
-    if (!(first == null || first.isEmpty())) {
-      result.putAll(first);
-    }
+    pIastExpressionAssignmentStatement.getLeftHandSide().accept(visitor);
+    pIastExpressionAssignmentStatement.getRightHandSide().accept(visitor);
 
+    visitResult = merger.mergeMaps(visitResult, visitor.getVisitResult());
+    return null;
+  }
+
+  @Override
+  public Void visit(CFunctionCallAssignmentStatement pIastFunctionCallAssignmentStatement) throws BnBException {
+    visitor.clearVisitResult();
+
+    pIastFunctionCallAssignmentStatement.getLeftHandSide().accept(visitor);
     for (CExpression param : pIastFunctionCallAssignmentStatement.getFunctionCallExpression().getParameterExpressions()){
-      result = merger.mergeMaps(result, param.accept(visitor));
+      param.accept(visitor);
     }
 
-    return result;
+    visitResult = merger.mergeMaps(visitResult, visitor.getVisitResult());
+    return null;
   }
 
   @Override
-  public Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> visit(
-      CFunctionCallStatement pIastFunctionCallStatement) throws BnBException {
-    Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> result = new HashMap<>();
+  public Void visit(CFunctionCallStatement pIastFunctionCallStatement) throws BnBException {
+    visitor.clearVisitResult();
 
     for (CExpression param : pIastFunctionCallStatement.getFunctionCallExpression().getParameterExpressions()){
-      result = merger.mergeMaps(result, param.accept(visitor));
+      param.accept(visitor);
     }
 
-    return result;
+    visitResult = merger.mergeMaps(visitResult, visitor.getVisitResult());
+    return null;
   }
 }
