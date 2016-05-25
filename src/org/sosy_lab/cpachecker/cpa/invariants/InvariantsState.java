@@ -506,7 +506,7 @@ public class InvariantsState implements AbstractState,
     NumeralFormula<CompoundInterval> previousValue = getEnvironmentValue(typeInfo, pMemoryLocation);
     ReplaceVisitor<CompoundInterval> replaceVisitor = new ReplaceVisitor<>(variable, previousValue);
     resultEnvironment = resultEnvironment.putAndCopy(pMemoryLocation, pValue.accept(replaceVisitor).accept(partialEvaluator, evaluationVisitor));
-    if (pValue.accept(new IsLinearVisitor<CompoundInterval>(), variable) && pValue.accept(containsVarVisitor, pMemoryLocation)) {
+    if (pValue.accept(new IsLinearVisitor<>(), variable) && pValue.accept(containsVarVisitor, pMemoryLocation)) {
       CompoundInterval zero =
           compoundIntervalManagerFactory.createCompoundIntervalManager(typeInfo).singleton(0);
       previousValue =
@@ -988,7 +988,7 @@ public class InvariantsState implements AbstractState,
                     if (pFormula.equals(BooleanConstant.getTrue())) {
                       return false;
                     }
-                    Set<MemoryLocation> memLocs = pFormula.accept(new CollectVarsVisitor<CompoundInterval>());
+                    Set<MemoryLocation> memLocs = pFormula.accept(new CollectVarsVisitor<>());
                     if (memLocs.isEmpty()) {
                       return false;
                     }
