@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- vim: set tabstop=8 shiftwidth=4 expandtab filetype=ant : -->
+<project name="dist" basedir=".">
+
+    <!-- Targets for creating distributable artifacts. -->
+
+    <target name="dist" depends="zip, tar" description="Make a distributable release"/>
+
+    <!-- Release for Windows -->
+    <target name="zip" depends="jar">
+        <property name="namez" value="CPAchecker-${version}-windows"/>
+        <zip destfile="${namez}.zip" whenempty="fail">
+            <zipfileset dir="." includes="config/** doc/** scripts/*.bat scripts/*.sh scripts/*.txt cpachecker.jar *.txt" prefix="${namez}/"/>
+            <zipfileset dir="." includes="lib/*.* lib/java/runtime/*.jar" excludes="lib/ivy*" prefix="${namez}/"/>
+            <zipfileset dir="." includes="lib/native/*win*/**" prefix="${namez}/"/>
+        </zip>
+    </target>
+
+    <!-- Release for GNU/Linux -->
+    <target name="tar" depends="jar">
+        <property name="namet" value="CPAchecker-${version}-unix"/>
+        <tar destfile="${namet}.tar.bz2" compression="bzip2">
+            <tarfileset dir="."
+                includes="config/** doc/** cpachecker.jar *.txt lib/*.* lib/java/runtime/* lib/python-benchmark/*"
+                excludes="lib/ivy*"
+                prefix="${namet}/"/>
+            <tarfileset dir="scripts"
+                includes="*.* benchmark/**"
+                excludes="*.bat *.sh *.py"
+                prefix="${namet}/scripts/"/>
+            <tarfileset dir="." filemode="755"
+                includes="scripts/*.sh scripts/*.py lib/native/**"
+                excludes="lib/native/source/** lib/native/*win*/**"
+                prefix="${namet}/"/>
+        </tar>
+    </target>
+
+    <target name="starexec" depends="build" description="Pack CPAchecker and configs for starexec upload">
+        <echo message="Put all solver configurations in a folder called starexec. Solver configurations should be in the style of doc/examples/starexec.sh"/>
+        <tar destfile="starexec.tar.gz" compression="gzip">
+            <tarfileset dir="."
+                includes="config/** cpachecker.jar lib/*.* lib/java/runtime/*"
+                excludes="lib/ivy*"/>
+            <tarfileset dir="scripts"
+                includes="cpa.sh"
+                prefix="bin"/>
+            <tarfileset dir="starexec"
+                includes="*.*"
+                prefix="bin"/>
+            <tarfileset dir="." filemode="755"
+                includes="lib/native/x86_64-linux/**"/>
+        </tar>
+    </target>
+
+    <target name="build-witness-script" description="Build the script for witness validation as single file">
+        <property name="witness-script" value="scripts/witness_validation_web_cloud"/>
+        <fileset dir="." includes="lib/python-benchmark/sseclient-*.whl" id="sseclient.file"/>
+        <fileset dir="." includes="lib/python-benchmark/requests-*.whl" id="requests.file"/>
+        <fileset dir="." includes="lib/python-benchmark/six-*.whl" id="six.file"/>
+        <!-- Write ZIP archive to witness.zip, write script header to witness.sh, and concatenate. -->
+        <zip destfile="${witness-script}.zip" whenempty="fail" duplicate="fail">
+            <zipfileset dir="scripts" includes="witness_validation_web_cloud.py" fullpath="__main__.py" />
+            <zipfileset dir="scripts" includes="benchmark/__init__.py benchmark/webclient.py" />
+            <zipfileset src="${toString:sseclient.file}" />
+            <zipfileset src="${toString:requests.file}" />
+            <zipfileset src="${toString:six.file}" />
+        </zip>
+        <echo file="${witness-script}.sh">#!/usr/bin/python3${line.separator}</echo>
+        <concat binary="true" destfile="${witness-script}.pyz">
+            <fileset dir="." includes="${witness-script}.sh ${witness-script}.zip"/>
+        </concat>
+        <delete quiet="true"><fileset dir="." includes="${witness-script}.sh ${witness-script}.zip"/></delete>
+        <chmod file="${witness-script}.pyz" perm="+x"/>
+        <echo>Wrote script for witness validation to ${witness-script}.pyz</echo>
+    </target>
+</project>

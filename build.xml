@@ -18,10 +18,14 @@
     <property name="jar.excludes" value=""/>
     <property name="project.url" value="http://cpachecker.sosy-lab.org"/>
     <property name="ivy.configurations" value="build, runtime, test, format-source, findbugs"/>
+    <property name="documentation.options.file" value="doc/ConfigurationOptions.txt"/>
 
     <import file="build/build-ivy.xml"/>
+    <import file="build/build-version.xml"/>
     <import file="build/build-compile.xml"/>
     <import file="build/build-jar.xml"/>
+    <import file="build/build-documentation.xml"/>
+    <import file="build/build-dist.xml"/>
     <import file="build/build-junit.xml"/>
     <import file="build/build-format-source.xml"/>
     <import file="build/build-findbugs.xml"/>
@@ -51,15 +55,13 @@
 
     <target name="build" depends="-warn-factorypath, build-project, build-documentation" description="Build"/>
 
-    <target name="dist" depends="zip, tar" description="Make a distributable release"/>
-
     <target name="resolve-benchmark-dependencies" depends="load-ivy" description="Retrieve dependencies for benchmark configuration" unless="ivy.disable">
         <condition property="ivy.useCacheOnly" value="true" else="false"><not><istrue value="${verifiercloud.refresh}"/></not></condition>
         <ivy:resolve conf="benchmark" log="download-only" resolveMode="dynamic" useCacheOnly="${ivy.useCacheOnly}" refresh="${verifiercloud.refresh}"/>
         <ivy:retrieve sync="true" pattern="${ivy.lib.dir}-benchmark/[artifact](-[classifier]).[ext]"/>
     </target>
 
-    <target name="tests" depends="unit-tests, python-unit-tests, benchmark-tests" description="Run all tests"/>
+    <target name="tests" depends="unit-tests, python-unit-tests" description="Run all tests"/>
 
     <target name="all-checks" description="Run all tests and checks">
         <!-- We have to use antcall here to run clean twice. -->
@@ -70,33 +72,6 @@
     </target>
 
     <!-- Auxiliary targets -->
-
-    <target name="determine-version-revision">
-        <!-- Determine full CPAchecker version including SVN revision. -->
-        <exec executable="python"
-            outputProperty="version.revision"
-            failifexecutionfails="false"
-            logError="true">
-            <arg value="scripts/determine-revision.py"/>
-            <arg value="${basedir}"/>
-        </exec>
-    </target>
-
-    <target name="create-version-file-exact" depends="determine-version-revision">
-        <mkdir dir="${class.dir}/org/sosy_lab/cpachecker"/>
-        <condition property="version" value="${version.base} ${version.revision}" else="${version.base}">
-            <contains string="${version.base}" substring="-svn"/>
-        </condition>
-        <echo message="${version}" file="${version.file}"/>
-    </target>
-
-    <target name="determine-version" depends="create-version-file-exact"/>
-
-    <target name="create-version-file" unless="version">
-        <!-- Replacement for create-version-file-exact when we don't need the exact version (faster). -->
-        <mkdir dir="${class.dir}/org/sosy_lab/cpachecker"/>
-        <echo message="${version.base}" file="${version.file}"/>
-    </target>
 
     <target name="init" depends="create-version-file">
         <echo message="Building ${ant.project.name} ${version.base}"/>
@@ -117,60 +92,7 @@
         <echo level="warning">This will help you get additional helpful compiler warnings.</echo>
     </target>
 
-    <property name="outputfile" value="doc/ConfigurationOptions.txt"/>
-    <uptodate property="documentation.uptodate" targetfile="${outputfile}">
-        <srcfiles dir="${source.dir}" includes="**/*.java"/>
-    </uptodate>
-
-    <target name="build-documentation" depends="build-project" unless="documentation.uptodate">
-        <echo message="running OptionCollector..." level="info"/>
-
-        <echo file="${outputfile}" append="false" message="# This is an auto-generated file, DO NOT EDIT!${line.separator}# Run ant to generate it.${line.separator}"/>
-        <!-- the output of OptionCollector is written into "doc/ConfigurationOptions.txt" -->
-        <java classname="org.sosy_lab.common.configuration.OptionCollector"
-            fork="true"
-            output="${outputfile}" append="true"
-            logError="true">
-
-            <classpath refid="classpath"/>
-
-            <arg value="-includeLibraryOptions"/>
-            <!-- "-v" is a optional param for verbose output of OptionCollector -->
-            <!-- <arg value="-v"/> -->
-        </java>
-        <echo message="Options collected." level="info"/>
-    </target>
-
     <target name="standard-checks" depends="tests, findbugs"/>
-
-    <!-- Release for Windows -->
-    <target name="zip" depends="jar">
-        <property name="namez" value="CPAchecker-${version}-windows"/>
-        <zip destfile="${namez}.zip" whenempty="fail">
-            <zipfileset dir="." includes="config/** doc/** scripts/*.bat scripts/*.sh scripts/*.txt cpachecker.jar *.txt" prefix="${namez}/"/>
-            <zipfileset dir="." includes="lib/*.* lib/java/runtime/*.jar" excludes="lib/ivy*" prefix="${namez}/"/>
-            <zipfileset dir="." includes="lib/native/*win*/**" prefix="${namez}/"/>
-        </zip>
-    </target>
-
-    <!-- Release for GNU/Linux -->
-    <target name="tar" depends="jar">
-        <property name="namet" value="CPAchecker-${version}-unix"/>
-        <tar destfile="${namet}.tar.bz2" compression="bzip2">
-            <tarfileset dir="."
-                includes="config/** doc/** cpachecker.jar *.txt lib/*.* lib/java/runtime/* lib/python-benchmark/*"
-                excludes="lib/ivy*"
-                prefix="${namet}/"/>
-            <tarfileset dir="scripts"
-                includes="*.* benchmark/**"
-                excludes="*.bat *.sh *.py"
-                prefix="${namet}/scripts/"/>
-            <tarfileset dir="." filemode="755"
-                includes="scripts/*.sh scripts/*.py lib/native/**"
-                excludes="lib/native/source/** lib/native/*win*/**"
-                prefix="${namet}/"/>
-        </tar>
-    </target>
 
     <target name="python-unit-tests" description="Run unit tests of python scripts">
         <!-- Tests are only executed if python is available, ignored otherwise. -->
@@ -179,10 +101,6 @@
             failifexecutionfails="false">
             <arg line="-m unittest discover scripts"/>
         </exec>
-    </target>
-
-    <target name="benchmark-tests" depends="build" description="Run CPAchecker on some simple test cases in various configurations">
-        <!-- TODO run benchmark.py with some benchmark definitions and check results like in BuildBot -->
     </target>
 
     <!-- Targets for downloading CPAchecker instead of building it.
@@ -201,42 +119,4 @@
         </unzip>
     </target>
 
-    <target name="starexec" depends="build" description="Pack CPAchecker and configs for starexec upload">
-	<echo message="Put all solver configurations in a folder called starexec. Solver configurations should be in the style of doc/examples/starexec.sh"/>
-        <tar destfile="starexec.tar.gz" compression="gzip">
-            <tarfileset dir="."
-                includes="config/** cpachecker.jar lib/*.* lib/java/runtime/*"
-                excludes="lib/ivy*"/>
-	    <tarfileset dir="scripts"
-		includes="cpa.sh"
-		prefix="bin"/>
-	    <tarfileset dir="starexec"
-		includes="*.*"
-		prefix="bin"/>
-            <tarfileset dir="." filemode="755"
-                includes="lib/native/x86_64-linux/**"/>
-        </tar>
-    </target>
-
-    <target name="build-witness-script" description="Build the script for witness validation as single file">
-        <property name="witness-script" value="scripts/witness_validation_web_cloud"/>
-        <fileset dir="." includes="lib/python-benchmark/sseclient-*.whl" id="sseclient.file"/>
-        <fileset dir="." includes="lib/python-benchmark/requests-*.whl" id="requests.file"/>
-        <fileset dir="." includes="lib/python-benchmark/six-*.whl" id="six.file"/>
-        <!-- Write ZIP archive to witness.zip, write script header to witness.sh, and concatenate. -->
-        <zip destfile="${witness-script}.zip" whenempty="fail" duplicate="fail">
-            <zipfileset dir="scripts" includes="witness_validation_web_cloud.py" fullpath="__main__.py" />
-            <zipfileset dir="scripts" includes="benchmark/__init__.py benchmark/webclient.py" />
-            <zipfileset src="${toString:sseclient.file}" />
-            <zipfileset src="${toString:requests.file}" />
-            <zipfileset src="${toString:six.file}" />
-        </zip>
-        <echo file="${witness-script}.sh">#!/usr/bin/python3${line.separator}</echo>
-        <concat binary="true" destfile="${witness-script}.pyz">
-            <fileset dir="." includes="${witness-script}.sh ${witness-script}.zip"/>
-        </concat>
-        <delete quiet="true"><fileset dir="." includes="${witness-script}.sh ${witness-script}.zip"/></delete>
-        <chmod file="${witness-script}.pyz" perm="+x"/>
-        <echo>Wrote script for witness validation to ${witness-script}.pyz</echo>
-    </target>
 </project>

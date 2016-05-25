@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- vim: set tabstop=8 shiftwidth=4 expandtab filetype=ant : -->
+<project name="version" basedir=".">
+
+    <!-- Targets for determining the version number based on the version-control revision. -->
+
+    <target name="determine-version-revision">
+        <!-- Determine full CPAchecker version including SVN revision. -->
+        <exec executable="python"
+            outputProperty="version.revision"
+            failifexecutionfails="false"
+            logError="true">
+            <arg value="scripts/determine-revision.py"/>
+            <arg value="${basedir}"/>
+        </exec>
+    </target>
+
+    <target name="create-version-file-exact" depends="determine-version-revision">
+        <mkdir dir="${class.dir}/org/sosy_lab/cpachecker"/>
+        <condition property="version" value="${version.base} ${version.revision}" else="${version.base}">
+            <contains string="${version.base}" substring="-svn"/>
+        </condition>
+        <echo message="${version}" file="${version.file}"/>
+    </target>
+
+    <target name="determine-version" depends="create-version-file-exact"/>
+
+    <target name="create-version-file" unless="version">
+        <!-- Replacement for create-version-file-exact when we don't need the exact version (faster). -->
+        <mkdir dir="${class.dir}/org/sosy_lab/cpachecker"/>
+        <echo message="${version.base}" file="${version.file}"/>
+    </target>
+
+</project>
