@@ -161,9 +161,10 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
 
       case "NEVER":
         return new StopNeverOperator();
-    }
 
-    return null;
+      default:
+        throw new AssertionError("unknown stop operator");
+    }
   }
 
   private VariableTrackingPrecision initializePrecision(Configuration config, CFA cfa) throws InvalidConfigurationException {

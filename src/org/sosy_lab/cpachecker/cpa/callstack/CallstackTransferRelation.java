@@ -57,7 +57,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 
 @Options(prefix="cpa.callstack")

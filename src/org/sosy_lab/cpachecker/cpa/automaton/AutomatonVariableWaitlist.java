@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.waitlist.AbstractSortedWaitlist;
-import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class AutomatonVariableWaitlist extends AbstractSortedWaitlist<Integer> {

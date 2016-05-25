@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
-import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 

@@ -107,9 +107,10 @@ public class AndersenCPA implements ConfigurableProgramAnalysisWithBAM {
 
       case "NEVER":
         return new StopNeverOperator();
-    }
 
-    return null;
+      default:
+        throw new AssertionError("unknown stop operator");
+    }
   }
 
   @Override
