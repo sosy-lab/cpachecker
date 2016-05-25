@@ -18,7 +18,6 @@
     <property name="jar.excludes" value=""/>
     <property name="project.url" value="http://cpachecker.sosy-lab.org"/>
     <property name="ivy.configurations" value="build, runtime, test, format-source, findbugs"/>
-    <property name="source.exclude" value=""/>
 
     <import file="build/build-ivy.xml"/>
     <import file="build/build-compile.xml"/>
@@ -36,16 +35,6 @@
         <fileset dir="lib" includes="*.jar"/>
         <fileset dir="${ivy.lib.dir}" includes="runtime/*.jar test/*.jar build/annotations.jar build/error_prone_annotations.jar"/>
     </path>
-
-    <condition property="architecture" value="x86_64" else="x86">
-        <os arch="amd64"/>
-    </condition>
-    <condition property="os" value="linux">
-        <os name="Linux"/>
-    </condition>
-    <condition property="os" value="windows">
-        <os family="windows"/>
-    </condition>
 
 
     <!-- Main targets -->
@@ -128,32 +117,6 @@
         <echo level="warning">This will help you get additional helpful compiler warnings.</echo>
     </target>
 
-    <target name="build-project" depends="build-dependencies">
-        <property name="javac.compiler" value="modern"/> <!-- fallback value -->
-        <depend srcdir="${source.dir}" destdir="${class.dir}"/>
-        <copy todir="${class.dir}">
-          <fileset dir="${source.dir}">
-            <exclude name="**/*.java" />
-          </fileset>
-        </copy>
-        <echo message="Compiling CPAchecker"/>
-        <javac debug="true"
-               debuglevel="source,lines,vars"
-               destdir="${class.dir}"
-               source="${source.format}"
-               target="${class.format}"
-               includeAntRuntime="false"
-               compiler="com.google.errorprone.ErrorProneAntCompilerAdapter"
-               encoding="UTF-8">
-            <src path="${source.dir}"/>
-            <classpath refid="classpath"/>
-            <compilerarg value="-Xlint:deprecation"/>
-            <compilerarg value="-Werror"/>
-            <exclude name="${source.exclude}"/>
-            <compilerclasspath refid="errorprone"/>
-        </javac>
-    </target>
-
     <property name="outputfile" value="doc/ConfigurationOptions.txt"/>
     <uptodate property="documentation.uptodate" targetfile="${outputfile}">
         <srcfiles dir="${source.dir}" includes="**/*.java"/>
@@ -170,7 +133,6 @@
             logError="true">
 
             <classpath refid="classpath"/>
-            <jvmarg value="-Djava.library.path=lib/native/${architecture}-${os}/"/>
 
             <arg value="-includeLibraryOptions"/>
             <!-- "-v" is a optional param for verbose output of OptionCollector -->
