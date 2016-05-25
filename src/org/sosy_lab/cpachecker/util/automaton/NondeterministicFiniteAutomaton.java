@@ -159,7 +159,8 @@ public class NondeterministicFiniteAutomaton<T> {
         return false;
       }
 
-      Edge lEdge = getClass().cast(pOther);
+      @SuppressWarnings("unchecked")
+      Edge lEdge = (Edge) pOther;
 
       if (lEdge.mSource.equals(mSource) && lEdge.mTarget.equals(mTarget)) {
         if (mLabel == null) {

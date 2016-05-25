@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
-import java.util.Collection;
+import com.google.common.base.Preconditions;
 
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -33,8 +33,6 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
@@ -67,7 +65,9 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 
-import com.google.common.base.Preconditions;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Collection;
 
 
 @Options(prefix = "cpa.bam")
@@ -190,8 +190,12 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   }
 
   private PartitioningHeuristic getPartitioningHeuristic() throws CPAException, InvalidConfigurationException {
-    return Classes.createInstance(PartitioningHeuristic.class, blockHeuristic, new Class[] { LogManager.class,
-        CFA.class }, new Object[] { logger, cfa }, CPAException.class);
+    return Classes.createInstance(
+        PartitioningHeuristic.class,
+        blockHeuristic,
+        new Class<?>[] {LogManager.class, CFA.class},
+        new Object[] {logger, cfa},
+        CPAException.class);
   }
 
   @Override
