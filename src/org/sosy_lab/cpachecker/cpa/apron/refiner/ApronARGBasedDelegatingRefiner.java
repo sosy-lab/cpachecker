@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.apron.ApronCPA;
-import org.sosy_lab.cpachecker.cpa.apron.ApronManager;
+import org.sosy_lab.cpachecker.util.ApronManager;
 import org.sosy_lab.cpachecker.cpa.apron.ApronState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;

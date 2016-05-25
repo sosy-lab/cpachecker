@@ -5,18 +5,18 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.LinearExpression;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cpa.apron.ApronManager;
 import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyAbstractedState;
 import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyBound;
 import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationStatistics;
 import org.sosy_lab.cpachecker.cpa.policyiteration.Template;
+import org.sosy_lab.cpachecker.util.ApronManager;
+import org.sosy_lab.cpachecker.util.ApronManager.AbstractDomain;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -46,8 +46,7 @@ public class PolyhedraWideningManager {
       LogManager pLogger) throws InvalidConfigurationException {
     statistics = pStatistics;
     logger = pLogger;
-    ApronManager apronManager = new ApronManager(
-        Configuration.builder().setOption("cpa.apron.domain", "POLKA").build());
+    ApronManager apronManager = new ApronManager(AbstractDomain.POLKA);
 
     manager = apronManager.getManager();
     types = new HashMap<>();
