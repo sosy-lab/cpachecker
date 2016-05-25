@@ -167,7 +167,7 @@ class EclipseJavaParser implements Parser {
 
     // write CFA to file
     if (exportTypeHierarchy && exportTypeHierarchyFile != null) {
-      try (Writer w = Files.newBufferedWriter(exportTypeHierarchyFile, StandardCharsets.UTF_8)) {
+      try (Writer w = MoreFiles.openOutputFile(exportTypeHierarchyFile, StandardCharsets.UTF_8)) {
         THDotBuilder.generateDOT(w, pScope);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,
