@@ -18,14 +18,38 @@
     <include>../programs/benchmarks/recursive-simple/i*.c</include>
     <option name="-intervalAnalysis-bam-rec"/>
   </tasks>
-  
+
   <tasks name="valuePredicate">
     <include>../programs/benchmarks/recursive-simple/s*.c</include>
     <option name="-valuePredicateAnalysis-bam-rec"/>
   </tasks>
-  
-  <tasks name="predicate">
+
+  <tasks name="predicate_tree">
     <include>../programs/benchmarks/recursive/*.c</include>
+    <exclude>../programs/benchmarks/recursive/*1_*.c</exclude>
+    <exclude>../programs/benchmarks/recursive/*2_*.c</exclude>
+    <exclude>../programs/benchmarks/recursive/*3_*.c</exclude>
+    <option name="-predicateAnalysis-bam-rec"/>
+  </tasks>
+
+  <tasks name="predicate_tree_nested">
+    <include>../programs/benchmarks/recursive/*3_*.c</include>
+    <option name="-setprop">cpa.predicate.refinement.strategy=tree_nested</option>
+    <option name="-setprop">solver.solver=mathsat5</option>
+    <option name="-predicateAnalysis-bam-rec"/>
+  </tasks>
+
+  <tasks name="predicate_tree_cpachecker">
+    <include>../programs/benchmarks/recursive/*2_*.c</include>
+    <option name="-setprop">cpa.predicate.refinement.strategy=tree_cpachecker</option>
+    <option name="-setprop">solver.solver=mathsat5</option>
+    <option name="-predicateAnalysis-bam-rec"/>
+  </tasks>
+
+  <tasks name="predicate_tree_wellscoped">
+    <include>../programs/benchmarks/recursive/*1_*.c</include>
+    <option name="-setprop">cpa.predicate.refinement.strategy=tree_wellscoped</option>
+    <option name="-setprop">solver.solver=mathsat5</option>
     <option name="-predicateAnalysis-bam-rec"/>
   </tasks>
 
