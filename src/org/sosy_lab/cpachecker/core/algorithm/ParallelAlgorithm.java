@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.core.CoreComponentsFactory.SpecAutomatonCompositi
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
@@ -58,6 +59,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
@@ -81,8 +83,11 @@ public class ParallelAlgorithm implements Algorithm {
     description =
         "List of files with configurations to use. Files can be suffixed with"
             + " ::supply-reached this signalizes that the (finished) reached set"
-            + " of an analysis can be used in other analyses"
-            + " (e.g. for invariants computation)."
+            + " of an analysis can be used in other analyses (e.g. for invariants"
+            + " computation). If you use the suffix ::supply-reached-refineable instead"
+            + " this means that the reached set supplier is additionally continously"
+            + " refined (so one of the analysis has to be instanceof ReachedSetAdjustingCPA)"
+            + " to make this work properly."
   )
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> configFiles;
@@ -186,6 +191,8 @@ public class ParallelAlgorithm implements Algorithm {
     final LogManager singleLogger;
     final ConfigurableProgramAnalysis cpa;
     final boolean supplyReached;
+    final boolean supplyRefinableReached;
+    final CoreComponentsFactory coreComponents;
 
     try {
       Iterable<String> parts =
@@ -198,6 +205,7 @@ public class ParallelAlgorithm implements Algorithm {
       Iterator<String> configIt = parts.iterator();
       singleConfigFileName = Paths.get(configIt.next());
       supplyReached = Iterables.contains(parts, "supply-reached");
+      supplyRefinableReached = Iterables.contains(parts, "supply-reached-refineable");
 
       singleConfig = createSingleConfig(singleConfigFileName);
 
@@ -209,7 +217,7 @@ public class ParallelAlgorithm implements Algorithm {
           ResourceLimitChecker.fromConfiguration(singleConfig, singleLogger, singleShutdownManager);
       singleLimits.start();
 
-      CoreComponentsFactory coreComponents =
+      coreComponents =
           new CoreComponentsFactory(
               singleConfig,
               singleLogger,
@@ -244,15 +252,43 @@ public class ParallelAlgorithm implements Algorithm {
 
     return () -> {
       try {
-        AlgorithmStatus status = algorithm.run(reached);
+        AlgorithmStatus status;
+        ReachedSet currentReached = reached;
+        ReachedSet oldReached = null;
+
+        if (!supplyRefinableReached) {
+          status = algorithm.run(currentReached);
+        } else {
+          boolean stopAnalysis = false;
+          do {
+            status = algorithm.run(currentReached);
+
+            for (ReachedSetAdjustingCPA innerCpa : CPAs.asIterable(cpa).filter(ReachedSetAdjustingCPA.class)) {
+              if (!innerCpa.adjustPrecision()) {
+                stopAnalysis = true;
+                break;
+              }
+            }
+
+            if (oldReached != null) {
+              aggregatedReachedSetManager.updateReachedSet(oldReached, currentReached);
+            } else {
+              aggregatedReachedSetManager.addReachedSet(currentReached);
+            }
+            singleLogger.log(Level.INFO, "Updating reached set provided to other analyses");
+
+            oldReached = currentReached;
+            currentReached = createInitialReachedSet(cpa, mainEntryNode, coreComponents.getReachedSetFactory());
+          } while (!stopAnalysis);
+        }
 
         // if we do not have reliable information about the analysis we just ignore the result
         if (status.isPrecise() && status.isSound()) {
           singleLogger.log(Level.INFO, "Analysis finished successfully");
-          if (supplyReached) {
-            aggregatedReachedSetManager.addReachedSet(reached);
+          if (supplyReached && !supplyRefinableReached) {
+            aggregatedReachedSetManager.addReachedSet(currentReached);
           }
-          return Optional.of(reached);
+          return Optional.of(currentReached);
         }
       } catch (CPAException e) {
         singleLogger.logUserException(Level.WARNING, e, "Analysis did not finish properly");
