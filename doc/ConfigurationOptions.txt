@@ -1204,9 +1204,6 @@ cpa.lpi.generateUpperBound = true
 # Remove UFs and ITEs from policies.
 cpa.lpi.linearizePolicy = true
 
-# Do not explore nodes which syntactically can not lead to an error state.
-cpa.lpi.reduceCfa = true
-
 # Run simple congruence analysis
 cpa.lpi.runCongruence = true
 
@@ -1839,6 +1836,9 @@ cpa.predicate.useQuantifiersOnArrays = false
 # This option only effects MULT, MOD and DIV.
 cpa.predicate.useUFsForNonLinearArithmetic = true
 
+# Do not follow states which can not syntactically lead to a target location
+cpa.property_reachability.noFollowBackwardsUnreachable = true
+
 # Qualified name for class which checks that the computed abstraction adheres
 # to the desired property.
 cpa.propertychecker.className = org.sosy_lab.cpachecker.pcc.propertychecker.DefaultPropertyChecker.class
@@ -1887,9 +1887,6 @@ cpa.slicing.leastRemovalsDepthLimit = 2
 
 # Pre-run syntactic weakening
 cpa.slicing.preRunSyntacticWeakening = true
-
-# Do not explore nodes which syntactically can not lead to an error state.
-cpa.slicing.reduceCfa = true
 
 # Strategy for abstracting children during CEX weakening
 cpa.slicing.removalSelectionStrategy = ALL
@@ -2520,6 +2517,9 @@ pcc.partitioning.partitioningStrategy = RANDOM
 pcc.partitioning.useGraphSizeToComputePartitionNumber = false
 
 # file in which proof representation needed for proof checking is stored
+pcc.proof = "arg.obj"
+
+# file in which proof representation will be stored
 pcc.proofFile = "arg.obj"
 
 # Generate and dump a proof
