@@ -39,7 +39,6 @@ import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingSt
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.FluentIterable;
@@ -716,17 +715,7 @@ class InvariantsManager implements StatisticsProvider {
         // fill nodes without invariants with TRUE
         Set<BooleanFormula> invariantParts =
             from(oldInvariants)
-                .transform(
-                    new Function<BooleanFormula, BooleanFormula>() {
-                      @Override
-                      public BooleanFormula apply(BooleanFormula pInput) {
-                        if (pInput == null) {
-                          return bfmgr.makeBoolean(true);
-                        } else {
-                          return pInput;
-                        }
-                      }
-                    })
+                .transform(pInput -> pInput == null ? bfmgr.makeBoolean(true) : pInput)
                 .toSet();
 
         // add a conjunction of the invariant parts to the refinement cache
@@ -1146,29 +1135,19 @@ class InvariantsManager implements StatisticsProvider {
         invariants.add(
             Pair.of(
                 found
-                    .filter(
-                        new Predicate<AbstractLocationFormulaInvariant>() {
-                          @Override
-                          public boolean apply(AbstractLocationFormulaInvariant pInput) {
-                            return getOnlyElement(pInput.getLocations()).equals(node);
-                          }
-                        })
+                    .filter(pInput -> getOnlyElement(pInput.getLocations()).equals(node))
                     .first()
-                    .transform(
-                        new Function<AbstractLocationFormulaInvariant, BooleanFormula>() {
-                          @Override
-                          public BooleanFormula apply(AbstractLocationFormulaInvariant pInput) {
-                            try {
-                              return pInput.getFormula(fmgr, pfmgr, null);
-                            } catch (CPATransferException | InterruptedException e) {
-                              // this should never happen, if it does we log
-                              // the exception and return TRUE as invariant
-                              logger.logUserException(
-                                  Level.WARNING,
-                                  e,
-                                  "Invariant could not be" + " retrieved from InvariantGenerator");
-                              return fmgr.getBooleanFormulaManager().makeBoolean(true);
-                            }
+                    .transform(pInput -> {
+                          try {
+                            return pInput.getFormula(fmgr, pfmgr, null);
+                          } catch (CPATransferException | InterruptedException e) {
+                            // this should never happen, if it does we log
+                            // the exception and return TRUE as invariant
+                            logger.logUserException(
+                                Level.WARNING,
+                                e,
+                                "Invariant could not be" + " retrieved from InvariantGenerator");
+                            return fmgr.getBooleanFormulaManager().makeBoolean(true);
                           }
                         })
                     .or(fmgr.getBooleanFormulaManager().makeBoolean(true)),

@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.math.IntMath;
@@ -159,14 +158,8 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    */
   @Override
   public List<SimpleInterval> getIntervals() {
-    return Lists.transform(getBitVectorIntervals(), new Function<BitVectorInterval, SimpleInterval>() {
-
-      @Override
-      public SimpleInterval apply(BitVectorInterval pBitVectorInterval) {
-        return SimpleInterval.of(pBitVectorInterval.getLowerBound(), pBitVectorInterval.getUpperBound());
-      }
-
-    });
+    return Lists.transform(getBitVectorIntervals(), pBitVectorInterval ->
+        SimpleInterval.of(pBitVectorInterval.getLowerBound(), pBitVectorInterval.getUpperBound()));
   }
 
   @Override
@@ -605,17 +598,10 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
     // If the value fits in, the cast is easy
     if (pBitVectorInfo.getRange().contains(info.getRange())) {
       BitVectorInterval[] castedIntervals = new BitVectorInterval[intervals.length];
-      Lists.transform(getBitVectorIntervals(), new Function<BitVectorInterval, BitVectorInterval>() {
-
-        @Override
-        public BitVectorInterval apply(BitVectorInterval pInterval) {
-          return BitVectorInterval.of(
-              pBitVectorInfo,
-              pInterval.getLowerBound(),
-              pInterval.getUpperBound());
-        }
-
-      }).toArray(castedIntervals);
+      Lists.transform(getBitVectorIntervals(), pInterval -> BitVectorInterval.of(
+          pBitVectorInfo,
+          pInterval.getLowerBound(),
+          pInterval.getUpperBound())).toArray(castedIntervals);
       return new CompoundBitVectorInterval(
           pBitVectorInfo,
           castedIntervals);

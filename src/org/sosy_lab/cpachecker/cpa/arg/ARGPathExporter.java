@@ -1010,12 +1010,7 @@ public class ARGPathExporter {
             // node and it is empty or all its non-assumption contents
             // are summarized by a preceding edge
             boolean summarizedByPrecedingEdge = Iterables.any(enteringEdges.get(pEdge.source),
-                    new Predicate<Edge>() {
-                      @Override
-                      public boolean apply(Edge pPrecedingEdge) {
-                        return pPrecedingEdge.label.summarizes(pEdge.label);
-                      }
-                    });
+                pPrecedingEdge -> pPrecedingEdge.label.summarizes(pEdge.label));
 
             if ((!pEdge.label.hasTransitionRestrictions()
                         || summarizedByPrecedingEdge
@@ -1025,13 +1020,8 @@ public class ARGPathExporter {
               return true;
             }
 
-            if (Iterables.all(leavingEdges.get(pEdge.source), new Predicate<Edge>() {
-
-                          @Override
-                          public boolean apply(Edge pLeavingEdge) {
-                            return pLeavingEdge.label.getMapping().isEmpty();
-                          }
-                        })) {
+            if (Iterables.all(leavingEdges.get(pEdge.source),
+                pLeavingEdge -> pLeavingEdge.label.getMapping().isEmpty())) {
               return true;
             }
             return false;
@@ -1270,14 +1260,7 @@ public class ARGPathExporter {
         waitlist.offer(assumeEdge.getPredecessor());
       }
     }
-    Predicate<CFAEdge> epsilonEdge =
-        new Predicate<CFAEdge>() {
-
-          @Override
-          public boolean apply(CFAEdge pEdge) {
-            return !(pEdge instanceof AssumeEdge);
-          }
-        };
+    Predicate<CFAEdge> epsilonEdge = pEdge -> !(pEdge instanceof AssumeEdge);
     Predicate<CFANode> loopProximity =
         cfa.getAllLoopHeads().isPresent()
             ? pNode -> cfa.getAllLoopHeads().get().contains(pNode) || pNode.isLoopStart()
