@@ -253,7 +253,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     while (configFilesIterator.hasNext()) {
       stats.totalTime.start();
       @Nullable ConfigurableProgramAnalysis currentCpa = null;
-      ReachedSet currentReached = null;
+      ReachedSet currentReached;
       ShutdownManager singleShutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
 
       boolean lastAnalysisInterrupted = false;
@@ -274,7 +274,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
                   mainFunction,
                   singleShutdownManager,
                   provideReachedForNextAlgorithm,
-                  currentReached);
+                  reached.getDelegate());
           currentAlgorithm = currentAlg.getFirst();
           currentCpa = currentAlg.getSecond();
           currentReached = currentAlg.getThird();
