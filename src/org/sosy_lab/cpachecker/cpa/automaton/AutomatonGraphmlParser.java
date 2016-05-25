@@ -27,7 +27,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
@@ -131,10 +130,12 @@ import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.zip.GZIPInputStream;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
 @Options(prefix="spec")
@@ -195,23 +196,62 @@ public class AutomatonGraphmlParser {
   }
 
   /**
-   * Parses a specification from a file and returns the Automata found in the file.
+   * Parses a witness specification from a file and returns the Automata found in the file.
+   *
+   * @param pInputFile the path to the input file to parse the witness from.
+   *
+   * @throws InvalidConfigurationException if the configuration is invalid.
+   *
+   * @return the automata representing the witnesses found in the file.
    */
   public List<Automaton> parseAutomatonFile(Path pInputFile) throws InvalidConfigurationException {
     return parseAutomatonFile(MoreFiles.asByteSource(pInputFile));
   }
 
   /**
-   * Parses a specification from a ByteSource and returns the Automata found in the file.
+   * Parses a witness specification from a ByteSource and returns the Automata found in the source.
+   *
+   * @param pInputSource the ByteSource to parse the witness from.
+   *
+   * @throws InvalidConfigurationException if the configuration is invalid.
+   *
+   * @return the automata representing the witnesses found in the source.
    */
-  public List<Automaton> parseAutomatonFile(ByteSource pInputFile) throws InvalidConfigurationException {
+  public List<Automaton> parseAutomatonFile(ByteSource pInputSource)
+      throws InvalidConfigurationException {
+    try {
+      try (InputStream inputStream = pInputSource.openStream();
+          InputStream gzipInputStream = new GZIPInputStream(inputStream)) {
+        return parseAutomatonFile(gzipInputStream);
+      } catch (IOException e) {
+        try (InputStream plainInputStream = pInputSource.openStream()) {
+          return parseAutomatonFile(plainInputStream);
+        }
+      }
+    } catch (IOException e) {
+      throw new InvalidConfigurationException("Error while accessing automaton file!", e);
+    }
+  }
+
+  /**
+   * Parses a specification from an InputStream and returns the Automata found in the file.
+   *
+   * @param pInputStream the input stream to parse the witness from.
+   *
+   * @throws InvalidConfigurationException if the configuration is invalid.
+   * @throws IOException if there occurs an IOException while reading from the stream.
+   *
+   * @return the automata representing the witnesses found in the stream.
+   */
+  private List<Automaton> parseAutomatonFile(InputStream pInputStream)
+      throws InvalidConfigurationException, IOException {
     final CParser cparser =
         CParser.Factory.getParser(config, logger, CParser.Factory.getOptions(config), machine);
-    try (InputStream input = pInputFile.openStream()) {
+    try {
       // Parse the XML document ----
       DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
       DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
-      Document doc = docBuilder.parse(input);
+      Document doc = docBuilder.parse(pInputStream);
       doc.getDocumentElement().normalize();
 
       GraphMlDocumentData docDat = new GraphMlDocumentData(doc);
@@ -681,7 +721,7 @@ public class AutomatonGraphmlParser {
 
       return result;
 
-    } catch (IOException | ParserConfigurationException | SAXException e) {
+    } catch (ParserConfigurationException | SAXException e) {
       throw new InvalidConfigurationException("Error while accessing automaton file!", e);
     } catch (InvalidAutomatonException e) {
       throw new InvalidConfigurationException("The automaton provided is invalid!", e);
@@ -1385,8 +1425,26 @@ public class AutomatonGraphmlParser {
   }
 
   public static boolean isGraphmlAutomaton(Path pPath, LogManager pLogger) throws InvalidConfigurationException {
-    try (InputStream input = Files.newInputStream(pPath)) {
-      SAXParserFactory.newInstance().newSAXParser().parse(input, new DefaultHandler());
+    SAXParser saxParser;
+    try {
+      saxParser = SAXParserFactory.newInstance().newSAXParser();
+    } catch (ParserConfigurationException | SAXException e) {
+      pLogger.logException(
+          Level.WARNING,
+          e,
+          "SAX parser configured incorrectly. Could not determine whether or not the path describes a graphml automaton.");
+      return false;
+    }
+    DefaultHandler defaultHandler = new DefaultHandler();
+    try {
+      try (InputStream input = Files.newInputStream(pPath);
+          GZIPInputStream zipInput = new GZIPInputStream(input)) {
+        saxParser.parse(zipInput, defaultHandler);
+      } catch (IOException e) {
+        try (InputStream plainInput = Files.newInputStream(pPath)) {
+          saxParser.parse(plainInput, defaultHandler);
+        }
+      }
       return true;
     } catch (FileNotFoundException e) {
       throw new InvalidConfigurationException(
@@ -1394,9 +1452,6 @@ public class AutomatonGraphmlParser {
     } catch (IOException e) {
       throw new InvalidConfigurationException("Error while accessing automaton file", e);
     } catch (SAXException e) {
-      return false;
-    } catch (ParserConfigurationException e) {
-      pLogger.logException(Level.WARNING, e, "SAX parser configured incorrectly. Could not determine whether or not the path describes a graphml automaton.");
       return false;
     }
   }
