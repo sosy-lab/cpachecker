@@ -23,17 +23,19 @@
  */
 package org.sosy_lab.cpachecker.util.ci.translators;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
-import javax.annotation.Nullable;
+import com.google.common.annotations.VisibleForTesting;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.ci.CIUtils;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
+import javax.annotation.Nullable;
 
 
 public abstract class CartesianRequirementsTranslator<T extends AbstractState> extends AbstractRequirementsTranslator<T> {
@@ -45,7 +47,10 @@ public abstract class CartesianRequirementsTranslator<T extends AbstractState> e
     logger = log;
   }
 
-  private List<String> writeVarDefinition(final List<String> vars, final SSAMap ssaMap,
+  @VisibleForTesting
+  static List<String> writeVarDefinition(
+      final List<String> vars,
+      final SSAMap ssaMap,
       final @Nullable Collection<String> pRequiredVars) {
     List<String> list = new ArrayList<>();
     String def;

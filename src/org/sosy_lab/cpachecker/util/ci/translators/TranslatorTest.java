@@ -23,14 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.ci.translators;
 
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import com.google.common.base.Optional;
+import com.google.common.truth.Truth;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -76,8 +70,12 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.IntegerFormulaManager;
 
-import com.google.common.base.Optional;
-import com.google.common.truth.Truth;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 public class TranslatorTest {
 
@@ -175,9 +173,8 @@ public class TranslatorTest {
     Truth.assertThat(listOfIndepententReq).containsExactlyElementsIn(content);
   }
 
-  @SuppressWarnings("unchecked")
   @Test
-  public void testIntervalAndCartesianTranslator() throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+  public void testIntervalAndCartesianTranslator() {
     PersistentMap<String, Interval> intervals = PathCopyingPersistentTreeMap.of();
     PersistentMap<String, Integer> referenceMap = PathCopyingPersistentTreeMap.of();
 
@@ -222,13 +219,13 @@ public class TranslatorTest {
     Truth.assertThat(listOfIndependentRequirements).containsExactlyElementsIn(content);
 
     // Test method writeVarDefinition()
-    Method writeVarDefinition = CartesianRequirementsTranslator.class.getDeclaredMethod("writeVarDefinition", new Class[]{List.class, SSAMap.class, Collection.class});
-    writeVarDefinition.setAccessible(true);
-    @SuppressWarnings("unchecked")
-    List<String> varDefinition = (List<String>) writeVarDefinition.invoke(iReqTransTest, Arrays.asList(varNames), ssaTest, Collections.<String>emptyList());
+    List<String> varDefinition =
+        CartesianRequirementsTranslator.writeVarDefinition(
+            Arrays.asList(varNames), ssaTest, Collections.<String>emptyList());
     Truth.assertThat(varDefinition).isEmpty();
 
-    varDefinition = (List<String>) writeVarDefinition.invoke(iReqTransTest, Arrays.asList(varNames), ssaTest, null);
+    varDefinition =
+        CartesianRequirementsTranslator.writeVarDefinition(Arrays.asList(varNames), ssaTest, null);
     content = new ArrayList<>();
     content.add("(declare-fun var1@1 () Int)");
     content.add("(declare-fun var2 () Int)");
@@ -238,7 +235,9 @@ public class TranslatorTest {
     content.add("(declare-fun |fun::varC| () Int)");
     Truth.assertThat(varDefinition).containsExactlyElementsIn(content);
 
-    varDefinition = (List<String>) writeVarDefinition.invoke(iReqTransTest, Arrays.asList(varNames), ssaTest, requiredVars);
+    varDefinition =
+        CartesianRequirementsTranslator.writeVarDefinition(
+            Arrays.asList(varNames), ssaTest, requiredVars);
     List<String> content2 = new ArrayList<>();
     content2.add("(declare-fun var1@1 () Int)");
     content2.add("(declare-fun var3@1 () Int)");
