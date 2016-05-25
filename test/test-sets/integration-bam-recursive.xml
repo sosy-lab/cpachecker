@@ -26,7 +26,7 @@
   
   <tasks name="predicate">
     <include>../programs/benchmarks/recursive/*.c</include>
-    <option name="-predicateAnalysis-bam-rec-plain"/>
+    <option name="-predicateAnalysis-bam-rec"/>
   </tasks>
 
   <rundefinition/>
