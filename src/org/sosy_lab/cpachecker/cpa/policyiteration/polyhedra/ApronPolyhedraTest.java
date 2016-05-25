@@ -6,7 +6,6 @@ import com.google.common.collect.ImmutableMap;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.LinearExpression;
 import org.sosy_lab.common.rationals.Rational;
@@ -31,7 +30,7 @@ public class ApronPolyhedraTest {
   private LogManager logger;
 
   @Before
-  public void setUp() throws InvalidConfigurationException {
+  public void setUp() {
     logger = LogManager.createTestLogManager();
     PolicyIterationStatistics stats = Mockito.mock(PolicyIterationStatistics.class);
 
