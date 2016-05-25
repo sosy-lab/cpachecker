@@ -89,13 +89,7 @@ import java.util.Set;
 
 public class ValueAnalysisConcreteErrorPathAllocator {
 
-  private static final MemoryName MEMORY_NAME = new MemoryName() {
-
-    @Override
-    public String getMemoryName(CRightHandSide pExp, Address pAddress) {
-      return "Value_Analysis_Heap";
-    }
-  };
+  private static final MemoryName MEMORY_NAME = (pExp, pAddress) -> "Value_Analysis_Heap";
 
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 

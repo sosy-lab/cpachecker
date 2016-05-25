@@ -587,14 +587,7 @@ public class InvariantsState implements AbstractState,
     final Set<Variable<CompoundInterval>> toClear = getVariables(pMemoryLocationPredicate);
     ContainsVisitor<CompoundInterval> containsVisitor = new ContainsVisitor<>();
     ContainsVarVisitor<CompoundInterval> containsVarVisitor = new ContainsVarVisitor<>();
-    Predicate<NumeralFormula<CompoundInterval>> toClearPredicate = new Predicate<NumeralFormula<CompoundInterval>>() {
-
-      @Override
-      public boolean apply(NumeralFormula<CompoundInterval> pFormula) {
-        return toClear.contains(pFormula);
-      }
-
-    };
+    Predicate<NumeralFormula<CompoundInterval>> toClearPredicate = toClear::contains;
     Queue<MemoryLocation> potentialReferrers = new ArrayDeque<>();
     for (Map.Entry<MemoryLocation, NumeralFormula<CompoundInterval>> entry : environment.entrySet()) {
       if (entry.getValue().accept(containsVisitor, toClearPredicate)) {
@@ -1192,14 +1185,7 @@ public class InvariantsState implements AbstractState,
 
   private FluentIterable<BooleanFormula<CompoundInterval>> getApproximationFormulas() {
 
-    final Predicate<MemoryLocation> acceptVariable =
-        new Predicate<MemoryLocation>() {
-
-          @Override
-          public boolean apply(@Nullable MemoryLocation pInput) {
-            return isExportable(pInput);
-          }
-        };
+    final Predicate<MemoryLocation> acceptVariable = InvariantsState::isExportable;
 
     final Predicate<BooleanFormula<CompoundInterval>> acceptFormula = new Predicate<BooleanFormula<CompoundInterval>>() {
 

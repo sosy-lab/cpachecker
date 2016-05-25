@@ -1280,20 +1280,8 @@ public class ARGPathExporter {
         };
     Predicate<CFANode> loopProximity =
         cfa.getAllLoopHeads().isPresent()
-            ? new Predicate<CFANode>() {
-
-              @Override
-              public boolean apply(CFANode pNode) {
-                return cfa.getAllLoopHeads().get().contains(pNode) || pNode.isLoopStart();
-              }
-            }
-            : new Predicate<CFANode>() {
-
-              @Override
-              public boolean apply(CFANode pNode) {
-                return pNode.isLoopStart();
-              }
-            };
+            ? pNode -> cfa.getAllLoopHeads().get().contains(pNode) || pNode.isLoopStart()
+            : pNode -> pNode.isLoopStart();
     while (!waitlist.isEmpty()) {
       CFANode current = waitlist.poll();
       if (loopProximity.apply(current)) {

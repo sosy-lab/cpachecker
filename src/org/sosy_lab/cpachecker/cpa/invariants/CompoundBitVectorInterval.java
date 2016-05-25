@@ -171,14 +171,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
 
   @Override
   public List<CompoundBitVectorInterval> splitIntoIntervals() {
-    return Lists.transform(Arrays.asList(this.intervals), new Function<BitVectorInterval, CompoundBitVectorInterval>() {
-
-      @Override
-      public CompoundBitVectorInterval apply(BitVectorInterval pInterval) {
-        return of(pInterval);
-      }
-
-    });
+    return Lists.transform(Arrays.asList(this.intervals), CompoundBitVectorInterval::of);
   }
 
   public void checkBitVectorCompatibilityWith(BitVectorInfo pOtherInfo) {

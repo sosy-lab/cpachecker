@@ -184,14 +184,7 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
 
   @Override
   public List<CompoundMathematicalInterval> splitIntoIntervals() {
-    return Lists.transform(Arrays.asList(this.intervals), new Function<SimpleInterval, CompoundMathematicalInterval>() {
-
-      @Override
-      public CompoundMathematicalInterval apply(SimpleInterval pInterval) {
-        return of(pInterval);
-      }
-
-    });
+    return Lists.transform(Arrays.asList(this.intervals), CompoundMathematicalInterval::of);
   }
 
   /**

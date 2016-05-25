@@ -86,14 +86,8 @@ public class ProgramCounterCPA extends AbstractCPA implements ConfigurableProgra
     }
 
     if (singleLoopHead != null) {
-      FluentIterable<BigInteger> potentialValues = FluentIterable.from(singleLoopHead.getProgramCounterValues()).transform(new Function<Integer, BigInteger>() {
-
-        @Override
-        public BigInteger apply(Integer pArg0) {
-          return BigInteger.valueOf(pArg0);
-        }
-
-      });
+      FluentIterable<BigInteger> potentialValues = FluentIterable.from(
+          singleLoopHead.getProgramCounterValues()).transform(BigInteger::valueOf);
 
       if (!potentialValues.isEmpty()) {
         return ProgramCounterState.getStateForValues(potentialValues);

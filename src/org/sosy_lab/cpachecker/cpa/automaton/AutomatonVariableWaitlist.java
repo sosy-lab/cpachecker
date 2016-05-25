@@ -51,12 +51,6 @@ public class AutomatonVariableWaitlist extends AbstractSortedWaitlist<Integer> {
   }
 
   public static WaitlistFactory factory(final WaitlistFactory pSecondaryStrategy, final String pVariableId) {
-    return new WaitlistFactory() {
-
-      @Override
-      public Waitlist createWaitlistInstance() {
-        return new AutomatonVariableWaitlist(pSecondaryStrategy, pVariableId);
-      }
-    };
+    return () -> new AutomatonVariableWaitlist(pSecondaryStrategy, pVariableId);
   }
 }

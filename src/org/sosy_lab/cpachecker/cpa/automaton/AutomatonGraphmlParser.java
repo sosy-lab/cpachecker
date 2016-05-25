@@ -191,14 +191,7 @@ public class AutomatonGraphmlParser {
     this.config = pConfig;
 
     binaryExpressionBuilder = new CBinaryExpressionBuilder(machine, logger);
-    fromStatement =
-        new Function<AStatement, ExpressionTree<AExpression>>() {
-
-          @Override
-          public ExpressionTree<AExpression> apply(AStatement pStatement) {
-            return LeafExpression.fromStatement(pStatement, binaryExpressionBuilder);
-          }
-        };
+    fromStatement = pStatement -> LeafExpression.fromStatement(pStatement, binaryExpressionBuilder);
   }
 
   /**
@@ -807,14 +800,7 @@ public class AutomatonGraphmlParser {
     statements = removeDuplicates(adjustCharAssignments(statements));
     // Check that no expressions were split
     if (!FluentIterable.from(statements)
-        .anyMatch(
-            new Predicate<CStatement>() {
-
-              @Override
-              public boolean apply(CStatement statement) {
-                return statement.toString().toUpperCase().contains("__CPACHECKER_TMP");
-              }
-            })) {
+        .anyMatch(statement -> statement.toString().toUpperCase().contains("__CPACHECKER_TMP"))) {
       return And.of(FluentIterable.from(statements).transform(fromStatement));
     }
 

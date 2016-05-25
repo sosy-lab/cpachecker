@@ -241,14 +241,8 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
     }
 
     // Normal function call case
-    if (CFAUtils.successorsOf(pState.getCallNode()).filter(FunctionEntryNode.class).anyMatch(new Predicate<FunctionEntryNode>() {
-
-              @Override
-              public boolean apply(FunctionEntryNode pArg0) {
-                return pArg0.getFunctionName().equals(pState.getCurrentFunction());
-              }
-
-            })) {
+    if (CFAUtils.successorsOf(pState.getCallNode()).filter(FunctionEntryNode.class).anyMatch(
+        pArg0 -> pArg0.getFunctionName().equals(pState.getCurrentFunction()))) {
       return false;
     }
 
