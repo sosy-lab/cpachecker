@@ -30,8 +30,9 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.collect.HashMultiset;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -58,7 +59,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
@@ -71,13 +71,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectingVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
@@ -85,7 +82,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -98,10 +94,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.VariableAndFieldRelevancyComputer.VarFieldDependencies;
 import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
 
 import java.io.IOException;
@@ -111,18 +106,15 @@ import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 @Options(prefix = "cfa.variableClassification")
@@ -166,24 +158,9 @@ public class VariableClassificationBuilder {
 
   private final Dependencies dependencies = new Dependencies();
 
-  /** These sets contain all variables even ones of array, pointer or structure types.
-   *  Such variables cannot be classified even as Int, so they are only kept in these sets in order
-   *  not to break the classification of Int variables.*/
-  // Initially contains variables used in assumes and assigned to pointer dereferences,
-  // then all essential variables (by propagation)
-  private final Set<String> relevantVariables = new HashSet<>();
-  private final Set<String> addressedVariables = new HashSet<>();
-
-  // Variables and fields used in the right hand side
-  private final Multimap<VariableOrField, VariableOrField> assignments = LinkedHashMultimap.create();
-
-  /** Fields information doesn't take any aliasing information into account,
-   *  fields are considered per type, not per composite instance */
-  // Initially contains fields used in assumes and assigned to pointer dereferences,
-  // then all essential fields (by propagation)
-  private final Multimap<CCompositeType, String> relevantFields = LinkedHashMultimap.create();
-
-  private final CollectingLHSVisitor collectingLHSVisitor = new CollectingLHSVisitor();
+  private Optional<Set<String>> relevantVariables = Optional.absent();
+  private Optional<Multimap<CCompositeType, String>> relevantFields = Optional.absent();
+  private Optional<Set<String>> addressedVariables = Optional.absent();
 
   private final LogManager logger;
 
@@ -238,8 +215,6 @@ public class VariableClassificationBuilder {
       }
     }
 
-    propagateRelevancy();
-
     // add last vars to dependencies,
     // this allows to get partitions for all vars,
     // otherwise only dependent vars are in the partitions
@@ -247,16 +222,16 @@ public class VariableClassificationBuilder {
       dependencies.addVar(var);
     }
 
-    boolean hasRelevantNonIntAddVars = !Sets.intersection(relevantVariables, nonIntAddVars).isEmpty();
+    boolean hasRelevantNonIntAddVars = !Sets.intersection(relevantVariables.get(), nonIntAddVars).isEmpty();
 
     VariableClassification result = new VariableClassification(
         hasRelevantNonIntAddVars,
         intBoolVars,
         intEqualVars,
         intAddVars,
-        relevantVariables,
-        addressedVariables,
-        relevantFields,
+        relevantVariables.get(),
+        addressedVariables.get(),
+        relevantFields.get(),
         dependencies.partitions,
         intBoolPartitions,
         intEqualPartitions,
@@ -376,7 +351,7 @@ public class VariableClassificationBuilder {
         "number of intEq vars:    " + numOfIntEquals,
         "number of intAdd vars:   " + numOfIntAdds,
         "number of all vars:      " + allVars.size(),
-        "number of addr. vars:    " + addressedVariables.size(),
+        "number of addr. vars:    " + addressedVariables.get().size(),
         "number of intBool partitions:  " + vc.getIntBoolPartitions().size(),
         "number of intEq partitions:    " + vc.getIntEqualPartitions().size(),
         "number of intAdd partitions:   " + vc.getIntAddPartitions().size(),
@@ -388,18 +363,25 @@ public class VariableClassificationBuilder {
   }
 
   private int countNumberOfRelevantVars(Set<String> ofVars) {
-    return Sets.intersection(ofVars, relevantVariables).size();
+    return Sets.intersection(ofVars, relevantVariables.get()).size();
   }
 
   /** This function iterates over all edges of the cfa, collects all variables
    * and orders them into different sets, i.e. nonBoolean and nonIntEuqalNumber. */
   private void collectVars(CFA cfa) throws UnrecognizedCCodeException {
     Collection<CFANode> nodes = cfa.getAllNodes();
+    VarFieldDependencies varFieldDependencies = VarFieldDependencies.emptyDependencies();
     for (CFANode node : nodes) {
       for (CFAEdge edge : leavingEdges(node)) {
         handleEdge(edge, cfa);
+        varFieldDependencies = varFieldDependencies.withDependencies(VariableAndFieldRelevancyComputer.handleEdge(edge));
       }
     }
+    addressedVariables = Optional.of(varFieldDependencies.computeAddressedVariables());
+    final Pair<ImmutableSet<String>, ImmutableMultimap<CCompositeType, String>> relevant =
+                                                              varFieldDependencies.computeRelevantVariablesAndFields();
+    relevantVariables = Optional.of(relevant.getFirst());
+    relevantFields = Optional.of(relevant.getSecond());
   }
 
   /**
@@ -445,58 +427,6 @@ public class VariableClassificationBuilder {
     return assignedVariables;
   }
 
-  private void propagateRelevancy() {
-    // Propagate relevant variables from assumes and assignments to pointer dereferences to
-    // other variables up to a fix-point (actually as the direction of dependency doesn't matter
-    // it's just a BFS)
-    Queue<VariableOrField> queue = new ArrayDeque<>(relevantVariables.size() + relevantFields.size());
-    for (final String relevantVariable : relevantVariables) {
-      queue.add(VariableOrField.newVariable(relevantVariable));
-    }
-    for (final Map.Entry<CCompositeType, String> relevantField : relevantFields.entries()) {
-      queue.add(VariableOrField.newField(relevantField.getKey(), relevantField.getValue()));
-    }
-    while (!queue.isEmpty()) {
-      final VariableOrField relevantVariableOrField = queue.poll();
-      for (VariableOrField variableOrField : assignments.get(relevantVariableOrField)) {
-        final VariableOrField.Variable variable = variableOrField.asVariable();
-        final VariableOrField.Field field = variableOrField.asField();
-        assert variable != null || field != null : "Sum type match failure: neither variable nor field!";
-        if (variable != null && !relevantVariables.contains(variable.getScopedName())) {
-          relevantVariables.add(variable.getScopedName());
-          queue.add(variable);
-        } else if (field != null && !relevantFields.containsEntry(field.getCompositeType(), field.getName())) {
-          relevantFields.put(field.getCompositeType(), field.getName());
-          queue.add(field);
-        }
-      }
-    }
-  }
-
-  private static CCompositeType getCanonicalFieldOwnerType(CFieldReference fieldReference) {
-    CType fieldOwnerType = fieldReference.getFieldOwner().getExpressionType().getCanonicalType();
-
-    if (fieldOwnerType instanceof CPointerType) {
-      fieldOwnerType = ((CPointerType) fieldOwnerType).getType();
-    }
-    assert fieldOwnerType instanceof CCompositeType
-        : "Field owner should have composite type, but the field-owner type of expression " + fieldReference
-          + " in " + fieldReference.getFileLocation()
-          + " is " + fieldOwnerType + ", which is a " + fieldOwnerType.getClass().getSimpleName() + ".";
-    final CCompositeType compositeType = (CCompositeType) fieldOwnerType;
-    // Currently we don't pay attention to possible const and volatile modifiers
-    if (compositeType.isConst() || compositeType.isVolatile()) {
-      return new CCompositeType(false,
-                                false,
-                                compositeType.getKind(),
-                                compositeType.getMembers(),
-                                compositeType.getName(),
-                                compositeType.getOrigName());
-    } else {
-      return compositeType;
-    }
-  }
-
   /** switch to edgeType and handle all expressions, that could be part of the edge. */
   private void handleEdge(CFAEdge edge, CFA cfa) throws UnrecognizedCCodeException {
     switch (edge.getEdgeType()) {
@@ -516,7 +446,6 @@ public class VariableClassificationBuilder {
       exp.accept(new IntEqualCollectingVisitor(pre));
       exp.accept(new IntAddCollectingVisitor(pre));
 
-      exp.accept(new CollectingRHSVisitor(null));
       break;
     }
 
@@ -536,9 +465,6 @@ public class VariableClassificationBuilder {
       } else if (statement instanceof CFunctionCallStatement) {
         handleExternalFunctionCall(edge, ((CFunctionCallStatement) statement).
             getFunctionCallExpression().getParameterExpressions());
-
-        ((CFunctionCallStatement) statement).getFunctionCallExpression()
-            .accept(new CollectingRHSVisitor(null));
       }
 
       break;
@@ -582,7 +508,7 @@ public class VariableClassificationBuilder {
 
   /** This function handles a declaration with an optional initializer.
    * Only simple types are handled. */
-  private void handleDeclarationEdge(final CDeclarationEdge edge) throws UnrecognizedCCodeException {
+  private void handleDeclarationEdge(final CDeclarationEdge edge) {
     CDeclaration declaration = edge.getDeclaration();
     if (!(declaration instanceof CVariableDeclaration)) { return; }
 
@@ -603,22 +529,13 @@ public class VariableClassificationBuilder {
     }
 
     final CInitializer initializer = vdecl.getInitializer();
-    List<CExpressionAssignmentStatement> l = CInitializers.convertToAssignments(vdecl, edge);
-
-    for (CExpressionAssignmentStatement init : l) {
-      final CLeftHandSide lhsExpression = init.getLeftHandSide();
-      final VariableOrField lhs = lhsExpression.accept(collectingLHSVisitor);
-
-      final CExpression rhs = init.getRightHandSide();
-      rhs.accept(new CollectingRHSVisitor(lhs));
-    }
 
     if ((initializer == null) || !(initializer instanceof CInitializerExpression)) { return; }
 
     CExpression exp = ((CInitializerExpression) initializer).getExpression();
     if (exp == null) { return; }
 
-    handleExpression(edge, exp, varName, VariableOrField.newVariable(varName));
+    handleExpression(edge, exp, varName);
   }
 
   /** This function handles normal assignments of vars. */
@@ -638,10 +555,8 @@ public class VariableClassificationBuilder {
 
     dependencies.addVar(varName);
 
-    final VariableOrField lhsVariableOrField = lhs.accept(collectingLHSVisitor);
-
     if (rhs instanceof CExpression) {
-      handleExpression(edge, ((CExpression) rhs), varName, lhsVariableOrField);
+      handleExpression(edge, ((CExpression) rhs), varName);
 
     } else if (rhs instanceof CFunctionCallExpression) {
       // use FUNCTION_RETURN_VARIABLE for RIGHT SIDE
@@ -663,8 +578,6 @@ public class VariableClassificationBuilder {
         Partition partition = dependencies.getPartitionForVar(varName);
         partition.addEdge(edge, -1); // negative value, because all positives are used for params
       }
-
-      rhs.accept(new CollectingRHSVisitor(lhsVariableOrField));
 
       handleExternalFunctionCall(edge, func.getParameterExpressions());
 
@@ -739,7 +652,7 @@ public class VariableClassificationBuilder {
 
       // build name for param and evaluate it
       // this variable is not global (->false)
-      handleExpression(edge, args.get(i), varName, i, VariableOrField.newVariable(varName));
+      handleExpression(edge, args.get(i), varName, i);
     }
 
     // create dependency for functionreturn
@@ -757,11 +670,6 @@ public class VariableClassificationBuilder {
         allVars.add(scopedRetVal);
         allVars.add(varName);
         dependencies.add(scopedRetVal, varName);
-
-        final VariableOrField lhsVariableOrField = lhs.accept(collectingLHSVisitor);
-
-        addVariableOrField(lhsVariableOrField, VariableOrField.newVariable(scopedRetVal));
-
       } else if (statement instanceof CFunctionCallStatement) {
         // f(); without assignment
         // next line is not necessary, but we do it for completeness, TODO correct?
@@ -773,9 +681,8 @@ public class VariableClassificationBuilder {
   /** evaluates an expression and adds containing vars to the sets. */
   private void handleExpression(CFAEdge edge,
                                 CExpression exp,
-                                String varName,
-                                final VariableOrField lhs) {
-    handleExpression(edge, exp, varName, 0, lhs);
+                                String varName) {
+    handleExpression(edge, exp, varName, 0);
   }
 
   /** evaluates an expression and adds containing vars to the sets.
@@ -784,8 +691,7 @@ public class VariableClassificationBuilder {
   private void handleExpression(CFAEdge edge,
                                 CExpression exp,
                                 String varName,
-                                int id,
-                                final VariableOrField lhs) {
+                                int id) {
     CFANode pre = edge.getPredecessor();
 
     VariablesCollectingVisitor dcv = new VariablesCollectingVisitor(pre);
@@ -809,8 +715,6 @@ public class VariableClassificationBuilder {
     IntAddCollectingVisitor icv = new IntAddCollectingVisitor(pre);
     Set<String> possibleIntAddVars = exp.accept(icv);
     handleResult(varName, possibleIntAddVars, nonIntAddVars);
-
-    exp.accept(new CollectingRHSVisitor(lhs));
   }
 
   /** adds the variable to notPossibleVars, if possibleVars is null.  */
@@ -1447,251 +1351,6 @@ public class VariableClassificationBuilder {
 
       nonIntAddVars.addAll(inner);
       return null;
-    }
-  }
-
-  private class CollectingLHSVisitor extends DefaultCExpressionVisitor<VariableOrField, RuntimeException> {
-
-    @Override
-    public VariableOrField visit(final CArraySubscriptExpression e) {
-      final VariableOrField result = e.getArrayExpression().accept(this);
-      e.getSubscriptExpression().accept(new CollectingRHSVisitor(result));
-      return result;
-    }
-
-    @Override
-    public VariableOrField visit(final CFieldReference e) {
-      final CCompositeType compositeType = getCanonicalFieldOwnerType(e);
-      final VariableOrField result = VariableOrField.newField(compositeType, e.getFieldName());
-      if (e.isPointerDereference()) {
-        e.getFieldOwner().accept(new CollectingRHSVisitor(result));
-      } else {
-        e.getFieldOwner().accept(this);
-      }
-      return result;
-    }
-
-    @Override
-    public VariableOrField visit(final CPointerExpression e) {
-      e.getOperand().accept(new CollectingRHSVisitor(null));
-      return null;
-    }
-
-    @Override
-    public VariableOrField visit(final CComplexCastExpression e) {
-      return e.getOperand().accept(this);
-    }
-
-    @Override
-    public VariableOrField visit(final CCastExpression e) {
-      return e.getOperand().accept(this);
-    }
-
-    @Override
-    public VariableOrField visit(final CIdExpression e) {
-      return VariableOrField.newVariable(e.getDeclaration().getQualifiedName());
-    }
-
-    @Override
-    protected VariableOrField visitDefault(final CExpression e)  {
-      throw new IllegalArgumentException("The expression should not occur in the left hand side");
-    }
-  }
-
-  private void addVariableOrField(final @Nullable VariableOrField lhs, final VariableOrField rhs) {
-    if (lhs != null) {
-      assignments.put(lhs, rhs);
-    } else {
-      final VariableOrField.Variable variable = rhs.asVariable();
-      final VariableOrField.Field field = rhs.asField();
-      if (variable != null) {
-        relevantVariables.add(variable.getScopedName());
-      } else {
-        relevantFields.put(field.getCompositeType(), field.getName());
-      }
-    }
-  }
-
-  private class CollectingRHSVisitor extends DefaultCExpressionVisitor<Void, RuntimeException>
-                                     implements CRightHandSideVisitor<Void, RuntimeException> {
-
-    private final @Nullable VariableOrField lhs;
-    private boolean addressed = false;
-
-    CollectingRHSVisitor(@Nullable VariableOrField pLhs) {
-      lhs = pLhs;
-    }
-
-    @Override
-    public Void visit(final CArraySubscriptExpression e) {
-      CollectingRHSVisitor arrayExprVisitor = new CollectingRHSVisitor(null);
-      arrayExprVisitor.addressed = true;
-      e.getArrayExpression().accept(arrayExprVisitor);
-      return e.getSubscriptExpression().accept(this);
-    }
-
-    @Override
-    public Void visit(final CFieldReference e) {
-      final CCompositeType compositeType = getCanonicalFieldOwnerType(e);
-      addVariableOrField(lhs, VariableOrField.newField(compositeType, e.getFieldName()));
-      return e.getFieldOwner().accept(this);
-    }
-
-    @Override
-    public Void visit(final CBinaryExpression e) {
-      e.getOperand1().accept(this);
-      return e.getOperand2().accept(this);
-    }
-
-    @Override
-    public Void visit(final CUnaryExpression e) {
-      if (e.getOperator() != UnaryOperator.AMPER) {
-        return e.getOperand().accept(this);
-      } else {
-        addressed = true;
-        e.getOperand().accept(this);
-        addressed = false;
-        return null;
-      }
-    }
-
-    @Override
-    public Void visit(final CPointerExpression e) {
-      return e.getOperand().accept(this);
-    }
-
-    @Override
-    public Void visit(final CComplexCastExpression e) {
-      return e.getOperand().accept(this);
-    }
-
-    @Override
-    public Void visit(final CCastExpression e) {
-      return e.getOperand().accept(this);
-    }
-
-    @Override
-    public Void visit(final CIdExpression e) {
-      final VariableOrField.Variable variable = VariableOrField.newVariable(e.getDeclaration().getQualifiedName());
-      addVariableOrField(lhs, variable);
-      if (addressed) {
-        addressedVariables.add(variable.getScopedName());
-      }
-      return null;
-    }
-
-    @Override
-    public Void visit(CFunctionCallExpression e) {
-      for (CExpression param : e.getParameterExpressions()) {
-        param.accept(this);
-      }
-      return null;
-    }
-
-    @Override
-    protected Void visitDefault(final CExpression e)  {
-      return null;
-    }
-  }
-
-  private static class VariableOrField {
-    private static class Variable extends VariableOrField {
-      private Variable(final @Nonnull String scopedName) {
-        this.scopedName = scopedName;
-      }
-
-      public @Nonnull String getScopedName() {
-        return scopedName;
-      }
-
-      @Override
-      public String toString() {
-        return getScopedName();
-      }
-
-      @Override
-      public boolean equals(final Object o) {
-        if (o == this) {
-          return true;
-        } else if (!(o instanceof Variable)) {
-          return false;
-        } else {
-          final Variable other = (Variable) o;
-          return this.scopedName.equals(other.scopedName);
-        }
-      }
-
-      @Override
-      public int hashCode() {
-        return scopedName.hashCode();
-      }
-
-      private final @Nonnull String scopedName;
-    }
-
-    private static class Field extends VariableOrField {
-      private Field(final CCompositeType composite, final String name) {
-        this.composite = composite;
-        this.name = name;
-      }
-
-      public CCompositeType getCompositeType() {
-        return composite;
-      }
-
-      public String getName() {
-        return name;
-      }
-
-      @Override
-      public String toString() {
-        return composite + SCOPE_SEPARATOR + name;
-      }
-
-      @Override
-      public boolean equals(final Object o) {
-        if (o == this) {
-          return true;
-        } else if (!(o instanceof Field)) {
-          return false;
-        } else {
-          final Field other = (Field) o;
-          return this.composite.equals(other.composite) && this.name.equals(other.name);
-        }
-      }
-
-      @Override
-      public int hashCode() {
-        final int prime = 67;
-        return prime * composite.hashCode() + name.hashCode();
-      }
-
-      private @Nonnull CCompositeType composite;
-      private @Nonnull String name;
-    }
-
-    public static Variable newVariable(final String scopedName) {
-      return new Variable(scopedName);
-    }
-
-    public static Field newField(final @Nonnull CCompositeType composite, final @Nonnull String name) {
-      return new Field(composite, name);
-    }
-
-    public @Nullable Variable asVariable() {
-      if (this instanceof Variable) {
-        return (Variable) this;
-      } else {
-        return null;
-      }
-    }
-
-    public @Nullable Field asField() {
-      if (this instanceof Field) {
-        return (Field) this;
-      } else {
-        return null;
-      }
     }
   }
 }
