@@ -136,7 +136,6 @@ public class ConfigurationFilesTest {
   public void instantiate_and_run() throws IOException {
     // exclude files not meant to be instantiated
     assume().that((Iterable<Path>) configFile).doesNotContain(Paths.get("includes"));
-    assume().that(configFile.toString()).doesNotContain("-bam-nested"); // TODO broken config
     assume()
         .that(configFile.getFileName().toString())
         .isNotEqualTo(
