@@ -24,15 +24,13 @@
 package org.sosy_lab.cpachecker.util;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
-import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -77,7 +75,6 @@ import java.util.Queue;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 /**
  *<p>
@@ -303,117 +300,121 @@ public final class VariableAndFieldRelevancyComputer {
     }
   }
 
-  private static final class ComparableCompositeType implements Comparable<ComparableCompositeType> {
-    private ComparableCompositeType(final @Nonnull CCompositeType type) {
-      this.type = type;
-    }
-
-    @Override
-    public int compareTo(final ComparableCompositeType other) {
-      if (other == this) {
-        return 0;
-      } else {
-        return type.getQualifiedName().compareTo(other.type.getQualifiedName());
-      }
-    }
-
-    public static ComparableCompositeType of(final CCompositeType type) {
-      return new ComparableCompositeType(type);
-    }
-
-    public CCompositeType compositeType() {
-      return type;
-    }
-
-    private final @Nonnull CCompositeType type;
-  }
-
   public static final class VarFieldDependencies {
-    private static <T> PersistentList<T> safeWithAll(final @Nullable PersistentList<T> l1,
-                                                     final @Nonnull PersistentList<T> l2) {
-      if (l1 == null) {
-        return l2;
+    @SuppressWarnings("unchecked") // Cloning here should work faster than adding all elements
+    private static @Nonnull <T> Set<T> copy(final @Nonnull Set<T> source) {
+      if (source instanceof HashSet) {
+        return (Set<T>)((HashSet<T>) source).clone();
       } else {
-        return l1.withAll(l2);
+        return new HashSet<>(source);
       }
     }
 
-    private VarFieldDependencies(@Nonnull PersistentSortedMap<String, Boolean> relevantVariables,
-       @Nonnull PersistentSortedMap<ComparableCompositeType, PersistentList<String>> relevantFields,
-       @Nonnull PersistentSortedMap<String, Boolean> addressedVariables,
-       @Nonnull PersistentSortedMap<VariableOrField, PersistentList<VariableOrField>> dependencies,
+    private static @Nonnull <T1, T2> Multimap<T1, T2> copy(final @Nonnull Multimap<T1, T2> source) {
+      return HashMultimap.create(source);
+    }
+
+    private VarFieldDependencies(@Nonnull Set<String> relevantVariables,
+       @Nonnull Multimap<CCompositeType, String> relevantFields,
+       @Nonnull Set<String> addressedVariables,
+       @Nonnull Multimap<VariableOrField, VariableOrField> dependencies,
        @Nonnull PersistentList<VarFieldDependencies> pendingMerges,
-       final int size,
+       int currentSize,
+       int pendingSize,
        final boolean forceSquash) {
-         if (forceSquash || pendingMerges.size() > MAX_PENDING_MERGES) {
-           for (VarFieldDependencies deps : pendingMerges) {
-             for (final Map.Entry<String, Boolean> e : deps.relevantVariables.entrySet()) {
-               relevantVariables = relevantVariables.putAndCopy(e.getKey(), e.getValue());
-             }
-             for (final Map.Entry<ComparableCompositeType, PersistentList<String>> e : deps.relevantFields.entrySet()) {
-               relevantFields = relevantFields.putAndCopy(e.getKey(), safeWithAll(relevantFields.get(e.getKey()),
-                                                                                  e.getValue()));
-             }
-             for (final Map.Entry<String, Boolean> e : deps.addressedVariables.entrySet()) {
-               addressedVariables = addressedVariables.putAndCopy(e.getKey(), e.getValue());
-             }
-             for (final Map.Entry<VariableOrField, PersistentList<VariableOrField>> e : deps.dependencies.entrySet()) {
-               dependencies = dependencies.putAndCopy(e.getKey(), safeWithAll(dependencies.get(e.getKey()),
-                                                                              e.getValue()));
+         if (currentSize > 0 && pendingSize > currentSize ||
+             currentSize == 0 && pendingSize >= INITIAL_SIZE ||
+             forceSquash) {
+           relevantVariables = copy(relevantVariables);
+           relevantFields = copy(relevantFields);
+           addressedVariables = copy(addressedVariables);
+           dependencies = copy(dependencies);
+           Queue<PersistentList<VarFieldDependencies>> queue = new ArrayDeque<>();
+           queue.add(pendingMerges);
+           while (!queue.isEmpty()){
+             for (VarFieldDependencies deps : queue.poll()) {
+               for (final String e : deps.relevantVariables) {
+                 relevantVariables.add(e);
+               }
+               for (final Map.Entry<CCompositeType, String> e : deps.relevantFields.entries()) {
+                 relevantFields.put(e.getKey(), e.getValue());
+               }
+               for (final String e : deps.addressedVariables) {
+                 addressedVariables.add(e);
+               }
+               for (final Map.Entry<VariableOrField, VariableOrField> e : deps.dependencies.entries()) {
+                 dependencies.put(e.getKey(), e.getValue());
+               }
+               if (!deps.pendingMerges.isEmpty()) {
+                 queue.add(deps.pendingMerges);
+               }
              }
            }
            pendingMerges = PersistentLinkedList.of();
+           currentSize = currentSize + pendingSize;
+           pendingSize = 0;
          }
          this.relevantVariables = relevantVariables;
          this.relevantFields = relevantFields;
          this.addressedVariables = addressedVariables;
          this.dependencies = dependencies;
          this.pendingMerges = pendingMerges;
-         this.size = size;
+         this.currentSize = currentSize;
+         this.pendingSize = pendingSize;
      }
 
-    private VarFieldDependencies(final @Nonnull PersistentSortedMap<String, Boolean> relevantVariables,
-        final @Nonnull PersistentSortedMap<ComparableCompositeType, PersistentList<String>> relevantFields,
-        final @Nonnull PersistentSortedMap<String, Boolean> addressedVariables,
-        final @Nonnull PersistentSortedMap<VariableOrField, PersistentList<VariableOrField>> dependencies,
+    private VarFieldDependencies(final @Nonnull Set<String> relevantVariables,
+        final @Nonnull Multimap<CCompositeType, String> relevantFields,
+        final @Nonnull Set<String> addressedVariables,
+        final @Nonnull Multimap<VariableOrField, VariableOrField> dependencies,
         final @Nonnull PersistentList<VarFieldDependencies> pendingMerges,
-        final int size) {
-        this(relevantVariables, relevantFields, addressedVariables, dependencies, pendingMerges, size, false);
+        final int currentSize,
+        final int pendingSize) {
+        this(relevantVariables, relevantFields, addressedVariables, dependencies, pendingMerges,
+             currentSize, pendingSize, false);
     }
 
      public static @Nonnull VarFieldDependencies emptyDependencies() {
        return EMPTY_DEPENDENCIES;
      }
 
-     private static <T> PersistentList<T> safeWith(final @Nullable PersistentList<T> l, T e) {
-       if (l == null) {
-         return PersistentLinkedList.of(e);
-       } else {
-         return l.with(e);
-       }
-     }
-
      public @Nonnull VarFieldDependencies withDependency(final @Nonnull VariableOrField lhs,
                                                          final @Nonnull VariableOrField rhs) {
        if (!lhs.isUnknown()) {
-         return new VarFieldDependencies(relevantVariables, relevantFields, addressedVariables,
-                                         dependencies.putAndCopy(lhs, safeWith(dependencies.get(lhs), rhs)),
-                                         pendingMerges,
-                                         size + 1);
+         final VarFieldDependencies singleDependency =
+             new VarFieldDependencies(ImmutableSet.of(),
+                                      ImmutableMultimap.of(),
+                                      ImmutableSet.of(),
+                                      ImmutableMultimap.of(lhs, rhs),
+                                      PersistentLinkedList.of(),
+                                      1, 0);
+         return new VarFieldDependencies(relevantVariables, relevantFields, addressedVariables, dependencies,
+                                         pendingMerges.with(singleDependency),
+                                         currentSize, pendingSize + 1);
        } else {
          if (rhs.isVariable()) {
-           return new VarFieldDependencies(relevantVariables.putAndCopy(rhs.asVariable().getScopedName(),
-                                                                        DUMMY_PRESENT),
-                                           relevantFields, addressedVariables, dependencies, pendingMerges,
-                                           size + 1);
+           final VarFieldDependencies singleDependency =
+               new VarFieldDependencies(ImmutableSet.of(rhs.asVariable().getScopedName()),
+                                        ImmutableMultimap.of(),
+                                        ImmutableSet.of(),
+                                        ImmutableMultimap.of(),
+                                        PersistentLinkedList.of(),
+                                        1, 0);
+           return new VarFieldDependencies(relevantVariables,relevantFields, addressedVariables, dependencies,
+                                           pendingMerges.with(singleDependency),
+                                           currentSize, pendingSize + 1);
          } else if (rhs.isField()) {
            final VariableOrField.Field field = rhs.asField();
-           final ComparableCompositeType key = ComparableCompositeType.of(field.getCompositeType());
-           return new VarFieldDependencies(relevantVariables,
-                                           relevantFields.putAndCopy(key, safeWith(relevantFields.get(key),
-                                                                                   field.getName())),
-                                           addressedVariables, dependencies, pendingMerges,
-                                           size + 1);
+           final VarFieldDependencies singleDependency =
+               new VarFieldDependencies(ImmutableSet.of(),
+                                        ImmutableMultimap.of(field.getCompositeType(), field.getName()),
+                                        ImmutableSet.of(),
+                                        ImmutableMultimap.of(),
+                                        PersistentLinkedList.of(),
+                                        1, 0);
+           return new VarFieldDependencies(relevantVariables, relevantFields, addressedVariables, dependencies,
+                                           pendingMerges.with(singleDependency),
+                                           currentSize, pendingSize + 1);
          } else if (rhs.isUnknown()) {
            throw new IllegalArgumentException("Can't handle dependency on Unknown");
          } else {
@@ -423,28 +424,37 @@ public final class VariableAndFieldRelevancyComputer {
      }
 
      public @Nonnull VarFieldDependencies withAddressedVariable(final @Nonnull VariableOrField.Variable variable) {
-       return new VarFieldDependencies(relevantVariables, relevantFields,
-                                       addressedVariables.putAndCopy(variable.getScopedName(), DUMMY_PRESENT),
-                                       dependencies, pendingMerges,
-                                       size + 1);
+       final VarFieldDependencies singleDependency =
+           new VarFieldDependencies(ImmutableSet.of(),
+                                    ImmutableMultimap.of(),
+                                    ImmutableSet.of(variable.getScopedName()),
+                                    ImmutableMultimap.of(),
+                                    PersistentLinkedList.of(),
+                                    1, 0);
+       return new VarFieldDependencies(relevantVariables, relevantFields, addressedVariables, dependencies,
+                                       pendingMerges.with(singleDependency),
+                                       currentSize, pendingSize + 1);
      }
 
      public @Nonnull VarFieldDependencies withDependencies(final @Nonnull VarFieldDependencies other) {
-       if (size == 0) {
+       if (currentSize + pendingSize == 0) {
          return other;
        }
-       if (other.size == 0) {
+       if (other.currentSize + other.pendingSize == 0) {
          return this;
        }
-       if (size >= other.size) {
+       // This shouldn't matter much as merging has linear complexity anyway
+       // But probably we can get slightly faster by cloning the larger hash sets and iterating over smaller ones
+       // As we don't have exact hash set sizes this is only a heuristic
+       if (currentSize >= other.currentSize) {
          return new VarFieldDependencies(relevantVariables, relevantFields, addressedVariables, dependencies,
-                                         pendingMerges.withAll(other.pendingMerges).with(other),
-                                         size + other.size);
+                                         pendingMerges.with(other),
+                                         currentSize, pendingSize + other.currentSize + other.pendingSize);
        } else {
          return new VarFieldDependencies(other.relevantVariables, other.relevantFields, other.addressedVariables,
                                          other.dependencies,
-                                         other.pendingMerges.withAll(pendingMerges).with(this),
-                                         size + other.size);
+                                         other.pendingMerges.with(this),
+                                         other.currentSize, other.pendingSize + currentSize + pendingSize);
        }
      }
 
@@ -452,49 +462,40 @@ public final class VariableAndFieldRelevancyComputer {
        if (squashed == null) {
          squashed = new VarFieldDependencies(relevantVariables,
                                              relevantFields, addressedVariables, dependencies, pendingMerges,
-                                             size, true);
+                                             currentSize, pendingSize, true);
        }
      }
 
      public ImmutableSet<String> computeAddressedVariables() {
        ensureSquashed();
-       return ImmutableSet.copyOf(squashed.addressedVariables.keySet());
+       return ImmutableSet.copyOf(squashed.addressedVariables);
      }
 
      public Pair<ImmutableSet<String>, ImmutableMultimap<CCompositeType, String>> computeRelevantVariablesAndFields() {
        ensureSquashed();
        Queue<VariableOrField> queue = new ArrayDeque<>(squashed.relevantVariables.size() +
                                                        squashed.relevantFields.size());
-       Set<String> currentRelevantVariables = new HashSet<>();
-       Multimap<CCompositeType, String> currentRelevantFields = LinkedHashMultimap.create();
-       for (final String relevantVariable : squashed.relevantVariables.keySet()) {
+       Set<String> currentRelevantVariables = copy(squashed.relevantVariables);
+       Multimap<CCompositeType, String> currentRelevantFields = copy(squashed.relevantFields);
+       for (final String relevantVariable : squashed.relevantVariables) {
          queue.add(VariableOrField.newVariable(relevantVariable));
-         currentRelevantVariables.add(relevantVariable);
        }
-       for (final Map.Entry<ComparableCompositeType, PersistentList<String>> relevantField :
-            squashed.relevantFields.entrySet()) {
-         for (final String s : relevantField.getValue()) {
-           queue.add(VariableOrField.newField(relevantField.getKey().compositeType(), s));
-           currentRelevantFields.put(relevantField.getKey().compositeType(), s);
-         }
+       for (final Map.Entry<CCompositeType, String> relevantField : squashed.relevantFields.entries()) {
+         queue.add(VariableOrField.newField(relevantField.getKey(), relevantField.getValue()));
        }
        while (!queue.isEmpty()) {
-         final VariableOrField relevantVariableOrField = queue.poll();
-         final PersistentList<VariableOrField> variableOrFieldList = squashed.dependencies.get(relevantVariableOrField);
-         if (variableOrFieldList != null) {
-           for (VariableOrField variableOrField : variableOrFieldList) {
-             assert variableOrField.isVariable() || variableOrField.isField() :
-               "Match failure: neither variable nor field!";
-             if (variableOrField.isVariable()) {
-               final VariableOrField.Variable variable = variableOrField.asVariable();
-               if (currentRelevantVariables.add(variable.getScopedName())) {
-                 queue.add(variable);
-               }
-             } else { // Field
-               final VariableOrField.Field field = variableOrField.asField();
-               if (currentRelevantFields.put(field.getCompositeType(), field.getName())) {
-                 queue.add(field);
-               }
+         for (VariableOrField variableOrField : squashed.dependencies.get(queue.poll())) {
+           assert variableOrField.isVariable() || variableOrField.isField() :
+             "Match failure: neither variable nor field!";
+           if (variableOrField.isVariable()) {
+             final VariableOrField.Variable variable = variableOrField.asVariable();
+             if (currentRelevantVariables.add(variable.getScopedName())) {
+               queue.add(variable);
+             }
+           } else { // Field
+             final VariableOrField.Field field = variableOrField.asField();
+             if (currentRelevantFields.put(field.getCompositeType(), field.getName())) {
+               queue.add(field);
              }
            }
          }
@@ -503,23 +504,22 @@ public final class VariableAndFieldRelevancyComputer {
        return Pair.of(ImmutableSet.copyOf(currentRelevantVariables), ImmutableMultimap.copyOf(currentRelevantFields));
      }
 
-     private final PersistentSortedMap<String, Boolean> relevantVariables;
-     private final PersistentSortedMap<ComparableCompositeType, PersistentList<String>> relevantFields;
-     private final PersistentSortedMap<String, Boolean> addressedVariables;
-     private final PersistentSortedMap<VariableOrField, PersistentList<VariableOrField>> dependencies;
+     private final Set<String> relevantVariables;
+     private final Multimap<CCompositeType, String> relevantFields;
+     private final Set<String> addressedVariables;
+     private final Multimap<VariableOrField, VariableOrField> dependencies;
      private final PersistentList<VarFieldDependencies> pendingMerges;
-     private final int size;
+     private final int currentSize, pendingSize;
      private VarFieldDependencies squashed = null;
 
-     private static final Boolean DUMMY_PRESENT = true;
-     private static final int MAX_PENDING_MERGES = 100;
+     private static final int INITIAL_SIZE = 500;
      private static final VarFieldDependencies EMPTY_DEPENDENCIES =
-         new VarFieldDependencies(PathCopyingPersistentTreeMap.<String, Boolean>of(),
-                                  PathCopyingPersistentTreeMap.<ComparableCompositeType, PersistentList<String>>of(),
-                                  PathCopyingPersistentTreeMap.<String, Boolean>of(),
-                                  PathCopyingPersistentTreeMap.<VariableOrField, PersistentList<VariableOrField>>of(),
-                                  PersistentLinkedList.<VarFieldDependencies>of(),
-                                  0);
+         new VarFieldDependencies(ImmutableSet.of(),
+                                  ImmutableMultimap.of(),
+                                  ImmutableSet.of(),
+                                  ImmutableMultimap.of(),
+                                  PersistentLinkedList.of(),
+                                  0, 0);
   }
 
   private static final class CollectingLHSVisitor
