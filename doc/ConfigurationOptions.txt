@@ -1958,6 +1958,17 @@ cpa.smg.memoryArrayAllocationFunctionsNumParameter = 0
 # Determines if memory errors are target states
 cpa.smg.memoryErrors = true
 
+# when to export the interpolation tree
+# NEVER:   never export the interpolation tree
+# FINAL:   export the interpolation tree once after each refinement
+# ALWAYS:  export the interpolation tree once after each interpolation, i.e.
+# multiple times per refinement
+cpa.smg.refinement.exportInterpolationTree = "NEVER"
+  allowed values: [NEVER, FINAL, ALWAYS]
+
+# export interpolation trees to this file template
+cpa.smg.refinement.interpolationTreeExportFile = "interpolationTree.%d-%d.dot"
+
 # Sets the level of runtime checking: NONE, HALF, FULL
 cpa.smg.runtimeCheck = NONE
   enum:     [FORCED, NONE, HALF, FULL]

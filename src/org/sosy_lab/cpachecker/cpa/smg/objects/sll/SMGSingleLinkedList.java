@@ -33,25 +33,22 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectVisitor;
 public final class SMGSingleLinkedList extends SMGObject implements SMGAbstractObject {
 
   private final int minimumLength;
-  private final int hfo;
-  private final int nfo;
+  private final SMGSingleLinkedListShape shape;
   private final int id = SMGValueFactory.getNewValue();
 
   public SMGSingleLinkedList(int pSize, int pHfo, int pNfo,
       int pMinLength, int level) {
-    super(pSize, "dls", level, SMGObjectKind.SLL);
+    super(pSize, "sll", level, SMGObjectKind.SLL);
 
-    hfo = pHfo;
-    nfo = pNfo;
     minimumLength = pMinLength;
+    shape = new SMGSingleLinkedListShape(pHfo, pNfo);
   }
 
   public SMGSingleLinkedList(SMGSingleLinkedList other) {
     super(other.getSize(), other.getLabel(), other.getLevel(), SMGObjectKind.SLL);
 
-    hfo = other.hfo;
-    nfo = other.nfo;
     minimumLength = other.minimumLength;
+    shape = other.shape;
   }
 
   public int getMinimumLength() {
@@ -64,16 +61,20 @@ public final class SMGSingleLinkedList extends SMGObject implements SMGAbstractO
   }
 
   public int getNfo() {
-    return nfo;
+    return shape.getNfo();
   }
 
   public int getHfo() {
-    return hfo;
+    return shape.getHfo();
+  }
+
+  public SMGSingleLinkedListShape getShape() {
+    return shape;
   }
 
   @Override
   public String toString() {
-    return "SLL(id=" + id + " size=" + getSize() + ", hfo=" + hfo + ", nfo=" + nfo
+    return "SLL(id=" + id + " size=" + getSize() + ", hfo=" + shape.getHfo() + ", nfo=" + shape.getNfo()
         + ", len=" + minimumLength + ", level=" + getLevel() + ")";
   }
 
@@ -93,7 +94,9 @@ public final class SMGSingleLinkedList extends SMGObject implements SMGAbstractO
       return false;
     }
 
-    return nfo == ((SMGSingleLinkedList) pOther).nfo && hfo == ((SMGSingleLinkedList) pOther).hfo;
+    SMGSingleLinkedList sllOther = (SMGSingleLinkedList) pOther;
+
+    return shape.equals(sllOther.shape);
   }
 
   @Override

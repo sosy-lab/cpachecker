@@ -639,4 +639,12 @@ public class SMG {
       return external;
     }
   }
+
+  protected void clearValuesHvePte() {
+    values.clear();
+    hv_edges.clear();
+    pt_edges.clear();
+    neq.clear();
+    symbolicRelations.clear();
+  }
 }

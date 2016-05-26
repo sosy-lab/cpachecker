@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2016  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,12 +25,9 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 
-public interface SMGAbstractionCandidate {
+public interface SMGAbstractionBlock {
 
-  public CLangSMG execute(CLangSMG pSMG, SMGState pSmgState) throws SMGInconsistentException;
-
-  public int getScore();
-
-  public SMGAbstractionBlock createAbstractionBlock(SMGState pSmgState);
+  public boolean isBlocked(SMGAbstractionCandidate candidate, CLangSMG smg)
+      throws SMGInconsistentException;
 
 }

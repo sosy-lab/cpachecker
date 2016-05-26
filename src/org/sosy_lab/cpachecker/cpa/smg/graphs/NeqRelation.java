@@ -23,13 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.SetMultimap;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 
 final class NeqRelation {
 
@@ -98,5 +98,9 @@ final class NeqRelation {
   @Override
   public String toString() {
     return "neq_rel=" + smgValues.toString();
+  }
+
+  public void clear() {
+    smgValues.clear();
   }
 }

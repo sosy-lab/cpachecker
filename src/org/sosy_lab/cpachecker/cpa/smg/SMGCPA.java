@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import java.util.logging.Level;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -42,7 +40,6 @@ import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopNeverOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -55,6 +52,9 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
+
+import java.util.logging.Level;
 
 @Options(prefix="cpa.smg")
 public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramAnalysisWithConcreteCex {
@@ -101,7 +101,7 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
 
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 
-  private VariableTrackingPrecision precision;
+  private SMGPrecision precision;
 
   private SMGCPA(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa) throws InvalidConfigurationException {
     config = pConfig;
@@ -123,14 +123,14 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
       stopOperator = new StopSepOperator(abstractDomain);
     }
 
-    precision = initializePrecision(config, pCfa);
+    precision = initializePrecision();
 
-    transferRelation = new SMGTransferRelation(config, logger, machineModel, enableHeapAbstraction);
+    transferRelation = new SMGTransferRelation(config, logger, machineModel);
   }
 
-  public void injectRefinablePrecision() throws InvalidConfigurationException {
+  public void injectRefinablePrecision() {
     // replace the full precision with an empty, refinable precision
-    precision = VariableTrackingPrecision.createRefineablePrecision(config, precision);
+    precision = SMGPrecision.createRefineablePrecision(precision);
   }
 
   public MachineModel getMachineModel() {
@@ -195,9 +195,8 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
     return precision;
   }
 
-  private VariableTrackingPrecision initializePrecision(Configuration config, CFA cfa)
-      throws InvalidConfigurationException {
-    return VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), getClass());
+  private SMGPrecision initializePrecision() {
+    return SMGPrecision.createStaticPrecision(enableHeapAbstraction, logger);
   }
 
   @Override
@@ -218,8 +217,15 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
     return cfa;
   }
 
+  public SMGPrecision getPrecision() {
+    return precision;
+  }
+
   public ShutdownNotifier getShutdownNotifier() {
     return shutdownNotifier;
   }
 
+  public boolean isHeapAbstractionEnabled() {
+    return enableHeapAbstraction;
+  }
 }

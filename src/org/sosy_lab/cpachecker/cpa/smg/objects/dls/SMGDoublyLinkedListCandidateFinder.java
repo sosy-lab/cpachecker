@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg.objects.dls;
 
 import com.google.common.collect.Iterables;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionFinder;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
@@ -120,6 +121,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
     for (SMGEdgeHasValue hveNext : hvesOfObject) {
 
       int nfo = hveNext.getOffset();
+      CType nfoType = hveNext.getType();
       int nextPointer = hveNext.getValue();
 
       if (!smg.isPointer(nextPointer)) {
@@ -162,6 +164,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
       for (SMGEdgeHasValue hvePrev : nextObjectHves) {
 
         int pfo = hvePrev.getOffset();
+        CType pfoType = hvePrev.getType();
         int prevPointer = hvePrev.getValue();
 
         if(!(nfo < pfo)) {
@@ -203,7 +206,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
         }
 
         SMGDoublyLinkedListCandidate candidate =
-            new SMGDoublyLinkedListCandidate(pObject, hfo, pfo, nfo);
+            new SMGDoublyLinkedListCandidate(pObject, hfo, pfo, nfo, pfoType, nfoType, smg.getMachineModel());
         candidates.get(pObject).put(Pair.of(nfo, pfo), candidate);
         candidateLength.put(candidate, 1);
         candidateSeqJoinGood.put(candidate, SMGJoinStatus.EQUAL);
@@ -257,11 +260,14 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
         return;
       }
 
-      if (!smg.isPointer(Iterables.getOnlyElement(nextObjectNextField).getValue())) {
+      SMGEdgeHasValue nfoField = Iterables.getOnlyElement(nextObjectNextField);
+      SMGEdgeHasValue pfoField = Iterables.getOnlyElement(smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(pfo)));
+
+      if (!smg.isPointer(nfoField.getValue())) {
         return;
       }
 
-      candidate = new SMGDoublyLinkedListCandidate(nextObject, hfo, pfo, nfo);
+      candidate = new SMGDoublyLinkedListCandidate(nextObject, hfo, pfo, nfo, pfoField.getType(), nfoField.getType(), smg.getMachineModel());
       candidateLength.put(candidate, 1);
       candidateSeqJoinGood.put(candidate, SMGJoinStatus.EQUAL);
     } else {
