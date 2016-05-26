@@ -295,6 +295,16 @@ public final class VariableAndFieldRelevancyComputer {
     }
 
     @Override
+    public boolean equals(final Object other) {
+      throw new AssertionError("Should not happen: equality should always be checked on an object of a subclass");
+    }
+
+    @Override
+    public int hashCode() {
+      throw new AssertionError("Should not happen: hash code should always be computed on an object of a subclass");
+    }
+
+    @Override
     public int compareTo(final VariableOrField other) {
       throw new AssertionError("Should not happen: comparison should always be called on an object of a subclass");
     }
@@ -393,7 +403,7 @@ public final class VariableAndFieldRelevancyComputer {
                                          currentSize, pendingSize + 1);
        } else {
          if (rhs.isVariable()) {
-           final VarFieldDependencies singleDependency =
+           final VarFieldDependencies singleVariable =
                new VarFieldDependencies(ImmutableSet.of(rhs.asVariable().getScopedName()),
                                         ImmutableMultimap.of(),
                                         ImmutableSet.of(),
@@ -401,11 +411,11 @@ public final class VariableAndFieldRelevancyComputer {
                                         PersistentLinkedList.of(),
                                         1, 0);
            return new VarFieldDependencies(relevantVariables,relevantFields, addressedVariables, dependencies,
-                                           pendingMerges.with(singleDependency),
+                                           pendingMerges.with(singleVariable),
                                            currentSize, pendingSize + 1);
          } else if (rhs.isField()) {
            final VariableOrField.Field field = rhs.asField();
-           final VarFieldDependencies singleDependency =
+           final VarFieldDependencies singleField =
                new VarFieldDependencies(ImmutableSet.of(),
                                         ImmutableMultimap.of(field.getCompositeType(), field.getName()),
                                         ImmutableSet.of(),
@@ -413,7 +423,7 @@ public final class VariableAndFieldRelevancyComputer {
                                         PersistentLinkedList.of(),
                                         1, 0);
            return new VarFieldDependencies(relevantVariables, relevantFields, addressedVariables, dependencies,
-                                           pendingMerges.with(singleDependency),
+                                           pendingMerges.with(singleField),
                                            currentSize, pendingSize + 1);
          } else if (rhs.isUnknown()) {
            throw new IllegalArgumentException("Can't handle dependency on Unknown");
@@ -424,7 +434,7 @@ public final class VariableAndFieldRelevancyComputer {
      }
 
      public @Nonnull VarFieldDependencies withAddressedVariable(final @Nonnull VariableOrField.Variable variable) {
-       final VarFieldDependencies singleDependency =
+       final VarFieldDependencies singleVariable =
            new VarFieldDependencies(ImmutableSet.of(),
                                     ImmutableMultimap.of(),
                                     ImmutableSet.of(variable.getScopedName()),
@@ -432,7 +442,7 @@ public final class VariableAndFieldRelevancyComputer {
                                     PersistentLinkedList.of(),
                                     1, 0);
        return new VarFieldDependencies(relevantVariables, relevantFields, addressedVariables, dependencies,
-                                       pendingMerges.with(singleDependency),
+                                       pendingMerges.with(singleVariable),
                                        currentSize, pendingSize + 1);
      }
 
