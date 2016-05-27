@@ -240,7 +240,7 @@ class PredicateCPAStatistics extends AbstractStatistics {
     if (precisionStatistics) {
       MutablePredicateSets predicates = new MutablePredicateSets();
       {
-        Set<Precision> seenPrecisions = Collections.newSetFromMap(new IdentityHashMap<Precision, Boolean>());
+        Set<Precision> seenPrecisions = Collections.newSetFromMap(new IdentityHashMap<>());
 
         for (Precision precision : reached.getPrecisions()) {
           PredicatePrecision preds =

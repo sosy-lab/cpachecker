@@ -115,7 +115,7 @@ public class CompoundIntervalFormulaManager {
   }
 
   public boolean definitelyImplies(Iterable<BooleanFormula<CompoundInterval>> pFormulas, BooleanFormula<CompoundInterval> pFormula) {
-    return definitelyImplies(pFormulas, pFormula, new HashMap<MemoryLocation, NumeralFormula<CompoundInterval>>());
+    return definitelyImplies(pFormulas, pFormula, new HashMap<>());
   }
 
   public boolean definitelyImplies(Iterable<BooleanFormula<CompoundInterval>> pFormulas, BooleanFormula<CompoundInterval> pFormula, Map<MemoryLocation, NumeralFormula<CompoundInterval>> pBaseEnvironment) {
@@ -363,7 +363,7 @@ public class CompoundIntervalFormulaManager {
 
     Collection<BooleanFormula<CompoundInterval>> leftFormulas = pFormula1.accept(SPLIT_CONJUNCTIONS_VISITOR);
 
-    return definitelyImplies(leftFormulas, pFormula2, false, new HashMap<MemoryLocation, NumeralFormula<CompoundInterval>>(), false);
+    return definitelyImplies(leftFormulas, pFormula2, false, new HashMap<>(), false);
   }
 
   /**

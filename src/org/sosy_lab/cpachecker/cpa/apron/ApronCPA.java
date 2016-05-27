@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.apron;
 
-import apron.ApronException;
-
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -61,6 +59,7 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.ApronManager;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import java.io.IOException;
@@ -78,6 +77,8 @@ import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 
+import apron.ApronException;
+
 @Options(prefix="cpa.apron")
 public final class ApronCPA implements ConfigurableProgramAnalysis, ProofChecker, StatisticsProvider {
 
@@ -92,6 +93,10 @@ public final class ApronCPA implements ConfigurableProgramAnalysis, ProofChecker
   @Option(secure=true, name="splitDisequalities",
       description="split disequalities considering integer operands into two states or use disequality provided by apron library ")
   private boolean splitDisequalities = true;
+
+  @Option(secure=true, name="domain", toUppercase=true,
+      description="Use this to change the underlying abstract domain in the APRON library")
+  private ApronManager.AbstractDomain domainType = ApronManager.AbstractDomain.OCTAGON;
 
   @Option(secure=true, description="get an initial precision from file")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
@@ -123,7 +128,7 @@ public final class ApronCPA implements ConfigurableProgramAnalysis, ProofChecker
     logger = log;
     ApronDomain apronDomain = new ApronDomain(logger);
 
-    apronManager = new ApronManager(config);
+    apronManager = new ApronManager(domainType);
 
     this.transferRelation = new ApronTransferRelation(logger, cfa.getLoopStructure().get(), splitDisequalities);
 

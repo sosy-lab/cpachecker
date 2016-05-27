@@ -23,12 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import java.io.PrintStream;
-import java.util.Collection;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
 
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -39,15 +37,18 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision.SMGRefineablePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
+import java.io.PrintStream;
+import java.util.Collection;
+import java.util.Set;
 
 
 public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsProvider {
@@ -85,34 +86,37 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
       UnmodifiableReachedSet pStates, Function<AbstractState, AbstractState> pStateProjection, AbstractState pFullState)
           throws CPAException, InterruptedException {
 
-    return prec((SMGState) pState, (VariableTrackingPrecision) pPrecision,
+    return prec((SMGState) pState, (SMGPrecision) pPrecision,
         AbstractStates.extractStateByType(pFullState, LocationState.class));
   }
 
-  private Optional<PrecisionAdjustmentResult> prec(SMGState pState, VariableTrackingPrecision pPrecision,
+  private Optional<PrecisionAdjustmentResult> prec(SMGState pState, SMGPrecision pPrecision,
       LocationState location) throws CPAException {
 
-    if(!pPrecision.allowsAbstraction()) {
+    if (!pPrecision.allowsAbstraction()) {
       return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, Action.CONTINUE));
     }
 
     totalAbstraction.start();
-    SMGState resultState = new SMGState(pState);
 
-    for (MemoryLocation memoryLocation : pState.getTrackedMemoryLocations()) {
+    SMGState result = pState;
+    boolean change = false;
 
-      CType typeOfValueAtMemloc = pState.getTypeForMemoryLocation(memoryLocation);
+    if (pPrecision instanceof SMGRefineablePrecision) {
+      result = new SMGState(pState);
 
-      if (!pPrecision.isTracking(memoryLocation, typeOfValueAtMemloc,
-          location.getLocationNode())) {
-        resultState.forget(memoryLocation);
+      Set<SMGMemoryPath> mempaths =
+          ((SMGRefineablePrecision) pPrecision).getTrackedMemPaths(location.getLocationNode());
+      change = result.forgetNonTrackedHve(mempaths);
+
+      if (!change) {
+        result = pState;
       }
     }
 
-    resultState.pruneUnreachable();
     totalAbstraction.stop();
     abstractions.inc();
-    return Optional.of(PrecisionAdjustmentResult.create(resultState, pPrecision, Action.CONTINUE));
+    return Optional.of(PrecisionAdjustmentResult.create(result, pPrecision, Action.CONTINUE));
   }
 
   @Override

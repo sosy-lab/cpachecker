@@ -127,11 +127,8 @@ public class ARGUtils {
 
     Set<ARGState> result = new HashSet<>();
 
-    Iterator<AbstractState> it = pReached.iterator();
-    while (it.hasNext()) {
-      AbstractState e = it.next();
+    for (AbstractState e : pReached) {
       ARGState state = AbstractStates.extractStateByType(e, ARGState.class);
-
       if (state.getParents().isEmpty()) {
         result.add(state);
       }

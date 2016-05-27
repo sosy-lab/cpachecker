@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
+import com.google.common.base.Throwables;
 
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -36,6 +35,9 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PCCStrategy;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
+
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 
 
 public class PCCStrategyBuilder {
@@ -90,8 +92,13 @@ public class PCCStrategyBuilder {
               + pPccStrategy
               +
               " if it does not provide a constructor (Configuration, LogManager, ShutdownNotifier, (PropertyCheckerCPA|ProofChecker)");
-    } catch (SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException
-        | InvocationTargetException e) {
+    } catch (InvocationTargetException e) {
+      Throwables.propagateIfPossible(e.getCause(), InvalidConfigurationException.class);
+      throw new RuntimeException(e);
+    } catch (SecurityException
+        | InstantiationException
+        | IllegalAccessException
+        | IllegalArgumentException e) {
       throw new UnsupportedOperationException(
           "Creation of specified PropertyChecker instance failed.", e);
     }

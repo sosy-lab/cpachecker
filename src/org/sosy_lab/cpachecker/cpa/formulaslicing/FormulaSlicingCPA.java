@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -63,7 +62,6 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
       Configuration pConfiguration,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      ReachedSetFactory pReachedSetFactory,
       CFA cfa
   ) throws InvalidConfigurationException {
     Solver solver = Solver.create(pConfiguration, pLogger, pShutdownNotifier);
@@ -86,9 +84,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
         inductiveWeakeningManager,
         RCNFManager,
         solver,
-        pLogger,
-        pReachedSetFactory,
-        pShutdownNotifier);
+        pLogger);
     stopOperator = new StopSepOperator(this);
     mergeOperator = this;
   }

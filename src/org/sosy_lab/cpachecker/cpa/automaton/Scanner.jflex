@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.logging.Level;
 
 @javax.annotation.Generated("JFlex")
-@SuppressWarnings(value = { "all" })
+@SuppressWarnings(value = { "all", "cast" })
 @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = {"DLS_DEAD_LOCAL_STORE"})
 %%
 

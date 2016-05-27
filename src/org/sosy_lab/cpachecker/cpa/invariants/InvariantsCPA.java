@@ -174,7 +174,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
   private boolean relevantVariableLimitReached = false;
 
   private final Map<CFANode, BooleanFormula<CompoundInterval>> invariants
-      = Collections.synchronizedMap(new HashMap<CFANode, BooleanFormula<CompoundInterval>>());
+      = Collections.synchronizedMap(new HashMap<>());
 
   private final ConditionAdjuster conditionAdjuster;
 
@@ -283,7 +283,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
     if (shutdownNotifier.shouldShutdown()) {
       return new InvariantsState(
-          new AcceptAllVariableSelection<CompoundInterval>(),
+          new AcceptAllVariableSelection<>(),
           compoundIntervalManagerFactory,
           machineModel,
           abstractionState,
@@ -325,7 +325,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
     if (shutdownNotifier.shouldShutdown()) {
       return new InvariantsState(
-          new AcceptAllVariableSelection<CompoundInterval>(),
+          new AcceptAllVariableSelection<>(),
           compoundIntervalManagerFactory,
           machineModel,
           abstractionState,

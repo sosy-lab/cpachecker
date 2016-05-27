@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.chc;
 
+import com.google.common.collect.Lists;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -354,8 +356,7 @@ public class ConstraintManager {
         String varName = "FRET_" + fretEdge.getPredecessor().getFunctionName();
         Term lhs = CVar2PrologPrimedVar(op1.toString());
         Term rhs = CVar2PrologVar(varName);
-        Constraint ac = new Constraint(new ArrayList<Term>(
-            Collections.singletonList(new Compound("=:=", new Term[] {lhs,rhs}))));
+        Constraint ac = new Constraint(Lists.newArrayList(new Compound("=:=", new Term[]{lhs, rhs})));
 
         ac.addVar(op1.toString(), lhs);
 

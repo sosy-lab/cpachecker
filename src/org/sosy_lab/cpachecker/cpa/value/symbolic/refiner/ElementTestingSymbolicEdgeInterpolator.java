@@ -200,7 +200,7 @@ public class ElementTestingSymbolicEdgeInterpolator
     IdentifierAssignment definiteAssignments = pState.getConstraintsState().getDefiniteAssignment();
 
     return new ForgettingCompositeState(pState.getValueState(),
-                                 new ConstraintsState(new HashSet<Constraint>(), definiteAssignments));
+                                 new ConstraintsState(new HashSet<>(), definiteAssignments));
   }
 
   private ForgettingCompositeState reduceConstraintsToNecessaryState(

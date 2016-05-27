@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.math.IntMath;
@@ -184,14 +183,7 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
 
   @Override
   public List<CompoundMathematicalInterval> splitIntoIntervals() {
-    return Lists.transform(Arrays.asList(this.intervals), new Function<SimpleInterval, CompoundMathematicalInterval>() {
-
-      @Override
-      public CompoundMathematicalInterval apply(SimpleInterval pInterval) {
-        return of(pInterval);
-      }
-
-    });
+    return Lists.transform(Arrays.asList(this.intervals), CompoundMathematicalInterval::of);
   }
 
   /**

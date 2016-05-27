@@ -506,7 +506,7 @@ public class InvariantsState implements AbstractState,
     NumeralFormula<CompoundInterval> previousValue = getEnvironmentValue(typeInfo, pMemoryLocation);
     ReplaceVisitor<CompoundInterval> replaceVisitor = new ReplaceVisitor<>(variable, previousValue);
     resultEnvironment = resultEnvironment.putAndCopy(pMemoryLocation, pValue.accept(replaceVisitor).accept(partialEvaluator, evaluationVisitor));
-    if (pValue.accept(new IsLinearVisitor<CompoundInterval>(), variable) && pValue.accept(containsVarVisitor, pMemoryLocation)) {
+    if (pValue.accept(new IsLinearVisitor<>(), variable) && pValue.accept(containsVarVisitor, pMemoryLocation)) {
       CompoundInterval zero =
           compoundIntervalManagerFactory.createCompoundIntervalManager(typeInfo).singleton(0);
       previousValue =
@@ -587,14 +587,7 @@ public class InvariantsState implements AbstractState,
     final Set<Variable<CompoundInterval>> toClear = getVariables(pMemoryLocationPredicate);
     ContainsVisitor<CompoundInterval> containsVisitor = new ContainsVisitor<>();
     ContainsVarVisitor<CompoundInterval> containsVarVisitor = new ContainsVarVisitor<>();
-    Predicate<NumeralFormula<CompoundInterval>> toClearPredicate = new Predicate<NumeralFormula<CompoundInterval>>() {
-
-      @Override
-      public boolean apply(NumeralFormula<CompoundInterval> pFormula) {
-        return toClear.contains(pFormula);
-      }
-
-    };
+    Predicate<NumeralFormula<CompoundInterval>> toClearPredicate = toClear::contains;
     Queue<MemoryLocation> potentialReferrers = new ArrayDeque<>();
     for (Map.Entry<MemoryLocation, NumeralFormula<CompoundInterval>> entry : environment.entrySet()) {
       if (entry.getValue().accept(containsVisitor, toClearPredicate)) {
@@ -988,7 +981,7 @@ public class InvariantsState implements AbstractState,
                     if (pFormula.equals(BooleanConstant.getTrue())) {
                       return false;
                     }
-                    Set<MemoryLocation> memLocs = pFormula.accept(new CollectVarsVisitor<CompoundInterval>());
+                    Set<MemoryLocation> memLocs = pFormula.accept(new CollectVarsVisitor<>());
                     if (memLocs.isEmpty()) {
                       return false;
                     }
@@ -1192,14 +1185,7 @@ public class InvariantsState implements AbstractState,
 
   private FluentIterable<BooleanFormula<CompoundInterval>> getApproximationFormulas() {
 
-    final Predicate<MemoryLocation> acceptVariable =
-        new Predicate<MemoryLocation>() {
-
-          @Override
-          public boolean apply(@Nullable MemoryLocation pInput) {
-            return isExportable(pInput);
-          }
-        };
+    final Predicate<MemoryLocation> acceptVariable = InvariantsState::isExportable;
 
     final Predicate<BooleanFormula<CompoundInterval>> acceptFormula = new Predicate<BooleanFormula<CompoundInterval>>() {
 

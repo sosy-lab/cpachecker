@@ -1,15 +1,11 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.solver.api.BooleanFormula;
 
 import java.util.Objects;
 
-public final class PolicyIntermediateState extends PolicyState
-    implements AvoidanceReportingState {
+public final class PolicyIntermediateState extends PolicyState {
 
   /**
    * Formula + SSA associated with the state.
@@ -21,8 +17,6 @@ public final class PolicyIntermediateState extends PolicyState
    */
   private final PolicyAbstractedState startingAbstraction;
 
-  private final boolean isRelevantToTarget;
-
   /**
    * Meta-information for determining the coverage.
    */
@@ -32,27 +26,20 @@ public final class PolicyIntermediateState extends PolicyState
   private PolicyIntermediateState(
       CFANode node,
       PathFormula pPathFormula,
-      PolicyAbstractedState pStartingAbstraction,
-      boolean pIsRelevantToTarget) {
+      PolicyAbstractedState pStartingAbstraction) {
     super(node);
 
     pathFormula = pPathFormula;
     startingAbstraction = pStartingAbstraction;
-    isRelevantToTarget = pIsRelevantToTarget;
   }
 
   public static PolicyIntermediateState of(
       CFANode node,
       PathFormula pPathFormula,
-      PolicyAbstractedState generatingState,
-      boolean pIsRelevantToTarget
+      PolicyAbstractedState generatingState
   ) {
     return new PolicyIntermediateState(
-        node, pPathFormula, generatingState, pIsRelevantToTarget);
-  }
-
-  public boolean getIsRelevantToTarget() {
-    return isRelevantToTarget;
+        node, pPathFormula, generatingState);
   }
 
   public void setMergedInto(PolicyIntermediateState other) {
@@ -109,16 +96,5 @@ public final class PolicyIntermediateState extends PolicyState
       hashCache = Objects.hash(pathFormula, startingAbstraction, mergedInto);
     }
     return hashCache;
-  }
-
-  @Override
-  public boolean mustDumpAssumptionForAvoidance() {
-    return !isRelevantToTarget;
-  }
-
-  @Override
-  public BooleanFormula getReasonFormula(FormulaManagerView mgr) {
-    // TODO?
-    return mgr.getBooleanFormulaManager().makeBoolean(true);
   }
 }

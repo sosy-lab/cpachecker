@@ -2,13 +2,9 @@ package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -22,18 +18,14 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
-import org.sosy_lab.cpachecker.util.automaton.TargetLocationProviderImpl;
 import org.sosy_lab.cpachecker.util.predicates.RCNFManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -60,6 +52,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 @Options(prefix="cpa.slicing")
 public class FormulaSlicingManager implements IFormulaSlicingManager {
@@ -68,10 +62,6 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
   @Option(secure=true, description="Filter lemmas by liveness")
   private boolean filterByLiveness = true;
-
-  @Option(secure=true, description="Do not explore nodes which syntactically "
-      + "can not lead to an error state.")
-  private boolean reduceCfa = true;
 
   private final PathFormulaManager pfmgr;
   private final BooleanFormulaManager bfmgr;
@@ -82,8 +72,6 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
   private final RCNFManager rcnfManager;
   private final LiveVariables liveVariables;
   private final LoopStructure loopStructure;
-
-  private final ImmutableSet<CFANode> targetReachableFrom;
 
   @SuppressWarnings({"FieldCanBeLocal", "unused"})
   private final LogManager logger;
@@ -96,9 +84,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
       InductiveWeakeningManager pInductiveWeakeningManager,
       RCNFManager pRcnfManager,
       Solver pSolver,
-      LogManager pLogger,
-      ReachedSetFactory pReachedSetFactory,
-      ShutdownNotifier pShutdownNotifier)
+      LogManager pLogger)
       throws InvalidConfigurationException {
     logger = pLogger;
     config.inject(this);
@@ -113,20 +99,6 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
       pCfa.getLoopStructure().isPresent());
     liveVariables = pCfa.getLiveVariables().get();
     loopStructure = pCfa.getLoopStructure().get();
-    TargetLocationProvider targetProvider = new TargetLocationProviderImpl(
-        pReachedSetFactory, pShutdownNotifier, pLogger, config, pCfa);
-    Set<CFANode> targetNodes =
-        targetProvider.tryGetAutomatonTargetLocations(pCfa.getMainFunction());
-    if (reduceCfa) {
-      ImmutableSet.Builder<CFANode> builder = ImmutableSet.builder();
-      for (CFANode target : targetNodes) {
-        builder.addAll(CFATraversal.dfs().backwards()
-            .collectNodesReachableFrom(target));
-      }
-      targetReachableFrom = builder.build();
-    } else {
-      targetReachableFrom = ImmutableSet.copyOf(pCfa.getAllNodes());
-    }
   }
 
   @Override
@@ -144,13 +116,10 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     }
 
     PathFormula outPath = pfmgr.makeAnd(iOldState.getPathFormula(), edge);
-    boolean isRelevantToTarget = targetReachableFrom.contains(edge
-        .getSuccessor());
     SlicingIntermediateState out = SlicingIntermediateState.of(
         edge.getSuccessor(),
         outPath,
-        iOldState.getAbstractParent(),
-        isRelevantToTarget
+        iOldState.getAbstractParent()
     );
     statistics.propagation.stop();
 
@@ -175,9 +144,10 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
       iState = pState.asIntermediate();
     }
 
-    boolean hasTargetState = Iterables.filter(
-        AbstractStates.asIterable(pFullState),
-        AbstractStates.IS_TARGET_STATE).iterator().hasNext();
+    boolean hasTargetState = StreamSupport
+        .stream(AbstractStates.asIterable(pFullState).spliterator(), false)
+        .filter(AbstractStates.IS_TARGET_STATE::apply)
+        .collect(Collectors.toList()).iterator().hasNext();
     boolean shouldPerformAbstraction = shouldPerformAbstraction(
         iState.getNode(), pFullState);
     if (hasTargetState && checkTargetStates && isUnreachableTarget(iState)) {
@@ -243,12 +213,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
     // Filter non-final UFs out first, as they can not be quantified.
     transition = fmgr.filterLiterals(transition,
-        new Predicate<BooleanFormula>() {
-          @Override
-          public boolean apply(BooleanFormula input) {
-            return !hasDeadUf(input, ssa);
-          }
-        });
+        input -> !hasDeadUf(input, ssa));
     BooleanFormula quantified = fmgr.quantifyDeadVariables(
         transition, ssa);
 
@@ -259,8 +224,8 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
       if (filterByLiveness &&
           Sets.intersection(
               ImmutableSet.copyOf(
-                  liveVariables.getLiveVariableNamesForNode(node).filter(
-                      Predicates.<String>notNull())),
+                  liveVariables.getLiveVariableNamesForNode(node)
+                      .filter(s -> s != null)),
               fmgr.extractFunctionNames(fmgr.uninstantiate(lemma))).isEmpty()
           ) {
 
@@ -290,14 +255,9 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
     Set<BooleanFormula> candidateLemmas = Sets.filter(
         prevToMerge.getAbstraction(),
-        new Predicate<BooleanFormula>() {
-          @Override
-          public boolean apply(BooleanFormula input) {
-            return allVarsInSSAMap(input,
-                    prevToMerge.getSSA(),
-                    iState.getPathFormula().getSsa());
-          }
-        });
+        input -> allVarsInSSAMap(input,
+                prevToMerge.getSSA(),
+                iState.getPathFormula().getSsa()));
 
     PathFormulaWithStartSSA path =
         new PathFormulaWithStartSSA(iState.getPathFormula(), iState
@@ -474,8 +434,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
         oldState.getPathFormula());
 
     SlicingIntermediateState out = SlicingIntermediateState.of(
-        oldState.getNode(), mergedPath, oldState.getAbstractParent(),
-        oldState.getIsRelevantToTarget() || newState.getIsRelevantToTarget()
+        oldState.getNode(), mergedPath, oldState.getAbstractParent()
     );
     newState.setMergedInto(out);
     oldState.setMergedInto(out);
@@ -490,8 +449,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
             bfmgr.makeBoolean(true),
             pSlicingAbstractedState.getSSA(),
             pSlicingAbstractedState.getPointerTargetSet(),
-            0), pSlicingAbstractedState,
-        targetReachableFrom.contains(pSlicingAbstractedState.getNode())
+            0), pSlicingAbstractedState
     );
   }
 

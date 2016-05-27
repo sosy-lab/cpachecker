@@ -47,7 +47,7 @@ public class SMGSingleLinkedListCandidateTest {
   @Test
   public void basicTest() {
     SMGObject object = new SMGRegion(8, "object");
-    SMGSingleLinkedListCandidate candidate = new SMGSingleLinkedListCandidate(object, 4, 0);
+    SMGSingleLinkedListCandidate candidate = new SMGSingleLinkedListCandidate(object, 4, 0, CPointerType.POINTER_TO_VOID, MachineModel.LINUX32);
     SMGSingleLinkedListCandidateSequence candidateSeq = new SMGSingleLinkedListCandidateSequence(candidate, 2, SMGJoinStatus.INCOMPARABLE);
 
     Assert.assertSame(object, candidate.getStartObject());
@@ -68,7 +68,7 @@ public class SMGSingleLinkedListCandidateTest {
     Integer value = root.getValue();
 
     SMGObject startObject = smg.getPointer(value).getObject();
-    SMGSingleLinkedListCandidate candidate = new SMGSingleLinkedListCandidate(startObject, OFFSET, 0);
+    SMGSingleLinkedListCandidate candidate = new SMGSingleLinkedListCandidate(startObject, OFFSET, 0, CPointerType.POINTER_TO_VOID, MachineModel.LINUX32);
     SMGSingleLinkedListCandidateSequence candidateSeq = new SMGSingleLinkedListCandidateSequence(candidate, SEGMENT_LENGTH, SMGJoinStatus.INCOMPARABLE);
 
     CLangSMG abstractedSmg = candidateSeq.execute(smg, new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX64, false, false, null, 4, false));
@@ -101,7 +101,7 @@ public class SMGSingleLinkedListCandidateTest {
 
     Integer value = root.getValue();
     SMGObject startObject = smg.getPointer(value).getObject();
-    SMGSingleLinkedListCandidate candidate = new SMGSingleLinkedListCandidate(startObject, 8, 0);
+    SMGSingleLinkedListCandidate candidate = new SMGSingleLinkedListCandidate(startObject, 8, 0, CPointerType.POINTER_TO_VOID, MachineModel.LINUX32);
     SMGSingleLinkedListCandidateSequence candidateSeq = new SMGSingleLinkedListCandidateSequence(candidate, 2, SMGJoinStatus.INCOMPARABLE);
     CLangSMG abstractedSmg = candidateSeq.execute(smg, new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX64, false, false, null, 4, false));
     Set<SMGObject> heap = abstractedSmg.getHeapObjects();

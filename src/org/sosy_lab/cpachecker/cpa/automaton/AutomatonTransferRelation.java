@@ -285,7 +285,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
         Collection<List<AbstractState>> newCombinations = new HashSet<>();
         for (List<AbstractState> otherStates : strengtheningCombinations) {
           Collection<List<AbstractState>> newPartialCombinations = new ArrayList<>();
-          newPartialCombinations.add(new ArrayList<AbstractState>());
+          newPartialCombinations.add(new ArrayList<>());
           for (AbstractState otherState : otherStates) {
             AbstractState toAdd = otherState;
             if (otherState instanceof AutomatonUnknownState) {
