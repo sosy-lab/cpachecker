@@ -24,12 +24,14 @@
 package org.sosy_lab.cpachecker.core.interfaces;
 
 
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
+import java.util.List;
 
 /**
  * Interface for the precision adjustment operator.
@@ -65,4 +67,25 @@ public interface PrecisionAdjustment {
       Function<AbstractState, AbstractState> stateProjection,
       AbstractState fullState
   ) throws CPAException, InterruptedException;
+
+  /**
+   * Second strengthen phase which runs after precision adjustment was finished.
+   * This method is only called by {@link org.sosy_lab.cpachecker.cpa.composite.CompositeCPA}.
+   *
+   * @param pState Input state for this CPA, after the initial run of precision adjustment.
+   * @param pPrecision Associated precision.
+   * @param otherStates Sibling states, as given by
+   *  {@link org.sosy_lab.cpachecker.cpa.composite.CompositeCPA}.
+   *
+   * @return Result of the strengthening operation.
+   * @throws CPAException
+   * @throws InterruptedException
+   */
+  default Optional<AbstractState> strengthen(
+      AbstractState pState,
+      Precision pPrecision,
+      List<AbstractState> otherStates
+  ) throws CPAException, InterruptedException {
+    return Optional.of(pState);
+  }
 }
