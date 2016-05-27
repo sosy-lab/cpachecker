@@ -1,5 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -19,22 +21,18 @@ import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationStatistics;
 import org.sosy_lab.cpachecker.cpa.policyiteration.Template;
 
 import java.util.Map;
-import java.util.logging.Level;
 
 import apron.Abstract1;
 import apron.Environment;
 
-public class ApronPolyhedraTest {
+public class PolyhedraWideningManagerTest {
 
   private PolyhedraWideningManager pwm;
-  private LogManager logger;
 
   @Before
   public void setUp() {
-    logger = LogManager.createTestLogManager();
     PolicyIterationStatistics stats = Mockito.mock(PolicyIterationStatistics.class);
-
-    pwm = new PolyhedraWideningManager(stats, logger);
+    pwm = new PolyhedraWideningManager(stats, LogManager.createTestLogManager());
   }
 
   @Test public void test_polyhedra() {
@@ -69,19 +67,23 @@ public class ApronPolyhedraTest {
     Environment env = pwm.generateEnvironment(ImmutableList.of(point1, point2));
 
     abs1 = pwm.fromTemplates(env, point1);
-    logger.log(Level.INFO, "Abs1 = ", abs1);
-
     abs2 = pwm.fromTemplates(env, point2);
-    logger.log(Level.INFO, "Abs2 = ", abs2);
 
     union = abs1.joinCopy(pwm.getManager(), abs2);
-    logger.log(Level.INFO, "Join = ", union);
-    logger.log(Level.INFO, pwm.toTemplates(union));
+
+    Map<Template, Rational> unionMap = pwm.toTemplates(union);
+    assertThat(unionMap.get(Template.of(linX))).isEqualTo(Rational.ONE);
+    assertThat(
+        unionMap.get(Template.of(linX.negate()))).isEqualTo(Rational.ZERO);
+    assertThat(
+        unionMap.get(Template.of(linX.sub(linY)))).isEqualTo(Rational.ZERO);
 
     widened = abs1.widening(pwm.getManager(), union);
-    logger.log(Level.INFO, "Widened = ", widened);
-    logger.log(Level.INFO, "Widened to templates = ", pwm.toTemplates(widened));
-    logger.flush();
+    Map<Template, Rational> widenedMap = pwm.toTemplates(widened);
+
+    assertThat(widenedMap.get(
+        Template.of(linX.sub(linY))
+    )).isEqualTo(Rational.ZERO);
   }
 
   private CIdExpression makeVar(String varName, CSimpleType type) {

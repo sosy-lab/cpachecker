@@ -1,6 +1,5 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -55,9 +54,6 @@ public class PolyhedraWideningManager {
     return manager;
   }
 
-  private static final Function<PolicyBound, Rational> DATA_GETTER =
-      PolicyBound::getBound;
-
   public Set<Template> generateWideningTemplates(
       PolicyAbstractedState oldState,
       PolicyAbstractedState newState) {
@@ -65,10 +61,10 @@ public class PolyhedraWideningManager {
     Set<Template> allTemplates = Sets.union(oldState.getAbstraction().keySet(),
         newState.getAbstraction().keySet());
     Map<Template, Rational> oldData = Maps.transformValues(oldState.getAbstraction(),
-        DATA_GETTER);
+        PolicyBound::getBound);
     Map<Template, Rational> newData = Maps.transformValues(
         newState.getAbstraction(),
-        DATA_GETTER);
+        PolicyBound::getBound);
 
     Abstract1 widened;
     try {
@@ -84,7 +80,7 @@ public class PolyhedraWideningManager {
     }
 
     Map<Template, Rational> generated = toTemplates(widened);
-    logger.log(Level.INFO, "Generated templates", generated);
+    logger.log(Level.FINE, "Generated templates", generated);
     Set<Template> diff = Sets.difference(generated.keySet(), allTemplates);
     Set<Template> out = new HashSet<>();
 
