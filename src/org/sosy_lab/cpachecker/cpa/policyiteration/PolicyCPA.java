@@ -246,6 +246,14 @@ public class PolicyCPA extends SingleEdgeTransferRelation
   }
 
   @Override
+  public Optional<AbstractState> strengthen(
+      AbstractState pState, Precision pPrecision, List<AbstractState> otherStates)
+      throws CPAException, InterruptedException {
+    return policyIterationManager.strengthen(
+        (PolicyState) pState, (PolicyPrecision) pPrecision, otherStates);
+  }
+
+  @Override
   public boolean adjustPrecision() {
     return policyIterationManager.adjustPrecision();
   }
