@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
+import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assert_;
 import static com.google.common.truth.TruthJUnit.assume;
 
@@ -136,10 +137,6 @@ public class ConfigurationFilesTest {
   public void instantiate_and_run() throws IOException {
     // exclude files not meant to be instantiated
     assume().that((Iterable<Path>) configFile).doesNotContain(Paths.get("includes"));
-    assume()
-        .that(configFile.getFileName().toString())
-        .isNotEqualTo(
-            "smgAnalysis-as-cex-check.properties"); // TODO analysis throws StackOverflowError
 
     final Configuration config = createConfigurationForTestInstantiation();
     final boolean isJava = "Java".equalsIgnoreCase(config.getProperty("language"));
@@ -193,8 +190,8 @@ public class ConfigurationFilesTest {
     if (!config.hasProperty("analysis.restartAfterUnknown")) {
       Set<String> unusedOptions = new TreeSet<>(config.getUnusedProperties());
       unusedOptions.removeAll(UNUSED_OPTIONS);
-      // TODO enable after fixing a lot of config files
-      //      assertThat(unusedOptions).named("unused options specified in " + configFile).isEmpty();
+      // TODO change to isEmpty() after fixing a lot of config files
+      assertThat(unusedOptions).named("unused options specified in " + configFile).isNotNull();
     }
   }
 
@@ -227,7 +224,7 @@ public class ConfigurationFilesTest {
           "public class Main { public static void main(String... args) {} }");
       program = "Main";
     } else {
-      File cFile = tempFolder.newFile("program.c");
+      File cFile = tempFolder.newFile("program.i");
       MoreFiles.writeFile(cFile.toPath(), StandardCharsets.US_ASCII, "void main() {}");
       program = cFile.toString();
     }
