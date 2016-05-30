@@ -8,7 +8,7 @@
     <!-- Keep this file synchronized between SoSy-Lab Common, CPAchecker, JavaSMT, and VerifierCloud. -->
 
     <!-- These properties can be overridden from including file. -->
-    <property name="ivy.version" value="2.4.0"/> <!-- Change version number here to use a newer version of Ivy. -->
+    <property name="ivy.target_version" value="2.4.0"/> <!-- Change version number here to use a newer version of Ivy. -->
     <!-- <property name="ivy.disable" value=""/> --> <!-- Disable ivy completely. -->
     <property name="ivy.repo.url" value="http://www.sosy-lab.org/ivy"/>
     <property name="ivy.lib.dir" value="lib/java"/>
@@ -34,7 +34,7 @@
     <target name="bootstrap-ivy" unless="ivy.jar.present">
         <mkdir dir="${ivy.jar.dir}"/>
         <echo message="Downloading ivy..."/>
-        <get src="${ivy.repo.url}/org.apache.ivy/ivy/ivy-${ivy.version}.jar" dest="${ivy.jar.dir}/${ivy.jar.file}" usetimestamp="true"/>
+        <get src="${ivy.repo.url}/org.apache.ivy/ivy/ivy-${ivy.target_version}.jar" dest="${ivy.jar.dir}/${ivy.jar.file}" usetimestamp="true"/>
     </target>
 
     <!-- Load the Ivy plugin for Ant so the Ivy tasks are available. -->
