@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg.objects.dls;
 
 import com.google.common.collect.Iterables;
 
+import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
@@ -37,6 +38,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinSubSMGsForAbstraction;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -180,7 +182,12 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
 
   @Override
   public int getScore() {
-    return getLength() + getStatusScore();
+    int score = getLength() + getStatusScore() + getRecursivScore();
+    return score;
+  }
+
+  private int getRecursivScore() {
+    return candidate.hasRecursiveFields() ? 10 : 0;
   }
 
   private int getStatusScore() {
@@ -194,5 +201,14 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
       default:
         return 0;
     }
+  }
+
+  @Override
+  public SMGAbstractionBlock createAbstractionBlock(SMGState pSmgState) {
+
+    Map<SMGObject, SMGMemoryPath> map = pSmgState.getHeapObjectMemoryPaths();
+    SMGMemoryPath pPointerToStartObject = map.get(candidate.getObject());
+    return new SMGDoublyLinkedListCandidateSequenceBlock(candidate.getDllShape(), length,
+        pPointerToStartObject);
   }
 }

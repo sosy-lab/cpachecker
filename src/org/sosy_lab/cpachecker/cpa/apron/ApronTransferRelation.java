@@ -23,25 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.apron;
 
-import apron.DoubleScalar;
-import apron.Interval;
-import apron.Linexpr0;
-import apron.Linterm0;
-import apron.Scalar;
-import apron.Tcons0;
-import apron.Texpr0BinNode;
-import apron.Texpr0CstNode;
-import apron.Texpr0DimNode;
-import apron.Texpr0Intern;
-import apron.Texpr0Node;
-import apron.Texpr0UnNode;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
 
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -115,6 +100,19 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
+import apron.DoubleScalar;
+import apron.Interval;
+import apron.Linexpr0;
+import apron.Linterm0;
+import apron.Scalar;
+import apron.Tcons0;
+import apron.Texpr0BinNode;
+import apron.Texpr0CstNode;
+import apron.Texpr0DimNode;
+import apron.Texpr0Intern;
+import apron.Texpr0Node;
+import apron.Texpr0UnNode;
+
 public class ApronTransferRelation extends ForwardingTransferRelation<Collection<ApronState>, ApronState, VariableTrackingPrecision> {
 
   /**
@@ -144,15 +142,6 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
           builder.addAll(l.getLoopHeads());
     }
     loopHeads = builder.build();
-
-    // TODO the creation of the additional ApronManager which then is never used
-    // should not be necessary, however, without this constructor call the library
-    // does not work properly
-    try {
-      new ApronManager(Configuration.defaultConfiguration());
-    } catch (InvalidConfigurationException e) {
-      throw new AssertionError(e);
-    }
   }
 
   @Override

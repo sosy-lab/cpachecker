@@ -464,6 +464,7 @@ class EclipseCParser implements CParser {
    * for using the parser.
    * Supports choise of parser dialect.
    */
+  @SuppressWarnings("unchecked")
   private static class CLanguage extends GCCLanguage {
 
     private final ICParserExtensionConfiguration parserConfig;

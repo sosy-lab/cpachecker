@@ -220,23 +220,21 @@ public class CEXExporter {
         errorPathGraphFile,
         uniqueId,
         (Appender)
-            (pAppendable) -> {
-              ARGToDotWriter.write(
-                  pAppendable,
-                  rootState,
-                  ARGState::getChildren,
-                  Predicates.in(pathElements),
-                  isTargetPathEdge);
-            });
+            pAppendable ->
+                ARGToDotWriter.write(
+                    pAppendable,
+                    rootState,
+                    ARGState::getChildren,
+                    Predicates.in(pathElements),
+                    isTargetPathEdge));
 
     writeErrorPathFile(
         errorPathAutomatonFile,
         uniqueId,
         (Appender)
-            (pAppendable) -> {
-              ARGUtils.producePathAutomaton(
-                  pAppendable, rootState, pathElements, "ErrorPath" + uniqueId, counterexample);
-            });
+            pAppendable ->
+                ARGUtils.producePathAutomaton(
+                    pAppendable, rootState, pathElements, "ErrorPath" + uniqueId, counterexample));
 
     for (Pair<Object, PathTemplate> info : counterexample.getAllFurtherInformation()) {
       if (info.getSecond() != null) {
@@ -248,14 +246,13 @@ public class CEXExporter {
         errorPathAutomatonGraphmlFile,
         uniqueId,
         (Appender)
-            (pAppendable) -> {
-              witnessExporter.writeErrorWitness(
-                  pAppendable,
-                  rootState,
-                  Predicates.in(pathElements),
-                  isTargetPathEdge,
-                  counterexample);
-            });
+            pAppendable ->
+                witnessExporter.writeErrorWitness(
+                    pAppendable,
+                    rootState,
+                    Predicates.in(pathElements),
+                    isTargetPathEdge,
+                    counterexample));
   }
 
   private void writeErrorPathFile(PathTemplate template, int uniqueId, Object content) {

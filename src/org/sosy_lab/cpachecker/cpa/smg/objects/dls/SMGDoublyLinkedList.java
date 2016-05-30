@@ -33,27 +33,21 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
 
   private final int minimumLength;
 
-  private final int hfo;
-  private final int nfo;
-  private final int pfo;
+  private final SMGDoublyLinkedListShape dllShape;
   private final int id = SMGValueFactory.getNewValue();
 
   public SMGDoublyLinkedList(int pSize, int pHfo, int pNfo, int pPfo,
       int pMinLength, int level) {
     super(pSize, "dls", level, SMGObjectKind.DLL);
 
-    hfo = pHfo;
-    nfo = pNfo;
-    pfo = pPfo;
+    dllShape = new SMGDoublyLinkedListShape(pHfo, pPfo, pNfo);
     minimumLength = pMinLength;
   }
 
   public SMGDoublyLinkedList(SMGDoublyLinkedList other) {
     super(other.getSize(), other.getLabel(), other.getLevel(), SMGObjectKind.DLL);
 
-    hfo = other.hfo;
-    nfo = other.nfo;
-    pfo = other.pfo;
+    dllShape = other.dllShape;
     minimumLength = other.minimumLength;
   }
 
@@ -74,24 +68,16 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
     if (this == obj) {
       return true;
     }
+
     if (obj == null) {
       return false;
     }
     if (getClass() != obj.getClass()) {
       return false;
     }
-    SMGDoublyLinkedList other = (SMGDoublyLinkedList) obj;
-    if (hfo != other.hfo) {
-      return false;
-    }
-    if (nfo != other.nfo) {
-      return false;
-    }
-    if (pfo != other.pfo) {
-      return false;
-    }
 
-    return true;
+    SMGDoublyLinkedList other = (SMGDoublyLinkedList) obj;
+    return dllShape.equals(other.dllShape);
   }
 
   public int getMinimumLength() {
@@ -120,15 +106,15 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
   }
 
   public int getHfo() {
-    return hfo;
+    return dllShape.getHfo();
   }
 
   public int getNfo() {
-    return nfo;
+    return dllShape.getNfo();
   }
 
   public int getPfo() {
-    return pfo;
+    return dllShape.getPfo();
   }
 
   @Override
@@ -183,7 +169,7 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
 
   @Override
   public String toString() {
-    return "DLL(id=" + id + " size=" + getSize() + ", hfo=" + hfo + ", nfo=" + nfo + ", pfo=" + pfo
+    return "DLL(id=" + id + " size=" + getSize() + ", hfo=" + dllShape.getHfo() + ", nfo=" + dllShape.getNfo() + ", pfo=" + dllShape.getPfo()
         + ", len=" + minimumLength + ", level=" + getLevel() + ")";
   }
 

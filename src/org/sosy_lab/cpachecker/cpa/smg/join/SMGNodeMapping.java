@@ -23,15 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-
-class SMGNodeMapping {
+public class SMGNodeMapping {
   private final Map<SMGObject, SMGObject> object_map = new HashMap<>();
   private final Map<Integer, Integer> value_map = new HashMap<>();
 

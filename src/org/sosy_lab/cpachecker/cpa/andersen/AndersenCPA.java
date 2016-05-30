@@ -98,17 +98,19 @@ public class AndersenCPA implements ConfigurableProgramAnalysisWithBAM {
   }
 
   private StopOperator initializeStopOperator() {
-    if (stopType.equals("SEP")) {
-      return new StopSepOperator(abstractDomain);
+    switch (stopType) {
+      case "SEP":
+        return new StopSepOperator(abstractDomain);
 
-    } else if (stopType.equals("JOIN")) {
-      return new StopJoinOperator(abstractDomain);
+      case "JOIN":
+        return new StopJoinOperator(abstractDomain);
 
-    } else if (stopType.equals("NEVER")) {
-      return new StopNeverOperator();
+      case "NEVER":
+        return new StopNeverOperator();
+
+      default:
+        throw new AssertionError("unknown stop operator");
     }
-
-    return null;
   }
 
   @Override

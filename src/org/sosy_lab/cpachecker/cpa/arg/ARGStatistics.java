@@ -231,6 +231,7 @@ public class ARGStatistics implements Statistics {
     }
   }
 
+  @SuppressWarnings("try")
   private void exportARG0(final ARGState rootState, final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge) {
     SetMultimap<ARGState, ARGState> relevantSuccessorRelation =
         ARGUtils.projectARG(rootState, ARGState::getChildren, ARGUtils.RELEVANT_STATE);

@@ -23,28 +23,28 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
-import java.util.Collection;
-import java.util.Deque;
+import com.google.common.base.Function;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.Iterables;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 
-public class SMGStrongestPostOperator implements StrongestPostOperator<SMGState> {
+public class SMGStrongestPostOperator {
 
   private final SMGTransferRelation transfer;
 
@@ -53,37 +53,33 @@ public class SMGStrongestPostOperator implements StrongestPostOperator<SMGState>
     transfer = SMGTransferRelation.createTransferRelationForRefinement(pBuild, pLogger, pCfa.getMachineModel());
   }
 
-  @Override
-  public Optional<SMGState> getStrongestPost(SMGState pOrigin, Precision pPrecision, CFAEdge pOperation)
-      throws CPAException, InterruptedException {
+  public Collection<SMGState> getStrongestPost(SMGState pOrigin, Precision pPrecision,
+      CFAEdge pOperation)
+          throws CPAException, InterruptedException {
 
+    Collection<SMGState> start = ImmutableList.of(pOrigin);
 
-    final Collection<? extends AbstractState> successors =
-        transfer.getAbstractSuccessorsForEdge(pOrigin, pPrecision, pOperation);
+    return getStrongestPost(start, pPrecision, pOperation);
+  }
 
-    if (successors.isEmpty()) {
-      return Optional.absent();
+  public Collection<SMGState> getStrongestPost(Collection<SMGState> pStates,
+      Precision pPrecision,
+      CFAEdge pOperation) throws CPATransferException, InterruptedException {
 
-    } else {
-      return Optional.of((SMGState) Iterables.getOnlyElement(successors));
+    List<AbstractState> result = new ArrayList<>();
+
+    for (SMGState state : pStates) {
+      Collection<? extends AbstractState> successors =
+          transfer.getAbstractSuccessorsForEdge(state, pPrecision, pOperation);
+      result.addAll(successors);
     }
-  }
 
-  @Override
-  public SMGState handleFunctionCall(SMGState pState, CFAEdge pEdge, Deque<SMGState> pCallstack) {
-    return pState;
-  }
+    return FluentIterable.from(result).transform(new Function<AbstractState, SMGState>() {
 
-  @Override
-  public SMGState handleFunctionReturn(SMGState pNext, CFAEdge pEdge, Deque<SMGState> pCallstack) {
-    // TODO investigate scoping?
-    return pNext;
+      @Override
+      public SMGState apply(AbstractState pState) {
+        return (SMGState) pState;
+      }
+    }).toList();
   }
-
-  @Override
-  public SMGState performAbstraction(SMGState pNext, CFANode pCurrNode, ARGPath pErrorPath, Precision pPrecision) {
-    // TODO Investigate abstraction
-    return pNext;
-  }
-
 }

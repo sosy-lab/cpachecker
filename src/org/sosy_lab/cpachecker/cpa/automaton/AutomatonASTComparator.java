@@ -189,12 +189,7 @@ class AutomatonASTComparator {
       }
     }
 
-    Function<CAstNode, CStatement> function = new Function<CAstNode, CStatement>() {
-      @Override
-      public CStatement apply(CAstNode statement) {
-        return (CStatement) statement;
-      }
-    };
+    Function<CAstNode, CStatement> function = statement -> (CStatement) statement;
 
     return ImmutableList.copyOf(Lists.transform(statements, function));
   }

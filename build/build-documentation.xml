@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- vim: set tabstop=8 shiftwidth=4 expandtab filetype=ant : -->
+<project name="documentation" basedir=".">
+
+    <!-- Targets for building documentation. -->
+
+    <uptodate property="documentation.uptodate" targetfile="${documentation.options.file}">
+        <srcfiles dir="${source.dir}" includes="**/*.java"/>
+    </uptodate>
+
+    <target name="build-documentation" depends="build-project" unless="documentation.uptodate">
+        <echo message="running OptionCollector..." level="info"/>
+
+        <echo file="${documentation.options.file}" append="false" message="# This is an auto-generated file, DO NOT EDIT!${line.separator}# Run ant to generate it.${line.separator}"/>
+        <!-- the output of OptionCollector is written into "doc/ConfigurationOptions.txt" -->
+        <java classname="org.sosy_lab.common.configuration.OptionCollector"
+            fork="true"
+            output="${documentation.options.file}" append="true"
+            logError="true">
+
+            <classpath refid="classpath"/>
+
+            <arg value="-includeLibraryOptions"/>
+            <!-- "-v" is a optional param for verbose output of OptionCollector -->
+            <!-- <arg value="-v"/> -->
+        </java>
+        <echo message="Options collected." level="info"/>
+    </target>
+</project>

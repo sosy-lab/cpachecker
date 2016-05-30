@@ -26,40 +26,43 @@ package org.sosy_lab.cpachecker.cpa.smg.refiner;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
-import org.sosy_lab.cpachecker.util.refinement.InterpolantManager;
 
-public class SMGInterpolantManager implements InterpolantManager<SMGState, SMGInterpolant> {
+import java.util.Set;
+
+public class SMGInterpolantManager {
 
   private final LogManager logger;
   private final MachineModel model;
   private final SMGInterpolant initalInterpolant;
 
-  public SMGInterpolantManager(MachineModel pModel, LogManager pLogger, CFA pCfa, int pExternalAllocationSize) {
+  public SMGInterpolantManager(MachineModel pModel, LogManager pLogger, CFA pCfa,
+      int pExternalAllocationSize) {
     logger = pLogger;
     model = pModel;
-    initalInterpolant = SMGInterpolant.createInitial(logger, model, pCfa.getMainFunction(), pExternalAllocationSize);
+    initalInterpolant = SMGInterpolant.createInitial(logger, model, pCfa.getMainFunction(),
+        pExternalAllocationSize);
   }
 
-  @Override
   public SMGInterpolant createInitialInterpolant() {
     return initalInterpolant;
   }
 
-  @Override
   public SMGInterpolant createInterpolant(SMGState pState) {
     return pState.createInterpolant();
   }
 
-  @Override
-  public SMGInterpolant getTrueInterpolant() {
-    // initial interpolant is also a true interpolant
-    return initalInterpolant;
-  }
-
-  @Override
   public SMGInterpolant getFalseInterpolant() {
     return SMGInterpolant.getFalseInterpolant();
   }
 
+  public SMGInterpolant getTrueInterpolant(SMGInterpolant pTemplate) {
+    return SMGInterpolant.getTrueInterpolant(pTemplate);
+  }
+
+  public SMGInterpolant createInterpolant(SMGState pState,
+      Set<SMGAbstractionBlock> pAbstractionBlocks) {
+    return pState.createInterpolant(pAbstractionBlocks);
+  }
 }
