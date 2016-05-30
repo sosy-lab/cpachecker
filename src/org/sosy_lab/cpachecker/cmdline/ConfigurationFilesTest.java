@@ -81,14 +81,26 @@ public class ConfigurationFilesTest {
 
   private static final ImmutableList<String> UNUSED_OPTIONS =
       ImmutableList.of(
-          "java.sourcepath", // always set by this test
+          // always set by this test
+          "java.sourcepath",
           // handled by code outside of CPAchecker class
           "output.disable",
           "limits.time.cpu",
           "memorysafety.config",
           "overflow.config",
-          // only handled if automaton with given name is loaded
+          "pcc.proofgen.doPCC",
+          // only handled if specification automaton is additionally specified
+          "cpa.automaton.breakOnTargetState",
           "WitnessAutomaton.cpa.automaton.treatErrorsAsTargets",
+          // handled by component that is loaded lazily on demand
+          "invariantGeneration.adjustConditions",
+          "invariantGeneration.async",
+          "invariantGeneration.config",
+          "invariantGeneration.kInduction.async",
+          "invariantGeneration.kInduction.guessCandidatesFromCFA",
+          "invariantGeneration.kInduction.terminateOnCounterexample",
+          // irrelevant if other solver is used
+          "solver.z3.requireProofs",
           // present in many config files that explicitly disable counterexample checks
           "counterexample.checker",
           "counterexample.checker.config");
@@ -188,10 +200,10 @@ public class ConfigurationFilesTest {
     }
 
     if (!config.hasProperty("analysis.restartAfterUnknown")) {
+      // TODO find a solution how to check for unused properties correctly even with RestartAlgorithm
       Set<String> unusedOptions = new TreeSet<>(config.getUnusedProperties());
       unusedOptions.removeAll(UNUSED_OPTIONS);
-      // TODO change to isEmpty() after fixing a lot of config files
-      assertThat(unusedOptions).named("unused options specified in " + configFile).isNotNull();
+      assertThat(unusedOptions).named("unused options specified in " + configFile).isEmpty();
     }
   }
 
