@@ -70,6 +70,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -104,8 +105,7 @@ public class ParallelAlgorithm implements Algorithm {
   private final CFA cfa;
   private final String filename;
 
-  private ReachedSet finalReachedSet = null;
-  private AlgorithmStatus finalStatus = null;
+  private ParallelAnalysisResult finalResult = null;
   private CFANode mainEntryNode = null;
   private final AggregatedReachedSetManager aggregatedReachedSetManager;
 
@@ -152,9 +152,9 @@ public class ParallelAlgorithm implements Algorithm {
       logger.log(Level.WARNING, "Not all threads are terminated although we have a result.");
     }
 
-    if (finalReachedSet != null) {
-      forwardingReachedSet.setDelegate(finalReachedSet);
-      return finalStatus;
+    if (finalResult != null) {
+      forwardingReachedSet.setDelegate(finalResult.getReached());
+      return finalResult.getStatus();
     }
 
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
@@ -162,12 +162,12 @@ public class ParallelAlgorithm implements Algorithm {
 
   private void handleFutureResults(List<ListenableFuture<ParallelAnalysisResult>> futures)
       throws InterruptedException, Error, CPAException {
+    List<CPAException> exceptions = new ArrayList<>();
     for (ListenableFuture<ParallelAnalysisResult> f : futures) {
       try {
         ParallelAnalysisResult result = f.get();
-        if (result.hasValidReachedSet()) {
-          finalReachedSet = result.getReached();
-          finalStatus = result.getStatus();
+        if (result.hasValidReachedSet() && finalResult == null) {
+          finalResult = result;
         }
       } catch (ExecutionException e) {
         Throwable cause = e.getCause();
@@ -182,14 +182,21 @@ public class ParallelAlgorithm implements Algorithm {
             if (cause.getMessage().contains("pthread_create")) {
               logger.logUserException(Level.WARNING, e, "Analysis not completed due to concurrency");
             }
-            if (finalReachedSet == null) {
-              throw (CPAException) cause;
-            }
+            exceptions.add((CPAException) cause);
         } else {
           throw new CPAException("An unexpected exception occured", e);
         }
       } catch (CancellationException e) {
         // do nothing, this is normal if we cancel other analyses
+      }
+    }
+
+    // we do not have any result, so we propagate the found CPAExceptions upwards
+    if (finalResult == null && !exceptions.isEmpty()) {
+      if (exceptions.size() == 1) {
+        throw Iterables.getOnlyElement(exceptions);
+      } else {
+        throw new CompoundException("Several exceptions occured during the analysis", exceptions);
       }
     }
   }
@@ -381,6 +388,21 @@ public class ParallelAlgorithm implements Algorithm {
     return reached;
   }
 
+  public class CompoundException extends CPAException {
+
+    private static final long serialVersionUID = -8880889342586540115L;
+
+    private final List<CPAException> exceptions;
+
+    public CompoundException(String pMsg, List<CPAException> pExceptions) {
+      super(pMsg);
+      exceptions = Collections.unmodifiableList(new ArrayList<>(pExceptions));
+    }
+
+    public List<CPAException> getExceptions() {
+      return exceptions;
+    }
+  }
 }
 
 class ParallelAnalysisResult {
