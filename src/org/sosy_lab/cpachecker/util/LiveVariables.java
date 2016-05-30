@@ -331,7 +331,7 @@ public class LiveVariables {
     return Optional.of((LiveVariables)new AllVariablesAsLiveVariables(pCFA, globalsList));
   }
 
-  public static Optional<LiveVariables> create(
+  public static LiveVariables create(
       final Optional<VariableClassification> variableClassification,
       final List<Pair<ADeclaration, String>> globalsList,
       final MutableCFA pCFA,
@@ -348,7 +348,7 @@ public class LiveVariables {
     // we cannot make any assumptions about c programs where we do not know
     // about the addressed variables
     if (pCFA.getLanguage() == Language.C && !variableClassification.isPresent()) {
-      return Optional.of((LiveVariables)new AllVariablesAsLiveVariables(pCFA, globalsList));
+      return new AllVariablesAsLiveVariables(pCFA, globalsList);
     }
 
     // we need a cfa with variableClassification, thus we create one now
@@ -376,7 +376,7 @@ public class LiveVariables {
       limitChecker.cancel();
     }
 
-    return Optional.of(liveVarObject);
+    return liveVarObject;
   }
 
   private static LiveVariables create0(

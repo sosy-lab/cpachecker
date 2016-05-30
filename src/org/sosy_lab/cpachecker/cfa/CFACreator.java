@@ -411,8 +411,7 @@ private boolean classifyNodes = false;
 
     // get loop information
     // (needs post-order information)
-    Optional<LoopStructure> loopStructure = getLoopStructure(cfa);
-    cfa.setLoopStructure(loopStructure);
+    addLoopStructure(cfa);
 
     // FOURTH, insert call and return edges and build the supergraph
     if (interprocedural) {
@@ -763,9 +762,9 @@ private boolean classifyNodes = false;
     return mainFunction;
   }
 
-  private Optional<LoopStructure> getLoopStructure(MutableCFA cfa) {
+  private void addLoopStructure(MutableCFA cfa) {
     try {
-      return Optional.of(LoopStructure.getLoopStructure(cfa));
+      cfa.setLoopStructure(LoopStructure.getLoopStructure(cfa));
 
     } catch (ParserException e) {
       // don't abort here, because if the analysis doesn't need the loop information, we can continue
@@ -775,7 +774,6 @@ private boolean classifyNodes = false;
       logger.logUserException(Level.WARNING, e,
           "Could not analyze loop structure of program due to memory problems");
     }
-    return Optional.absent();
   }
 
   /**
