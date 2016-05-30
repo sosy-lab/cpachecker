@@ -30,7 +30,6 @@ import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingSt
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -387,14 +386,11 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
 
     // we do not need the last state from the trace, so we exclude it here
     for (ARGState state : from(abstractionStatesTrace).limit(abstractionStatesTrace.size() - 1)) {
-      Set<BooleanFormula> invs =
-          invariantsManager.getInvariantsFor(extractLocation(state), fmgr, pfmgr, null);
-      if (invIsTriviallyTrue
-          && !(invs.size() == 1
-              && fmgr.getBooleanFormulaManager().isTrue(Iterables.getOnlyElement(invs)))) {
+      BooleanFormula inv = invariantsManager.getInvariantFor(extractLocation(state), fmgr, pfmgr, null);
+      if (invIsTriviallyTrue && !fmgr.getBooleanFormulaManager().isTrue(inv)) {
         invIsTriviallyTrue = false;
       }
-      precisionIncrement.add(fmgr.getBooleanFormulaManager().and(invs));
+      precisionIncrement.add(inv);
     }
     assert precisionIncrement.size() == abstractionStatesTrace.size() - 1;
 

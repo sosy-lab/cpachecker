@@ -280,9 +280,7 @@ class KInductionProver implements AutoCloseable {
     }
 
     invariant =
-        bfmgr.and(
-            invariant,
-        bfmgr.and(currentInvariantsSupplier.getInvariantsFor(pLocation, pFMGR, pPFMGR, pContext)));
+        bfmgr.and(invariant, currentInvariantsSupplier.getInvariantFor(pLocation, pFMGR, pPFMGR, pContext));
 
     return invariant;
   }

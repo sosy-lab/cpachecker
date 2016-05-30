@@ -29,14 +29,11 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import java.util.Collections;
-import java.util.Set;
-
 
 public interface InvariantSupplier {
 
   /**
-   * Return a set of invariants that holds at a given node.
+   * Return an invariant that holds at a given node.
    * This method should be relatively cheap and do not block
    * (i.e., do not start an expensive invariant generation procedure).
    *
@@ -46,16 +43,16 @@ public interface InvariantSupplier {
    * @param pContext the context of the formula.
    * @return An invariant boolean formula without SSA indices.
    */
-  Set<BooleanFormula> getInvariantsFor(
+  BooleanFormula getInvariantFor(
       CFANode node, FormulaManagerView fmgr, PathFormulaManager pfmgr, PathFormula pContext);
 
   static enum TrivialInvariantSupplier implements InvariantSupplier {
     INSTANCE;
 
     @Override
-    public Set<BooleanFormula> getInvariantsFor(
+    public BooleanFormula getInvariantFor(
         CFANode pNode, FormulaManagerView pFmgr, PathFormulaManager pfmgr, PathFormula pContext) {
-      return Collections.singleton(pFmgr.getBooleanFormulaManager().makeBoolean(true));
+      return pFmgr.getBooleanFormulaManager().makeBoolean(true);
     }
   }
 }

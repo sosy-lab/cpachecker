@@ -157,16 +157,11 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     maxBlockSize = Math.max(maxBlockSize, pathFormula.getLength());
 
     // get invariants and add them
-    Set<BooleanFormula> invTmp =
-        invariants.getInvariantsFor(loc, fmgr, pathFormulaManager, pathFormula);
-    BooleanFormula invariant;
-    if (invTmp.isEmpty()) {
-      invariant = null;
-    } else {
-      invariant = fmgr.getBooleanFormulaManager().and(invTmp);
-    }
+    BooleanFormula invariant =
+        invariants.getInvariantFor(loc, fmgr, pathFormulaManager, pathFormula);
 
-    if (invariant != null) {
+    // we don't want to add trivially true invariants
+    if (!fmgr.getBooleanFormulaManager().isTrue(invariant)) {
       pathFormula = pathFormulaManager.makeAnd(pathFormula, invariant);
     }
 

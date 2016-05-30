@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Verify;
+import java.util.Objects;
 
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -46,9 +45,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import java.util.Collections;
-import java.util.Objects;
-import java.util.Set;
+import com.google.common.base.Optional;
+import com.google.common.base.Verify;
 
 public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
 
@@ -98,15 +96,15 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
           new InvariantSupplier() {
 
             @Override
-            public Set<BooleanFormula> getInvariantsFor(
+            public BooleanFormula getInvariantFor(
                 CFANode location,
                 FormulaManagerView fmgr,
                 PathFormulaManager pfmgr,
                 PathFormula pContext) {
               try {
-                return Collections.singleton(prover.getCurrentLocationInvariants(location, fmgr, pfmgr, pContext));
+                return prover.getCurrentLocationInvariants(location, fmgr, pfmgr, pContext);
               } catch (InterruptedException | CPAException e) {
-                return Collections.singleton(fmgr.getBooleanFormulaManager().makeBoolean(true));
+                return fmgr.getBooleanFormulaManager().makeBoolean(true);
               }
             }
           };

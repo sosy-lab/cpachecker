@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 
-import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
 
@@ -71,9 +70,9 @@ public class FormulaAndTreeSupplier implements InvariantSupplier, ExpressionTree
   }
 
   @Override
-  public Set<BooleanFormula> getInvariantsFor(
+  public BooleanFormula getInvariantFor(
       CFANode pNode, FormulaManagerView pFmgr, PathFormulaManager pPfmgr, PathFormula pContext) {
-    return invariantSupplier.getInvariantsFor(pNode, pFmgr, pPfmgr, pContext);
+    return invariantSupplier.getInvariantFor(pNode, pFmgr, pPfmgr, pContext);
   }
 
   /**
@@ -89,7 +88,7 @@ public class FormulaAndTreeSupplier implements InvariantSupplier, ExpressionTree
     }
 
     @Override
-    public Set<BooleanFormula> getInvariantsFor(
+    public BooleanFormula getInvariantFor(
         CFANode pLocation,
         FormulaManagerView fmgr,
         PathFormulaManager pfmgr,
@@ -100,7 +99,7 @@ public class FormulaAndTreeSupplier implements InvariantSupplier, ExpressionTree
       for (AbstractState locState : lazyLocationMapping.get(pLocation)) {
         invariant = bfmgr.or(invariant, extractReportedFormulas(fmgr, locState, pfmgr));
       }
-      return Collections.singleton(invariant);
+      return invariant;
     }
   }
 

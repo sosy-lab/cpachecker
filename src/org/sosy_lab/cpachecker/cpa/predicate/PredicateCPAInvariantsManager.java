@@ -40,9 +40,7 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -301,17 +299,20 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
   }
 
   @Override
-  public Set<BooleanFormula> getInvariantsFor(
+  public BooleanFormula getInvariantFor(
       CFANode pNode, FormulaManagerView pFmgr, PathFormulaManager pPfmgr, PathFormula pContext) {
     Set<BooleanFormula> localInvariants = locationInvariantsCache.get(pNode);
-    if (localInvariants == null) {
-      localInvariants = Collections.emptySet();
-    }
+    BooleanFormula globalInvariant = bfmgr.makeBoolean(true);
+
     if (useGlobalInvariants) {
-      return Sets.union(localInvariants, aggregatedReachedSets.asInvariantSupplier().getInvariantsFor(pNode, pFmgr, pPfmgr, pContext));
+      globalInvariant = aggregatedReachedSets.asInvariantSupplier().getInvariantFor(pNode, pFmgr, pPfmgr, pContext);
     }
 
-    return localInvariants;
+    if (localInvariants == null) {
+      return globalInvariant;
+    } else {
+      return localInvariants.stream().reduce(globalInvariant, (a, b) -> bfmgr.and(a, b));
+    }
   }
 
   /**
@@ -744,7 +745,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
         if (s != abstractionStatesTrace.get(abstractionStatesTrace.size() - 1)) {
           CFANode location = extractLocation(s);
           PredicateAbstractState pas = PredicateAbstractState.getPredicateState(s);
-          BooleanFormula invariant = Iterables.getOnlyElement(invSup.getInvariantsFor(location, fmgr, pfmgr, pas.getPathFormula()));
+          BooleanFormula invariant = invSup.getInvariantFor(location, fmgr, pfmgr, pas.getPathFormula());
           invariants.add(Pair.of(invariant, location));
           logger.log(Level.FINEST, "Invariant for location", location, "is", invariant);
         }

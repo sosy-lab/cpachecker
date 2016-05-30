@@ -29,8 +29,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import java.util.Set;
-
 
 public class ForwardingInvariantSupplier implements InvariantSupplier {
 
@@ -41,9 +39,9 @@ public class ForwardingInvariantSupplier implements InvariantSupplier {
   }
 
   @Override
-  public Set<BooleanFormula> getInvariantsFor(CFANode pNode, FormulaManagerView pFmgr,
+  public BooleanFormula getInvariantFor(CFANode pNode, FormulaManagerView pFmgr,
       PathFormulaManager pPfmgr, PathFormula pContext) {
-    return delegate.getInvariantsFor(pNode, pFmgr, pPfmgr, pContext);
+    return delegate.getInvariantFor(pNode, pFmgr, pPfmgr, pContext);
   }
 
 }

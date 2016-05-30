@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -100,13 +101,14 @@ public class AggregatedReachedSets {
     }
 
     @Override
-    public Set<BooleanFormula> getInvariantsFor(
+    public BooleanFormula getInvariantFor(
         CFANode pNode, FormulaManagerView pFmgr, PathFormulaManager pPfmgr, PathFormula pContext) {
+      final BooleanFormulaManager bfmgr = pFmgr.getBooleanFormulaManager();
       return invariantSuppliers
           .stream()
-          .flatMap(s -> s.getInvariantsFor(pNode, pFmgr, pPfmgr, pContext).stream())
+          .map(s -> s.getInvariantFor(pNode, pFmgr, pPfmgr, pContext))
           .filter(f -> !pFmgr.getBooleanFormulaManager().isTrue(f))
-          .collect(Collectors.toSet());
+          .reduce(bfmgr.makeBoolean(true), bfmgr::and);
     }
   }
 

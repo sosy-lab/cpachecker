@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Predicates.in;
+import static com.google.common.base.Predicates.equalTo;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
@@ -86,7 +86,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -353,23 +352,14 @@ public class PredicateAbstractionManager {
 
     // add invariants to abstraction formula if available
     if (invariantSupplier != TrivialInvariantSupplier.INSTANCE) {
-      Set<BooleanFormula> invariants =
-          invariantSupplier
-              .getInvariantsFor(location, fmgr, pfmgr, pathFormula)
-              .stream()
-              .filter(i -> !bfmgr.isTrue(i))
-              .collect(Collectors.toSet());
+      BooleanFormula invariant = invariantSupplier.getInvariantFor(location, fmgr, pfmgr, pathFormula);
 
-      if (!invariants.isEmpty()) {
-        Collection<AbstractionPredicate> invPredicates = new ArrayList<>();
-        for (BooleanFormula inv : invariants) {
-          AbstractionPredicate absPred = amgr.makePredicate(inv);
-          invPredicates.add(absPred);
-          abs = rmgr.makeAnd(abs, absPred.getAbstractVariable());
-        }
+      if (!bfmgr.isTrue(invariant)) {
+        AbstractionPredicate absPred = amgr.makePredicate(invariant);
+        abs = rmgr.makeAnd(abs, absPred.getAbstractVariable());
 
         // Calculate the set of predicates we still need to use for abstraction.
-        Iterables.removeIf(remainingPredicates, in(invPredicates));
+        Iterables.removeIf(remainingPredicates, equalTo(absPred));
       }
     }
 
