@@ -387,7 +387,7 @@ public class ParallelAlgorithm implements Algorithm {
     return reached;
   }
 
-  public class CompoundException extends CPAException {
+  public static class CompoundException extends CPAException {
 
     private static final long serialVersionUID = -8880889342586540115L;
 
