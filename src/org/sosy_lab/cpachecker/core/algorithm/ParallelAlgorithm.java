@@ -86,7 +86,7 @@ public class ParallelAlgorithm implements Algorithm {
         "List of files with configurations to use. Files can be suffixed with"
             + " ::supply-reached this signalizes that the (finished) reached set"
             + " of an analysis can be used in other analyses (e.g. for invariants"
-            + " computation). If you use the suffix ::supply-reached-refineable instead"
+            + " computation). If you use the suffix ::supply-reached-refinable instead"
             + " this means that the reached set supplier is additionally continously"
             + " refined (so one of the analysis has to be instanceof ReachedSetAdjustingCPA)"
             + " to make this work properly."
@@ -228,7 +228,7 @@ public class ParallelAlgorithm implements Algorithm {
       Iterator<String> configIt = parts.iterator();
       singleConfigFileName = Paths.get(configIt.next());
       supplyReached = Iterables.contains(parts, "supply-reached");
-      supplyRefinableReached = Iterables.contains(parts, "supply-reached-refineable");
+      supplyRefinableReached = Iterables.contains(parts, "supply-reached-refinable");
 
       singleConfig = createSingleConfig(singleConfigFileName);
 
