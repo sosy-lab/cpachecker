@@ -43,7 +43,7 @@ import java.util.logging.Level;
 
 public class SMGInterpolant {
 
-  private static final SMGInterpolant FALSE = new SMGInterpolant(null);
+  private static final SMGInterpolant FALSE = new SMGInterpolant(ImmutableSet.of());
 
   private final Set<SMGAbstractionBlock> abstractionBlock;
   private final Set<SMGMemoryPath> trackedMemoryPaths;
