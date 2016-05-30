@@ -665,18 +665,10 @@ public class CLangSMG extends SMG {
       String functionName = pLocation.getFunctionName();
       int locationOnStack = pLocation.getLocationOnStack();
 
-      if (stack_objects.size() > locationOnStack) {
+      if (stack_objects.size() <= locationOnStack) {
         return Optional.absent();
       }
-
-      Iterator<CLangStackFrame> it = stack_objects.iterator();
-      int i = 1;
-
-      while (i < locationOnStack) {
-        it.next();
-      }
-
-      CLangStackFrame frame = it.next();
+      CLangStackFrame frame = Iterables.get(stack_objects, locationOnStack);
 
       if (!frame.getFunctionDeclaration().getName().equals(functionName)) {
         throw new SMGInconsistentException(
