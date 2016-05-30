@@ -135,6 +135,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
   protected final LogManager logger;
   private final ReachedSetFactory reachedSetFactory;
   private final CFA cfa;
+  private final Set<CFANode> loopHeads;
 
   protected final ShutdownNotifier shutdownNotifier;
 
@@ -157,12 +158,13 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     logger = pLogger;
     reachedSetFactory = pReachedSetFactory;
     cfa = pCFA;
+    loopHeads = BMCHelper.getLoopHeads(pCFA);
 
     shutdownNotifier = pShutdownManager.getNotifier();
     targetLocationProvider = new CachingTargetLocationProvider(reachedSetFactory, shutdownNotifier, logger, pConfig, cfa);
 
     if (induction) {
-      induction = checkIfInductionIsPossible(pCFA, pLogger, Optional.of(targetLocationProvider));
+      induction = checkIfInductionIsPossible(pCFA, pLogger, loopHeads);
     }
 
     if (induction) {
@@ -223,7 +225,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
   }
 
-  static boolean checkIfInductionIsPossible(CFA cfa, LogManager logger, Optional<TargetLocationProvider> pTargetLocationProvider) {
+  static boolean checkIfInductionIsPossible(CFA cfa, LogManager logger, Set<CFANode> loopHeads) {
     if (!cfa.getLoopStructure().isPresent()) {
       logger.log(Level.WARNING, "Could not use induction for proving program safety, loop structure of program could not be determined.");
       return false;
@@ -236,11 +238,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
       return false;
     }
 
-    if (pTargetLocationProvider.isPresent()) {
-      return !BMCHelper.getLoopHeads(cfa, pTargetLocationProvider.get()).isEmpty();
-    }
-
-    return true;
+    return !loopHeads.isEmpty();
   }
 
   public AlgorithmStatus run(final ReachedSet reachedSet) throws CPAException,
@@ -576,6 +574,6 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
    * @return the loop heads.
    */
   protected Set<CFANode> getLoopHeads() {
-    return BMCHelper.getLoopHeads(cfa, targetLocationProvider);
+    return loopHeads;
   }
 }
