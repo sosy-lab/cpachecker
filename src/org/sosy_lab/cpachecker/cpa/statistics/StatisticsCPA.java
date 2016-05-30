@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.statistics;
 
-import java.util.Collection;
-
+import org.sosy_lab.common.annotations.Unmaintained;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -55,12 +54,15 @@ import org.sosy_lab.cpachecker.cpa.statistics.StatisticsState.StatisticsStateFac
 import org.sosy_lab.cpachecker.cpa.statistics.provider.SimpleIntProviderFactory;
 import org.sosy_lab.cpachecker.cpa.statistics.provider.SimpleIntProviderFactory.MergeOption;
 
+import java.util.Collection;
+
 /**
  * Implementation of the StatisticsCPA for code analysis within the CPAchecker framework.
  * You can enable the analysis with cpa=cpa.statistics.StatisticsCPA.
  * All metrics can be enabled and disabled on an individual basus with the "cpa.statistics.metric.*" options.
  */
-@Options(prefix="cpa.statistics")
+@Options(prefix = "cpa.statistics")
+@Unmaintained
 public class StatisticsCPA implements StatisticsProvider, ConfigurableProgramAnalysis {
 
   private StatisticsStateFactory factory;

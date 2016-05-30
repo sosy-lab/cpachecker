@@ -1415,7 +1415,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   @Override
   public SMGState join(SMGState reachedState) {
     // Not necessary if merge_SEP or SMGMerge and stop_SEP is used.
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   /**
