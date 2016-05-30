@@ -43,17 +43,14 @@ import java.util.logging.Level;
 
 public class SMGInterpolant {
 
-  private static final SMGInterpolant FALSE = new SMGInterpolant(null, null);
+  private static final SMGInterpolant FALSE = new SMGInterpolant(null);
 
   private final Set<SMGAbstractionBlock> abstractionBlock;
   private final Set<SMGMemoryPath> trackedMemoryPaths;
   private final Set<SMGState> smgStates;
-  private final LogManager logger;
 
-  public SMGInterpolant(Set<SMGState> pStates,
-      LogManager pLogger) {
+  public SMGInterpolant(Set<SMGState> pStates) {
     smgStates = ImmutableSet.copyOf(pStates);
-    logger = pLogger;
     abstractionBlock = ImmutableSet.of();
 
     Set<SMGMemoryPath> memoryPaths = new HashSet<>();
@@ -65,11 +62,9 @@ public class SMGInterpolant {
     trackedMemoryPaths = memoryPaths;
   }
 
-  public SMGInterpolant(Set<SMGState> pStates,
-      LogManager pLogger, Set<SMGAbstractionBlock> pAbstractionBlock) {
+  public SMGInterpolant(Set<SMGState> pStates, Set<SMGAbstractionBlock> pAbstractionBlock) {
 
     smgStates = ImmutableSet.copyOf(pStates);
-    logger = pLogger;
     abstractionBlock = pAbstractionBlock;
 
     Set<SMGMemoryPath> memoryPaths = new HashSet<>();
@@ -146,7 +141,7 @@ public class SMGInterpolant {
 
     Set<SMGAbstractionBlock> jointAbstractionBlock = new HashSet<>(abstractionBlock);
     jointAbstractionBlock.addAll(pOtherInterpolant.abstractionBlock);
-    return new SMGInterpolant(joinResult, logger, jointAbstractionBlock);
+    return new SMGInterpolant(joinResult, jointAbstractionBlock);
   }
 
   public static SMGInterpolant createInitial(LogManager logger, MachineModel model,
@@ -161,7 +156,7 @@ public class SMGInterpolant {
       logger.log(Level.SEVERE, exc.getMessage());
     }
 
-    return new SMGInterpolant(ImmutableSet.of(initState), logger);
+    return new SMGInterpolant(ImmutableSet.of(initState));
   }
 
   public static SMGInterpolant getFalseInterpolant() {
@@ -192,7 +187,7 @@ public class SMGInterpolant {
 
     newState.clearValues();
 
-    return new SMGInterpolant(ImmutableSet.of(newState), template.logger);
+    return new SMGInterpolant(ImmutableSet.of(newState));
   }
 
   public SMGPrecisionIncrement getPrecisionIncrement() {

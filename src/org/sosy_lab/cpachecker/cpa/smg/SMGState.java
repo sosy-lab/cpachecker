@@ -2136,11 +2136,11 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   public SMGInterpolant createInterpolant(Set<SMGAbstractionBlock> pAbstractionBlocks) {
-    return new SMGInterpolant(ImmutableSet.of(this), logger, pAbstractionBlocks);
+    return new SMGInterpolant(ImmutableSet.of(this), pAbstractionBlocks);
   }
 
   public SMGInterpolant createInterpolant() {
-    return new SMGInterpolant(ImmutableSet.of(this), logger);
+    return new SMGInterpolant(ImmutableSet.of(this));
   }
 
   public void clearValues() {
