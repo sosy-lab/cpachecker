@@ -91,9 +91,9 @@ public class CoreComponentsFactory {
   @Option(secure=true, description="use a second model checking run (e.g., with CBMC or a different CPAchecker configuration) to double-check counter-examples")
   private boolean checkCounterexamples = false;
 
-  @Option(secure=true, name="checkCounterexamplesWithBDDCPARestriction",
+  @Option(secure=true,
       description="use counterexample check and the BDDCPA Restriction option")
-  private boolean useBDDCPARestriction = false;
+  private boolean checkCounterexamplesWithBDDCPARestriction = false;
 
   @Option(secure=true, name="algorithm.BMC",
       description="use a BMC like algorithm that checks for satisfiability "
@@ -181,6 +181,10 @@ public class CoreComponentsFactory {
 
     reachedSetFactory = new ReachedSetFactory(config);
     cpaFactory = new CPABuilder(config, logger, shutdownNotifier, reachedSetFactory);
+
+    if (checkCounterexamplesWithBDDCPARestriction) {
+      checkCounterexamples = true;
+    }
   }
 
   private boolean analysisNeedsShutdownManager() {
@@ -246,7 +250,7 @@ public class CoreComponentsFactory {
           ExceptionHandlingAlgorithm.create(
               config, algorithm, cpa, logger, shutdownNotifier, checkCounterexamples, useCEGAR);
 
-      if (useBDDCPARestriction) {
+      if (checkCounterexamplesWithBDDCPARestriction) {
         algorithm = new BDDCPARestrictionAlgorithm(algorithm, cpa, config, logger);
       }
 
