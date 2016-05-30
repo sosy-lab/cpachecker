@@ -221,6 +221,9 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
   private AlgorithmStatus run0(final ReachedSet reachedSet) throws CPAException, InterruptedException {
     while (reachedSet.hasWaitingState()) {
       shutdownNotifier.shutdownIfNecessary();
+      if (Thread.interrupted()) {
+        throw new InterruptedException();
+      }
 
       stats.countIterations++;
 
