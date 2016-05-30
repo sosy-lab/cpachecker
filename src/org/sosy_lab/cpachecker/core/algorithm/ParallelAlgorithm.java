@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory.SpecAutomatonCompositionType;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -403,40 +402,40 @@ public class ParallelAlgorithm implements Algorithm {
       return exceptions;
     }
   }
-}
 
-class ParallelAnalysisResult {
+  private static class ParallelAnalysisResult {
 
-  private final ReachedSet reached;
-  private final AlgorithmStatus status;
+    private final ReachedSet reached;
+    private final AlgorithmStatus status;
 
-  private ParallelAnalysisResult(ReachedSet pReached, AlgorithmStatus pStatus) {
-    reached = pReached;
-    status = pStatus;
-  }
-
-  public static ParallelAnalysisResult of(ReachedSet pReached, AlgorithmStatus pStatus) {
-    return new ParallelAnalysisResult(pReached, pStatus);
-  }
-
-  public static ParallelAnalysisResult absent() {
-    return new ParallelAnalysisResult(null, null);
-  }
-
-  public boolean hasValidReachedSet() {
-    if (reached == null || status == null) {
-      return false;
+    private ParallelAnalysisResult(ReachedSet pReached, AlgorithmStatus pStatus) {
+      reached = pReached;
+      status = pStatus;
     }
 
-    return (from(reached).anyMatch(IS_TARGET_STATE) && status.isPrecise())
-        || status.isSound() && !reached.hasWaitingState();
-  }
+    public static ParallelAnalysisResult of(ReachedSet pReached, AlgorithmStatus pStatus) {
+      return new ParallelAnalysisResult(pReached, pStatus);
+    }
 
-  public ReachedSet getReached() {
-    return reached;
-  }
+    public static ParallelAnalysisResult absent() {
+      return new ParallelAnalysisResult(null, null);
+    }
 
-  public AlgorithmStatus getStatus() {
-    return status;
+    public boolean hasValidReachedSet() {
+      if (reached == null || status == null) {
+        return false;
+      }
+
+      return (from(reached).anyMatch(IS_TARGET_STATE) && status.isPrecise())
+          || status.isSound() && !reached.hasWaitingState();
+    }
+
+    public ReachedSet getReached() {
+      return reached;
+    }
+
+    public AlgorithmStatus getStatus() {
+      return status;
+    }
   }
 }
