@@ -108,6 +108,13 @@ public class CEXExporter {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathAutomatonGraphmlFile = PathTemplate.ofFormatString("Counterexample.%d.graphml");
 
+  @Option(
+    secure = true,
+    name = "compressErrorWitness",
+    description = "compress the produced error-witness automata using GZIP compression."
+  )
+  private boolean compressErrorWitness = true;
+
   @Option(secure=true, name="codeStyle",
           description="exports either CMBC format or a concrete path program")
   private CounterexampleExportType codeStyle = CounterexampleExportType.CBMC;
@@ -252,16 +259,27 @@ public class CEXExporter {
                     rootState,
                     Predicates.in(pathElements),
                     isTargetPathEdge,
-                    counterexample));
+                    counterexample),
+        compressErrorWitness);
   }
 
   private void writeErrorPathFile(PathTemplate template, int uniqueId, Object content) {
+    writeErrorPathFile(template, uniqueId, content, false);
+  }
+
+  private void writeErrorPathFile(
+      PathTemplate template, int uniqueId, Object content, boolean pCompress) {
     if (template != null) {
       // fill in index in file name
       Path file = template.getPath(uniqueId);
 
       try {
-        MoreFiles.writeFile(file, Charset.defaultCharset(), content);
+        if (!pCompress) {
+          MoreFiles.writeFile(file, Charset.defaultCharset(), content);
+        } else {
+          file = file.resolveSibling(file.getFileName() + ".gz");
+          MoreFiles.writeGZIPFile(file, Charset.defaultCharset(), content);
+        }
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,
                 "Could not write information about the error path to file");
