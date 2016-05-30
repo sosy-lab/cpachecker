@@ -73,6 +73,7 @@ import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 @Options(prefix = "parallelAlgorithm")
@@ -101,7 +102,7 @@ public class ParallelAlgorithm implements Algorithm {
   private final CFA cfa;
   private final String filename;
 
-  private volatile ReachedSet finalReachedSet = null;
+  private ReachedSet finalReachedSet = null;
   private CFANode mainEntryNode = null;
   private final AggregatedReachedSetManager aggregatedReachedSetManager;
 
@@ -136,47 +137,16 @@ public class ParallelAlgorithm implements Algorithm {
     for (Path p : configFiles) {
       futures.add(exec.submit(createAlgorithm(p, counter++)));
     }
-    final FutureCallback<Optional<ReachedSet>> callback = new FutureCallback<Optional<ReachedSet>>() {
-      @Override
-      public void onSuccess(Optional<ReachedSet> pResult) {
-        if (pResult.isPresent() && finalReachedSet == null) {
-          // at first cancel other computations
-          logger.log(Level.INFO, "One of the parallel analyses has finished, cancelling all other runs.");
-          futures.forEach(f -> f.cancel(true));
-          finalReachedSet = pResult.get();
-        }
-      }
+    addCancellationCallback(futures);
 
-      @Override
-      public void onFailure(Throwable pT) {
-        logger.logUserException(Level.WARNING, pT, "Analysis did not finish normally");
-      }};
-    futures.forEach(f -> Futures.addCallback(f, callback));
-
+    // shutdown the executor service,
     exec.shutdown();
-    try {
-      Futures.allAsList(futures).get();
-    } catch (ExecutionException e) {
-      Throwable cause = e.getCause();
-      if (cause instanceof RuntimeException) {
-        throw (RuntimeException) cause;
-      } else if (cause instanceof Error) {
-        throw (Error) cause;
-      } else if (cause instanceof CPAException) {
-          if (cause.getMessage().contains("recursion")) {
-            logger.logUserException(Level.WARNING, e, "Analysis not completed due to recursion");
-          }
-          if (cause.getMessage().contains("pthread_create")) {
-            logger.logUserException(Level.WARNING, e, "Analysis not completed due to concurrency");
-          }
-          if (finalReachedSet == null) {
-            throw (CPAException) cause;
-          }
-      } else {
-        throw new CPAException("An unexpected exception occured", e);
-      }
-    } catch (CancellationException e) {
-      // do nothing, this is normal if we cancel other analyses
+
+    handleFutureResults(futures);
+
+    // wait some time so that all threads are shut down and have (hopefully) finished their logging
+    if (!exec.awaitTermination(10, TimeUnit.SECONDS)) {
+      logger.log(Level.WARNING, "Not all threads are terminated although we have a result.");
     }
 
     if (finalReachedSet != null) {
@@ -185,6 +155,56 @@ public class ParallelAlgorithm implements Algorithm {
     }
 
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
+  }
+
+  private void handleFutureResults(List<ListenableFuture<Optional<ReachedSet>>> futures)
+      throws InterruptedException, Error, CPAException {
+    for (ListenableFuture<Optional<ReachedSet>> f : futures) {
+      try {
+        Optional<ReachedSet> set = f.get();
+        if (set.isPresent() && finalReachedSet == null) {
+          finalReachedSet = set.get();
+        }
+      } catch (ExecutionException e) {
+        Throwable cause = e.getCause();
+        if (cause instanceof RuntimeException) {
+          throw (RuntimeException) cause;
+        } else if (cause instanceof Error) {
+          throw (Error) cause;
+        } else if (cause instanceof CPAException) {
+            if (cause.getMessage().contains("recursion")) {
+              logger.logUserException(Level.WARNING, e, "Analysis not completed due to recursion");
+            }
+            if (cause.getMessage().contains("pthread_create")) {
+              logger.logUserException(Level.WARNING, e, "Analysis not completed due to concurrency");
+            }
+            if (finalReachedSet == null) {
+              throw (CPAException) cause;
+            }
+        } else {
+          throw new CPAException("An unexpected exception occured", e);
+        }
+      } catch (CancellationException e) {
+        // do nothing, this is normal if we cancel other analyses
+      }
+    }
+  }
+
+  private void addCancellationCallback(List<ListenableFuture<Optional<ReachedSet>>> futures) {
+    final FutureCallback<Optional<ReachedSet>> callback = new FutureCallback<Optional<ReachedSet>>() {
+      @Override
+      public void onSuccess(Optional<ReachedSet> pResult) {
+        if (pResult.isPresent()) {
+          // cancel other computations
+          logger.log(Level.INFO, "One of the parallel analyses has finished, cancelling all other runs.");
+          futures.forEach(f -> f.cancel(true));
+        }
+      }
+
+      @Override
+      public void onFailure(Throwable pT) {}
+    };
+    futures.forEach(f -> Futures.addCallback(f, callback));
   }
 
   private Callable<Optional<ReachedSet>> createAlgorithm(Path singleConfigFileName, int numberOfAnalysis) {
