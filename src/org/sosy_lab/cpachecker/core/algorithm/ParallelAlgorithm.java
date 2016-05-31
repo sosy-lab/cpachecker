@@ -207,9 +207,10 @@ public class ParallelAlgorithm implements Algorithm {
           public void onSuccess(ParallelAnalysisResult pResult) {
             if (pResult.hasValidReachedSet()) {
               // cancel other computations
-              logger.log(
-                  Level.INFO,
-                  "One of the parallel analyses has finished, cancelling all other runs.");
+              String message =
+                  "One of the parallel analyses has finished, cancelling all other runs.";
+              logger.log(Level.INFO, message);
+              shutdownManager.requestShutdown(message);
               futures.forEach(f -> f.cancel(true));
             }
           }
