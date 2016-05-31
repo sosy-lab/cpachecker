@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
@@ -132,7 +133,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
       LogManager logger,
       BlockOperator pBlk,
       CFA pCfa,
-      ShutdownNotifier pShutdownNotifier)
+      ShutdownNotifier pShutdownNotifier,
+      Specification specification)
       throws InvalidConfigurationException, CPAException {
     config.inject(this, PredicateCPA.class);
 
@@ -173,7 +175,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     abstractionManager = new AbstractionManager(regionManager, config, logger, solver);
 
     prefixProvider = new PredicateBasedPrefixProvider(config, logger, solver, pathFormulaManager);
-    invariantsManager = new InvariantsManager(config, logger, pShutdownNotifier, pCfa);
+    invariantsManager =
+        new InvariantsManager(config, logger, pShutdownNotifier, pCfa, specification);
 
     predicateManager =
         new PredicateAbstractionManager(

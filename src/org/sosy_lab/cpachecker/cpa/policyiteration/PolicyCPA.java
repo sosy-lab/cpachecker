@@ -14,6 +14,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.DoNothingInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
@@ -87,8 +88,9 @@ public class PolicyCPA extends SingleEdgeTransferRelation
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier shutdownNotifier,
-      CFA cfa
-  ) throws InvalidConfigurationException, CPAException {
+      CFA cfa,
+      Specification specification)
+      throws InvalidConfigurationException, CPAException {
     pConfig.inject(this);
 
     logger = pLogger;
@@ -109,7 +111,7 @@ public class PolicyCPA extends SingleEdgeTransferRelation
       ShutdownManager invariantShutdown = ShutdownManager.createWithParent(shutdownNotifier);
       invariantGenerator =
           CPAInvariantGenerator.create(
-              config, logger, invariantShutdown, Optional.absent(), cfa);
+              config, logger, invariantShutdown, Optional.absent(), cfa, specification);
     } else {
       invariantGenerator = new DoNothingInvariantGenerator();
     }

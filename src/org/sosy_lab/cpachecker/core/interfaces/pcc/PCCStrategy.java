@@ -28,6 +28,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -100,6 +101,7 @@ public interface PCCStrategy {
         LogManager logger,
         ShutdownNotifier shutdownNotifier,
         CFA cfa,
+        Specification specification,
         ProofChecker proofChecker,
         PropertyCheckerCPA propertyChecker)
         throws InvalidConfigurationException;

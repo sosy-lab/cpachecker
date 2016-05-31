@@ -33,7 +33,6 @@ import com.google.common.base.Preconditions;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -43,7 +42,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
-import org.sosy_lab.cpachecker.core.CoreComponentsFactory.SpecAutomatonCompositionType;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator.LazyLocationMapping;
@@ -97,6 +96,7 @@ public class CPAcheckerInvariantGenerator extends AbstractInvariantGenerator {
       Configuration config,
       ShutdownNotifier pShutdownNotifier,
       LogManager pLogger,
+      Specification specification,
       CFA pCfa,
       String pFilename)
       throws InvalidConfigurationException, IOException, CPAException {
@@ -104,13 +104,7 @@ public class CPAcheckerInvariantGenerator extends AbstractInvariantGenerator {
     logger = pLogger;
     cfa = pCfa;
 
-    ConfigurationBuilder configBuilder = Configuration.builder().loadFromFile(configPath);
-    // we want the invariant generator to run with the same specification as the outside
-    // analysis, otherwise the invariants might be useless for us
-    if (config.hasProperty("specification")) {
-      configBuilder.copyOptionFrom(config, "specification");
-    }
-    Configuration invgenConfig = configBuilder.build();
+    Configuration invgenConfig = Configuration.builder().loadFromFile(configPath).build();
 
     shutdownNotifier = ShutdownManager.createWithParent(pShutdownNotifier);
 
@@ -118,8 +112,8 @@ public class CPAcheckerInvariantGenerator extends AbstractInvariantGenerator {
         new CoreComponentsFactory(invgenConfig, logger, shutdownNotifier.getNotifier());
     reached = componentsFactory.createReachedSet();
 
-    cpa = componentsFactory.createCPA(pCfa, SpecAutomatonCompositionType.TARGET_SPEC);
-    algorithm = componentsFactory.createAlgorithm(cpa, pFilename, pCfa);
+    cpa = componentsFactory.createCPA(pCfa, specification);
+    algorithm = componentsFactory.createAlgorithm(cpa, pFilename, pCfa, specification);
 
     formulaWriter = new StateToFormulaWriter(config, logger, shutdownNotifier.getNotifier(), cfa);
   }

@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
@@ -97,22 +98,23 @@ public class TargetReachabilityCPA extends SingleEdgeTransferRelation
       ShutdownNotifier shutdownNotifier,
       LogManager pLogger,
       CFA pCfa,
-      ReachedSetFactory pReachedSetFactory
-  ) throws InvalidConfigurationException, CPAException {
+      ReachedSetFactory pReachedSetFactory,
+      Specification pSpecification)
+      throws InvalidConfigurationException, CPAException {
     pConfig.inject(this);
 
     abstractDomain = new FlatLatticeDomain(ReachabilityState.RELEVANT_TO_TARGET);
     mergeOperator = new MergeJoinOperator(abstractDomain);
     stopOperator = new StopSepOperator(abstractDomain);
 
-    TargetLocationProvider targetProvider = new TargetLocationProviderImpl(
-        pReachedSetFactory, shutdownNotifier, pLogger, pConfig, pCfa);
+    TargetLocationProvider targetProvider =
+        new TargetLocationProviderImpl(pReachedSetFactory, shutdownNotifier, pLogger, pCfa);
     if (noFollowBackwardsUnreachable) {
       backwardsReachability.start();
       ImmutableSet.Builder<CFANode> builder = ImmutableSet.builder();
       try {
         Set<CFANode> targetNodes =
-            targetProvider.tryGetAutomatonTargetLocations(pCfa.getMainFunction());
+            targetProvider.tryGetAutomatonTargetLocations(pCfa.getMainFunction(), pSpecification);
         for (CFANode target : targetNodes) {
           builder.addAll(CFATraversal.dfs().backwards()
               .collectNodesReachableFrom(target));

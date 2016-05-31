@@ -73,8 +73,6 @@ import javax.annotation.Nullable;
 @Options(prefix="analysis")
 public class CoreComponentsFactory {
 
-  public static enum SpecAutomatonCompositionType { NONE, TARGET_SPEC, BACKWARD_TO_ENTRY_SPEC }
-
   @Option(secure=true, description="use assumption collecting algorithm")
   private boolean collectAssumptions = false;
 
@@ -199,8 +197,11 @@ public class CoreComponentsFactory {
         && useBMC;
   }
 
-  public Algorithm createAlgorithm(final ConfigurableProgramAnalysis cpa,
-      final String programDenotation, final CFA cfa)
+  public Algorithm createAlgorithm(
+      final ConfigurableProgramAnalysis cpa,
+      final String programDenotation,
+      final CFA cfa,
+      final Specification specification)
       throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating algorithms");
 
@@ -208,23 +209,29 @@ public class CoreComponentsFactory {
 
     if (useProofCheckAlgorithm) {
       logger.log(Level.INFO, "Using Proof Check Algorithm");
-      algorithm = new ProofCheckAlgorithm(cpa, config, logger, shutdownNotifier, cfa);
+      algorithm =
+          new ProofCheckAlgorithm(cpa, config, logger, shutdownNotifier, cfa, specification);
 
     } else if (useRestartingAlgorithm) {
       logger.log(Level.INFO, "Using Restarting Algorithm");
-      algorithm = RestartAlgorithm.create(config, logger, shutdownNotifier, programDenotation, cfa);
+      algorithm =
+          RestartAlgorithm.create(
+              config, logger, shutdownNotifier, specification, programDenotation, cfa);
 
     } else if (useImpactAlgorithm) {
       algorithm = new ImpactAlgorithm(config, logger, shutdownNotifier, cpa, cfa);
 
     } else if (useRestartAlgorithmWithARGReplay) {
-      algorithm = new RestartAlgorithmWithARGReplay(config, logger, shutdownNotifier, cfa);
+      algorithm =
+          new RestartAlgorithmWithARGReplay(config, logger, shutdownNotifier, cfa, specification);
 
     } else if (runCBMCasExternalTool) {
       algorithm = new ExternalCBMCAlgorithm(programDenotation, config, logger);
 
     } else if (useParallelAlgorithm) {
-      algorithm = new ParallelAlgorithm(config, logger, shutdownNotifier, cfa, programDenotation);
+      algorithm =
+          new ParallelAlgorithm(
+              config, logger, shutdownNotifier, specification, cfa, programDenotation);
 
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
@@ -239,7 +246,16 @@ public class CoreComponentsFactory {
 
       if (useBMC) {
         verifyNotNull(shutdownManager);
-        algorithm = new BMCAlgorithm(algorithm, cpa, config, logger, reachedSetFactory, shutdownManager, cfa);
+        algorithm =
+            new BMCAlgorithm(
+                algorithm,
+                cpa,
+                config,
+                logger,
+                reachedSetFactory,
+                shutdownManager,
+                cfa,
+                specification);
       }
 
       if (checkCounterexamples) {
@@ -272,7 +288,9 @@ public class CoreComponentsFactory {
       }
 
       if (useResultCheckAlgorithm) {
-        algorithm = new ResultCheckAlgorithm(algorithm, cpa, cfa, config, logger, shutdownNotifier);
+        algorithm =
+            new ResultCheckAlgorithm(
+                algorithm, cpa, cfa, config, logger, shutdownNotifier, specification);
       }
 
       if (useCustomInstructionRequirementExtraction) {
@@ -307,8 +325,8 @@ public class CoreComponentsFactory {
     return reached;
   }
 
-  public ConfigurableProgramAnalysis createCPA(final CFA cfa,
-      SpecAutomatonCompositionType composeWithSpecificationCPAs) throws InvalidConfigurationException, CPAException {
+  public ConfigurableProgramAnalysis createCPA(final CFA cfa, final Specification specification)
+      throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
 
     if (useRestartingAlgorithm) {
@@ -316,16 +334,6 @@ public class CoreComponentsFactory {
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
     }
 
-    final ConfigurableProgramAnalysis cpa;
-    switch (composeWithSpecificationCPAs) {
-    case TARGET_SPEC:
-      cpa = cpaFactory.buildCPAWithSpecAutomatas(cfa); break;
-    case BACKWARD_TO_ENTRY_SPEC:
-      cpa = cpaFactory.buildCPAWithBackwardSpecAutomatas(cfa); break;
-    default:
-      cpa = cpaFactory.buildCPAs(cfa, null);
-    }
-
-    return cpa;
+    return cpaFactory.buildCPAs(cfa, specification);
   }
 }

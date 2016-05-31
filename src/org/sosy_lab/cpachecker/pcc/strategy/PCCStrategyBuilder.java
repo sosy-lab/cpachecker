@@ -31,6 +31,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PCCStrategy;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
@@ -52,7 +53,7 @@ public class PCCStrategyBuilder {
     }
   )
   private PCCStrategy.Factory strategy =
-      (config, logger, shutdownNotifier, cfa, proofChecker, propertyChecker) ->
+      (config, logger, shutdownNotifier, cfa, specification, proofChecker, propertyChecker) ->
           new ARGProofCheckerStrategy(config, logger, shutdownNotifier, proofChecker);
 
   private PCCStrategyBuilder() {}
@@ -62,7 +63,8 @@ public class PCCStrategyBuilder {
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       ConfigurableProgramAnalysis pCpa,
-      CFA pCfa)
+      CFA pCfa,
+      Specification pSpecification)
       throws InvalidConfigurationException {
 
     PCCStrategyBuilder builder = new PCCStrategyBuilder();
@@ -73,6 +75,6 @@ public class PCCStrategyBuilder {
         pCpa instanceof PropertyCheckerCPA ? (PropertyCheckerCPA) pCpa : null;
 
     return builder.strategy.create(
-        pConfig, pLogger, pShutdownNotifier, pCfa, proofChecker, propertyChecker);
+        pConfig, pLogger, pShutdownNotifier, pCfa, pSpecification, proofChecker, propertyChecker);
   }
 }

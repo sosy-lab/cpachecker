@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Predicates.equalTo;
 import static com.google.common.base.Predicates.instanceOf;
@@ -65,6 +66,7 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.AbstractLocationFormulaInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateGenerator;
@@ -305,6 +307,7 @@ class InvariantsManager implements StatisticsProvider {
   private final Configuration config;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
+  private final Specification specification;
   private final Stats stats = new Stats();
 
   private final Map<CFANode, BooleanFormula> loopFormulaCache = new HashMap<>();
@@ -316,13 +319,18 @@ class InvariantsManager implements StatisticsProvider {
   private final InvariantsSupplier cpaCheckerInvariantSupplierSingleton;
 
   public InvariantsManager(
-      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
+      Configuration pConfig,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCfa,
+      Specification pSpecification)
       throws InvalidConfigurationException, CPAException {
     pConfig.inject(this);
 
     config = pConfig;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
+    specification = checkNotNull(pSpecification);
 
     locationInvariantsCache = CacheBuilder.newBuilder().recordStats().build();
     cfa = pCfa;
@@ -821,7 +829,13 @@ class InvariantsManager implements StatisticsProvider {
                         }
                       }));
 
-      new KInductionInvariantChecker(config, pInvariantShutdown, new OnlyWarningsLogmanager(logger), cfa, candidateGenerator)
+      new KInductionInvariantChecker(
+              config,
+              pInvariantShutdown,
+              new OnlyWarningsLogmanager(logger),
+              cfa,
+              specification,
+              candidateGenerator)
           .checkCandidates();
 
       Set<CandidateInvariant> invariants = candidateGenerator.getConfirmedCandidates();
@@ -894,6 +908,7 @@ class InvariantsManager implements StatisticsProvider {
               pInvariantShutdown,
               Optional.<ShutdownManager>absent(),
               cfa,
+              specification,
               automata);
 
       return generateInvariants0(abstractionStatesTrace, invGen);
@@ -968,6 +983,7 @@ class InvariantsManager implements StatisticsProvider {
               pInvariantShutdown,
               new OnlyWarningsLogmanager(logger),
               cfa,
+              specification,
               candidateGenerator);
       invChecker.checkCandidates();
 
@@ -1221,7 +1237,8 @@ class InvariantsManager implements StatisticsProvider {
               new OnlyWarningsLogmanager(logger.withComponentName("Async Invgen")),
               ShutdownManager.createWithParent(shutdownNotifier),
               Optional.<ShutdownManager>absent(),
-              cfa));
+              cfa,
+              specification));
     }
   }
 
@@ -1238,6 +1255,7 @@ class InvariantsManager implements StatisticsProvider {
               config,
               shutdownNotifier,
               new OnlyWarningsLogmanager(logger.withComponentName("CPAchecker Invgen")),
+              specification,
               cfa,
               ""));
     }

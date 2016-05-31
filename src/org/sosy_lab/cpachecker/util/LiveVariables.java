@@ -72,6 +72,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -535,10 +536,9 @@ public class LiveVariables {
       }
 
       ReachedSetFactory reachedFactory = new ReachedSetFactory(config);
-      ConfigurableProgramAnalysis cpa = new CPABuilder(config,
-                                                       logger,
-                                                       shutdownNotifier,
-                                                       reachedFactory).buildCPAWithSpecAutomatas(cfa);
+      ConfigurableProgramAnalysis cpa =
+          new CPABuilder(config, logger, shutdownNotifier, reachedFactory)
+              .buildCPAs(cfa, Specification.alwaysSatisfied());
       Algorithm algorithm = CPAAlgorithm.create(cpa,
                                                 logger,
                                                 config,

@@ -83,7 +83,7 @@ public class ProofGenerator {
     logger = pLogger;
 
     checkingStrategy =
-        PCCStrategyBuilder.buildStrategy(pConfig, pLogger, pShutdownNotifier, null, null);
+        PCCStrategyBuilder.buildStrategy(pConfig, pLogger, pShutdownNotifier, null, null, null);
   }
 
   public void generateProof(CPAcheckerResult pResult) {

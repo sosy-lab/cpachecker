@@ -23,11 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.pcc;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.logging.Level;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -35,13 +31,13 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import java.nio.file.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -51,6 +47,13 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.error.DummyErrorState;
+
+import java.io.IOException;
+import java.io.PrintStream;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.logging.Level;
 
 @Options
 public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
@@ -97,6 +100,7 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
   private final Algorithm analysisAlgorithm;
   private final ConfigurableProgramAnalysis cpa;
   private final CFA analyzedProgram;
+  private final Specification specification;
   private final ResultCheckStatistics stats;
   @Option(secure=true,
       name = "pcc.resultcheck.writeProof",
@@ -108,8 +112,15 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path checkerConfig;
 
-  public ResultCheckAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa, CFA pCfa,
-      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+  public ResultCheckAlgorithm(
+      Algorithm pAlgorithm,
+      ConfigurableProgramAnalysis pCpa,
+      CFA pCfa,
+      Configuration pConfig,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      Specification pSpecification)
+      throws InvalidConfigurationException {
     pConfig.inject(this);
     analysisAlgorithm = pAlgorithm;
     analyzedProgram = pCfa;
@@ -117,6 +128,7 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
     logger = pLogger;
     config = pConfig;
     shutdownNotifier = pShutdownNotifier;
+    specification = checkNotNull(pSpecification);
     stats = new ResultCheckStatistics();
   }
 
@@ -181,8 +193,15 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
   private AlgorithmStatus resultCheckingWithoutWritingProof(final ReachedSet pVerificationResult)
       throws InvalidConfigurationException, InterruptedException, CPAException {
     stats.checkTimer.start();
-    ProofCheckAlgorithm checker = new ProofCheckAlgorithm(cpa, config, logger, shutdownNotifier,
-        pVerificationResult, analyzedProgram);
+    ProofCheckAlgorithm checker =
+        new ProofCheckAlgorithm(
+            cpa,
+            config,
+            logger,
+            shutdownNotifier,
+            pVerificationResult,
+            analyzedProgram,
+            specification);
     stats.checkingStatsProvider = checker;
     return checker.run(initializeReachedSetForChecking(config, cpa));
   }
@@ -214,7 +233,7 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
             new CoreComponentsFactory(checkConfig, logger, shutdownNotifier);
         checkerCPA =
             new CPABuilder(checkConfig, logger, shutdownNotifier, factory.getReachedSetFactory())
-                .buildCPAWithSpecAutomatas(analyzedProgram);
+                .buildCPAs(analyzedProgram, specification);
 
       } catch (IOException e) {
         logger.log(Level.SEVERE,"Cannot read proof checking configuration.");
@@ -223,7 +242,9 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     stats.checkTimer.start();
-    ProofCheckAlgorithm checker = new ProofCheckAlgorithm(checkerCPA, checkConfig, logger, shutdownNotifier, analyzedProgram);
+    ProofCheckAlgorithm checker =
+        new ProofCheckAlgorithm(
+            checkerCPA, checkConfig, logger, shutdownNotifier, analyzedProgram, specification);
     stats.checkingStatsProvider = checker;
     return checker.run(initializeReachedSetForChecking(checkConfig, checkerCPA));
   }

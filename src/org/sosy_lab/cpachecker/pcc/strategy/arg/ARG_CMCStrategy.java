@@ -33,6 +33,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
@@ -77,13 +78,14 @@ public class ARG_CMCStrategy extends AbstractStrategy {
       Configuration pConfig,
       LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
-      final @Nullable CFA pCfa)
+      final @Nullable CFA pCfa,
+      final @Nullable Specification pSpecification)
       throws InvalidConfigurationException {
     super(pConfig, pLogger);
     //pConfig.inject(this);
     globalConfig = pConfig;
     shutdown = pShutdownNotifier;
-    cpaBuilder = new PartialCPABuilder(pConfig, pLogger, pShutdownNotifier, pCfa);
+    cpaBuilder = new PartialCPABuilder(pConfig, pLogger, pShutdownNotifier, pCfa, pSpecification);
     automatonWriter = new AssumptionAutomatonGenerator(pConfig, pLogger);
   }
 

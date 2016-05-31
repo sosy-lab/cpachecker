@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
@@ -52,7 +53,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
-import org.sosy_lab.cpachecker.core.CoreComponentsFactory.SpecAutomatonCompositionType;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.PartialARGsCombiner;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -180,6 +181,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
   private final String filename;
   private final CFA cfa;
   private final Configuration globalConfig;
+  private final Specification specification;
 
   private Algorithm currentAlgorithm;
 
@@ -187,6 +189,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       Configuration config,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
+      Specification pSpecification,
       String pFilename,
       CFA pCfa)
       throws InvalidConfigurationException {
@@ -202,6 +205,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     this.filename = pFilename;
     this.cfa = pCfa;
     this.globalConfig = config;
+    specification = checkNotNull(pSpecification);
 
     logShutdownListener =
         reason ->
@@ -216,11 +220,12 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
+      Specification pSpecification,
       String pFilename,
       CFA pCfa)
       throws InvalidConfigurationException {
     RestartAlgorithm algorithm =
-        new RestartAlgorithm(pConfig, pLogger, pShutdownNotifier, pFilename, pCfa);
+        new RestartAlgorithm(pConfig, pLogger, pShutdownNotifier, pSpecification, pFilename, pCfa);
     if (algorithm.useARGCombiningAlgorithm) {
       return new PartialARGsCombiner(algorithm, pConfig, pLogger, pShutdownNotifier);
     }
@@ -412,9 +417,6 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     singleConfigBuilder.clearOption("restartAlgorithm.configFiles");
     singleConfigBuilder.clearOption("analysis.restartAfterUnknown");
     singleConfigBuilder.loadFromFile(singleConfigFileName);
-    if (globalConfig.hasProperty("specification")) {
-      singleConfigBuilder.copyOptionFrom(globalConfig, "specification");
-    }
 
     Configuration singleConfig = singleConfigBuilder.build();
     if (singleConfig.hasProperty("analysis.restartAfterUnknown")) {
@@ -430,7 +432,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
     CoreComponentsFactory coreComponents =
         new CoreComponentsFactory(singleConfig, singleLogger, singleShutdownManager.getNotifier());
-    cpa = coreComponents.createCPA(cfa, SpecAutomatonCompositionType.TARGET_SPEC);
+    cpa = coreComponents.createCPA(cfa, specification);
 
     if (cpa instanceof StatisticsProvider) {
       ((StatisticsProvider) cpa).collectStatistics(stats.getSubStatistics());
@@ -438,7 +440,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
     GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
-    algorithm = coreComponents.createAlgorithm(cpa, filename, cfa);
+    algorithm = coreComponents.createAlgorithm(cpa, filename, cfa, specification);
     reached =
         createInitialReachedSetForRestart(
             cpa, mainFunction, coreComponents.getReachedSetFactory(), singleLogger);

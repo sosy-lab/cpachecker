@@ -31,6 +31,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
@@ -54,14 +55,27 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
 
   private ExpressionTreeSupplier locationInvariantExpressionTreeProvider = ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE;
 
-  public BMCAlgorithmForInvariantGeneration(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCPA,
-                      Configuration pConfig, LogManager pLogger,
-                      ReachedSetFactory pReachedSetFactory,
-                      ShutdownManager pShutdownManager, CFA pCFA,
-                      BMCStatistics pBMCStatistics,
-                      CandidateGenerator pCandidateGenerator)
-                      throws InvalidConfigurationException, CPAException {
-    super(pAlgorithm, pCPA, pConfig, pLogger, pReachedSetFactory, pShutdownManager, pCFA,
+  public BMCAlgorithmForInvariantGeneration(
+      Algorithm pAlgorithm,
+      ConfigurableProgramAnalysis pCPA,
+      Configuration pConfig,
+      LogManager pLogger,
+      ReachedSetFactory pReachedSetFactory,
+      ShutdownManager pShutdownManager,
+      CFA pCFA,
+      final Specification specification,
+      BMCStatistics pBMCStatistics,
+      CandidateGenerator pCandidateGenerator)
+      throws InvalidConfigurationException, CPAException {
+    super(
+        pAlgorithm,
+        pCPA,
+        pConfig,
+        pLogger,
+        pReachedSetFactory,
+        pShutdownManager,
+        pCFA,
+        specification,
         pBMCStatistics,
         true /* invariant generator */ );
     Verify.verify(checkIfInductionIsPossible(pCFA, pLogger, getLoopHeads()));

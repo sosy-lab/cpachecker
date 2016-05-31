@@ -50,6 +50,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -162,6 +163,7 @@ public class CPAsTest {
               .setShutdownNotifier(shutdownNotifier)
               .set(new ReachedSetFactory(config), ReachedSetFactory.class)
               .set(cfa, CFA.class)
+              .set(Specification.alwaysSatisfied(), Specification.class)
               .createInstance();
     } catch (LinkageError e) {
       assume().fail(e.getMessage());

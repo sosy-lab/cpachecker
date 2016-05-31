@@ -39,7 +39,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
-import org.sosy_lab.cpachecker.core.CoreComponentsFactory.SpecAutomatonCompositionType;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -72,6 +72,7 @@ public class ParallelAlgorithm implements Algorithm {
   private final ShutdownManager shutdownManager;
   private final CFA cfa;
   private final String filename;
+  private final Specification specification;
 
   private volatile ReachedSet finalReachedSet = null;
   private CFANode mainEntryNode = null;
@@ -80,6 +81,7 @@ public class ParallelAlgorithm implements Algorithm {
       Configuration config,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
+      Specification pSpecification,
       CFA pCfa,
       String pFilename)
       throws InvalidConfigurationException {
@@ -88,6 +90,7 @@ public class ParallelAlgorithm implements Algorithm {
     globalConfig = config;
     logger = checkNotNull(pLogger);
     shutdownManager = ShutdownManager.createWithParent(checkNotNull(pShutdownNotifier));
+    specification = checkNotNull(pSpecification);
     cfa = checkNotNull(pCfa);
     filename = checkNotNull(pFilename);
   }
@@ -157,12 +160,11 @@ public class ParallelAlgorithm implements Algorithm {
       CoreComponentsFactory coreComponents =
           new CoreComponentsFactory(
               singleConfig, singleLogger, singleShutdownManager.getNotifier());
-      ConfigurableProgramAnalysis cpa =
-          coreComponents.createCPA(cfa, SpecAutomatonCompositionType.TARGET_SPEC);
+      ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, specification);
 
       GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
-      algorithm = coreComponents.createAlgorithm(cpa, filename, cfa);
+      algorithm = coreComponents.createAlgorithm(cpa, filename, cfa, specification);
       reached = createInitialReachedSet(cpa, mainEntryNode, coreComponents.getReachedSetFactory());
 
     } catch (IOException | InvalidConfigurationException e) {
@@ -206,9 +208,6 @@ public class ParallelAlgorithm implements Algorithm {
     singleConfigBuilder.clearOption("parallelAlgorithm.configFiles");
     singleConfigBuilder.clearOption("analysis.useParallelAnalyses");
     singleConfigBuilder.loadFromFile(singleConfigFileName);
-    if (globalConfig.hasProperty("specification")) {
-      singleConfigBuilder.copyOptionFrom(globalConfig, "specification");
-    }
 
     Configuration singleConfig = singleConfigBuilder.build();
     return singleConfig;
