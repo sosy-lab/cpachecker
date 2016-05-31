@@ -45,6 +45,7 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.WeavingLocation;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -116,6 +117,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
@@ -751,7 +753,13 @@ public class TigerAlgorithm
 
     while (it.hasNext()) {
       if (it.getOutgoingEdge().equals(criticalEdge)) {
-        return it.getNextAbstractState();
+        ARGState afterCritical = it.getNextAbstractState();
+        while (it.hasNext() && AbstractStates.extractLocation(it.getNextAbstractState()) instanceof WeavingLocation) {
+          it.advance();
+          afterCritical = it.getNextAbstractState();
+          Preconditions.checkState(afterCritical != null);
+        }
+        return afterCritical;
       }
       it.advance();
     }
@@ -860,6 +868,7 @@ public class TigerAlgorithm
               "Each ARG path of a counterexample must be along a critical edge!");
 
           PresenceCondition statePresenceCondition = PresenceConditions.extractPresenceCondition(criticalState);
+
           Preconditions.checkState(statePresenceCondition != null,
               "Each critical state must be annotated with a presence condition!");
 
