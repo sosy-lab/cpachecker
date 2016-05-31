@@ -70,6 +70,7 @@ final class SMGJoinMapTargetAddress {
     if (!edges.isEmpty()) {
       /*If there are more than one value with same pointer, just chose one arbitrarily*/
       value = edges.iterator().next().getValue();
+      return;
     }
 
     if(pAddress1.equals(pAddress2)) {
