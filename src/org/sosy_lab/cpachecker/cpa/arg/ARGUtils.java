@@ -28,21 +28,25 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
-import java.io.IOException;
-import java.util.AbstractCollection;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.base.Verify;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
+import com.google.common.collect.Ordering;
+import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Sets;
+import com.google.common.collect.UnmodifiableIterator;
 
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -66,25 +70,20 @@ import org.sosy_lab.cpachecker.util.GraphUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.base.Verify;
-import com.google.common.collect.Collections2;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
-import com.google.common.collect.Ordering;
-import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
-import com.google.common.collect.UnmodifiableIterator;
+import java.io.IOException;
+import java.util.AbstractCollection;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
+import javax.annotation.Nullable;
 
 /**
  * Helper class with collection of ARG related utility methods.
@@ -104,7 +103,7 @@ public class ARGUtils {
    */
   public static Set<ARGState> getAllStatesOnPathsTo(ARGState pLastElement) {
 
-    Set<ARGState> result = new HashSet<>();
+    Set<ARGState> result = Sets.newLinkedHashSet();
     Deque<ARGState> waitList = new ArrayDeque<>();
 
     result.add(pLastElement);
@@ -127,7 +126,7 @@ public class ARGUtils {
    */
   public static Set<ARGState> getRootStates(ReachedSet pReached) {
 
-    Set<ARGState> result = new HashSet<>();
+    Set<ARGState> result = Sets.newLinkedHashSet();
 
     Iterator<AbstractState> it = pReached.iterator();
     while (it.hasNext()) {
@@ -151,7 +150,7 @@ public class ARGUtils {
    */
   public static ARGPath getOnePathTo(ARGState pLastElement) {
     List<ARGState> states = new ArrayList<>(); // reversed order
-    Set<ARGState> seenElements = new HashSet<>();
+    Set<ARGState> seenElements = Sets.newLinkedHashSet();
 
     // each element of the path consists of the abstract state and the outgoing
     // edge to its successor
@@ -180,7 +179,7 @@ public class ARGUtils {
       final ARGState pEndState, final Collection<ARGPath> pOtherPathThan) {
 
     List<ARGState> states = new ArrayList<>(); // reversed order
-    Set<ARGState> seenElements = new HashSet<>();
+    Set<ARGState> seenElements = Sets.newLinkedHashSet();
 
     // each element of the path consists of the abstract state and the outgoing
     // edge to its successor
@@ -446,7 +445,7 @@ public class ARGUtils {
         break;
 
       default:
-        Set<ARGState> candidates = Sets.intersection(Sets.newHashSet(children), pArg).immutableCopy();
+        Set<ARGState> candidates = Sets.intersection(Sets.newLinkedHashSet(children), pArg).immutableCopy();
         if (candidates.size() != 1) {
           throw new IllegalArgumentException("ARG splits with more than two branches!");
         }
@@ -842,7 +841,7 @@ public class ARGUtils {
   private static void handleLoop(Appendable sb, Set<Loop> loopsToUproll, ARGState intoLoopState,
       ARGState outOfLoopState) throws IOException {
 
-    Set<CFANode> handledNodes = new HashSet<>();
+    Set<CFANode> handledNodes = Sets.newLinkedHashSet();
     Deque<CFANode> nodesToHandle = new ArrayDeque<>();
     CFANode loopHead = AbstractStates.extractLocation(intoLoopState);
     nodesToHandle.offer(loopHead);
