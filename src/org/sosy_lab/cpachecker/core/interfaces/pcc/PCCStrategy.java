@@ -23,14 +23,19 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces.pcc;
 
-import java.io.IOException;
-import java.util.Collection;
-
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+
+import java.io.IOException;
+import java.util.Collection;
 
 /**
  * Interface for classes implementing proof carrying code approaches. Theses classes can be used by ProofGenerator and
@@ -88,4 +93,15 @@ public interface PCCStrategy {
    * @return additional statistics which should be displayed with proof generation statistics
    */
   public Collection<Statistics> getAdditionalProofGenerationStatistics();
+
+  interface Factory {
+    PCCStrategy create(
+        Configuration config,
+        LogManager logger,
+        ShutdownNotifier shutdownNotifier,
+        CFA cfa,
+        ProofChecker proofChecker,
+        PropertyCheckerCPA propertyChecker)
+        throws InvalidConfigurationException;
+  }
 }

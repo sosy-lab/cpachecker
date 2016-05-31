@@ -2549,11 +2549,9 @@ pcc.resultcheck.writeProof = false
 # prove the property.
 pcc.sliceProof = false
 
-# Qualified name for class which implements proof checking strategy to be
-# used.
 # Qualified name for class which implements certification strategy, hence
 # proof writing, to be used.
-pcc.strategy = "org.sosy_lab.cpachecker.pcc.strategy.arg.ARGProofCheckerStrategy"
+pcc.strategy = no default value
 
 # number of cpus/cores which should be used in parallel for proof checking
 pcc.useCores = 1

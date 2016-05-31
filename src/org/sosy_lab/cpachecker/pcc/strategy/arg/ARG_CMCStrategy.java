@@ -61,6 +61,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.zip.ZipInputStream;
 
+import javax.annotation.Nullable;
+
 public class ARG_CMCStrategy extends AbstractStrategy {
 
   private final Configuration globalConfig;
@@ -71,8 +73,12 @@ public class ARG_CMCStrategy extends AbstractStrategy {
   private ARGState[] roots;
   private boolean proofKnown = false;
 
-  public ARG_CMCStrategy(Configuration pConfig, LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
-      final CFA pCfa) throws InvalidConfigurationException {
+  public ARG_CMCStrategy(
+      Configuration pConfig,
+      LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier,
+      final @Nullable CFA pCfa)
+      throws InvalidConfigurationException {
     super(pConfig, pLogger);
     //pConfig.inject(this);
     globalConfig = pConfig;

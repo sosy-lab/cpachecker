@@ -23,10 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.pcc;
 
-import java.io.PrintStream;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -42,13 +38,12 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.pcc.strategy.PCCStrategyBuilder;
 
+import java.io.PrintStream;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+
 @Options
 public class ProofGenerator {
-
-  @Option(secure=true,
-      name = "pcc.strategy",
-      description = "Qualified name for class which implements certification strategy, hence proof writing, to be used.")
-  private String pccStrategy = "org.sosy_lab.cpachecker.pcc.strategy.arg.ARGProofCheckerStrategy";
 
   @Option(secure=true,
       name = "pcc.sliceProof",
@@ -87,7 +82,8 @@ public class ProofGenerator {
     pConfig.inject(this);
     logger = pLogger;
 
-    checkingStrategy = PCCStrategyBuilder.buildStrategy(pccStrategy, pConfig, pLogger, pShutdownNotifier, null, null);
+    checkingStrategy =
+        PCCStrategyBuilder.buildStrategy(pConfig, pLogger, pShutdownNotifier, null, null);
   }
 
   public void generateProof(CPAcheckerResult pResult) {

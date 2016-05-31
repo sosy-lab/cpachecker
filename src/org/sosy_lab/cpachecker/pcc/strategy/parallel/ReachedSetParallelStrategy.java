@@ -45,11 +45,17 @@ import java.util.Collection;
 import java.util.concurrent.ThreadFactory;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 @Options
 public class ReachedSetParallelStrategy extends ReachedSetStrategy{
 
-  public ReachedSetParallelStrategy(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
-      PropertyCheckerCPA pCpa) throws InvalidConfigurationException {
+  public ReachedSetParallelStrategy(
+      Configuration pConfig,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      @Nullable PropertyCheckerCPA pCpa)
+      throws InvalidConfigurationException {
     super(pConfig, pLogger, pShutdownNotifier, pCpa);
   }
 

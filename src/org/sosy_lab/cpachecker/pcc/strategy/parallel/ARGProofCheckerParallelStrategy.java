@@ -60,6 +60,8 @@ import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ThreadFactory;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 /**
  * Uses ProofChecker interface to check an ARG (certificate) in parallel.
  * Methods used for checking especially those implemented by ProofChecker used in checking must be
@@ -73,8 +75,8 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
   private ProofChecker checker;
   private PropertyChecker propChecker;
 
-  public ARGProofCheckerParallelStrategy(Configuration pConfig, LogManager pLogger,
-      ProofChecker pChecker)
+  public ARGProofCheckerParallelStrategy(
+      Configuration pConfig, LogManager pLogger, @Nullable ProofChecker pChecker)
       throws InvalidConfigurationException {
     super(pConfig, pLogger);
     checker = pChecker;
