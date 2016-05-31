@@ -575,7 +575,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
      * If there is no pointer besides zero in the fields of the
      * optional object, use zero.*/
 
-    Set<SMGEdgePointsTo> pointer = SMGUtils.getPointerToThisObject(pOptionalObject, heap);
+    Set<SMGEdgePointsTo> pointer = heap.getPointerToObject(pOptionalObject);
 
     Set<SMGEdgeHasValue> fields = getHVEdges(SMGEdgeHasValueFilter.objectFilter(pOptionalObject));
 
@@ -606,7 +606,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     /*Just replace the optional object with a region*/
     logger.log(Level.ALL, "Materialise " + pOptionalObject.toString() +" in state id " + this.getId());
 
-    Set<SMGEdgePointsTo> pointer = SMGUtils.getPointerToThisObject(pOptionalObject, heap);
+    Set<SMGEdgePointsTo> pointer = heap.getPointerToObject(pOptionalObject);
 
     Set<SMGEdgeHasValue> fields = getHVEdges(SMGEdgeHasValueFilter.objectFilter(pOptionalObject));
 
@@ -1637,18 +1637,16 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   @Nullable
   public Integer getAddress(SMGRegion memory, int offset) {
 
-    // TODO A better way of getting those edges, maybe with a filter
-    // like the Has-Value-Edges
+    SMGEdgePointsToFilter filter =
+        SMGEdgePointsToFilter.targetObjectFilter(memory).filterAtTargetOffset(offset);
 
-    Map<Integer, SMGEdgePointsTo> pointsToEdges = heap.getPTEdges();
+    Set<SMGEdgePointsTo> edges = heap.getPtEdges(filter);
 
-    for (SMGEdgePointsTo edge : pointsToEdges.values()) {
-      if (edge.getObject().equals(memory) && edge.getOffset() == offset) {
-        return edge.getValue();
-      }
+    if (edges.isEmpty()) {
+      return null;
+    } else {
+      return Iterables.getOnlyElement(edges).getValue();
     }
-
-    return null;
   }
 
   /**
@@ -1666,19 +1664,16 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   @Nullable
   public Integer getAddress(SMGObject memory, int offset, SMGTargetSpecifier tg) {
 
-    // TODO A better way of getting those edges, maybe with a filter
-    // like the Has-Value-Edges
+    SMGEdgePointsToFilter filter =
+        SMGEdgePointsToFilter.targetObjectFilter(memory).filterAtTargetOffset(offset).filterByTargetSpecifier(tg);
 
-    Map<Integer, SMGEdgePointsTo> pointsToEdges = heap.getPTEdges();
+    Set<SMGEdgePointsTo> edges = heap.getPtEdges(filter);
 
-    for (SMGEdgePointsTo edge : pointsToEdges.values()) {
-      if (edge.getObject().equals(memory) && edge.getOffset() == offset
-          && edge.getTargetSpecifier() == tg) {
-        return edge.getValue();
-      }
+    if (edges.isEmpty()) {
+      return null;
+    } else {
+      return Iterables.getOnlyElement(edges).getValue();
     }
-
-    return null;
   }
 
   /**

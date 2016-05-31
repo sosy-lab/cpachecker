@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.base.Predicate;
-import com.google.common.collect.FluentIterable;
 
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -81,14 +80,12 @@ public final class SMGUtils {
   }
 
   public static Set<SMGEdgePointsTo> getPointerToThisObject(SMGObject pSmgObject, SMG pInputSMG) {
-    Set<SMGEdgePointsTo> result = FluentIterable.from(pInputSMG.getPTEdges().values())
-        .filter(new FilterTargetObject(pSmgObject)).toSet();
-    return result;
+    SMGEdgePointsToFilter objectFilter = SMGEdgePointsToFilter.targetObjectFilter(pSmgObject);
+    return pInputSMG.getPtEdges(objectFilter);
   }
 
   public static Set<SMGEdgeHasValue> getFieldsofThisValue(int value, SMG pInputSMG) {
-    SMGEdgeHasValueFilter valueFilter = new SMGEdgeHasValueFilter();
-    valueFilter.filterHavingValue(value);
+    SMGEdgeHasValueFilter valueFilter = SMGEdgeHasValueFilter.valueFilter(value);
     return pInputSMG.getHVEdges(valueFilter);
   }
 
@@ -117,20 +114,6 @@ public final class SMGUtils {
     @Override
     public boolean apply(SMGEdgeHasValueTemplateWithConcreteValue ptEdge) {
       return ptEdge.getObjectTemplate() == objectTemplate;
-    }
-  }
-
-  public static class FilterTargetObject implements Predicate<SMGEdgePointsTo> {
-
-    private final SMGObject object;
-
-    public FilterTargetObject(SMGObject pObject) {
-      object = pObject;
-    }
-
-    @Override
-    public boolean apply(SMGEdgePointsTo ptEdge) {
-      return ptEdge.getObject() == object;
     }
   }
 

@@ -23,10 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
-import java.util.BitSet;
-import java.util.HashSet;
-import java.util.Set;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -39,6 +35,10 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
+
+import java.util.BitSet;
+import java.util.HashSet;
+import java.util.Set;
 
 
 public class SMGTest {
@@ -127,7 +127,7 @@ public class SMGTest {
     Assert.assertEquals(1, smg.getValues().size());
     Assert.assertTrue(smg.getValues().contains(Integer.valueOf(nullAddress)));
 
-    Assert.assertEquals(1, smg.getPTEdges().size());
+    Assert.assertEquals(1, smg.getPTEdgesAsMap().size());
     SMGObject target_object = smg.getObjectPointedBy(nullAddress);
     Assert.assertEquals(nullObject, target_object);
 
@@ -155,8 +155,8 @@ public class SMGTest {
     Assert.assertEquals(2, smg_copy.getValues().size());
     Assert.assertTrue(smg_copy.getValues().contains(third_value));
 
-    Assert.assertEquals(1, smg.getPTEdges().size());
-    Assert.assertEquals(2, smg_copy.getPTEdges().size());
+    Assert.assertEquals(1, smg.getPTEdges().asSet().size());
+    Assert.assertEquals(2, smg_copy.getPTEdges().asSet().size());
     SMGObject target_object_for_third = smg_copy.getObjectPointedBy(third_value);
     Assert.assertEquals(third_object, target_object_for_third);
 
@@ -199,7 +199,7 @@ public class SMGTest {
     Assert.assertFalse(smg.getObjects().contains(object));
     Assert.assertTrue(smg.getHVEdges().contains(hv0));
     Assert.assertTrue(smg.getHVEdges().contains(hv4));
-    Assert.assertTrue(smg.getPTEdges().values().contains(pt));
+    Assert.assertTrue(smg.getPTEdges().asSet().contains(pt));
   }
 
   @Test
@@ -223,7 +223,7 @@ public class SMGTest {
     Assert.assertFalse(smg.getObjects().contains(object));
     Assert.assertFalse(smg.getHVEdges().contains(hv0));
     Assert.assertFalse(smg.getHVEdges().contains(hv4));
-    Assert.assertFalse(smg.getPTEdges().values().contains(pt));
+    Assert.assertFalse(smg.getPTEdges().asSet().contains(pt));
   }
 
   @Test
@@ -432,7 +432,7 @@ public class SMGTest {
     HashSet<SMGEdgePointsTo> set = new HashSet<>();
     set.add(pt1to1);
 
-    Assert.assertTrue(smg.getPTEdges().values().containsAll(set));
+    Assert.assertTrue(smg.getPTEdges().asSet().containsAll(set));
   }
 
   @Test

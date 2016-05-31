@@ -24,13 +24,14 @@
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectKind;
 
-import java.util.Collection;
+import java.util.Set;
 
 final class SMGJoinMapTargetAddress {
   private SMG smg;
@@ -64,15 +65,11 @@ final class SMGJoinMapTargetAddress {
       tg = pt2.getTargetSpecifier();
     }
 
-    // TODO: Ugly, refactor
-    Collection<SMGEdgePointsTo> edges = smg.getPTEdges().values();
-    for (SMGEdgePointsTo edge : edges) {
-      if ((edge.getObject() == target) &&
-          (edge.getOffset() == pt.getOffset())
-          && edge.getTargetSpecifier() == tg) {
-        value = edge.getValue();
-        return;
-      }
+    Set<SMGEdgePointsTo> edges = smg.getPtEdges(SMGEdgePointsToFilter.targetObjectFilter(target).filterAtTargetOffset(pt.getOffset()).filterByTargetSpecifier(tg));
+
+    if (!edges.isEmpty()) {
+      /*If there are more than one value with same pointer, just chose one arbitrarily*/
+      value = edges.iterator().next().getValue();
     }
 
     if(pAddress1.equals(pAddress2)) {
