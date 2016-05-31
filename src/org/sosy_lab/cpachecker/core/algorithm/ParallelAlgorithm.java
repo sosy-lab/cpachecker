@@ -321,15 +321,16 @@ public class ParallelAlgorithm implements Algorithm {
         if (!supplyRefinableReached) {
           status = algorithm.run(currentReached);
         } else {
-          boolean stopAnalysis = false;
+          boolean stopAnalysis = true;
           do {
             status = algorithm.run(currentReached);
 
+            // reset the flag
+            stopAnalysis = true;
             for (ReachedSetAdjustingCPA innerCpa :
                 CPAs.asIterable(cpa).filter(ReachedSetAdjustingCPA.class)) {
-              if (!innerCpa.adjustPrecision()) {
-                stopAnalysis = true;
-                break;
+              if (innerCpa.adjustPrecision()) {
+                stopAnalysis = false;
               }
             }
 
