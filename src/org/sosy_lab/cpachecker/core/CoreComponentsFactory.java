@@ -74,8 +74,6 @@ import javax.annotation.Nullable;
 @Options(prefix="analysis")
 public class CoreComponentsFactory {
 
-  public static enum SpecAutomatonCompositionType { NONE, TARGET_SPEC, BACKWARD_TO_ENTRY_SPEC }
-
   @Option(secure=true, description="use assumption collecting algorithm")
   private boolean collectAssumptions = false;
 
@@ -92,9 +90,8 @@ public class CoreComponentsFactory {
   @Option(secure=true, description="use a second model checking run (e.g., with CBMC or a different CPAchecker configuration) to double-check counter-examples")
   private boolean checkCounterexamples = false;
 
-  @Option(secure=true, name="checkCounterexamplesWithBDDCPARestriction",
-      description="use counterexample check and the BDDCPA Restriction option")
-  private boolean useBDDCPARestriction = false;
+  @Option(secure = true, description = "use counterexample check and the BDDCPA Restriction option")
+  private boolean checkCounterexamplesWithBDDCPARestriction = false;
 
   @Option(secure=true, name="algorithm.BMC",
       description="use a BMC like algorithm that checks for satisfiability "
@@ -189,6 +186,10 @@ public class CoreComponentsFactory {
     reachedSetFactory = new ReachedSetFactory(config);
     aggregatedReachedSets = pAggregatedReachedSets;
     cpaFactory = new CPABuilder(config, logger, shutdownNotifier, reachedSetFactory);
+
+    if (checkCounterexamplesWithBDDCPARestriction) {
+      checkCounterexamples = true;
+    }
   }
 
   private boolean analysisNeedsShutdownManager() {
@@ -203,8 +204,11 @@ public class CoreComponentsFactory {
         && useBMC;
   }
 
-  public Algorithm createAlgorithm(final ConfigurableProgramAnalysis cpa,
-      final String programDenotation, final CFA cfa)
+  public Algorithm createAlgorithm(
+      final ConfigurableProgramAnalysis cpa,
+      final String programDenotation,
+      final CFA cfa,
+      final Specification specification)
       throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating algorithms");
 
@@ -212,17 +216,21 @@ public class CoreComponentsFactory {
 
     if (useProofCheckAlgorithm) {
       logger.log(Level.INFO, "Using Proof Check Algorithm");
-      algorithm = new ProofCheckAlgorithm(cpa, config, logger, shutdownNotifier, cfa);
+      algorithm =
+          new ProofCheckAlgorithm(cpa, config, logger, shutdownNotifier, cfa, specification);
 
     } else if (useRestartingAlgorithm) {
       logger.log(Level.INFO, "Using Restarting Algorithm");
-      algorithm = RestartAlgorithm.create(config, logger, shutdownNotifier, programDenotation, cfa);
+      algorithm =
+          RestartAlgorithm.create(
+              config, logger, shutdownNotifier, specification, programDenotation, cfa);
 
     } else if (useImpactAlgorithm) {
       algorithm = new ImpactAlgorithm(config, logger, shutdownNotifier, cpa, cfa);
 
     } else if (useRestartAlgorithmWithARGReplay) {
-      algorithm = new RestartAlgorithmWithARGReplay(config, logger, shutdownNotifier, cfa);
+      algorithm =
+          new RestartAlgorithmWithARGReplay(config, logger, shutdownNotifier, cfa, specification);
 
     } else if (runCBMCasExternalTool) {
       algorithm = new ExternalCBMCAlgorithm(programDenotation, config, logger);
@@ -230,7 +238,13 @@ public class CoreComponentsFactory {
     } else if (useParallelAlgorithm) {
       algorithm =
           new ParallelAlgorithm(
-              config, logger, shutdownNotifier, cfa, programDenotation, aggregatedReachedSets);
+              config,
+              logger,
+              shutdownNotifier,
+              specification,
+              cfa,
+              programDenotation,
+              aggregatedReachedSets);
 
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
@@ -245,7 +259,16 @@ public class CoreComponentsFactory {
 
       if (useBMC) {
         verifyNotNull(shutdownManager);
-        algorithm = new BMCAlgorithm(algorithm, cpa, config, logger, reachedSetFactory, shutdownManager, cfa);
+        algorithm =
+            new BMCAlgorithm(
+                algorithm,
+                cpa,
+                config,
+                logger,
+                reachedSetFactory,
+                shutdownManager,
+                cfa,
+                specification);
       }
 
       if (checkCounterexamples) {
@@ -256,7 +279,7 @@ public class CoreComponentsFactory {
           ExceptionHandlingAlgorithm.create(
               config, algorithm, cpa, logger, shutdownNotifier, checkCounterexamples, useCEGAR);
 
-      if (useBDDCPARestriction) {
+      if (checkCounterexamplesWithBDDCPARestriction) {
         algorithm = new BDDCPARestrictionAlgorithm(algorithm, cpa, config, logger);
       }
 
@@ -278,7 +301,9 @@ public class CoreComponentsFactory {
       }
 
       if (useResultCheckAlgorithm) {
-        algorithm = new ResultCheckAlgorithm(algorithm, cpa, cfa, config, logger, shutdownNotifier);
+        algorithm =
+            new ResultCheckAlgorithm(
+                algorithm, cpa, cfa, config, logger, shutdownNotifier, specification);
       }
 
       if (useCustomInstructionRequirementExtraction) {
@@ -313,8 +338,7 @@ public class CoreComponentsFactory {
     return reached;
   }
 
-  public ConfigurableProgramAnalysis createCPA(
-      final CFA cfa, SpecAutomatonCompositionType composeWithSpecificationCPAs)
+  public ConfigurableProgramAnalysis createCPA(final CFA cfa, final Specification specification)
       throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
 
@@ -323,18 +347,6 @@ public class CoreComponentsFactory {
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
     }
 
-    final ConfigurableProgramAnalysis cpa;
-    switch (composeWithSpecificationCPAs) {
-      case TARGET_SPEC:
-        cpa = cpaFactory.buildCPAWithSpecAutomatas(cfa, aggregatedReachedSets);
-        break;
-      case BACKWARD_TO_ENTRY_SPEC:
-        cpa = cpaFactory.buildCPAWithBackwardSpecAutomatas(cfa, aggregatedReachedSets);
-        break;
-      default:
-        cpa = cpaFactory.buildCPAs(cfa, null, aggregatedReachedSets);
-    }
-
-    return cpa;
+    return cpaFactory.buildCPAs(cfa, specification, aggregatedReachedSets);
   }
 }

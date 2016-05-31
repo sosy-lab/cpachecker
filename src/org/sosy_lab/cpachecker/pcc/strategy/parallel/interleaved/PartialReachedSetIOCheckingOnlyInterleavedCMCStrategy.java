@@ -23,22 +23,14 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.parallel.interleaved;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
-import java.util.zip.ZipInputStream;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
@@ -59,7 +51,19 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-import com.google.common.collect.Sets;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
+import java.util.zip.ZipInputStream;
+
+import javax.annotation.Nullable;
+
 // FIXME unsound strategy
 public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends AbstractStrategy {
 
@@ -69,11 +73,15 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
   private final AssumptionAutomatonGenerator automatonWriter;
   private int numProofs;
 
-  public PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy(final Configuration pConfig, final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier, final CFA pCFA)
+  public PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy(
+      final Configuration pConfig,
+      final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier,
+      final @Nullable CFA pCFA,
+      final @Nullable Specification pSpecification)
       throws InvalidConfigurationException {
     super(pConfig, pLogger);
-    cpaBuilder = new PartialCPABuilder(pConfig, pLogger, pShutdownNotifier, pCFA);
+    cpaBuilder = new PartialCPABuilder(pConfig, pLogger, pShutdownNotifier, pCFA, pSpecification);
     automatonWriter = new AssumptionAutomatonGenerator(pConfig, pLogger);
     config = pConfig;
     logger = pLogger;

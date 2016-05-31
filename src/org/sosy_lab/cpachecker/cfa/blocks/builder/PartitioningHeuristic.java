@@ -23,28 +23,34 @@
  */
 package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
+
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.util.CFAUtils;
-
 
 /**
  * Defines an interface for heuristics for the partition of a program's CFA into blocks.
+ *
+ * Subclasses need to have exactly one public constructor or a static method named "create"
+ * which may take a {@link LogManager} and a {@link CFA}, and throw at most a {@link CPAException}.
  */
 public abstract class PartitioningHeuristic {
+
+  public static interface Factory {
+    PartitioningHeuristic create(LogManager logger, CFA cfa) throws CPAException;
+  }
 
   protected final CFA cfa;
   protected final LogManager logger;
 
-  /** Do not change signature! Constructor will be created with Reflections.
-   * Subclasses should also implement the same signature. */
   public PartitioningHeuristic(LogManager pLogger, CFA pCfa) {
     cfa = pCfa;
     logger = pLogger;

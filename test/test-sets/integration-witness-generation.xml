@@ -10,7 +10,7 @@
   -->
 
   <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
-  <resultfiles>**.graphml</resultfiles>
+  <resultfiles>**.graphml.gz</resultfiles>
 
   <rundefinition name="witness-generation">
     <option name="-sv-comp16"/>

@@ -34,9 +34,9 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  * (strengthening a new abstract state such that it is covered by another state
  * from the reached set).
  *
- * Implementations need to have a public constructor which takes a
- * {@link Configuration}, a {@link LogManager}, and a
- * {@link ConfigurableProgramAnalysis}, and throws at most an
+ * Implementations need to have exactly one public constructor or a static method named "create"
+ * which may take a {@link Configuration}, a {@link LogManager}, and a
+ * {@link ConfigurableProgramAnalysis}, and throw at most an
  * {@link InvalidConfigurationException}.
  */
 public interface ForcedCovering {
@@ -59,4 +59,9 @@ public interface ForcedCovering {
    * @return Whether forced covering was successful.
    */
   boolean tryForcedCovering(AbstractState state, Precision precision, ReachedSet reached) throws CPAException, InterruptedException;
+
+  interface Factory {
+    ForcedCovering create(Configuration config, LogManager logger, ConfigurableProgramAnalysis cpa)
+        throws InvalidConfigurationException;
+  }
 }

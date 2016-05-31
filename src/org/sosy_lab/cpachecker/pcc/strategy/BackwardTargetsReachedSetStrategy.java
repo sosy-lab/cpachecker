@@ -23,12 +23,7 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy;
 
-import java.util.ArrayDeque;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
+import com.google.common.collect.Maps;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -49,7 +44,14 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import com.google.common.collect.Maps;
+import java.util.ArrayDeque;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+
+import javax.annotation.Nullable;
 
 @Options(prefix = "pcc.backwardtargets")
 public class BackwardTargetsReachedSetStrategy extends SequentialReadStrategy implements StatisticsProvider {
@@ -60,8 +62,11 @@ public class BackwardTargetsReachedSetStrategy extends SequentialReadStrategy im
   @Option(secure = true, description = "Enable to store ARG states instead of abstract states wrapped by ARG state")
   private boolean certificateStatesAsARGStates = false;
 
-  public BackwardTargetsReachedSetStrategy(final Configuration pConfig, final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier, final PropertyCheckerCPA pCpa)
+  public BackwardTargetsReachedSetStrategy(
+      final Configuration pConfig,
+      final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier,
+      final @Nullable PropertyCheckerCPA pCpa)
       throws InvalidConfigurationException {
     super(pConfig, pLogger);
     pConfig.inject(this);

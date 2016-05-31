@@ -49,7 +49,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
-import org.sosy_lab.cpachecker.core.CoreComponentsFactory.SpecAutomatonCompositionType;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -103,6 +103,7 @@ public class ParallelAlgorithm implements Algorithm {
   private final ShutdownManager shutdownManager;
   private final CFA cfa;
   private final String filename;
+  private final Specification specification;
 
   private ParallelAnalysisResult finalResult = null;
   private CFANode mainEntryNode = null;
@@ -112,6 +113,7 @@ public class ParallelAlgorithm implements Algorithm {
       Configuration config,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
+      Specification pSpecification,
       CFA pCfa,
       String pFilename,
       AggregatedReachedSets pAggregatedReachedSets)
@@ -121,6 +123,7 @@ public class ParallelAlgorithm implements Algorithm {
     globalConfig = config;
     logger = checkNotNull(pLogger);
     shutdownManager = ShutdownManager.createWithParent(checkNotNull(pShutdownNotifier));
+    specification = checkNotNull(pSpecification);
     cfa = checkNotNull(pCfa);
     filename = checkNotNull(pFilename);
 
@@ -261,13 +264,13 @@ public class ParallelAlgorithm implements Algorithm {
               singleLogger,
               singleShutdownManager.getNotifier(),
               aggregatedReachedSetManager.asView());
-      cpa = coreComponents.createCPA(cfa, SpecAutomatonCompositionType.TARGET_SPEC);
+      cpa = coreComponents.createCPA(cfa, specification);
 
       // TODO global info will not work correctly with parallel analyses
       // as it is a mutable singleton object
       GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
-      algorithm = coreComponents.createAlgorithm(cpa, filename, cfa);
+      algorithm = coreComponents.createAlgorithm(cpa, filename, cfa, specification);
 
       reached = createInitialReachedSet(cpa, mainEntryNode, coreComponents.getReachedSetFactory());
 

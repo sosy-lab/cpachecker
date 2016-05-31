@@ -14,13 +14,13 @@
 
   <rundefinition name="witness-validation">
     <!-- special directory to search for witnesses -->
-    <requiredfiles>../results/integration-witness-generation.logfiles/witness-generation.${inputfile_name}.files/output/witness.graphml</requiredfiles>
+    <requiredfiles>../results/integration-witness-generation.logfiles/witness-generation.${inputfile_name}.files/output/witness.graphml.gz</requiredfiles>
   </rundefinition>
 
   <option name="-witness-validation"/>
   <option name="-disable-java-assertions"/>
   <option name="-heap">10000m</option>
-  <option name="-spec">test/results/integration-witness-generation.logfiles/witness-generation.${inputfile_name}.files/output/witness.graphml</option>
+  <option name="-spec">test/results/integration-witness-generation.logfiles/witness-generation.${inputfile_name}.files/output/witness.graphml.gz</option>
 
   <tasks name="BitVectorsReach">
     <includesfile>../programs/benchmarks/BitVectorsReach-validate.set</includesfile>

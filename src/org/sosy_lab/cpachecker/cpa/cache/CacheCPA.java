@@ -23,12 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.cache;
 
-import java.util.HashMap;
-import java.util.Map;
+import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -38,7 +39,8 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 
-import com.google.common.collect.ImmutableList;
+import java.util.HashMap;
+import java.util.Map;
 
 /*
  * CAUTION: The cache for precision adjustment is only correct for CPAs that do
@@ -52,6 +54,10 @@ public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
   private final CacheTransferRelation mCacheTransferRelation;
   private final CachePrecisionAdjustment mCachePrecisionAdjustment;
   private final CacheMergeOperator mCacheMergeOperator;
+
+  public static CPAFactory factory() {
+    return new AutomaticCPAFactory(CacheCPA.class);
+  }
 
   public CacheCPA(ConfigurableProgramAnalysis pCachedCPA) {
     mCachedCPA = pCachedCPA;

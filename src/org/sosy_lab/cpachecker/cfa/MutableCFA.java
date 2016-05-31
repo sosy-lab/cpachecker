@@ -23,14 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.SortedSet;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.SortedSetMultimap;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -39,9 +34,12 @@ import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.SortedSetMultimap;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.SortedSet;
 
 public class MutableCFA implements CFA {
 
@@ -144,8 +142,8 @@ public class MutableCFA implements CFA {
     return loopStructure;
   }
 
-  public void setLoopStructure(Optional<LoopStructure> pLoopStructure) {
-    loopStructure = checkNotNull(pLoopStructure);
+  public void setLoopStructure(LoopStructure pLoopStructure) {
+    loopStructure = Optional.of(pLoopStructure);
   }
 
   @Override
@@ -171,8 +169,8 @@ public class MutableCFA implements CFA {
     return liveVariables;
   }
 
-  public void setLiveVariables(Optional<LiveVariables> pLiveVariables) {
-    liveVariables = pLiveVariables;
+  public void setLiveVariables(LiveVariables pLiveVariables) {
+    liveVariables = Optional.of(pLiveVariables);
   }
 
   @Override

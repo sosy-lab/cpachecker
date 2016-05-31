@@ -749,8 +749,7 @@ public class CFASingleLoopTransformation {
     MutableCFA cfa = new MutableCFA(pMachineModel, functions, allNodes, pStartNode, pLanguage);
 
     // Get information about the loop structure
-    LoopStructure loopStructure = LoopStructure.getLoopStructureForSingleLoop(pLoopHead);
-    cfa.setLoopStructure(Optional.of(loopStructure));
+    cfa.setLoopStructure(LoopStructure.getLoopStructureForSingleLoop(pLoopHead));
 
     // Finalize the transformed CFA
     return cfa;

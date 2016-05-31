@@ -30,6 +30,7 @@ import com.google.common.base.Predicates;
 import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -58,6 +59,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithmForInvariantGeneration;
@@ -190,10 +192,15 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
     }
   };
 
-  public static KInductionInvariantGenerator create(final Configuration pConfig,
-      final LogManager pLogger, final ShutdownManager pShutdownManager,
-      final CFA pCFA, final ReachedSetFactory pReachedSetFactory, TargetLocationProvider pTargetLocationProvider)
-          throws InvalidConfigurationException, CPAException {
+  public static KInductionInvariantGenerator create(
+      final Configuration pConfig,
+      final LogManager pLogger,
+      final ShutdownManager pShutdownManager,
+      final CFA pCFA,
+      final Specification specification,
+      final ReachedSetFactory pReachedSetFactory,
+      TargetLocationProvider pTargetLocationProvider)
+      throws InvalidConfigurationException, CPAException {
 
     KInductionInvariantGeneratorOptions options = new KInductionInvariantGeneratorOptions();
     pConfig.inject(options);
@@ -203,6 +210,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
         pLogger.withComponentName("KInductionInvariantGenerator"),
         pShutdownManager,
         pCFA,
+        specification,
         pReachedSetFactory,
         options.async,
         getCandidateInvariants(
@@ -212,7 +220,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
             pCFA,
             pShutdownManager,
             pReachedSetFactory,
-            pTargetLocationProvider));
+            pTargetLocationProvider,
+            specification));
   }
 
   static KInductionInvariantGenerator create(
@@ -220,26 +229,33 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
       final LogManager pLogger,
       final ShutdownManager pShutdownManager,
       final CFA pCFA,
+      final Specification specification,
       final ReachedSetFactory pReachedSetFactory,
       CandidateGenerator candidateGenerator,
       boolean pAsync)
       throws InvalidConfigurationException, CPAException {
 
     return new KInductionInvariantGenerator(
-            pConfig,
-            pLogger.withComponentName("KInductionInvariantGenerator"),
-            pShutdownManager,
-            pCFA,
-            pReachedSetFactory,
-            pAsync,
-            candidateGenerator);
+        pConfig,
+        pLogger.withComponentName("KInductionInvariantGenerator"),
+        pShutdownManager,
+        pCFA,
+        specification,
+        pReachedSetFactory,
+        pAsync,
+        candidateGenerator);
   }
 
-  private KInductionInvariantGenerator(final Configuration config, final LogManager pLogger,
-      final ShutdownManager pShutdownNotifier, final CFA cfa,
-      final ReachedSetFactory pReachedSetFactory, final boolean pAsync,
+  private KInductionInvariantGenerator(
+      final Configuration config,
+      final LogManager pLogger,
+      final ShutdownManager pShutdownNotifier,
+      final CFA cfa,
+      final Specification specification,
+      final ReachedSetFactory pReachedSetFactory,
+      final boolean pAsync,
       final CandidateGenerator pCandidateGenerator)
-          throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException {
     logger = pLogger;
     shutdownManager = pShutdownNotifier;
 
@@ -310,7 +326,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
 
     CPABuilder invGenBMCBuilder =
         new CPABuilder(config, logger, shutdownManager.getNotifier(), pReachedSetFactory);
-    cpa = invGenBMCBuilder.buildCPAWithSpecAutomatas(cfa, new AggregatedReachedSets());
+    cpa = invGenBMCBuilder.buildCPAs(cfa, specification, new AggregatedReachedSets());
     Algorithm cpaAlgorithm = CPAAlgorithm.create(cpa, logger, config, shutdownManager.getNotifier());
     algorithm =
         new BMCAlgorithmForInvariantGeneration(
@@ -321,6 +337,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
             pReachedSetFactory,
             shutdownManager,
             cfa,
+            specification,
             stats,
             statisticsCandidateGenerator);
 
@@ -442,13 +459,17 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
       CFA pCFA,
       final ShutdownManager pShutdownManager,
       ReachedSetFactory pReachedSetFactory,
-      TargetLocationProvider pTargetLocationProvider)
+      TargetLocationProvider pTargetLocationProvider,
+      Specification specification)
       throws InvalidConfigurationException, CPAException {
 
     final Set<CandidateInvariant> candidates = Sets.newLinkedHashSet();
 
     if (pOptions.guessCandidatesFromCFA) {
-      for (AssumeEdge assumeEdge : getRelevantAssumeEdges(pTargetLocationProvider.tryGetAutomatonTargetLocations(pCFA.getMainFunction()))) {
+      for (AssumeEdge assumeEdge :
+          getRelevantAssumeEdges(
+              pTargetLocationProvider.tryGetAutomatonTargetLocations(
+                  pCFA.getMainFunction(), specification))) {
         candidates.add(new EdgeFormulaNegation(pCFA.getLoopStructure().get().getAllLoopHeads(), assumeEdge));
       }
     }
@@ -463,8 +484,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
 
     final TargetLocationCandidateInvariant safetyProperty;
     if (pCFA.getAllLoopHeads().isPresent()) {
-      safetyProperty =
-          new TargetLocationCandidateInvariant(BMCHelper.getLoopHeads(pCFA, pTargetLocationProvider));
+      safetyProperty = new TargetLocationCandidateInvariant(BMCHelper.getLoopHeads(pCFA));
       candidates.add(safetyProperty);
     } else {
       safetyProperty = null;
@@ -556,8 +576,11 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
     ShutdownNotifier notifier = pShutdownManager.getNotifier();
     ReachedSet reachedSet = pReachedSetFactory.create();
     CPABuilder builder = new CPABuilder(config, pLogger, notifier, pReachedSetFactory);
+    Specification automatonAsSpec =
+        Specification.fromFiles(
+            ImmutableList.of(options.invariantsAutomatonFile), pCFA, config, pLogger);
     ConfigurableProgramAnalysis cpa =
-        builder.buildCPAs(pCFA, Arrays.asList(options.invariantsAutomatonFile));
+        builder.buildCPAs(pCFA, automatonAsSpec, new AggregatedReachedSets());
     CPAAlgorithm algorithm = CPAAlgorithm.create(cpa, pLogger, config, notifier);
     CFANode rootNode = pCFA.getMainFunction();
     StateSpacePartition partition = StateSpacePartition.getDefaultPartition();

@@ -33,6 +33,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPABuilder;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
@@ -54,14 +55,21 @@ public class PartialCPABuilder {
   private final Configuration globalConfig;
   private final CFA cfa;
   private final ShutdownNotifier shutdown;
+  private final Specification specification;
 
-  public PartialCPABuilder(final Configuration config, final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier, final CFA pCfa) throws InvalidConfigurationException {
+  public PartialCPABuilder(
+      final Configuration config,
+      final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier,
+      final CFA pCfa,
+      final Specification pSpecification)
+      throws InvalidConfigurationException {
     config.inject(this);
     globalConfig = config;
     logger = pLogger;
     cfa = pCfa;
     shutdown = pShutdownNotifier;
+    specification = pSpecification;
   }
 
   public ConfigurableProgramAnalysis buildPartialCPA(int iterationNumber, ReachedSetFactory pFactory)
@@ -79,16 +87,13 @@ public class PartialCPABuilder {
     } catch (IOException e) {
       throw new InvalidConfigurationException("Cannot read configuration for current partial ARG checking.");
     }
-    if (globalConfig.hasProperty("specification")) {
-      singleConfigBuilder.copyOptionFrom(globalConfig, "specification");
-    }
     Configuration singleConfig = singleConfigBuilder.build();
 
     // create CPA to check current partial ARG
     logger.log(Level.FINEST, "Create CPA instance");
 
     return new CPABuilder(singleConfig, logger, shutdown, pFactory)
-        .buildCPAWithSpecAutomatas(cfa, new AggregatedReachedSets());
+        .buildCPAs(cfa, specification, new AggregatedReachedSets());
  }
 
 

@@ -100,7 +100,7 @@ import javax.annotation.Nonnull;
  */
 public final class VariableAndFieldRelevancyComputer {
   /** Represents an approximation of a node in dependency graph i.e. variable, field or `top' (unknown location). */
-  private static class VariableOrField implements Comparable<VariableOrField> {
+  private abstract static class VariableOrField implements Comparable<VariableOrField> {
     private static final class Unknown extends VariableOrField {
       private Unknown() {
       }
@@ -295,19 +295,13 @@ public final class VariableAndFieldRelevancyComputer {
     }
 
     @Override
-    public boolean equals(final Object other) {
-      throw new AssertionError("Should not happen: equality should always be checked on an object of a subclass");
-    }
+    public abstract boolean equals(final Object other);
 
     @Override
-    public int hashCode() {
-      throw new AssertionError("Should not happen: hash code should always be computed on an object of a subclass");
-    }
+    public abstract int hashCode();
 
     @Override
-    public int compareTo(final VariableOrField other) {
-      throw new AssertionError("Should not happen: comparison should always be called on an object of a subclass");
-    }
+    public abstract int compareTo(final VariableOrField other);
   }
 
   public static final class VarFieldDependencies {

@@ -36,6 +36,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
@@ -97,6 +98,7 @@ public class PredicateCPATest {
       factory.set(new AggregatedReachedSets(), AggregatedReachedSets.class);
       factory.set(TestDataTools.makeCFA("void main() { }", config), CFA.class);
       factory.set(new ReachedSetFactory(config), ReachedSetFactory.class);
+      factory.set(Specification.alwaysSatisfied(), Specification.class);
 
       ConfigurableProgramAnalysis cpa = factory.createInstance();
       if (cpa instanceof AutoCloseable) {

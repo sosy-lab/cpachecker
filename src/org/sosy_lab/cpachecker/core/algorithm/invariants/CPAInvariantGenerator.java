@@ -39,7 +39,6 @@ import org.sosy_lab.common.LazyFutureTask;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -51,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier.TrivialInvariantSupplier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -173,13 +173,22 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
    * @throws InvalidConfigurationException if the configuration is invalid.
    * @throws CPAException if the CPA cannot be created.
    */
-  public static InvariantGenerator create(final Configuration pConfig,
+  public static InvariantGenerator create(
+      final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownManager pShutdownManager,
       final Optional<ShutdownManager> pShutdownOnSafeManager,
-      final CFA pCFA)
-          throws InvalidConfigurationException, CPAException {
-    return create(pConfig, pLogger, pShutdownManager, pShutdownOnSafeManager, pCFA, Collections.<Automaton>emptyList());
+      final CFA pCFA,
+      final Specification pSpecification)
+      throws InvalidConfigurationException, CPAException {
+    return create(
+        pConfig,
+        pLogger,
+        pShutdownManager,
+        pShutdownOnSafeManager,
+        pCFA,
+        pSpecification,
+        Collections.<Automaton>emptyList());
   }
 
   /**
@@ -199,13 +208,15 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
    * @throws InvalidConfigurationException if the configuration is invalid.
    * @throws CPAException if the CPA cannot be created.
    */
-  public static InvariantGenerator create(final Configuration pConfig,
+  public static InvariantGenerator create(
+      final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownManager pShutdownManager,
       final Optional<ShutdownManager> pShutdownOnSafeManager,
       final CFA pCFA,
+      final Specification specification,
       final List<Automaton> additionalAutomata)
-          throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException {
 
     InvariantGeneratorOptions options = new InvariantGeneratorOptions();
     pConfig.inject(options);
@@ -220,6 +231,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
             pShutdownOnSafeManager,
             1,
             pCFA,
+            specification,
             additionalAutomata);
 
     InvariantGenerator invariantGenerator = cpaInvariantGenerator;
@@ -305,12 +317,16 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     return invariantGenerator;
   }
 
-  private CPAInvariantGenerator(final Configuration config,
+  private CPAInvariantGenerator(
+      final Configuration config,
       final LogManager pLogger,
       final ShutdownManager pShutdownManager,
       Optional<ShutdownManager> pShutdownOnSafeManager,
       final int pIteration,
-      final CFA pCFA, List<Automaton> pAdditionalAutomata) throws InvalidConfigurationException, CPAException {
+      final CFA pCFA,
+      final Specification pSpecification,
+      final List<Automaton> pAdditionalAutomata)
+      throws InvalidConfigurationException, CPAException {
     config.inject(this);
     stats = new CPAInvariantGeneratorStatistics();
     logger = pLogger;
@@ -320,10 +336,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
 
     Configuration invariantConfig;
     try {
-      ConfigurationBuilder configBuilder = Configuration.builder().copyOptionFrom(config, "specification");
-
-      configBuilder.loadFromFile(configFile);
-      invariantConfig = configBuilder.build();
+      invariantConfig = Configuration.builder().loadFromFile(configFile).build();
     } catch (IOException e) {
       throw new InvalidConfigurationException("could not read configuration file for invariant generation: " + e.getMessage(), e);
     }
@@ -332,8 +345,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     cfa = pCFA;
     cpa =
         new CPABuilder(invariantConfig, logger, shutdownManager.getNotifier(), reachedSetFactory)
-            .buildsCPAWithWitnessAutomataAndSpecification(
-                cfa, pAdditionalAutomata, new AggregatedReachedSets());
+            .buildCPAs(cfa, pSpecification, pAdditionalAutomata, new AggregatedReachedSets());
     algorithm = CPAAlgorithm.create(cpa, logger, invariantConfig, shutdownManager.getNotifier());
   }
 

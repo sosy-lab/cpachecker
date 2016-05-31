@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
+import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assert_;
 import static com.google.common.truth.TruthJUnit.assume;
 
@@ -80,14 +81,26 @@ public class ConfigurationFilesTest {
 
   private static final ImmutableList<String> UNUSED_OPTIONS =
       ImmutableList.of(
-          "java.sourcepath", // always set by this test
+          // always set by this test
+          "java.sourcepath",
           // handled by code outside of CPAchecker class
           "output.disable",
           "limits.time.cpu",
           "memorysafety.config",
           "overflow.config",
-          // only handled if automaton with given name is loaded
+          "pcc.proofgen.doPCC",
+          // only handled if specification automaton is additionally specified
+          "cpa.automaton.breakOnTargetState",
           "WitnessAutomaton.cpa.automaton.treatErrorsAsTargets",
+          // handled by component that is loaded lazily on demand
+          "invariantGeneration.adjustConditions",
+          "invariantGeneration.async",
+          "invariantGeneration.config",
+          "invariantGeneration.kInduction.async",
+          "invariantGeneration.kInduction.guessCandidatesFromCFA",
+          "invariantGeneration.kInduction.terminateOnCounterexample",
+          // irrelevant if other solver is used
+          "solver.z3.requireProofs",
           // present in many config files that explicitly disable counterexample checks
           "counterexample.checker",
           "counterexample.checker.config");
@@ -136,10 +149,6 @@ public class ConfigurationFilesTest {
   public void instantiate_and_run() throws IOException {
     // exclude files not meant to be instantiated
     assume().that((Iterable<Path>) configFile).doesNotContain(Paths.get("includes"));
-    assume()
-        .that(configFile.getFileName().toString())
-        .isNotEqualTo(
-            "smgAnalysis-as-cex-check.properties"); // TODO analysis throws StackOverflowError
 
     final Configuration config = createConfigurationForTestInstantiation();
     final boolean isJava = "Java".equalsIgnoreCase(config.getProperty("language"));
@@ -191,10 +200,10 @@ public class ConfigurationFilesTest {
     }
 
     if (!config.hasProperty("analysis.restartAfterUnknown")) {
+      // TODO find a solution how to check for unused properties correctly even with RestartAlgorithm
       Set<String> unusedOptions = new TreeSet<>(config.getUnusedProperties());
       unusedOptions.removeAll(UNUSED_OPTIONS);
-      // TODO enable after fixing a lot of config files
-      //      assertThat(unusedOptions).named("unused options specified in " + configFile).isEmpty();
+      assertThat(unusedOptions).named("unused options specified in " + configFile).isEmpty();
     }
   }
 
@@ -227,7 +236,7 @@ public class ConfigurationFilesTest {
           "public class Main { public static void main(String... args) {} }");
       program = "Main";
     } else {
-      File cFile = tempFolder.newFile("program.c");
+      File cFile = tempFolder.newFile("program.i");
       MoreFiles.writeFile(cFile.toPath(), StandardCharsets.US_ASCII, "void main() {}");
       program = cFile.toString();
     }

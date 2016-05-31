@@ -72,6 +72,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -332,7 +333,7 @@ public class LiveVariables {
     return Optional.of((LiveVariables)new AllVariablesAsLiveVariables(pCFA, globalsList));
   }
 
-  public static Optional<LiveVariables> create(
+  public static LiveVariables create(
       final Optional<VariableClassification> variableClassification,
       final List<Pair<ADeclaration, String>> globalsList,
       final MutableCFA pCFA,
@@ -349,7 +350,7 @@ public class LiveVariables {
     // we cannot make any assumptions about c programs where we do not know
     // about the addressed variables
     if (pCFA.getLanguage() == Language.C && !variableClassification.isPresent()) {
-      return Optional.of((LiveVariables)new AllVariablesAsLiveVariables(pCFA, globalsList));
+      return new AllVariablesAsLiveVariables(pCFA, globalsList);
     }
 
     // we need a cfa with variableClassification, thus we create one now
@@ -377,7 +378,7 @@ public class LiveVariables {
       limitChecker.cancel();
     }
 
-    return Optional.of(liveVarObject);
+    return liveVarObject;
   }
 
   private static LiveVariables create0(
@@ -538,7 +539,7 @@ public class LiveVariables {
       ReachedSetFactory reachedFactory = new ReachedSetFactory(config);
       ConfigurableProgramAnalysis cpa =
           new CPABuilder(config, logger, shutdownNotifier, reachedFactory)
-              .buildCPAWithSpecAutomatas(cfa, new AggregatedReachedSets());
+              .buildCPAs(cfa, Specification.alwaysSatisfied(), new AggregatedReachedSets());
       Algorithm algorithm = CPAAlgorithm.create(cpa,
                                                 logger,
                                                 config,

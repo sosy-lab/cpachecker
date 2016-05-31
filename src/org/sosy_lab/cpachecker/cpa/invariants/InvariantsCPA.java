@@ -23,23 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
-import java.util.WeakHashMap;
-import java.util.logging.Level;
+import static com.google.common.base.Preconditions.checkNotNull;
 
-import javax.annotation.concurrent.GuardedBy;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -56,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
@@ -93,10 +83,23 @@ import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+import java.util.WeakHashMap;
+import java.util.logging.Level;
+
+import javax.annotation.concurrent.GuardedBy;
 
 /**
  * This is a CPA for collecting simple invariants about integer variables.
@@ -169,6 +172,8 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
   private final MachineModel machineModel;
 
+  private final Specification specification;
+
   private final WeakHashMap<CFANode, InvariantsPrecision> initialPrecisionMap = new WeakHashMap<>();
 
   private boolean relevantVariableLimitReached = false;
@@ -210,14 +215,22 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
    * @param pCfa the control flow automaton to analyze.
    * @throws InvalidConfigurationException if the configuration is invalid.
    */
-  public InvariantsCPA(Configuration pConfig, LogManager pLogManager, InvariantsOptions pOptions,
-      ShutdownNotifier pShutdownNotifier, ReachedSetFactory pReachedSetFactory, CFA pCfa)
-          throws InvalidConfigurationException {
+  public InvariantsCPA(
+      Configuration pConfig,
+      LogManager pLogManager,
+      InvariantsOptions pOptions,
+      ShutdownNotifier pShutdownNotifier,
+      ReachedSetFactory pReachedSetFactory,
+      CFA pCfa,
+      Specification pSpecification)
+      throws InvalidConfigurationException {
     this.config = pConfig;
     this.logManager = pLogManager;
     this.shutdownNotifier = pShutdownNotifier;
     this.cfa = pCfa;
-    this.targetLocationProvider = new CachingTargetLocationProvider(pReachedSetFactory, shutdownNotifier, logManager, config, cfa);
+    this.specification = checkNotNull(pSpecification);
+    this.targetLocationProvider =
+        new CachingTargetLocationProvider(pReachedSetFactory, shutdownNotifier, logManager, cfa);
     this.options = pOptions;
     this.conditionAdjuster = pOptions.conditionAdjusterFactory.createConditionAdjuster(this);
     this.machineModel = pCfa.getMachineModel();
@@ -269,7 +282,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     // Determine the target locations
     boolean determineTargetLocations = options.analyzeTargetPathsOnly || options.interestingVariableLimit != 0;
     if (determineTargetLocations) {
-      targetLocations = targetLocationProvider.tryGetAutomatonTargetLocations(pNode);
+      targetLocations = targetLocationProvider.tryGetAutomatonTargetLocations(pNode, specification);
       determineTargetLocations = targetLocations != null;
       if (targetLocations == null) {
         targetLocations = ImmutableSet.of();

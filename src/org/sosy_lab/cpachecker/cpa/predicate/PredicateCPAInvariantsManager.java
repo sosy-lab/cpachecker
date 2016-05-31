@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.AbstractLocationFormulaInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateInvariant;
@@ -263,12 +264,14 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
   private final Map<CFANode, Set<BooleanFormula>> locationInvariantsCache = new HashMap<>();
 
   private final AggregatedReachedSets aggregatedReachedSets;
+  private final Specification specification;
 
   public PredicateCPAInvariantsManager(
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       CFA pCfa,
+      Specification pSpecification,
       AggregatedReachedSets pAggregatedReachedSets)
       throws InvalidConfigurationException {
     pConfig.inject(this);
@@ -277,6 +280,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
     aggregatedReachedSets = pAggregatedReachedSets;
+    specification = pSpecification;
 
     cfa = pCfa;
     semiCNFConverter = new RCNFManager(pConfig);
@@ -646,7 +650,13 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
                         }
                       }));
 
-      new KInductionInvariantChecker(config, pInvariantShutdown, new OnlyWarningsLogmanager(logger), cfa, candidateGenerator)
+      new KInductionInvariantChecker(
+              config,
+              pInvariantShutdown,
+              new OnlyWarningsLogmanager(logger),
+              cfa,
+              specification,
+              candidateGenerator)
           .checkCandidates();
 
       Set<CandidateInvariant> invariants = candidateGenerator.getConfirmedCandidates();
@@ -720,6 +730,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
               pInvariantShutdown,
               Optional.<ShutdownManager>absent(),
               cfa,
+              specification,
               automata);
 
       return generateInvariants0(abstractionStatesTrace, invGen, foundInvariants);
@@ -790,6 +801,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
               pInvariantShutdown,
               new OnlyWarningsLogmanager(logger),
               cfa,
+              specification,
               candidateGenerator);
       invChecker.checkCandidates();
 

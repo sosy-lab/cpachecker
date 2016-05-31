@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
@@ -46,6 +47,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
@@ -136,6 +138,8 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
   protected final LogManager logger;
   private final ReachedSetFactory reachedSetFactory;
   private final CFA cfa;
+  private final Set<CFANode> loopHeads;
+  private final Specification specification;
 
   protected final ShutdownNotifier shutdownNotifier;
 
@@ -143,13 +147,18 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
   private final ShutdownRequestListener propagateSafetyInterrupt;
 
-  protected AbstractBMCAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCPA,
-                      Configuration pConfig, LogManager pLogger,
-                      ReachedSetFactory pReachedSetFactory,
-                      final ShutdownManager pShutdownManager, CFA pCFA,
-                      BMCStatistics pBMCStatistics,
-                      boolean pIsInvariantGenerator)
-                      throws InvalidConfigurationException, CPAException {
+  protected AbstractBMCAlgorithm(
+      Algorithm pAlgorithm,
+      ConfigurableProgramAnalysis pCPA,
+      Configuration pConfig,
+      LogManager pLogger,
+      ReachedSetFactory pReachedSetFactory,
+      final ShutdownManager pShutdownManager,
+      CFA pCFA,
+      final Specification pSpecification,
+      BMCStatistics pBMCStatistics,
+      boolean pIsInvariantGenerator)
+      throws InvalidConfigurationException, CPAException {
     pConfig.inject(this, AbstractBMCAlgorithm.class);
 
     stats = pBMCStatistics;
@@ -158,12 +167,15 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     logger = pLogger;
     reachedSetFactory = pReachedSetFactory;
     cfa = pCFA;
+    loopHeads = BMCHelper.getLoopHeads(pCFA);
+    specification = checkNotNull(pSpecification);
 
     shutdownNotifier = pShutdownManager.getNotifier();
-    targetLocationProvider = new CachingTargetLocationProvider(reachedSetFactory, shutdownNotifier, logger, pConfig, cfa);
+    targetLocationProvider =
+        new CachingTargetLocationProvider(reachedSetFactory, shutdownNotifier, logger, cfa);
 
     if (induction) {
-      induction = checkIfInductionIsPossible(pCFA, pLogger, Optional.of(targetLocationProvider));
+      induction = checkIfInductionIsPossible(pCFA, pLogger, loopHeads);
     }
 
     if (induction) {
@@ -171,7 +183,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
       CPABuilder builder =
           new CPABuilder(
               pConfig, stepCaseLogger, pShutdownManager.getNotifier(), pReachedSetFactory);
-      stepCaseCPA = builder.buildCPAWithSpecAutomatas(cfa, new AggregatedReachedSets());
+      stepCaseCPA = builder.buildCPAs(cfa, pSpecification, new AggregatedReachedSets());
       stepCaseAlgorithm =
           CPAAlgorithm.create(stepCaseCPA, stepCaseLogger, pConfig, pShutdownManager.getNotifier());
     } else {
@@ -205,10 +217,24 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
         && induction
         && addInvariantsByInduction) {
       addInvariantsByInduction = false;
-      invariantGenerator = KInductionInvariantGenerator.create(pConfig, pLogger,
-          invariantGeneratorShutdownManager, pCFA, pReachedSetFactory, targetLocationProvider);
+      invariantGenerator =
+          KInductionInvariantGenerator.create(
+              pConfig,
+              pLogger,
+              invariantGeneratorShutdownManager,
+              pCFA,
+              pSpecification,
+              pReachedSetFactory,
+              targetLocationProvider);
     } else if (induction && addInvariantsByAI) {
-      invariantGenerator = CPAInvariantGenerator.create(pConfig, pLogger, invariantGeneratorShutdownManager, Optional.of(invariantGeneratorShutdownManager), cfa);
+      invariantGenerator =
+          CPAInvariantGenerator.create(
+              pConfig,
+              pLogger,
+              invariantGeneratorShutdownManager,
+              Optional.of(invariantGeneratorShutdownManager),
+              cfa,
+              specification);
     } else {
       invariantGenerator = new DoNothingInvariantGenerator();
     }
@@ -224,7 +250,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
   }
 
-  static boolean checkIfInductionIsPossible(CFA cfa, LogManager logger, Optional<TargetLocationProvider> pTargetLocationProvider) {
+  static boolean checkIfInductionIsPossible(CFA cfa, LogManager logger, Set<CFANode> loopHeads) {
     if (!cfa.getLoopStructure().isPresent()) {
       logger.log(Level.WARNING, "Could not use induction for proving program safety, loop structure of program could not be determined.");
       return false;
@@ -237,11 +263,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
       return false;
     }
 
-    if (pTargetLocationProvider.isPresent()) {
-      return !BMCHelper.getLoopHeads(cfa, pTargetLocationProvider.get()).isEmpty();
-    }
-
-    return true;
+    return !loopHeads.isEmpty();
   }
 
   public AlgorithmStatus run(final ReachedSet reachedSet) throws CPAException,
@@ -568,7 +590,8 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
    * @return the potential target locations.
    */
   protected Collection<CFANode> getTargetLocations() {
-    return targetLocationProvider.tryGetAutomatonTargetLocations(cfa.getMainFunction());
+    return targetLocationProvider.tryGetAutomatonTargetLocations(
+        cfa.getMainFunction(), specification);
   }
 
   /**
@@ -577,6 +600,6 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
    * @return the loop heads.
    */
   protected Set<CFANode> getLoopHeads() {
-    return BMCHelper.getLoopHeads(cfa, targetLocationProvider);
+    return loopHeads;
   }
 }

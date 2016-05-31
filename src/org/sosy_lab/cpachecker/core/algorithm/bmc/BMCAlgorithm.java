@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -117,12 +118,25 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   private final ARGPathExporter argPathExporter;
 
-  public BMCAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCPA,
-                      Configuration pConfig, LogManager pLogger,
-                      ReachedSetFactory pReachedSetFactory,
-                      ShutdownManager pShutdownManager, CFA pCFA)
-                      throws InvalidConfigurationException, CPAException {
-    super(pAlgorithm, pCPA, pConfig, pLogger, pReachedSetFactory, pShutdownManager, pCFA,
+  public BMCAlgorithm(
+      Algorithm pAlgorithm,
+      ConfigurableProgramAnalysis pCPA,
+      Configuration pConfig,
+      LogManager pLogger,
+      ReachedSetFactory pReachedSetFactory,
+      ShutdownManager pShutdownManager,
+      CFA pCFA,
+      final Specification specification)
+      throws InvalidConfigurationException, CPAException {
+    super(
+        pAlgorithm,
+        pCPA,
+        pConfig,
+        pLogger,
+        pReachedSetFactory,
+        pShutdownManager,
+        pCFA,
+        specification,
         new BMCStatistics(),
         false /* no invariant generator */);
     pConfig.inject(this);

@@ -28,17 +28,15 @@ import static com.google.common.base.Preconditions.checkState;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateGenerator;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -47,6 +45,8 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
@@ -102,6 +102,7 @@ public class KInductionInvariantChecker {
       ShutdownNotifier pShutdownNotifier,
       LogManager pLogger,
       CFA pCfa,
+      Specification specification,
       CandidateGenerator pCandidateGenerator)
       throws InvalidConfigurationException, CPAException {
     pConfig.inject(this);
@@ -113,13 +114,7 @@ public class KInductionInvariantChecker {
 
     Configuration invariantConfig;
     try {
-      ConfigurationBuilder configBuilder = Configuration.builder().loadFromFile(kInductionConfig);
-      // we want the invariant generator to run with the same specification as the outside
-      // analysis, otherwise the invariants might be useless for us
-      if (config.hasProperty("specification")) {
-        configBuilder.copyOptionFrom(config, "specification");
-      }
-      invariantConfig = configBuilder.build();
+      invariantConfig = Configuration.builder().loadFromFile(kInductionConfig).build();
 
     } catch (IOException e) {
       throw new InvalidConfigurationException(
@@ -140,7 +135,14 @@ public class KInductionInvariantChecker {
 
     invGen =
         KInductionInvariantGenerator.create(
-            invariantConfig, logger, invariantShutdown, cfa, reached, pCandidateGenerator, false);
+            invariantConfig,
+            logger,
+            invariantShutdown,
+            cfa,
+            specification,
+            reached,
+            pCandidateGenerator,
+            false);
   }
 
   /**

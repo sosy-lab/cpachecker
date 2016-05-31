@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.arg;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
-import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -87,14 +86,19 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
         + "which is required to get at most one successor per CFA edge.")
       private boolean deleteInCPAEnabledAnalysis = false;
 
-  @Option(secure=true, name="counterexample.export.filters", deprecatedName="cpa.arg.errorPath.filters",
-      description="Filter for irrelevant counterexamples to reduce the number of similar counterexamples reported."
-      + " Only relevant with analysis.stopAfterError=false and counterexample.export.exportImmediately=true."
-      + " Put the weakest and cheapest filter first, e.g., PathEqualityCounterexampleFilter.")
-  @ClassOption(packagePrefix="org.sosy_lab.cpachecker.cpa.arg.counterexamples")
-  private List<Class<? extends CounterexampleFilter>> cexFilterClasses
-      = ImmutableList.<Class<? extends CounterexampleFilter>>of(
-          PathEqualityCounterexampleFilter.class);
+  @Option(
+    secure = true,
+    name = "counterexample.export.filters",
+    deprecatedName = "cpa.arg.errorPath.filters",
+    description =
+        "Filter for irrelevant counterexamples to reduce the number of similar counterexamples reported."
+            + " Only relevant with analysis.stopAfterError=false and counterexample.export.exportImmediately=true."
+            + " Put the weakest and cheapest filter first, e.g., PathEqualityCounterexampleFilter."
+  )
+  @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.cpa.arg.counterexamples")
+  private List<CounterexampleFilter.Factory> cexFilterClasses =
+      ImmutableList.<CounterexampleFilter.Factory>of(
+          (config, logger, cpa) -> new PathEqualityCounterexampleFilter(config, logger, cpa));
   private final CounterexampleFilter cexFilter;
 
   @Option(secure=true, name="counterexample.export.exportImmediately", deprecatedName="cpa.arg.errorPath.exportImmediately",
@@ -167,23 +171,15 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
 
   private CounterexampleFilter createCounterexampleFilter(Configuration config,
       LogManager logger, ConfigurableProgramAnalysis cpa) throws InvalidConfigurationException {
-    final Object[] argumentValues = new Object[]{config, logger, cpa};
-    final Class<?>[] argumentTypes = new Class<?>[]{Configuration.class, LogManager.class, ConfigurableProgramAnalysis.class};
-
     switch (cexFilterClasses.size()) {
     case 0:
       return new NullCounterexampleFilter();
-    case 1:
-      return Classes.createInstance(CounterexampleFilter.class, cexFilterClasses.get(0),
-          argumentTypes,
-          argumentValues,
-          InvalidConfigurationException.class);
-    default:
-      List<CounterexampleFilter> filters = new ArrayList<>(cexFilterClasses.size());
-      for (Class<? extends CounterexampleFilter> cls : cexFilterClasses) {
-        filters.add(Classes.createInstance(CounterexampleFilter.class, cls,
-          argumentTypes, argumentValues,
-          InvalidConfigurationException.class));
+      case 1:
+        return cexFilterClasses.get(0).create(config, logger, cpa);
+      default:
+        List<CounterexampleFilter> filters = new ArrayList<>(cexFilterClasses.size());
+        for (CounterexampleFilter.Factory factory : cexFilterClasses) {
+          filters.add(factory.create(config, logger, cpa));
       }
       return new ConjunctiveCounterexampleFilter(filters);
     }

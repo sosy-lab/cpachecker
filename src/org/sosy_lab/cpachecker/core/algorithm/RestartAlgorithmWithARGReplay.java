@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -142,9 +143,15 @@ public class RestartAlgorithmWithARGReplay implements Algorithm, StatisticsProvi
   private final RestartAlgorithmStatistics stats;
   private final CFA cfa;
   private final Configuration globalConfig;
+  private final Specification specification;
 
-  public RestartAlgorithmWithARGReplay(Configuration config, LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier, CFA pCfa) throws InvalidConfigurationException {
+  public RestartAlgorithmWithARGReplay(
+      Configuration config,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCfa,
+      Specification pSpecification)
+      throws InvalidConfigurationException {
     config.inject(this);
 
     if (configFiles.size() != 2) {
@@ -156,6 +163,7 @@ public class RestartAlgorithmWithARGReplay implements Algorithm, StatisticsProvi
     this.shutdownNotifier = pShutdownNotifier;
     this.cfa = pCfa;
     this.globalConfig = config;
+    specification = checkNotNull(pSpecification);
   }
 
   @Override
@@ -231,9 +239,6 @@ public class RestartAlgorithmWithARGReplay implements Algorithm, StatisticsProvi
     singleConfigBuilder.copyFrom(globalConfig);
     singleConfigBuilder.clearOption("restartAlgorithm.configFiles");
     singleConfigBuilder.loadFromFile(path);
-    if (globalConfig.hasProperty("specification")) {
-      singleConfigBuilder.copyOptionFrom(globalConfig, "specification");
-    }
     Configuration singleConfig = singleConfigBuilder.build();
     return singleConfig;
   }
@@ -242,7 +247,7 @@ public class RestartAlgorithmWithARGReplay implements Algorithm, StatisticsProvi
       throws InvalidConfigurationException, CPAException {
     CPABuilder builder1 = new CPABuilder(singleConfig1, logger, shutdownNotifier, reachedSetFactory);
     ConfigurableProgramAnalysis cpa1 =
-        builder1.buildCPAWithSpecAutomatas(cfa, new AggregatedReachedSets());
+        builder1.buildCPAs(cfa, specification, new AggregatedReachedSets());
     if (cpa1 instanceof StatisticsProvider) {
       ((StatisticsProvider)cpa1).collectStatistics(stats.getSubStatistics());
     }
