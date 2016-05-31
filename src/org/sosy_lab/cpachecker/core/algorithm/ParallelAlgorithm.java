@@ -330,6 +330,7 @@ public class ParallelAlgorithm implements Algorithm {
             for (ReachedSetAdjustingCPA innerCpa :
                 CPAs.asIterable(cpa).filter(ReachedSetAdjustingCPA.class)) {
               if (innerCpa.adjustPrecision()) {
+                singleLogger.log(Level.INFO, "Adjusting precision for CPA", innerCpa);
                 stopAnalysis = false;
               }
             }
