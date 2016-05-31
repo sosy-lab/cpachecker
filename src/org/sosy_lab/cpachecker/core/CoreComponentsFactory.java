@@ -268,7 +268,8 @@ public class CoreComponentsFactory {
                 reachedSetFactory,
                 shutdownManager,
                 cfa,
-                specification);
+                specification,
+                aggregatedReachedSets);
       }
 
       if (checkCounterexamples) {

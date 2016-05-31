@@ -30,7 +30,6 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
@@ -51,9 +50,11 @@ import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.AbstractInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.DoNothingInvariantGenerator;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -157,8 +158,10 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
       CFA pCFA,
       final Specification pSpecification,
       BMCStatistics pBMCStatistics,
-      boolean pIsInvariantGenerator)
+      boolean pIsInvariantGenerator,
+      AggregatedReachedSets pAggregatedReachedSets)
       throws InvalidConfigurationException, CPAException {
+
     pConfig.inject(this, AbstractBMCAlgorithm.class);
 
     stats = pBMCStatistics;
@@ -225,16 +228,40 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
               pCFA,
               pSpecification,
               pReachedSetFactory,
-              targetLocationProvider);
+              targetLocationProvider,
+              pAggregatedReachedSets);
     } else if (induction && addInvariantsByAI) {
       invariantGenerator =
-          CPAInvariantGenerator.create(
-              pConfig,
-              pLogger,
-              invariantGeneratorShutdownManager,
-              Optional.of(invariantGeneratorShutdownManager),
-              cfa,
-              specification);
+          new AbstractInvariantGenerator() {
+
+            @Override
+            public void start(CFANode pInitialLocation) {
+              // do nothing
+            }
+
+            @Override
+            public boolean isProgramSafe() {
+              // just return false, program will be ended by parallel algorithm if the invariant
+              // generator can prove safety before the current analysis
+              return false;
+            }
+
+            @Override
+            public void cancel() {
+              // do nothing
+            }
+
+            @Override
+            public InvariantSupplier get() throws CPAException, InterruptedException {
+              return pAggregatedReachedSets.asInvariantSupplier();
+            }
+
+            @Override
+            public ExpressionTreeSupplier getAsExpressionTree()
+                throws CPAException, InterruptedException {
+              return pAggregatedReachedSets.asExpressionTreeSupplier();
+            }
+          };
     } else {
       invariantGenerator = new DoNothingInvariantGenerator();
     }
