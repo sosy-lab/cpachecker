@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
+import com.google.common.collect.ImmutableSet;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -32,6 +34,7 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -57,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -75,7 +79,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
@@ -115,6 +122,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   private final NamedRegionManager rmgr;
   private final PredicateManager predmgr;
   private final MachineModel machineModel;
+  private final Timer strengthenTimer = new Timer();
 
   /** The Constructor of BDDVectorTransferRelation sets the NamedRegionManager
    * and the BitVectorManager. Both are used to build and manipulate BDDs,
@@ -595,12 +603,36 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
-  public Collection<? extends AbstractState> strengthen(
-          AbstractState state, List<AbstractState> states, CFAEdge cfaEdge,
-          Precision precision) {
-    // do nothing
-    return null;
+  public Collection<? extends AbstractState> strengthen(AbstractState pState,
+      List<AbstractState> pOthers, CFAEdge pEdge, Precision precision)
+          throws CPATransferException {
+
+    strengthenTimer.start();
+    try {
+
+      state = (BDDState) pState;
+      CFANode loc = pEdge.getSuccessor();
+
+      for (AbstractStateWithAssumptions other : AbstractStates.asFlatIterable(pOthers).filter(AbstractStateWithAssumptions.class)) {
+        for (AssumeEdge assumption : other.getAsAssumeEdges(loc.getFunctionName())) {
+          state = handleAssumption(assumption, assumption.getExpression(), assumption.getTruthAssumption());
+
+          if (state == null) {
+            return ImmutableSet.of();
+          }
+        }
+      }
+
+      return Collections.singleton(state);
+
+    } finally {
+      strengthenTimer.stop();
+    }
+
   }
 
   /** THis function writes some information about tracked variables, number of partitions,... */
