@@ -25,21 +25,6 @@ package org.sosy_lab.cpachecker.util;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.math.BigInteger;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.logging.Level;
-
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -51,6 +36,22 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
+
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.WeavingLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+
+import java.math.BigInteger;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.logging.Level;
 
 public class VariableClassification {
 
@@ -83,6 +84,10 @@ public class VariableClassification {
   private final Set<Partition> intAddPartitions;
 
   private final Map<Pair<CFAEdge, Integer>, Partition> edgeToPartitions;
+
+  public static final Partition SHADOW_PARTITION = new Partition(
+      ImmutableMap.<String, Partition>of(),
+      ImmutableMap.<Pair<CFAEdge, Integer>, Partition>of());
 
   private final LogManager logger;
 
@@ -280,6 +285,11 @@ public class VariableClassification {
    * where it is the position of the param.
    * For the left-hand-side of the assignment of external functionCalls use -1. */
   private Partition getPartitionForEdge(CFAEdge edge, int index) {
+    if (edge.getPredecessor() instanceof WeavingLocation
+        || edge.getFileLocation().equals(FileLocation.DUMMY)) {
+      return SHADOW_PARTITION;
+    }
+
     return edgeToPartitions.get(Pair.of(edge, index));
   }
 

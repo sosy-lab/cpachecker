@@ -26,24 +26,17 @@ package org.sosy_lab.cpachecker.util;
 import static com.google.common.base.Preconditions.*;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.Writer;
-import java.math.BigInteger;
-import java.util.ArrayDeque;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.logging.Level;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multiset;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -122,16 +115,24 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
-import com.google.common.collect.HashMultiset;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Multiset;
-import com.google.common.collect.Sets;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.Writer;
+import java.math.BigInteger;
+import java.util.ArrayDeque;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.logging.Level;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 @Options(prefix = "cfa.variableClassification")
 public class VariableClassificationBuilder {
@@ -294,7 +295,7 @@ public class VariableClassificationBuilder {
         addressedVariables,
         relevantFields,
         dependencies.partitions,
-        intBoolPartitions,
+        Sets.union(ImmutableSet.of(VariableClassification.SHADOW_PARTITION), intBoolPartitions),
         intEqualPartitions,
         intAddPartitions,
         dependencies.edgeToPartition,
