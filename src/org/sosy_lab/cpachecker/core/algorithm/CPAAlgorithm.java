@@ -27,7 +27,6 @@ import com.google.common.base.Functions;
 import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 
-import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
@@ -129,7 +128,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     @Option(secure=true, description="Which strategy to use for forced coverings (empty for none)",
             name="forcedCovering")
     @ClassOption(packagePrefix="org.sosy_lab.cpachecker")
-    private Class<? extends ForcedCovering> forcedCoveringClass = null;
+    private ForcedCovering.Factory forcedCoveringClass = null;
 
     @Option(secure=true, description="Do not report 'False' result, return UNKNOWN instead. "
         + " Useful for incomplete analysis with no counterexample checking.")
@@ -150,9 +149,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       this.shutdownNotifier = pShutdownNotifier;
 
       if (forcedCoveringClass != null) {
-        forcedCovering = Classes.createInstance(ForcedCovering.class, forcedCoveringClass,
-            new Class<?>[] {Configuration.class, LogManager.class, ConfigurableProgramAnalysis.class},
-            new Object[]   {config,              logger,           cpa});
+        forcedCovering = forcedCoveringClass.create(config, logger, cpa);
       } else {
         forcedCovering = null;
       }

@@ -23,9 +23,18 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+/**
+ * Strategy for refinement of ARG used by {@link CEGARAlgorithm}.
+ *
+ * Implementations need to have exactly one public constructor or a static method named "create"
+ * which may take a {@link ConfigurableProgramAnalysis}, and throw at most a
+ * {@link InvalidConfigurationException} and a {@link CPAException}.
+ */
 public interface Refiner {
 
   /**
@@ -37,4 +46,8 @@ public interface Refiner {
    */
   public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException;
 
+  interface Factory {
+    Refiner create(ConfigurableProgramAnalysis cpa)
+        throws CPAException, InvalidConfigurationException;
+  }
 }

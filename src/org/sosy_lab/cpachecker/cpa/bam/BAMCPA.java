@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.bam;
 
 import com.google.common.base.Preconditions;
 
-import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
@@ -94,7 +93,8 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   @Option(secure=true, description = "Type of partitioning (FunctionAndLoopPartitioning or DelayedFunctionAndLoopPartitioning)\n"
       + "or any class that implements a PartitioningHeuristic")
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.cfa.blocks.builder")
-  private Class<? extends PartitioningHeuristic> blockHeuristic = FunctionAndLoopPartitioning.class;
+  private PartitioningHeuristic.Factory blockHeuristic =
+      (logger, cfa) -> new FunctionAndLoopPartitioning(logger, cfa);
 
   @Option(secure=true, description = "export blocks")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -155,7 +155,7 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     merge = new BAMMergeOperator(pCpa.getMergeOperator(), transfer);
 
     stats = new BAMCPAStatistics(this, data, config, logger);
-    heuristic = getPartitioningHeuristic();
+    heuristic = blockHeuristic.create(pLogger, pCfa);
   }
 
   @Override
@@ -187,15 +187,6 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   @Override
   public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
     return getWrappedCpa().getInitialPrecision(pNode, pPartition);
-  }
-
-  private PartitioningHeuristic getPartitioningHeuristic() throws CPAException, InvalidConfigurationException {
-    return Classes.createInstance(
-        PartitioningHeuristic.class,
-        blockHeuristic,
-        new Class<?>[] {LogManager.class, CFA.class},
-        new Object[] {logger, cfa},
-        CPAException.class);
   }
 
   @Override
