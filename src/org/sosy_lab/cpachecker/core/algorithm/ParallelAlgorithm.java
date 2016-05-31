@@ -30,6 +30,8 @@ import static java.util.concurrent.Executors.newFixedThreadPool;
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.FutureCallback;
@@ -59,6 +61,7 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedR
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -325,6 +328,11 @@ public class ParallelAlgorithm implements Algorithm {
           do {
             status = algorithm.run(currentReached);
 
+            // check if we could prove the program to be safe
+            if (status.isSound() && !from(currentReached).anyMatch(Predicates.<AbstractState>or(IS_TARGET_STATE, HAS_ASSUMPTIONS))) {
+              return ParallelAnalysisResult.of(currentReached, status);
+            }
+
             // reset the flag
             stopAnalysis = true;
             for (ReachedSetAdjustingCPA innerCpa :
@@ -370,6 +378,15 @@ public class ParallelAlgorithm implements Algorithm {
       return ParallelAnalysisResult.absent();
     };
   }
+
+  private final Predicate<AbstractState> HAS_ASSUMPTIONS =
+      state -> {
+        AssumptionStorageState assumption =
+            AbstractStates.extractStateByType(state, AssumptionStorageState.class);
+        return assumption != null
+            && !assumption.isStopFormulaTrue()
+            && !assumption.isAssumptionTrue();
+      };
 
   private Configuration createSingleConfig(Path singleConfigFileName)
       throws IOException, InvalidConfigurationException {
