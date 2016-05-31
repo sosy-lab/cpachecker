@@ -348,6 +348,9 @@ public class ParallelAlgorithm implements Algorithm {
             aggregatedReachedSetManager.addReachedSet(currentReached);
           }
           return ParallelAnalysisResult.of(currentReached, status);
+        } else if (from(reached).anyMatch(IS_TARGET_STATE) && status.isPrecise()) {
+          singleLogger.log(Level.INFO, "Analysis finished successfully");
+          return ParallelAnalysisResult.of(currentReached, status);
         } else {
           singleLogger.log(
               Level.WARNING,
