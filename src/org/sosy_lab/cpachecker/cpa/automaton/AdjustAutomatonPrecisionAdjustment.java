@@ -49,17 +49,18 @@ import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
 import java.util.List;
 
 @Options(prefix = "cpa.automaton")
-public class AdjustAutomatonPrecisionAdjustment extends WrappingPrecisionAdjustment {
+class AdjustAutomatonPrecisionAdjustment extends WrappingPrecisionAdjustment {
 
-  private Table<AutomatonInternalState, AutomatonPrecision, List<AutomatonTransition>> relevanTransCache = HashBasedTable.create();
+  private Table<AutomatonInternalState, AutomatonPrecision, List<AutomatonTransition>>
+      relevantTransitionCache = HashBasedTable.create();
 
   @Option(secure = true, description = "Adjust the automaton transitions")
   private boolean adjustAutomatonTransitions = true;
 
-  public AdjustAutomatonPrecisionAdjustment(
-      final PrecisionAdjustment pWrappedPrecOp, final Configuration pConfig)
+  AdjustAutomatonPrecisionAdjustment(
+      final PrecisionAdjustment pWrappedPrecisionOp, final Configuration pConfig)
       throws InvalidConfigurationException {
-    super(pWrappedPrecOp);
+    super(pWrappedPrecisionOp);
     Preconditions.checkNotNull(pConfig);
     pConfig.inject(this);
   }
@@ -78,7 +79,7 @@ public class AdjustAutomatonPrecisionAdjustment extends WrappingPrecisionAdjustm
     //
     // Which transitions of relevant for this automaton state with the given precision?
     //    Determine them if not already cached
-    relevantTransitions = relevanTransCache.get(state.getInternalState(), pi);
+    relevantTransitions = relevantTransitionCache.get(state.getInternalState(), pi);
     if (relevantTransitions == null) {
       boolean hasIrrelevantTransitions = false;
 
@@ -106,9 +107,9 @@ public class AdjustAutomatonPrecisionAdjustment extends WrappingPrecisionAdjustm
       }
 
       if (hasIrrelevantTransitions && adjustAutomatonTransitions) {
-        relevanTransCache.put(state.getInternalState(), pi, relevantTransitions);
+        relevantTransitionCache.put(state.getInternalState(), pi, relevantTransitions);
       } else {
-        relevanTransCache.put(state.getInternalState(), pi, state.getLeavingTransitions());
+        relevantTransitionCache.put(state.getInternalState(), pi, state.getLeavingTransitions());
       }
     }
 
