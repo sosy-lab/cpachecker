@@ -24,11 +24,11 @@ LOOPB:
   }
 
   ++j;
-  if (j < 13)
+  if (j < 5)
     goto LOOPB;
 
   ++i;
-  if (i < 7)
+  if (i < 3)
     goto LOOPA;
 
   return 0;

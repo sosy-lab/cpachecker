@@ -5,9 +5,9 @@ extern int ldv_write_unlock(void* p);
 
 int main(void) {
   int i;
-  for (i = 0; i < 7; ++i) {
+  for (i = 0; i < 3; ++i) {
     int j;
-    for (j = 0; j < 13; ++j) {
+    for (j = 0; j < 5; ++j) {
       if (i < j) {
         void* l1 = (void*) 0;
         ldv_read_lock(l1);

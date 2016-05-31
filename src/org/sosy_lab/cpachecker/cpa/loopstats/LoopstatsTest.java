@@ -39,7 +39,7 @@ import com.google.common.collect.ImmutableMap;
 public class LoopstatsTest {
 
   @Rule
-  public Timeout globalTimeout = Timeout.seconds(20); // max 20 seconds per test
+  public Timeout globalTimeout = Timeout.seconds(7); // max 7 seconds per test
 
   @Test
   public void testEncodingOfLdvRule118_Safe() throws Exception {
@@ -89,17 +89,17 @@ public class LoopstatsTest {
     TestRunStatisticsParser statBMC = new TestRunStatisticsParser();
     resultsBMC.getCheckerResult().printStatistics(statBMC.getPrintStream());
 
-    statPA.assertThatNumber("Max. unrollings of a loop").isAtMost(14);
+    statPA.assertThatNumber("Max. unrollings of a loop").isAtMost(6);
     statPA.assertThatString("Loop with max. unrollings").contains("line 10");
     statPA.assertThatNumber("Number of loops").isEqualTo(2);
     statPA.assertThatNumber("Number of loops entered").isAtLeast(2);
-    statPA.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(13);
+    statPA.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(5);
 
-    statBMC.assertThatNumber("Max. unrollings of a loop").isAtMost(14);
+    statBMC.assertThatNumber("Max. unrollings of a loop").isAtMost(6);
     statBMC.assertThatString("Loop with max. unrollings").contains("line 10");
     statBMC.assertThatNumber("Number of loops").isEqualTo(2);
     statBMC.assertThatNumber("Number of loops entered").isAtLeast(2);
-    statBMC.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(13);
+    statBMC.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(5);
   }
 
   @Test
@@ -215,17 +215,17 @@ public class LoopstatsTest {
     TestRunStatisticsParser statBMC = new TestRunStatisticsParser();
     resultsBMC.getCheckerResult().printStatistics(statBMC.getPrintStream());
 
-    statPA.assertThatNumber("Max. unrollings of a loop").isAtMost(14);
+    statPA.assertThatNumber("Max. unrollings of a loop").isAtMost(6);
     statPA.assertThatString("Loop with max. unrollings").contains("line 10");
     statPA.assertThatNumber("Number of loops").isEqualTo(2);
     statPA.assertThatNumber("Number of loops entered").isAtLeast(2);
-    statPA.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(13);
+    statPA.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(5);
 
-    statBMC.assertThatNumber("Max. unrollings of a loop").isAtMost(14);
+    statBMC.assertThatNumber("Max. unrollings of a loop").isAtMost(6);
     statBMC.assertThatString("Loop with max. unrollings").contains("line 10");
     statBMC.assertThatNumber("Number of loops").isEqualTo(2);
     statBMC.assertThatNumber("Number of loops entered").isAtLeast(2);
-    statBMC.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(13);
+    statBMC.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(5);
   }
 
   @Test
@@ -276,17 +276,17 @@ public class LoopstatsTest {
     TestRunStatisticsParser statBMC = new TestRunStatisticsParser();
     resultsBMC.getCheckerResult().printStatistics(statBMC.getPrintStream());
 
-    statPA.assertThatNumber("Max. unrollings of a loop").isAtMost(14);
+    statPA.assertThatNumber("Max. unrollings of a loop").isAtMost(6);
     statPA.assertThatString("Loop with max. unrollings").contains("line 13");
     statPA.assertThatNumber("Number of loops").isEqualTo(2);
     statPA.assertThatNumber("Number of loops entered").isAtLeast(2);
-    statPA.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(13);
+    statPA.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(5);
 
-    statBMC.assertThatNumber("Max. unrollings of a loop").isAtMost(14);
+    statBMC.assertThatNumber("Max. unrollings of a loop").isAtMost(6);
     statBMC.assertThatString("Loop with max. unrollings").contains("line 13");
     statBMC.assertThatNumber("Number of loops").isEqualTo(2);
     statBMC.assertThatNumber("Number of loops entered").isAtLeast(2);
-    statBMC.assertThatNumber("Max. completed unrollings of a loop").isAtLeast(12);
+    statBMC.assertThatNumber("Max. completed unrollings of a loop").isAtLeast(4);
   }
 
   @Test
@@ -383,22 +383,22 @@ public class LoopstatsTest {
 
     TestResults results1 = runWithBMC(specFile, programFile, 1);
     TestResults results2 = runWithBMC(specFile, programFile, 2);
-    TestResults results10 = runWithBMC(specFile, programFile, 10);
-    TestResults results15 = runWithBMC(specFile, programFile, 15);
+    TestResults results3 = runWithBMC(specFile, programFile, 3);
+    TestResults results5 = runWithBMC(specFile, programFile, 5);
 
     TestRunStatisticsParser stat1 = new TestRunStatisticsParser();
     TestRunStatisticsParser stat2 = new TestRunStatisticsParser();
-    TestRunStatisticsParser stat10 = new TestRunStatisticsParser();
-    TestRunStatisticsParser stat15 = new TestRunStatisticsParser();
+    TestRunStatisticsParser stat3 = new TestRunStatisticsParser();
+    TestRunStatisticsParser stat5 = new TestRunStatisticsParser();
     results1.getCheckerResult().printStatistics(stat1.getPrintStream());
     results2.getCheckerResult().printStatistics(stat2.getPrintStream());
-    results10.getCheckerResult().printStatistics(stat10.getPrintStream());
-    results15.getCheckerResult().printStatistics(stat15.getPrintStream());
+    results3.getCheckerResult().printStatistics(stat3.getPrintStream());
+    results5.getCheckerResult().printStatistics(stat5.getPrintStream());
 
     stat1.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(1);
     stat2.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(2);
-    stat10.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(10);
-    stat15.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(13);
+    stat3.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(3);
+    stat5.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(5);
   }
 
   private TestResults runWithPredicateAnalysis(final String pSpecFile, final String pProgramFile)
