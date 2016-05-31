@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import java.util.Map;
+import com.google.common.collect.ImmutableMap;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
-import com.google.common.collect.ImmutableMap;
+import java.util.Map;
 
 public class AutomatonTest {
   private static final String CPAS_UNINITVARS = "cpa.location.LocationCPA, cpa.uninitvars.UninitializedVariablesCPA";
@@ -52,38 +52,32 @@ public class AutomatonTest {
         "analysis.stopAfterError", "FALSE"
       );
 
-      Path tmpSpc = Paths.get("test/config/automata/tmpSpecification.spc");
-      String content = "#include UninitializedVariablesTestAutomaton.txt \n" +
-      "#include tmpSpecification.spc \n";
-      Files.writeFile(tmpSpc, content);
-      TestResults results = CPATestRunner.run(prop, "test/programs/simple/UninitVarsErrors.c");
-      results.assertIsSafe();
-      assertThat(results.getLog()).contains("test/config/automata/tmpSpecification.spc\" was referenced multiple times.");
-      assertThat(tmpSpc.delete()).named("deletion of temporary specification successful").isTrue();
+    Path tmpSpc = Paths.get("test/config/automata/tmpSpecification.spc");
+    String content =
+        "#include UninitializedVariablesTestAutomaton.txt \n" + "#include tmpSpecification.spc \n";
+    Files.writeFile(tmpSpc, content);
+    TestResults results = CPATestRunner.run(prop, "test/programs/simple/UninitVarsErrors.c");
+    results.assertIsSafe();
+    assertThat(results.getLog())
+        .contains("test/config/automata/tmpSpecification.spc\" was referenced multiple times.");
+    assertThat(tmpSpc.delete()).named("deletion of temporary specification successful").isTrue();
   }
 
-  @Ignore // TODO Not working any more, doesn't write anything to log
   @Test
   public void includeSpecificationTest() throws Exception {
-    Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",        CPAS_UNINITVARS,
-        "specification",            "test/config/automata/defaultSpecificationForTesting.spc",
-        "log.consoleLevel",        "INFO",
-        "analysis.stopAfterError", "FALSE"
-      );
+    Map<String, String> prop =
+        ImmutableMap.of(
+            "CompositeCPA.cpas", CPAS_UNINITVARS,
+            "specification", "test/config/automata/defaultSpecificationForTesting.spc",
+            "log.consoleLevel", "INFO",
+            "cpa.automaton.considerPropertiesWithoutAssumptions", "true",
+            "analysis.stopAfterError", "FALSE");
 
-      TestResults results = CPATestRunner.run(prop, "test/programs/simple/UninitVarsErrors.c");
-      assertThat(results.getLog()).contains("Automaton: Uninitialized return value");
-      assertThat(results.getLog()).contains("Automaton: Uninitialized variable used");
-/*
-      results = run(prop, "test/programs/simple/PointerAnalysisErrors.c");
-      assertThat(results.getLog()).contains("Found a DOUBLE_FREE"));
-      assertThat(results.getLog()).contains("Found an INVALID_FREE"));
-      assertThat(results.getLog()).contains("Found a POTENTIALLY_UNSAFE_DEREFERENCE"));
-      assertThat(results.getLog()).contains("Found a Memory Leak"));
-      assertThat(results.getLog()).contains("Found an UNSAFE_DEREFERENCE"));
-*/
+    TestResults results = CPATestRunner.run(prop, "test/programs/simple/UninitVarsErrors.c");
+    assertThat(results.getLog()).contains("Automaton: Uninitialized return value");
+    assertThat(results.getLog()).contains("Automaton: Uninitialized variable used");
   }
+
   @Test
   public void specificationAndNoCompositeTest() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
@@ -91,9 +85,10 @@ public class AutomatonTest {
         "log.consoleLevel", "INFO",
         "specification",    "test/config/automata/LockingAutomatonAll.txt");
 
-      TestResults results = CPATestRunner.run(prop, "test/programs/simple/modificationExample.c");
-      assertThat(results.getLog()).contains("Option specification gave specification automata, but no CompositeCPA was used");
-      assertThat(results.getCheckerResult().getResult()).isEqualTo(Result.NOT_YET_STARTED);
+    TestResults results = CPATestRunner.run(prop, "test/programs/simple/modificationExample.c");
+    assertThat(results.getLog())
+        .contains("Option specification gave specification automata, but no CompositeCPA was used");
+    assertThat(results.getCheckerResult().getResult()).isEqualTo(Result.NOT_YET_STARTED);
   }
 
   @Ignore // Does not work until we can encode more than one property in an automaton
@@ -106,10 +101,10 @@ public class AutomatonTest {
         "log.consoleLevel",    "INFO",
         "cpa.value.threshold", "10");
 
-      TestResults results = CPATestRunner.run(prop, "test/programs/simple/modificationExample.c");
-      assertThat(results.getLog()).contains("MODIFIED");
-      assertThat(results.getLog()).contains("Modification successful");
-      results.assertIsSafe();
+    TestResults results = CPATestRunner.run(prop, "test/programs/simple/modificationExample.c");
+    assertThat(results.getLog()).contains("MODIFIED");
+    assertThat(results.getLog()).contains("Modification successful");
+    results.assertIsSafe();
   }
 
   //Automaton Tests
@@ -120,26 +115,25 @@ public class AutomatonTest {
         "log.consoleLevel",        "INFO"
       );
 
-      TestResults results = CPATestRunner.run(prop, "test/programs/simple/UninitVarsErrors.c");
-      assertThat(results.getCheckerResult().getResult()).isEqualTo(Result.NOT_YET_STARTED);
-      assertThat(results.getLog()).contains("Illegal character");
+    TestResults results = CPATestRunner.run(prop, "test/programs/simple/UninitVarsErrors.c");
+    assertThat(results.getCheckerResult().getResult()).isEqualTo(Result.NOT_YET_STARTED);
+    assertThat(results.getLog()).contains("Illegal character");
   }
-
 
   @Test
   public void matchEndOfProgramTest() throws Exception {
-    Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",       "cpa.location.LocationCPA",
-        "specification",           "test/config/automata/PrintLastStatementAutomaton.spc",
-        "log.consoleLevel",        "INFO",
-        "analysis.stopAfterError", "TRUE"
-      );
+    Map<String, String> prop =
+        ImmutableMap.of(
+            "CompositeCPA.cpas", "cpa.location.LocationCPA",
+            "specification", "test/config/automata/PrintLastStatementAutomaton.spc",
+            "log.consoleLevel", "INFO",
+            "cpa.automaton.considerPropertiesWithoutAssumptions", "true",
+            "analysis.stopAfterError", "TRUE");
 
-      TestResults results = CPATestRunner.run(prop, "test/programs/simple/loop1.c");
-    // TODO These entries are not written to log any more
-//      assertThat(results.getLog()).contains("Last statement is \"return (0);\"");
-//      assertThat(results.getLog()).contains("Last statement is \"return (-1);\"");
-      results.assertIsSafe();
+    TestResults results = CPATestRunner.run(prop, "test/programs/simple/loop1.c");
+    assertThat(results.getLog()).contains("Last statement is \"return (0);\"");
+    assertThat(results.getLog()).contains("Last statement is \"return (-1);\"");
+    results.assertIsSafe();
   }
 
   @Test
@@ -149,9 +143,10 @@ public class AutomatonTest {
         "log.consoleLevel",    "INFO",
         "cpa.value.threshold", "10");
 
-      TestResults results = CPATestRunner.run(prop, "test/programs/simple/modificationExample.c");
-      assertThat(results.getCheckerResult().getResult()).isEqualTo(Result.NOT_YET_STARTED);
-      assertThat(results.getLog()).contains("Explicitly specified automaton CPA needs option cpa.automaton.inputFile!");
+    TestResults results = CPATestRunner.run(prop, "test/programs/simple/modificationExample.c");
+    assertThat(results.getCheckerResult().getResult()).isEqualTo(Result.NOT_YET_STARTED);
+    assertThat(results.getLog())
+        .contains("Explicitly specified automaton CPA needs option cpa.automaton.inputFile!");
   }
 
   @Ignore // Does not work until we can encode more than one property in an automaton
@@ -164,10 +159,10 @@ public class AutomatonTest {
         "log.consoleLevel",        "INFO",
         "cpa.value.threshold",     "10");
 
-      TestResults results = CPATestRunner.run(prop, "test/programs/simple/modificationExample.c");
-      assertThat(results.getLog()).contains("MODIFIED");
-      assertThat(results.getLog()).contains("Modification successful");
-      results.assertIsSafe();
+    TestResults results = CPATestRunner.run(prop, "test/programs/simple/modificationExample.c");
+    assertThat(results.getLog()).contains("MODIFIED");
+    assertThat(results.getLog()).contains("Modification successful");
+    results.assertIsSafe();
   }
 
   @Test
@@ -179,9 +174,9 @@ public class AutomatonTest {
         "cpa.value.threshold",     "10"
       );
 
-      TestResults results = CPATestRunner.run(prop, "test/programs/simple/modificationExample.c");
-      // check for stack trace
-      assertThat(results.getLog()).contains("Error: Invalid configuration (The transition \"MATCH ");
+    TestResults results = CPATestRunner.run(prop, "test/programs/simple/modificationExample.c");
+    // check for stack trace
+    assertThat(results.getLog()).contains("Error: Invalid configuration (The transition \"MATCH ");
   }
 
   @Test
@@ -193,27 +188,32 @@ public class AutomatonTest {
         "analysis.stopAfterError", "FALSE"
       );
 
-
-      TestResults results = CPATestRunner.run(prop, "test/programs/simple/simple_setuid_test.c");
-      assertThat(results.getLog()).contains("Systemcall in line 14 with userid 2");
-      assertThat(results.getLog()).contains("going to ErrorState on edge \"system(40);\"");
-      results.assertIsUnsafe();
+    TestResults results = CPATestRunner.run(prop, "test/programs/simple/simple_setuid_test.c");
+    assertThat(results.getLog()).contains("Systemcall in line 14 with userid 2");
+    assertThat(results.getLog()).contains("going to ErrorState on edge \"system(40);\"");
+    results.assertIsUnsafe();
   }
 
   @Test
   public void uninitVarsTest() throws Exception {
-    Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",           "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA, cpa.uninitvars.UninitializedVariablesCPA",
-        "cpa.automaton.inputFile",     "test/config/automata/UninitializedVariablesTestAutomaton.txt",
-        "log.consoleLevel",            "FINER",
-        "cpa.automaton.dotExportFile", OUTPUT_FILE,
-        "analysis.stopAfterError",     "FALSE"
-      );
+    Map<String, String> prop =
+        ImmutableMap.<String, String>builder()
+            .put(
+                "CompositeCPA.cpas",
+                "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA, "
+                    + "cpa.uninitvars.UninitializedVariablesCPA")
+            .put(
+                "cpa.automaton.inputFile",
+                "test/config/automata/UninitializedVariablesTestAutomaton.txt")
+            .put("log.consoleLevel", "FINER")
+            .put("cpa.automaton.dotExportFile", OUTPUT_FILE)
+            .put("cpa.automaton.considerPropertiesWithoutAssumptions", "true")
+            .put("analysis.stopAfterError", "FALSE")
+            .build();
 
     TestResults results = CPATestRunner.run(prop, "test/programs/simple/UninitVarsErrors.c");
-    // TODO Entries are not written to log any more
-//      assertThat(results.getLog()).contains("Automaton: Uninitialized return value");
-//      assertThat(results.getLog()).contains("Automaton: Uninitialized variable used");
+    assertThat(results.getLog()).contains("Automaton: Uninitialized return value");
+    assertThat(results.getLog()).contains("Automaton: Uninitialized variable used");
     results.assertIsSafe();
   }
 
@@ -226,8 +226,8 @@ public class AutomatonTest {
         "cpa.automaton.dotExportFile", OUTPUT_FILE
       );
 
-      TestResults results = CPATestRunner.run(prop, "test/programs/simple/locking_correct.c");
-      results.assertIsSafe();
+    TestResults results = CPATestRunner.run(prop, "test/programs/simple/locking_correct.c");
+    results.assertIsSafe();
   }
 
   @Test
@@ -238,61 +238,72 @@ public class AutomatonTest {
         "log.consoleLevel",        "INFO"
       );
 
-      TestResults results = CPATestRunner.run(prop, "test/programs/simple/locking_incorrect.c");
-      results.assertIsUnsafe();
+    TestResults results = CPATestRunner.run(prop, "test/programs/simple/locking_incorrect.c");
+    results.assertIsUnsafe();
   }
 
   @Test
   public void valueAnalysis_observing() throws Exception {
-    Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",       "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA, cpa.value.ValueAnalysisCPA",
-        "cpa.automaton.inputFile", "test/config/automata/ExplicitAnalysisObservingAutomaton.txt",
-        "log.consoleLevel",        "INFO",
-        "cpa.value.threshold",     "2000"
-      );
+    Map<String, String> prop =
+        ImmutableMap.of(
+            "CompositeCPA.cpas",
+                "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA, cpa.value.ValueAnalysisCPA",
+            "cpa.automaton.inputFile",
+                "test/config/automata/ExplicitAnalysisObservingAutomaton.txt",
+            "log.consoleLevel", "INFO",
+            "cpa.automaton.considerPropertiesWithoutAssumptions", "true",
+            "cpa.value.threshold", "2000");
 
-      TestResults results = CPATestRunner.run(prop, "test/programs/simple/ex2.cil.c");
-    // TODO these entries are not written to log any more
-//      assertThat(results.getLog()).contains("st==3 after Edge st = 3;");
-//      assertThat(results.getLog()).contains("st==1 after Edge st = 1;");
-//      assertThat(results.getLog()).contains("st==2 after Edge st = 2;");
-//      assertThat(results.getLog()).contains("st==4 after Edge st = 4;");
-      results.assertIsSafe();
+    TestResults results = CPATestRunner.run(prop, "test/programs/simple/ex2.cil.c");
+    assertThat(results.getLog()).contains("st==3 after Edge st = 3;");
+    assertThat(results.getLog()).contains("st==1 after Edge st = 1;");
+    assertThat(results.getLog()).contains("st==2 after Edge st = 2;");
+    assertThat(results.getLog()).contains("st==4 after Edge st = 4;");
+    results.assertIsSafe();
   }
 
   @Test
   public void functionIdentifying() throws Exception {
-    Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",       "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA",
-        "cpa.automaton.inputFile", "test/config/automata/FunctionIdentifyingAutomaton.txt",
-        "log.consoleLevel",        "FINER"
-      );
+    Map<String, String> prop =
+        ImmutableMap.of(
+            "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA",
+            "cpa.automaton.inputFile", "test/config/automata/FunctionIdentifyingAutomaton.txt",
+            "cpa.automaton.considerPropertiesWithoutAssumptions", "true",
+            "log.consoleLevel", "FINER");
 
     TestResults results = CPATestRunner.run(prop, "test/programs/simple/functionCall.c");
     assertThat(results.getLog()).contains("i'm in Main after Edge");
-    // TODO This is not working any more; where should these log entries be created?
-//      assertThat(results.getLog()).contains("i'm in Main after Edge int y;");
-//      assertThat(results.getLog()).contains("i'm in f after Edge y = f()");
-//      assertThat(results.getLog()).contains("i'm in f after Edge int x;");
-//      assertThat(results.getLog()).contains("i'm in Main after Edge return");
-//      assertThat(results.getLog()).contains("i'm in Main after Edge ERROR:");
+    assertThat(results.getLog()).contains("i'm in Main after Edge int y;");
+    assertThat(results.getLog()).contains("i'm in f after Edge y = f()");
+    assertThat(results.getLog()).contains("i'm in f after Edge int x;");
+    assertThat(results.getLog()).contains("i'm in Main after Edge return");
+    assertThat(results.getLog()).contains("i'm in Main after Edge ERROR:");
   }
 
   @Test
   public void interacting_Automata() throws Exception {
-    Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",                  "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA automatonA, cpa.automaton.ObserverAutomatonCPA automatonB, cpa.value.ValueAnalysisCPA",
-        "automatonA.cpa.automaton.inputFile", "test/config/automata/InteractionAutomatonA.txt",
-        "automatonB.cpa.automaton.inputFile", "test/config/automata/InteractionAutomatonB.txt",
-        "log.consoleLevel",                   "INFO",
-        "cpa.value.threshold" ,               "2000"
-      );
+    Map<String, String> prop =
+        ImmutableMap.<String, String>builder()
+            .put(
+                "CompositeCPA.cpas",
+                "cpa.location.LocationCPA, "
+                    + "cpa.automaton.ObserverAutomatonCPA automatonA, "
+                    + "cpa.automaton.ObserverAutomatonCPA automatonB, cpa.value.ValueAnalysisCPA")
+            .put(
+                "automatonA.cpa.automaton.inputFile",
+                "test/config/automata/InteractionAutomatonA.txt")
+            .put(
+                "automatonB.cpa.automaton.inputFile",
+                "test/config/automata/InteractionAutomatonB.txt")
+            .put("log.consoleLevel", "INFO")
+            .put("cpa.automaton.considerPropertiesWithoutAssumptions", "true")
+            .put("cpa.value.threshold", "2000")
+            .build();
 
-      TestResults results = CPATestRunner.run(prop, "test/programs/simple/loop1.c");
-    // TODO entries are not written to log any more
-//      assertThat(results.getLog()).contains("A: Matched i in line 13 x=2");
-//      assertThat(results.getLog()).contains("B: A increased to 2 And i followed ");
-      results.assertIsSafe();
+    TestResults results = CPATestRunner.run(prop, "test/programs/simple/loop1.c");
+    assertThat(results.getLog()).contains("A: Matched i in line 13 x=2");
+    assertThat(results.getLog()).contains("B: A increased to 2 And i followed ");
+    results.assertIsSafe();
   }
 
   /* Automaton tests with SPLIT keyword */
