@@ -110,6 +110,10 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
 
     final Set<Property> violatedProperties = lastElement.getViolatedProperties();
 
+    if (violatedProperties.size() > 1) {
+      logger.logf(Level.WARNING, "Simultaneous refinement for several (%d) properties!", violatedProperties.size());
+    }
+
     try (StatHandle f = PropertyStats.INSTANCE.startRefinement(violatedProperties)) {
       try (Contexts stat = Stats.beginRootContext(violatedProperties.toArray())) {
 
