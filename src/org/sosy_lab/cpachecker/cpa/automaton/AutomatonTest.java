@@ -70,7 +70,7 @@ public class AutomatonTest {
             "CompositeCPA.cpas", CPAS_UNINITVARS,
             "specification", "test/config/automata/defaultSpecificationForTesting.spc",
             "log.consoleLevel", "INFO",
-            "cpa.automaton.considerPropertiesWithoutAssumptions", "true",
+            "cpa.automaton.adjustAutomatonTransitions", "false",
             "analysis.stopAfterError", "FALSE");
 
     TestResults results = CPATestRunner.run(prop, "test/programs/simple/UninitVarsErrors.c");
@@ -127,7 +127,7 @@ public class AutomatonTest {
             "CompositeCPA.cpas", "cpa.location.LocationCPA",
             "specification", "test/config/automata/PrintLastStatementAutomaton.spc",
             "log.consoleLevel", "INFO",
-            "cpa.automaton.considerPropertiesWithoutAssumptions", "true",
+            "cpa.automaton.adjustAutomatonTransitions", "false",
             "analysis.stopAfterError", "TRUE");
 
     TestResults results = CPATestRunner.run(prop, "test/programs/simple/loop1.c");
@@ -207,7 +207,7 @@ public class AutomatonTest {
                 "test/config/automata/UninitializedVariablesTestAutomaton.txt")
             .put("log.consoleLevel", "FINER")
             .put("cpa.automaton.dotExportFile", OUTPUT_FILE)
-            .put("cpa.automaton.considerPropertiesWithoutAssumptions", "true")
+            .put("cpa.automaton.adjustAutomatonTransitions", "false")
             .put("analysis.stopAfterError", "FALSE")
             .build();
 
@@ -251,7 +251,7 @@ public class AutomatonTest {
             "cpa.automaton.inputFile",
                 "test/config/automata/ExplicitAnalysisObservingAutomaton.txt",
             "log.consoleLevel", "INFO",
-            "cpa.automaton.considerPropertiesWithoutAssumptions", "true",
+            "cpa.automaton.adjustAutomatonTransitions", "false",
             "cpa.value.threshold", "2000");
 
     TestResults results = CPATestRunner.run(prop, "test/programs/simple/ex2.cil.c");
@@ -268,7 +268,7 @@ public class AutomatonTest {
         ImmutableMap.of(
             "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA",
             "cpa.automaton.inputFile", "test/config/automata/FunctionIdentifyingAutomaton.txt",
-            "cpa.automaton.considerPropertiesWithoutAssumptions", "true",
+            "cpa.automaton.adjustAutomatonTransitions", "false",
             "log.consoleLevel", "FINER");
 
     TestResults results = CPATestRunner.run(prop, "test/programs/simple/functionCall.c");
@@ -296,7 +296,7 @@ public class AutomatonTest {
                 "automatonB.cpa.automaton.inputFile",
                 "test/config/automata/InteractionAutomatonB.txt")
             .put("log.consoleLevel", "INFO")
-            .put("cpa.automaton.considerPropertiesWithoutAssumptions", "true")
+            .put("cpa.automaton.adjustAutomatonTransitions", "false")
             .put("cpa.value.threshold", "2000")
             .build();
 

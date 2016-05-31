@@ -53,8 +53,8 @@ public class AdjustAutomatonPrecisionAdjustment extends WrappingPrecisionAdjustm
 
   private Table<AutomatonInternalState, AutomatonPrecision, List<AutomatonTransition>> relevanTransCache = HashBasedTable.create();
 
-  @Option(secure = true, description = "Consider properties without assumptions in analysis.")
-  private boolean considerPropertiesWithoutAssumptions = false;
+  @Option(secure = true, description = "Adjust the automaton transitions")
+  private boolean adjustAutomatonTransitions = true;
 
   public AdjustAutomatonPrecisionAdjustment(
       final PrecisionAdjustment pWrappedPrecOp, final Configuration pConfig)
@@ -105,7 +105,7 @@ public class AdjustAutomatonPrecisionAdjustment extends WrappingPrecisionAdjustm
         }
       }
 
-      if (hasIrrelevantTransitions && !considerPropertiesWithoutAssumptions) {
+      if (hasIrrelevantTransitions && adjustAutomatonTransitions) {
         relevanTransCache.put(state.getInternalState(), pi, relevantTransitions);
       } else {
         relevanTransCache.put(state.getInternalState(), pi, state.getLeavingTransitions());
