@@ -25,11 +25,16 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Table;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.PresenceConditions;
 import org.sosy_lab.cpachecker.core.defaults.WrappingPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -43,12 +48,20 @@ import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
 
 import java.util.List;
 
+@Options(prefix = "cpa.automaton")
 public class AdjustAutomatonPrecisionAdjustment extends WrappingPrecisionAdjustment {
 
   private Table<AutomatonInternalState, AutomatonPrecision, List<AutomatonTransition>> relevanTransCache = HashBasedTable.create();
 
-  public AdjustAutomatonPrecisionAdjustment(final PrecisionAdjustment pWrappedPrecOp) {
+  @Option(secure = true, description = "Consider properties without assumptions in analysis.")
+  private boolean considerPropertiesWithoutAssumptions = false;
+
+  public AdjustAutomatonPrecisionAdjustment(
+      final PrecisionAdjustment pWrappedPrecOp, final Configuration pConfig)
+      throws InvalidConfigurationException {
     super(pWrappedPrecOp);
+    Preconditions.checkNotNull(pConfig);
+    pConfig.inject(this);
   }
 
   @Override
@@ -92,7 +105,7 @@ public class AdjustAutomatonPrecisionAdjustment extends WrappingPrecisionAdjustm
         }
       }
 
-      if (hasIrrelevantTransitions) {
+      if (hasIrrelevantTransitions && !considerPropertiesWithoutAssumptions) {
         relevanTransCache.put(state.getInternalState(), pi, relevantTransitions);
       } else {
         relevanTransCache.put(state.getInternalState(), pi, state.getLeavingTransitions());
