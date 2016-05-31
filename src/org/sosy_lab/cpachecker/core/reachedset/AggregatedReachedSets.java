@@ -23,13 +23,22 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.FormulaAndTreeSupplier.ReachedSetBasedInvariantSupplier;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.FormulaAndTreeSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.LazyLocationMapping;
+import org.sosy_lab.cpachecker.util.expressions.And;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -40,64 +49,92 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
 public class AggregatedReachedSets {
-  protected Set<UnmodifiableReachedSet> reachedSets;
+  protected final Set<UnmodifiableReachedSet> reachedSets;
 
-  private Set<UnmodifiableReachedSet> lastUsedReachedSets = null;
+  private Set<UnmodifiableReachedSet> lastUsedReachedSets = Collections.emptySet();
+  private AggregatedInvariantSupplier lastInvariantSupplier = null;
 
-  private final Map<UnmodifiableReachedSet, InvariantSupplier> singleInvariantSuppliers =
+  private final CFA cfa;
+  private final Map<UnmodifiableReachedSet, FormulaAndTreeSupplier> singleInvariantSuppliers =
       new HashMap<>();
 
   public AggregatedReachedSets() {
     reachedSets = Collections.emptySet();
+    cfa = null;
   }
 
-  public AggregatedReachedSets(Set<UnmodifiableReachedSet> pReachedSets) {
-    reachedSets = new HashSet<>(pReachedSets);
+  public AggregatedReachedSets(Set<UnmodifiableReachedSet> pReachedSets, CFA pCfa) {
+    reachedSets = pReachedSets;
+    cfa = pCfa;
   }
 
   public Set<UnmodifiableReachedSet> snapShot() {
-    return reachedSets;
+    synchronized (reachedSets) {
+      return ImmutableSet.copyOf(reachedSets);
+    }
   }
 
   public synchronized InvariantSupplier asInvariantSupplier() {
     Set<UnmodifiableReachedSet> tmp = snapShot();
     if (tmp.equals(lastUsedReachedSets)) {
-      return new AggregatedInvariantSupplier(singleInvariantSuppliers.values());
+      if (lastInvariantSupplier != null) {
+        return lastInvariantSupplier;
+      } else {
+        return InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
+      }
     }
+    return asSupplier(tmp);
+  }
 
-    // new reachedsets added so we need to compute the necessary invariant suppliers
-    // from the new reached sets
+  public synchronized ExpressionTreeSupplier asExpressionTreeSupplier() {
+    Set<UnmodifiableReachedSet> tmp = snapShot();
+    if (tmp.equals(lastUsedReachedSets)) {
+      if (lastInvariantSupplier != null) {
+        return lastInvariantSupplier;
+      } else {
+        return ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE;
+      }
+    }
+    return asSupplier(tmp);
+  }
 
+  private synchronized AggregatedInvariantSupplier asSupplier(Set<UnmodifiableReachedSet> pReachedSets) {
+    Preconditions.checkArgument(!pReachedSets.isEmpty());
+
+    // if we have a former aggregated supplier we do only replace the changed parts
     if (lastUsedReachedSets != null) {
-      Set<UnmodifiableReachedSet> oldElements = Sets.difference(lastUsedReachedSets, tmp);
-      Set<UnmodifiableReachedSet> newElements = Sets.difference(tmp, lastUsedReachedSets);
+      Set<UnmodifiableReachedSet> oldElements = Sets.difference(lastUsedReachedSets, pReachedSets);
+      Set<UnmodifiableReachedSet> newElements = Sets.difference(pReachedSets, lastUsedReachedSets);
 
       oldElements.forEach(r -> singleInvariantSuppliers.remove(r));
       newElements.forEach(
           r ->
               singleInvariantSuppliers.put(
-                  r, new ReachedSetBasedInvariantSupplier(new LazyLocationMapping(r))));
+                  r, new FormulaAndTreeSupplier(new LazyLocationMapping(r), cfa)));
     } else {
-      tmp.forEach(r -> new ReachedSetBasedInvariantSupplier(new LazyLocationMapping(r)));
+      pReachedSets.forEach(r -> new FormulaAndTreeSupplier(new LazyLocationMapping(r), cfa));
     }
 
-    return new AggregatedInvariantSupplier(singleInvariantSuppliers.values());
+    lastInvariantSupplier = new AggregatedInvariantSupplier(ImmutableSet.copyOf(singleInvariantSuppliers.values()));
+
+    return lastInvariantSupplier;
   }
 
-  private static class AggregatedInvariantSupplier implements InvariantSupplier {
+  private static class AggregatedInvariantSupplier
+      implements InvariantSupplier, ExpressionTreeSupplier {
 
-    private final Collection<InvariantSupplier> invariantSuppliers;
+    private final Collection<FormulaAndTreeSupplier> invariantSuppliers;
 
-    private AggregatedInvariantSupplier(Collection<InvariantSupplier> pInvariantSuppliers) {
-      invariantSuppliers = Preconditions.checkNotNull(pInvariantSuppliers);
+    private AggregatedInvariantSupplier(ImmutableCollection<FormulaAndTreeSupplier> pInvariantSuppliers) {
+      invariantSuppliers = checkNotNull(pInvariantSuppliers);
     }
 
     @Override
@@ -110,13 +147,22 @@ public class AggregatedReachedSets {
           .filter(f -> !pFmgr.getBooleanFormulaManager().isTrue(f))
           .reduce(bfmgr.makeBoolean(true), bfmgr::and);
     }
+
+    @Override
+    public ExpressionTree<Object> getInvariantFor(CFANode pNode) {
+      return invariantSuppliers
+          .stream()
+          .map(s -> s.getInvariantFor(pNode))
+          .reduce(ExpressionTrees.getTrue(), And::of);
+    }
   }
 
   private static class AggregatedThreadedReachedSets extends AggregatedReachedSets {
     private final ReentrantReadWriteLock lock;
     private final List<AggregatedThreadedReachedSets> otherAggregators = new ArrayList<>();
 
-    private AggregatedThreadedReachedSets(final ReentrantReadWriteLock pLock) {
+    private AggregatedThreadedReachedSets(final ReentrantReadWriteLock pLock, CFA pCfa, Set<UnmodifiableReachedSet> pReachedSets) {
+      super(pReachedSets, pCfa);
       lock = pLock;
     }
 
@@ -125,7 +171,7 @@ public class AggregatedReachedSets {
       lock.readLock().lock();
       try {
         return Sets.union(
-            reachedSets,
+            super.snapShot(),
             otherAggregators
                 .stream()
                 .flatMap(s -> s.snapShot().stream())
@@ -143,26 +189,28 @@ public class AggregatedReachedSets {
   public static class AggregatedReachedSetManager {
 
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
-    private final AggregatedThreadedReachedSets reachedView =
-        new AggregatedThreadedReachedSets(lock);
-    private final Set<UnmodifiableReachedSet> reachedSets = new HashSet<>();
+    private final AggregatedThreadedReachedSets reachedView;
+    private final Set<UnmodifiableReachedSet> reachedSets = ConcurrentHashMap.newKeySet();
+
+    public AggregatedReachedSetManager(CFA pCfa) {
+      reachedView = new AggregatedThreadedReachedSets(lock, pCfa, reachedSets);
+    }
 
     public void addReachedSet(UnmodifiableReachedSet reached) {
-      synchronized (reachedSets) {
+      lock.writeLock().lock();
+      try {
         reachedSets.add(reached);
+      } finally {
+        lock.writeLock().unlock();
       }
     }
 
     public void updateReachedSet(
         UnmodifiableReachedSet oldReached, UnmodifiableReachedSet newReached) {
-      synchronized (reachedSets) {
-        reachedSets.remove(oldReached);
-        reachedSets.add(newReached);
-      }
-
       lock.writeLock().lock();
       try {
-        reachedView.reachedSets = Collections.unmodifiableSet(new HashSet<>(reachedSets));
+        reachedSets.remove(oldReached);
+        reachedSets.add(newReached);
       } finally {
         lock.writeLock().unlock();
       }
@@ -180,9 +228,7 @@ public class AggregatedReachedSets {
           reachedView.concat((AggregatedThreadedReachedSets) pAggregatedReachedSets);
 
         } else {
-          HashSet<UnmodifiableReachedSet> sets = new HashSet<>(reachedSets);
-          sets.addAll(pAggregatedReachedSets.reachedSets);
-          reachedView.reachedSets = Collections.unmodifiableSet(sets);
+          reachedSets.addAll(pAggregatedReachedSets.reachedSets);
         }
 
       } finally {

@@ -460,7 +460,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
     AggregatedReachedSets aggregateReached;
     if (pProvideReachedForNextAlgorithm && pCurrentReached != null) {
-      aggregateReached = new AggregatedReachedSets(Collections.singleton(pCurrentReached));
+      aggregateReached = new AggregatedReachedSets(Collections.singleton(pCurrentReached), cfa);
     } else {
       aggregateReached = new AggregatedReachedSets();
     }
