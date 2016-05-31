@@ -69,6 +69,7 @@ public class RegionPresenceConditionManager implements PresenceConditionManager 
 
   @Override
   public PresenceCondition makeNegation(PresenceCondition pNegationOf) {
+    Preconditions.checkNotNull(pNegationOf);
     Preconditions.checkArgument(pNegationOf instanceof RegionPresenceCondition);
 
     RegionPresenceCondition negationOf = (RegionPresenceCondition) pNegationOf;
@@ -149,6 +150,10 @@ public class RegionPresenceConditionManager implements PresenceConditionManager 
     RegionPresenceCondition cond = (RegionPresenceCondition) pCond;
 
     return cond.getRegion().isFalse();
+  }
+
+  public RegionManager getMgr() {
+    return mgr;
   }
 
 }
