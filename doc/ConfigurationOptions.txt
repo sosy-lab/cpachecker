@@ -550,7 +550,7 @@ counterexample.checker = CBMC
   enum:     [CBMC, CPACHECKER, CONCRETE_EXECUTION]
 
 # configuration file for counterexample checks with CPAchecker
-counterexample.checker.config = "config/valueAnalysis-no-cbmc.properties"
+counterexample.checker.config = no default value
 
 # File name where to put the path specification that is generated as input
 # for the counterexample check. A temporary file is used if this is

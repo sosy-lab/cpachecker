@@ -59,7 +59,6 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Set;
 
 @Options(prefix="counterexample.checker")
@@ -85,10 +84,14 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path specFile;
 
-  @Option(secure=true, name="config",
-      description="configuration file for counterexample checks with CPAchecker")
+  @Option(
+    secure = true,
+    name = "config",
+    required = true,
+    description = "configuration file for counterexample checks with CPAchecker"
+  )
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-  private Path configFile = Paths.get("config/valueAnalysis-no-cbmc.properties");
+  private Path configFile;
 
   public CounterexampleCPAChecker(Configuration config, LogManager logger,
       ShutdownNotifier pShutdownNotifier, CFA pCfa, String pFilename) throws InvalidConfigurationException {
