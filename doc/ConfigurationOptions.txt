@@ -220,6 +220,9 @@ analysis.mpa.budget.limit.refinementsTimesMore = -1
 # exhausted.
 analysis.mpa.budget.limit.totalRefineTime = -1ns
 
+# Call the garbage collector when starting with a new partition.
+analysis.mpa.callGcOnRestart = false
+
 # Clear the caches of the analysis (CPA) when starting with a new partition.
 analysis.mpa.clearAnalysisCachesOnRestart = false
 
@@ -227,10 +230,10 @@ analysis.mpa.clearAnalysisCachesOnRestart = false
 # was performed.
 analysis.mpa.initOperatorClass = InitDefaultOperator.class
 
-# Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1
-# for infinite)
 # 1st partition limit for cpu time used by CPAchecker (use seconds or specify
 # a unit; -1 for infinite)
+# Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1
+# for infinite)
 analysis.mpa.partition.first.time.cpu = -1ns
 
 # Limit for wall time used by CPAchecker (use seconds or specify a unit; -1
@@ -242,8 +245,8 @@ analysis.mpa.partition.k = 5
 
 # Operator for determining the partitions of properties that have to be
 # checked.
-analysis.mpa.partition.operator = AllThenSepOperator.class
 analysis.mpa.partition.operator = CheaperFirstDivideOperator.class
+analysis.mpa.partition.operator = AllThenSepOperator.class
 
 # Limit for cpu time of one property (use seconds or specify a unit; -1 for
 # infinite)
@@ -490,19 +493,19 @@ cbmc.options.nuaf = false
 # specify the limit for unwindings (0 is infinite)
 cbmc.options.unwindings = 0
 
+# maximum time limit for CBMC (0 is infinite)
 # maximum time limit for CBMC (use milliseconds or specify a unit; 0 for
 # infinite)
-# maximum time limit for CBMC (0 is infinite)
-cbmc.timelimit = 0ms
 cbmc.timelimit = 0
+cbmc.timelimit = 0ms
 
 # if this score is exceeded by the first analysis, the auxilliary analysis
 # will be refined
 cegar.domainScoreThreshold = 1024
 
+# whether or not global refinement is performed
 # Whether to do refinement immediately after finding an error state, or
 # globally after the ARG has been unrolled completely.
-# whether or not global refinement is performed
 cegar.globalRefinement = false
 
 # Which refinement algorithm to use? (give class name, required for CEGAR) If
@@ -875,6 +878,9 @@ cpa.arg.witness.exportOffset = true
 # Verification witness: Include the sourcecode of the operations?
 cpa.arg.witness.exportSourcecode = true
 
+# Adjust the automaton transitions
+cpa.automaton.adjustAutomatonTransitions = true
+
 # signal the analysis to break in case the given number of error state is
 # reached 
 cpa.automaton.breakOnTargetState = 1
@@ -1059,6 +1065,9 @@ cpa.composite.inCPAEnabledAnalysis = false
 # cpas agree on this. This is probably what you want.
 cpa.composite.merge = "AGREE"
   allowed values: [PLAIN, AGREE]
+
+# Separate the target states when building the product.
+cpa.composite.separateTargetStates = false
 
 # Split MultiEdges and pass each inner edge to the component CPAs to allow
 # strengthen calls after each single edge. Does not work with backwards
@@ -1462,6 +1471,9 @@ cpa.predicate.encodeOverflowsWithUFs = false
 # variables. This will only work when all variables referenced by the dimacs
 # file are global and declared before this function is called.
 cpa.predicate.externModelFunctionName = "__VERIFIER_externModelSatisfied"
+
+# Add a prefix to the feature variables of the external feature model.
+cpa.predicate.externModelVariablePrefix = ""
 
 # where to dump interpolation and abstraction problems (format string)
 cpa.predicate.formulaDumpFilePattern = "%s%04d-%s%03d.smt2"
@@ -2531,10 +2543,10 @@ pcc.proofFile = "arg.obj"
 # Generate and dump a proof
 pcc.proofgen.doPCC = false
 
-# Qualified name for class which implements proof checking strategy to be
-# used.
 # Qualified name for class which implements certification strategy, hence
 # proof writing, to be used.
+# Qualified name for class which implements proof checking strategy to be
+# used.
 pcc.strategy = "org.sosy_lab.cpachecker.pcc.strategy.arg.ARGProofCheckerStrategy"
 
 # number of cpus/cores which should be used in parallel for proof checking
@@ -2732,11 +2744,17 @@ tiger.optimizeGoalAutomata = true
 # List of output variables: v1,v2,v3...
 tiger.outputInterface = ""
 
+# Filename for output of path formulas
+tiger.pathFormulasFile = "pathFormulas.txt"
+
 # Print the ARG for each test goal
 tiger.printARGperGoal = false
 
 # Prints labels reached with the error path of a test case.
 tiger.printLabels = false
+
+# Writes all target state path formulas for a goal in a file.
+tiger.printPathFormulasPerGoal = false
 
 # Filename for output of geneartion times of test cases
 tiger.testcaseGeneartionTimesFile = "generationTimes.csv"
@@ -2756,6 +2774,9 @@ tiger.timeoutStrategy = SKIP_AFTER_TIMEOUT
 # Compute the cross product of the goal automata?
 tiger.useAutomataCrossProduct = false
 
+# Handle all automata CPAs as one composite CPA.
+tiger.useComposite = false
+
 # Map information on infeasibility of one test goal to other test goals.
 tiger.useInfeasibilityPropagation = false
 
@@ -2773,3 +2794,7 @@ tiger.useOrder = true
 
 # Construct the powerset of automata states.
 tiger.usePowerset = true
+
+# Mode of the automaton powerset transfer relation.
+transferMode = JOIN_SEP_TARGETS
+  enum:     [CARTESIAN, JOIN, JOIN_SEP_TARGETS]
