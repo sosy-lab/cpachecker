@@ -28,13 +28,11 @@ import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula;
 
-import java.io.IOException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
+import com.google.common.base.Optional;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -83,11 +81,13 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
 
 /**
  * Transfer relation for symbolic predicate abstraction. First it computes
@@ -397,7 +397,8 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
       boolean targetStateFound = false;
       boolean intermediateTargetStateFound = false;
-      for (AbstractState lElement : otherElements) {
+
+      for (AbstractState lElement : AbstractStates.asFlatIterable(otherElements)) {
         if (lElement instanceof AssumptionStorageState) {
           element = strengthen(element, (AssumptionStorageState) lElement);
         }
