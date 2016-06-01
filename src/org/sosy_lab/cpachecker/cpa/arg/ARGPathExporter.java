@@ -471,7 +471,7 @@ public class ARGPathExporter {
       }
 
       if (pFromState.isPresent()) {
-        extractTransitionForStates(pFrom, pTo, pEdge, pFromState.get(), pValueMap, result);
+        result = extractTransitionForStates(pFrom, pTo, pEdge, pFromState.get(), pValueMap, result);
       }
 
       if (exportAssumeCaseInfo) {
