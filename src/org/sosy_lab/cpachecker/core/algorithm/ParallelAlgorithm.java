@@ -317,7 +317,7 @@ public class ParallelAlgorithm implements Algorithm {
       final ReachedSetFactory reachedsetFactory) {
     return () -> {
       try {
-        AlgorithmStatus status;
+        AlgorithmStatus status = null;
         ReachedSet currentReached = reached;
         ReachedSet oldReached = null;
 
@@ -326,10 +326,24 @@ public class ParallelAlgorithm implements Algorithm {
         } else {
           boolean stopAnalysis = true;
           do {
-            status = algorithm.run(currentReached);
+
+            // explore statespace fully only if the analysis is sound and no reachable error is found
+            while (currentReached.hasWaitingState()) {
+              status = algorithm.run(currentReached);
+              if (!status.isSound()) {
+                break;
+
+                // reachable errors are fine while there are still states in the waitlist
+              } else if (from(currentReached).anyMatch(AbstractStates::isTargetState)
+                  && status.isPrecise()) {
+                return ParallelAnalysisResult.of(currentReached, status);
+              }
+            }
 
             // check if we could prove the program to be safe
-            if (status.isSound() && !from(currentReached).anyMatch(Predicates.<AbstractState>or(IS_TARGET_STATE, HAS_ASSUMPTIONS))) {
+            if (status.isSound()
+                && !from(currentReached)
+                    .anyMatch(Predicates.<AbstractState>or(IS_TARGET_STATE, HAS_ASSUMPTIONS))) {
               return ParallelAnalysisResult.of(currentReached, status);
             }
 
@@ -343,14 +357,16 @@ public class ParallelAlgorithm implements Algorithm {
               }
             }
 
-            if (oldReached != null) {
-              aggregatedReachedSetManager.updateReachedSet(oldReached, currentReached);
-            } else {
-              aggregatedReachedSetManager.addReachedSet(currentReached);
+            if (status.isSound()) {
+              singleLogger.log(Level.INFO, "Updating reached set provided to other analyses");
+              if (oldReached != null) {
+                aggregatedReachedSetManager.updateReachedSet(oldReached, currentReached);
+              } else {
+                aggregatedReachedSetManager.addReachedSet(currentReached);
+              }
+              oldReached = currentReached;
             }
-            singleLogger.log(Level.INFO, "Updating reached set provided to other analyses");
 
-            oldReached = currentReached;
             currentReached = createInitialReachedSet(cpa, mainEntryNode, reachedsetFactory);
           } while (!stopAnalysis);
         }
