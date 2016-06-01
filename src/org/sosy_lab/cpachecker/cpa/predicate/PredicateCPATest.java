@@ -84,10 +84,12 @@ public class PredicateCPATest {
     assume().that(myClassLoader).isInstanceOf(URLClassLoader.class);
     LogManager logger = LogManager.createTestLogManager();
 
-    try (LoggingClassLoader cl = new LoggingClassLoader(
-          Pattern.compile("(org\\.sosy_lab\\.cpachecker\\..*(predicate|bdd|BDD|formulaslicing|FormulaReportingState).*)|(org\\.sosy_lab\\.solver\\..*)"),
-          ((URLClassLoader)myClassLoader).getURLs(), myClassLoader
-        )) {
+    try (LoggingClassLoader cl =
+        new LoggingClassLoader(
+            Pattern.compile(
+                "(org\\.sosy_lab\\.cpachecker\\..*(predicate|bdd|BDD|formulaslicing|FormulaReportingState|InvariantSupplier).*)|(org\\.sosy_lab\\.solver\\..*)"),
+            ((URLClassLoader) myClassLoader).getURLs(),
+            myClassLoader)) {
       Class<?> cpaClass = cl.loadClass(PredicateCPATest.class.getPackage().getName() + ".PredicateCPA");
       Invokable<?, CPAFactory> factoryMethod = Invokable.from(cpaClass.getDeclaredMethod("factory")).returning(CPAFactory.class);
       CPAFactory factory = factoryMethod.invoke(null);
