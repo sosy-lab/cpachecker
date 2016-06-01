@@ -329,11 +329,6 @@ public class ParallelAlgorithm implements Algorithm {
               status = algorithm.run(currentReached);
               if (!status.isSound()) {
                 break;
-
-                // reachable errors are fine while there are still states in the waitlist
-              } else if (from(currentReached).anyMatch(AbstractStates::isTargetState)
-                  && status.isPrecise()) {
-                return ParallelAnalysisResult.of(currentReached, status);
               }
             }
 
