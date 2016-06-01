@@ -34,6 +34,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
 import com.google.common.base.Supplier;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -420,6 +421,8 @@ public class ARGPathExporter {
       isFunctionScope = true;
     }
 
+    /** build a transition-condition for the given edge, i.e. collect all
+     * important data and store it in the new transition-condition. */
     private TransitionCondition constructTransitionCondition(
         final String pFrom,
         final String pTo,
@@ -468,21 +471,9 @@ public class ARGPathExporter {
           AssumeEdge a = (AssumeEdge) pEdge;
           // If the assume edge or its sibling edge is followed by a pointer call,
           // the assumption is artificial and should not be exported
-          if (CFAUtils.leavingEdges(a.getPredecessor()).anyMatch(new Predicate<CFAEdge>() {
-
-            @Override
-            public boolean apply(CFAEdge pArg0) {
-              return CFAUtils.leavingEdges(pArg0.getSuccessor()).anyMatch(new Predicate<CFAEdge>() {
-
-                @Override
-                public boolean apply(CFAEdge pArg0) {
-                  return pArg0.getRawStatement().startsWith("pointer call");
-                }
-
-              });
-            }
-
-          })) {
+          if (CFAUtils.leavingEdges(a.getPredecessor()).anyMatch(
+              predecessor -> CFAUtils.leavingEdges(predecessor.getSuccessor()).anyMatch(
+                  sibling -> sibling.getRawStatement().startsWith("pointer call")))) {
             // remove all info from transitionCondition
             return new TransitionCondition();
           }
@@ -554,7 +545,7 @@ public class ARGPathExporter {
           Predicate<AExpressionStatement> assignsParameterOfOtherFunction =
               new AssignsParameterOfOtherFunction(pEdge);
           Collection<AExpressionStatement> functionValidAssignments =
-              FluentIterable.from(assignments).filter(assignsParameterOfOtherFunction).toList();
+              Collections2.filter(assignments, assignsParameterOfOtherFunction);
 
           if (functionValidAssignments.size() < assignments.size()) {
             cfaEdgeWithAssignments =
@@ -566,10 +557,8 @@ public class ARGPathExporter {
               String keyFrom = pTo;
               CFAEdge keyEdge = Iterables.getOnlyElement(nextEdges);
               ARGState keyState = Iterables.getOnlyElement(state.getChildren());
-              List<AExpressionStatement> valueAssignments =
-                  FluentIterable.from(assignments)
-                      .filter(Predicates.not(assignsParameterOfOtherFunction))
-                      .toList();
+              Collection<AExpressionStatement> valueAssignments =
+                  Collections2.filter(assignments, Predicates.not(assignsParameterOfOtherFunction));
               CFAEdgeWithAssumptions valueCFAEdgeWithAssignments =
                   new CFAEdgeWithAssumptions(keyEdge, valueAssignments, "");
               delayedAssignments.put(
@@ -611,34 +600,21 @@ public class ARGPathExporter {
               CExpression expression = (CExpression) functionValidAssignment.getExpression();
               for (CIdExpression idExpression :
                   expression.accept(new CIdExpressionCollectingVisitor())) {
-                CSimpleDeclaration declaration = idExpression.getDeclaration();
+                final CSimpleDeclaration declaration = idExpression.getDeclaration();
+                final String qualified = declaration.getQualifiedName();
                 if (declaration.getName().contains("static")
                     && !declaration.getOrigName().contains("static")
-                    && declaration.getQualifiedName().contains("::")) {
+                    && qualified.contains("::")) {
                   isFunctionScope = true;
-                  functionName =
-                      declaration
-                          .getQualifiedName()
-                          .substring(0, declaration.getQualifiedName().indexOf("::"));
+                  functionName = qualified.substring(0, qualified.indexOf("::"));
                 }
               }
             }
           }
 
           if (!assignments.isEmpty()) {
-            code.add(factory.and(
-                FluentIterable.from(assignments)
-                .transform(
-                    new Function<AExpressionStatement, ExpressionTree<Object>>() {
-
-                      @Override
-                      public ExpressionTree<Object> apply(
-                          AExpressionStatement pExpressionStatement) {
-                        return LeafExpression.of(
-                            (Object) pExpressionStatement.getExpression());
-                      }
-                    })
-                .toList()));
+            code.add(factory.and(Collections2.transform(assignments,
+                pExpressionStatement -> LeafExpression.of((Object) pExpressionStatement.getExpression()))));
           }
         }
 
@@ -674,15 +650,7 @@ public class ARGPathExporter {
               Joiner.on("; ")
                   .join(
                       ExpressionTrees.getChildren(invariant)
-                          .transform(
-                              new Function<ExpressionTree<Object>, ExpressionTree<String>>() {
-
-                                @Override
-                                public ExpressionTree<String> apply(
-                                    ExpressionTree<Object> pTree) {
-                                  return ExpressionTrees.convert(pTree, converter);
-                                }
-                              }));
+                          .transform(pTree -> ExpressionTrees.convert(pTree, converter)));
         } else {
           assumptionCode = ExpressionTrees.convert(invariant, converter).toString();
         }
@@ -729,8 +697,8 @@ public class ARGPathExporter {
         final ARGState pInitialState,
         final Function<? super ARGState, ? extends Iterable<ARGState>> pSuccessorFunction,
         final Predicate<? super ARGState> pPathStates) {
-      return FluentIterable.from(collectPathEdges(pInitialState, pSuccessorFunction, pPathStates))
-          .transform(Pair::getFirst);
+      return Iterables.transform(collectPathEdges(pInitialState, pSuccessorFunction, pPathStates),
+          Pair::getFirst);
     }
 
     /**
@@ -778,20 +746,11 @@ public class ARGPathExporter {
               assert !waitlist.isEmpty();
               final ARGState parent = waitlist.poll();
 
-              Predicate<ARGState> childFilter = new Predicate<ARGState>() {
-
-                @Override
-                public boolean apply(ARGState pChild) {
-                  return parent.getChildren().contains(pChild);
-                }
-
-              };
-
               // Get all children
               FluentIterable<ARGState> children = FluentIterable
                   .from(pSuccessorFunction.apply(parent))
                   .transform(COVERED_TO_COVERING)
-                  .filter(childFilter);
+                  .filter(parent.getChildren()::contains);
 
               // Only the children on the path become parents themselves
               for (ARGState child : children.filter(pPathStates)) {
@@ -902,13 +861,8 @@ public class ARGPathExporter {
 
       // Merge nodes with empty or repeated edges
       Supplier<Iterator<Edge>> redundantEdgeIteratorSupplier =
-          new Supplier<Iterator<Edge>>() {
+          () -> Iterables.filter(leavingEdges.values(), isEdgeRedundant).iterator();
 
-            @Override
-            public Iterator<Edge> get() {
-              return FluentIterable.from(leavingEdges.values()).filter(isEdgeRedundant).iterator();
-            }
-          };
       Iterator<Edge> redundantEdgeIterator = redundantEdgeIteratorSupplier.get();
       while (redundantEdgeIterator.hasNext()) {
         Edge edge = redundantEdgeIterator.next();
