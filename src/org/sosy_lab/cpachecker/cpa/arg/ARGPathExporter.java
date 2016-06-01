@@ -87,6 +87,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CExpressionToOrinalCodeVisitor;
@@ -179,6 +180,12 @@ public class ARGPathExporter {
 
   @Option(secure=true, description="Verification witness: Include an thread-identifier within the file?")
   private boolean exportThreadId = false;
+
+  @Option(
+    secure = true,
+    description = "Verification witness: Revert escaping/renaming of functions for threads?"
+  )
+  private boolean revertThreadFunctionRenaming = false;
 
   private final LogManager logger;
 
@@ -666,6 +673,9 @@ public class ARGPathExporter {
 
         result = result.putAndCopy(KeyDef.ASSUMPTION, assumptionCode + ";");
         if (isFunctionScope) {
+          if (revertThreadFunctionRenaming) {
+            functionName = CFACloner.extractFunctionName(functionName);
+          }
           result = result.putAndCopy(KeyDef.ASSUMPTIONSCOPE, functionName);
         }
       }
