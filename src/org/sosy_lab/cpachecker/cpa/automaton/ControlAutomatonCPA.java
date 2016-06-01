@@ -23,13 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import java.io.IOException;
-import java.io.Writer;
-import java.util.Collection;
-import java.util.List;
-import java.util.logging.Level;
-
-import javax.annotation.Nonnull;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Supplier;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -73,8 +68,13 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.globalinfo.AutomatonInfo;
 
-import com.google.common.base.Preconditions;
-import com.google.common.base.Supplier;
+import java.io.IOException;
+import java.io.Writer;
+import java.util.Collection;
+import java.util.List;
+import java.util.logging.Level;
+
+import javax.annotation.Nonnull;
 
 /**
  * This class implements an AutomatonAnalysis as described in the related Documentation.
@@ -222,14 +222,14 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
     PrecisionAdjustment result = new ControlAutomatonPrecisionAdjustment(pConfig, options,
         supplier, bottomState, inactiveState);
 
+    result = new AdjustAutomatonPrecisionAdjustment(result, pConfig);
+
     if (options.breakOnTargetState > 0) {
       final int pFoundTargetLimit = options.breakOnTargetState;
       final int pExtraIterationsLimit = options.extraIterationsLimit;
 
       result = new BreakOnTargetsPrecisionAdjustment(result, pFoundTargetLimit, pExtraIterationsLimit);
     }
-
-    result = new AdjustAutomatonPrecisionAdjustment(result, pConfig);
 
     return result;
   }

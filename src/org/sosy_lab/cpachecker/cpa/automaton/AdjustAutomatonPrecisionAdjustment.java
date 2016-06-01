@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
 
 import java.util.List;
@@ -51,8 +52,7 @@ import java.util.List;
 @Options(prefix = "cpa.automaton")
 class AdjustAutomatonPrecisionAdjustment extends WrappingPrecisionAdjustment {
 
-  private Table<AutomatonInternalState, AutomatonPrecision, List<AutomatonTransition>>
-      relevantTransitionCache = HashBasedTable.create();
+  private Table<Pair<AutomatonInternalState, PresenceCondition>, AutomatonPrecision, List<AutomatonTransition>> relevanTransCache = HashBasedTable.create();
 
   @Option(secure = true, description = "Adjust the automaton transitions")
   private boolean adjustAutomatonTransitions = true;
@@ -74,12 +74,16 @@ class AdjustAutomatonPrecisionAdjustment extends WrappingPrecisionAdjustment {
     final AutomatonPrecision pi = (AutomatonPrecision) pPrecision;
     final Automaton a = state.getOwningAutomaton();
 
+    final PresenceCondition pc = PresenceConditions.extractPresenceCondition(pFullState);
+    final Pair<AutomatonInternalState, PresenceCondition> cacheKey = Pair.of(state.getInternalState(), pc);
+
     List<AutomatonTransition> relevantTransitions = null;
 
     //
     // Which transitions of relevant for this automaton state with the given precision?
     //    Determine them if not already cached
-    relevantTransitions = relevantTransitionCache.get(state.getInternalState(), pi);
+    relevantTransitions = relevanTransCache.get(cacheKey, pi);
+
     if (relevantTransitions == null) {
       boolean hasIrrelevantTransitions = false;
 
@@ -91,7 +95,6 @@ class AdjustAutomatonPrecisionAdjustment extends WrappingPrecisionAdjustment {
 
       } else {
         relevantTransitions = Lists.newArrayListWithExpectedSize(state.getLeavingTransitions().size());
-        final PresenceCondition pc = PresenceConditions.extractPresenceCondition(pFullState);
 
         for (AutomatonTransition trans: state.getLeavingTransitions()) {
 
@@ -107,9 +110,9 @@ class AdjustAutomatonPrecisionAdjustment extends WrappingPrecisionAdjustment {
       }
 
       if (hasIrrelevantTransitions && adjustAutomatonTransitions) {
-        relevantTransitionCache.put(state.getInternalState(), pi, relevantTransitions);
+        relevanTransCache.put(cacheKey, pi, relevantTransitions);
       } else {
-        relevantTransitionCache.put(state.getInternalState(), pi, state.getLeavingTransitions());
+        relevanTransCache.put(cacheKey, pi, state.getLeavingTransitions());
       }
     }
 
