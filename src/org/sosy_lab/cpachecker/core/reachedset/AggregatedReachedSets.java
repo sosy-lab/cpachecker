@@ -123,6 +123,7 @@ public class AggregatedReachedSets {
       pReachedSets.forEach(r -> new FormulaAndTreeSupplier(new LazyLocationMapping(r), cfa));
     }
 
+    lastUsedReachedSets = pReachedSets;
     lastInvariantSupplier = new AggregatedInvariantSupplier(ImmutableSet.copyOf(singleInvariantSuppliers.values()));
 
     return lastInvariantSupplier;
