@@ -145,7 +145,7 @@ public class PolyhedraWideningManager {
       String varName = term.getVariable();
       Rational coeff = ofCoeff(term.getCoefficient());
 
-      out = out.add(LinearExpression.pair(types.get(varName),  coeff));
+      out = out.add(LinearExpression.monomial(types.get(varName),  coeff));
     }
 
     return Template.of(out);
