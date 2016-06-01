@@ -72,7 +72,7 @@ public class PolicyIterationTest {
   public void pointer_past_abstraction_true_assert() throws Exception {
     check("pointers/pointer_past_abstraction_true_assert.c", ImmutableMap.of(
             "CompositeCPA.cpas", CPAS_W_SLICING,
-            "cpa.lpi.generateOctagons", "true"
+            "cpa.lpi.maxExpressionSize", "2"
         )
     );
   }
@@ -93,19 +93,19 @@ public class PolicyIterationTest {
     check("pointers/pointers_loop_true_assert.c",
         ImmutableMap.of(
             "CompositeCPA.cpas", CPAS_W_SLICING,
-            "cpa.lpi.generateOctagons", "true",
+            "cpa.lpi.maxExpressionSize", "2",
             "cpa.lpi.linearizePolicy", "false"
         ));
   }
 
   @Test public void octagons_loop_true_assert() throws Exception {
     check("octagons/octagons_loop_true_assert.c",
-       ImmutableMap.of("cpa.lpi.generateOctagons", "true"));
+       ImmutableMap.of("cpa.lpi.maxExpressionSize", "2"));
   }
 
   @Test public void octagons_loop_false_assert() throws Exception {
     check("octagons/octagons_loop_false_assert.c",
-        ImmutableMap.of("cpa.lpi.generateOctagons", "true"));
+        ImmutableMap.of("cpa.lpi.maxExpressionSize", "2"));
   }
 
   @Test public void ineqality_true_assert() throws Exception {
@@ -130,7 +130,7 @@ public class PolicyIterationTest {
 
   @Test public void valdet_prefixing_true_assert() throws Exception {
     check("valdet_prefixing_true_assert.c",
-        ImmutableMap.of("cpa.lpi.generateOctagons", "true",
+        ImmutableMap.of("cpa.lpi.maxExpressionSize", "2",
 
             // Enabling two options below make non-prefixing variation of
             // val.det. work.
@@ -148,8 +148,7 @@ public class PolicyIterationTest {
 
   @Test public void formula_fail_true_assert() throws Exception {
     check("formula_fail_true_assert.c",
-        ImmutableMap.of("cpa.lpi.generateLowerBound", "false",
-                        "cpa.lpi.generateFromAsserts", "false",
+        ImmutableMap.of("cpa.lpi.allowedCoefficients", "1",
                         "cpa.lpi.abstractionLocations", "all"));
   }
 
@@ -165,7 +164,7 @@ public class PolicyIterationTest {
   @Test public void boolean_true_assert() throws Exception {
     // Use explicit value analysis to track boolean variables.
     check("boolean_true_assert.c",
-        ImmutableMap.of("cpa.lpi.generateOctagons", "true",
+        ImmutableMap.of("cpa.lpi.maxExpressionSize", "2",
             "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.functionpointer.FunctionPointerCPA, cpa.loopstack.LoopstackCPA, cpa.value.ValueAnalysisCPA, cpa.policyiteration.PolicyCPA",
             "precision.trackIntAddVariables", "false",
             "precision.trackVariablesBesidesEqAddBool", "false"));

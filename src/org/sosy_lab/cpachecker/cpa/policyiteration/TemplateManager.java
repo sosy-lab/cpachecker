@@ -1,9 +1,9 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -48,6 +49,7 @@ import org.sosy_lab.solver.api.BitvectorFormula;
 import org.sosy_lab.solver.api.Formula;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -56,21 +58,14 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-@Options(prefix = "cpa.lpi", deprecatedPrefix = "cpa.stator.policy")
+@Options(prefix = "cpa.lpi")
 public class TemplateManager {
-  @Option(secure=true,
-      description="Generate templates for the lower bounds of each variable")
-  private boolean generateLowerBound = true;
-
-  @Option(secure=true,
-      description="Generate templates for the upper bounds of each variable")
-  private boolean generateUpperBound = true;
-
-  @Option(secure=true,
-      description="Generate octagon templates for all combinations of variables. ")
-  private boolean generateOctagons = false;
 
   @Option(secure=true, description="Generate templates from assert statements")
   private boolean generateFromAsserts = true;
@@ -79,26 +74,17 @@ public class TemplateManager {
       + "statements")
   private boolean generateFromStatements = true;
 
-  @Option(secure=true,
-      description="Ignore the template type and encode with a rational variable")
-  private boolean encodeTemplatesAsRationals = false;
+  @Option(secure=true, description="Maximum size for the generated template")
+  private int maxExpressionSize = 1;
+
+  @Option(secure=true, description="Allowed coefficients in a template.")
+  private Set<Rational> allowedCoefficients = ImmutableSet.of(
+      Rational.NEG_ONE, Rational.ONE
+  );
 
   @Option(secure=true,
-    description="Generate even more templates (try coeff. 2 for each variable)")
-  private boolean generateMoreTemplates = false;
-
-  @Option(secure=true,
-    description="Generate cubic constraints: templates +/- x +/- y +/- z for"
-        + " every combination (x, y, z)")
-  private boolean generateCube = false;
-
-  @Option(secure=true,
-    description="Use unguided template refinement, progressively brute-forcing the"
-      + " possible template space.")
-  private boolean unguidedTemplateRefinement = true;
-
-  @Option(secure=true,
-    description="Strategy for filtering variables out of templates")
+    description="Strategy for filtering variables out of templates using "
+        + "liveness")
   private VarFilteringStrategy varFiltering = VarFilteringStrategy.ALL_LIVE;
 
   // todo: merge with varFilteringStrategy enum.
@@ -141,7 +127,7 @@ public class TemplateManager {
   private static final String ASSERT_H_FUNC_NAME = "__assert_fail";
 
   private final HashMultimap<CFANode, Template> cache = HashMultimap.create();
-  private final ImmutableList<ASimpleDeclaration> allVariables;
+  private final ImmutableSet<ASimpleDeclaration> allVariables;
   private final VariableClassification variableClassification;
   private final CBinaryExpressionBuilder expressionBuilder;
 
@@ -150,10 +136,11 @@ public class TemplateManager {
       Configuration pConfig,
       CFA pCfa, PolicyIterationStatistics pStatistics)
         throws InvalidConfigurationException {
+    pConfig.inject(this, TemplateManager.class);
+
     variableClassification = pCfa.getVarClassification().get();
     statistics = pStatistics;
     extraTemplates = new HashSet<>();
-    pConfig.inject(this, TemplateManager.class);
 
     cfa = pCfa;
     logger = pLogger;
@@ -177,10 +164,104 @@ public class TemplateManager {
     logger.log(Level.FINE, "Generated templates", extractedFromAssertTemplates);
     generatedTemplates = new HashSet<>();
 
-    allVariables = ImmutableList.copyOf(
+    allVariables = ImmutableSet.copyOf(
         cfa.getLiveVariables().get().getAllLiveVariables());
     expressionBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(),
         logger);
+  }
+
+  /**
+   * Generate all linear expressions of size up to {@code maxExpressionSize}
+   * with coefficients in {@code allowedCoefficients},
+   * over the variables returned by {@link #getVarsForNode(CFANode)}.
+   */
+  public Set<Template> generateTemplates(final CFANode node) {
+
+    Set<ASimpleDeclaration> varsForNode = getVarsForNode(node);
+    Set<CIdExpression> vars = varsForNode.stream()
+        .filter(this::shouldProcessVariable)
+        .map(
+            d -> new CIdExpression(FileLocation.DUMMY, (CSimpleDeclaration) d)
+        ).collect(Collectors.toSet());
+    int maxLength = Math.min(maxExpressionSize, vars.size());
+    allowedCoefficients = allowedCoefficients.stream().filter(
+        x -> !x.equals(Rational.ZERO)).collect(Collectors.toSet());
+
+    // Copy the {@code vars} multiple times for the cartesian product.
+    List<Set<CIdExpression>> lists = new ArrayList<>();
+    for (int i=0; i<maxLength; i++) {
+      lists.add(vars);
+    }
+
+    // All lists of size {@code maxExpressionSize}.
+    Set<List<CIdExpression>> product = Sets.cartesianProduct(lists);
+
+    // Eliminate duplicates, and ensure that all combinations are unique.
+    // As a by-product, produces the expressions of all sizes less than
+    // {@code maxExpressionSize} as well.
+    Set<Set<CIdExpression>> combinations =
+        product.stream().map(HashSet::new).collect(Collectors.toSet());
+
+    Set<Template> returned = new HashSet<>();
+    for (Set<CIdExpression> variables : combinations) {
+
+      // For of every variable: instantiate with every coefficient.
+      List<List<LinearExpression<CIdExpression>>> out =
+          variables.stream().map(
+              x -> allowedCoefficients.stream().map(
+                  coeff -> LinearExpression.monomial(x, coeff)
+              ).collect(Collectors.toList())
+          ).collect(Collectors.toList());
+
+      // Convert to a list of all possible linear expressions.
+      List<LinearExpression<CIdExpression>> linearExpressions =
+          Lists.cartesianProduct(out).stream().map(
+              list -> list.stream().reduce(
+                  LinearExpression.empty(), LinearExpression::add)
+          ).collect(Collectors.toList());
+
+      Set<Template> generated =
+          filterToSameType(
+              filterRedundantExpressions(linearExpressions)
+          ).stream().map(Template::of).collect(Collectors.toSet());
+      returned.addAll(generated);
+    }
+
+    return returned;
+  }
+
+  /**
+   * Filter out the redundant expressions: that is, expressions already
+   * contained in the list with a multiplier {@code >= 1}.
+   */
+  private List<LinearExpression<CIdExpression>> filterRedundantExpressions(
+      List<LinearExpression<CIdExpression>> pLinearExpressions
+  ) {
+    Predicate<com.google.common.base.Optional<Rational>> existsAndMoreThanOne =
+        (coeff -> coeff.isPresent() && coeff.get().compareTo(Rational.ONE) > 0);
+    return pLinearExpressions.stream().filter(
+            l -> !pLinearExpressions.stream().anyMatch(
+                l2 -> l2 != l && existsAndMoreThanOne.test(l2.divide(l))
+            )
+        ).collect(Collectors.toList());
+  }
+
+  /**
+   * Filter out the expressions where not all variables inside have the
+   * same type.
+   */
+  private List<LinearExpression<CIdExpression>> filterToSameType(
+      List<LinearExpression<CIdExpression>> pLinearExpressions
+  ) {
+    Function<CIdExpression, CBasicType> getType =
+        x -> ((CSimpleType)x.getDeclaration().getType()).getType();
+    return pLinearExpressions.stream().filter(
+            expr -> expr.getMap().keySet().stream().allMatch(
+                x -> getType.apply(x).equals(
+                    getType.apply(expr.iterator().next().getKey())
+                )
+            )
+        ).collect(Collectors.toList());
   }
 
   public PolicyPrecision precisionForNode(CFANode node) {
@@ -193,128 +274,11 @@ public class TemplateManager {
     }
 
     Builder<Template> out = ImmutableSet.builder();
-    List<ASimpleDeclaration> usedVars = ImmutableList.copyOf(getVarsForNode(node));
-    out.addAll(extractTemplatesForNode(node));
+    out.addAll(extractTemplatesForNode(node)::iterator);
     out.addAll(extraTemplates);
-
-    for (ASimpleDeclaration s : usedVars) {
-      if (!shouldProcessVariable(s)) {
-        continue;
-      }
-      String varName = s.getQualifiedName();
-      CIdExpression idExpression = new CIdExpression(
-          FileLocation.DUMMY, (CSimpleDeclaration)s
-      );
-      logger.log(Level.FINEST, "Processing variable", varName);
-      if (generateUpperBound) {
-        out.add(Template.of(LinearExpression.ofVariable(idExpression)));
-      }
-      if (generateLowerBound) {
-        out.add(Template.of(LinearExpression.ofVariable(idExpression).negate()));
-      }
-    }
-
-    if (generateOctagons) {
-      for (ASimpleDeclaration s1 : usedVars) {
-        for (ASimpleDeclaration s2 : usedVars) {
-          if (!shouldProcessVariable(s1)
-              || !shouldProcessVariable(s2)) {
-            continue;
-          }
-          if (s1.getQualifiedName().equals(s2.getQualifiedName())) {
-
-            // Don't pair up the same var.
-            continue;
-          }
-          if (!((CSimpleType)s1.getType()).getType().equals(
-              ((CSimpleType)s2.getType()).getType())) {
-
-            // Don't pair up variables of different types.
-            continue;
-          }
-
-          CIdExpression idExpression1 = new CIdExpression(
-              FileLocation.DUMMY, (CSimpleDeclaration)s1
-          );
-          CIdExpression idExpression2 = new CIdExpression(
-              FileLocation.DUMMY, (CSimpleDeclaration)s2
-          );
-
-          LinearExpression<CIdExpression> expr1 = LinearExpression.ofVariable(
-              idExpression1);
-          LinearExpression<CIdExpression> expr2 = LinearExpression.ofVariable(
-              idExpression2);
-
-          out.addAll(genOctagonConstraints(expr1, expr2));
-
-          if (generateMoreTemplates) {
-            out.addAll(genOctagonConstraints(
-                expr1.multByConst(Rational.ofLong(2)), expr2));
-            out.addAll(genOctagonConstraints(expr1,
-                expr2.multByConst(Rational.ofLong(2))));
-          }
-        }
-      }
-    }
-
-    if (generateCube) {
-      for (ASimpleDeclaration s1 : usedVars) {
-        for (ASimpleDeclaration s2 : usedVars) {
-          for (ASimpleDeclaration s3 : usedVars) {
-            if (!shouldProcessVariable(s1)
-                || !shouldProcessVariable(s2) || !shouldProcessVariable(s3)) {
-              continue;
-            }
-
-            if (!s1.getType().equals(s2.getType())
-                || !s2.getType().equals(s3.getType())) {
-
-              // Don't pair up variables of different types.
-              continue;
-            }
-
-            if (s1.getQualifiedName().equals(s2.getQualifiedName()) ||
-                s2.getQualifiedName().equals(s3.getQualifiedName()) ||
-                s3.getQualifiedName().equals(s1.getQualifiedName())) {
-
-              // Don't pair up the same var.
-              continue;
-            }
-
-            CIdExpression idExpression1 = new CIdExpression(
-                FileLocation.DUMMY, (CSimpleDeclaration)s1);
-            CIdExpression idExpression2 = new CIdExpression(
-                FileLocation.DUMMY, (CSimpleDeclaration)s2);
-            CIdExpression idExpression3 = new CIdExpression(
-                FileLocation.DUMMY, (CSimpleDeclaration)s3);
-
-            LinearExpression<CIdExpression> expr1 = LinearExpression.ofVariable(
-                idExpression1);
-            LinearExpression<CIdExpression> expr2 = LinearExpression.ofVariable(
-                idExpression2);
-            LinearExpression<CIdExpression> expr3 = LinearExpression.ofVariable(
-                idExpression3);
-
-            out.addAll(genCubicConstraints(expr1, expr2, expr3));
-
-            if (generateMoreTemplates) {
-              Rational two = Rational.ofLong(2);
-              out.addAll(
-                  genCubicConstraints(
-                      expr1.multByConst(two), expr2, expr3));
-              out.addAll(
-                  genCubicConstraints(
-                      expr1, expr2.multByConst(two), expr3));
-              out.addAll(
-                  genCubicConstraints(
-                      expr1, expr2, expr3.multByConst(Rational.ofLong(2))));
-            }
-          }
-        }
-      }
-    }
-
     out.addAll(extractedFromAssertTemplates);
+
+    out.addAll(generateTemplates(node));
     Set<Template> outBuild = out.build();
 
     if (varFiltering == VarFilteringStrategy.ONE_LIVE) {
@@ -327,44 +291,8 @@ public class TemplateManager {
     return cache.get(node);
   }
 
-  private Set<Template> genOctagonConstraints(
-      LinearExpression<CIdExpression> expr1,
-      LinearExpression<CIdExpression> expr2) {
-    HashSet<Template> out = new HashSet<>(4);
-    out.add(Template.of(expr1.add(expr2)));
-    out.add(Template.of(expr1.negate().sub(expr2)));
-    out.add(Template.of(expr1.sub(expr2)));
-    out.add(Template.of(expr2.sub(expr1)));
-    return out;
-  }
-
-  private Set<Template> genCubicConstraints(
-      LinearExpression<CIdExpression> expr1,
-      LinearExpression<CIdExpression> expr2,
-      LinearExpression<CIdExpression> expr3) {
-    HashSet<Template> out = new HashSet<>(4);
-    // No negated.
-    out.add(Template.of(expr1.add(expr2).add(expr3)));
-
-    // 1 negated.
-    out.add(Template.of(expr1.add(expr2).sub(expr3)));
-    out.add(Template.of(expr1.sub(expr2).add(expr3)));
-    out.add(Template.of(expr1.negate().add(expr2).add(expr3)));
-
-    // 2 Negated
-    out.add(Template.of(expr1.negate().add(expr2).sub(expr3)));
-    out.add(Template.of(expr1.negate().sub(expr2).add(expr3)));
-    out.add(Template.of(expr1.sub(expr2).sub(expr3)));
-
-    // All negated.
-    out.add(Template.of(expr1.negate().sub(expr2).sub(expr3)));
-
-    return out;
-  }
-
-
-  private final Map<ToFormulaCacheKey, Formula> toFormulaCache = new
-      HashMap<>();
+  private final Map<ToFormulaCacheKey, Formula> toFormulaCache =
+      new HashMap<>();
 
   /**
    * Convert {@code template} to {@link Formula}, using
@@ -384,7 +312,7 @@ public class TemplateManager {
     if (out != null) {
       return out;
     }
-    boolean useRationals = shouldUseRationals(template);
+    boolean useRationals = !template.isIntegral();
     Formula sum = null;
     int maxBitvectorSize = getBitvectorSize(template, pfmgr, contextFormula,fmgr);
 
@@ -394,9 +322,9 @@ public class TemplateManager {
 
       final Formula item;
       try {
-        item = normalizeLength(pfmgr.expressionToFormula(
-            contextFormula, declaration, dummyEdge),
-            maxBitvectorSize, fmgr);
+        Formula f = pfmgr.expressionToFormula(
+            contextFormula, declaration, dummyEdge);
+        item = normalizeLength(f, maxBitvectorSize, fmgr);
       } catch (UnrecognizedCCodeException e) {
         throw new UnsupportedOperationException();
       }
@@ -431,11 +359,6 @@ public class TemplateManager {
     }
     toFormulaCache.put(key, out);
     return out;
-  }
-
-  public boolean shouldUseRationals(Template template) {
-    return encodeTemplatesAsRationals
-        || !template.isIntegral();
   }
 
   /**
@@ -503,14 +426,8 @@ public class TemplateManager {
     return templates;
   }
 
-  private Set<Template> extractTemplatesForNode(CFANode node) {
-    Set<Template> out = new HashSet<>();
-    for (Template t : extractedTemplates) {
-      if (shouldUseTemplate(t, node)) {
-        out.add(t);
-      }
-    }
-    return out;
+  private Stream<Template> extractTemplatesForNode(CFANode node) {
+    return extractedTemplates.stream().filter(t -> shouldUseTemplate(t, node));
   }
 
   private boolean shouldUseTemplate(Template t, CFANode node) {
@@ -536,11 +453,9 @@ public class TemplateManager {
     Set<Template> out = new HashSet<>();
     for (CFANode node : cfa.getAllNodes()) {
       for (CFAEdge edge : CFAUtils.allEnteringEdges(node)) {
-        for (Template t : extractTemplatesFromEdge(edge)) {
-          if (t.size() > 1) {
-            out.add(t);
-          }
-        }
+        out.addAll(
+            extractTemplatesFromEdge(edge).stream().filter(t -> t.size() > 1)
+                .collect(Collectors.toSet()));
       }
     }
     return out;
@@ -702,22 +617,24 @@ public class TemplateManager {
         return true;
       }
 
-      if (!generateOctagons) {
+      if (maxExpressionSize == 1) {
         logger.log(Level.INFO, "LPI Refinement: Generating octagons");
-        generateOctagons = true;
+        maxExpressionSize = 2;
         return true;
       }
-      if (!generateMoreTemplates) {
+      if (maxExpressionSize == 2
+          && !allowedCoefficients.contains(Rational.ofLong(2))) {
         logger.log(Level.INFO, "LPI Refinement: Generating more templates");
-        generateMoreTemplates = true;
+        allowedCoefficients = Sets.union(
+            allowedCoefficients, ImmutableSet.of(
+                Rational.ofLong(2), Rational.ofLong(-2)));
         return true;
       }
-      if (unguidedTemplateRefinement) {
-        if (!generateCube) {
-          logger.log(Level.INFO, "LPI Refinement: Rich template generation strategy");
-          generateCube = true;
-          return true;
-        }
+      if (maxExpressionSize == 2
+          && allowedCoefficients.contains(Rational.ofLong(2))) {
+        logger.log(Level.INFO, "LPI Refinement: Rich template generation strategy");
+        maxExpressionSize = 3;
+        return true;
       }
 
       return false;
@@ -788,9 +705,9 @@ public class TemplateManager {
     return (CSimpleType) sum.getExpressionType();
   }
 
-  public Iterable<ASimpleDeclaration> getVarsForNode(CFANode node) {
+  public Set<ASimpleDeclaration> getVarsForNode(CFANode node) {
     if (varFiltering == VarFilteringStrategy.ALL_LIVE) {
-      return cfa.getLiveVariables().get().getLiveVariablesForNode(node);
+      return cfa.getLiveVariables().get().getLiveVariablesForNode(node).toSet();
     } else {
       return allVariables;
     }
@@ -817,8 +734,8 @@ public class TemplateManager {
     for (Entry<CIdExpression, Rational> entry : t.linearExpression) {
       Formula item;
       try {
-        item = pfmgr.expressionToFormula(contextFormula, entry.getKey(),
-            dummyEdge);
+        item = pfmgr.expressionToFormula(
+            contextFormula, entry.getKey(), dummyEdge);
       } catch (UnrecognizedCCodeException e) {
         throw new UnsupportedOperationException();
       }
