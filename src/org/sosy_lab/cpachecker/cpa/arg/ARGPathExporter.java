@@ -567,33 +567,6 @@ public class ARGPathExporter {
             }
           }
 
-          // Do not export our own temporary variables
-          assignments =
-              FluentIterable.from(cfaEdgeWithAssignments.getExpStmts())
-                  .filter(
-                      new Predicate<AExpressionStatement>() {
-
-                        @Override
-                        public boolean apply(AExpressionStatement statement) {
-                          if (statement.getExpression() instanceof CExpression) {
-                            CExpression expression = (CExpression) statement.getExpression();
-                            for (CIdExpression idExpression :
-                                expression.accept(new CIdExpressionCollectingVisitor())) {
-                              if (idExpression
-                                  .getDeclaration()
-                                  .getQualifiedName()
-                                  .toUpperCase()
-                                  .contains("__CPACHECKER_TMP")) {
-                                return false;
-                              }
-                            }
-                            return true;
-                          }
-                          return false;
-                        }
-                      })
-                  .toList();
-
           // Determine the scope for static local variables
           for (AExpressionStatement functionValidAssignment : functionValidAssignments) {
             if (functionValidAssignment instanceof CExpressionStatement) {
@@ -611,6 +584,16 @@ public class ARGPathExporter {
               }
             }
           }
+
+          // Do not export our own temporary variables
+          Predicate<CIdExpression> isTmpVariable = idExpression -> idExpression.getDeclaration()
+              .getQualifiedName().toUpperCase().contains("__CPACHECKER_TMP");
+          assignments = Collections2.filter(cfaEdgeWithAssignments.getExpStmts(),
+              statement -> statement.getExpression() instanceof CExpression
+                  && !Iterables.any(
+                      ((CExpression) statement.getExpression())
+                          .accept(new CIdExpressionCollectingVisitor()),
+                      isTmpVariable));
 
           if (!assignments.isEmpty()) {
             code.add(factory.and(Collections2.transform(assignments,
