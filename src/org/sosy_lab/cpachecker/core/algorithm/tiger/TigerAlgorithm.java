@@ -1335,6 +1335,9 @@ public class TigerAlgorithm
           ? PresenceConditions.extractPresenceCondition(lastState)
           : null;
 
+      logger.log(Level.INFO, pcManager.dump(testCasePresenceCondition));
+      logger.log(Level.INFO, pcManager.dump(pcManager.removeGoalVariables(testCasePresenceCondition)));
+
       TestCase testcase = createTestcase(pCex, testCasePresenceCondition);
       Set<Goal> fullyCoveredGoals = updateTestsuiteByCoverageOf(testcase, pRemainingGoals);
 

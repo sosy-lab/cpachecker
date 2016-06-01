@@ -27,10 +27,14 @@ import com.google.common.base.Preconditions;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
+import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceConditionManager;
 import org.sosy_lab.solver.SolverException;
+
+import java.util.HashSet;
+import java.util.Set;
 
 
 public class RegionPresenceConditionManager implements PresenceConditionManager {
@@ -154,6 +158,65 @@ public class RegionPresenceConditionManager implements PresenceConditionManager 
 
   public RegionManager getMgr() {
     return mgr;
+  }
+
+  @Override
+  public Set<PresenceCondition> extractPredicates(PresenceCondition pCond) {
+    Preconditions.checkArgument(pCond instanceof RegionPresenceCondition);
+
+    RegionPresenceCondition cond = (RegionPresenceCondition) pCond;
+
+    Set<PresenceCondition> predicates = new HashSet<>();
+    for (Region predicate : mgr.extractPredicates(cond.getRegion())) {
+      RegionPresenceCondition pc = new RegionPresenceCondition(predicate);
+      predicates.add(pc);
+    }
+
+    return predicates;
+  }
+
+  @Override
+  public PresenceCondition makeExists(PresenceCondition pF1, PresenceCondition... pF2) {
+    Preconditions.checkArgument(pF1 instanceof RegionPresenceCondition);
+    for (PresenceCondition pc : pF2) {
+      Preconditions.checkArgument(pc instanceof RegionPresenceCondition);
+    }
+
+    RegionPresenceCondition cond = (RegionPresenceCondition) pF1;
+    Region pF1Region = cond.getRegion();
+
+    Region[] pF2Regions = new Region[pF2.length];
+    for (int i = 0; i < pF2.length; i++) {
+      RegionPresenceCondition cond2 = (RegionPresenceCondition) pF2[i];
+      pF2Regions[i] = cond2.getRegion();
+    }
+
+    Region exists = mgr.makeExists(pF1Region, pF2Regions);
+
+    return new RegionPresenceCondition(exists);
+  }
+
+  @Override
+  public PresenceCondition removeGoalVariables(PresenceCondition pCond) {
+    Set<PresenceCondition> predicates = extractPredicates(pCond);
+
+    Set<PresenceCondition> markers = new HashSet<>();
+
+    for (PresenceCondition region : predicates) {
+      String regionStr = dump(region).toString();
+      if (regionStr.contains("_MARKER_")) {
+        markers.add(region);
+      }
+    }
+
+    PresenceCondition[] array = new PresenceCondition[markers.size()];
+    int i = 0;
+    for (PresenceCondition presenceCondition : markers) {
+      array[i] = presenceCondition;
+      i++;
+    }
+
+    return makeExists(pCond, array);
   }
 
 }

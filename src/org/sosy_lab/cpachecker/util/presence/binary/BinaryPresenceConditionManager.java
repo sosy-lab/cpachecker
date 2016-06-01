@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceConditionManager;
 
 import java.io.IOException;
+import java.util.Set;
 
 
 public class BinaryPresenceConditionManager implements PresenceConditionManager {
@@ -131,6 +132,24 @@ public class BinaryPresenceConditionManager implements PresenceConditionManager 
     final BinaryPresenceCondition cond = (BinaryPresenceCondition) pCond;
 
     return !cond.getValue();
+  }
+
+  @Override
+  public Set<PresenceCondition> extractPredicates(PresenceCondition pCond) {
+    // TODO: implement
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public PresenceCondition makeExists(PresenceCondition pF1, PresenceCondition... pF2) {
+    // TODO: implement
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public PresenceCondition removeGoalVariables(PresenceCondition pCond) {
+    // TODO: implement
+    throw new UnsupportedOperationException();
   }
 
 }
