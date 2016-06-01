@@ -200,7 +200,7 @@ public class TemplateManager {
     // As a by-product, produces the expressions of all sizes less than
     // {@code maxExpressionSize} as well.
     Set<Set<CIdExpression>> combinations =
-        product.stream().map(HashSet::new).collect(Collectors.toSet());
+        product.stream().map(HashSet<CIdExpression>::new).collect(Collectors.toSet());
 
     Set<Template> returned = new HashSet<>();
     for (Set<CIdExpression> variables : combinations) {
