@@ -446,7 +446,9 @@ class JavaBDDRegionManager implements RegionManager {
     cleanupReferences();
 
     BDD f = unwrap(pF);
-    int[] vars = f.scanSet();
+    BDD supp = f.support();
+
+    int[] vars = supp.scanSet();
     if (vars == null) {
       return ImmutableSet.of();
     }

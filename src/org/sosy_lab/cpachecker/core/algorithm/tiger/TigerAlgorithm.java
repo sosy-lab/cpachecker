@@ -868,6 +868,7 @@ public class TigerAlgorithm
               "Each ARG path of a counterexample must be along a critical edge!");
 
           PresenceCondition statePresenceCondition = PresenceConditions.extractPresenceCondition(criticalState);
+          statePresenceCondition = pcManager.removeGoalVariables(statePresenceCondition);
 
           Preconditions.checkState(statePresenceCondition != null,
               "Each critical state must be annotated with a presence condition!");
@@ -1331,12 +1332,11 @@ public class TigerAlgorithm
 
       // TODO check whether a last state might remain from an earlier run and a reuse of the ARG
 
-      PresenceCondition testCasePresenceCondition = useTigerAlgorithm_with_pc
-          ? PresenceConditions.extractPresenceCondition(lastState)
-          : null;
-
-      logger.log(Level.INFO, pcManager.dump(testCasePresenceCondition));
-      logger.log(Level.INFO, pcManager.dump(pcManager.removeGoalVariables(testCasePresenceCondition)));
+      PresenceCondition testCasePresenceCondition = null;
+      if (useTigerAlgorithm_with_pc) {
+        testCasePresenceCondition = PresenceConditions.extractPresenceCondition(lastState);
+        testCasePresenceCondition = pcManager.removeGoalVariables(testCasePresenceCondition);
+      }
 
       TestCase testcase = createTestcase(pCex, testCasePresenceCondition);
       Set<Goal> fullyCoveredGoals = updateTestsuiteByCoverageOf(testcase, pRemainingGoals);
