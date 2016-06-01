@@ -1,10 +1,9 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Predicate;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -43,6 +42,7 @@ import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BitvectorFormula;
 import org.sosy_lab.solver.api.Formula;
@@ -54,6 +54,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -191,7 +192,7 @@ public class TemplateManager {
       return cache.get(node);
     }
 
-    ImmutableSet.Builder<Template> out = ImmutableSet.builder();
+    Builder<Template> out = ImmutableSet.builder();
     List<ASimpleDeclaration> usedVars = ImmutableList.copyOf(getVarsForNode(node));
     out.addAll(extractTemplatesForNode(node));
     out.addAll(extraTemplates);
@@ -319,12 +320,7 @@ public class TemplateManager {
     if (varFiltering == VarFilteringStrategy.ONE_LIVE) {
 
       // Filter templates to make sure at least one is alive.
-      outBuild = Sets.filter(outBuild, new Predicate<Template>() {
-        @Override
-        public boolean apply(Template input) {
-          return shouldUseTemplate(input, node);
-        }
-      });
+      outBuild = Sets.filter(outBuild, input -> shouldUseTemplate(input, node));
     }
 
     cache.putAll(node, outBuild);
@@ -372,7 +368,7 @@ public class TemplateManager {
 
   /**
    * Convert {@code template} to {@link Formula}, using
-   * {@link org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap} and
+   * {@link SSAMap} and
    * the context provided by {@code contextFormula}.
    *
    * @return Resulting formula.
@@ -406,15 +402,15 @@ public class TemplateManager {
       }
 
       final Formula multipliedItem;
-      if (coeff == Rational.ZERO) {
+      if (coeff.equals(Rational.ZERO)) {
         continue;
-      } else if (coeff == Rational.NEG_ONE) {
+      } else if (coeff.equals(Rational.NEG_ONE)) {
         multipliedItem = fmgr.makeNegate(item);
-      } else if (coeff != Rational.ONE){
+      } else if (coeff.equals(Rational.ONE)){
+        multipliedItem = item;
+      } else {
         multipliedItem = fmgr.makeMultiply(
             item, fmgr.makeNumber(item, entry.getValue()));
-      } else {
-        multipliedItem = item;
       }
 
       if (sum == null) {
@@ -464,7 +460,7 @@ public class TemplateManager {
     for (CFANode node : cfa.getAllNodes()) {
       for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
         String statement = edge.getRawStatement();
-        Optional<Template> template = Optional.absent();
+        Optional<Template> template = Optional.empty();
 
         // todo: use the automaton instead to derive the error conditions,
         // do not hardcode the function names.
@@ -626,12 +622,12 @@ public class TemplateManager {
       CExpression operand1 = binaryExpression.getOperand1();
       CExpression operand2 = binaryExpression.getOperand2();
 
-      CBinaryExpression.BinaryOperator operator = binaryExpression.getOperator();
+      BinaryOperator operator = binaryExpression.getOperator();
       Optional<Template> templateA = recExpressionToTemplate(operand1);
       Optional<Template> templateB = recExpressionToTemplate(operand2);
 
       // Special handling for constants and multiplication.
-      if (operator == CBinaryExpression.BinaryOperator.MULTIPLY
+      if (operator == BinaryOperator.MULTIPLY
           && (templateA.isPresent() || templateB.isPresent())) {
 
         if (operand1 instanceof CIntegerLiteralExpression &&
@@ -647,7 +643,7 @@ public class TemplateManager {
               useCoeff((CIntegerLiteralExpression) operand2, templateA.get())
           );
         } else {
-          return Optional.absent();
+          return Optional.empty();
         }
       }
 
@@ -660,24 +656,24 @@ public class TemplateManager {
         // Calculation type is the casting of both types to a suitable "upper"
         // type.
         Template t;
-        if (operator == CBinaryExpression.BinaryOperator.PLUS) {
+        if (operator == BinaryOperator.PLUS) {
           t = Template.of(a.add(b));
         } else {
           t = Template.of(a.sub(b));
         }
         return Optional.of(t);
       } else {
-        return Optional.absent();
+        return Optional.empty();
       }
     } else if (expression instanceof CLiteralExpression
         && expression.getExpressionType() instanceof CSimpleType) {
-      return Optional.of(Template.of(LinearExpression.<CIdExpression>empty()));
+      return Optional.of(Template.of(LinearExpression.empty()));
     } else if (expression instanceof CIdExpression
         && expression.getExpressionType() instanceof CSimpleType) {
       CIdExpression idExpression = (CIdExpression)expression;
       return Optional.of(Template.of(LinearExpression.ofVariable(idExpression)));
     } else {
-      return Optional.absent();
+      return Optional.empty();
     }
   }
 

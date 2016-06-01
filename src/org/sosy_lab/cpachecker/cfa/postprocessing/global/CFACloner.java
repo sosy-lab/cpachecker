@@ -23,11 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cfa.postprocessing.global;
 
-import java.util.Collection;
-import java.util.SortedMap;
-import java.util.TreeMap;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.SortedSetMultimap;
+import com.google.common.collect.TreeMultimap;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -40,10 +39,11 @@ import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.Pair;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.SortedSetMultimap;
-import com.google.common.collect.TreeMultimap;
+import java.util.Collection;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 @Options(prefix = "cfa.cfaCloner")
 public class CFACloner {
@@ -111,7 +111,14 @@ public class CFACloner {
     return new MutableCFA(cfa.getMachineModel(), functions, nodes, cfa.getMainFunction(), cfa.getLanguage());
   }
 
+  /** build a new name consisting of a function-name and an index. */
   public static String getFunctionName(String function, int index) {
     return function + SEPARATOR + index;
+  }
+
+  /** remove the index from a function-name if possible. */
+  public static String extractFunctionName(String function) {
+    final int index = function.indexOf(SEPARATOR);
+    return index == -1 ? function : function.substring(0, index);
   }
 }

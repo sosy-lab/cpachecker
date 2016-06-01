@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGStateInformation;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
@@ -159,15 +160,7 @@ public class CLangSMG extends SMG {
   }
 
   public Set<SMGEdgePointsTo> getPointerToObject(SMGObject obj) {
-    Set<SMGEdgePointsTo> result = new HashSet<>();
-
-    for (SMGEdgePointsTo pt : getPTEdges().values()) {
-      if (pt.getObject() == obj) {
-        result.add(pt);
-      }
-    }
-
-    return result;
+    return getPtEdges(SMGEdgePointsToFilter.targetObjectFilter(obj));
   }
 
   /**
@@ -591,7 +584,7 @@ public class CLangSMG extends SMG {
       removeHasValueEdge(edgeToForget);
     }
 
-    return SMGStateInformation.of(edgesToForget, getPTEdges());
+    return SMGStateInformation.of(edgesToForget, getPTEdgesAsMap());
   }
 
   public SMGStateInformation forget(SMGMemoryPath pLocation) throws SMGInconsistentException {
@@ -604,7 +597,7 @@ public class CLangSMG extends SMG {
 
     removeHasValueEdge(edgeToForget.get());
 
-    return SMGStateInformation.of(edgeToForget.get(), getPTEdges());
+    return SMGStateInformation.of(edgeToForget.get(), getPTEdgesAsMap());
   }
 
   public Optional<SMGEdgeHasValue> getHVEdgeFromMemoryLocation(SMGMemoryPath pLocation) throws SMGInconsistentException {
@@ -759,7 +752,7 @@ public class CLangSMG extends SMG {
     if (pPtEdges.containsKey(value)) {
       SMGEdgePointsTo ptEdge = pPtEdges.get(value);
 
-      if (!getPTEdges().containsKey(value)) {
+      if (!getPTEdges().containsEdgeWithValue(value)) {
         addPointsToEdge(ptEdge);
       }
     }
