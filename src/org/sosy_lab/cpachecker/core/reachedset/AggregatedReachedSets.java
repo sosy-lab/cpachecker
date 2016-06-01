@@ -145,7 +145,7 @@ public class AggregatedReachedSets {
       return invariantSuppliers
           .stream()
           .map(s -> s.getInvariantFor(pNode, pFmgr, pPfmgr, pContext))
-          .filter(f -> !pFmgr.getBooleanFormulaManager().isTrue(f))
+          .filter(f -> !bfmgr.isTrue(f))
           .reduce(bfmgr.makeBoolean(true), bfmgr::and);
     }
 
