@@ -199,7 +199,8 @@ public class ConfigurationFilesTest {
                   .trim());
     }
 
-    if (!config.hasProperty("analysis.restartAfterUnknown")) {
+    if (!config.hasProperty("analysis.restartAfterUnknown")
+        || !config.hasProperty("analysis.useParallelAnalyses")) {
       // TODO find a solution how to check for unused properties correctly even with RestartAlgorithm
       Set<String> unusedOptions = new TreeSet<>(config.getUnusedProperties());
       unusedOptions.removeAll(UNUSED_OPTIONS);

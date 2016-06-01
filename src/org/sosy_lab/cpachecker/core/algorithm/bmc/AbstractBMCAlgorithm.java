@@ -113,9 +113,6 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
   @Option(secure=true, description="try using induction to verify programs with loops")
   private boolean induction = false;
 
-  @Option(secure=true, description="Generate invariants and add them to the induction hypothesis.")
-  private boolean addInvariantsByAI = false;
-
   @Option(secure=true, description="Generate additional invariants by induction and add them to the induction hypothesis.")
   private boolean addInvariantsByInduction = true;
 
@@ -195,7 +192,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     }
 
     ShutdownManager invariantGeneratorShutdownManager = pShutdownManager;
-    if (addInvariantsByAI || addInvariantsByInduction) {
+    if (addInvariantsByInduction) {
       if (propagateInvGenInterrupts) {
         invariantGeneratorShutdownManager = pShutdownManager;
       } else {
@@ -230,7 +227,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
               pReachedSetFactory,
               targetLocationProvider,
               pAggregatedReachedSets);
-    } else if (induction && addInvariantsByAI) {
+    } else if (induction) {
       invariantGenerator =
           new AbstractInvariantGenerator() {
 
