@@ -85,11 +85,6 @@ public class SMGPointsToMap extends HashMap<Integer, SMGEdgePointsTo> implements
   }
 
   @Override
-  public void clear() {
-    clear();
-  }
-
-  @Override
   public Set<SMGEdgePointsTo> filter(SMGEdgePointsToFilter pFilter) {
 
     if (pFilter.isFilteringAtValue()) {
