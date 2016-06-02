@@ -228,7 +228,7 @@ public class TigerAlgorithm
   private boolean checkCoverage = true;
 
   @Option(secure = true, name = "usePowerset", description = "Construct the powerset of automata states.")
-  private boolean usePowerset = true;
+  private boolean usePowerset = false;
 
   @Option(secure = true, name = "useComposite", description = "Handle all automata CPAs as one composite CPA.")
   private boolean useComposite = false;
@@ -391,8 +391,6 @@ public class TigerAlgorithm
   private MainCPAStatistics stats;
   private int testCaseId = 0;
 
-  PresenceConditionManager pcManager = null;
-
   private Map<Goal, List<List<BooleanFormula>>> targetStateFormulas;
 
   private TestGoalUtils testGoalUtils = null;
@@ -419,9 +417,8 @@ public class TigerAlgorithm
     cfa = pCfa;
 
     // Check if BDD is enabled for variability-aware test-suite generation
-    pcManager = GlobalInfo.getInstance().getPresenceConditionManager();
 
-    testsuite = new TestSuite(pcManager, printLabels, useTigerAlgorithm_with_pc);
+    testsuite = new TestSuite(printLabels, useTigerAlgorithm_with_pc);
     inputVariables = new TreeSet<>();
     for (String variable : inputInterface.split(",")) {
       inputVariables.add(variable.trim());
@@ -450,6 +447,10 @@ public class TigerAlgorithm
 
     // get internal representation of FQL query
     fqlSpecification = testGoalUtils.parseFQLQuery(fqlQuery);
+  }
+
+  private PresenceConditionManager pcm() {
+    return PresenceConditions.manager();
   }
 
   @Override
@@ -868,13 +869,13 @@ public class TigerAlgorithm
               "Each ARG path of a counterexample must be along a critical edge!");
 
           PresenceCondition statePresenceCondition = PresenceConditions.extractPresenceCondition(criticalState);
-          statePresenceCondition = pcManager.removeMarkerVariables(statePresenceCondition);
+          statePresenceCondition = pcm().removeMarkerVariables(statePresenceCondition);
 
           Preconditions.checkState(statePresenceCondition != null,
               "Each critical state must be annotated with a presence condition!");
 
           if (allCoveredGoalsPerTestCase
-              || pcManager.checkConjunction(testsuite.getRemainingPresenceCondition(goal), statePresenceCondition)) {
+              || pcm().checkConjunction(testsuite.getRemainingPresenceCondition(goal), statePresenceCondition)) {
 
             // configurations in testGoalPCtoCover and testcase.pc have a non-empty intersection
 
@@ -884,7 +885,7 @@ public class TigerAlgorithm
                 "Covered some PCs for Goal %d (%s) for a PC by test case %d!",
                 goal.getIndex(), testsuite.getTestGoalLabel(goal), pTestcase.getId());
 
-            if (pcManager.checkEqualsFalse(testsuite.getRemainingPresenceCondition(goal))) {
+            if (pcm().checkEqualsFalse(testsuite.getRemainingPresenceCondition(goal))) {
               coveredGoals.add(goal);
             }
           }
@@ -1044,6 +1045,7 @@ public class TigerAlgorithm
       throws CPAException, InterruptedException, InvalidConfigurationException {
 
     ARGCPA cpa = composeCPA(pTestGoalsToBeProcessed);
+    GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
     Preconditions.checkState(cpa.getWrappedCPAs().get(0) instanceof CompositeCPA,
         "CPAcheckers automata should be used! The assumption is that the first component is the automata for the current goal!");
@@ -1141,15 +1143,15 @@ public class TigerAlgorithm
             for (Goal goal : pTestGoalsToBeProcessed) {
 
               if (testsuite.isGoalCoveredOrInfeasible(goal)) {
-                toBlacklist.put(goal, Optional.of(pcManager.makeTrue()));
+                toBlacklist.put(goal, Optional.of(pcm().makeTrue()));
               } else if (useTigerAlgorithm_with_pc) {
                 PresenceCondition remainingPc = testsuite.getRemainingPresenceCondition(goal);
-                PresenceCondition coveredFor = pcManager.makeNegation(remainingPc);
+                PresenceCondition coveredFor = pcm().makeNegation(remainingPc);
                 toBlacklist.put(goal, Optional.of(coveredFor));
               }
             }
 
-            PropertyStats.INSTANCE.singnalPropertyFinishedFor(toBlacklist, pcManager);
+            PropertyStats.INSTANCE.singnalPropertyFinishedFor(toBlacklist, pcm());
             Precisions.disablePropertiesForWaitlist(reachedSet, toBlacklist);
           }
         }
@@ -1338,7 +1340,7 @@ public class TigerAlgorithm
       PresenceCondition testCasePresenceCondition = null;
       if (useTigerAlgorithm_with_pc) {
         testCasePresenceCondition = PresenceConditions.extractPresenceCondition(lastState);
-        testCasePresenceCondition = pcManager.removeMarkerVariables(testCasePresenceCondition);
+        testCasePresenceCondition = pcm().removeMarkerVariables(testCasePresenceCondition);
       }
 
       TestCase testcase = createTestcase(pCex, testCasePresenceCondition);
@@ -1362,7 +1364,7 @@ public class TigerAlgorithm
           pCex.getTargetPath(),
           pCex.getTargetPath().getInnerEdges(),
           pPresenceCondition,
-          pcManager,
+          pcm(),
           getCpuTime());
 
       if (useTigerAlgorithm_with_pc) {
@@ -1435,7 +1437,7 @@ public class TigerAlgorithm
       if (useTigerAlgorithm_with_pc) {
         testsuite.addInfeasibleGoal(pGoal, testsuite.getRemainingPresenceCondition(pGoal), lGoalPrediction);
         testsuite.setInfeasiblePresenceCondition(pGoal, testsuite.getRemainingPresenceCondition(pGoal));
-        testsuite.setRemainingPresenceCondition(pGoal, pcManager.makeFalse());
+        testsuite.setRemainingPresenceCondition(pGoal, pcm().makeFalse());
         logger.logf(Level.WARNING, "Goal %d is infeasible for remaining PC!", pGoal.getIndex());
       } else {
         logger.logf(Level.WARNING, "Goal %d is infeasible!", pGoal.getIndex());
