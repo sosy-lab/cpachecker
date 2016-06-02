@@ -57,6 +57,6 @@ public interface PresenceConditionManager {
 
   public PresenceCondition makeExists(PresenceCondition pF1, PresenceCondition... pF2);
 
-  public PresenceCondition removeGoalVariables(PresenceCondition pCond);
+  public PresenceCondition removeMarkerVariables(PresenceCondition pCond);
 
 }

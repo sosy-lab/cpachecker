@@ -868,7 +868,7 @@ public class TigerAlgorithm
               "Each ARG path of a counterexample must be along a critical edge!");
 
           PresenceCondition statePresenceCondition = PresenceConditions.extractPresenceCondition(criticalState);
-          statePresenceCondition = pcManager.removeGoalVariables(statePresenceCondition);
+          statePresenceCondition = pcManager.removeMarkerVariables(statePresenceCondition);
 
           Preconditions.checkState(statePresenceCondition != null,
               "Each critical state must be annotated with a presence condition!");
@@ -1097,7 +1097,10 @@ public class TigerAlgorithm
 
         if (algorithmStatus != ReachabilityAnalysisResult.TIMEOUT) {
 
-          if (reachedSet.hasWaitingState() && reachedSet.getLastState() != null) {
+          boolean newTargetFound = (reachedSet.getLastState() != null)
+              && ((ARGState) reachedSet.getLastState()).isTarget();
+
+          if (reachedSet.hasWaitingState() && newTargetFound) {
             Preconditions.checkState(reachedSet.getLastState() instanceof ARGState);
             ARGState lastState = (ARGState) reachedSet.getLastState();
             Preconditions.checkState(lastState.isTarget());
@@ -1335,7 +1338,7 @@ public class TigerAlgorithm
       PresenceCondition testCasePresenceCondition = null;
       if (useTigerAlgorithm_with_pc) {
         testCasePresenceCondition = PresenceConditions.extractPresenceCondition(lastState);
-        testCasePresenceCondition = pcManager.removeGoalVariables(testCasePresenceCondition);
+        testCasePresenceCondition = pcManager.removeMarkerVariables(testCasePresenceCondition);
       }
 
       TestCase testcase = createTestcase(pCex, testCasePresenceCondition);

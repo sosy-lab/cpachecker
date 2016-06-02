@@ -197,7 +197,7 @@ public class RegionPresenceConditionManager implements PresenceConditionManager 
   }
 
   @Override
-  public PresenceCondition removeGoalVariables(PresenceCondition pCond) {
+  public PresenceCondition removeMarkerVariables(PresenceCondition pCond) {
     Set<PresenceCondition> predicates = extractPredicates(pCond);
 
     Set<PresenceCondition> markers = new HashSet<>();
