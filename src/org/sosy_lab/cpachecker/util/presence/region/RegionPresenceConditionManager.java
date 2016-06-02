@@ -24,6 +24,9 @@
 package org.sosy_lab.cpachecker.util.presence.region;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
@@ -33,9 +36,8 @@ import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceConditionManager;
 import org.sosy_lab.solver.SolverException;
 
-import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
-
 
 public class RegionPresenceConditionManager implements PresenceConditionManager {
 
@@ -160,13 +162,12 @@ public class RegionPresenceConditionManager implements PresenceConditionManager 
     return mgr;
   }
 
-  @Override
-  public Set<PresenceCondition> extractPredicates(PresenceCondition pCond) {
+  private Set<PresenceCondition> extractPredicates(PresenceCondition pCond) {
     Preconditions.checkArgument(pCond instanceof RegionPresenceCondition);
 
     RegionPresenceCondition cond = (RegionPresenceCondition) pCond;
+    Set<PresenceCondition> predicates = Sets.newLinkedHashSet();
 
-    Set<PresenceCondition> predicates = new HashSet<>();
     for (Region predicate : mgr.extractPredicates(cond.getRegion())) {
       RegionPresenceCondition pc = new RegionPresenceCondition(predicate);
       predicates.add(pc);
@@ -175,8 +176,7 @@ public class RegionPresenceConditionManager implements PresenceConditionManager 
     return predicates;
   }
 
-  @Override
-  public PresenceCondition makeExists(PresenceCondition pF1, PresenceCondition... pF2) {
+  private PresenceCondition makeExists(PresenceCondition pF1, List<PresenceCondition> pF2) {
     Preconditions.checkArgument(pF1 instanceof RegionPresenceCondition);
     for (PresenceCondition pc : pF2) {
       Preconditions.checkArgument(pc instanceof RegionPresenceCondition);
@@ -185,10 +185,11 @@ public class RegionPresenceConditionManager implements PresenceConditionManager 
     RegionPresenceCondition cond = (RegionPresenceCondition) pF1;
     Region pF1Region = cond.getRegion();
 
-    Region[] pF2Regions = new Region[pF2.length];
-    for (int i = 0; i < pF2.length; i++) {
-      RegionPresenceCondition cond2 = (RegionPresenceCondition) pF2[i];
-      pF2Regions[i] = cond2.getRegion();
+
+    Region[] pF2Regions = new Region[pF2.size()];
+    int i = 0;
+    for (RegionPresenceCondition cond2: Iterables.filter(pF2, RegionPresenceCondition.class)) {
+      pF2Regions[i++] = cond2.getRegion();
     }
 
     Region exists = mgr.makeExists(pF1Region, pF2Regions);
@@ -197,10 +198,12 @@ public class RegionPresenceConditionManager implements PresenceConditionManager 
   }
 
   @Override
-  public PresenceCondition removeMarkerVariables(PresenceCondition pCond) {
-    Set<PresenceCondition> predicates = extractPredicates(pCond);
+  public PresenceCondition removeMarkerVariables(PresenceCondition pPc) {
+    Preconditions.checkNotNull(pPc);
 
-    Set<PresenceCondition> markers = new HashSet<>();
+    Set<PresenceCondition> predicates = extractPredicates(pPc);
+
+    List<PresenceCondition> markers = Lists.newArrayList();
 
     for (PresenceCondition region : predicates) {
       String regionStr = dump(region).toString();
@@ -209,14 +212,7 @@ public class RegionPresenceConditionManager implements PresenceConditionManager 
       }
     }
 
-    PresenceCondition[] array = new PresenceCondition[markers.size()];
-    int i = 0;
-    for (PresenceCondition presenceCondition : markers) {
-      array[i] = presenceCondition;
-      i++;
-    }
-
-    return makeExists(pCond, array);
+    return makeExists(pPc, markers);
   }
 
 }

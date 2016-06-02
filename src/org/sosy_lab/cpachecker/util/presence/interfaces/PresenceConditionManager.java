@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.util.presence.interfaces;
 
 import org.sosy_lab.common.Appender;
 
-import java.util.Set;
-
 public interface PresenceConditionManager {
 
   public PresenceCondition makeTrue();
@@ -52,10 +50,6 @@ public interface PresenceConditionManager {
   public boolean checkEqualsTrue(PresenceCondition pCond);
 
   public boolean checkEqualsFalse(PresenceCondition pCond);
-
-  public Set<PresenceCondition> extractPredicates(PresenceCondition pCond);
-
-  public PresenceCondition makeExists(PresenceCondition pF1, PresenceCondition... pF2);
 
   public PresenceCondition removeMarkerVariables(PresenceCondition pCond);
 
