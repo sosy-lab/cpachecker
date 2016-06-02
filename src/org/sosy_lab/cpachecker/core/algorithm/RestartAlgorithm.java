@@ -421,7 +421,9 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       }
     }
 
-    cpasToClose.forEach(cpa -> CPAs.closeCpaIfPossible(cpa, logger));
+    for (ConfigurableProgramAnalysis cpa : cpasToClose) {
+      CPAs.closeCpaIfPossible(cpa, logger);
+    }
 
     // no further configuration available, and analysis has not finished
     logger.log(Level.INFO, "No further configuration available.");
