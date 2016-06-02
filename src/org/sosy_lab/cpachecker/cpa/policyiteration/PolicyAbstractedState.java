@@ -189,7 +189,8 @@ public final class PolicyAbstractedState extends PolicyState
 
   @Override
   public String toString() {
-    return String.format("(loc=%s)%s", locationID, abstraction);
+    return String.format("(loc=%s, node=%s)%s", locationID, getNode(),
+        abstraction);
   }
 
   @Override
@@ -229,14 +230,17 @@ public final class PolicyAbstractedState extends PolicyState
         Objects.equals(abstraction, entries.abstraction) &&
         Objects.equals(ssaMap, entries.ssaMap) &&
         Objects.equals(pointerTargetSet, entries.pointerTargetSet) &&
-        Objects.equals(extraInvariant, entries.extraInvariant);
+        Objects.equals(extraInvariant, entries.extraInvariant) &&
+        Objects.equals(getNode(), entries.getNode());
   }
 
   @Override
   public int hashCode() {
     if (hashCache == 0) {
       hashCache = Objects
-          .hash(congruence, abstraction, ssaMap, pointerTargetSet,
+          .hash(
+              getNode(),
+              congruence, abstraction, ssaMap, pointerTargetSet,
               extraInvariant);
     }
     return hashCache;

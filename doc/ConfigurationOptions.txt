@@ -1160,6 +1160,11 @@ cpa.loopstack.maxLoopIterationsUpperBound = 0
 cpa.lpi.abstractionLocations = LOOPHEAD
   enum:     [ALL, LOOPHEAD, MERGE]
 
+# Allowed coefficients in a template.
+cpa.lpi.allowedCoefficients = {
+      Rational.NEG_ONE, Rational.ONE
+  }
+
 # Check whether the policy depends on the initial value
 cpa.lpi.checkPolicyInitialCondition = true
 
@@ -1169,18 +1174,11 @@ cpa.lpi.checkTargetStates = true
 # Compute abstraction for larger templates using decomposition
 cpa.lpi.computeAbstractionByDecomposition = false
 
-# Ignore the template type and encode with a rational variable
-cpa.lpi.encodeTemplatesAsRationals = false
-
 # Value to substitute for the epsilon
 cpa.lpi.epsilon = Rational.ONE
 
 # Use only variables which appear in IntAddVars in variable classification
 cpa.lpi.filterIntAddVars = false
-
-# Generate cubic constraints: templates +/- x +/- y +/- z for every
-# combination (x, y, z)
-cpa.lpi.generateCube = false
 
 # Generate templates from assert statements
 cpa.lpi.generateFromAsserts = true
@@ -1188,23 +1186,14 @@ cpa.lpi.generateFromAsserts = true
 # Generate templates from all program statements
 cpa.lpi.generateFromStatements = true
 
-# Generate templates for the lower bounds of each variable
-cpa.lpi.generateLowerBound = true
-
-# Generate even more templates (try coeff. 2 for each variable)
-cpa.lpi.generateMoreTemplates = false
-
-# Generate octagon templates for all combinations of variables. 
-cpa.lpi.generateOctagons = false
-
 # Generate new templates using polyhedra convex hull
 cpa.lpi.generateTemplatesUsingConvexHull = false
 
-# Generate templates for the upper bounds of each variable
-cpa.lpi.generateUpperBound = true
-
 # Remove UFs and ITEs from policies.
 cpa.lpi.linearizePolicy = true
+
+# Maximum size for the generated template
+cpa.lpi.maxExpressionSize = 1
 
 # Run simple congruence analysis
 cpa.lpi.runCongruence = true
@@ -1219,10 +1208,6 @@ cpa.lpi.templateConstantThreshold = 100
 # Algorithm for converting a formula to a set of lemmas
 cpa.lpi.toLemmasAlgorithm = "RCNF"
   allowed values: [CNF, RCNF, NONE]
-
-# Use unguided template refinement, progressively brute-forcing the possible
-# template space.
-cpa.lpi.unguidedTemplateRefinement = true
 
 # Number of refinements after which the unrolling depth is increased
 cpa.lpi.unrollingRefinementThreshold = 2
@@ -1240,7 +1225,7 @@ cpa.lpi.useInvariantsForAbstraction = false
 # Syntactically pre-compute dependencies for value determination
 cpa.lpi.valDetSyntacticCheck = true
 
-# Strategy for filtering variables out of templates
+# Strategy for filtering variables out of templates using liveness
 cpa.lpi.varFiltering = ALL_LIVE
   enum:     [ALL_LIVE, ONE_LIVE, ALL]
 

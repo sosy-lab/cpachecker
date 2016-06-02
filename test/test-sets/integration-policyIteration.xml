@@ -4,7 +4,7 @@
     <option name="-noout" />
 
     <option name="-policy-refinement"/>
-    <option name="-setprop">cpa.stator.policy.linearizePolicy=true</option>
+    <option name="-setprop">cpa.lpi.linearizePolicy=true</option>
 
     <resultfiles>dummy</resultfiles>
     <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
