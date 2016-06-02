@@ -761,6 +761,9 @@ cpa.arg.witness.exportSourcecode = true
 # Verification witness: Include an thread-identifier within the file?
 cpa.arg.witness.exportThreadId = false
 
+# Verification witness: Revert escaping/renaming of functions for threads?
+cpa.arg.witness.revertThreadFunctionRenaming = false
+
 # signal the analysis to break in case the given number of error state is
 # reached 
 cpa.automaton.breakOnTargetState = 1
@@ -2421,7 +2424,8 @@ overflow.config = no default value
 # If you use the suffix ::supply-reached-refinable instead this means that
 # the reached set supplier is additionally continously refined (so one of the
 # analysis has to be instanceof ReachedSetAdjustingCPA) to make this work
-# properly.
+# properly. By adding ::false-as-unknown you can make an analysis be only
+# available for proving safety.
 parallelAlgorithm.configFiles = no default value
 
 # C dialect for parser
