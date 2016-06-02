@@ -144,6 +144,9 @@ public class VariableClassificationBuilder {
   @Option(secure=true, description = "Print some information about the variable classification.")
   private boolean printStatsOnStartup = false;
 
+  @Option(secure=true, description = "Use regions for pointer analysis")
+  private boolean useBnB = false;
+
   /**
    * Use {@link FunctionEntryNode#getReturnVariable()} and
    * {@link AReturnStatement#asAssignment()} instead.
@@ -187,15 +190,14 @@ public class VariableClassificationBuilder {
   private final CollectingLHSVisitor collectingLHSVisitor = new CollectingLHSVisitor();
 
   private final LogManager logger;
-  private final boolean useBnB;
+
+  private BnBRegionsMaker regionsMaker = null;
 
   public VariableClassificationBuilder(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     logger = checkNotNull(pLogger);
     String key = "useBnB";
     if (config.hasProperty(key)){
       useBnB = new Boolean(config.getProperty(key));
-    } else {
-      useBnB = false;
     }
     config.inject(this);
   }
@@ -257,7 +259,6 @@ public class VariableClassificationBuilder {
 
     boolean hasRelevantNonIntAddVars = !Sets.intersection(relevantVariables, nonIntAddVars).isEmpty();
 
-    BnBRegionsMaker regionsMaker = null;
     if (useBnB) {
       regionsMaker = new BnBRegionsMaker(logger);
       regionsMaker.makeRegions(cfa);
@@ -369,7 +370,7 @@ public class VariableClassificationBuilder {
 
   private void printStats(VariableClassification vc) {
     int numOfBooleans = 0;
-    for (Partition p : vc.getIntEqualPartitions()) {
+    for (Partition p : vc.getIntBoolPartitions()) {
       numOfBooleans += p.getVars().size();
     }
     assert numOfBooleans == vc.getIntBoolVars().size();
@@ -401,6 +402,10 @@ public class VariableClassificationBuilder {
         "number of all partitions:      " + dependencies.partitions.size(),
         });
     str.append("\n---------------------------------\n");
+    if (regionsMaker != null) {
+      str.append(regionsMaker.getShortStats());
+      str.append("\n---------------------------------\n");
+    }
 
     logger.log(Level.INFO, str.toString());
   }

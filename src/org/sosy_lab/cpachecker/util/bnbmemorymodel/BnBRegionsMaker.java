@@ -153,6 +153,14 @@ public class BnBRegionsMaker {
     return result;
   }
 
+  public String getShortStats(){
+    String result = "Regions information\n\n";
+    result += "Time for region creation:                      " + regionCreationTime + '\n';
+    result += "Total number of regions:                           " + regions.size() + '\n';
+    result += "Time for searching field references in CFA:    " + ctfs.getCreationTime();
+    return result;
+  }
+
   /**
    * Constructs new UF name with consideration of the region
    * @param ufName - UF name to use with this CType

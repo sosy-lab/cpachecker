@@ -59,6 +59,10 @@ public class ComplexTypeFieldStatistics {
   private final LogManager logger;
   private final Timer creationTime = new Timer();
 
+  public Timer getCreationTime(){
+    return creationTime;
+  }
+
   public ComplexTypeFieldStatistics(LogManager logger) {
     this.logger = logger;
   }
