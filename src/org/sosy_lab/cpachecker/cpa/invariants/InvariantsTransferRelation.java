@@ -565,7 +565,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       }
       return Collections.singleton(result);
     }
-    return null;
+    return Collections.singleton(pElement);
   }
 
   private ExpressionToFormulaVisitor getExpressionToFormulaVisitor(final CFAEdge pEdge, final InvariantsState pState) {

@@ -184,7 +184,7 @@ public class MonitorTransferRelation extends SingleEdgeTransferRelation {
 
     if (element.getWrappedState() == TimeoutState.INSTANCE) {
       // ignore strengthen
-      return null;
+      return Collections.singleton(pElement);
     }
 
     totalTimeOfTransfer.start();

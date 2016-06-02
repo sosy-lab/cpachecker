@@ -391,7 +391,7 @@ public class ConstraintsTransferRelation
     }
 
     if (nothingChanged) {
-      return null;
+      return Collections.singleton(pStateToStrengthen);
     } else {
       return newStates;
     }

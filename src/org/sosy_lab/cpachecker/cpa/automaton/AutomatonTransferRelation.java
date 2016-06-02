@@ -268,7 +268,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
                                     CFAEdge pCfaEdge, Precision pPrecision)
                                     throws CPATransferException {
     if (! (pElement instanceof AutomatonUnknownState)) {
-      return null;
+      return Collections.singleton(pElement);
     } else {
       totalStrengthenTime.start();
       AutomatonUnknownState lUnknownState = (AutomatonUnknownState)pElement;

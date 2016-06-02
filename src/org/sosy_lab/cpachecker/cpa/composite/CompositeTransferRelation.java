@@ -416,8 +416,9 @@ final class CompositeTransferRelation implements TransferRelation {
   public Collection<? extends AbstractState> strengthen(AbstractState element,
       List<AbstractState> otherElements, CFAEdge cfaEdge,
       Precision precision) {
-    // strengthen is only called by the composite CPA on its component CPAs
-    return null;
+    // strengthen is only called by the composite CPA on its component CPAs,
+    // at some point we might want to pass this call through to support nested CompositeCPAs
+    return Collections.singletonList(element);
   }
 
   boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors, List<ConfigurableProgramAnalysis> cpas) throws CPATransferException, InterruptedException {

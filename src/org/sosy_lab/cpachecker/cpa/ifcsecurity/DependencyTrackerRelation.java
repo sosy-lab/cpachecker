@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -369,7 +370,7 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
       }
     }
 
-    return null;
+    return Collections.singleton(pState);
   }
 
   public void strengthenExpressionAssignementStatement(DependencyTrackerState pState, List<AbstractState> pOtherStates,
