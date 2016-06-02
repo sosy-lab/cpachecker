@@ -120,6 +120,7 @@ public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
 
       // TODO fix handling of counterexamples
       if (errorState.isPresent()) {
+        strategy.resetGlobalRefinement();
         return false;
       }
 

@@ -172,6 +172,14 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
     newPredicates = null;
   }
 
+  @Override
+  public void resetGlobalRefinement() {
+    // reset reached set to null, for next global refinement
+    reached = null;
+    refinementRoot = null;
+    newPredicates = null;
+  }
+
   protected void updateARG(PredicatePrecision pNewPrecision, ARGState pRefinementRoot) {
 
     argUpdate.start();
