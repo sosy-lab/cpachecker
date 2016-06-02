@@ -149,11 +149,7 @@ public class SMGFeasibilityChecker {
       Collection<? extends AbstractState> strengthenResultForSuccessor =
           transferRelation.strengthen(successor, lastStateSingelton, pLastEdge, automatonPrecision);
 
-      if (strengthenResultForSuccessor == null) {
-        strengthenResult.add(successor);
-      } else {
-        strengthenResult.addAll(strengthenResultForSuccessor);
-      }
+      strengthenResult.addAll(strengthenResultForSuccessor);
     }
 
     for (AbstractState state : strengthenResult) {

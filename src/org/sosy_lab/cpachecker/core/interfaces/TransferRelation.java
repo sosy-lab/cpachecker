@@ -93,7 +93,7 @@ public interface TransferRelation {
    * @param otherStates list of abstract states of all domains
    * @param cfaEdge null or an edge of the CFA
    * @param precision the precision to use during strengthening
-   * @return list of all abstract states which should replace the old one, empty list for bottom or null for no change.
+   * @return list of all abstract states which should replace the old one, empty list for bottom or.
    * @throws CPATransferException If operation fails.
    * @throws InterruptedException If operation is interrupted.
    */

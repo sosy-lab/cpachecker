@@ -23,8 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner;
 
-import java.util.Collection;
-import java.util.Deque;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -48,9 +49,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
+import java.util.Collection;
+import java.util.Deque;
 
 /**
  * Strongest post-operator based on symbolic value analysis.
@@ -234,11 +234,7 @@ public class ValueTransferBasedStrongestPostOperator
                                        pOperation,
                                        SingletonPrecision.getInstance());
 
-    if (successors == null) {
-      // nothing changed
-      return Optional.of(pConstraintsState);
-
-    } else if (isContradiction(successors)) {
+    if (isContradiction(successors)) {
       return Optional.absent();
 
     } else {

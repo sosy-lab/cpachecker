@@ -311,18 +311,13 @@ final class CompositeTransferRelation implements TransferRelation {
 
       Collection<? extends AbstractState> lResultsList = lCurrentTransfer.strengthen(lCurrentElement, reachedState, cfaEdge, lCurrentPrecision);
 
-      if (lResultsList == null) {
-        lStrengthenResults.add(Collections.singleton(lCurrentElement));
-      } else {
-        resultCount *= lResultsList.size();
-
-        if (resultCount == 0) {
-          // shortcut
-          break;
-        }
-
-        lStrengthenResults.add(lResultsList);
+      resultCount *= lResultsList.size();
+      if (resultCount == 0) {
+        // shortcut
+        break;
       }
+
+      lStrengthenResults.add(lResultsList);
     }
 
     // special case handling if we have predicate and assumption cpas
