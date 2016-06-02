@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
+import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -172,6 +173,11 @@ public final class AbstractStates {
   }
 
   public static final Predicate<AbstractState> IS_TARGET_STATE = AbstractStates::isTargetState;
+
+  public static boolean hasAssumptions(AbstractState as) {
+    AssumptionStorageState assumption = extractStateByType(as, AssumptionStorageState.class);
+    return assumption != null && !assumption.isStopFormulaTrue() && !assumption.isAssumptionTrue();
+  }
 
   /**
    * Returns a {@link Function} object for {@link #extractStateByType(AbstractState, Class)}.

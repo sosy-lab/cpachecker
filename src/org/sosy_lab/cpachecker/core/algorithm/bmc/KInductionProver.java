@@ -280,9 +280,7 @@ class KInductionProver implements AutoCloseable {
     }
 
     invariant =
-        bfmgr.and(
-            invariant,
-            currentInvariantsSupplier.getInvariantFor(pLocation, pFMGR, pPFMGR, pContext));
+        bfmgr.and(invariant, currentInvariantsSupplier.getInvariantFor(pLocation, pFMGR, pPFMGR, pContext));
 
     return invariant;
   }
@@ -522,9 +520,6 @@ class KInductionProver implements AutoCloseable {
         ++numberOfSuccessfulProofs;
         confirmedCandidates.add(candidateInvariant);
         violationFormulas.remove(candidateInvariant);
-
-        // Try to inject the new invariant into the invariant generator
-        candidateInvariant.attemptInjection(invariantGenerator);
       }
       pop(); // Pop invariant successor violation
       pop(); // Pop invariant predecessor assertion

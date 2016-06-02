@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -260,7 +261,9 @@ public class CPAchecker {
     shutdownNotifier = pShutdownManager.getNotifier();
 
     config.inject(this);
-    factory = new CoreComponentsFactory(pConfiguration, pLogManager, shutdownNotifier);
+    factory =
+        new CoreComponentsFactory(
+            pConfiguration, pLogManager, shutdownNotifier, new AggregatedReachedSets());
   }
 
   public CPAcheckerResult run(String programDenotation) {
@@ -552,13 +555,13 @@ public class CPAchecker {
         }
          initialLocations = builder.build();
         break;
-      case TARGET:
-        TargetLocationProvider tlp =
-            new TargetLocationProviderImpl(
-                factory.getReachedSetFactory(), shutdownNotifier, logger, pCfa);
-        initialLocations =
-            tlp.tryGetAutomatonTargetLocations(pAnalysisEntryFunction, pSpecification);
-        break;
+        case TARGET:
+          TargetLocationProvider tlp =
+              new TargetLocationProviderImpl(
+                  factory.getReachedSetFactory(), shutdownNotifier, logger, pCfa);
+          initialLocations =
+              tlp.tryGetAutomatonTargetLocations(pAnalysisEntryFunction, pSpecification);
+          break;
       default:
         throw new AssertionError("Unhandled case statement: " + initialStatesFor);
       }

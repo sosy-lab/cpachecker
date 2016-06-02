@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -78,6 +79,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -154,7 +156,9 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(secure=true, required=true, description = "List of files with configurations to use. "
       + "A filename can be suffixed with :if-interrupted, :if-failed, and :if-terminated "
-      + "which means that this configuration will only be used if the previous configuration ended with a matching condition.")
+      + "which means that this configuration will only be used if the previous configuration "
+      + "ended with a matching condition. What also can be added is :use-invariants then the "
+      + "reached set of the preceding analysis is taken and invariants arge generated out of it.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> configFiles;
 
@@ -248,6 +252,9 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     PeekingIterator<Path> configFilesIterator = Iterators.peekingIterator(configFiles.iterator());
 
     AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_PRECISE;
+    boolean provideReachedForNextAlgorithm = false;
+    final List<ConfigurableProgramAnalysis> cpasToClose = new ArrayList<>();
+
     while (configFilesIterator.hasNext()) {
       stats.totalTime.start();
       @Nullable ConfigurableProgramAnalysis currentCpa = null;
@@ -266,10 +273,17 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
         singleConfigFileName = Paths.get(CONFIG_FILE_CONDITION_SPLITTER.split(singleConfigFileName.toString()).iterator().next());
 
         try {
-          Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> currentAlg = createNextAlgorithm(singleConfigFileName, mainFunction, singleShutdownManager);
+          Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> currentAlg =
+              createNextAlgorithm(
+                  singleConfigFileName,
+                  mainFunction,
+                  singleShutdownManager,
+                  provideReachedForNextAlgorithm,
+                  reached.getDelegate());
           currentAlgorithm = currentAlg.getFirst();
           currentCpa = currentAlg.getSecond();
           currentReached = currentAlg.getThird();
+          provideReachedForNextAlgorithm = false; // has to be reseted
         } catch (InvalidConfigurationException e) {
           logger.logUserException(Level.WARNING, e, "Skipping one analysis because the configuration file " + singleConfigFileName.toString() + " is invalid");
           continue;
@@ -371,6 +385,10 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
             case "if-concurrent":
               foundConfig = concurrencyFound;
               break;
+              case "use-invariants":
+                provideReachedForNextAlgorithm = true;
+                foundConfig = true;
+                break;
             default:
               logger.logf(Level.WARNING, "Ignoring invalid restart condition '%s'.", condition);
               foundConfig = true;
@@ -392,8 +410,10 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
         }
         stats.resetSubStatistics();
 
-        if (currentCpa != null) {
+        if (currentCpa != null && !provideReachedForNextAlgorithm) {
           CPAs.closeCpaIfPossible(currentCpa, logger);
+        } else {
+          cpasToClose.add(currentCpa);
         }
         CPAs.closeIfPossible(currentAlgorithm, logger);
 
@@ -401,12 +421,20 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       }
     }
 
+    cpasToClose.forEach(cpa -> CPAs.closeCpaIfPossible(cpa, logger));
+
     // no further configuration available, and analysis has not finished
     logger.log(Level.INFO, "No further configuration available.");
     return status;
   }
 
-  private Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createNextAlgorithm(Path singleConfigFileName, CFANode mainFunction, ShutdownManager singleShutdownManager) throws InvalidConfigurationException, CPAException, IOException {
+  private Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createNextAlgorithm(
+      Path singleConfigFileName,
+      CFANode mainFunction,
+      ShutdownManager singleShutdownManager,
+      boolean pProvideReachedForNextAlgorithm,
+      ReachedSet pCurrentReached)
+      throws InvalidConfigurationException, CPAException, IOException {
 
     ReachedSet reached;
     ConfigurableProgramAnalysis cpa;
@@ -430,8 +458,16 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     singleLimits.start();
     singleShutdownManager.getNotifier().register(logShutdownListener);
 
+    AggregatedReachedSets aggregateReached;
+    if (pProvideReachedForNextAlgorithm && pCurrentReached != null) {
+      aggregateReached = new AggregatedReachedSets(Collections.singleton(pCurrentReached), cfa);
+    } else {
+      aggregateReached = new AggregatedReachedSets();
+    }
+
     CoreComponentsFactory coreComponents =
-        new CoreComponentsFactory(singleConfig, singleLogger, singleShutdownManager.getNotifier());
+        new CoreComponentsFactory(
+            singleConfig, singleLogger, singleShutdownManager.getNotifier(), aggregateReached);
     cpa = coreComponents.createCPA(cfa, specification);
 
     if (cpa instanceof StatisticsProvider) {
@@ -444,6 +480,11 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     reached =
         createInitialReachedSetForRestart(
             cpa, mainFunction, coreComponents.getReachedSetFactory(), singleLogger);
+
+    if (algorithm instanceof ParallelAlgorithm) {
+      reached = new ForwardingReachedSet(reached);
+    }
+
     return Triple.of(algorithm, cpa, reached);
   }
 

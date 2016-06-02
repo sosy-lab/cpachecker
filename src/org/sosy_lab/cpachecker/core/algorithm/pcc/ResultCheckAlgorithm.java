@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.error.DummyErrorState;
@@ -208,7 +209,8 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
 
   private ReachedSet initializeReachedSetForChecking(Configuration pConfig,
       ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
-   CoreComponentsFactory factory = new CoreComponentsFactory(pConfig, logger, shutdownNotifier);
+    CoreComponentsFactory factory =
+        new CoreComponentsFactory(pConfig, logger, shutdownNotifier, new AggregatedReachedSets());
    ReachedSet reached = factory.createReachedSet();
 
    reached.add(pCpa.getInitialState(analyzedProgram.getMainFunction(),
@@ -230,10 +232,11 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
       try {
         checkConfig = Configuration.builder().copyFrom(config).loadFromFile(checkerConfig).build();
         CoreComponentsFactory factory =
-            new CoreComponentsFactory(checkConfig, logger, shutdownNotifier);
+            new CoreComponentsFactory(
+                checkConfig, logger, shutdownNotifier, new AggregatedReachedSets());
         checkerCPA =
             new CPABuilder(checkConfig, logger, shutdownNotifier, factory.getReachedSetFactory())
-                .buildCPAs(analyzedProgram, specification);
+                .buildCPAs(analyzedProgram, specification, new AggregatedReachedSets());
 
       } catch (IOException e) {
         logger.log(Level.SEVERE,"Cannot read proof checking configuration.");

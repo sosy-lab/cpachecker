@@ -494,6 +494,11 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
   private void expandFixpoint(Set<MemoryLocation> pRelevantVariables, CFANode pRelevantLocation, int pLimit) {
     int prevSize = -1;
     while (pRelevantVariables.size() > prevSize && !reachesLimit(pRelevantVariables, pLimit)) {
+      // we cannot throw an interrupted exception during #getInitialState, but the analysis
+      // will be shutdown afterwards by another notifier so we can safely end computation here
+      if (shutdownNotifier.shouldShutdown()) {
+        return;
+      }
       prevSize = pRelevantVariables.size();
       expandOnce(pRelevantVariables, pRelevantLocation, pLimit);
     }

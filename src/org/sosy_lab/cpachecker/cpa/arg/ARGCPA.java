@@ -86,11 +86,16 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
         + "which is required to get at most one successor per CFA edge.")
       private boolean deleteInCPAEnabledAnalysis = false;
 
-  @Option(secure=true, name="counterexample.export.filters", deprecatedName="cpa.arg.errorPath.filters",
-      description="Filter for irrelevant counterexamples to reduce the number of similar counterexamples reported."
-      + " Only relevant with analysis.stopAfterError=false and counterexample.export.exportImmediately=true."
-      + " Put the weakest and cheapest filter first, e.g., PathEqualityCounterexampleFilter.")
-  @ClassOption(packagePrefix="org.sosy_lab.cpachecker.cpa.arg.counterexamples")
+  @Option(
+    secure = true,
+    name = "counterexample.export.filters",
+    deprecatedName = "cpa.arg.errorPath.filters",
+    description =
+        "Filter for irrelevant counterexamples to reduce the number of similar counterexamples reported."
+            + " Only relevant with analysis.stopAfterError=false and counterexample.export.exportImmediately=true."
+            + " Put the weakest and cheapest filter first, e.g., PathEqualityCounterexampleFilter."
+  )
+  @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.cpa.arg.counterexamples")
   private List<CounterexampleFilter.Factory> cexFilterClasses =
       ImmutableList.<CounterexampleFilter.Factory>of(
           (config, logger, cpa) -> new PathEqualityCounterexampleFilter(config, logger, cpa));
@@ -169,12 +174,12 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     switch (cexFilterClasses.size()) {
     case 0:
       return new NullCounterexampleFilter();
-    case 1:
-      return cexFilterClasses.get(0).create(config, logger, cpa);
-    default:
-      List<CounterexampleFilter> filters = new ArrayList<>(cexFilterClasses.size());
-      for (CounterexampleFilter.Factory factory : cexFilterClasses) {
-        filters.add(factory.create(config, logger, cpa));
+      case 1:
+        return cexFilterClasses.get(0).create(config, logger, cpa);
+      default:
+        List<CounterexampleFilter> filters = new ArrayList<>(cexFilterClasses.size());
+        for (CounterexampleFilter.Factory factory : cexFilterClasses) {
+          filters.add(factory.create(config, logger, cpa));
       }
       return new ConjunctiveCounterexampleFilter(filters);
     }

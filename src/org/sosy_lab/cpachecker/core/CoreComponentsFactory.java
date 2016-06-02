@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.core.algorithm.pcc.AlgorithmWithPropertyCheck;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -89,8 +90,7 @@ public class CoreComponentsFactory {
   @Option(secure=true, description="use a second model checking run (e.g., with CBMC or a different CPAchecker configuration) to double-check counter-examples")
   private boolean checkCounterexamples = false;
 
-  @Option(secure=true,
-      description="use counterexample check and the BDDCPA Restriction option")
+  @Option(secure = true, description = "use counterexample check and the BDDCPA Restriction option")
   private boolean checkCounterexamplesWithBDDCPARestriction = false;
 
   @Option(secure=true, name="algorithm.BMC",
@@ -162,8 +162,14 @@ public class CoreComponentsFactory {
 
   private final ReachedSetFactory reachedSetFactory;
   private final CPABuilder cpaFactory;
+  private final AggregatedReachedSets aggregatedReachedSets;
 
-  public CoreComponentsFactory(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+  public CoreComponentsFactory(
+      Configuration pConfig,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      AggregatedReachedSets pAggregatedReachedSets)
+      throws InvalidConfigurationException {
     config = pConfig;
     logger = pLogger;
 
@@ -178,6 +184,7 @@ public class CoreComponentsFactory {
     }
 
     reachedSetFactory = new ReachedSetFactory(config);
+    aggregatedReachedSets = pAggregatedReachedSets;
     cpaFactory = new CPABuilder(config, logger, shutdownNotifier, reachedSetFactory);
 
     if (checkCounterexamplesWithBDDCPARestriction) {
@@ -231,7 +238,13 @@ public class CoreComponentsFactory {
     } else if (useParallelAlgorithm) {
       algorithm =
           new ParallelAlgorithm(
-              config, logger, shutdownNotifier, specification, cfa, programDenotation);
+              config,
+              logger,
+              shutdownNotifier,
+              specification,
+              cfa,
+              programDenotation,
+              aggregatedReachedSets);
 
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
@@ -255,7 +268,8 @@ public class CoreComponentsFactory {
                 reachedSetFactory,
                 shutdownManager,
                 cfa,
-                specification);
+                specification,
+                aggregatedReachedSets);
       }
 
       if (checkCounterexamples) {
@@ -329,11 +343,11 @@ public class CoreComponentsFactory {
       throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
 
-    if (useRestartingAlgorithm) {
+    if (useRestartingAlgorithm || useParallelAlgorithm) {
       // hard-coded dummy CPA
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
     }
 
-    return cpaFactory.buildCPAs(cfa, specification);
+    return cpaFactory.buildCPAs(cfa, specification, aggregatedReachedSets);
   }
 }

@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -91,7 +92,8 @@ public class PartialCPABuilder {
     // create CPA to check current partial ARG
     logger.log(Level.FINEST, "Create CPA instance");
 
-    return new CPABuilder(singleConfig, logger, shutdown, pFactory).buildCPAs(cfa, specification);
+    return new CPABuilder(singleConfig, logger, shutdown, pFactory)
+        .buildCPAs(cfa, specification, new AggregatedReachedSets());
  }
 
 

@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.interval.Interval;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
@@ -291,6 +292,7 @@ public class TranslatorTest {
             PredicateCPA.factory()
                 .setConfiguration(config)
                 .setLogger(logger)
+                .set(new AggregatedReachedSets(), AggregatedReachedSets.class)
                 .setShutdownNotifier(ShutdownNotifier.createDummy())
                 .set(TestDataTools.makeCFA("void main(){}"), CFA.class)
                 .set(new ReachedSetFactory(config), ReachedSetFactory.class)

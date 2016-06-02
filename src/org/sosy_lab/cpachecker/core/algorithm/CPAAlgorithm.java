@@ -125,9 +125,12 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
   @Options(prefix="cpa")
   public static class CPAAlgorithmFactory {
 
-    @Option(secure=true, description="Which strategy to use for forced coverings (empty for none)",
-            name="forcedCovering")
-    @ClassOption(packagePrefix="org.sosy_lab.cpachecker")
+    @Option(
+      secure = true,
+      description = "Which strategy to use for forced coverings (empty for none)",
+      name = "forcedCovering"
+    )
+    @ClassOption(packagePrefix = "org.sosy_lab.cpachecker")
     private ForcedCovering.Factory forcedCoveringClass = null;
 
     @Option(secure=true, description="Do not report 'False' result, return UNKNOWN instead. "

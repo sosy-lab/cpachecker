@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
@@ -164,6 +165,7 @@ public class CPAsTest {
               .set(new ReachedSetFactory(config), ReachedSetFactory.class)
               .set(cfa, CFA.class)
               .set(Specification.alwaysSatisfied(), Specification.class)
+              .set(new AggregatedReachedSets(), AggregatedReachedSets.class)
               .createInstance();
     } catch (LinkageError e) {
       assume().fail(e.getMessage());

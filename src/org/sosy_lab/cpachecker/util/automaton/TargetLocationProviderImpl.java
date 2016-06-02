@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -80,7 +81,8 @@ public class TargetLocationProviderImpl implements TargetLocationProvider {
 
       Configuration configuration = configurationBuilder.build();
       CPABuilder cpaBuilder = new CPABuilder(configuration, logManager, shutdownNotifier, reachedSetFactory);
-      final ConfigurableProgramAnalysis cpa = cpaBuilder.buildCPAs(cfa, specification);
+      final ConfigurableProgramAnalysis cpa =
+          cpaBuilder.buildCPAs(cfa, specification, new AggregatedReachedSets());
 
       ReachedSet reached = reachedSetFactory.create();
       reached.add(

@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.util.test.LoggingClassLoader;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
@@ -83,10 +84,12 @@ public class PredicateCPATest {
     assume().that(myClassLoader).isInstanceOf(URLClassLoader.class);
     LogManager logger = LogManager.createTestLogManager();
 
-    try (LoggingClassLoader cl = new LoggingClassLoader(
-          Pattern.compile("(org\\.sosy_lab\\.cpachecker\\..*(predicate|bdd|BDD|formulaslicing|FormulaReportingState).*)|(org\\.sosy_lab\\.solver\\..*)"),
-          ((URLClassLoader)myClassLoader).getURLs(), myClassLoader
-        )) {
+    try (LoggingClassLoader cl =
+        new LoggingClassLoader(
+            Pattern.compile(
+                "(org\\.sosy_lab\\.cpachecker\\..*(predicate|bdd|BDD|formulaslicing|FormulaReportingState|InvariantSupplier).*)|(org\\.sosy_lab\\.solver\\..*)"),
+            ((URLClassLoader) myClassLoader).getURLs(),
+            myClassLoader)) {
       Class<?> cpaClass = cl.loadClass(PredicateCPATest.class.getPackage().getName() + ".PredicateCPA");
       Invokable<?, CPAFactory> factoryMethod = Invokable.from(cpaClass.getDeclaredMethod("factory")).returning(CPAFactory.class);
       CPAFactory factory = factoryMethod.invoke(null);
@@ -94,6 +97,7 @@ public class PredicateCPATest {
       factory.setConfiguration(config);
       factory.setLogger(logger);
       factory.setShutdownNotifier(ShutdownNotifier.createDummy());
+      factory.set(new AggregatedReachedSets(), AggregatedReachedSets.class);
       factory.set(TestDataTools.makeCFA("void main() { }", config), CFA.class);
       factory.set(new ReachedSetFactory(config), ReachedSetFactory.class);
       factory.set(Specification.alwaysSatisfied(), Specification.class);

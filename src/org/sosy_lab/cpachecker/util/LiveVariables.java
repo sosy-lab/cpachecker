@@ -78,6 +78,7 @@ import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.livevar.LiveVariablesCPA;
@@ -538,7 +539,7 @@ public class LiveVariables {
       ReachedSetFactory reachedFactory = new ReachedSetFactory(config);
       ConfigurableProgramAnalysis cpa =
           new CPABuilder(config, logger, shutdownNotifier, reachedFactory)
-              .buildCPAs(cfa, Specification.alwaysSatisfied());
+              .buildCPAs(cfa, Specification.alwaysSatisfied(), new AggregatedReachedSets());
       Algorithm algorithm = CPAAlgorithm.create(cpa,
                                                 logger,
                                                 config,

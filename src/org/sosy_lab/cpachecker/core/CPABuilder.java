@@ -40,6 +40,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
@@ -83,13 +84,19 @@ public class CPABuilder {
     config.inject(this);
   }
 
-  public ConfigurableProgramAnalysis buildCPAs(final CFA cfa, final Specification specification)
+  public ConfigurableProgramAnalysis buildCPAs(
+      final CFA cfa,
+      final Specification specification,
+      AggregatedReachedSets pAggregatedReachedSets)
       throws InvalidConfigurationException, CPAException {
-    return buildCPAs(cfa, specification, ImmutableList.of());
+    return buildCPAs(cfa, specification, ImmutableList.of(), pAggregatedReachedSets);
   }
 
   public ConfigurableProgramAnalysis buildCPAs(
-      final CFA cfa, final Specification specification, final List<Automaton> additionalAutomata)
+      final CFA cfa,
+      final Specification specification,
+      final List<Automaton> additionalAutomata,
+      AggregatedReachedSets pAggregatedReachedSets)
       throws InvalidConfigurationException, CPAException {
     Set<String> usedAliases = new HashSet<>();
 
@@ -109,12 +116,14 @@ public class CPABuilder {
       factory.setConfiguration(Configuration.copyWithNewPrefix(config, cpaAlias));
       factory.setLogger(logger.withComponentName(cpaAlias));
       factory.set(cfa, CFA.class);
+      factory.set(pAggregatedReachedSets, AggregatedReachedSets.class);
       factory.set(automaton, Automaton.class);
 
       cpas.add(factory.createInstance());
     }
 
-    return buildCPAs(cpaName, CPA_OPTION_NAME, usedAliases, cpas, cfa, specification);
+    return buildCPAs(
+        cpaName, CPA_OPTION_NAME, usedAliases, cpas, cfa, specification, pAggregatedReachedSets);
   }
 
   private ConfigurableProgramAnalysis buildCPAs(
@@ -123,7 +132,8 @@ public class CPABuilder {
       Set<String> usedAliases,
       List<ConfigurableProgramAnalysis> cpas,
       final CFA cfa,
-      final Specification specification)
+      final Specification specification,
+      AggregatedReachedSets pAggregatedReachedSets)
       throws InvalidConfigurationException, CPAException {
     Preconditions.checkNotNull(optionValue);
 
@@ -149,6 +159,7 @@ public class CPABuilder {
     factory.setConfiguration(Configuration.copyWithNewPrefix(config, cpaAlias));
     factory.setLogger(logger.withComponentName(cpaAlias));
     factory.setShutdownNotifier(shutdownNotifier);
+    factory.set(pAggregatedReachedSets, AggregatedReachedSets.class);
     factory.set(specification, Specification.class);
     if (reachedSetFactory != null) {
       factory.set(reachedSetFactory, ReachedSetFactory.class);
@@ -158,7 +169,15 @@ public class CPABuilder {
     }
 
     boolean hasChildren =
-        createAndSetChildrenCPAs(cpaName, cpaAlias, factory, usedAliases, cpas, cfa, specification);
+        createAndSetChildrenCPAs(
+            cpaName,
+            cpaAlias,
+            factory,
+            usedAliases,
+            cpas,
+            cfa,
+            specification,
+            pAggregatedReachedSets);
 
     if (cpas != null && !cpas.isEmpty()) {
       throw new InvalidConfigurationException("Option specification gave specification automata, but no CompositeCPA was used");
@@ -269,7 +288,8 @@ public class CPABuilder {
       Set<String> usedAliases,
       List<ConfigurableProgramAnalysis> cpas,
       final CFA cfa,
-      final Specification specification)
+      final Specification specification,
+      AggregatedReachedSets pAggregatedReachedSets)
       throws InvalidConfigurationException, CPAException {
     String childOptionName = cpaAlias + ".cpa";
     String childrenOptionName = cpaAlias + ".cpas";
@@ -290,7 +310,14 @@ public class CPABuilder {
       }
 
       ConfigurableProgramAnalysis child =
-          buildCPAs(childCpaName, childOptionName, usedAliases, cpas, cfa, specification);
+          buildCPAs(
+              childCpaName,
+              childOptionName,
+              usedAliases,
+              cpas,
+              cfa,
+              specification,
+              pAggregatedReachedSets);
       try {
         factory.setChild(child);
       } catch (UnsupportedOperationException e) {
@@ -306,7 +333,13 @@ public class CPABuilder {
       for (String currentChildCpaName : LIST_SPLITTER.split(childrenCpaNames)) {
         childrenCpas.add(
             buildCPAs(
-                currentChildCpaName, childrenOptionName, usedAliases, null, cfa, specification));
+                currentChildCpaName,
+                childrenOptionName,
+                usedAliases,
+                null,
+                cfa,
+                specification,
+                pAggregatedReachedSets));
       }
       if (cpas != null) {
         childrenCpas.addAll(cpas);

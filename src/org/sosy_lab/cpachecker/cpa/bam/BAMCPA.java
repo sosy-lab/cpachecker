@@ -90,8 +90,12 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   private final ProofChecker wrappedProofChecker;
   private final BAMDataManager data;
 
-  @Option(secure=true, description = "Type of partitioning (FunctionAndLoopPartitioning or DelayedFunctionAndLoopPartitioning)\n"
-      + "or any class that implements a PartitioningHeuristic")
+  @Option(
+    secure = true,
+    description =
+        "Type of partitioning (FunctionAndLoopPartitioning or DelayedFunctionAndLoopPartitioning)\n"
+            + "or any class that implements a PartitioningHeuristic"
+  )
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.cfa.blocks.builder")
   private PartitioningHeuristic.Factory blockHeuristic =
       (logger, cfa) -> new FunctionAndLoopPartitioning(logger, cfa);

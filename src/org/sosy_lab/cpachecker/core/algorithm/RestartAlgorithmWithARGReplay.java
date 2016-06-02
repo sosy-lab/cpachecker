@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
@@ -245,7 +246,8 @@ public class RestartAlgorithmWithARGReplay implements Algorithm, StatisticsProvi
   private ConfigurableProgramAnalysis getCPA(ReachedSetFactory reachedSetFactory, Configuration singleConfig1)
       throws InvalidConfigurationException, CPAException {
     CPABuilder builder1 = new CPABuilder(singleConfig1, logger, shutdownNotifier, reachedSetFactory);
-    ConfigurableProgramAnalysis cpa1 = builder1.buildCPAs(cfa, specification);
+    ConfigurableProgramAnalysis cpa1 =
+        builder1.buildCPAs(cfa, specification, new AggregatedReachedSets());
     if (cpa1 instanceof StatisticsProvider) {
       ((StatisticsProvider)cpa1).collectStatistics(stats.getSubStatistics());
     }

@@ -78,6 +78,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
@@ -198,7 +199,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
       final CFA pCFA,
       final Specification specification,
       final ReachedSetFactory pReachedSetFactory,
-      TargetLocationProvider pTargetLocationProvider)
+      final TargetLocationProvider pTargetLocationProvider,
+      final AggregatedReachedSets pAggregatedReachedSets)
       throws InvalidConfigurationException, CPAException {
 
     KInductionInvariantGeneratorOptions options = new KInductionInvariantGeneratorOptions();
@@ -220,7 +222,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
             pShutdownManager,
             pReachedSetFactory,
             pTargetLocationProvider,
-            specification));
+            specification),
+        pAggregatedReachedSets);
   }
 
   static KInductionInvariantGenerator create(
@@ -242,7 +245,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
         specification,
         pReachedSetFactory,
         pAsync,
-        candidateGenerator);
+        candidateGenerator,
+        new AggregatedReachedSets());
   }
 
   private KInductionInvariantGenerator(
@@ -253,7 +257,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
       final Specification specification,
       final ReachedSetFactory pReachedSetFactory,
       final boolean pAsync,
-      final CandidateGenerator pCandidateGenerator)
+      final CandidateGenerator pCandidateGenerator,
+      final AggregatedReachedSets pAggregatedReachedSets)
       throws InvalidConfigurationException, CPAException {
     logger = pLogger;
     shutdownManager = pShutdownNotifier;
@@ -325,7 +330,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
 
     CPABuilder invGenBMCBuilder =
         new CPABuilder(config, logger, shutdownManager.getNotifier(), pReachedSetFactory);
-    cpa = invGenBMCBuilder.buildCPAs(cfa, specification);
+
+    cpa = invGenBMCBuilder.buildCPAs(cfa, specification, pAggregatedReachedSets);
     Algorithm cpaAlgorithm = CPAAlgorithm.create(cpa, logger, config, shutdownManager.getNotifier());
     algorithm =
         new BMCAlgorithmForInvariantGeneration(
@@ -338,7 +344,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
             cfa,
             specification,
             stats,
-            statisticsCandidateGenerator);
+            statisticsCandidateGenerator,
+            pAggregatedReachedSets);
 
     PredicateCPA predicateCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
     if (predicateCPA == null) {
@@ -412,11 +419,6 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
   @Override
   public boolean isProgramSafe() {
     return algorithm.isProgramSafe();
-  }
-
-  @Override
-  public void injectInvariant(CFANode pLocation, AssumeEdge pAssumption) {
-    // ignore for now (never called anyway)
   }
 
   @Override
@@ -583,7 +585,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
     Specification automatonAsSpec =
         Specification.fromFiles(
             ImmutableList.of(options.invariantsAutomatonFile), pCFA, config, pLogger);
-    ConfigurableProgramAnalysis cpa = builder.buildCPAs(pCFA, automatonAsSpec);
+    ConfigurableProgramAnalysis cpa =
+        builder.buildCPAs(pCFA, automatonAsSpec, new AggregatedReachedSets());
     CPAAlgorithm algorithm = CPAAlgorithm.create(cpa, pLogger, config, notifier);
     CFANode rootNode = pCFA.getMainFunction();
     StateSpacePartition partition = StateSpacePartition.getDefaultPartition();

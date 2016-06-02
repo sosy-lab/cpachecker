@@ -45,10 +45,8 @@ import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator.LazyLocationMapping;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator.ReachedSetBasedExpressionTreeSupplier;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator.ReachedSetBasedInvariantSupplier;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
@@ -109,7 +107,8 @@ public class CPAcheckerInvariantGenerator extends AbstractInvariantGenerator {
     shutdownNotifier = ShutdownManager.createWithParent(pShutdownNotifier);
 
     CoreComponentsFactory componentsFactory =
-        new CoreComponentsFactory(invgenConfig, logger, shutdownNotifier.getNotifier());
+        new CoreComponentsFactory(
+            invgenConfig, logger, shutdownNotifier.getNotifier(), new AggregatedReachedSets());
     reached = componentsFactory.createReachedSet();
 
     cpa = componentsFactory.createCPA(pCfa, specification);
@@ -181,10 +180,7 @@ public class CPAcheckerInvariantGenerator extends AbstractInvariantGenerator {
     if (generationCompleted) {
       checkState(programIsSafe || !reached.hasWaitingState());
       checkState(!reached.isEmpty());
-      LazyLocationMapping lazyLocationMapping = new LazyLocationMapping(reached);
-      return new FormulaAndTreeSupplier(
-          new ReachedSetBasedInvariantSupplier(lazyLocationMapping, logger),
-          new ReachedSetBasedExpressionTreeSupplier(lazyLocationMapping, cfa));
+      return new FormulaAndTreeSupplier(new LazyLocationMapping(reached), cfa);
     } else {
       return InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
     }

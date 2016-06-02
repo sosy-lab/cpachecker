@@ -355,9 +355,6 @@ blockreducer.reducedCfaFile = "ReducedCfa.rsf"
 # Do at most n summarizations on a node.
 blockreducer.reductionThreshold = 100
 
-# Generate invariants and add them to the induction hypothesis.
-bmc.addInvariantsByAI = false
-
 # Generate additional invariants by induction and add them to the induction
 # hypothesis.
 bmc.addInvariantsByInduction = true
@@ -763,6 +760,9 @@ cpa.arg.witness.exportSourcecode = true
 
 # Verification witness: Include an thread-identifier within the file?
 cpa.arg.witness.exportThreadId = false
+
+# Verification witness: Revert escaping/renaming of functions for threads?
+cpa.arg.witness.revertThreadFunctionRenaming = false
 
 # signal the analysis to break in case the given number of error state is
 # reached 
@@ -1483,6 +1483,23 @@ cpa.predicate.ignoreIrrelevantVariables = true
 # do not include assumptions of states into path formula during strengthening
 cpa.predicate.ignoreStateAssumptions = false
 
+# Add computed invariants to the precision. Invariants do not need to be
+# generated with the PredicateCPA they can also be given from outside.
+cpa.predicate.invariants.addToPrecision = false
+
+# Strengthen the abstraction formula during abstraction with invariants if
+# some are generated. Invariants do not need to be generated with the
+# PredicateCPA they can also be given from outside.
+cpa.predicate.invariants.appendToAbstractionFormula = false
+
+# Strengthen the pathformula during abstraction with invariants if some are
+# generated. Invariants do not need to be generated with the PredicateCPA
+# they can also be given from outside.
+cpa.predicate.invariants.appendToPathFormula = false
+
+# Compute invariants with PredicateCPA
+cpa.predicate.invariants.computeInvariants = false
+
 # Should the automata used for invariant generation be dumped to files?
 cpa.predicate.invariants.dumpInvariantGenerationAutomata = false
 
@@ -1501,8 +1518,8 @@ cpa.predicate.invariants.file = "invariants.txt"
 
 # Which strategy should be used for generating invariants, a comma separated
 # list can be specified. Usually later specified strategies serve as fallback
-# for earlier ones.
-cpa.predicate.invariants.generationStrategy = Lists.newArrayList(InvariantGenerationStrategy.RF_INVARIANT_GENERATION)
+# for earlier ones. (default is no invariant generation at all)
+cpa.predicate.invariants.generationStrategy = new ArrayList<>()
 
 # How often should generating invariants from sliced prefixes with
 # k-induction be tried?
@@ -1515,14 +1532,14 @@ cpa.predicate.invariants.precisionFile = "invariantPrecs.txt"
 # (Use seconds or specify a unit; 0 for infinite)
 cpa.predicate.invariants.timeForInvariantGeneration = 10s
 
-# Where should the generated invariants (if there are some) be used?
-cpa.predicate.invariants.usageStrategy = NONE
-  enum:     [REFINEMENT, ABSTRACTION_FORMULA, COMBINATION, NONE]
-
 # Should the strategies be used all-together or only as fallback. If all
 # together, the computation is done until the timeout is hit and the results
 # up to this point are taken.
 cpa.predicate.invariants.useAllStrategies = false
+
+# Provide invariants generated with other analyses via the
+# PredicateCPAInvariantsManager.
+cpa.predicate.invariants.useGlobalInvariants = true
 
 # Invariants that are not strong enough to refute the counterexample can be
 # ignored with this option. (Weak invariants will lead to repeated
@@ -1647,11 +1664,6 @@ cpa.predicate.refinement.global.restartAfterRefinement = false
 # infeasible prefix
 cpa.predicate.refinement.incrementalCexTraceCheck = false
 
-# For differing errorpaths, the loop for which invariants should be generated
-# may still be the same, with this option you can set the maximal amount of
-# invariant generation runs per loop. 0 means no upper limit given.
-cpa.predicate.refinement.maxInvariantGenerationsPerLoop = 2
-
 # Max. number of prefixes to extract
 cpa.predicate.refinement.maxPrefixCount = 64
 
@@ -1688,12 +1700,6 @@ cpa.predicate.refinement.reuseInterpolationEnvironment = false
 # states in the reached set.
 cpa.predicate.refinement.sharePredicates = false
 
-# If the invariant generator can prove that a program is safe regarding the
-# given specification we can directly stop the analysis. This is done by
-# clearing the waitlist and removing the last found (infeasible) error state
-# from the reached set.
-cpa.predicate.refinement.shortcutForSafeProgram = false
-
 # slice block formulas, experimental feature!
 cpa.predicate.refinement.sliceBlockFormulas = false
 
@@ -1726,6 +1732,10 @@ cpa.predicate.refinement.timelimit = 0ms
 
 # Use BDDs to simplify interpolants (removing irrelevant predicates)
 cpa.predicate.refinement.useBddInterpolantSimplification = false
+
+# Should the path invariants be created and used (potentially additionally to
+# the other invariants)
+cpa.predicate.refinement.usePathInvariants = false
 
 # verify if the interpolants fulfill the interpolant properties
 cpa.predicate.refinement.verifyInterpolants = false
@@ -1797,10 +1807,6 @@ cpa.predicate.trackFunctionPointers = true
 # (which are encoded as UFs): essentially, we simply collect all the numbers
 # used in bitwise operations, and add axioms like (0 & n = 0)
 cpa.predicate.useBitwiseAxioms = false
-
-# Generate invariants and strengthen the formulas during abstraction with
-# them.
-cpa.predicate.useInvariantsForAbstraction = false
 
 # add special information to formulas about non-deterministic functions
 cpa.predicate.useNondetFlags = false
@@ -2397,7 +2403,14 @@ overflow.check = false
 # instead of the current one.
 overflow.config = no default value
 
-# List of files with configurations to use.
+# List of files with configurations to use. Files can be suffixed with
+# ::supply-reached this signalizes that the (finished) reached set of an
+# analysis can be used in other analyses (e.g. for invariants computation).
+# If you use the suffix ::supply-reached-refinable instead this means that
+# the reached set supplier is additionally continously refined (so one of the
+# analysis has to be instanceof ReachedSetAdjustingCPA) to make this work
+# properly. By adding ::false-as-unknown you can make an analysis be only
+# available for proving safety.
 parallelAlgorithm.configFiles = no default value
 
 # C dialect for parser
@@ -2614,7 +2627,9 @@ restartAlgorithm.combineARGsAfterRestart = false
 # List of files with configurations to use. A filename can be suffixed with
 # :if-interrupted, :if-failed, and :if-terminated which means that this
 # configuration will only be used if the previous configuration ended with a
-# matching condition.
+# matching condition. What also can be added is :use-invariants then the
+# reached set of the preceding analysis is taken and invariants arge
+# generated out of it.
 restartAlgorithm.configFiles = no default value
 
 # print the statistics of each component of the restart algorithm directly

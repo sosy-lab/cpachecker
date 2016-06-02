@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
@@ -65,7 +66,8 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
       CFA pCFA,
       final Specification specification,
       BMCStatistics pBMCStatistics,
-      CandidateGenerator pCandidateGenerator)
+      CandidateGenerator pCandidateGenerator,
+      AggregatedReachedSets pAggregatedReachedSets)
       throws InvalidConfigurationException, CPAException {
     super(
         pAlgorithm,
@@ -77,7 +79,8 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
         pCFA,
         specification,
         pBMCStatistics,
-        true /* invariant generator */ );
+        true /* invariant generator */,
+        pAggregatedReachedSets);
     Verify.verify(checkIfInductionIsPossible(pCFA, pLogger, getLoopHeads()));
     candidateGenerator = Objects.requireNonNull(pCandidateGenerator);
   }

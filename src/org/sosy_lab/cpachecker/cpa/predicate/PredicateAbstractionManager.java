@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Predicates.in;
+import static com.google.common.base.Predicates.equalTo;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
@@ -46,7 +46,8 @@ import org.sosy_lab.common.time.NestedTimer;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cpa.predicate.InvariantsManager.LocationInvariantSupplier;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier.TrivialInvariantSupplier;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage.AbstractionNode;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
@@ -76,7 +77,6 @@ import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -193,7 +193,7 @@ public class PredicateAbstractionManager {
   // 1: predicate is true
   private final Map<Pair<BooleanFormula, AbstractionPredicate>, Byte> cartesianAbstractionCache;
 
-  private final LocationInvariantSupplier locationBasedInvariantSupplier;
+  private final InvariantSupplier invariantSupplier;
 
   private final BooleanFormulaManagerView bfmgr;
 
@@ -208,7 +208,7 @@ public class PredicateAbstractionManager {
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      @Nullable LocationInvariantSupplier invariantsSupplier)
+      InvariantSupplier pInvariantsSupplier)
       throws InvalidConfigurationException, PredicateParsingFailedException {
     shutdownNotifier = pShutdownNotifier;
     config = pConfig;
@@ -222,7 +222,7 @@ public class PredicateAbstractionManager {
     rmgr = amgr.getRegionCreator();
     pfmgr = pPfmgr;
     solver = pSolver;
-    locationBasedInvariantSupplier = invariantsSupplier;
+    invariantSupplier = pInvariantsSupplier;
 
     if (cartesianAbstraction) {
       abstractionType = AbstractionType.CARTESIAN;
@@ -351,23 +351,16 @@ public class PredicateAbstractionManager {
     }
 
     // add invariants to abstraction formula if available
-    Set<BooleanFormula> invariants;
-    if (locationBasedInvariantSupplier != null) {
-      invariants = locationBasedInvariantSupplier.getInvariantFor(location);
-    } else {
-      invariants = Collections.emptySet();
-    }
+    if (invariantSupplier != TrivialInvariantSupplier.INSTANCE) {
+      BooleanFormula invariant = invariantSupplier.getInvariantFor(location, fmgr, pfmgr, pathFormula);
 
-    if (!invariants.isEmpty()) {
-      Collection<AbstractionPredicate> invPredicates = new ArrayList<>();
-      for (BooleanFormula inv : invariants) {
-        AbstractionPredicate absPred = amgr.makePredicate(inv);
-        invPredicates.add(absPred);
+      if (!bfmgr.isTrue(invariant)) {
+        AbstractionPredicate absPred = amgr.makePredicate(invariant);
         abs = rmgr.makeAnd(abs, absPred.getAbstractVariable());
-      }
 
-      // Calculate the set of predicates we still need to use for abstraction.
-      Iterables.removeIf(remainingPredicates, in(invPredicates));
+        // Calculate the set of predicates we still need to use for abstraction.
+        Iterables.removeIf(remainingPredicates, equalTo(absPred));
+      }
     }
 
     try (ProverEnvironment thmProver = solver.newProverEnvironment()) {

@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -160,7 +161,8 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       Specification lSpecification =
           Specification.fromFiles(ImmutableList.of(automatonFile), cfa, lConfig, lLogger);
       CoreComponentsFactory factory =
-          new CoreComponentsFactory(lConfig, lLogger, lShutdownManager.getNotifier());
+          new CoreComponentsFactory(
+              lConfig, lLogger, lShutdownManager.getNotifier(), new AggregatedReachedSets());
       ConfigurableProgramAnalysis lCpas = factory.createCPA(cfa, lSpecification);
       Algorithm lAlgorithm = factory.createAlgorithm(lCpas, filename, cfa, lSpecification);
       ReachedSet lReached = factory.createReachedSet();

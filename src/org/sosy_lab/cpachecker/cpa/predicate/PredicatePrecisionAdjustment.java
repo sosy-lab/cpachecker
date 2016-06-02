@@ -25,8 +25,9 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
@@ -49,9 +50,8 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.google.common.collect.Sets;
+import java.util.Set;
+import java.util.logging.Level;
 
 public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
@@ -159,7 +159,9 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     // get invariants and add them
     BooleanFormula invariant =
         invariants.getInvariantFor(loc, fmgr, pathFormulaManager, pathFormula);
-    if (invariant != null) {
+
+    // we don't want to add trivially true invariants
+    if (!fmgr.getBooleanFormulaManager().isTrue(invariant)) {
       pathFormula = pathFormulaManager.makeAnd(pathFormula, invariant);
     }
 
@@ -192,7 +194,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormula(pathFormula);
 
     // initialize path formula with current invariants
-    if (invariant != null) {
+    if (!fmgr.getBooleanFormulaManager().isTrue(invariant)) {
       newPathFormula = pathFormulaManager.makeAnd(newPathFormula, invariant);
     }
 

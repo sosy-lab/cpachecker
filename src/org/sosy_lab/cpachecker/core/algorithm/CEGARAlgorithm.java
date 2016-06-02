@@ -134,10 +134,15 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
   private volatile int sizeOfReachedSetBeforeRefinement = 0;
 
-  @Option(secure=true, name="refiner", required = true,
-      description = "Which refinement algorithm to use? "
-      + "(give class name, required for CEGAR) If the package name starts with "
-      + "'org.sosy_lab.cpachecker.', this prefix can be omitted.")
+  @Option(
+    secure = true,
+    name = "refiner",
+    required = true,
+    description =
+        "Which refinement algorithm to use? "
+            + "(give class name, required for CEGAR) If the package name starts with "
+            + "'org.sosy_lab.cpachecker.', this prefix can be omitted."
+  )
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker")
   private Refiner.Factory refinerFactory;
 

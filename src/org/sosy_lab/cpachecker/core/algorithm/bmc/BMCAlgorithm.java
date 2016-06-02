@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
@@ -126,7 +127,8 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       ReachedSetFactory pReachedSetFactory,
       ShutdownManager pShutdownManager,
       CFA pCFA,
-      final Specification specification)
+      final Specification specification,
+      AggregatedReachedSets pAggregatedReachedSets)
       throws InvalidConfigurationException, CPAException {
     super(
         pAlgorithm,
@@ -138,7 +140,8 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         pCFA,
         specification,
         new BMCStatistics(),
-        false /* no invariant generator */);
+        false /* no invariant generator */,
+        pAggregatedReachedSets);
     pConfig.inject(this);
 
     cpa = pCPA;

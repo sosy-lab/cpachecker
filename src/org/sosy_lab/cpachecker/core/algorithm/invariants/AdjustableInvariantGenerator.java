@@ -30,12 +30,10 @@ import com.google.common.base.Throwables;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.LazyFutureTask;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 import java.util.Collection;
 import java.util.concurrent.CancellationException;
@@ -159,11 +157,6 @@ public class AdjustableInvariantGenerator<T extends InvariantGenerator> extends 
       return false;
     }
     return current.isProgramSafe();
-  }
-
-  @Override
-  public void injectInvariant(CFANode pLocation, AssumeEdge pAssumption) throws UnrecognizedCodeException {
-    invariantGenerator.get().injectInvariant(pLocation, pAssumption);
   }
 
   @Override
