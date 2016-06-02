@@ -23,9 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -34,8 +33,9 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Transfer relation for the generic assumption generator.
@@ -65,15 +65,4 @@ public class GenericAssumptionsTransferRelation extends SingleEdgeTransferRelati
 
     return Collections.singleton(new GenericAssumptionsState(allAssumptions));
   }
-
-  @Override
-  public Collection<? extends AbstractState> strengthen(
-      AbstractState el, List<AbstractState> otherElements,
-      CFAEdge edge, Precision p)
-      throws CPATransferException {
-    // TODO Improve strengthening for assumptions so that they
-    //      may be discharged online
-    return null;
-  }
-
 }

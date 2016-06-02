@@ -485,14 +485,6 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
     return Collections.singleton(getAbstractSuccessor(element, cfaEdge));
   }
 
-  @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState element,
-                          List<AbstractState> otherElements, CFAEdge cfaEdge,
-                          Precision precision) {
-
-    return null;
-  }
-
   /**
    * recursively checks the initialization status of all fields of a struct being assigned to
    * another struct of the same type, setting the status of the assignee's fields accordingly

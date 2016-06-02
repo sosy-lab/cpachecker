@@ -49,9 +49,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 import java.util.Collection;
-import java.util.List;
-
-import javax.annotation.Nullable;
 
 /**
  * Policy iteration CPA.
@@ -187,15 +184,6 @@ public class PolicyCPA extends SingleEdgeTransferRelation
       (PolicyState) pState, pEdge
   );
 }
-
-  @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState state,
-      List<AbstractState> otherStates, @Nullable CFAEdge cfaEdge,
-      Precision precision) throws CPATransferException, InterruptedException {
-
-    // We perform strengthening in precision adjustment.
-    return null;
-  }
 
   @Override
   public AbstractDomain getAbstractDomain() {

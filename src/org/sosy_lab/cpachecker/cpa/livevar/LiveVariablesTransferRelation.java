@@ -67,13 +67,11 @@ import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
@@ -424,12 +422,6 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
    */
   public Multimap<CFANode, Wrapper<ASimpleDeclaration>> getLiveVariables() {
     return liveVariables;
-  }
-
-  @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState pState, List<AbstractState> pOtherStates,
-      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException, InterruptedException {
-    return null;
   }
 
   /**

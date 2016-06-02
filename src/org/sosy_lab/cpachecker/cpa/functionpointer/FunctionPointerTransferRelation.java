@@ -602,13 +602,4 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
     name += "[" + exp.getSubscriptExpression().toASTString() + "]";
     return name;
   }
-
-  @Override
-  public Collection<? extends AbstractState> strengthen(
-      AbstractState pElement, List<AbstractState> pOtherElements,
-      CFAEdge pCfaEdge, Precision pPrecision) {
-    // in this method we could access the abstract domains of other CPAs
-    // if required.
-    return null;
-  }
 }

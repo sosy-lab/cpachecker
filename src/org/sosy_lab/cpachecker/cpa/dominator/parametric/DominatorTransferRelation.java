@@ -23,16 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.dominator.parametric;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+
+import java.util.ArrayList;
+import java.util.Collection;
 
 public class DominatorTransferRelation extends SingleEdgeTransferRelation {
 
@@ -66,12 +65,5 @@ public class DominatorTransferRelation extends SingleEdgeTransferRelation {
     }
 
     return successors;
-  }
-
-  @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState element,
-                         List<AbstractState> otherElements, CFAEdge cfaEdge,
-                         Precision precision) {
-    return null;
   }
 }

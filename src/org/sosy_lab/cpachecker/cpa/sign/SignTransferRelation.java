@@ -23,10 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.sign;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.logging.Level;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableMap;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
@@ -63,13 +61,12 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Level;
 
 
 public class SignTransferRelation extends ForwardingTransferRelation<SignState, SignState, SingletonPrecision> {
@@ -84,12 +81,6 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
 
   public String getScopedVariableName(AExpression pVariableName) {
     return getScopedVariableName(pVariableName, functionName);
-  }
-
-  @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState pState, List<AbstractState> pOtherStates,
-      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException, InterruptedException {
-    return null;
   }
 
   @Override

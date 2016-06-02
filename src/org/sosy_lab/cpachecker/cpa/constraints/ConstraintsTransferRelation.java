@@ -23,11 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints;
 
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import com.google.common.base.Optional;
+import com.google.common.collect.Iterables;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -78,8 +75,11 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.SolverException;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.Iterables;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Transfer relation for Symbolic Execution Analysis.

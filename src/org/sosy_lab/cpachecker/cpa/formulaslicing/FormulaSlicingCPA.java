@@ -40,9 +40,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager;
 
 import java.util.Collection;
-import java.util.List;
-
-import javax.annotation.Nullable;
 
 
 public class FormulaSlicingCPA extends SingleEdgeTransferRelation
@@ -129,13 +126,6 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
       AbstractState state, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
     return manager.getAbstractSuccessors((SlicingState)state, cfaEdge);
-  }
-
-  @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState state,
-      List<AbstractState> otherStates, @Nullable CFAEdge cfaEdge,
-      Precision precision) throws CPATransferException, InterruptedException {
-    return null;
   }
 
   @Override

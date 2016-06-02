@@ -67,7 +67,6 @@ import org.sosy_lab.cpachecker.util.automaton.TargetLocationProviderImpl;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -178,15 +177,6 @@ public class TargetReachabilityCPA extends SingleEdgeTransferRelation
     } else {
       return Collections.singleton(ReachabilityState.IRRELEVANT_TO_TARGET);
     }
-  }
-
-  @Override
-  public Collection<? extends AbstractState> strengthen(
-      AbstractState state,
-      List<AbstractState> otherStates,
-      @Nullable CFAEdge cfaEdge,
-      Precision precision) throws CPATransferException, InterruptedException {
-    return null;
   }
 
   @Override

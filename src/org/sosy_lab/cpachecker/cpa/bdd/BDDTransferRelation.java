@@ -56,7 +56,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -72,8 +71,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
@@ -599,14 +596,6 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     protected Boolean visitDefault(CExpression pExp) {
       return false;
     }
-  }
-
-  @Override
-  public Collection<? extends AbstractState> strengthen(
-          AbstractState state, List<AbstractState> states, CFAEdge cfaEdge,
-          Precision precision) {
-    // do nothing
-    return null;
   }
 
   /** THis function writes some information about tracked variables, number of partitions,... */

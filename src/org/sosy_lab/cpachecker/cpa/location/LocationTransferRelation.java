@@ -74,10 +74,4 @@ public class LocationTransferRelation implements TransferRelation {
 
     return allSuccessors;
   }
-
-  @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState element,
-      List<AbstractState> otherElements, CFAEdge cfaEdge, Precision precision) {
-    return null;
-  }
 }

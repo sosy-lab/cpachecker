@@ -23,11 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.location;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -36,6 +31,11 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateFactory;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 public class LocationTransferRelationBackwards implements TransferRelation {
 
@@ -72,11 +72,5 @@ public class LocationTransferRelationBackwards implements TransferRelation {
     }
 
     return allSuccessors;
-  }
-
-  @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState element,
-      List<AbstractState> otherElements, CFAEdge cfaEdge, Precision precision) {
-    return null;
   }
 }

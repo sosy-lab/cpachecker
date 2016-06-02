@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 
 public class ARGTransferRelation implements TransferRelation {
 
@@ -93,13 +92,6 @@ public class ARGTransferRelation implements TransferRelation {
     throw new UnsupportedOperationException(
         "ARGCPA needs to be used as the outer-most CPA,"
         + " thus it does not support returning successors for a single edge.");
-  }
-
-  @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState element,
-                         List<AbstractState> otherElements, CFAEdge cfaEdge,
-                         Precision precision) {
-    return null;
   }
 
   boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors, ProofChecker wrappedProofChecker) throws CPATransferException, InterruptedException {

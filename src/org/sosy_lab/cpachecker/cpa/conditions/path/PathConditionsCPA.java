@@ -54,7 +54,6 @@ import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 
 /**
  * CPA for path conditions ({@link PathCondition}).
@@ -75,12 +74,6 @@ public class PathConditionsCPA implements ConfigurableProgramAnalysisWithBAM, Ad
       public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
           AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge) {
         return Collections.singleton(condition.getAbstractSuccessor(pState, pCfaEdge));
-      }
-
-      @Override
-      public Collection<? extends AbstractState> strengthen(AbstractState pState,
-          List<AbstractState> pOtherStates, CFAEdge pCfaEdge, Precision pPrecision) {
-        return null;
       }
     };
 

@@ -23,11 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.statistics;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
@@ -35,6 +30,11 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * The transfer relation of the StatisticsCPA.
@@ -63,11 +63,4 @@ public class StatisticsTransferRelation extends SingleEdgeTransferRelation {
     return allSuccessors;
 
   }
-
-  @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState pState, List<AbstractState> pOtherStates,
-      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException, InterruptedException {
-    return null;
-  }
-
 }

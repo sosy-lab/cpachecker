@@ -253,12 +253,4 @@ public class ReachingDefTransferRelation implements TransferRelation {
         "Remove local variables and parameters of function from reaching definition.");
     return pState.pop();
   }
-
-  @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState pState, List<AbstractState> pOtherStates,
-      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException, InterruptedException {
-    // TODO consider information from alias analysis
-    return null;
-  }
-
 }

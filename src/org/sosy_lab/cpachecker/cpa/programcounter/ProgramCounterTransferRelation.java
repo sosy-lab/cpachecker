@@ -23,15 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.programcounter;
 
-import java.math.BigInteger;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.CFASingleLoopTransformation;
@@ -42,6 +37,10 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+
+import java.math.BigInteger;
+import java.util.Collection;
+import java.util.Collections;
 
 
 public class ProgramCounterTransferRelation extends SingleEdgeTransferRelation {
@@ -106,11 +105,4 @@ public class ProgramCounterTransferRelation extends SingleEdgeTransferRelation {
     }
     return Collections.singleton(state);
   }
-
-  @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState pState, List<AbstractState> pOtherStates,
-      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException, InterruptedException {
-    return null;
-  }
-
 }

@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 
 public class CoverageTransferRelation extends SingleEdgeTransferRelation {
 
@@ -80,13 +79,4 @@ public class CoverageTransferRelation extends SingleEdgeTransferRelation {
       cov.addVisitedFunction((FunctionEntryNode) pEdge.getPredecessor());
     }
   }
-
-  @Override
-  public Collection<? extends AbstractState> strengthen(
-      AbstractState pElement, List<AbstractState> pOtherElements,
-      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException {
-
-    return null;
-  }
-
 }

@@ -23,6 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.apron;
 
+import apron.DoubleScalar;
+import apron.Interval;
+import apron.Linexpr0;
+import apron.Linterm0;
+import apron.Scalar;
+import apron.Tcons0;
+import apron.Texpr0BinNode;
+import apron.Texpr0CstNode;
+import apron.Texpr0DimNode;
+import apron.Texpr0Intern;
+import apron.Texpr0Node;
+import apron.Texpr0UnNode;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
@@ -62,7 +75,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -81,8 +93,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.apron.ApronState.Type;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -99,19 +109,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
-
-import apron.DoubleScalar;
-import apron.Interval;
-import apron.Linexpr0;
-import apron.Linterm0;
-import apron.Scalar;
-import apron.Tcons0;
-import apron.Texpr0BinNode;
-import apron.Texpr0CstNode;
-import apron.Texpr0DimNode;
-import apron.Texpr0Intern;
-import apron.Texpr0Node;
-import apron.Texpr0UnNode;
 
 public class ApronTransferRelation extends ForwardingTransferRelation<Collection<ApronState>, ApronState, VariableTrackingPrecision> {
 
@@ -874,12 +871,6 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
   @Override
   protected Set<ApronState> handleFunctionSummaryEdge(CFunctionSummaryEdge cfaEdge) throws CPATransferException {
     return Collections.emptySet();
-  }
-
-  @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState pState, List<AbstractState> pOtherStates,
-      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException, InterruptedException {
-    return null;
   }
 
   /**
