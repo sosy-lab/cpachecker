@@ -98,6 +98,8 @@ public class ParallelAlgorithm implements Algorithm {
   private List<Path> configFiles;
 
   private static final Splitter CONFIG_FILE_CONDITION_SPLITTER = Splitter.on("::").trimResults();
+  private static final String SUCCESS_MESSAGE =
+      "One of the parallel analyses has finished successfully, cancelling all other runs.";
 
   private final Configuration globalConfig;
   private final LogManager logger;
@@ -211,11 +213,8 @@ public class ParallelAlgorithm implements Algorithm {
           public void onSuccess(ParallelAnalysisResult pResult) {
             if (pResult.hasValidReachedSet()) {
               // cancel other computations
-              String message =
-                  "One of the parallel analyses has finished, cancelling all other runs.";
-              logger.log(Level.INFO, message);
-              shutdownManager.requestShutdown(message);
               futures.forEach(f -> f.cancel(true));
+              shutdownManager.requestShutdown("cancelling all remaining analyses");
             }
           }
 
@@ -376,22 +375,18 @@ public class ParallelAlgorithm implements Algorithm {
           } while (!stopAnalysis);
         }
 
-        // if we do not have reliable information about the analysis we just ignore the result
-        if (!currentReached.hasWaitingState()) {
-          singleLogger.log(Level.INFO, "Analysis finished successfully");
-          if (supplyReached && !supplyRefinableReached && status.isPrecise() && status.isSound()) {
+        // only add to aggregated reached set if we haven't done so, and all necessary requirements are fulfilled
+        if (!currentReached.hasWaitingState() && supplyReached && !supplyRefinableReached && status.isPrecise() && status.isSound()) {
             aggregatedReachedSetManager.addReachedSet(currentReached);
-          }
-          return ParallelAnalysisResult.of(currentReached, status, falseAsUnknown);
-        } else if (from(currentReached).anyMatch(AbstractStates::isTargetState)
-            && status.isPrecise()) {
-          singleLogger.log(Level.INFO, "Analysis finished successfully");
-          return ParallelAnalysisResult.of(currentReached, status, falseAsUnknown);
-        } else {
-          singleLogger.log(
-              Level.WARNING,
-              "There are still states in the waitlist although the analysis has ended");
         }
+
+        ParallelAnalysisResult result = ParallelAnalysisResult.of(currentReached, status, falseAsUnknown);
+        if (result.hasValidReachedSet()) {
+          singleLogger.log(Level.INFO, SUCCESS_MESSAGE);
+          shutdownManager.requestShutdown(SUCCESS_MESSAGE);
+        }
+        return result;
+
       } catch (CPAException e) {
         singleLogger.logUserException(Level.WARNING, e, "Analysis did not finish properly");
       } catch (InterruptedException e) {
