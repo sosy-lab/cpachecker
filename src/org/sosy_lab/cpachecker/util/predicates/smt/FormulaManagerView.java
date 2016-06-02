@@ -93,6 +93,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 /**
  * This class is the central entry point for all formula creation
@@ -875,23 +876,13 @@ public class FormulaManagerView {
    *  @see #instantiate(Formula, SSAMap)
    */
   public <F extends Formula> List<F> instantiate(List<F> pFormulas, final SSAMap pSsa) {
-    return Lists.transform(pFormulas,
-       new Function<F, F>() {
-         @Override
-         public F apply(F pF) {
-           // Apply 'instantiate'!
-           return instantiate(pF, pSsa);
-         }
-       });
+    return pFormulas.stream().map(f -> instantiate(f, pSsa)).collect(Collectors.toList());
   }
 
   public Set<String> instantiate(Iterable<String> pVariableNames, final SSAMap pSsa) {
-    return from(pVariableNames).transform(new Function<String, String>() {
-      @Override
-      public String apply(String pArg0) {
-        Pair<String, Integer> parsedVar = parseName(pArg0);
-        return makeName(parsedVar.getFirst(), pSsa.getIndex(parsedVar.getFirst()));
-      }
+    return from(pVariableNames).transform(pArg0 -> {
+      Pair<String, Integer> parsedVar = parseName(pArg0);
+      return makeName(parsedVar.getFirst(), pSsa.getIndex(parsedVar.getFirst()));
     }).toSet();
   }
 
@@ -914,22 +905,17 @@ public class FormulaManagerView {
    */
   public <F extends Formula> F instantiate(F pF, final SSAMap pSsa) {
     return wrap(getFormulaType(pF),
-        myFreeVariableNodeTransformer(unwrap(pF), new HashMap<Formula, Formula>(),
-            new Function<String, String>() {
+        myFreeVariableNodeTransformer(unwrap(pF), new HashMap<>(),
+            pFullSymbolName -> {
+              final Pair<String, Integer> indexedSymbol = parseName(pFullSymbolName);
+              final int reInstantiateWithIndex = pSsa.getIndex(indexedSymbol.getFirst());
 
-              @Override
-              public String apply(String pFullSymbolName) {
-
-                final Pair<String, Integer> indexedSymbol = parseName(pFullSymbolName);
-                final int reInstantiateWithIndex = pSsa.getIndex(indexedSymbol.getFirst());
-
-                if (reInstantiateWithIndex > 0) {
-                  // OK, the variable has ALREADY an instance in the SSA, REPLACE it
-                  return makeName(indexedSymbol.getFirst(), reInstantiateWithIndex);
-                } else {
-                  // the variable is not used in the SSA, keep it as is
-                  return pFullSymbolName;
-                }
+              if (reInstantiateWithIndex > 0) {
+                // OK, the variable has ALREADY an instance in the SSA, REPLACE it
+                return makeName(indexedSymbol.getFirst(), reInstantiateWithIndex);
+              } else {
+                // the variable is not used in the SSA, keep it as is
+                return pFullSymbolName;
               }
             })
         );
@@ -968,13 +954,7 @@ public class FormulaManagerView {
   public <F extends Formula> F uninstantiate(F f) {
     return wrap(getFormulaType(f),
         myFreeVariableNodeTransformer(unwrap(f), uninstantiateCache,
-            new Function<String, String>() {
-              @Override
-              public String apply(String pArg0) {
-                // Un-instantiated variable name
-                return parseName(pArg0).getFirst();
-              }
-            })
+            pArg0 -> parseName(pArg0).getFirst())
         );
   }
 
@@ -989,8 +969,7 @@ public class FormulaManagerView {
 
     return wrap(getFormulaType(pFormula),
         myFreeVariableNodeTransformer(unwrap(pFormula),
-            new HashMap<Formula, Formula>(),
-            pRenameFunction));
+            new HashMap<>(), pRenameFunction));
   }
 
   private <T extends Formula> T myFreeVariableNodeTransformer(
