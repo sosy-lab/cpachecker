@@ -376,14 +376,21 @@ public class ParallelAlgorithm implements Algorithm {
         }
 
         // only add to aggregated reached set if we haven't done so, and all necessary requirements are fulfilled
-        if (!currentReached.hasWaitingState() && supplyReached && !supplyRefinableReached && status.isPrecise() && status.isSound()) {
-            aggregatedReachedSetManager.addReachedSet(currentReached);
+        if (!currentReached.hasWaitingState()
+            && supplyReached
+            && !supplyRefinableReached
+            && status.isPrecise()
+            && status.isSound()) {
+          aggregatedReachedSetManager.addReachedSet(currentReached);
         }
 
-        ParallelAnalysisResult result = ParallelAnalysisResult.of(currentReached, status, falseAsUnknown);
+        ParallelAnalysisResult result =
+            ParallelAnalysisResult.of(currentReached, status, falseAsUnknown);
         if (result.hasValidReachedSet()) {
           singleLogger.log(Level.INFO, SUCCESS_MESSAGE);
           shutdownManager.requestShutdown(SUCCESS_MESSAGE);
+        } else {
+          singleLogger.log(Level.INFO, "Analysis finished without usable result");
         }
         return result;
 
