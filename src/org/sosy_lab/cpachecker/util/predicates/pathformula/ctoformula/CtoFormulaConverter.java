@@ -456,7 +456,11 @@ public class CtoFormulaConverter {
 
       // simplify constant formulas like "1<=2" and return the value directly.
       // benefit: divide_by_constant works without UFs
-      range = fmgr.simplify(range);
+      try {
+        range = fmgr.simplify(range);
+      } catch (InterruptedException pE) {
+        throw new RuntimeException("Unexpected interrupt", pE);
+      }
       if (bfmgr.isTrue(range)) {
         return value;
       }

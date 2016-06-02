@@ -259,7 +259,8 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   }
 
   @Override
-  protected final boolean performRefinementForState(BooleanFormula pInterpolant, ARGState interpolationPoint) {
+  protected final boolean performRefinementForState(BooleanFormula pInterpolant, ARGState interpolationPoint)
+      throws InterruptedException {
     checkState(newPredicates != null);
     checkArgument(!bfmgr.isTrue(pInterpolant));
 
@@ -283,7 +284,8 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
    * @return A set of predicates.
    */
   private final Collection<AbstractionPredicate> convertInterpolant(
-      final BooleanFormula pInterpolant, PathFormula blockFormula) {
+      final BooleanFormula pInterpolant, PathFormula blockFormula)
+      throws InterruptedException {
 
     BooleanFormula interpolant = pInterpolant;
 

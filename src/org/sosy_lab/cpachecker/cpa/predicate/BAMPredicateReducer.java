@@ -72,7 +72,7 @@ public class BAMPredicateReducer implements Reducer {
   @Override
   public AbstractState getVariableReducedState(
       AbstractState pExpandedState, Block pContext,
-      CFANode pLocation) {
+      CFANode pLocation) throws InterruptedException {
 
     PredicateAbstractState predicateElement = (PredicateAbstractState) pExpandedState;
 
@@ -102,7 +102,7 @@ public class BAMPredicateReducer implements Reducer {
   @Override
   public AbstractState getVariableExpandedState(
       AbstractState pRootState, Block pReducedContext,
-      AbstractState pReducedState) {
+      AbstractState pReducedState) throws InterruptedException {
 
     PredicateAbstractState rootState = (PredicateAbstractState) pRootState;
     PredicateAbstractState reducedState = (PredicateAbstractState) pReducedState;
@@ -288,7 +288,7 @@ public class BAMPredicateReducer implements Reducer {
 
   @Override
   public AbstractState getVariableExpandedStateForProofChecking(AbstractState pRootState, Block pReducedContext,
-      AbstractState pReducedState) {
+      AbstractState pReducedState) throws InterruptedException {
 
     PredicateAbstractState rootState = (PredicateAbstractState) pRootState;
     PredicateAbstractState reducedState = (PredicateAbstractState) pReducedState;

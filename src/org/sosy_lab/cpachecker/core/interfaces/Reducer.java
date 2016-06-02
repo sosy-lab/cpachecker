@@ -30,9 +30,11 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
 public interface Reducer {
 
-  AbstractState getVariableReducedState(AbstractState expandedState, Block context, CFANode callNode);
+  AbstractState getVariableReducedState(AbstractState expandedState, Block context, CFANode callNode)
+      throws InterruptedException;
 
-  AbstractState getVariableExpandedState(AbstractState rootState, Block reducedContext, AbstractState reducedState);
+  AbstractState getVariableExpandedState(AbstractState rootState, Block reducedContext, AbstractState reducedState)
+      throws InterruptedException;
 
   Precision getVariableReducedPrecision(Precision precision, Block context);
 
@@ -52,7 +54,8 @@ public interface Reducer {
 
   AbstractState getVariableReducedStateForProofChecking(AbstractState expandedState, Block context, CFANode callNode);
 
-  AbstractState getVariableExpandedStateForProofChecking(AbstractState rootState, Block reducedContext, AbstractState reducedState);
+  AbstractState getVariableExpandedStateForProofChecking(AbstractState rootState, Block reducedContext, AbstractState reducedState)
+      throws InterruptedException;
 
   /**
    * Use the expandedState as basis for a new state,

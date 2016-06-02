@@ -45,7 +45,7 @@ class CompositeReducer implements Reducer {
   @Override
   public AbstractState getVariableReducedState(
       AbstractState pExpandedState, Block pContext,
-      CFANode pLocation) {
+      CFANode pLocation) throws InterruptedException {
 
     List<AbstractState> result = new ArrayList<>();
     int i = 0;
@@ -58,7 +58,7 @@ class CompositeReducer implements Reducer {
   @Override
   public AbstractState getVariableExpandedState(
       AbstractState pRootState, Block pReducedContext,
-      AbstractState pReducedState) {
+      AbstractState pReducedState) throws InterruptedException {
 
     List<AbstractState> rootStates = ((CompositeState)pRootState).getWrappedStates();
     List<AbstractState> reducedStates = ((CompositeState)pReducedState).getWrappedStates();
@@ -143,7 +143,7 @@ class CompositeReducer implements Reducer {
 
   @Override
   public AbstractState getVariableExpandedStateForProofChecking(AbstractState pRootState, Block pReducedContext,
-      AbstractState pReducedState) {
+      AbstractState pReducedState) throws InterruptedException {
     List<AbstractState> rootStates = ((CompositeState)pRootState).getWrappedStates();
     List<AbstractState> reducedStates = ((CompositeState)pReducedState).getWrappedStates();
 

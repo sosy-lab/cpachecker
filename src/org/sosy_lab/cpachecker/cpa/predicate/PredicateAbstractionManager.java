@@ -731,7 +731,7 @@ public class PredicateAbstractionManager {
    *          with blockFormula as the block formula.
    */
   public AbstractionFormula buildAbstraction(final BooleanFormula f,
-      final PathFormula blockFormula) {
+      final PathFormula blockFormula) throws InterruptedException {
     Region r = amgr.convertFormulaToRegion(f);
     return makeAbstractionFormula(r, blockFormula.getSsa(), blockFormula);
   }
@@ -1063,7 +1063,8 @@ public class PredicateAbstractionManager {
     return new AbstractionFormula(fmgr, region, formula, instantiatedFormula, a1.getBlockFormula(), noAbstractionReuse);
   }
 
-  private AbstractionFormula makeAbstractionFormula(Region abs, SSAMap ssaMap, PathFormula blockFormula) {
+  private AbstractionFormula makeAbstractionFormula(Region abs, SSAMap ssaMap, PathFormula blockFormula)
+      throws InterruptedException {
     BooleanFormula symbolicAbs = amgr.convertRegionToFormula(abs);
     BooleanFormula instantiatedSymbolicAbs = fmgr.instantiate(symbolicAbs, ssaMap);
 
@@ -1083,7 +1084,8 @@ public class PredicateAbstractionManager {
    * @return A new abstraction similar to the old one without the predicates.
    */
   public AbstractionFormula reduce(AbstractionFormula oldAbstraction,
-      Collection<AbstractionPredicate> removePredicates, SSAMap ssaMap) {
+      Collection<AbstractionPredicate> removePredicates, SSAMap ssaMap)
+      throws InterruptedException {
     RegionCreator rmgr = amgr.getRegionCreator();
 
     Region newRegion = oldAbstraction.asRegion();
@@ -1104,7 +1106,8 @@ public class PredicateAbstractionManager {
    * @return A new abstraction similar to the old one with some more predicates.
    */
   public AbstractionFormula expand(Region reducedAbstraction, Region sourceAbstraction,
-      Collection<AbstractionPredicate> relevantPredicates, SSAMap newSSA, PathFormula blockFormula) {
+      Collection<AbstractionPredicate> relevantPredicates, SSAMap newSSA, PathFormula blockFormula)
+      throws InterruptedException {
     RegionCreator rmgr = amgr.getRegionCreator();
 
     for (AbstractionPredicate predicate : relevantPredicates) {

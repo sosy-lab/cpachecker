@@ -323,7 +323,8 @@ public class BAMTransferRelation implements TransferRelation {
   /** This function returns expanded states for all reduced states and updates the caches. */
   protected List<AbstractState> expandResultStates(
           final Collection<Pair<AbstractState, Precision>> reducedResult,
-          final Block outerSubtree, final AbstractState state, final Precision precision) {
+          final Block outerSubtree, final AbstractState state, final Precision precision)
+      throws InterruptedException {
 
     logger.log(Level.FINEST, "Expanding states with initial state", state);
     logger.log(Level.FINEST, "Expanding states", reducedResult);

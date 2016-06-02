@@ -111,7 +111,7 @@ public class FormulaLinearizationManager {
   public BooleanFormula enforceChoice(
       final BooleanFormula input,
       final Model model
-  ) {
+  ) throws InterruptedException {
 
     // TODO: more efficient to call #evaluate() on the subset of variables
     // which we actually use.

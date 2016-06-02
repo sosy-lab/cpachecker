@@ -1365,7 +1365,7 @@ public class FormulaManagerView {
     return booleanFormulaManager.makeVariable(pName);
   }
 
-  public <T extends Formula> T simplify(T input) {
+  public <T extends Formula> T simplify(T input) throws InterruptedException {
     return manager.simplify(input);
   }
 
