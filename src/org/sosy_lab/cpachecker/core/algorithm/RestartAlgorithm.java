@@ -158,7 +158,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       + "A filename can be suffixed with :if-interrupted, :if-failed, and :if-terminated "
       + "which means that this configuration will only be used if the previous configuration "
       + "ended with a matching condition. What also can be added is :use-reached then the "
-      + "reached set of the preceding analysis is taken and invariants arge generated out of it.")
+      + "reached set of the preceding analysis is taken and provided to the next analysis.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> configFiles;
 

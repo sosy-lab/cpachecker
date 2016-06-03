@@ -2613,8 +2613,7 @@ restartAlgorithm.combineARGsAfterRestart = false
 # :if-interrupted, :if-failed, and :if-terminated which means that this
 # configuration will only be used if the previous configuration ended with a
 # matching condition. What also can be added is :use-reached then the reached
-# set of the preceding analysis is taken and invariants arge generated out of
-# it.
+# set of the preceding analysis is taken and provided to the next analysis.
 restartAlgorithm.configFiles = no default value
 
 # print the statistics of each component of the restart algorithm directly
