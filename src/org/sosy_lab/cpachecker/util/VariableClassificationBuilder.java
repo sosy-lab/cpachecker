@@ -195,10 +195,6 @@ public class VariableClassificationBuilder {
 
   public VariableClassificationBuilder(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     logger = checkNotNull(pLogger);
-    String key = "useBnB";
-    if (config.hasProperty(key)){
-      useBnB = new Boolean(config.getProperty(key));
-    }
     config.inject(this);
   }
 
@@ -402,6 +398,7 @@ public class VariableClassificationBuilder {
         "number of all partitions:      " + dependencies.partitions.size(),
         });
     str.append("\n---------------------------------\n");
+
     if (regionsMaker != null) {
       str.append(regionsMaker.getShortStats());
       str.append("\n---------------------------------\n");
