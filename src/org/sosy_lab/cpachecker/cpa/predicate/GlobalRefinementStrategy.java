@@ -33,7 +33,7 @@ public abstract class GlobalRefinementStrategy extends RefinementStrategy {
 
   public abstract void initializeGlobalRefinement();
 
-  public abstract void updatePrecisionAndARG();
+  public abstract void updatePrecisionAndARG() throws InterruptedException;
 
   public abstract void resetGlobalRefinement();
 }

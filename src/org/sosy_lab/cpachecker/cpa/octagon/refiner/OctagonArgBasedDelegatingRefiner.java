@@ -23,12 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.octagon.refiner;
 
-import java.io.PrintStream;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
+import com.google.common.collect.Multimap;
 
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -70,7 +65,12 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import com.google.common.collect.Multimap;
+import java.io.PrintStream;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
 /**
  * Refiner implementation that delegates to {@link ValueAnalysisPathInterpolator},
@@ -224,7 +224,9 @@ class OctagonArgBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, S
     }
   }
 
-  private boolean performOctagonAnalysisRefinement(final ARGReachedSet reached, final OctagonAnalysisFeasabilityChecker checker) {
+  private boolean performOctagonAnalysisRefinement(
+      final ARGReachedSet reached, final OctagonAnalysisFeasabilityChecker checker)
+      throws InterruptedException {
     UnmodifiableReachedSet reachedSet = reached.asReachedSet();
     Precision precision               = reachedSet.getPrecision(reachedSet.getLastState());
     VariableTrackingPrecision octPrecision         = (VariableTrackingPrecision) Precisions.asIterable(precision).filter(VariableTrackingPrecision.isMatchingCPAClass(OctagonCPA.class)).get(0);

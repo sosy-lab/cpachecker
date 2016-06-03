@@ -158,21 +158,22 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
   @SuppressWarnings("unchecked")
   @Override
-  public void removeSubtree(ARGState element, Precision newPrecision,
-      Predicate<? super Precision> pPrecisionType) {
+  public void removeSubtree(
+      ARGState element, Precision newPrecision, Predicate<? super Precision> pPrecisionType)
+      throws InterruptedException {
     removeSubtree(element, Lists.newArrayList(newPrecision), Lists.<Predicate<? super Precision>>newArrayList(pPrecisionType));
   }
 
   @Override
-  public void removeSubtree(ARGState element, List<Precision> newPrecisions, List<Predicate<? super Precision>> pPrecisionTypes) {
+  public void removeSubtree(
+      ARGState element,
+      List<Precision> newPrecisions,
+      List<Predicate<? super Precision>> pPrecisionTypes)
+      throws InterruptedException {
     Preconditions.checkArgument(newPrecisions.size()==pPrecisionTypes.size());
     assert rootOfSubgraph.getSubgraph().contains(element);
     final ARGSubtreeRemover argSubtreeRemover = new ARGSubtreeRemover(bamCpa, removeCachedSubtreeTimer);
-    try {
-      argSubtreeRemover.removeSubtree(delegate, path, element, newPrecisions, pPrecisionTypes);
-    } catch (InterruptedException pE) {
-      throw new UnsupportedOperationException("Unexpected interrupt", pE);
-    }
+    argSubtreeRemover.removeSubtree(delegate, path, element, newPrecisions, pPrecisionTypes);
 
     // post-processing, cleanup data-structures.
     // We remove all states reachable from 'element'. This step is not precise,

@@ -161,7 +161,7 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
   }
 
   @Override
-  public void updatePrecisionAndARG() {
+  public void updatePrecisionAndARG() throws InterruptedException {
     PredicatePrecision newPrecision = computeNewPrecision();
 
     updateARG(newPrecision, refinementRoot);
@@ -180,7 +180,8 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
     newPredicates = null;
   }
 
-  protected void updateARG(PredicatePrecision pNewPrecision, ARGState pRefinementRoot) {
+  protected void updateARG(PredicatePrecision pNewPrecision, ARGState pRefinementRoot)
+      throws InterruptedException {
 
     argUpdate.start();
 

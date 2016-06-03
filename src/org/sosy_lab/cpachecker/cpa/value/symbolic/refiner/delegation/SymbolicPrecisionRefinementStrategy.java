@@ -23,10 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.delegation;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -48,8 +46,10 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 
 /**
  * {@link org.sosy_lab.cpachecker.cpa.predicate.RefinementStrategy RefinementStrategy} that
@@ -88,8 +88,9 @@ class SymbolicPrecisionRefinementStrategy extends PredicateAbstractionRefinement
   }
 
   @Override
-  protected void updateARG(PredicatePrecision newPrecision, ARGState pRefinementRoot,
-      ARGReachedSet pReached) {
+  protected void updateARG(
+      PredicatePrecision newPrecision, ARGState pRefinementRoot, ARGReachedSet pReached)
+      throws InterruptedException {
     assert newPrecision.getFunctionPredicates().isEmpty()
         : "Only local predicates allowed, but function predicate exists";
     assert newPrecision.getGlobalPredicates().isEmpty()

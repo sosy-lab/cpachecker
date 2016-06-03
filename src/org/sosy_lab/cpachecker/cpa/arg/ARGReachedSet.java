@@ -115,8 +115,10 @@ public class ARGReachedSet {
    * {@link #adaptPrecision(Precision, Precision, Predicate)}).
    * @param e The root of the removed subtree, may not be the initial element.
    * @param p The new precision.
+   * @throws InterruptedException if operation is interrupted
    */
-  public void removeSubtree(ARGState e, Precision p, Predicate<? super Precision> pPrecisionType) {
+  public void removeSubtree(ARGState e, Precision p, Predicate<? super Precision> pPrecisionType)
+      throws InterruptedException {
     for (ARGState ae : removeSubtree0(e)) {
       mReached.updatePrecision(ae, adaptPrecision(mReached.getPrecision(ae), p, pPrecisionType));
       mReached.reAddToWaitlist(ae);
@@ -133,9 +135,11 @@ public class ARGReachedSet {
    * @param pState The root of the removed subtree, may not be the initial element.
    * @param pPrecisions The new precisions.
    * @param pPrecTypes the types of the precisions.
+   * @throws InterruptedException if operation is interrupted
    */
-  public void removeSubtree(ARGState pState, List<Precision> pPrecisions,
-      List<Predicate<? super Precision>> pPrecTypes) {
+  public void removeSubtree(
+      ARGState pState, List<Precision> pPrecisions, List<Predicate<? super Precision>> pPrecTypes)
+      throws InterruptedException {
 
     Preconditions.checkNotNull(pState);
     Preconditions.checkNotNull(pPrecisions);
@@ -470,8 +474,9 @@ public class ARGReachedSet {
     }
 
     @Override
-    public void removeSubtree(ARGState pE, Precision pP,
-        Predicate<? super Precision> pPrecisionType) {
+    public void removeSubtree(
+        ARGState pE, Precision pP, Predicate<? super Precision> pPrecisionType)
+        throws InterruptedException {
       delegate.removeSubtree(pE, pP, pPrecisionType);
     }
   }

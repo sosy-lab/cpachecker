@@ -333,10 +333,12 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   }
 
   @Override
-  protected final void finishRefinementOfPath(ARGState pUnreachableState,
-      List<ARGState> pAffectedStates, ARGReachedSet pReached,
+  protected final void finishRefinementOfPath(
+      ARGState pUnreachableState,
+      List<ARGState> pAffectedStates,
+      ARGReachedSet pReached,
       boolean pRepeatedCounterexample)
-      throws CPAException {
+      throws CPAException, InterruptedException {
 
     Pair<PredicatePrecision, ARGState> newPrecAndRefinementRoot =
         computeNewPrecision(pUnreachableState, pAffectedStates, pReached, pRepeatedCounterexample);
@@ -349,8 +351,9 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     newPredicates = null;
   }
 
-  protected void updateARG(PredicatePrecision pNewPrecision, ARGState pRefinementRoot,
-      ARGReachedSet pReached) {
+  protected void updateARG(
+      PredicatePrecision pNewPrecision, ARGState pRefinementRoot, ARGReachedSet pReached)
+      throws InterruptedException {
 
     argUpdate.start();
 

@@ -201,7 +201,7 @@ public class ValueAnalysisImpactRefiner
   }
 
   @Override
-  public void forceRestart(ReachedSet pReached) {
+  public void forceRestart(ReachedSet pReached) throws InterruptedException {
     restartCounter++;
     ARGState firstChild = Iterables.getOnlyElement(((ARGState)pReached.getFirstState()).getChildren());
 
