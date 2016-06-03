@@ -25,11 +25,8 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Maps;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.AdaptingCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -58,6 +55,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.ExpressionToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
@@ -65,8 +63,11 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expre
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
 import org.sosy_lab.solver.api.Formula;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
 
 class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Expression, UnrecognizedCCodeException>
                                        implements CRightHandSideVisitor<Expression, UnrecognizedCCodeException> {
@@ -425,7 +426,6 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     return Value.ofValue(e.accept(delegate));
   }
 
-  @SuppressWarnings("deprecation")
   @Override
   public Value visit(final CFunctionCallExpression e) throws UnrecognizedCCodeException {
     final CExpression functionNameExpression = e.getFunctionNameExpression();
@@ -439,11 +439,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
         try {
           return memoryHandler.handleDynamicMemoryFunction(e, functionName, this);
         } catch (InterruptedException exc) {
-          // Throwing two checked exception from this visitor is not possible directly.
-          // The following does the same although it is not recommended to do so.
-          // However, we are sure that an InterrupedException from this visitor
-          // will be handled correctly outside.
-          Thread.currentThread().stop(exc);
+          throw CtoFormulaConverter.propagateInterruptedException(exc);
         }
       }
     }

@@ -459,7 +459,7 @@ public class CtoFormulaConverter {
       try {
         range = fmgr.simplify(range);
       } catch (InterruptedException pE) {
-        throw new RuntimeException("Unexpected interrupt", pE);
+        throw propagateInterruptedException(pE);
       }
       if (bfmgr.isTrue(range)) {
         return value;
@@ -1449,5 +1449,18 @@ public class CtoFormulaConverter {
     } else {
       return makeVariable(var, exp.getExpressionType(), ssa);
     }
+  }
+
+  /**
+   * Throwing two checked exception from a visitor is not possible directly,
+   * thus we have trouble handling InterruptedExceptions in visitors.
+   * This method allows them to be thrown without the compiler complaining.
+   * This is safe because the public methods of this package specify InterruptedException
+   * to be thrown, so callers need to handle it anyway.
+   */
+  @SuppressWarnings("unchecked")
+  public static <T extends Throwable> RuntimeException propagateInterruptedException(
+      InterruptedException e) throws T {
+    throw (T) e;
   }
 }
