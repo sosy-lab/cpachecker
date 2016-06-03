@@ -91,8 +91,7 @@ public class ParallelAlgorithm implements Algorithm {
             + " computation). If you use the suffix ::supply-reached-refinable instead"
             + " this means that the reached set supplier is additionally continously"
             + " refined (so one of the analysis has to be instanceof ReachedSetAdjustingCPA)"
-            + " to make this work properly. By adding ::false-as-unknown you can make"
-            + " an analysis be only available for proving safety."
+            + " to make this work properly."
   )
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> configFiles;
@@ -233,7 +232,6 @@ public class ParallelAlgorithm implements Algorithm {
     final ConfigurableProgramAnalysis cpa;
     final boolean supplyReached;
     final boolean supplyRefinableReached;
-    final boolean falseAsUnknown;
     final CoreComponentsFactory coreComponents;
 
     try {
@@ -245,12 +243,10 @@ public class ParallelAlgorithm implements Algorithm {
       singleConfigFileName = Paths.get(configIt.next());
       supplyReached = Iterables.contains(parts, "supply-reached");
       supplyRefinableReached = Iterables.contains(parts, "supply-reached-refinable");
-      falseAsUnknown = Iterables.contains(parts, "false-as-unknown");
 
-      if (size > 3
-          || (size == 3 && !((supplyReached ^ supplyRefinableReached) && falseAsUnknown))
-          || (size == 2 && !(supplyReached ^ supplyRefinableReached ^ falseAsUnknown)
-              || (size == 1 && (supplyReached || supplyRefinableReached || falseAsUnknown)))) {
+      if (size > 2
+          || (size == 2 && !(supplyReached ^ supplyRefinableReached))
+          || (size == 1 && (supplyReached || supplyRefinableReached ))) {
         throw new InvalidConfigurationException(
             singleConfigFileName.toString()
                 + " is not a valid configuration for a parallel analysis.");
@@ -305,7 +301,6 @@ public class ParallelAlgorithm implements Algorithm {
     return createParallelAnalysis(
         supplyRefinableReached,
         supplyReached,
-        falseAsUnknown,
         algorithm,
         cpa,
         reached,
@@ -316,7 +311,6 @@ public class ParallelAlgorithm implements Algorithm {
   private Callable<ParallelAnalysisResult> createParallelAnalysis(
       final boolean supplyRefinableReached,
       final boolean supplyReached,
-      final boolean falseAsUnknown,
       final Algorithm algorithm,
       final ConfigurableProgramAnalysis cpa,
       final ReachedSet reached,
@@ -346,7 +340,7 @@ public class ParallelAlgorithm implements Algorithm {
             if (status.isSound()
                 && !from(currentReached)
                     .anyMatch(or(AbstractStates::isTargetState, AbstractStates::hasAssumptions))) {
-              return ParallelAnalysisResult.of(currentReached, status, falseAsUnknown);
+              return ParallelAnalysisResult.of(currentReached, status);
             }
 
             // reset the flag
@@ -385,7 +379,7 @@ public class ParallelAlgorithm implements Algorithm {
         }
 
         ParallelAnalysisResult result =
-            ParallelAnalysisResult.of(currentReached, status, falseAsUnknown);
+            ParallelAnalysisResult.of(currentReached, status);
         if (result.hasValidReachedSet()) {
           singleLogger.log(Level.INFO, SUCCESS_MESSAGE);
           shutdownManager.requestShutdown(SUCCESS_MESSAGE);
@@ -448,22 +442,19 @@ public class ParallelAlgorithm implements Algorithm {
 
     private final ReachedSet reached;
     private final AlgorithmStatus status;
-    private final boolean falseAsUnknown;
 
     private ParallelAnalysisResult(
-        ReachedSet pReached, AlgorithmStatus pStatus, boolean pFalseAsUnknown) {
+        ReachedSet pReached, AlgorithmStatus pStatus) {
       reached = pReached;
       status = pStatus;
-      falseAsUnknown = pFalseAsUnknown;
     }
 
-    public static ParallelAnalysisResult of(
-        ReachedSet pReached, AlgorithmStatus pStatus, boolean pFalseAsUnknown) {
-      return new ParallelAnalysisResult(pReached, pStatus, pFalseAsUnknown);
+    public static ParallelAnalysisResult of(ReachedSet pReached, AlgorithmStatus pStatus) {
+      return new ParallelAnalysisResult(pReached, pStatus);
     }
 
     public static ParallelAnalysisResult absent() {
-      return of(null, null, false);
+      return of(null, null);
     }
 
     public boolean hasValidReachedSet() {
@@ -471,16 +462,10 @@ public class ParallelAlgorithm implements Algorithm {
         return false;
       }
 
-      if (falseAsUnknown) {
-        return status.isSound()
-            && !reached.hasWaitingState()
-            && !from(reached).anyMatch(or(AbstractStates::hasAssumptions, AbstractStates::isTargetState));
-      } else {
       return (from(reached).anyMatch(AbstractStates::isTargetState) && status.isPrecise())
           || (status.isSound()
               && !reached.hasWaitingState()
               && !from(reached).anyMatch(AbstractStates::hasAssumptions));
-      }
     }
 
     public ReachedSet getReached() {

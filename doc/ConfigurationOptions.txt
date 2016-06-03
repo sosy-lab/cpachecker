@@ -2394,8 +2394,7 @@ overflow.config = no default value
 # If you use the suffix ::supply-reached-refinable instead this means that
 # the reached set supplier is additionally continously refined (so one of the
 # analysis has to be instanceof ReachedSetAdjustingCPA) to make this work
-# properly. By adding ::false-as-unknown you can make an analysis be only
-# available for proving safety.
+# properly.
 parallelAlgorithm.configFiles = no default value
 
 # C dialect for parser
