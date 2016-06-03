@@ -465,7 +465,8 @@ public class ParallelAlgorithm implements Algorithm {
       return (from(reached).anyMatch(AbstractStates::isTargetState) && status.isPrecise())
           || (status.isSound()
               && !reached.hasWaitingState()
-              && !from(reached).anyMatch(AbstractStates::hasAssumptions));
+              && !from(reached)
+                  .anyMatch(or(AbstractStates::hasAssumptions, AbstractStates::isTargetState)));
     }
 
     public ReachedSet getReached() {
