@@ -3,25 +3,21 @@ CPAchecker Developing Instructions
 
 More details can be found in the other files in this directory.
 
-Please read and follow StyleGuide.txt,
-as well as Logging.txt, Test.txt, and VersionControl.txt.
-
+Please read and follow [`StyleGuide.md`](StyleGuide.md),
+as well as [`Logging.md`](Logging.md), [`Test.md`](Test.md), and [`VersionControl.md`](VersionControl.md).
 
 Getting the code
 ----------------
 
 There are four possibilities to retrieve the source code:
 
-- The main SVN repository:
-  https://svn.sosy-lab.org/software/cpachecker
+- The main [SVN repository](https://svn.sosy-lab.org/software/cpachecker)
 
-- Our Git mirror:
-  https://svn.sosy-lab.org/software/cpachecker.git
+- Our [Git mirror](https://svn.sosy-lab.org/software/cpachecker.git)
 
-- A Git mirror at GitHub:
-  https://github.com/dbeyer/cpachecker
+- A Git mirror at [GitHub](https://github.com/dbeyer/cpachecker)
 
-Only our SVN repository allows committing,
+Only our `SVN` repository allows committing,
 all mirrors are read-only.
 We recommend to use our own repository hosting,
 because it avoids the risk that the synchronization to a third party
@@ -29,6 +25,7 @@ fails or causes problems.
 
 For browsing through the code online,
 there are these possibilities:
+
 - https://svn.sosy-lab.org/trac/cpachecker/browser/CPAchecker
   (with an SVN account)
 - https://github.com/dbeyer/cpachecker/tree/trunk/
@@ -36,7 +33,7 @@ there are these possibilities:
 For bug tracking, we use our Trac:
 https://svn.sosy-lab.org/trac/cpachecker/
 
-For building the code on the command line, c.f. ../INSTALL.txt.
+For building the code on the command line, c.f. [`../INSTALL.md`](../INSTALL.md).
 
 
 If you like to use Git, use the following commands

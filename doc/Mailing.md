@@ -1,4 +1,3 @@
-
 The CPAchecker Project uses the following mailing lists:
 
 - CPAchecker-Announce@googlegroups.com
@@ -20,8 +19,3 @@ The CPAchecker Project uses the following mailing lists:
   Internal developer discussion about the design and implementation of CPAchecker.
   Only for active developers (>0 cpm), members can post, by invitation only.
   https://groups.google.com/forum/#!forum/cpachecker-devel
-
-For project information: visit https://cpachecker.sosy-lab.org
-
-dbeyer 2014-04-04
-dbeyer 2010-02-02

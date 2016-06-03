@@ -13,9 +13,9 @@ Commits
   in order to not disconnect the history (use SVN plugin for Eclipse,
   or "svn mv" on comand line). This is especially important for git-svn users.
 - In order to avoid EOL problems caused by Unix/Windows/Mac, let's run
-  find ./ -name "*.java" -exec svn propset svn:eol-style native {} \;
+  `find ./ -name "*.java" -exec svn propset svn:eol-style native {} \;`
   from time to time.
-- Set the svn:executable property only on files that need it (executables).
+- Set the `svn:executable` property only on files that need it (executables).
   On Linux this is done automatically, but Windows users should take care
   that this property is not added for all newly created files.
 
