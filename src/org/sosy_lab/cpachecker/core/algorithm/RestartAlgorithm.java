@@ -324,7 +324,8 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
             // continue with the next algorithm
             logger.log(Level.INFO, "Analysis not completed: There are still states to be processed.");
 
-          } else {
+          } else if (!(from(currentReached).anyMatch(IS_TARGET_STATE) && !status.isPrecise())) {
+
             // sound analysis and completely finished, terminate
             return status;
           }
