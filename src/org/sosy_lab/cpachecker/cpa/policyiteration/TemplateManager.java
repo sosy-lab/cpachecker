@@ -49,6 +49,7 @@ import org.sosy_lab.solver.api.BitvectorFormula;
 import org.sosy_lab.solver.api.Formula;
 
 import java.math.BigInteger;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -61,7 +62,6 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 @Options(prefix = "cpa.lpi")
@@ -188,8 +188,7 @@ public class TemplateManager {
         x -> !x.equals(Rational.ZERO)).collect(Collectors.toSet());
 
     // Copy the {@code vars} multiple times for the cartesian product.
-    List<Set<CIdExpression>> lists = IntStream.range(0, maxLength)
-        .mapToObj(i -> vars).collect(Collectors.toList());
+    List<Set<CIdExpression>> lists = Collections.nCopies(maxLength, vars);
 
     // All lists of size {@code maxExpressionSize}.
     Set<List<CIdExpression>> product = Sets.cartesianProduct(lists);
