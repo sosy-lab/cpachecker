@@ -2612,9 +2612,9 @@ restartAlgorithm.combineARGsAfterRestart = false
 # List of files with configurations to use. A filename can be suffixed with
 # :if-interrupted, :if-failed, and :if-terminated which means that this
 # configuration will only be used if the previous configuration ended with a
-# matching condition. What also can be added is :use-invariants then the
-# reached set of the preceding analysis is taken and invariants arge
-# generated out of it.
+# matching condition. What also can be added is :use-reached then the reached
+# set of the preceding analysis is taken and invariants arge generated out of
+# it.
 restartAlgorithm.configFiles = no default value
 
 # print the statistics of each component of the restart algorithm directly
