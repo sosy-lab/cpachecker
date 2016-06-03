@@ -1,7 +1,7 @@
 CPAchecker Installation
 =======================
 
-For information on how to run CPAchecker, see `README.md`.
+For information on how to run CPAchecker, see [`README.md`](README.md).
 
 Install CPAchecker -- Binary
 ----------------------------
@@ -15,7 +15,6 @@ Install CPAchecker -- Binary
    (Ubuntu: `sudo update-alternatives --config java`)
 
 2. Extract the content of the CPAchecker zip or tar file into a directory of your choice.
-
 
 Install CPAchecker -- Source
 ----------------------------
@@ -54,4 +53,4 @@ Install CPAchecker -- Source
      this is probably caused by an old Ivy version installed on your system.
      Please try uninstalling Ivy.
 
-(For building CPAchecker within Eclipse, cf. `doc/Developing.md`.)
+(For building CPAchecker within Eclipse, cf. [`doc/Developing.md`](doc/Developing.md).)
