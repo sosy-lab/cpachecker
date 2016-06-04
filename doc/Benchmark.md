@@ -65,7 +65,7 @@ Specifying Resource Limits
 When benchmarking CPAchecker, it is important to correctly specify
 the time and memory limits.
 
-- CPU Time
+- *CPU Time*.
   Firstly, in order to get statistics even in case of a timeout,
   is is important to specify different "soft" and "hard" CPU-time limits
   like in this example:
@@ -73,7 +73,7 @@ the time and memory limits.
   The soft time limit is automatically passed as parameter to CPAchecker,
   so there is no need to specify the `-timelimit` option manually.
 
-- Memory
+- *Memory*.
   The memory limit is specified in Megabytes
   (SI units, i.e., 1 MB = 1,000,000 Bytes)
   with the attribute `memlimit` in the `<benchmark>` tag
@@ -82,19 +82,19 @@ the time and memory limits.
   This limit will be enforced by the OS
   and CPAchecker will be killed if it needs more memory.
 
-  Additionally, it is important to specify the amount of memory
-  that Java uses for its own heap with the `-heap` command-line parameter.
-  This value needs to be lower than the external limit.
-  Setting it too low will hurt the performance due to increased garbage collection
-  and provoke `OutOfMemoryError`,
-  setting it too high limits the memory that is available to native libraries
-  such as MathSAT.
-  For analyses without MathSAT,
-  start to experiment with 1000 MB less than the external limit.
-  IMPORTANT: Java does not use SI units here, but IEC units (factor 1024).
-  7000M here are 5% more than 7000 for the memory limit above!
-  Example:
-  `<option name="-heap">7000M</option>`
+Additionally, it is important to specify the amount of memory
+that Java uses for its own heap with the `-heap` command-line parameter.
+This value needs to be lower than the external limit.
+Setting it too low will hurt the performance due to increased garbage collection
+and provoke `OutOfMemoryError`,
+setting it too high limits the memory that is available to native libraries
+such as MathSAT.
+For analyses without MathSAT,
+start to experiment with 1000 MB less than the external limit.
+IMPORTANT: Java does not use SI units here, but IEC units (factor 1024).
+7000M here are 5% more than 7000 for the memory limit above!
+Example:
+`<option name="-heap">7000M</option>`
 
 Summary:
 For correct and useful benchmarks, choose a memory limit (e.g., 8000MB),
