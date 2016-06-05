@@ -1645,6 +1645,11 @@ cpa.predicate.refinement.getUsefulBlocks = false
 # Do a complete restart (clearing the reached set) after the refinement
 cpa.predicate.refinement.global.restartAfterRefinement = false
 
+# Instead of updating precision and arg we say that the refinement was not
+# successful after N times of refining. A real error state is not necessary
+# to be found. Use 0 for unlimited refinements (default).
+cpa.predicate.refinement.global.stopAfterNRefinements = 0
+
 # use incremental search in counterexample analysis, to find the minimal
 # infeasible prefix
 cpa.predicate.refinement.incrementalCexTraceCheck = false

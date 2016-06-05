@@ -54,6 +54,6 @@ public abstract class PredicateGlobalRefiner implements Refiner {
             config, logger, predicateCpa.getPredicateManager(), solver);
 
     return new PredicateCPAGlobalRefiner(
-        logger, fmgr, strategy, solver, CPAs.retrieveCPA(pCpa, ARGCPA.class));
+        logger, fmgr, strategy, solver, CPAs.retrieveCPA(pCpa, ARGCPA.class), config);
   }
 }
