@@ -51,6 +51,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -135,6 +136,8 @@ public class AggregatedReachedSets {
       implements InvariantSupplier, ExpressionTreeSupplier {
 
     private final Collection<FormulaAndTreeSupplier> invariantSuppliers;
+    private final Map<InvariantsCacheKey, BooleanFormula> cache = new HashMap<>();
+
 
     private AggregatedInvariantSupplier(ImmutableCollection<FormulaAndTreeSupplier> pInvariantSuppliers) {
       invariantSuppliers = checkNotNull(pInvariantSuppliers);
@@ -143,12 +146,19 @@ public class AggregatedReachedSets {
     @Override
     public BooleanFormula getInvariantFor(
         CFANode pNode, FormulaManagerView pFmgr, PathFormulaManager pPfmgr, PathFormula pContext) {
+      InvariantsCacheKey key = new InvariantsCacheKey(pNode, pFmgr, pPfmgr, pContext);
+      if (cache.containsKey(key)) {
+        return cache.get(key);
+      }
       final BooleanFormulaManager bfmgr = pFmgr.getBooleanFormulaManager();
-      return invariantSuppliers
-          .stream()
-          .map(s -> s.getInvariantFor(pNode, pFmgr, pPfmgr, pContext))
-          .filter(f -> !bfmgr.isTrue(f))
-          .reduce(bfmgr.makeBoolean(true), bfmgr::and);
+      BooleanFormula formula =
+          invariantSuppliers
+              .stream()
+              .map(s -> s.getInvariantFor(pNode, pFmgr, pPfmgr, pContext))
+              .filter(f -> !bfmgr.isTrue(f))
+              .reduce(bfmgr.makeBoolean(true), bfmgr::and);
+      cache.put(key, formula);
+      return formula;
     }
 
     @Override
@@ -157,6 +167,49 @@ public class AggregatedReachedSets {
           .stream()
           .map(s -> s.getInvariantFor(pNode))
           .reduce(ExpressionTrees.getTrue(), And::of);
+    }
+  }
+
+  private static class InvariantsCacheKey {
+    private final CFANode node;
+    private final FormulaManagerView fmgr;
+    private final PathFormulaManager pfmgr;
+    private final PathFormula context;
+
+    public InvariantsCacheKey(
+        CFANode pNode, FormulaManagerView pFmgr, PathFormulaManager pPfmgr, PathFormula pContext) {
+      node = pNode;
+      fmgr = pFmgr;
+      pfmgr = pPfmgr;
+      context = pContext;
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + Objects.hashCode(context);
+      result = prime * result + Objects.hashCode(fmgr);
+      result = prime * result + Objects.hashCode(node);
+      result = prime * result + Objects.hashCode(pfmgr);
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+
+      if (!(obj instanceof InvariantsCacheKey)) {
+        return false;
+      }
+
+      InvariantsCacheKey other = (InvariantsCacheKey) obj;
+      return Objects.equals(node, other.node)
+          && Objects.equals(fmgr, other.fmgr)
+          && Objects.equals(pfmgr, other.pfmgr)
+          && Objects.equals(context, other.context);
     }
   }
 
