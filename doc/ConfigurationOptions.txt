@@ -283,7 +283,7 @@ assumptions.file = "assumptions.txt"
 # in a backwards analysis; used if the full analysis consists of a forward
 # AND a backward part!
 # (see config/specification/ for examples)
-backwardSpecification = no default value
+backwardSpecification = []
 
 # Size of the BDD cache in relation to the node table size (set to 0 to use
 # fixed BDD cache size).
@@ -2670,7 +2670,7 @@ spec.transitionToStopForNegatedTokensetMatch = false
 
 # comma-separated list of files with specifications that should be checked
 # (see config/specification/ for examples)
-specification = no default value
+specification = []
 
 # export abstract states as formula, e.g. for re-using them as
 # PredicatePrecision.

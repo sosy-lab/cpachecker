@@ -28,7 +28,6 @@ import static org.sosy_lab.common.ShutdownNotifier.interruptCurrentThreadOnShutd
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.MoreObjects;
 import com.google.common.base.Splitter;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.ImmutableCollection;
@@ -190,7 +189,7 @@ public class CPAchecker {
             + "\n(see config/specification/ for examples)"
   )
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private List<Path> specificationFiles = null;
+  private List<Path> specificationFiles = ImmutableList.of();
 
   @Option(
     secure = true,
@@ -201,7 +200,7 @@ public class CPAchecker {
             + "\n(see config/specification/ for examples)"
   )
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private List<Path> backwardSpecificationFiles = null;
+  private List<Path> backwardSpecificationFiles = ImmutableList.of();
 
   @Option(
     secure = true,
@@ -429,7 +428,6 @@ public class CPAchecker {
         initialStatesFor.contains(InitialStatesFor.TARGET)
             ? backwardSpecificationFiles
             : specificationFiles;
-    specFiles = MoreObjects.firstNonNull(specFiles, ImmutableList.of());
     return Specification.fromFiles(specFiles, cfa, config, logger);
   }
 
