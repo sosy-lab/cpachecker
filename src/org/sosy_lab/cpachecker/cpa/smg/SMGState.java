@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -52,6 +53,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMGConsistencyVerifier;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.PredRelation;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGIsLessOrEqual;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoin;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
@@ -76,6 +78,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 
@@ -100,7 +104,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   private final int id;
 
   private final SMGRuntimeCheck runtimeCheckLevel;
-  private final String externalAllocationRecursiveName = "r_";
+  private final Pattern externalAllocationRecursivePattern = Pattern.compile("^(r_)(\\d+)(_.*)$");
   private final int externalAllocationSize;
 
 
@@ -1166,8 +1170,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       SMGStateEdgePair stateAndNewEdge;
       if (valueAndState.getSmgState().heap.isObjectExternallyAllocated(pObject) && pType.getCanonicalType()
           instanceof CPointerType) {
-        SMGAddressValue new_address = valueAndState.getSmgState().addExternalAllocation(externalAllocationRecursiveName +
-            pObject.getLabel());
+        SMGAddressValue new_address = valueAndState.getSmgState().addExternalAllocation(genRecursiveLabel(pObject.getLabel()));
         stateAndNewEdge = writeValue(pObject, pOffset, pType, new_address);
       } else {
         Integer newValue = SMGValueFactory.getNewValue();
@@ -1176,6 +1179,17 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       return SMGValueAndState.of(stateAndNewEdge.getState(), SMGKnownSymValue.valueOf(stateAndNewEdge.getNewEdge().getValue()));
     } else {
       return valueAndState;
+    }
+  }
+
+  private String genRecursiveLabel(String pLabel) {
+    Matcher result = externalAllocationRecursivePattern.matcher(pLabel);
+    if (result.matches()) {
+      String in = result.group(2);
+      Integer level = Integer.parseInt(in) + 1;
+      return result.replaceFirst("$1" + level + "$3");
+    } else {
+      return "r_1_" + pLabel;
     }
   }
 
@@ -1463,6 +1477,10 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    */
   @Override
   public boolean isLessOrEqual(SMGState reachedState) throws SMGInconsistentException {
+
+    if(!getErrorPredicateRelation().isEmpty() || !reachedState.getErrorPredicateRelation().isEmpty()) {
+      return false;
+    }
 
     if(morePreciseIsLessOrEqual) {
 
@@ -1887,14 +1905,66 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     heap.addNeqRelation(pKnownVal1.getAsInt(), pKnownVal2.getAsInt());
   }
 
-  public void addPredicateRelation(SMGSymbolicValue pV1, SMGSymbolicValue pV2, BinaryOperator pOp,
-      CFAEdge pEdge) {
-      heap.addPredicateRelation(pV1, pV2, pOp, pEdge);
+public void addPredicateRelation(SMGSymbolicValue pV1, int pCType1,
+                                 SMGSymbolicValue pV2, int pCType2,
+                                 BinaryOperator pOp, CFAEdge pEdge) {
+  if (pEdge instanceof CAssumeEdge) {
+    BinaryOperator temp;
+    if (((CAssumeEdge) pEdge).getTruthAssumption()) {
+      temp = pOp;
+    } else {
+      temp = pOp.getOppositLogicalOperator();
+    }
+    logger.log(Level.WARNING, "SymValue1 " + pV1 + " " + temp +" SymValue2 " + pV2 +
+        "; AddPredicate: " + pEdge.toString());
+    if (!pV1.isUnknown() && !pV2.isUnknown()) {
+      logger.log(Level.WARNING,
+          "SymValue1 " + pV1.getAsInt() + " " + temp + " SymValue2 " + pV2.getAsInt() +
+              "; AddPredicate: " + pEdge.toString());
+    }
   }
 
-  public void addPredicateRelation(SMGSymbolicValue pV1, SMGExplicitValue pV2, BinaryOperator pOp,
-                                   CFAEdge pEdge) {
-    heap.addPredicateRelation(pV1, pV2, pOp, pEdge);
+  heap.addPredicateRelation(pV1, pCType1, pV2, pCType2, pOp, pEdge);
+}
+
+  public void addPredicateRelation(SMGSymbolicValue pV1, int pCType1,
+                                   SMGExplicitValue pV2, int pCType2,
+                                   BinaryOperator pOp, CFAEdge pEdge) {
+    if (pEdge instanceof CAssumeEdge) {
+      BinaryOperator temp;
+      if (((CAssumeEdge) pEdge).getTruthAssumption()) {
+        temp = pOp;
+      } else {
+        temp = pOp.getOppositLogicalOperator();
+      }
+      logger.log(Level.WARNING, "SymValue " + pV1 + " " + temp + "; ExplValue " + pV2 +
+          "; AddPredicate: " + pEdge.toString());
+      if (!pV1.isUnknown()) {
+        logger.log(Level.WARNING, "SymValue " + pV1.getAsInt() + " " + temp + "; ExplValue " + pV2 +
+            "; AddPredicate: " + pEdge.toString());
+      }
+    }
+    heap.addPredicateRelation(pV1, pCType1, pV2, pCType2, pOp, pEdge);
+  }
+
+  public PredRelation getPathPredicateRelation() {
+    return heap.getPathPredicateRelation();
+  }
+
+  public void addErrorPredicate(SMGSymbolicValue pSymbolicValue, Integer pCType1,
+                                SMGExplicitValue pExplicitValue, Integer pCType2,
+                                CFAEdge pEdge) {
+    logger.log(Level.WARNING, "Add Error Predicate: SymValue  " + pSymbolicValue + " ; ExplValue " +
+        pExplicitValue + "; on edge: " + pEdge.toString());
+    heap.addErrorRelation(pSymbolicValue, pCType1, pExplicitValue, pCType2, pEdge);
+  }
+
+  public PredRelation getErrorPredicateRelation() {
+    return heap.getErrorPredicateRelation();
+  }
+
+  public void resetErrorRelation() {
+    heap.resetErrorRelation();
   }
 
   public void putExplicit(SMGKnownSymValue pKey, SMGKnownExpValue pValue) {
@@ -1943,6 +2013,10 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     INVALID_WRITE,
     INVALID_FREE,
     INVALID_HEAP
+  }
+
+  public boolean hasMemoryErrors() {
+    return invalidFree || invalidRead || invalidWrite || heap.hasMemoryLeaks();
   }
 
   public boolean isInNeq(SMGSymbolicValue pValue1, SMGSymbolicValue pValue2) {

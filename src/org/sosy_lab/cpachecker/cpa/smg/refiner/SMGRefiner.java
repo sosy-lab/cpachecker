@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
+import org.sosy_lab.cpachecker.cpa.smg.SMGPredicateManager;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -82,9 +83,10 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
     final LogManager logger = smgCpa.getLogger();
     final Configuration config = smgCpa.getConfiguration();
     final CFA cfa = smgCpa.getCFA();
+    final SMGPredicateManager predicateManager = smgCpa.getPredicateManager();
 
     final StrongestPostOperator<SMGState> strongestPostOp =
-        new SMGStrongestPostOperator(logger, config, cfa);
+        new SMGStrongestPostOperator(logger, config, cfa, predicateManager);
 
     SMGState initialState = smgCpa.getInitialState(cfa.getMainFunction());
 
@@ -94,7 +96,7 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
     SMGState emptyState = smgCpa.getInitialState(cfa.getMainFunction());
 
     final GenericPrefixProvider<SMGState> prefixProvider =
-        new SMGPrefixProvider(logger, cfa, config, emptyState);
+        new SMGPrefixProvider(logger, cfa, config, emptyState, predicateManager);
 
     final SMGInterpolantManager smgInterpolantManager = new SMGInterpolantManager(smgCpa
         .getMachineModel(), logger, cfa, smgCpa.getExternalAllocationSize());

@@ -55,6 +55,9 @@ public class SMGIsLessOrEqual {
    */
   public static boolean isLessOrEqual(CLangSMG pSMG1, CLangSMG pSMG2) {
 
+//    if (!pSMG1.getPathPredicateRelation().isLessOrEqual(pSMG2.getPathPredicateRelation())) {
+//      return false;
+//    }
     // if smg1 is smg2, smg1 is equal to smg2
     if (pSMG1 == pSMG2) {
       return true;

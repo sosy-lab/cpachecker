@@ -633,9 +633,6 @@ counterexample.export.graph = "Counterexample.%d.dot"
 # export counterexample to file as GraphML automaton
 counterexample.export.graphml = "Counterexample.%d.graphml"
 
-# export counterexample as JSON file
-counterexample.export.json = "Counterexample.%d.json"
-
 # where to dump the counterexample model in case a specification violation is
 # found
 counterexample.export.model = "Counterexample.%d.assignment.txt"
@@ -1872,6 +1869,9 @@ cpa.smg.runtimeCheck = NONE
 # which stop operator to use for the SMGCPA
 cpa.smg.stop = "SEP"
   allowed values: [SEP, NEVER]
+
+# Allow SMG to track predicates for assume edges
+cpa.smg.trackPredicates = false
 
 # Emit messages when we encounter non-target undefined behavior
 cpa.smg.unknownOnUndefined = true

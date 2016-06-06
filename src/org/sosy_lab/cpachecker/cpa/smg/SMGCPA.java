@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 @Options(prefix="cpa.smg")
 public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramAnalysisWithConcreteCex {
@@ -91,6 +92,7 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
   private SMGPrecisionAdjustment precisionAdjustment;
+  private SMGPredicateManager smgPredicateManager;
 
   private final MachineModel machineModel;
 
@@ -113,6 +115,7 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
 
     assumptionToEdgeAllocator = new AssumptionToEdgeAllocator(config, logger, machineModel);
     precisionAdjustment = new SMGPrecisionAdjustment();
+    smgPredicateManager = new SMGPredicateManager(config, logger, pShutdownNotifier);
 
     abstractDomain = DelegateAbstractDomain.<SMGState>getInstance();
     mergeOperator = MergeSepOperator.getInstance();
@@ -125,7 +128,8 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
 
     precision = initializePrecision(config, pCfa);
 
-    transferRelation = new SMGTransferRelation(config, logger, machineModel, enableHeapAbstraction);
+    transferRelation = new SMGTransferRelation(config, logger, machineModel,
+        enableHeapAbstraction, smgPredicateManager);
   }
 
   public void injectRefinablePrecision() throws InvalidConfigurationException {
@@ -222,4 +226,7 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
     return shutdownNotifier;
   }
 
+  public SMGPredicateManager getPredicateManager() {
+    return smgPredicateManager;
+  }
 }

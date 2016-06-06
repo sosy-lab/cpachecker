@@ -32,6 +32,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
+import org.sosy_lab.cpachecker.cpa.smg.SMGPredicateManager;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
@@ -41,12 +42,13 @@ import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
 public class SMGPrefixProvider extends GenericPrefixProvider<SMGState> {
 
   public SMGPrefixProvider(LogManager pLogger,
-      CFA pCfa, Configuration pConfig, SMGState pInitialState)
+                           CFA pCfa, Configuration pConfig, SMGState pInitialState,
+                           SMGPredicateManager pSMGPredicateManager)
           throws InvalidConfigurationException {
 
 
     super(
-        new SMGStrongestPostOperator(pLogger, pConfig, pCfa),
+        new SMGStrongestPostOperator(pLogger, pConfig, pCfa, pSMGPredicateManager),
         pInitialState,
         pLogger,
         pCfa,

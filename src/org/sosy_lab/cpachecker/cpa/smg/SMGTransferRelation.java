@@ -108,6 +108,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.SMGAddressValueAnd
 import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.SMGExplicitValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.SMGValueAndStateList;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.PredRelation;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisSMGCommunicator;
@@ -118,6 +119,9 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Formula;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -195,6 +199,8 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   private final AtomicInteger id_counter;
 
   private final SMGRightHandSideEvaluator expressionEvaluator;
+
+  private final SMGPredicateManager smgPredicateManager;
 
   /**
    * Indicates whether the executed statement could result
@@ -755,7 +761,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   }
 
   public SMGTransferRelation(Configuration config, LogManager pLogger,
-      MachineModel pMachineModel, boolean pEnableHeapAbstraction)
+      MachineModel pMachineModel, boolean pEnableHeapAbstraction, SMGPredicateManager pSMGPredicateManager)
           throws InvalidConfigurationException {
     config.inject(this);
     logger = new LogManagerWithoutDuplicates(pLogger);
@@ -763,11 +769,12 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     expressionEvaluator = new SMGRightHandSideEvaluator(logger, machineModel);
     id_counter = new AtomicInteger(0);
     enableHeapAbstraction = pEnableHeapAbstraction;
+    smgPredicateManager = pSMGPredicateManager;
   }
 
   public static SMGTransferRelation createTransferRelationForRefinement(Configuration config, LogManager pLogger,
-      MachineModel pMachineModel) throws InvalidConfigurationException {
-    SMGTransferRelation result = new SMGTransferRelation(config, pLogger, pMachineModel, false);
+      MachineModel pMachineModel, SMGPredicateManager pSMGPredicateManager) throws InvalidConfigurationException {
+    SMGTransferRelation result = new SMGTransferRelation(config, pLogger, pMachineModel, false, pSMGPredicateManager);
     result.exportSMG = SMGExportLevel.NEVER;
     return result;
   }
@@ -892,6 +899,11 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     logger.log(Level.FINEST, "Handling return Statement: ", returnExp);
 
+    if (smgPredicateManager.isErrorPathFeasible(smgState)) {
+      smgState = smgState.setInvalidRead();
+    }
+    smgState.resetErrorRelation();
+
     CType expType = expressionEvaluator.getRealExpressionType(returnExp);
     SMGObject tmpFieldMemory = smgState.getFunctionReturnObject();
     Optional<CAssignment> returnAssignment = returnEdge.asAssignment();
@@ -915,6 +927,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     CFunctionCall exprOnSummary = summaryEdge.getExpression();
 
     SMGState newState = new SMGState(smgState);
+    if (smgPredicateManager.isErrorPathFeasible(newState)) {
+      newState = newState.setInvalidRead();
+    }
+    newState.resetErrorRelation();
 
     if (exprOnSummary instanceof CFunctionCallAssignmentStatement) {
 
@@ -1097,6 +1113,11 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     SMGState smgState = new SMGState(pSmgState);
 
+    if (smgPredicateManager.isErrorPathFeasible(smgState)) {
+      smgState = smgState.setInvalidRead();
+    }
+    smgState.resetErrorRelation();
+
     // FIXME Quickfix, simplify expressions for sv-comp, later assumption handling has to be refactored to be able to handle complex expressions
     expression = eliminateOuterEquals(expression);
 
@@ -1183,7 +1204,19 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         }
 
         newState = expressionEvaluator.deriveFurtherInformation(newState, truthValue, cfaEdge, expression);
-        result.add(newState);
+        PredRelation pathPredicateRelation = newState.getPathPredicateRelation();
+        BooleanFormula predicateFormula = smgPredicateManager.getPredicateFormula(pathPredicateRelation);
+        try {
+          if (newState.hasMemoryErrors() || !smgPredicateManager.isUnsat(predicateFormula)) {
+            result.add(newState);
+          }
+        } catch (SolverException pE) {
+          result.add(newState);
+          logger.log(Level.WARNING, "Solver Exception: " + pE + " on predicate " + predicateFormula);
+        } catch (InterruptedException pE) {
+          result.add(newState);
+          logger.log(Level.WARNING, "Solver Interrupted Exception: " + pE + " on predicate " + predicateFormula);
+        }
       } else if ((truthValue && explicitValue.equals(SMGKnownExpValue.ONE))
           || (!truthValue && explicitValue.equals(SMGKnownExpValue.ZERO))) {
         result.add(smgState);
@@ -2062,7 +2095,8 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
             //TODO more precise
           }
         }
-        assignableState.addPredicateRelation(rSymValue, rValue, op, edge);
+        int size = getSizeof(edge, getRealExpressionType(exp), assignableState) * machineModel.getSizeofCharInBits();
+        assignableState.addPredicateRelation(rSymValue, size, rValue, size, op, edge);
       }
 
       @Override
