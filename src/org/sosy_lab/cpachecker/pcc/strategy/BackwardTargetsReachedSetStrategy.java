@@ -56,7 +56,7 @@ import javax.annotation.Nullable;
 @Options(prefix = "pcc.backwardtargets")
 public class BackwardTargetsReachedSetStrategy extends SequentialReadStrategy implements StatisticsProvider {
 
-  private final AlgorithmWithPropertyCheck algorithm;
+  private final @Nullable AlgorithmWithPropertyCheck algorithm;
   private AbstractState[] backwardTargets;
 
   @Option(secure = true, description = "Enable to store ARG states instead of abstract states wrapped by ARG state")
@@ -70,9 +70,11 @@ public class BackwardTargetsReachedSetStrategy extends SequentialReadStrategy im
       throws InvalidConfigurationException {
     super(pConfig, pLogger);
     pConfig.inject(this);
-    algorithm = new AlgorithmWithPropertyCheck(
-        CPAAlgorithm.create(pCpa, pLogger, pConfig, pShutdownNotifier),
-        pLogger, pCpa);
+    algorithm =
+        pCpa == null
+            ? null
+            : new AlgorithmWithPropertyCheck(
+                CPAAlgorithm.create(pCpa, pLogger, pConfig, pShutdownNotifier), pLogger, pCpa);
   }
 
   @Override
@@ -163,7 +165,9 @@ public class BackwardTargetsReachedSetStrategy extends SequentialReadStrategy im
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
     super.collectStatistics(statsCollection);
-    algorithm.collectStatistics(statsCollection);
+    if (algorithm != null) {
+      algorithm.collectStatistics(statsCollection);
+    }
   }
 
 }
