@@ -24,12 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.ifcsecurity;
 
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking.BlockGuard;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 
 import java.io.Serializable;
@@ -37,8 +35,9 @@ import java.io.Serializable;
 /**
  * CPA-Abstract-State for tracking the Active Control Dependencies
  */
-public class ControlDependencyTrackerState implements AbstractState, Cloneable, Serializable,
-LatticeAbstractState<ControlDependencyTrackerState>, Graphable, AbstractQueryableState{
+public class ControlDependencyTrackerState
+    implements AbstractState, Cloneable, Serializable,
+        LatticeAbstractState<ControlDependencyTrackerState>, Graphable {
 
 
   private static final long serialVersionUID = -2622026109609951120L;
@@ -54,26 +53,6 @@ LatticeAbstractState<ControlDependencyTrackerState>, Graphable, AbstractQueryabl
 
   public void setGuards(BlockGuard pGuards) {
     guards = pGuards;
-  }
-
-  @Override
-  public String getCPAName() {
-    return "ControlDependencyTrackerCPA";
-  }
-
-  @Override
-  public boolean checkProperty(String pProperty) throws InvalidQueryException {
-    return false;
-  }
-
-  @Override
-  public Object evaluateProperty(String pProperty) throws InvalidQueryException {
-    return null;
-  }
-
-  @Override
-  public void modifyProperty(String pModification) throws InvalidQueryException {
-
   }
 
   @Override
