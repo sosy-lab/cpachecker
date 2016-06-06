@@ -57,7 +57,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -211,7 +211,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   }
 
   Optional<AutomatonSafetyProperty> getOptionalViolatedPropertyDescription() {
-    return Optional.<AutomatonSafetyProperty>fromNullable(violatedPropertyDescription);
+    return Optional.ofNullable(violatedPropertyDescription);
   }
 
   @Override

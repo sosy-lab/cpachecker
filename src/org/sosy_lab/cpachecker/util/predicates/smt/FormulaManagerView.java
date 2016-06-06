@@ -30,7 +30,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
@@ -1143,7 +1143,7 @@ public class FormulaManagerView {
         new DefaultBooleanFormulaVisitor<Optional<BooleanFormula>>() {
       @Override
       protected Optional<BooleanFormula> visitDefault() {
-        return Optional.absent();
+        return Optional.empty();
       }
 
       @Override
@@ -1498,7 +1498,7 @@ public class FormulaManagerView {
 
             @Override
             protected Optional<Triple<BooleanFormula, T, T>> visitDefault(Formula f) {
-              return Optional.absent();
+              return Optional.empty();
             }
 
             @Override
@@ -1518,7 +1518,7 @@ public class FormulaManagerView {
                     wrap(targetType, elseBranch)
                 ));
               }
-              return Optional.absent();
+              return Optional.empty();
             }
           }, pF
       );

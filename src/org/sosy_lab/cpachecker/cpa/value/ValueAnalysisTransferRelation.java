@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.value;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
@@ -383,7 +383,7 @@ public class ValueAnalysisTransferRelation
     state = ValueAnalysisState.copyOf(state);
     state.dropFrame(functionName);
 
-    AExpression expression = returnEdge.getExpression().orNull();
+    AExpression expression = returnEdge.getExpression().orElse(null);
     if (expression == null && returnEdge instanceof CReturnStatementEdge) {
       expression = CIntegerLiteralExpression.ZERO; // this is the default in C
     }
@@ -463,7 +463,7 @@ public class ValueAnalysisTransferRelation
         // We can handle all types below "casually", so just get the memory location for the
         // left hand side and assign the function's return value
 
-        Optional<MemoryLocation> memLoc = Optional.absent();
+        Optional<MemoryLocation> memLoc = Optional.empty();
 
         // get memory location for left hand side
         if (op1 instanceof CLeftHandSide) {
@@ -525,7 +525,7 @@ public class ValueAnalysisTransferRelation
       if (pValueVisitor.hasMissingPointer()) {
         addMissingInformation(pExpression, pRightHandSideValue);
       }
-      return Optional.absent();
+      return Optional.empty();
 
     } else {
       return Optional.of(assignedVarName);

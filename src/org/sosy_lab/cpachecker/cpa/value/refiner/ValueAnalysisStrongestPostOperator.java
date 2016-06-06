@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.Iterables;
 
 /**
@@ -76,7 +76,7 @@ public class ValueAnalysisStrongestPostOperator implements StrongestPostOperator
         transfer.getAbstractSuccessorsForEdge(pOrigin, pPrecision, pOperation);
 
     if (successors.isEmpty()) {
-      return Optional.absent();
+      return Optional.empty();
 
     } else {
       return Optional.of(Iterables.getOnlyElement(successors));

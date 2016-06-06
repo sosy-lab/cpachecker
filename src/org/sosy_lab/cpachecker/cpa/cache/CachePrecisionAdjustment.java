@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import com.google.common.base.Function;
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 /*
  * CAUTION: The cache for precision adjustment is only correct for CPAs that do

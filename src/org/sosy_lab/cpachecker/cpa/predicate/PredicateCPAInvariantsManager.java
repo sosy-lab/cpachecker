@@ -36,7 +36,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
 import com.google.common.base.Function;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
@@ -716,7 +716,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       List<Automaton> automata =
           AutomatonParser.parseAutomaton(
               new StringReader(spc.toString()),
-              Optional.<Path>absent(),
+              Optional.empty(),
               config,
               logger,
               cfa.getMachineModel(),
@@ -728,7 +728,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
               config,
               new OnlyWarningsLogmanager(logger),
               pInvariantShutdown,
-              Optional.<ShutdownManager>absent(),
+              Optional.empty(),
               cfa,
               specification,
               automata);

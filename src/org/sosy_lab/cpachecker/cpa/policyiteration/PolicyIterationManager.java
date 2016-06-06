@@ -4,7 +4,6 @@ import static org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationManager
 import static org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationManager.DecompositionStatus.BOUND_COMPUTED;
 import static org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationManager.DecompositionStatus.UNBOUNDED;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -12,6 +11,7 @@ import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
+import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
@@ -68,6 +68,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.StreamSupport;
@@ -302,7 +303,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       ) && isUnreachable(iState, extraInvariant)) {
 
       logger.log(Level.INFO, "Returning BOTTOM state");
-      return Optional.absent();
+      return Optional.empty();
     }
 
     // Perform the abstraction, if necessary.
@@ -401,7 +402,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         element = performValueDetermination(
             merged, updated, constraints, true);
       } else {
-        element = Optional.absent();
+        element = Optional.empty();
       }
 
       if (!element.isPresent()) {
@@ -595,7 +596,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
             logger.log(Level.INFO, "The val. det. problem is unsat,",
                 " switching to a more expensive strategy.");
-            return Optional.absent();
+            return Optional.empty();
           } else if (result == OptStatus.UNDEF) {
             logger.log(Level.WARNING, "Solver returned undefined status on the problem: ");
             logger.log(Level.INFO, optEnvironment.toString());
@@ -603,7 +604,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
           throw new CPATransferException("Unexpected solver state");
         }
 
-        Optional<Rational> value = optEnvironment.upper(handle, EPSILON);
+        Optional<Rational> value = Optionals.fromGuavaOptional(optEnvironment.upper(handle, EPSILON));
 
         if (value.isPresent() &&
             !templateManager.isOverflowing(template, value.get())) {
@@ -728,7 +729,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
           return Optional.of(policyBound);
         }
       }
-      return Optional.absent();
+      return Optional.empty();
     } finally {
       statistics.getBoundTimer.stop();
     }
@@ -866,7 +867,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         switch (status) {
           case OPT:
 
-            Optional<Rational> bound = optEnvironment.upper(handle, EPSILON);
+            Optional<Rational> bound = Optionals.fromGuavaOptional(optEnvironment.upper(handle, EPSILON));
             Optional<PolicyBound> policyBound = getPolicyBound(template,
                 optEnvironment, bound, annotatedFormula, p, state, objective);
             if (policyBound.isPresent()) {
@@ -1209,7 +1210,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
                 PolicyAbstractedState.class)
         );
     if (filteredSiblings.isEmpty()) {
-      return Optional.absent();
+      return Optional.empty();
     }
 
     // We follow the chain of backpointers.
@@ -1223,7 +1224,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
           return Optional.of(aState);
         } else {
           if (!aState.getGenerationState().isPresent()) {
-            return Optional.absent();
+            return Optional.empty();
           }
           a = aState.getGenerationState().get().getGeneratingState();
         }

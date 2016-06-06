@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 
@@ -105,7 +105,7 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
 
     if (!optionalUnwrappedResult.isPresent()) {
       element.removeFromARG();
-      return Optional.absent();
+      return Optional.empty();
     }
 
     PrecisionAdjustmentResult unwrappedResult = optionalUnwrappedResult.get();

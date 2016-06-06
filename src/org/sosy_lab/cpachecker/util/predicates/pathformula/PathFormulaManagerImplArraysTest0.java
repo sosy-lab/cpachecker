@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 import static com.google.common.truth.Truth.assertThat;
 import static org.sosy_lab.cpachecker.util.test.TestDataTools.makeDeclaration;
 
+import com.google.common.collect.Lists;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -50,7 +52,6 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
@@ -58,8 +59,7 @@ import org.sosy_lab.solver.SolverContextFactory.Solvers;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.test.SolverBasedTest0;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.Lists;
+import java.util.Optional;
 
 public class PathFormulaManagerImplArraysTest0 extends SolverBasedTest0 {
 
@@ -111,7 +111,7 @@ public class PathFormulaManagerImplArraysTest0 extends SolverBasedTest0 {
             LogManager.createTestLogManager(),
             ShutdownNotifier.createDummy(),
             MachineModel.LINUX32,
-            Optional.<VariableClassification>absent(),
+            Optional.empty(),
             AnalysisDirection.FORWARD);
 
     pfmgrBwd =
@@ -121,7 +121,7 @@ public class PathFormulaManagerImplArraysTest0 extends SolverBasedTest0 {
             LogManager.createTestLogManager(),
             ShutdownNotifier.createDummy(),
             MachineModel.LINUX32,
-            Optional.<VariableClassification>absent(),
+            Optional.empty(),
             AnalysisDirection.BACKWARD);
 
     eb = new CBinaryExpressionBuilder(MachineModel.LINUX64, logger);

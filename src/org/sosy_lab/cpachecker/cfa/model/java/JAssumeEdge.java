@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 public class JAssumeEdge extends AssumeEdge {
 

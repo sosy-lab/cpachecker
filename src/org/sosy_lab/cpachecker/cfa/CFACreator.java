@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cfa;
 import static com.google.common.base.Predicates.instanceOf;
 import static org.sosy_lab.cpachecker.util.CFAUtils.enteringEdges;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
@@ -445,7 +445,7 @@ private boolean classifyNodes = false;
         stats.variableClassificationTime.stop();
       }
     } else {
-      varClassification = Optional.<VariableClassification>absent();
+      varClassification = Optional.empty();
     }
 
     // create the live variables if the variable classification is present

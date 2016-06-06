@@ -28,7 +28,6 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.MapsDifference.collectMapsDifferenceTo;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Optional;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Maps;
@@ -83,6 +82,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
@@ -143,7 +143,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           throws InvalidConfigurationException {
 
     this(pFmgr, config, pLogger, pShutdownNotifier,
-        pMachineModel, Optional.<VariableClassification>absent(), pDirection);
+        pMachineModel, Optional.empty(), pDirection);
   }
 
   public PathFormulaManagerImpl(FormulaManagerView pFmgr,
@@ -422,8 +422,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       shutdownNotifier.shutdownIfNecessary();
       final String symbolName = symbolDifference.getKey();
       final CType symbolType = resultSSA.getType(symbolName);
-      final int index1 = symbolDifference.getLeftValue().or(1);
-      final int index2 = symbolDifference.getRightValue().or(1);
+      final int index1 = symbolDifference.getLeftValue().orElse(1);
+      final int index2 = symbolDifference.getRightValue().orElse(1);
 
       assert symbolName != null;
       if (index1 > index2 && index1 > 1) {
@@ -564,8 +564,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       shutdownNotifier.shutdownIfNecessary();
       final String symbolName = symbolDifference.getKey();
       final CType symbolType = resultSSA.getType(symbolName);
-      final int index1 = symbolDifference.getLeftValue().or(1);
-      final int index2 = symbolDifference.getRightValue().or(1);
+      final int index1 = symbolDifference.getLeftValue().orElse(1);
+      final int index2 = symbolDifference.getRightValue().orElse(1);
 
       assert symbolName != null;
       if (index1 > index2 && index1 > 1) {

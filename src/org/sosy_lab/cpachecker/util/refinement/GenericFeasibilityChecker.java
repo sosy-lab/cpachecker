@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.refinement;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;

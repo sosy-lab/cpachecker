@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -578,7 +578,7 @@ class ASTConverter {
 
     JExpression expr = convertExpressionWithoutSideEffects(s.getExpression());
 
-    return new JReturnStatement(getFileLocation(s), Optional.fromNullable(expr));
+    return new JReturnStatement(getFileLocation(s), Optional.ofNullable(expr));
   }
 
 /**

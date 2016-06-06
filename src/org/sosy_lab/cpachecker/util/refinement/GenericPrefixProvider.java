@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.util.refinement;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.FluentIterable;
 
 import org.sosy_lab.common.configuration.Configuration;

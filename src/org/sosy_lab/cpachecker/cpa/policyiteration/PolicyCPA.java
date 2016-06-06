@@ -1,7 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import com.google.common.base.Function;
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -108,7 +108,7 @@ public class PolicyCPA extends SingleEdgeTransferRelation
       ShutdownManager invariantShutdown = ShutdownManager.createWithParent(shutdownNotifier);
       invariantGenerator =
           CPAInvariantGenerator.create(
-              config, logger, invariantShutdown, Optional.absent(), cfa, specification);
+              config, logger, invariantShutdown, Optional.empty(), cfa, specification);
     } else {
       invariantGenerator = new DoNothingInvariantGenerator();
     }

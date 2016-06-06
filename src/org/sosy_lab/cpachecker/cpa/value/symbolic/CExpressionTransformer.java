@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;

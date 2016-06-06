@@ -27,7 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -196,8 +196,8 @@ public final class InterpolationManager {
     bfmgr = fmgr.getBooleanFormulaManager();
     pmgr = pPmgr;
     solver = pSolver;
-    loopStructure = pLoopStructure.orNull();
-    variableClassification = pVarClassification.orNull();
+    loopStructure = pLoopStructure.orElse(null);
+    variableClassification = pVarClassification.orElse(null);
 
     if (itpTimeLimit.isEmpty()) {
       executor = null;

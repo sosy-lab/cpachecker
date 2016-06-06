@@ -11,7 +11,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 /**
  * Interface for policy iteration.

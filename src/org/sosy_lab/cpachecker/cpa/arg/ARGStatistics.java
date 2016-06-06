@@ -295,7 +295,7 @@ public class ARGStatistics implements Statistics {
 
     for (AbstractState targetState : from(pReached).filter(IS_TARGET_STATE)) {
       ARGState s = (ARGState)targetState;
-      CounterexampleInfo cex = s.getCounterexampleInformation().orNull();
+      CounterexampleInfo cex = s.getCounterexampleInformation().orElse(null);
       if (cex == null) {
         ARGPath path = ARGUtils.getOnePathTo(s);
         if (path.getFullPath().isEmpty()) {

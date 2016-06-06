@@ -29,7 +29,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.UniqueIdGenerator;
@@ -327,7 +327,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
    */
   public Optional<CounterexampleInfo> getCounterexampleInformation() {
     checkState(isTarget());
-    return Optional.fromNullable(counterexample);
+    return Optional.ofNullable(counterexample);
   }
 
   // small and less important stuff

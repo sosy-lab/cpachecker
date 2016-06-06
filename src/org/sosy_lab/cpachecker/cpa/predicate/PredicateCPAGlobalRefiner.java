@@ -27,7 +27,7 @@ import static java.util.Collections.unmodifiableList;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
@@ -305,7 +305,7 @@ public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
         currentPath.remove(currentPath.size() - 1);
       }
     }
-    return Optional.absent();
+    return Optional.empty();
   }
 
   /**

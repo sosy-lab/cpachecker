@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.composite;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.common.log.LogManager;
@@ -106,7 +106,7 @@ class CompositePrecisionAdjustment implements PrecisionAdjustment {
       );
 
       if (!out.isPresent()) {
-        return Optional.absent();
+        return Optional.empty();
       }
 
       PrecisionAdjustmentResult inner = out.get();

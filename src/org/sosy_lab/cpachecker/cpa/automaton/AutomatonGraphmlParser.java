@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
@@ -505,7 +505,7 @@ public class AutomatonGraphmlParser {
             matchOriginLineNumber = Integer.parseInt(originLineTags.iterator().next());
           }
           if (matchOriginLineNumber > 0) {
-            Optional<String> matchOriginFileName = originFileTags.isEmpty() ? Optional.<String>absent() : Optional.of(originFileTags.iterator().next());
+            Optional<String> matchOriginFileName = originFileTags.isEmpty() ? Optional.empty() : Optional.of(originFileTags.iterator().next());
             LocationDescriptor originDescriptor = new OriginLineDescriptor(matchOriginFileName, matchOriginLineNumber);
 
             AutomatonBoolExpr startingLineMatchingExpr = new AutomatonBoolExpr.MatchLocationDescriptor(originDescriptor);
@@ -530,7 +530,7 @@ public class AutomatonGraphmlParser {
           }
 
           if (offset >= 0) {
-            Optional<String> matchOriginFileName = originFileTags.isEmpty() ? Optional.<String>absent() : Optional.of(originFileTags.iterator().next());
+            Optional<String> matchOriginFileName = originFileTags.isEmpty() ? Optional.empty() : Optional.of(originFileTags.iterator().next());
             LocationDescriptor originDescriptor = new OffsetDescriptor(matchOriginFileName, offset);
 
             AutomatonBoolExpr offsetMatchingExpr = new AutomatonBoolExpr.MatchLocationDescriptor(originDescriptor);
@@ -1341,7 +1341,7 @@ public class AutomatonGraphmlParser {
         Node id = keyDef.getAttributes().getNamedItem("id");
         if (dataKey.id.equals(id.getTextContent())) {
           NodeList defaultTags = keyDef.getElementsByTagName(GraphMlTag.DEFAULT.toString());
-          result = Optional.absent();
+          result = Optional.empty();
           if (defaultTags.getLength() > 0) {
             checkParsable(
                 defaultTags.getLength() == 1,
@@ -1352,7 +1352,7 @@ public class AutomatonGraphmlParser {
           return result;
         }
       }
-      return Optional.absent();
+      return Optional.empty();
     }
 
     private static String getNodeId(Node stateNode) {

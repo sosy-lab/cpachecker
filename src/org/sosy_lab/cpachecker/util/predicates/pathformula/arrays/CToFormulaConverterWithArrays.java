@@ -53,7 +53,7 @@ import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Verify;
 

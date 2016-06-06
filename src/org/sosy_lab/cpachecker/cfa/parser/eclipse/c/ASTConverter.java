@@ -27,7 +27,7 @@ import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutConst;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutVolatile;
 
 import com.google.common.base.Function;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -1450,7 +1450,7 @@ class ASTConverter {
 
   public CReturnStatement convert(final IASTReturnStatement s) {
     final FileLocation loc = getLocation(s);
-    final Optional<CExpression> returnExp = Optional.fromNullable(convertExpressionWithoutSideEffects(s.getReturnValue()));
+    final Optional<CExpression> returnExp = Optional.ofNullable(convertExpressionWithoutSideEffects(s.getReturnValue()));
     final Optional<CVariableDeclaration> returnVariableDeclaration = ((FunctionScope)scope).getReturnVariable();
 
     final Optional<CAssignment> returnAssignment;
@@ -1470,14 +1470,14 @@ class ASTConverter {
         returnAssignment = Optional.<CAssignment>of(
             new CExpressionAssignmentStatement(loc, lhs, rhs));
       } else {
-        returnAssignment = Optional.absent();
+        returnAssignment = Optional.empty();
       }
 
     } else {
       if (returnExp.isPresent()) {
         logger.log(Level.WARNING, loc + ":", "Return statement with expression", returnExp.get(), "in void function.");
       }
-      returnAssignment = Optional.absent();
+      returnAssignment = Optional.empty();
     }
 
     return new CReturnStatement(loc, returnExp, returnAssignment);

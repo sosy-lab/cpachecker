@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import com.google.common.base.Functions;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.Iterables;
 
 import org.sosy_lab.common.ShutdownNotifier;

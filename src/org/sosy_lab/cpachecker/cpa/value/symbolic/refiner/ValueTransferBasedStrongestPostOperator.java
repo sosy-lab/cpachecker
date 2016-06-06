@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
@@ -102,7 +102,7 @@ public class ValueTransferBasedStrongestPostOperator
         valueTransfer.getAbstractSuccessorsForEdge(oldValues, pPrecision, pOperation);
 
     if (isContradiction(successors)) {
-      return Optional.absent();
+      return Optional.empty();
 
     } else {
       final ValueAnalysisState valuesSuccessor = Iterables.getOnlyElement(successors);
@@ -114,7 +114,7 @@ public class ValueTransferBasedStrongestPostOperator
               pOperation);
 
       if (isContradiction(constraintsSuccessors)) {
-        return Optional.absent();
+        return Optional.empty();
       }
 
       final ConstraintsState constraintsSuccessor =
@@ -124,14 +124,14 @@ public class ValueTransferBasedStrongestPostOperator
           strengthenConstraintsState(constraintsSuccessor, valuesSuccessor, pOperation);
 
       if (!constraintsStrengthenResult.isPresent()) {
-        return Optional.absent();
+        return Optional.empty();
 
       } else {
         Optional<ValueAnalysisState> valueStrengthenResult =
             strengthenValueState(valuesSuccessor, constraintsSuccessor, pPrecision, pOperation);
 
         if (!valueStrengthenResult.isPresent()) {
-          return Optional.absent();
+          return Optional.empty();
         }
 
         return Optional.of(
@@ -212,7 +212,7 @@ public class ValueTransferBasedStrongestPostOperator
                                  pPrecision);
 
     if (isContradiction(strengthenResult)) {
-      return Optional.absent();
+      return Optional.empty();
 
     } else {
       final AbstractState onlyState = Iterables.getOnlyElement(strengthenResult);
@@ -235,7 +235,7 @@ public class ValueTransferBasedStrongestPostOperator
                                        SingletonPrecision.getInstance());
 
     if (isContradiction(successors)) {
-      return Optional.absent();
+      return Optional.empty();
 
     } else {
       final AbstractState onlyState = Iterables.getOnlyElement(successors);

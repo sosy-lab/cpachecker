@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.Lists;
 
 /**
@@ -155,7 +155,7 @@ class Scope {
    */
   public void enterMethod(JMethodDeclaration methodDef) {
     currentMethodName = methodDef.getOrigName();
-    returnVariable = Optional.fromNullable(createFunctionReturnVariable(methodDef));
+    returnVariable = Optional.ofNullable(createFunctionReturnVariable(methodDef));
 
     enterBlock();
   }

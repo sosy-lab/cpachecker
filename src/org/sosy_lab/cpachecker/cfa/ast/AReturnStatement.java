@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 /**
  * Representation of a "return" statement,

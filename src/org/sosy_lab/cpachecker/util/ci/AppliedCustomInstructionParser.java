@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.ci;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects.dls;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;

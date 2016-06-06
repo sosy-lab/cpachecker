@@ -39,7 +39,7 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.ImmutableList;
 
 /**
@@ -81,14 +81,14 @@ public class UnsatCoreCounterexampleFilter extends AbstractNegatedPathCounterexa
       if (!thmProver.isUnsat()) {
         // Negated path is not infeasible, cannot produce unsat core.
         // No filtering possible.
-        return Optional.absent();
+        return Optional.empty();
       }
 
       return Optional.of(ImmutableList.copyOf(thmProver.getUnsatCore()));
 
     } catch (SolverException e) {
       logger.logUserException(Level.WARNING, e, "Solving failed on counterexample path, cannot filter this counterexample");
-      return Optional.absent();
+      return Optional.empty();
     }
   }
 }

@@ -137,7 +137,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
           pRootState,
           pErrorPathStates,
           "CounterexampleToCheck",
-          pErrorState.getCounterexampleInformation().orNull());
+          pErrorState.getCounterexampleInformation().orElse(null));
     }
 
     CFANode entryNode = extractLocation(pRootState);

@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.util.SourceLocationMapper;
 import org.sosy_lab.cpachecker.util.SourceLocationMapper.LocationDescriptor;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 

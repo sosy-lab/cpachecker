@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
-import com.google.common.base.Optional;
 import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.ClassPath.ClassInfo;
 
@@ -50,7 +49,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -59,6 +57,7 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -134,7 +133,7 @@ public class CPASelfCheck {
     CSourceOriginMapping sourceOriginMapping = new CSourceOriginMapping();
     ParseResult cfas = parser.parseString("", code, sourceOriginMapping);
     MutableCFA cfa = new MutableCFA(MachineModel.LINUX32, cfas.getFunctions(), cfas.getCFANodes(), cfas.getFunctions().get("main"), Language.C);
-    return cfa.makeImmutableCFA(Optional.<VariableClassification>absent());
+    return cfa.makeImmutableCFA(Optional.empty());
   }
 
   private static ConfigurableProgramAnalysis tryToInstantiate(Class<ConfigurableProgramAnalysis> pCpa,

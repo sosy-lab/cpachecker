@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 

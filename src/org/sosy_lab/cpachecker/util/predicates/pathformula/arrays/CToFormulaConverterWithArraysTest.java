@@ -83,7 +83,7 @@ import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.test.SolverBasedTest0;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.Lists;
 
 /**
@@ -233,7 +233,7 @@ public class CToFormulaConverterWithArraysTest extends SolverBasedTest0 {
             opts,
             mgrv,
             machineModel,
-            Optional.<VariableClassification>absent(),
+            Optional.empty(),
             logger,
             ShutdownNotifier.createDummy(),
             th,
@@ -244,7 +244,7 @@ public class CToFormulaConverterWithArraysTest extends SolverBasedTest0 {
             opts,
             mgrv,
             machineModel,
-            Optional.<VariableClassification>absent(),
+            Optional.empty(),
             logger,
             ShutdownNotifier.createDummy(),
             th,

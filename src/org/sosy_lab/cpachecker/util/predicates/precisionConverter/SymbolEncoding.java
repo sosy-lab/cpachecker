@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.precisionConverter;
 import static org.sosy_lab.solver.api.FormulaType.getBitvectorTypeWithSize;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Sets;
 

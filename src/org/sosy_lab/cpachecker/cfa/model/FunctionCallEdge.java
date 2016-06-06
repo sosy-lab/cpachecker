@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 
 public class FunctionCallEdge extends AbstractCFAEdge {

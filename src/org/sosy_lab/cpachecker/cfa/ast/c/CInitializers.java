@@ -27,7 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutConst;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutVolatile;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.ContiguousSet;
 import com.google.common.collect.DiscreteDomain;
 import com.google.common.collect.ImmutableList;
@@ -156,7 +156,7 @@ public final class CInitializers {
       boolean successful;
 
       if (currentType instanceof CCompositeType && ((CCompositeType) currentType).getKind() != ComplexTypeKind.ENUM) {
-        successful = handleInitializerForCompositeType(currentObject, Optional.<String>absent(),
+        successful = handleInitializerForCompositeType(currentObject, Optional.empty(),
             (CCompositeType)currentType,
             currentSubobjects, nextSubobjects, loc, edge, null);
 
@@ -388,7 +388,7 @@ public final class CInitializers {
       boolean successful;
 
       if (currentType instanceof CCompositeType && ((CCompositeType) currentType).getKind() != ComplexTypeKind.ENUM) {
-        successful = handleInitializerForCompositeType(currentSubobject, Optional.<String>absent(),
+        successful = handleInitializerForCompositeType(currentSubobject, Optional.empty(),
             (CCompositeType)currentType,
             currentSubobjects, nextSubobjects, loc, edge, null);
 

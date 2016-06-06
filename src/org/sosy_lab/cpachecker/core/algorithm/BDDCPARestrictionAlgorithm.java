@@ -107,7 +107,7 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
 
       if (presenceConditionFile != null && lastState instanceof ARGState) {
         CounterexampleInfo counterEx =
-            ((ARGState) lastState).getCounterexampleInformation().orNull();
+            ((ARGState) lastState).getCounterexampleInformation().orElse(null);
         if (counterEx != null) {
           counterEx.addFurtherInformation(manager.dumpRegion(errorBdd), presenceConditionFile);
         }

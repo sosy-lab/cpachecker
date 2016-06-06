@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.Predicates.in;
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;

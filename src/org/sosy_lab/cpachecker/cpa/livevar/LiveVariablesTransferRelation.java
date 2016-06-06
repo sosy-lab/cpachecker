@@ -32,7 +32,7 @@ import static org.sosy_lab.cpachecker.util.LiveVariables.LIVE_DECL_EQUIVALENCE;
 import static org.sosy_lab.cpachecker.util.LiveVariables.TO_EQUIV_WRAPPER;
 
 import com.google.common.base.Equivalence.Wrapper;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.functionpointer;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.configuration.Configuration;

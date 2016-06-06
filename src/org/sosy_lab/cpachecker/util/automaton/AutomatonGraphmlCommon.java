@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.automaton;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Maps;
@@ -233,7 +233,7 @@ public class AutomatonGraphmlCommon {
       if (pTextualRepresentation.equals("true_witness")) {
         return Optional.of(PROOF_WITNESS);
       }
-      return Optional.absent();
+      return Optional.empty();
     }
   }
 

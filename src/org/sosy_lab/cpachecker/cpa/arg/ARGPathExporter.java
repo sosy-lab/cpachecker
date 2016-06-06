@@ -28,7 +28,7 @@ import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.SINK
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -340,7 +340,7 @@ public class ARGPathExporter {
         pRootState,
         pIsRelevantState,
         pIsRelevantEdge,
-        Optional.<CounterexampleInfo>absent(),
+        Optional.empty(),
         pGraphBuilder);
   }
 

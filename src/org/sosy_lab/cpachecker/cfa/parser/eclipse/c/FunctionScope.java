@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.util.VariableClassificationBuilder;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.ImmutableMap;
 
 
@@ -120,7 +120,7 @@ class FunctionScope extends AbstractScope {
     checkArgument(globalFunctions.containsKey(getCurrentFunctionName()) || localFunctions.containsKey(getCurrentFunctionName()));
 
     if (currentFunction.getType().getReturnType().getCanonicalType() instanceof CVoidType) {
-      returnVariable = Optional.absent();
+      returnVariable = Optional.empty();
     } else {
       @SuppressWarnings("deprecation") // As soon as this is the only usage of the deprecated constant, it should be inlined here
       String name = VariableClassificationBuilder.FUNCTION_RETURN_VARIABLE;

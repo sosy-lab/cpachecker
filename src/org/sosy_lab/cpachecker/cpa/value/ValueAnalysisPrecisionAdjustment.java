@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.value;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Function;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.ImmutableSet;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;

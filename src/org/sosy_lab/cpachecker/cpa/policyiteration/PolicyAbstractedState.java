@@ -1,6 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.ImmutableMap;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -142,7 +142,7 @@ public final class PolicyAbstractedState extends PolicyState
    * <code>e</code> or an empty optional if it is unbounded.
    */
   public Optional<PolicyBound> getBound(Template e) {
-    return Optional.fromNullable(abstraction.get(e));
+    return Optional.ofNullable(abstraction.get(e));
   }
 
   /**
@@ -160,7 +160,7 @@ public final class PolicyAbstractedState extends PolicyState
         SSAMap.emptySSAMap(),
         PointerTargetSet.emptyPointerTargetSet(),
         pPredicate,
-        Optional.<PolicyIntermediateState>absent()
+        Optional.empty()
     );
   }
 

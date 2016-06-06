@@ -114,7 +114,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.primitives.UnsignedLongs;
 
 
@@ -1889,7 +1889,7 @@ public abstract class AbstractExpressionValueVisitor
       JType targetType, final LogManagerWithoutDuplicates logger, final FileLocation fileLocation) {
 
     if (!value.isExplicitlyKnown()) {
-      return castIfSymbolic(value, targetType, Optional.<MachineModel>absent());
+      return castIfSymbolic(value, targetType, Optional.empty());
     }
 
     // Other than symbolic values, we can only cast numeric values, for now.

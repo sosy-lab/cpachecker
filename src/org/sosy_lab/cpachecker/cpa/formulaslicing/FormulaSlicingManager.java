@@ -1,6 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -151,7 +151,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     boolean shouldPerformAbstraction = shouldPerformAbstraction(
         iState.getNode(), pFullState);
     if (hasTargetState && checkTargetStates && isUnreachableTarget(iState)) {
-      return Optional.absent();
+      return Optional.empty();
     }
 
     if (shouldPerformAbstraction) {
@@ -167,14 +167,14 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
         if (slicingOut.isPresent()) {
           out = slicingOut.get();
         } else {
-          return Optional.absent();
+          return Optional.empty();
         }
       } else {
 
         // No predecessor in the same partition, check reachability and
         // convert the intermediate path to RCNF form.
         if (isUnreachableAbstraction(iState)) {
-          return Optional.absent();
+          return Optional.empty();
         }
         out = SlicingAbstractedState.ofClauses(
             toRcnf(iState),
@@ -274,7 +274,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     Set<BooleanFormula> finalClauses;
     Set<PathFormulaWithStartSSA> inductiveUnder;
     if (isUnreachableAbstraction(iState)) {
-      return Optional.absent();
+      return Optional.empty();
     }
     try {
       statistics.inductiveWeakening.start();
@@ -496,7 +496,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
   /**
    * Find a previous closest occurrence in ARG in the same partition, or
-   * {@code Optional.absent()}
+   * {@code Optional.empty()}
    */
   private Optional<SlicingAbstractedState> findOldToMerge
   (UnmodifiableReachedSet states, AbstractState pArgState, SlicingState state) {
@@ -507,7 +507,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
                 SlicingAbstractedState.class)
         );
     if (filteredSiblings.isEmpty()) {
-      return Optional.absent();
+      return Optional.empty();
     }
 
     // We follow the chain of backpointers until we intersect something in the
@@ -523,7 +523,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
         } else {
           if (!aState.getGeneratingState().isPresent()) {
             // Empty.
-            return Optional.absent();
+            return Optional.empty();
           }
           a = aState.getGeneratingState().get().getAbstractParent();
         }

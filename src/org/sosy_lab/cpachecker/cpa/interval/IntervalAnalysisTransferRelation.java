@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.interval;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;

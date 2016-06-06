@@ -31,7 +31,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.base.Function;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -238,7 +238,7 @@ public class ARGUtils {
     }
 
     if (!lastTransitionIsDifferent) {
-      return Optional.absent();
+      return Optional.empty();
     }
 
     return Optional.of(new ARGPath(Lists.reverse(states)));

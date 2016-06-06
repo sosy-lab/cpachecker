@@ -28,7 +28,7 @@ import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
@@ -777,7 +777,7 @@ public class CFASingleLoopTransformation {
     FunctionEntryNode artificialFunctionEntryNode =
         new CFunctionEntryNode(FileLocation.DUMMY, artificialFunctionDeclaration,
             artificialFunctionExitNode, Collections.<String>emptyList(),
-            Optional.<CVariableDeclaration>absent());
+            Optional.empty());
     Set<CFANode> nodes = getAllNodes(pStartNode);
     for (CFANode node : nodes) {
       for (CFAEdge leavingEdge : CFAUtils.allLeavingEdges(node).toList()) {
@@ -1335,7 +1335,7 @@ public class CFASingleLoopTransformation {
               pNewToOldMapping);
       addToNodes(functionSummaryEdge);
       Optional<CFunctionCall> cFunctionCall = functionCallEdge.getRawAST();
-      return new CFunctionCallEdge(rawStatement, fileLocation, pNewPredecessor, (CFunctionEntryNode) pNewSuccessor, cFunctionCall.orNull(), functionSummaryEdge);
+      return new CFunctionCallEdge(rawStatement, fileLocation, pNewPredecessor, (CFunctionEntryNode) pNewSuccessor, cFunctionCall.orElse(null), functionSummaryEdge);
     }
     case FunctionReturnEdge:
       if (!(pNewPredecessor instanceof FunctionExitNode)) {
@@ -1361,7 +1361,7 @@ public class CFASingleLoopTransformation {
       }
       CReturnStatementEdge returnStatementEdge = (CReturnStatementEdge) pEdge;
       Optional<CReturnStatement> cReturnStatement = returnStatementEdge.getRawAST();
-      return new CReturnStatementEdge(rawStatement, cReturnStatement.orNull(), fileLocation, pNewPredecessor, (FunctionExitNode) pNewSuccessor);
+      return new CReturnStatementEdge(rawStatement, cReturnStatement.orElse(null), fileLocation, pNewPredecessor, (FunctionExitNode) pNewSuccessor);
     case StatementEdge:
       CStatementEdge statementEdge = (CStatementEdge) pEdge;
       if (statementEdge instanceof CFunctionSummaryStatementEdge) {

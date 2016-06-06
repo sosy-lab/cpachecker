@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 public class CFunctionCallEdge extends FunctionCallEdge {
 

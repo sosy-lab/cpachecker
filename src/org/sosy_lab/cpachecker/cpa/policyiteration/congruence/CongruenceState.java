@@ -1,6 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration.congruence;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.ImmutableMap;
 
 import org.sosy_lab.cpachecker.cpa.policyiteration.Template;
@@ -29,7 +29,7 @@ public class CongruenceState implements Iterable<Entry<Template, Congruence>>{
   public Optional<Congruence> get(Template template) {
     Congruence c = data.get(template);
     if (c == null) {
-      return Optional.absent();
+      return Optional.empty();
     }
     return Optional.of(c);
   }

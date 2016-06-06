@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableSet;

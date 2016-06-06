@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;

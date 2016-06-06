@@ -56,7 +56,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurableProgramAnalysisWithBAM, ProofChecker {
 

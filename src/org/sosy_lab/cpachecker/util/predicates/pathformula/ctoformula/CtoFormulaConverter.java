@@ -27,7 +27,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Cto
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.getRealFieldOwner;
 
 import com.google.common.base.CharMatcher;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;

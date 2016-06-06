@@ -28,7 +28,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -158,9 +158,9 @@ public class VariableClassificationBuilder {
 
   private final Dependencies dependencies = new Dependencies();
 
-  private Optional<Set<String>> relevantVariables = Optional.absent();
-  private Optional<Multimap<CCompositeType, String>> relevantFields = Optional.absent();
-  private Optional<Set<String>> addressedVariables = Optional.absent();
+  private Optional<Set<String>> relevantVariables = Optional.empty();
+  private Optional<Multimap<CCompositeType, String>> relevantFields = Optional.empty();
+  private Optional<Set<String>> addressedVariables = Optional.empty();
 
   private final LogManager logger;
 

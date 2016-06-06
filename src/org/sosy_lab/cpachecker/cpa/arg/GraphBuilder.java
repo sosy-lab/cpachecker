@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.arg;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
@@ -105,7 +105,7 @@ public enum GraphBuilder {
 
               assert (!(innerEdge instanceof AssumeEdge));
 
-              Optional<Collection<ARGState>> absentStates = Optional.absent();
+              Optional<Collection<ARGState>> absentStates = Optional.empty();
               pEdgeAppender.appendNewEdge(pDocument, prevStateId, pseudoStateId, innerEdge, absentStates, pValueMap);
               prevStateId = pseudoStateId;
             }
@@ -242,7 +242,7 @@ public enum GraphBuilder {
           if (subProgramNodes.contains(successor)) {
             locationStates = Optional.of(states.get(successor));
           } else {
-            locationStates = Optional.absent();
+            locationStates = Optional.empty();
           }
           if (visited.add(successor)) {
             waitlist.offer(successor);
@@ -257,7 +257,7 @@ public enum GraphBuilder {
           if (subProgramNodes.contains(predecessor)) {
             locationStates = Optional.of(states.get(predecessor));
           } else {
-            locationStates = Optional.absent();
+            locationStates = Optional.empty();
           }
           if (visited.add(predecessor)) {
             waitlist.offer(predecessor);

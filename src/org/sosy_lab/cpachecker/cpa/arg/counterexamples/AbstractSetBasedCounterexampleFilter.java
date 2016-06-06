@@ -33,7 +33,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.errorprone.annotations.ForOverride;
 
 /**
@@ -85,13 +85,13 @@ public abstract class AbstractSetBasedCounterexampleFilter<T> implements Counter
    * The more abstract it is, the more "similar" counterexamples are reported
    * as irrelevant.
    * If this filter does not manage to produce a meaningful representation of the current path,
-   * it may return {@link Optional#absent()}. In this case, the counterexample
+   * it may return {@link Optional#empty()}. In this case, the counterexample
    * is considered relevant.
    *
    * @param counterexample A counterexample, guaranteed to be not null.
    * @return An immutable representation of the counterexample, needs to
    * have proper implementations of {@link Object#equals(Object)}
-   * and {@link Object#hashCode()}, or {@link Optional#absent()}.
+   * and {@link Object#hashCode()}, or {@link Optional#empty()}.
    */
   @ForOverride
   protected abstract Optional<T> getCounterexampleRepresentation(CounterexampleInfo counterexample) throws InterruptedException;

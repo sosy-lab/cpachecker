@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;

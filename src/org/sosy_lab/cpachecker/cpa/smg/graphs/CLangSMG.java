@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
@@ -605,7 +605,7 @@ public class CLangSMG extends SMG {
     Optional<SMGObject> initialRegion = getInitialRegion(pLocation);
 
     if (!initialRegion.isPresent()) {
-      return Optional.absent();
+      return Optional.empty();
     }
 
     SMGObject object = initialRegion.get();
@@ -620,7 +620,7 @@ public class CLangSMG extends SMG {
           getHVEdges(SMGEdgeHasValueFilter.objectFilter(object).filterAtOffset(offset));
 
       if (hves.isEmpty()) {
-        return Optional.absent();
+        return Optional.empty();
       }
 
       hve = Iterables.getOnlyElement(hves);
@@ -632,7 +632,7 @@ public class CLangSMG extends SMG {
       }
 
       if (!isPointer(value)) {
-        return Optional.absent();
+        return Optional.empty();
       }
 
       SMGEdgePointsTo ptE = getPointer(value);
@@ -651,7 +651,7 @@ public class CLangSMG extends SMG {
         SMGObject initialRegion = global_objects.get(initalVarName);
         return Optional.of(initialRegion);
       } else {
-        return Optional.absent();
+        return Optional.empty();
       }
     } else {
 
@@ -659,7 +659,7 @@ public class CLangSMG extends SMG {
       int locationOnStack = pLocation.getLocationOnStack();
 
       if (stack_objects.size() <= locationOnStack) {
-        return Optional.absent();
+        return Optional.empty();
       }
       CLangStackFrame frame = Iterables.get(stack_objects, locationOnStack);
 
@@ -674,7 +674,7 @@ public class CLangSMG extends SMG {
         SMGObject initialObject = frame.getVariable(initalVarName);
         return Optional.of(initialObject);
       } else {
-        return Optional.absent();
+        return Optional.empty();
       }
     }
   }

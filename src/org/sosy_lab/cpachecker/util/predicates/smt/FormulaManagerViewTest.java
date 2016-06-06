@@ -95,7 +95,7 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
    * strip the most outer NOT, if there is one, else return the formula unchanged.
    */
   private BooleanFormula stripNot(final BooleanFormula f) {
-    return mgrv.stripNegation(f).or(f);
+    return mgrv.stripNegation(f).orElse(f);
   }
 
   @Test

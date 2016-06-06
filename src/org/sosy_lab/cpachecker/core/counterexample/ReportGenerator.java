@@ -30,11 +30,11 @@ import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Charsets;
-import com.google.common.base.Optional;
 import com.google.common.base.Splitter;
 import com.google.common.io.Resources;
 
 import org.sosy_lab.common.JSON;
+import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -125,7 +125,7 @@ public class ReportGenerator {
     }
 
     Iterable<CounterexampleInfo> counterExamples =
-        Optional.presentInstances(
+        Optionals.presentInstances(
             from(pReached)
                 .filter(IS_TARGET_STATE)
                 .filter(ARGState.class)

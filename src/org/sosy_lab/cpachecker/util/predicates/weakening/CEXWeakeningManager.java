@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.weakening;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.ShutdownNotifier;
@@ -231,7 +231,7 @@ public class CEXWeakeningManager {
             return Optional.of(operand);
           }
         }
-        return Optional.absent();
+        return Optional.empty();
       }
 
       private TraversalProcess selectChildren(List<BooleanFormula> operands) {

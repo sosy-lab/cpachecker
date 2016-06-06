@@ -234,7 +234,7 @@ public class TemplateManager {
   private List<LinearExpression<CIdExpression>> filterRedundantExpressions(
       List<LinearExpression<CIdExpression>> pLinearExpressions
   ) {
-    Predicate<com.google.common.base.Optional<Rational>> existsAndMoreThanOne =
+    Predicate<Optional<Rational>> existsAndMoreThanOne =
         (coeff -> coeff.isPresent() && coeff.get().compareTo(Rational.ONE) > 0);
     return pLinearExpressions.stream().filter(
             l -> !pLinearExpressions.stream().anyMatch(

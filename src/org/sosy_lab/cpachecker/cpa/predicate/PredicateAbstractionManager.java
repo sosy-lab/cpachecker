@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Predicates.equalTo;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -84,6 +83,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -958,7 +958,7 @@ public class PredicateAbstractionManager {
       builder.startNewConjunction();
       for (BooleanFormula f : model) {
         Optional<BooleanFormula> inner = fmgr.stripNegation(f);
-        Region region = amgr.getPredicate(inner.or(f)).getAbstractVariable();
+        Region region = amgr.getPredicate(inner.orElse(f)).getAbstractVariable();
         if (inner.isPresent()) {
           // TODO: possible bug if the predicate itself contains the negation.
           builder.addNegativeRegion(region);

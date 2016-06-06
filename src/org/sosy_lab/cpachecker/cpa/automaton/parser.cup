@@ -35,6 +35,7 @@ import java.util.LinkedList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Level;
 
 import java_cup.runtime.ComplexSymbolFactory;
@@ -55,7 +56,6 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
 import com.google.common.base.Throwables;
-import com.google.common.base.Optional;
 
 parser code {:
   private LogManager logger;
@@ -125,7 +125,7 @@ parser code {:
   */
   public static List<Automaton> parseAutomaton(Reader reader, Optional<Path> pInputFile, Configuration config, LogManager pLogger, MachineModel pMachine, Scope scope, Language pLanguage) throws InvalidConfigurationException {
     ComplexSymbolFactory sf = new ComplexSymbolFactory();
-    Scanner scanner = new AutomatonScanner(reader, pInputFile.or(Paths.get("")), pLogger, sf);
+    Scanner scanner = new AutomatonScanner(reader, pInputFile.orElse(Paths.get("")), pLogger, sf);
 
     AutomatonParser automatonParser;
 

@@ -1,6 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration.congruence;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.configuration.Configuration;

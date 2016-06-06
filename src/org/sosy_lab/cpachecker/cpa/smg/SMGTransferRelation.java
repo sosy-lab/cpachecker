@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.smg;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Function;
-import com.google.common.base.Optional;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -124,6 +123,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -862,7 +862,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   private List<SMGState> handleExitFromFunction(SMGState smgState,
       CReturnStatementEdge returnEdge) throws CPATransferException {
 
-    CExpression returnExp = returnEdge.getExpression().or(CIntegerLiteralExpression.ZERO); // 0 is the default in C
+    CExpression returnExp = returnEdge.getExpression().orElse(CIntegerLiteralExpression.ZERO); // 0 is the default in C
 
     logger.log(Level.FINEST, "Handling return Statement: ", returnExp);
 

@@ -34,7 +34,7 @@ import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableCollection;
@@ -373,7 +373,7 @@ public class LiveVariables {
       limitChecker = null;
     }
 
-    LiveVariables liveVarObject = create0(variableClassification.orNull(), globalsList, logger, shutdownNotifier, cfa, liveVarConfig);
+    LiveVariables liveVarObject = create0(variableClassification.orElse(null), globalsList, logger, shutdownNotifier, cfa, liveVarConfig);
     if (limitChecker != null) {
       limitChecker.cancel();
     }
@@ -552,7 +552,7 @@ public class LiveVariables {
       // analysis without having the live variable analysis
       logger.logUserException(Level.WARNING, e, "An error occured during the creation"
           + " of the necessary CPA parts for the live variables analysis.");
-      return Optional.absent();
+      return Optional.empty();
     }
   }
 

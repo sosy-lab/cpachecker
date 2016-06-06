@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.octagon.refiner;
 
 import static org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision.createStaticPrecision;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Lists;

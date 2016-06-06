@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 public interface InvariantProvider {
 

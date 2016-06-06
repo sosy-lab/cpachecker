@@ -168,7 +168,7 @@ public class CFADeclarationMover {
       return edge;
     case ReturnStatementEdge:
       edge = new CReturnStatementEdge(((CReturnStatementEdge)edge).getRawStatement(),
-                                      ((CReturnStatementEdge)edge).getRawAST().orNull(),
+                                      ((CReturnStatementEdge)edge).getRawAST().orElse(null),
                                       edge.getFileLocation(),
                                       pred ,
                                       (FunctionExitNode) edge.getSuccessor());

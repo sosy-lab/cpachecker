@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SortedSetMultimap;
 
@@ -48,8 +48,8 @@ public class MutableCFA implements CFA {
   private final SortedSetMultimap<String, CFANode> allNodes;
   private final FunctionEntryNode mainFunction;
   private final Language language;
-  private Optional<LoopStructure> loopStructure = Optional.absent();
-  private Optional<LiveVariables> liveVariables = Optional.absent();
+  private Optional<LoopStructure> loopStructure = Optional.empty();
+  private Optional<LiveVariables> liveVariables = Optional.empty();
 
   public MutableCFA(
       MachineModel pMachineModel,
@@ -151,7 +151,7 @@ public class MutableCFA implements CFA {
     if (loopStructure.isPresent()) {
       return Optional.of(loopStructure.get().getAllLoopHeads());
     }
-    return Optional.absent();
+    return Optional.empty();
   }
 
   public ImmutableCFA makeImmutableCFA(Optional<VariableClassification> pVarClassification) {
@@ -161,7 +161,7 @@ public class MutableCFA implements CFA {
 
   @Override
   public Optional<VariableClassification> getVarClassification() {
-    return Optional.absent();
+    return Optional.empty();
   }
 
   @Override

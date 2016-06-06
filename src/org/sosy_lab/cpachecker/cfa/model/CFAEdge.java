@@ -27,7 +27,7 @@ package org.sosy_lab.cpachecker.cfa.model;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 public interface CFAEdge {
 

@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.ForgettingCompositeSta
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.SymbolicStrongestPostOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 /**
  * Strongest-post operator with the semantics of
@@ -74,7 +74,7 @@ public class DelegatingStrongestPost implements SymbolicStrongestPostOperator {
         explicitStrongestPost.getStrongestPost(pOrigin.getValueState(), pPrecision, pOperation);
 
     if (!successor.isPresent()) {
-      return Optional.absent();
+      return Optional.empty();
     } else {
       ValueAnalysisState next = successor.get();
       return Optional.of(new ForgettingCompositeState(next, INITIAL_CONSTRAINTS));

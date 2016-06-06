@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.MoreObjects.firstNonNull;
 
 import com.google.common.base.Function;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.collect.PersistentMap;
@@ -187,7 +187,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     if (newAbstractionFormula.isFalse()) {
       numAbstractionsFalse++;
       logger.log(Level.FINEST, "Abstraction is false, node is not reachable");
-      return Optional.absent();
+      return Optional.empty();
     }
 
     // create new empty path formula

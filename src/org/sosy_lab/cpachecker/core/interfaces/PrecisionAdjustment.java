@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.base.Function;
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 /**
  * Interface for the precision adjustment operator.
@@ -55,7 +55,7 @@ public interface PrecisionAdjustment {
    *
    * @return The new abstract state, new precision and the action flag
    * encapsulated in a {@link PrecisionAdjustmentResult} instance OR
-   * Optional.absent() if the newly produced abstract states corresponds
+   * Optional.empty() if the newly produced abstract states corresponds
    * to BOTTOM.
    */
   Optional<PrecisionAdjustmentResult> prec(

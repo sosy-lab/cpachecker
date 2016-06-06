@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cfa.model;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 
 public class ADeclarationEdge extends AbstractCFAEdge {

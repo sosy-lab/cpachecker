@@ -27,7 +27,7 @@ package org.sosy_lab.cpachecker.cpa.arg;
 import static com.google.common.collect.Iterables.indexOf;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 

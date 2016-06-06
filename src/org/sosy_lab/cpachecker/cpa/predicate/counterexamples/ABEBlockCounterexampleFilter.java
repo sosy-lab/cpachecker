@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.predicate.counterexamples;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.common.configuration.Configuration;

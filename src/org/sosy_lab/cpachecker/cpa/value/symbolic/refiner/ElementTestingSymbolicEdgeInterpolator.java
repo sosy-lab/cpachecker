@@ -51,7 +51,7 @@ import org.sosy_lab.cpachecker.util.refinement.InterpolantManager;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 /**
  * Edge interpolator for

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import com.google.common.math.LongMath;
@@ -347,7 +347,7 @@ public class RCNFManager implements StatisticsProvider {
       DefaultFormulaVisitor<Optional<BooleanFormula>> () {
         @Override
         protected Optional<BooleanFormula> visitDefault(Formula f) {
-          return Optional.absent();
+          return Optional.empty();
         }
 
         @Override
