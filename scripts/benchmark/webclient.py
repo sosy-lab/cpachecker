@@ -672,7 +672,7 @@ class WebInterface:
         params = {"groupId": self._group_id}
         path = "runs/flush"
         (response, _) = self._request("POST", path, data=params, headers=headers, expectedStatusCodes=[200, 204])
-        run_collections = response.decode('utf-8').split(",")
+        run_collections = response.decode('utf-8').split("\n")
         if len(run_collections) == 0:
             logging.warning('No runs were submitted to the VerifierCloud before or a rate limit is hit.')
         else:
