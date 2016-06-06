@@ -25,16 +25,10 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.Serializable;
-import java.math.BigInteger;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Multimap;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -67,11 +61,19 @@ import org.sosy_lab.solver.api.FloatingPointFormula;
 import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.FormulaType.FloatingPointType;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Multimap;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
+import java.math.BigInteger;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+
+import javax.annotation.Nullable;
 
 public class ValueAnalysisState implements AbstractQueryableState, FormulaReportingState,
     ForgetfulState<ValueAnalysisInformation>, Serializable, Graphable,
@@ -90,26 +92,31 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    */
   private PersistentMap<MemoryLocation, Value> constantsMap;
 
-  private final Optional<MachineModel> machineModel;
+  private final @Nullable MachineModel machineModel;
 
   private transient PersistentMap<MemoryLocation, Type> memLocToType = PathCopyingPersistentTreeMap.of();
 
   public ValueAnalysisState(MachineModel pMachineModel) {
-    this(Optional.of(pMachineModel));
-  }
-
-  public ValueAnalysisState(Optional<MachineModel> pMachineModel) {
-    machineModel = pMachineModel;
-    constantsMap = PathCopyingPersistentTreeMap.of();
+    this(
+        checkNotNull(pMachineModel),
+        PathCopyingPersistentTreeMap.of(),
+        PathCopyingPersistentTreeMap.of());
   }
 
   public ValueAnalysisState(
       Optional<MachineModel> pMachineModel,
       PersistentMap<MemoryLocation, Value> pConstantsMap,
       PersistentMap<MemoryLocation, Type> pLocToTypeMap) {
+    this(pMachineModel.orElse(null), pConstantsMap, pLocToTypeMap);
+  }
+
+  private ValueAnalysisState(
+      @Nullable MachineModel pMachineModel,
+      PersistentMap<MemoryLocation, Value> pConstantsMap,
+      PersistentMap<MemoryLocation, Type> pLocToTypeMap) {
     machineModel = pMachineModel;
-    this.constantsMap = pConstantsMap;
-    this.memLocToType = pLocToTypeMap;
+    constantsMap = checkNotNull(pConstantsMap);
+    memLocToType = checkNotNull(pLocToTypeMap);
   }
 
   public static ValueAnalysisState copyOf(ValueAnalysisState state) {
@@ -577,11 +584,9 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     BooleanFormulaManager bfmgr = manager.getBooleanFormulaManager();
     BooleanFormula formula = bfmgr.makeBoolean(true);
 
-    if (!machineModel.isPresent()) {
+    if (machineModel == null) {
       return formula;
     }
-
-    MachineModel machineModel = this.machineModel.get();
 
     BitvectorFormulaManagerView bitvectorFMGR = manager.getBitvectorFormulaManager();
     FloatingPointFormulaManagerView floatFMGR = manager.getFloatingPointFormulaManager();
