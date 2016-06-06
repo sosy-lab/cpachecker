@@ -32,6 +32,7 @@ import com.google.common.collect.Iterables;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -126,6 +127,14 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
     @Option(secure=true, description="the maximum number of variables to consider as interesting. -1 one disables the limit, but this is not recommended. 0 means that guessing interesting variables is disabled.")
     private volatile int interestingVariableLimit = 2;
+
+    @Option(
+      secure = true,
+      description =
+          "the maximum number of adjustments of the interestingVariableLimit. -1 one disables the limit"
+    )
+    @IntegerOption(min = -1)
+    private volatile int maxInterestingVariableAdjustments = -1;
 
     @Option(secure=true, description="the maximum tree depth of a formula recorded in the environment.")
     private volatile int maximumFormulaDepth = 4;
@@ -769,6 +778,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     private final InvariantsCPA cpa;
 
     private int inc = 1;
+    private int amountAdjustments = 0;
 
     private InterestingVariableLimitAdjuster(InvariantsCPA pCPA) {
       cpa = pCPA;
@@ -776,9 +786,13 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
     @Override
     public boolean adjustConditions() {
-      if (cpa.relevantVariableLimitReached) {
+      if (cpa.relevantVariableLimitReached
+          || (amountAdjustments >= cpa.options.maxInterestingVariableAdjustments
+              && cpa.options.maxInterestingVariableAdjustments >= 0)) {
         return false;
       }
+      amountAdjustments++;
+
       cpa.initialPrecisionMap.clear();
       synchronized (cpa) {
         cpa.options.interestingVariableLimit += inc;

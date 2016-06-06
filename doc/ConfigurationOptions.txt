@@ -132,6 +132,9 @@ analysis.algorithm.proofCheck = false
 # ConfigurableProgramAnalysisWithPropertyChecker
 analysis.algorithm.propertyCheck = false
 
+# Use termination algorithm to prove (non-)termination.
+analysis.algorithm.termination = false
+
 # use a second model checking run (e.g., with CBMC or a different CPAchecker
 # configuration) to double-check counter-examples
 analysis.checkCounterexamples = false
@@ -1101,6 +1104,10 @@ cpa.invariants.includeTypeInformation = true
 # the limit, but this is not recommended. 0 means that guessing interesting
 # variables is disabled.
 cpa.invariants.interestingVariableLimit = 2
+
+# the maximum number of adjustments of the interestingVariableLimit. -1 one
+# disables the limit
+cpa.invariants.maxInterestingVariableAdjustments = -1
 
 # the maximum tree depth of a formula recorded in the environment.
 cpa.invariants.maximumFormulaDepth = 4
@@ -2720,3 +2727,6 @@ statistics.print = false
 # which stop operator to use for LiveVariablesCPA
 stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
+
+# File with configuration to use for safety properties.
+terminationAlgorithm.safteyConfig = no default value
