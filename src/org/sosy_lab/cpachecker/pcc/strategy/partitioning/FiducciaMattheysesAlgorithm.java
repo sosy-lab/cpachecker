@@ -24,20 +24,15 @@
 
 package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Set;
-import java.util.TreeMap;
-
-import javax.annotation.Nullable;
-
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.Optional;
+import java.util.Set;
+import java.util.TreeMap;
 
 public class FiducciaMattheysesAlgorithm {
 
@@ -85,16 +80,12 @@ public class FiducciaMattheysesAlgorithm {
 
   private Optional<Pair<Long, TreeMap<Long, LinkedList<Integer>>>> tryFindBestGainWithNonEmptyBucket(
       final TreeMap<Long, LinkedList<Integer>> bucket) {
-    Optional<Long> bestGain = Iterables.tryFind(bucket.descendingKeySet(), new Predicate<Long>() {
-      @Override
-      public boolean apply(@Nullable Long pLong) {
-        return !bucket.get(pLong).isEmpty();
-      }
-    });
-    if(!bestGain.isPresent()) {
-      return Optional.absent();
-    }
-    return Optional.of(Pair.of(bestGain.get(), bucket));
+    return bucket
+        .descendingKeySet()
+        .stream()
+        .filter(pLong -> !bucket.get(pLong).isEmpty())
+        .findFirst()
+        .map(bestGain -> Pair.of(bestGain, bucket));
   }
 
   // TODO make this configurable
@@ -125,7 +116,7 @@ public class FiducciaMattheysesAlgorithm {
         // TODO handling equal case separately can be favourable
         return bestV2Gain;
       } else {
-        return Optional.absent();
+        return Optional.empty();
       }
     }
   }
