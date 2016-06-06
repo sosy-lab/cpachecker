@@ -28,7 +28,6 @@ import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getAllStatesOnPathsTo;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
-import java.util.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
@@ -75,8 +74,11 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -135,6 +137,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
 
   private boolean wereInvariantsUsedInLastRefinement = false;
   private boolean wereInvariantsusedInCurrentRefinement = false;
+  private final Map<CFANode, BooleanFormula> lastInvariantForNode = new HashMap<>();
 
   private final PrefixProvider prefixProvider;
   private final PrefixSelector prefixSelector;
@@ -386,9 +389,14 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
 
     // we do not need the last state from the trace, so we exclude it here
     for (ARGState state : from(abstractionStatesTrace).limit(abstractionStatesTrace.size() - 1)) {
-      BooleanFormula inv = invariantsManager.getInvariantFor(extractLocation(state), fmgr, pfmgr, null);
-      if (invIsTriviallyTrue && !fmgr.getBooleanFormulaManager().isTrue(inv)) {
+      CFANode location = extractLocation(state);
+      BooleanFormula inv = invariantsManager.getInvariantFor(location, fmgr, pfmgr, null);
+      if (invIsTriviallyTrue
+          && !fmgr.getBooleanFormulaManager().isTrue(inv)
+          && (!lastInvariantForNode.containsKey(location)
+              || !lastInvariantForNode.get(location).equals(inv))) {
         invIsTriviallyTrue = false;
+        lastInvariantForNode.put(location, inv);
       }
       precisionIncrement.add(inv);
     }
