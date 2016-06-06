@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.exceptions;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
+import javax.annotation.Nullable;
+
 /**
  * Exception thrown when a CPA cannot handle some C code attached to a CFAEdge
  * because it uses C features that are unsupported.
@@ -34,7 +36,7 @@ public class UnsupportedCCodeException extends UnrecognizedCCodeException {
 
   private static final long serialVersionUID = -8319167530363457020L;
 
-  public UnsupportedCCodeException(String msg, CFAEdge edge, CAstNode astNode) {
+  public UnsupportedCCodeException(String msg, CFAEdge edge, @Nullable CAstNode astNode) {
     super("Unsupported C feature", msg, edge, astNode);
   }
 

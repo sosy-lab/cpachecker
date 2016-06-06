@@ -53,6 +53,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import javax.annotation.Nullable;
+
 /**
  * This classes parses the CPAchecker command line arguments.
  * To add a new argument, handle it in {@link #processArguments(String[])}
@@ -486,7 +488,7 @@ class CmdLineArguments {
    * @param name The value for filling in the template.
    * @return An absolute Path object pointing to an existing file or null.
    */
-  private static Path findFile(final String template, final String name) {
+  private static @Nullable Path findFile(final String template, final String name) {
     final String fileName = String.format(template, name);
 
     Path file = Paths.get(fileName);

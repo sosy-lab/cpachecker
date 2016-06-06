@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2015  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,10 +22,9 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * The waitlist, which stores the to-be-processed abstract states during the analysis.
- * It is also responsible for the traversal strategy.
+ * Algorithms for bounded model checking and k-induction.
  */
 @javax.annotation.ParametersAreNonnullByDefault
 @org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
 @org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
-package org.sosy_lab.cpachecker.core.waitlist;
+package org.sosy_lab.cpachecker.core.algorithm.bmc;

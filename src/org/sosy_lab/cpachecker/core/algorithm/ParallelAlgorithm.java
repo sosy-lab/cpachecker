@@ -78,6 +78,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 @Options(prefix = "parallelAlgorithm")
 public class ParallelAlgorithm implements Algorithm {
 
@@ -440,11 +442,11 @@ public class ParallelAlgorithm implements Algorithm {
 
   private static class ParallelAnalysisResult {
 
-    private final ReachedSet reached;
-    private final AlgorithmStatus status;
+    private final @Nullable ReachedSet reached;
+    private final @Nullable AlgorithmStatus status;
 
     private ParallelAnalysisResult(
-        ReachedSet pReached, AlgorithmStatus pStatus) {
+        @Nullable ReachedSet pReached, @Nullable AlgorithmStatus pStatus) {
       reached = pReached;
       status = pStatus;
     }
@@ -454,7 +456,7 @@ public class ParallelAlgorithm implements Algorithm {
     }
 
     public static ParallelAnalysisResult absent() {
-      return of(null, null);
+      return new ParallelAnalysisResult(null, null);
     }
 
     public boolean hasValidReachedSet() {
@@ -469,11 +471,11 @@ public class ParallelAlgorithm implements Algorithm {
                   .anyMatch(or(AbstractStates::hasAssumptions, AbstractStates::isTargetState)));
     }
 
-    public ReachedSet getReached() {
+    public @Nullable ReachedSet getReached() {
       return reached;
     }
 
-    public AlgorithmStatus getStatus() {
+    public @Nullable AlgorithmStatus getStatus() {
       return status;
     }
   }

@@ -31,6 +31,8 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.function.BiConsumer;
 
+import javax.annotation.Nullable;
+
 /**
  * Interface representing an unmodifiable reached set
  */
@@ -88,7 +90,7 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
    * Returns the last state that was added to the reached set.
    * May be null if it is unknown, which state was added last.
    */
-  public AbstractState getLastState();
+  public @Nullable AbstractState getLastState();
 
   public boolean hasWaitingState();
 

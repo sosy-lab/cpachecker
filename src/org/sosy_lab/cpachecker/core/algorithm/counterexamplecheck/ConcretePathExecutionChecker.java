@@ -60,6 +60,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 /**
  * Counterexample checker that creates a C program out of a given path program.
  * The generated C program is ONE concrete path. There may and will be many other
@@ -76,7 +78,7 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
 
   @Option(secure=true, description = "The file in which the generated C code is saved.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path dumpFile = null;
+  private @Nullable Path dumpFile = null;
 
   @Option(secure=true, description="Maximum time limit for the concrete execution checker.\n"
                                  + "This limit is used for compilation as well as execution "

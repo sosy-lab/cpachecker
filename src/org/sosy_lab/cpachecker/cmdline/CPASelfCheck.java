@@ -61,10 +61,12 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 public class CPASelfCheck {
 
-  private static LogManager logManager;
-  private static Configuration config;
+  private static @Nullable LogManager logManager;
+  private static @Nullable Configuration config;
 
   /**
    * @param args cmdline parameters, unused here

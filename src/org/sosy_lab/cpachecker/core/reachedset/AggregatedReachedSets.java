@@ -56,13 +56,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
+
 public class AggregatedReachedSets {
   protected final Set<UnmodifiableReachedSet> reachedSets;
 
-  private Set<UnmodifiableReachedSet> lastUsedReachedSets = Collections.emptySet();
-  private AggregatedInvariantSupplier lastInvariantSupplier = null;
+  private @Nullable Set<UnmodifiableReachedSet> lastUsedReachedSets = Collections.emptySet();
+  private @Nullable AggregatedInvariantSupplier lastInvariantSupplier = null;
 
-  private final CFA cfa;
+  private @Nullable final CFA cfa;
   private final Map<UnmodifiableReachedSet, FormulaAndTreeSupplier> singleInvariantSuppliers =
       new HashMap<>();
 

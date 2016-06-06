@@ -26,4 +26,7 @@
  * on the command line.
  * This includes parsing the command-line arguments, and setting up the CPAchecker core.
  */
+@javax.annotation.ParametersAreNonnullByDefault
+@org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
+@org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
 package org.sosy_lab.cpachecker.cmdline;

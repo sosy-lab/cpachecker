@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.core.counterexample;
 
 import com.google.common.base.Joiner;
-import java.util.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
@@ -118,6 +117,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 

@@ -77,6 +77,8 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 /**
  * Instances of this class are used to prove the safety of a program by
  * applying an inductive approach based on k-induction.
@@ -116,7 +118,7 @@ class KInductionProver implements AutoCloseable {
 
   private final InvariantGenerator invariantGenerator;
 
-  private ProverEnvironment prover = null;
+  private @Nullable ProverEnvironment prover = null;
 
   private InvariantSupplier invariantsSupplier;
 

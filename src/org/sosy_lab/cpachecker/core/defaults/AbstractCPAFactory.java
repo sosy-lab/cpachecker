@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
-import java.util.List;
+import com.google.common.base.Preconditions;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -31,13 +31,15 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 
-import com.google.common.base.Preconditions;
+import java.util.List;
+
+import javax.annotation.Nullable;
 
 public abstract class AbstractCPAFactory implements CPAFactory {
 
-  private LogManager logger = null;
-  private Configuration configuration = null;
-  private ShutdownNotifier shutdownNotifier = null;
+  private @Nullable LogManager logger = null;
+  private @Nullable Configuration configuration = null;
+  private @Nullable ShutdownNotifier shutdownNotifier = null;
 
   @Override
   public CPAFactory setChild(ConfigurableProgramAnalysis pChild)

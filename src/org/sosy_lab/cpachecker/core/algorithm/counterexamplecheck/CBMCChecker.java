@@ -63,6 +63,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 /**
  * Counterexample checker that creates a C program for the counterexample
  * and calls CBMC on it.
@@ -79,7 +81,7 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
       + "as input for CBMC. A temporary file is used if this is unspecified. "
       + "If specified, the file name should end with '.i' because otherwise CBMC runs the pre-processor on the file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path cbmcFile;
+  private @Nullable Path cbmcFile;
 
   @Option(secure=true, name="cbmc.timelimit",
       description="maximum time limit for CBMC (use milliseconds or specify a unit; 0 for infinite)")

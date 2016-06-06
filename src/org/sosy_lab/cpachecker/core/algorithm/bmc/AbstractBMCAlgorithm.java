@@ -93,6 +93,8 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 @Options(prefix="bmc")
 abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
@@ -123,8 +125,8 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
   private final Algorithm algorithm;
   private final ConfigurableProgramAnalysis cpa;
 
-  private final ConfigurableProgramAnalysis stepCaseCPA;
-  private final Algorithm stepCaseAlgorithm;
+  private final @Nullable ConfigurableProgramAnalysis stepCaseCPA;
+  private final @Nullable Algorithm stepCaseAlgorithm;
 
   protected final InvariantGenerator invariantGenerator;
 
@@ -143,7 +145,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
   private final TargetLocationProvider targetLocationProvider;
 
-  private final ShutdownRequestListener propagateSafetyInterrupt;
+  private final @Nullable ShutdownRequestListener propagateSafetyInterrupt;
 
   protected AbstractBMCAlgorithm(
       Algorithm pAlgorithm,
@@ -595,7 +597,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     }
   }
 
-  protected KInductionProver createInductionProver() {
+  protected @Nullable KInductionProver createInductionProver() {
      return induction ? new KInductionProver(
         cfa,
         logger,

@@ -31,6 +31,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 
+import javax.annotation.Nullable;
+
 
 public interface CandidateInvariant {
 
@@ -48,7 +50,7 @@ public interface CandidateInvariant {
    * @throws InterruptedException if the formula creation was interrupted.
    */
   BooleanFormula getFormula(
-      FormulaManagerView pFMGR, PathFormulaManager pPFMGR, PathFormula pContext)
+      FormulaManagerView pFMGR, PathFormulaManager pPFMGR, @Nullable PathFormula pContext)
       throws CPATransferException, InterruptedException;
 
   /**

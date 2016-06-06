@@ -187,7 +187,7 @@ public class CPAMain {
         description="When checking for memory safety properties, "
             + "use this configuration file instead of the current one.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
-    private Path memsafetyConfig = null;
+    private @Nullable Path memsafetyConfig = null;
 
     @Option(secure=true, name="overflow.check",
         description="Whether to check for the overflow property "
@@ -198,7 +198,7 @@ public class CPAMain {
         description="When checking for the overflow property, "
             + "use this configuration file instead of the current one.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
-    private Path overflowConfig = null;
+    private @Nullable Path overflowConfig = null;
   }
 
   @Options
@@ -206,7 +206,7 @@ public class CPAMain {
     @Option(secure=true, name="analysis.programNames",
         //required=true, NOT required because we want to give a nicer user message ourselves
         description="A String, denoting the programs to be analyzed")
-    private String programs;
+    private @Nullable String programs;
 
     @Option(secure=true, name="configuration.dumpFile",
         description="Dump the complete configuration to a file.")

@@ -25,4 +25,7 @@
  * Implementation of the algorithm of the tool IMPACT,
  * which was specified in "Lazy Abstraction with Interpolants", Ken McMillan, CAV06.
  */
+@javax.annotation.ParametersAreNonnullByDefault
+@org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
+@org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
 package org.sosy_lab.cpachecker.core.algorithm.impact;

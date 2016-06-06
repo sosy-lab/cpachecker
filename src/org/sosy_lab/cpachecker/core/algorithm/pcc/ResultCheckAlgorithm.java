@@ -56,6 +56,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 @Options
 public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
 
@@ -63,8 +65,8 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
 
     private Timer checkTimer = new Timer();
     private Timer analysisTimer = new Timer();
-    private StatisticsProvider checkingStatsProvider = null;
-    private Statistics proofGenStats = null;
+    private @Nullable StatisticsProvider checkingStatsProvider = null;
+    private @Nullable Statistics proofGenStats = null;
 
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
@@ -111,7 +113,7 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
       name = "pcc.resultcheck.checkerConfig",
       description = "Configuration for proof checking if differs from analysis configuration")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private Path checkerConfig;
+  private @Nullable Path checkerConfig;
 
   public ResultCheckAlgorithm(
       Algorithm pAlgorithm,

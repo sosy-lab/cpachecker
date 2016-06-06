@@ -66,6 +66,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
+
 /**
  * Test that the bundled configuration files are all valid.
  */
@@ -118,7 +120,7 @@ public class ConfigurationFilesTest {
   }
 
   @Parameter(0)
-  public Path configFile;
+  public @Nullable Path configFile;
 
   @Test
   @SuppressWarnings("CheckReturnValue")
@@ -224,7 +226,7 @@ public class ConfigurationFilesTest {
           .build();
     } catch (InvalidConfigurationException | IOException e) {
       assume().fail(e.getMessage());
-      return null;
+      throw new AssertionError();
     }
   }
 

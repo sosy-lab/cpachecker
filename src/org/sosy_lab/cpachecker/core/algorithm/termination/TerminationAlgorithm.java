@@ -58,6 +58,8 @@ import java.nio.file.Path;
 import java.util.Optional;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 /**
  * Algorithm that uses a safety-analysis to prove (non-)termination.
  */
@@ -71,7 +73,7 @@ public class TerminationAlgorithm implements Algorithm {
           "File with configuration to use for safety properties."
     )
     @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-    private Path safteyConfig;
+    private @Nullable Path safteyConfig;
 
   private final Configuration globalConfig;
   private final LogManager logger;

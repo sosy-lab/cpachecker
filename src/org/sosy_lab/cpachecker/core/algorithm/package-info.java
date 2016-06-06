@@ -24,4 +24,6 @@
 /**
  * The core algorithms of CPAchecker.
  */
+@javax.annotation.ParametersAreNonnullByDefault
+@org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
 package org.sosy_lab.cpachecker.core.algorithm;

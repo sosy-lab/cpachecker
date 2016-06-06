@@ -80,6 +80,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
 import javax.management.JMException;
 
 @Options
@@ -109,7 +110,7 @@ class MainCPAStatistics implements Statistics {
   private final Configuration config;
   private final LogManager logger;
   private final Collection<Statistics> subStats;
-  private final MemoryStatistics memStats;
+  private final @Nullable MemoryStatistics memStats;
   private final CoverageReport coverageReport;
   private Thread memStatsThread;
 
@@ -122,8 +123,8 @@ class MainCPAStatistics implements Statistics {
   private long programCpuTime;
   private long analysisCpuTime = 0;
 
-  private Statistics cfaCreatorStatistics;
-  private CFA cfa;
+  private @Nullable Statistics cfaCreatorStatistics;
+  private @Nullable CFA cfa;
 
   public MainCPAStatistics(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {

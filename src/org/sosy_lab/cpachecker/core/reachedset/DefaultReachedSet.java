@@ -43,6 +43,8 @@ import java.util.LinkedHashMap;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
+import javax.annotation.Nullable;
+
 /**
  * Basic implementation of ReachedSet.
  * It does not group states by location or any other key.
@@ -51,8 +53,8 @@ class DefaultReachedSet implements ReachedSet {
 
   private final LinkedHashMap<AbstractState, Precision> reached;
   private final Set<AbstractState> unmodifiableReached;
-  private AbstractState lastState = null;
-  private AbstractState firstState = null;
+  private @Nullable AbstractState lastState = null;
+  private @Nullable AbstractState firstState = null;
   private final Waitlist waitlist;
 
   DefaultReachedSet(WaitlistFactory waitlistFactory) {

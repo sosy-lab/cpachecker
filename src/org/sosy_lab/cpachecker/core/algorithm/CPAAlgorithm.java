@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import com.google.common.base.Functions;
-import java.util.Optional;
 import com.google.common.collect.Iterables;
 
 import org.sosy_lab.common.ShutdownNotifier;
@@ -59,8 +58,11 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
@@ -131,7 +133,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       name = "forcedCovering"
     )
     @ClassOption(packagePrefix = "org.sosy_lab.cpachecker")
-    private ForcedCovering.Factory forcedCoveringClass = null;
+    private @Nullable ForcedCovering.Factory forcedCoveringClass = null;
 
     @Option(secure=true, description="Do not report 'False' result, return UNKNOWN instead. "
         + " Useful for incomplete analysis with no counterexample checking.")

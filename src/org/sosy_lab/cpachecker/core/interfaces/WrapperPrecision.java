@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.core.interfaces;
 
 import com.google.common.base.Predicate;
 
+import javax.annotation.Nullable;
+
 public interface WrapperPrecision extends Precision {
 
   /**
@@ -33,7 +35,7 @@ public interface WrapperPrecision extends Precision {
    * @param type The class object of the type of the wrapped precision.
    * @return An instance of a precision with type T or null if there is none.
    */
-  public <T extends Precision> T retrieveWrappedPrecision(Class<T> type);
+  public @Nullable <T extends Precision> T retrieveWrappedPrecision(Class<T> type);
 
   /**
    * Create a new precision object where one of the wrapped precisions is
@@ -46,7 +48,8 @@ public interface WrapperPrecision extends Precision {
    * @param replaceType Type of precisions that should be replaced by newPrecision.
    * @return A new precision object containing the argument in some place or null.
    */
-  public Precision replaceWrappedPrecision(Precision newPrecision, Predicate<? super Precision> replaceType);
+  public @Nullable Precision replaceWrappedPrecision(
+      Precision newPrecision, Predicate<? super Precision> replaceType);
 
   /**
    * Retrieve all wrapped precisions contained directly in this object.

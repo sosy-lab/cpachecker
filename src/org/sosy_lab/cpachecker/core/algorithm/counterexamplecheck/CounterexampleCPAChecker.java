@@ -63,6 +63,8 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 @Options(prefix="counterexample.checker")
 public class CounterexampleCPAChecker implements CounterexampleChecker {
 
@@ -84,7 +86,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       description = "File name where to put the path specification that is generated "
       + "as input for the counterexample check. A temporary file is used if this is unspecified.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path specFile;
+  private @Nullable Path specFile;
 
   @Option(
     secure = true,
@@ -93,7 +95,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
     description = "configuration file for counterexample checks with CPAchecker"
   )
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-  private Path configFile;
+  private @Nullable Path configFile;
 
   public CounterexampleCPAChecker(Configuration config, LogManager logger,
       ShutdownNotifier pShutdownNotifier, CFA pCfa, String pFilename) throws InvalidConfigurationException {
