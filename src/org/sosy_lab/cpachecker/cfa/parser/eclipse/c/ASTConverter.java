@@ -88,6 +88,7 @@ import org.eclipse.cdt.core.dom.ast.gnu.c.IGCCASTArrayRangeDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTArrayDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTArrayRangeDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTFunctionCallExpression;
+import org.eclipse.cdt.internal.core.dom.parser.c.CASTLiteralExpression;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -1886,6 +1887,23 @@ class ASTConverter {
 
             // only adjust the length of the array if we definitely know it
             if (length != -1) {
+              CExpression lengthExp = new CIntegerLiteralExpression(
+                  getLocation(initializer), CNumericTypes.INT, BigInteger.valueOf(length));
+
+              type = new CArrayType(arrayType.isConst(), arrayType.isVolatile(),
+                  arrayType.getType(), lengthExp);
+            }
+          } else {
+            // Arrays with unknown length but an string initializer
+            // have their length calculated from the initializer.
+            // Example: char a[] = "abc";
+            // will be converted as char a[4] = "abc";
+            if (initClause instanceof CASTLiteralExpression &&
+                  (arrayType.getType().equals(CNumericTypes.CHAR) ||
+                   arrayType.getType().equals(CNumericTypes.SIGNED_CHAR) ||
+                   arrayType.getType().equals(CNumericTypes.UNSIGNED_CHAR))) {
+              CASTLiteralExpression literalExpression = (CASTLiteralExpression) initClause;
+              int length = literalExpression.getLength() - 1;
               CExpression lengthExp = new CIntegerLiteralExpression(
                   getLocation(initializer), CNumericTypes.INT, BigInteger.valueOf(length));
 
