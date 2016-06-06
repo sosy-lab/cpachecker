@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
-import com.google.common.base.Optional;
-
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
@@ -57,6 +55,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.OptionalLong;
 
 import javax.annotation.Nullable;
 
@@ -191,7 +190,7 @@ public class MemoryLocationExtractor {
     if (pOwner != null) {
       varName = getMemoryLocation(pOwner) + (pIsPointerDereference ? "->" : ".") + varName;
     }
-    return MemoryLocation.valueOf(varName, Optional.<Long>absent());
+    return MemoryLocation.valueOf(varName, OptionalLong.empty());
   }
 
   private MemoryLocation getArraySubscriptMemoryLocation(AExpression pOwner, AExpression pSubscript) throws UnrecognizedCodeException {
