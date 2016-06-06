@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.AlgorithmWithPropertyCheck;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
@@ -114,6 +115,12 @@ public class CoreComponentsFactory {
         + " analysis finishing in time. All other analyses are terminated."
   )
   private boolean useParallelAlgorithm = false;
+
+  @Option(
+    secure = true,
+    name = "algorithm.termination",
+    description = "Use termination algorithm to prove (non-)termination.")
+  private boolean useTerminationAlgorithm = false;
 
   @Option(secure=true,
       description="memorize previously used (incomplete) reached sets after a restart of the analysis")
@@ -246,6 +253,15 @@ public class CoreComponentsFactory {
               programDenotation,
               aggregatedReachedSets);
 
+    } else if (useParallelAlgorithm) {
+      algorithm = new TerminationAlgorithm(
+          config,
+          logger,
+          shutdownNotifier,
+          specification,
+          cfa,
+          programDenotation);
+
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 
@@ -343,7 +359,7 @@ public class CoreComponentsFactory {
       throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
 
-    if (useRestartingAlgorithm || useParallelAlgorithm) {
+    if (useRestartingAlgorithm || useParallelAlgorithm || useTerminationAlgorithm) {
       // hard-coded dummy CPA
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
     }
