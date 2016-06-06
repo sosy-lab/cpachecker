@@ -253,7 +253,7 @@ public class CoreComponentsFactory {
               programDenotation,
               aggregatedReachedSets);
 
-    } else if (useParallelAlgorithm) {
+    } else if (useTerminationAlgorithm) {
       algorithm = new TerminationAlgorithm(
           config,
           logger,
