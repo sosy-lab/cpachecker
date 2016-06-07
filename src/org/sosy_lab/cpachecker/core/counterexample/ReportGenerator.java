@@ -164,7 +164,7 @@ public class ReportGenerator {
       String statistics) {
 
     try (BufferedReader template =
-            Resources.asCharSource(Resources.getResource(HTML_TEMPLATE), Charsets.UTF_8)
+            Resources.asCharSource(Resources.getResource(getClass(), HTML_TEMPLATE), Charsets.UTF_8)
                 .openBufferedStream();
         Writer report = MoreFiles.openOutputFile(reportPath, Charsets.UTF_8)) {
 
