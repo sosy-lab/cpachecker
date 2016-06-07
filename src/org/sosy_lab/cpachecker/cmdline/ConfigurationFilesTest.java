@@ -43,11 +43,14 @@ import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.ConsoleLogFormatter;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 
 import java.io.File;
@@ -107,6 +110,29 @@ public class ConfigurationFilesTest {
           "counterexample.checker",
           "counterexample.checker.config");
 
+  @Options
+  private static class OptionsWithSpecialHandlingInTest {
+
+    @Option(secure = true, description = "C or Java?")
+    private Language language = Language.C;
+
+    @Option(
+      secure = true,
+      name = "analysis.restartAfterUnknown",
+      description = "restart the analysis using a different configuration after unknown result"
+    )
+    private boolean useRestartingAlgorithm = false;
+
+    @Option(
+      secure = true,
+      name = "analysis.useParallelAnalyses",
+      description =
+          "Use analyses parallely. The resulting reachedset is the one of the first"
+              + " analysis finishing in time. All other analyses are terminated."
+    )
+    private boolean useParallelAlgorithm = false;
+  }
+
   private static final Path CONFIG_DIR = Paths.get("config");
 
   @Parameters(name = "{0}")
@@ -148,12 +174,14 @@ public class ConfigurationFilesTest {
   }
 
   @Test
-  public void instantiate_and_run() throws IOException {
+  public void instantiate_and_run() throws IOException, InvalidConfigurationException {
     // exclude files not meant to be instantiated
     assume().that((Iterable<Path>) configFile).doesNotContain(Paths.get("includes"));
 
     final Configuration config = createConfigurationForTestInstantiation();
-    final boolean isJava = "Java".equalsIgnoreCase(config.getProperty("language"));
+    final OptionsWithSpecialHandlingInTest options = new OptionsWithSpecialHandlingInTest();
+    config.inject(options);
+    final boolean isJava = options.language == Language.JAVA;
 
     final TestLogHandler logHandler = new TestLogHandler();
     logHandler.setLevel(Level.INFO);
@@ -201,8 +229,7 @@ public class ConfigurationFilesTest {
                   .trim());
     }
 
-    if (!config.hasProperty("analysis.restartAfterUnknown")
-        || !config.hasProperty("analysis.useParallelAnalyses")) {
+    if (options.useParallelAlgorithm || options.useRestartingAlgorithm) {
       // TODO find a solution how to check for unused properties correctly even with RestartAlgorithm
       Set<String> unusedOptions = new TreeSet<>(config.getUnusedProperties());
       unusedOptions.removeAll(UNUSED_OPTIONS);
