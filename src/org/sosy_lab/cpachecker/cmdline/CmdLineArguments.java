@@ -509,12 +509,9 @@ class CmdLineArguments {
           "Cannot resolve paths relative to project directory of CPAchecker: " + e.getMessage());
       return null;
     }
-    Path baseDir = codeLocation.getParent();
-    if (baseDir != null) {
-      file = baseDir.resolve(fileName);
-      if (Files.exists(file)) {
-        return file;
-      }
+    file = codeLocation.resolveSibling(fileName);
+    if (Files.exists(file)) {
+      return file;
     }
 
     return null;

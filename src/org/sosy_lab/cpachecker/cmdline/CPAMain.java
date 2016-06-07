@@ -403,16 +403,13 @@ public class CPAMain {
 
   private static @Nullable Path getPathToReportGenerator() throws URISyntaxException {
     Path curDir = Paths.get("").toAbsolutePath();
-    Path baseDir =
-        Paths.get(CPAMain.class.getProtectionDomain().getCodeSource().getLocation().toURI())
-            .getParent();
+    Path codeDir =
+        Paths.get(CPAMain.class.getProtectionDomain().getCodeSource().getLocation().toURI());
 
-    if (baseDir != null) {
-      Path reportGenerator =
-          curDir.relativize(baseDir.resolve("scripts").resolve("report-generator.py"));
-      if (Files.isExecutable(reportGenerator)) {
-        return reportGenerator;
-      }
+    Path reportGenerator =
+        curDir.relativize(codeDir.resolveSibling("scripts").resolve("report-generator.py"));
+    if (Files.isExecutable(reportGenerator)) {
+      return reportGenerator;
     }
     return null;
   }
