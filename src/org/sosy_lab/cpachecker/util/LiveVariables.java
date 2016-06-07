@@ -50,7 +50,6 @@ import com.google.common.collect.TreeMultimap;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -529,13 +528,19 @@ public class LiveVariables {
       final EvaluationStrategy evaluationStrategy) {
 
     try {
-      Configuration config;
+      String configFile;
       switch (evaluationStrategy) {
-        case FUNCTION_WISE: config = getLocalConfiguration(); break;
-        case GLOBAL: config = getGlobalConfiguration(); break;
+        case FUNCTION_WISE:
+          configFile = "liveVariables-intraprocedural.properties";
+          break;
+        case GLOBAL:
+          configFile = "liveVariables-interprocedural.properties";
+          break;
         default: throw new AssertionError("Unhandled case statement: " + evaluationStrategy);
       }
 
+      Configuration config =
+          Configuration.builder().loadFromResource(LiveVariables.class, configFile).build();
       ReachedSetFactory reachedFactory = new ReachedSetFactory(config);
       ConfigurableProgramAnalysis cpa =
           new CPABuilder(config, logger, shutdownNotifier, reachedFactory)
@@ -556,34 +561,6 @@ public class LiveVariables {
     }
   }
 
-
-  private static Configuration getGlobalConfiguration() {
-    ConfigurationBuilder configBuilder = Configuration.builder();
-    configBuilder.setOption("analysis.traversal.order", "BFS");
-    configBuilder.setOption("analysis.traversal.usePostorder", "true");
-    configBuilder.setOption("analysis.traversal.useCallstack", "true");
-    configBuilder.setOption("cpa", "cpa.composite.CompositeCPA");
-    configBuilder.setOption("CompositeCPA.cpas", "cpa.location.LocationCPABackwardsNoTargets,"
-                                               + "cpa.callstack.CallstackCPABackwards,"
-                                               + "cpa.livevar.LiveVariablesCPA");
-    configBuilder.setOption("cpa.location.followFunctionCalls", "true");
-    configBuilder.setOption("cpa.liveVar.assumeGlobalVariablesAreAlwaysLive", "false");
-
-    return configBuilder.build();
-  }
-
-  private static Configuration getLocalConfiguration() {
-    ConfigurationBuilder configBuilder = Configuration.builder();
-    configBuilder.setOption("analysis.traversal.order", "BFS");
-    configBuilder.setOption("analysis.traversal.usePostorder", "true");
-    configBuilder.setOption("cpa", "cpa.composite.CompositeCPA");
-    configBuilder.setOption("CompositeCPA.cpas", "cpa.location.LocationCPABackwardsNoTargets,"
-                                               + "cpa.livevar.LiveVariablesCPA");
-    configBuilder.setOption("cpa.location.followFunctionCalls", "false");
-    configBuilder.setOption("cpa.liveVar.assumeGlobalVariablesAreAlwaysLive", "true");
-
-    return configBuilder.build();
-  }
 
   private static class AnalysisParts {
 

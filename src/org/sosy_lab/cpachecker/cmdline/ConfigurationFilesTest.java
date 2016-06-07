@@ -28,7 +28,11 @@ import static com.google.common.truth.Truth.assert_;
 import static com.google.common.truth.TruthJUnit.assume;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.io.CharSource;
 import com.google.common.io.CharStreams;
+import com.google.common.io.Resources;
+import com.google.common.reflect.ClassPath;
+import com.google.common.reflect.ClassPath.ResourceInfo;
 import com.google.common.testing.TestLogHandler;
 
 import org.junit.BeforeClass;
@@ -41,6 +45,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -57,6 +62,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -137,25 +143,42 @@ public class ConfigurationFilesTest {
 
   @Parameters(name = "{0}")
   public static Object[] getConfigFiles() throws IOException {
-    try (Stream<Path> configFiles = Files.walk(CONFIG_DIR)) {
-      return configFiles
-          .filter(path -> path.getFileName().toString().endsWith(".properties"))
-          .sorted()
-          .toArray();
+    Stream<URL> configResources =
+        ClassPath.from(ConfigurationFilesTest.class.getClassLoader())
+            .getResources()
+            .stream()
+            .filter(resource -> resource.getResourceName().endsWith(".properties"))
+            .filter(resource -> resource.getResourceName().contains("cpachecker"))
+            .map(ResourceInfo::url);
+    try (Stream<Path> configFiles =
+        Files.walk(CONFIG_DIR)
+            .filter(path -> path.getFileName().toString().endsWith(".properties"))
+            .sorted()) {
+      return Stream.concat(configResources, configFiles).toArray();
     }
   }
 
   @Parameter(0)
-  public @Nullable Path configFile;
+  public @Nullable Object configFile;
 
   @Test
   @SuppressWarnings("CheckReturnValue")
   public void parse() {
     try {
-      Configuration.builder().loadFromFile(configFile).build();
+      parse(configFile).build();
     } catch (InvalidConfigurationException | IOException e) {
       assert_()
           .fail("Error during parsing of configuration file %s : %s", configFile, e.getMessage());
+    }
+  }
+
+  private static ConfigurationBuilder parse(Object configFile)
+      throws IOException, InvalidConfigurationException {
+    if (configFile instanceof Path) {
+      return Configuration.builder().loadFromFile((Path) configFile);
+    } else {
+      CharSource source = Resources.asCharSource((URL) configFile, StandardCharsets.US_ASCII);
+      return Configuration.builder().loadFromSource(source, "", configFile.toString());
     }
   }
 
@@ -176,7 +199,9 @@ public class ConfigurationFilesTest {
   @Test
   public void instantiate_and_run() throws IOException, InvalidConfigurationException {
     // exclude files not meant to be instantiated
-    assume().that((Iterable<Path>) configFile).doesNotContain(Paths.get("includes"));
+    if (configFile instanceof Path) {
+      assume().that((Iterable<?>) configFile).doesNotContain(Paths.get("includes"));
+    }
 
     final Configuration config = createConfigurationForTestInstantiation();
     final OptionsWithSpecialHandlingInTest options = new OptionsWithSpecialHandlingInTest();
@@ -246,8 +271,7 @@ public class ConfigurationFilesTest {
                   .build());
       Configuration.getDefaultConverters().put(FileOption.class, fileTypeConverter);
 
-      return Configuration.builder()
-          .loadFromFile(configFile)
+      return parse(configFile)
           .addConverter(FileOption.class, fileTypeConverter)
           .setOption("java.sourcepath", tempFolder.getRoot().toString())
           .build();

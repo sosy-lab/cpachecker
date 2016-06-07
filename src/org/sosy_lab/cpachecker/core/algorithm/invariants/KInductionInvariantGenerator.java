@@ -559,7 +559,9 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
       final ShutdownManager pShutdownManager,
       KInductionInvariantGeneratorOptions options)
       throws InvalidConfigurationException, CPAException {
-    ConfigurationBuilder configBuilder = Configuration.builder();
+    ConfigurationBuilder configBuilder =
+        Configuration.builder()
+            .loadFromResource(KInductionInvariantGenerator.class, "witness-analysis.properties");
     List<String> copyOptions = Arrays.asList(
         "analysis.machineModel",
         "cpa.callstack.skipRecursion",
@@ -568,14 +570,6 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
     for (String copyOption : copyOptions) {
       configBuilder.copyOptionFromIfPresent(pConfig, copyOption);
     }
-    configBuilder.setOption("cpa", "cpa.arg.ARGCPA");
-    configBuilder.setOption("ARGCPA.cpa", "cpa.composite.CompositeCPA");
-    configBuilder.setOption(
-        "CompositeCPA.cpas",
-        "cpa.location.LocationCPA, "
-            + "cpa.callstack.CallstackCPA, "
-            + "cpa.functionpointer.FunctionPointerCPA");
-    configBuilder.setOption("output.disable", "true");
     Configuration config = configBuilder.build();
     ReachedSetFactory reachedSetFactory = new ReachedSetFactory(config);
     ShutdownNotifier notifier = pShutdownManager.getNotifier();

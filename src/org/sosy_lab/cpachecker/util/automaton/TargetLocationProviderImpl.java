@@ -72,11 +72,9 @@ public class TargetLocationProviderImpl implements TargetLocationProvider {
     try {
       // Create new configuration with default set of CPAs
       ConfigurationBuilder configurationBuilder = Configuration.builder();
-      configurationBuilder.setOption("output.disable", "true");
-      configurationBuilder.setOption("CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.functionpointer.FunctionPointerCPA");
-      configurationBuilder.setOption("cpa.callstack.skipRecursion", "true");
-
+      configurationBuilder.loadFromResource(getClass(), "find-target-locations.properties");
       Configuration configuration = configurationBuilder.build();
+
       ReachedSetFactory reachedSetFactory = new ReachedSetFactory(configuration);
       CPABuilder cpaBuilder = new CPABuilder(configuration, logManager, shutdownNotifier, reachedSetFactory);
       final ConfigurableProgramAnalysis cpa =
@@ -105,8 +103,11 @@ public class TargetLocationProviderImpl implements TargetLocationProvider {
           .transform(AbstractStates.EXTRACT_LOCATION)
           .toSet();
 
-    } catch (InvalidConfigurationException | CPAException e) {
+    } catch (InvalidConfigurationException e) {
+      // Supplied configuration should not fail.
+      throw new AssertionError("Configuration of TargetLocationProviderImpl failed", e);
 
+    } catch (CPAException e) {
       if (!e.toString().toLowerCase().contains("recursion")) {
         logManager.logUserException(Level.WARNING, e, "Unable to find target locations. Defaulting to selecting all locations as potential target locations.");
       } else {
