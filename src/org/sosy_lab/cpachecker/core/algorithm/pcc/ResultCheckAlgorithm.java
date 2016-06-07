@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.error.DummyErrorState;
 
@@ -233,11 +234,9 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
     if(checkerConfig != null) {
       try {
         checkConfig = Configuration.builder().copyFrom(config).loadFromFile(checkerConfig).build();
-        CoreComponentsFactory factory =
-            new CoreComponentsFactory(
-                checkConfig, logger, shutdownNotifier, new AggregatedReachedSets());
+        ReachedSetFactory factory = new ReachedSetFactory(checkConfig);
         checkerCPA =
-            new CPABuilder(checkConfig, logger, shutdownNotifier, factory.getReachedSetFactory())
+            new CPABuilder(checkConfig, logger, shutdownNotifier, factory)
                 .buildCPAs(analyzedProgram, specification, new AggregatedReachedSets());
 
       } catch (IOException e) {
