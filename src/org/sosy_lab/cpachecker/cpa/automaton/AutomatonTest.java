@@ -27,7 +27,6 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableMap;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
@@ -91,8 +90,6 @@ public class AutomatonTest {
     assertThat(results.getCheckerResult().getResult()).isEqualTo(Result.NOT_YET_STARTED);
   }
 
-  @Ignore // Does not work until we can encode more than one property in an automaton
-          // {@see Automaton#getIsRelevantForProperties(AutomatonTransition)}
   @Test
   public void modificationTestWithSpecification() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
@@ -149,8 +146,6 @@ public class AutomatonTest {
         .contains("Explicitly specified automaton CPA needs option cpa.automaton.inputFile!");
   }
 
-  @Ignore // Does not work until we can encode more than one property in an automaton
-          // {@see Automaton#getIsRelevantForProperties(AutomatonTransition)}
   @Test
   public void modificationTest() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
@@ -454,8 +449,6 @@ public class AutomatonTest {
   }
 
   /* Other automaton test files */
-  @Ignore // Does not work until we can encode more than one property in an automaton
-          // {@see Automaton#getIsRelevantForProperties(AutomatonTransition)}
   @Test
   public void assertAutomaton147() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
