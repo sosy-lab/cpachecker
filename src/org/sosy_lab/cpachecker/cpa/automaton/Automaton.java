@@ -25,10 +25,12 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -60,6 +62,7 @@ public class Automaton {
   private final Set<AutomatonInternalState> targetStates = Sets.newHashSet();
   private final AutomatonInternalState initState;
   private final ImmutableSet<SafetyProperty> encodedProperties;
+  private final Multimap<AutomatonTransition, SafetyProperty> relevantPropertiesForTransitions;
   private final AutomatonSafetyPropertyFactory propertyFactory ;
   private String headerFile;
 
@@ -85,7 +88,7 @@ public class Automaton {
     this.name = pName;
     this.initVars = pVars;
     headerFile = null;
-
+    relevantPropertiesForTransitions = HashMultimap.create();
     Map<String, AutomatonInternalState> nameToState = Maps.newHashMapWithExpectedSize(pRawStates.size());
     List<AutomatonInternalState> postprocessedStates = postprocessStates(pRawStates);
     Builder<SafetyProperty> encodedPropertiesBuilder = ImmutableSet.builder();
@@ -301,7 +304,14 @@ public class Automaton {
     if (encodedProperties.size() <= 1) {
       return getEncodedProperties();
     } else {
-      return findRelevantProperties(pTransition);
+      if (relevantPropertiesForTransitions.containsKey(pTransition)) {
+        return ImmutableSet.copyOf(relevantPropertiesForTransitions.get(pTransition));
+      } else {
+        ImmutableSet<? extends SafetyProperty> foundProperties =
+            findRelevantProperties(pTransition);
+        relevantPropertiesForTransitions.putAll(pTransition, foundProperties);
+        return foundProperties;
+      }
     }
   }
 
