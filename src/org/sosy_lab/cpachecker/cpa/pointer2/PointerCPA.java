@@ -23,18 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.pointer2;
 
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 
 /**
  * Instances of this class are configurable program analyses for analyzing a
@@ -63,14 +59,9 @@ public class PointerCPA extends AbstractCPA {
   /**
    * Creates a PointerCPA.
    *
-   * @param config the configuration used.
-   * @param logger the log manager used.
    * @param options the configured options.
-   * @param pReachedSetFactory the reached set factory used.
-   * @param pCfa the control flow automaton to analyze.
    */
-  public PointerCPA(Configuration config, LogManager logger, PointerOptions options,
-      ReachedSetFactory pReachedSetFactory, CFA pCfa) {
+  public PointerCPA(PointerOptions options) {
     super(options.merge, "SEP", PointerDomain.INSTANCE, PointerTransferRelation.INSTANCE);
   }
 
