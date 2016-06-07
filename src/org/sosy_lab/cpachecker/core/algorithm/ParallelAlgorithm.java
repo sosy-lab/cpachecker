@@ -406,9 +406,6 @@ public class ParallelAlgorithm implements Algorithm {
     singleConfigBuilder.clearOption("parallelAlgorithm.configFiles");
     singleConfigBuilder.clearOption("analysis.useParallelAnalyses");
     singleConfigBuilder.loadFromFile(singleConfigFileName);
-    if (globalConfig.hasProperty("specification")) {
-      singleConfigBuilder.copyOptionFrom(globalConfig, "specification");
-    }
 
     Configuration singleConfig = singleConfigBuilder.build();
     return singleConfig;
