@@ -37,10 +37,15 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import java.util.regex.Matcher;
+
+import javax.annotation.Nonnull;
 
 @SuppressFBWarnings(value = "VA_FORMAT_STRING_USES_NEWLINE",
     justification = "consistent Unix-style line endings")
@@ -282,13 +287,62 @@ public class Automaton {
     return encodedProperties;
   }
 
-  public ImmutableSet<? extends SafetyProperty> getIsRelevantForProperties(AutomatonTransition pTrans) {
+  /**
+   * Returns the set of properties that are relevant for a given transition.
+   *
+   * <p>The relevant properties are those properties, that can be reached when traversing
+   * through the automaton starting at the given transition.</p>
+   *
+   * @param pTransition The transition of the automaton to start the search at.
+   * @return A set of properties that are relevant for the transition.
+   */
+  ImmutableSet<? extends SafetyProperty> getIsRelevantForProperties(
+      final @Nonnull AutomatonTransition pTransition) {
     if (encodedProperties.size() <= 1) {
       return getEncodedProperties();
     } else {
-      throw new RuntimeException("More than one property encoded in the automaton. Implement this"
-          + " case for 'getIsRelevantForProperties'!");
+      return findRelevantProperties(pTransition);
     }
+  }
+
+  /**
+   * Search for relevant properties in the automaton using a wait list algorithm.
+   *
+   * @param pTransition The transition to start with.
+   * @return A set of properties that are relevant for the transition.
+   */
+  private ImmutableSet<? extends SafetyProperty> findRelevantProperties(
+      final @Nonnull AutomatonTransition pTransition) {
+    Set<SafetyProperty> foundProperties = new HashSet<>();
+    Set<AutomatonInternalState> visitedStates = new HashSet<>();
+    Queue<AutomatonTransition> waitList = new LinkedList<>();
+    waitList.add(pTransition);
+
+    while (!waitList.isEmpty()) {
+      AutomatonTransition transition = waitList.poll();
+      AutomatonInternalState followState = transition.getFollowState();
+      if (visitedStates.contains(followState)) { // already visited this state
+        continue;
+      }
+
+      if (followState.isTarget()) { // add the safety properties of a target state
+        if (!transition.getViolatedWhenAssertionFailed().isEmpty()) {
+          for (SafetyProperty property : transition.getViolatedWhenAssertionFailed()) {
+            foundProperties.add(property);
+          }
+        }
+        if (!transition.getViolatedWhenEnteringTarget().isEmpty()) {
+          for (SafetyProperty property : transition.getViolatedWhenEnteringTarget()) {
+            foundProperties.add(property);
+          }
+        }
+      }
+
+      visitedStates.add(followState);
+      waitList.addAll(followState.getTransitions());
+    }
+
+    return ImmutableSet.copyOf(foundProperties);
   }
 
 }
