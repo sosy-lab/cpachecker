@@ -450,11 +450,6 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     singleConfigBuilder.loadFromFile(singleConfigFileName);
 
     Configuration singleConfig = singleConfigBuilder.build();
-    if (singleConfig.hasProperty("analysis.restartAfterUnknown")) {
-      throw new InvalidConfigurationException(
-          "Sequential analysis parts may not be sequential analyses theirselves.");
-    }
-
     LogManager singleLogger = logger.withComponentName("Analysis" + (stats.noOfAlgorithmsUsed + 1));
 
     ResourceLimitChecker singleLimits = ResourceLimitChecker.fromConfiguration(singleConfig, singleLogger, singleShutdownManager);
@@ -480,6 +475,11 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
     algorithm = coreComponents.createAlgorithm(cpa, filename, cfa, specification);
+    if (algorithm instanceof RestartAlgorithm) {
+      // To avoid accidental infinitely-recursive nesting.
+      throw new InvalidConfigurationException(
+          "Sequential analysis parts may not be sequential analyses theirselves.");
+    }
     reached =
         createInitialReachedSetForRestart(
             cpa, mainFunction, coreComponents.getReachedSetFactory(), singleLogger);
