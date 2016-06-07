@@ -173,8 +173,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     specification = checkNotNull(pSpecification);
 
     shutdownNotifier = pShutdownManager.getNotifier();
-    targetLocationProvider =
-        new CachingTargetLocationProvider(reachedSetFactory, shutdownNotifier, logger, cfa);
+    targetLocationProvider = new CachingTargetLocationProvider(shutdownNotifier, logger, cfa);
 
     if (induction) {
       induction = checkIfInductionIsPossible(pCFA, pLogger, loopHeads);

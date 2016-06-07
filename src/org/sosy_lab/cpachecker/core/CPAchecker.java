@@ -555,8 +555,7 @@ public class CPAchecker {
         break;
         case TARGET:
           TargetLocationProvider tlp =
-              new TargetLocationProviderImpl(
-                  factory.getReachedSetFactory(), shutdownNotifier, logger, pCfa);
+              new TargetLocationProviderImpl(shutdownNotifier, logger, pCfa);
           initialLocations =
               tlp.tryGetAutomatonTargetLocations(pAnalysisEntryFunction, pSpecification);
           break;

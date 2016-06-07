@@ -33,7 +33,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.Specification;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 
 import java.util.Objects;
 
@@ -60,11 +59,10 @@ public class CachingTargetLocationProvider implements TargetLocationProvider {
   }
 
   public CachingTargetLocationProvider(
-      ReachedSetFactory pReachedSetFactory,
       ShutdownNotifier pShutdownNotifier,
       LogManager pLogManager,
       CFA pCfa) {
-    this(new TargetLocationProviderImpl(pReachedSetFactory, pShutdownNotifier, pLogManager, pCfa));
+    this(new TargetLocationProviderImpl(pShutdownNotifier, pLogManager, pCfa));
   }
 
   @Override

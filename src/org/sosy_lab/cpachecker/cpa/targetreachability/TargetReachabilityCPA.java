@@ -57,8 +57,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
@@ -91,15 +89,13 @@ public class TargetReachabilityCPA extends SingleEdgeTransferRelation
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
 
-  @SuppressWarnings("unused")
   private TargetReachabilityCPA(
       Configuration pConfig,
       ShutdownNotifier shutdownNotifier,
       LogManager pLogger,
       CFA pCfa,
-      ReachedSetFactory pReachedSetFactory,
       Specification pSpecification)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException {
     pConfig.inject(this);
 
     abstractDomain = new FlatLatticeDomain(ReachabilityState.RELEVANT_TO_TARGET);
@@ -107,7 +103,7 @@ public class TargetReachabilityCPA extends SingleEdgeTransferRelation
     stopOperator = new StopSepOperator(abstractDomain);
 
     TargetLocationProvider targetProvider =
-        new TargetLocationProviderImpl(pReachedSetFactory, shutdownNotifier, pLogger, pCfa);
+        new TargetLocationProviderImpl(shutdownNotifier, pLogger, pCfa);
     if (noFollowBackwardsUnreachable) {
       backwardsReachability.start();
       ImmutableSet.Builder<CFANode> builder = ImmutableSet.builder();

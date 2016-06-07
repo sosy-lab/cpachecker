@@ -67,7 +67,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CompoundIntervalFormulaManager;
@@ -220,7 +219,6 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
    * @param pLogManager the log manager used.
    * @param pOptions the configured options.
    * @param pShutdownNotifier the shutdown notifier used.
-   * @param pReachedSetFactory the reached set factory used.
    * @param pCfa the control flow automaton to analyze.
    * @throws InvalidConfigurationException if the configuration is invalid.
    */
@@ -229,7 +227,6 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
       LogManager pLogManager,
       InvariantsOptions pOptions,
       ShutdownNotifier pShutdownNotifier,
-      ReachedSetFactory pReachedSetFactory,
       CFA pCfa,
       Specification pSpecification)
       throws InvalidConfigurationException {
@@ -239,7 +236,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     this.cfa = pCfa;
     this.specification = checkNotNull(pSpecification);
     this.targetLocationProvider =
-        new CachingTargetLocationProvider(pReachedSetFactory, shutdownNotifier, logManager, cfa);
+        new CachingTargetLocationProvider(shutdownNotifier, logManager, cfa);
     this.options = pOptions;
     this.conditionAdjuster = pOptions.conditionAdjusterFactory.createConditionAdjuster(this);
     this.machineModel = pCfa.getMachineModel();

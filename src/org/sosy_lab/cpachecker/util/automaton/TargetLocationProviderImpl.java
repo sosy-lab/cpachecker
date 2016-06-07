@@ -51,18 +51,15 @@ import java.util.logging.Level;
 
 public class TargetLocationProviderImpl implements TargetLocationProvider {
 
-  private final ReachedSetFactory reachedSetFactory;
   private final ShutdownNotifier shutdownNotifier;
   private final LogManager logManager;
   private final CFA cfa;
   private final ImmutableSet<CFANode> allNodes;
 
   public TargetLocationProviderImpl(
-      ReachedSetFactory pReachedSetFactory,
       ShutdownNotifier pShutdownNotifier,
       LogManager pLogManager,
       CFA pCfa) {
-    reachedSetFactory = pReachedSetFactory;
     shutdownNotifier = pShutdownNotifier;
     logManager = pLogManager.withComponentName("TargetLocationProvider");
     cfa = pCfa;
@@ -80,6 +77,7 @@ public class TargetLocationProviderImpl implements TargetLocationProvider {
       configurationBuilder.setOption("cpa.callstack.skipRecursion", "true");
 
       Configuration configuration = configurationBuilder.build();
+      ReachedSetFactory reachedSetFactory = new ReachedSetFactory(configuration);
       CPABuilder cpaBuilder = new CPABuilder(configuration, logManager, shutdownNotifier, reachedSetFactory);
       final ConfigurableProgramAnalysis cpa =
           cpaBuilder.buildCPAs(cfa, specification, new AggregatedReachedSets());
