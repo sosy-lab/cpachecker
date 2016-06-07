@@ -65,7 +65,6 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -480,13 +479,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       throw new InvalidConfigurationException(
           "Sequential analysis parts may not be sequential analyses theirselves.");
     }
-    reached =
-        createInitialReachedSetForRestart(
-            cpa, mainFunction, coreComponents.getReachedSetFactory(), singleLogger);
-
-    if (algorithm instanceof ParallelAlgorithm) {
-      reached = new ForwardingReachedSet(reached);
-    }
+    reached = createInitialReachedSetForRestart(cpa, mainFunction, coreComponents, singleLogger);
 
     return Triple.of(algorithm, cpa, reached);
   }
@@ -494,14 +487,14 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
   private ReachedSet createInitialReachedSetForRestart(
       ConfigurableProgramAnalysis cpa,
       CFANode mainFunction,
-      ReachedSetFactory pReachedSetFactory,
+      CoreComponentsFactory pFactory,
       LogManager singleLogger) {
     singleLogger.log(Level.FINE, "Creating initial reached set");
 
     AbstractState initialState = cpa.getInitialState(mainFunction, StateSpacePartition.getDefaultPartition());
     Precision initialPrecision = cpa.getInitialPrecision(mainFunction, StateSpacePartition.getDefaultPartition());
 
-    ReachedSet reached = pReachedSetFactory.create();
+    ReachedSet reached = pFactory.createReachedSet();
     reached.add(initialState, initialPrecision);
     return reached;
   }

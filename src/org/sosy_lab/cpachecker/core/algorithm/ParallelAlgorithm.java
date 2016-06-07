@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -278,7 +277,7 @@ public class ParallelAlgorithm implements Algorithm {
 
       algorithm = coreComponents.createAlgorithm(cpa, filename, cfa, specification);
 
-      reached = createInitialReachedSet(cpa, mainEntryNode, coreComponents.getReachedSetFactory());
+      reached = createInitialReachedSet(cpa, mainEntryNode, coreComponents);
 
     } catch (IOException | InvalidConfigurationException e) {
       logger.logUserException(
@@ -307,7 +306,7 @@ public class ParallelAlgorithm implements Algorithm {
         cpa,
         reached,
         singleLogger,
-        coreComponents.getReachedSetFactory());
+        coreComponents);
   }
 
   private Callable<ParallelAnalysisResult> createParallelAnalysis(
@@ -317,7 +316,7 @@ public class ParallelAlgorithm implements Algorithm {
       final ConfigurableProgramAnalysis cpa,
       final ReachedSet reached,
       final LogManager singleLogger,
-      final ReachedSetFactory reachedsetFactory) {
+      final CoreComponentsFactory componentsFactory) {
     return () -> {
       try {
         AlgorithmStatus status = null;
@@ -366,7 +365,7 @@ public class ParallelAlgorithm implements Algorithm {
             }
 
             if (!stopAnalysis) {
-              currentReached = createInitialReachedSet(cpa, mainEntryNode, reachedsetFactory);
+              currentReached = createInitialReachedSet(cpa, mainEntryNode, componentsFactory);
             }
           } while (!stopAnalysis);
         }
@@ -380,8 +379,7 @@ public class ParallelAlgorithm implements Algorithm {
           aggregatedReachedSetManager.addReachedSet(currentReached);
         }
 
-        ParallelAnalysisResult result =
-            ParallelAnalysisResult.of(currentReached, status);
+        ParallelAnalysisResult result = ParallelAnalysisResult.of(currentReached, status);
         if (result.hasValidReachedSet()) {
           singleLogger.log(Level.INFO, SUCCESS_MESSAGE);
           shutdownManager.requestShutdown(SUCCESS_MESSAGE);
@@ -412,11 +410,11 @@ public class ParallelAlgorithm implements Algorithm {
   }
 
   private ReachedSet createInitialReachedSet(
-      ConfigurableProgramAnalysis cpa, CFANode mainFunction, ReachedSetFactory pReachedSetFactory) {
+      ConfigurableProgramAnalysis cpa, CFANode mainFunction, CoreComponentsFactory pFactory) {
     AbstractState initialState = cpa.getInitialState(mainFunction, getDefaultPartition());
     Precision initialPrecision = cpa.getInitialPrecision(mainFunction, getDefaultPartition());
 
-    ReachedSet reached = pReachedSetFactory.create();
+    ReachedSet reached = pFactory.createReachedSet();
     reached.add(initialState, initialPrecision);
     return reached;
   }
