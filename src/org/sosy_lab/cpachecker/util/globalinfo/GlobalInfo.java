@@ -53,7 +53,7 @@ public class GlobalInfo {
   private AbstractionManager absManager;
   private ApronManager apronManager;
   private LogManager apronLogger;
-  private PresenceConditionManager pcMgr;
+  private PresenceConditionManager pcManager;
 
   private GlobalInfo() {
 
@@ -79,13 +79,15 @@ public class GlobalInfo {
     return Optional.fromNullable(cpa);
   }
 
-  public void setUpInfoFromCPA(ConfigurableProgramAnalysis cpa) {
-    this.cpa = cpa;
+  public void setUpInfoFromCPA(ConfigurableProgramAnalysis pCpa) {
+    cpa = pCpa;
     absManager = null;
     apronManager = null;
     apronLogger = null;
-    if (cpa != null) {
-      for (ConfigurableProgramAnalysis c : CPAs.asIterable(cpa)) {
+    pcManager = null;
+
+    if (pCpa != null) {
+      for (ConfigurableProgramAnalysis c : CPAs.asIterable(pCpa)) {
         if (c instanceof ControlAutomatonCPA) {
           ((ControlAutomatonCPA) c).registerInAutomatonInfo(automatonInfo);
         } else if (c instanceof ApronCPA) {
@@ -103,12 +105,13 @@ public class GlobalInfo {
           Preconditions.checkState(assumptionFormulaManagerView == null);
           assumptionFormulaManagerView = ((AssumptionStorageCPA) c).getFormulaManager();
         } else if (c instanceof BDDCPA) {
-          pcMgr = new RegionPresenceConditionManager(((BDDCPA) c).getManager());
+          pcManager = new RegionPresenceConditionManager(((BDDCPA) c).getManager());
         }
       }
     }
-    if (pcMgr == null) {
-      pcMgr = new BinaryPresenceConditionManager();
+
+    if (pcManager == null) {
+      pcManager = new BinaryPresenceConditionManager();
     }
   }
 
@@ -137,7 +140,7 @@ public class GlobalInfo {
 
 
   public PresenceConditionManager getPresenceConditionManager() {
-    return pcMgr;
+    return pcManager;
   }
 
   public FormulaManagerView getAssumptionStorageFormulaManager() {
