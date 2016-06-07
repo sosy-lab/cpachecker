@@ -220,7 +220,6 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
             pLogger,
             pCFA,
             pShutdownManager,
-            pReachedSetFactory,
             pTargetLocationProvider,
             specification),
         pAggregatedReachedSets);
@@ -464,7 +463,6 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
       LogManager pLogger,
       CFA pCFA,
       final ShutdownManager pShutdownManager,
-      ReachedSetFactory pReachedSetFactory,
       TargetLocationProvider pTargetLocationProvider,
       Specification specification)
       throws InvalidConfigurationException, CPAException {
@@ -482,8 +480,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
 
     final Multimap<String, CFANode> candidateGroupLocations = HashMultimap.create();
     if (pOptions.invariantsAutomatonFile != null) {
-      ReachedSet reachedSet =
-          analyzeWitness(pConfig, pLogger, pCFA, pShutdownManager, pReachedSetFactory, pOptions);
+      ReachedSet reachedSet = analyzeWitness(pConfig, pLogger, pCFA, pShutdownManager, pOptions);
       extractCandidatesFromReachedSet(pShutdownManager, candidates, candidateGroupLocations,
           reachedSet);
     }
@@ -555,10 +552,13 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
     return new StaticCandidateProvider(candidates);
   }
 
-  private static ReachedSet analyzeWitness(Configuration pConfig, LogManager pLogger, CFA pCFA,
-      final ShutdownManager pShutdownManager, ReachedSetFactory pReachedSetFactory,
-      KInductionInvariantGeneratorOptions options) throws InvalidConfigurationException,
-      CPAException {
+  private static ReachedSet analyzeWitness(
+      Configuration pConfig,
+      LogManager pLogger,
+      CFA pCFA,
+      final ShutdownManager pShutdownManager,
+      KInductionInvariantGeneratorOptions options)
+      throws InvalidConfigurationException, CPAException {
     ConfigurationBuilder configBuilder = Configuration.builder();
     List<String> copyOptions = Arrays.asList(
         "analysis.machineModel",
@@ -579,9 +579,10 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
             + "cpa.functionpointer.FunctionPointerCPA");
     configBuilder.setOption("output.disable", "true");
     Configuration config = configBuilder.build();
+    ReachedSetFactory reachedSetFactory = new ReachedSetFactory(config);
     ShutdownNotifier notifier = pShutdownManager.getNotifier();
-    ReachedSet reachedSet = pReachedSetFactory.create();
-    CPABuilder builder = new CPABuilder(config, pLogger, notifier, pReachedSetFactory);
+    ReachedSet reachedSet = reachedSetFactory.create();
+    CPABuilder builder = new CPABuilder(config, pLogger, notifier, reachedSetFactory);
     Specification automatonAsSpec =
         Specification.fromFiles(
             ImmutableList.of(options.invariantsAutomatonFile), pCFA, config, pLogger);
