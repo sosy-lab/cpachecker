@@ -199,6 +199,13 @@ public class CPAMain {
             + "use this configuration file instead of the current one.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path overflowConfig = null;
+
+    @Option(
+      secure = true,
+      name = CmdLineArguments.PRINT_USED_OPTIONS_OPTION,
+      description = "all used options are printed"
+    )
+    private boolean printUsedOptions = false;
   }
 
   @Options
@@ -303,6 +310,10 @@ public class CPAMain {
                             .clearOption("output.path")
                             .clearOption("rootDirectory")
                             .build();
+    }
+
+    if (options.printUsedOptions) {
+      config.dumpUsedOptionsTo(System.out);
     }
 
     return Pair.of(config, outputDirectory);

@@ -149,11 +149,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       ConfigurationBuilder lConfigBuilder = Configuration.builder().loadFromFile(configFile);
 
       for (String option : OVERWRITE_OPTIONS) {
-        if (config.hasProperty(option)) {
-          lConfigBuilder.copyOptionFrom(config, option);
-        } else {
-          lConfigBuilder.clearOption(option);
-        }
+        lConfigBuilder.copyOptionFromIfPresent(config, option);
       }
 
       Configuration lConfig = lConfigBuilder.build();

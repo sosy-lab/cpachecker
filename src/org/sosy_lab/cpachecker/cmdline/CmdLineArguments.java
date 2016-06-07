@@ -114,6 +114,7 @@ class CmdLineArguments {
   private static final String PROPERTY_OPTION = "properties";
 
   static final String SECURE_MODE_OPTION = "secureMode";
+  static final String PRINT_USED_OPTIONS_OPTION = "log.usedOptions.export";
 
   /**
    * Reads the arguments and process them.
@@ -196,7 +197,7 @@ class CmdLineArguments {
         System.exit(0);
 
       } else if ("-printUsedOptions".equals(arg)) {
-        putIfNotExistent(properties, "log.usedOptions.export", "true");
+        putIfNotExistent(properties, PRINT_USED_OPTIONS, "true");
         putIfNotExistent(properties, "analysis.disable", "true");
 
         // this will disable all other output

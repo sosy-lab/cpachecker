@@ -566,9 +566,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
         "cpa.callstack.skipVoidRecursion",
         "cpa.callstack.skipFunctionPointerRecursion");
     for (String copyOption : copyOptions) {
-      if (pConfig.hasProperty(copyOption)) {
-        configBuilder.copyOptionFrom(pConfig, copyOption);
-      }
+      configBuilder.copyOptionFromIfPresent(pConfig, copyOption);
     }
     configBuilder.setOption("cpa", "cpa.arg.ARGCPA");
     configBuilder.setOption("ARGCPA.cpa", "cpa.composite.CompositeCPA");

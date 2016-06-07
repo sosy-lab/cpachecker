@@ -34,7 +34,6 @@ import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
-import java.util.Optional;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableCollection;
@@ -91,6 +90,7 @@ import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -557,7 +557,7 @@ public class LiveVariables {
   }
 
 
-  private static Configuration getGlobalConfiguration() throws InvalidConfigurationException {
+  private static Configuration getGlobalConfiguration() {
     ConfigurationBuilder configBuilder = Configuration.builder();
     configBuilder.setOption("analysis.traversal.order", "BFS");
     configBuilder.setOption("analysis.traversal.usePostorder", "true");
@@ -572,7 +572,7 @@ public class LiveVariables {
     return configBuilder.build();
   }
 
-  private static Configuration getLocalConfiguration() throws InvalidConfigurationException {
+  private static Configuration getLocalConfiguration() {
     ConfigurationBuilder configBuilder = Configuration.builder();
     configBuilder.setOption("analysis.traversal.order", "BFS");
     configBuilder.setOption("analysis.traversal.usePostorder", "true");

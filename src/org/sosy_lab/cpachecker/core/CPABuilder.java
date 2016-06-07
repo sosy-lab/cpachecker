@@ -293,7 +293,11 @@ public class CPABuilder {
       throws InvalidConfigurationException, CPAException {
     String childOptionName = cpaAlias + ".cpa";
     String childrenOptionName = cpaAlias + ".cpas";
+
+    // Here we need to use these deprecated methods because we dynamically create the key.
+    @SuppressWarnings("deprecation")
     String childCpaName = config.getProperty(childOptionName);
+    @SuppressWarnings("deprecation")
     String childrenCpaNames = config.getProperty(childrenOptionName);
 
     if (childrenCpaNames == null && childCpaName == null && cpaAlias.equals("CompositeCPA")

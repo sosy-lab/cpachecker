@@ -35,9 +35,6 @@ log.truncateSize = 10000
 # use colors for log messages on console
 log.useColors = true
 
-# all used options are printed
-log.usedOptions.export = false
-
 # disable all default output files
 # (any explicitly given file will still be written)
 output.disable = false
@@ -2379,6 +2376,9 @@ liveVar.partwiseLivenessCheckTime = 20s
 
 # Write the tokenized version of the input program to this file.
 locmapper.dumpTokenizedProgramToFile = no default value
+
+# all used options are printed
+log.usedOptions.export = false
 
 # Whether to check for memory safety properties (this can be specified by
 # passing an appropriate .prp file to the -spec parameter).
