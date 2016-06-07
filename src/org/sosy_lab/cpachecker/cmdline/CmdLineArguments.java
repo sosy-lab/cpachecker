@@ -197,7 +197,7 @@ class CmdLineArguments {
         System.exit(0);
 
       } else if ("-printUsedOptions".equals(arg)) {
-        putIfNotExistent(properties, PRINT_USED_OPTIONS, "true");
+        putIfNotExistent(properties, PRINT_USED_OPTIONS_OPTION, "true");
         putIfNotExistent(properties, "analysis.disable", "true");
 
         // this will disable all other output
