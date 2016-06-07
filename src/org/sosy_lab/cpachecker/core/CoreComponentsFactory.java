@@ -335,10 +335,6 @@ public class CoreComponentsFactory {
     return algorithm;
   }
 
-  public ReachedSetFactory getReachedSetFactory() {
-    return reachedSetFactory;
-  }
-
   public ReachedSet createReachedSet() {
     ReachedSet reached = reachedSetFactory.create();
 
