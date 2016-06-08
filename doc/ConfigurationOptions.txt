@@ -2728,5 +2728,10 @@ statistics.print = false
 stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
 
-# File with configuration to use for safety properties.
-terminationAlgorithm.safteyConfig = no default value
+# Whether to check for the termination property (this can be specified by
+# passing an appropriate .prp file to the -spec parameter).
+termination.check = false
+
+# When checking for the termination property, use this configuration file
+# instead of the current one.
+termination.config = no default value
