@@ -457,7 +457,7 @@ class WebInterface:
 
     def submit(self, run, limits, cpu_model, result_files_pattern=None, meta_information=None, \
                priority='IDLE', user_pwd=None, svn_branch=None, svn_revision=None,
-               result_files_patterns=[]):
+               result_files_patterns=[], required_files=[]):
         """
         Submits a single run to the VerifierCloud.
         @note: flush() should be called after the submission of the last run.
@@ -474,6 +474,7 @@ class WebInterface:
         @param svn_branch: overrids the svn branch given in the constructor (optional)
         @param svn_revision: overrides the svn revision given in the constructor (optional)
         @param result_files_patterns: list of result_files_pattern (optional)
+        @param required_files: list of additional file required to execute the run (optional)
         """
         if result_files_pattern:
             if result_files_patterns:
@@ -481,11 +482,11 @@ class WebInterface:
                                  "at the same time.")
             result_files_patterns = [result_files_pattern]
 
-        return self._submit(run, limits, cpu_model, result_files_patterns, meta_information,
-                            priority, user_pwd, svn_branch, svn_revision)
+        return self._submit(run, limits, cpu_model, required_files, result_files_patterns,
+                            meta_information, priority, user_pwd, svn_branch, svn_revision)
 
-    def _submit(self, run, limits, cpu_model, result_files_patterns, meta_information,
-                priority, user_pwd, svn_branch, svn_revision, counter=0):
+    def _submit(self, run, limits, cpu_model, required_files, result_files_patterns,
+                    meta_information, priority, user_pwd, svn_branch, svn_revision, counter=0):
 
         params = []
         opened_files = [] # open file handles are passed to the request library
@@ -493,6 +494,10 @@ class WebInterface:
         for programPath in run.sourcefiles:
             norm_path = self._normalize_path_for_cloud(programPath)
             params.append(('programTextHash', (norm_path, self._get_sha1_hash(programPath))))
+            
+        for required_file in required_files:
+            norm_path = self._normalize_path_for_cloud(required_file)
+            params.append(('requiredFileHash', (norm_path, self._get_sha1_hash(required_files))))    
 
         params.append(('svnBranch', svn_branch or self._svn_branch))
         params.append(('revision', svn_revision or self._svn_revision))
@@ -539,17 +544,24 @@ class WebInterface:
         for opened_file in opened_files:
             opened_file.close()
         
-        # program files given as hash value are not known by the cloud system
+        # program files or required files given as hash value are not known by the cloud system
         if statusCode == 412 and counter < 1:
             headers = {"Content-Type": "application/octet-stream",
                    "Content-Encoding": "deflate"}
+            filePath = "files/"
 
             # upload all used program files
-            filePath = "files/"
             for programPath in run.sourcefiles:
                 with open(programPath, 'rb') as programFile:
                     compressedProgramText = zlib.compress(programFile.read(), 9)
                     self._request('POST', filePath, data=compressedProgramText, headers=headers,\
+                                   expectedStatusCodes=[200, 204], user_pwd=user_pwd)
+                    
+            # upload all required files
+            for required_file_path in required_files:
+                with open(required_file_path, 'rb') as required_file:
+                    compressed_required_file = zlib.compress(required_file.read(), 9)
+                    self._request('POST', filePath, data=compressed_required_file, headers=headers,\
                                    expectedStatusCodes=[200, 204], user_pwd=user_pwd)
 
             # retry submission of run
