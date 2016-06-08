@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
@@ -131,6 +130,7 @@ public class PredRelation {
     }
     for (ExplicitRelation explicitRelation: smgExplicitValueRelation.removeAll(pV2)) {
       addExplicitRelation(pV1, explicitRelation.explicitValue, explicitRelation.getOperator());
+      addValueSize(pV1, getSymbolicSize(pV2));
     }
     smgValueSizeInBits.remove(pV2);
   }
