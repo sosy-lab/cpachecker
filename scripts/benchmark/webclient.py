@@ -497,7 +497,7 @@ class WebInterface:
             
         for required_file in required_files:
             norm_path = self._normalize_path_for_cloud(required_file)
-            params.append(('requiredFileHash', (norm_path, self._get_sha1_hash(required_files))))    
+            params.append(('requiredFileHash', (norm_path, self._get_sha1_hash(required_file))))    
 
         params.append(('svnBranch', svn_branch or self._svn_branch))
         params.append(('revision', svn_revision or self._svn_revision))

@@ -150,12 +150,12 @@ def _submitRunsParallel(runSet, benchmark, output_handler):
         
     cpu_model = benchmark.requirements.cpu_model
     priority = benchmark.config.cloudPriority
-    required_files = benchmark._required_files # benchmark.required_files() includes the tool itself
     result_files_patterns = benchmark.result_files_patterns
     if not result_files_patterns:
         logging.warning("No result files pattern is given and the result will not contain any result files.")
 
     for run in runSet.runs:
+        required_files = run._required_files
         submisson_future = executor.submit(_webclient.submit,
                                            run=run,
                                            limits=limits,
