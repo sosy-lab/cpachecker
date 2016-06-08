@@ -63,17 +63,25 @@ import javax.annotation.Nullable;
 /**
  * Algorithm that uses a safety-analysis to prove (non-)termination.
  */
-@Options(prefix="terminationAlgorithm")
+@Options
 public class TerminationAlgorithm implements Algorithm {
 
   @Option(
       secure = true,
+      name = "terminationAlgorithm.safteyConfig",
       required = true,
       description =
           "File with configuration to use for safety properties."
     )
     @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
     private @Nullable Path safteyConfig;
+
+  @Option(
+      secure=true,
+      name="termination.check",
+      description="Whether to check for the termination property "
+          + "(this can be specified by passing an appropriate .prp file to the -spec parameter).")
+  private boolean checkTermination = false;
 
   private final Configuration globalConfig;
   private final LogManager logger;
@@ -103,7 +111,11 @@ public class TerminationAlgorithm implements Algorithm {
   public AlgorithmStatus run(ReachedSet pReachedSet)
       throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
 
-    if (!cfa.getLoopStructure().isPresent()) {
+    if (!checkTermination) {
+      logger.logf(WARNING, "%s does not support safety properties.", getClass().getSimpleName());
+      return AlgorithmStatus.UNSOUND_AND_PRECISE.withPrecise(false);
+
+    } else if (!cfa.getLoopStructure().isPresent()) {
       logger.log(WARNING, "Loop structure is not present, but required for termination analysis.");
       return AlgorithmStatus.UNSOUND_AND_PRECISE;
     }

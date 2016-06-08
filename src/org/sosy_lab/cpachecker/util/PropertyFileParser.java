@@ -123,6 +123,7 @@ public class PropertyFileParser {
     VALID_MEMTRACK,
     OVERFLOW,
     DEADLOCK,
+    TERMINATION,
     ;
 
     private static ImmutableMap<String, PropertyType> AVAILABLE_PROPERTIES = ImmutableMap.<String, PropertyType>builder()
@@ -133,6 +134,7 @@ public class PropertyFileParser {
         .put("G valid-memtrack", PropertyType.VALID_MEMTRACK)
         .put("G ! overflow",     PropertyType.OVERFLOW)
         .put("G ! deadlock",     PropertyType.DEADLOCK)
+        .put("F end",            PropertyType.TERMINATION)
         .build();
   }
 }
