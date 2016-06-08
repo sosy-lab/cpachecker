@@ -155,7 +155,7 @@ def _submitRunsParallel(runSet, benchmark, output_handler):
         logging.warning("No result files pattern is given and the result will not contain any result files.")
 
     for run in runSet.runs:
-        required_files = run._required_files
+        required_files = run.required_files
         submisson_future = executor.submit(_webclient.submit,
                                            run=run,
                                            limits=limits,
