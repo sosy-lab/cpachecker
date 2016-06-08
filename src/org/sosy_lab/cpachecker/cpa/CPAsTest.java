@@ -64,6 +64,7 @@ import org.sosy_lab.cpachecker.cpa.argReplay.ARGReplayCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.cache.CacheCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
+import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.monitor.MonitorCPA;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -74,6 +75,7 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -101,7 +103,6 @@ public class CPAsTest {
     cpas.remove(CompositeCPA.class);
     cpas.remove(MonitorCPA.class);
     cpas.remove(PropertyCheckerCPA.class);
-    cpas.remove(TerminationCPA.class);
 
     cpas.remove(ARGReplayCPA.class); // needs ARG to be replayed
 
@@ -157,7 +158,10 @@ public class CPAsTest {
       throws ReflectiveOperationException, InvalidConfigurationException, CPAException {
     Method factoryMethod = cpaClass.getMethod("factory");
 
+    Optional<ConfigurableProgramAnalysis> childCPA = createChildCpaIfNecessary(cpaClass);
+
     CPAFactory factory = (CPAFactory) factoryMethod.invoke(null);
+    childCPA.ifPresent(factory::setChild);
     try {
       cpa =
           factory
@@ -171,6 +175,17 @@ public class CPAsTest {
               .createInstance();
     } catch (LinkageError e) {
       assume().fail(e.getMessage());
+    }
+  }
+
+  private Optional<ConfigurableProgramAnalysis> createChildCpaIfNecessary(Class<?> cpaClass)
+      throws InvalidConfigurationException, CPAException {
+    if (cpaClass.equals(TerminationCPA.class)) {
+      return Optional.of(
+          LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance());
+
+    } else {
+      return Optional.empty();
     }
   }
 
