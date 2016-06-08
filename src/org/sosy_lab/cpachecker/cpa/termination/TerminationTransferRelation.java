@@ -94,40 +94,37 @@ public class TerminationTransferRelation implements TransferRelation {
    *                                             . int x',y',z', ..., pc';
    *                                             .
    *                                             |
-   *                                             0 loop head
-   *                                            / \
-   *                       [ranking_relation]  /   \ [! (ranking_relation)]
-   *                                          /     \
-   *                                  node1  0       0 potential non-termination
-   *                                         |       |
-   *     int __CPAchecker_termination_temp;  |       | Label: __CPACHECKER_NON_TERMINATION
-   *                                         |       |
-   *                                  node2  0       0
-   *                                         |
-   *    __CPAchecker_termination_temp =      |
-   *           __VERIFIER_nondet_int();      |
-   *                                         |
-   *                                  node3  0
-   *                                        / \
-   * [__CPAchecker_termination_temp == 0]  /   \ [! (__CPAchecker_termination_temp == 0)]
-   *                                      /     \
-   *                                     |       0 node4
-   *                                     |      /
-   *                                     |     / x' = x;
-   *                                     |    /  y' = y;
-   *                                     |   /   ...
-   *                                     |  /
-   *                                     | /
-   *                                     0  node5 = loopHead
-   *                                     |
-   *                   original edge     |
-   *                   after loop head   |
-   *                                     |
-   *                                     0
-   *                                     |
-   *                                     .
-   *                                     .
-   *                                     .
+   *          original edge(s) after loop head   v   original loop head
+   *   ... <------------------------------------ 0 <-------------------------------------------
+   *                                            / \                                            |
+   *                       [ranking_relation]  /   \ [! (ranking_relation)]                    |
+   *                                          /     \                                          |
+   *                                         v       v                                         |
+   *                                  node1  0       0 potential non-termination               |
+   *                                         |       |                                         |
+   *     int __CPAchecker_termination_temp;  |       | Label: __CPACHECKER_NON_TERMINATION     |
+   *                                         |       |                                         |
+   *                                         v       v                                         |
+   *                                  node2  0       0                                         |
+   *                                         |                                                 |
+   *       __CPAchecker_termination_temp =   |                                                 |
+   *               __VERIFIER_nondet_int();  |                                                 |
+   *                                         v                                                 |
+   *                                  node3  0                                                 |
+   *                                        / \                                                |
+   * [__CPAchecker_termination_temp == 0]  /   \ [! (__CPAchecker_termination_temp == 0)]      |
+   *                                      /     \                                              |
+   *                                     |       v                                             |
+   *                                     |       0 node4                                       |
+   *                                     |      /                                              |
+   *                                     |     / x' = x;                                       |
+   *                                     |    /  y' = y;                                       |
+   *                                     v   /   ...                                           |
+   *                              node5  0 <-                                                  |
+   *                                     |                                                     |
+   *                                     |_____________________________________________________|
+   *
+   *
    */
 
   private final static String TMP_VARIABLE_NAME = "__CPAchecker_termination_temp";
@@ -393,7 +390,7 @@ public class TerminationTransferRelation implements TransferRelation {
       Collection<AbstractState> statesAtNode5 = Lists.newArrayListWithCapacity(2);
 
       // node4 - x' = x; y' = y; ... pc' = pc; -> node 5
-      CFANode node5 = loopHead;
+      CFANode node5 = creatCfaNode(functionName);
       statesAtNode5.addAll(initializePrimedVariables(node4, node5, statesAtNode4, pPrecision));
 
       // node3 - [__CPAchecker_termination_temp == 0] -> node 5
@@ -401,10 +398,15 @@ public class TerminationTransferRelation implements TransferRelation {
           createAssumeEdge(nondetTmpVariableAssumption, node3, node5, true);
 
       statesAtNode5.addAll(getWrappedSucessors(statesAtNode4, pPrecision, positiveNodetAssumeEdge));
+
+      // node5 - BlankEdge -> loopHead
+      CFAEdge edgeBackToLoopHead = createBlankEdge(node5, loopHead, "");
+      Collection<AbstractState> statesAtLoopHead =
+          getWrappedSucessors(statesAtNode5, pPrecision, edgeBackToLoopHead);
       resetCfa();
 
       // original edges after loop head
-      for (AbstractState state : statesAtNode5) {
+      for (AbstractState state : statesAtLoopHead) {
         resultingSuccessors.addAll(transferRelation.getAbstractSuccessors(state, pPrecision));
       }
     }
