@@ -200,6 +200,17 @@ public class CPAMain {
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path overflowConfig = null;
 
+    @Option(secure=true, name="termination.check",
+        description="Whether to check for the termination property "
+            + "(this can be specified by passing an appropriate .prp file to the -spec parameter).")
+    private boolean checkTermination = false;
+
+    @Option(secure=true, name="termination.config",
+        description="When checking for the termination property, "
+            + "use this configuration file instead of the current one.")
+    @FileOption(Type.OPTIONAL_INPUT_FILE)
+    private @Nullable Path terminationConfig = null;
+
     @Option(
       secure = true,
       name = CmdLineArguments.PRINT_USED_OPTIONS_OPTION,
@@ -306,6 +317,20 @@ public class CPAMain {
                             .setOptions(cmdLineOptions)
                             .clearOption("overflow.check")
                             .clearOption("overflow.config")
+                            .clearOption("output.disable")
+                            .clearOption("output.path")
+                            .clearOption("rootDirectory")
+                            .build();
+    }
+    if (options.checkTermination) {
+      if (options.terminationConfig == null) {
+        throw new InvalidConfigurationException(
+            "Verifying termination is not supported if option termination.config is not specified.");
+      }
+      config = Configuration.builder()
+                            .loadFromFile(options.overflowConfig)
+                            .setOptions(cmdLineOptions)
+                            .clearOption("termination.config")
                             .clearOption("output.disable")
                             .clearOption("output.path")
                             .clearOption("rootDirectory")
