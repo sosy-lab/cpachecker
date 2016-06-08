@@ -31,7 +31,6 @@ import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -41,19 +40,14 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
-import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -83,28 +77,23 @@ public class TerminationAlgorithm implements Algorithm {
           + "(this can be specified by passing an appropriate .prp file to the -spec parameter).")
   private boolean checkTermination = false;
 
-  private final Configuration globalConfig;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
-  private final Specification specification;
   private final CFA cfa;
-  private final String programDenotation;
+  private final Algorithm safetyAlgorithm;
 
   public TerminationAlgorithm(
-      Configuration pGlobalConfig,
+      Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      Specification pSpecification,
       CFA pCfa,
-      String pProgramDenotation)
+      Algorithm pSafetyAlgorithm)
           throws InvalidConfigurationException {
-        globalConfig = checkNotNull(pGlobalConfig);
         logger = checkNotNull(pLogger);
         shutdownNotifier = pShutdownNotifier;
-        specification = checkNotNull(pSpecification);
+        safetyAlgorithm = checkNotNull(pSafetyAlgorithm);
         cfa = checkNotNull(pCfa);
-        programDenotation = checkNotNull(pProgramDenotation);
-        pGlobalConfig.inject(this);
+        pConfig.inject(this);
   }
 
   @Override
@@ -123,24 +112,12 @@ public class TerminationAlgorithm implements Algorithm {
     AbstractState entryState = pReachedSet.getFirstState();
     Precision entryStatePrecision = pReachedSet.getPrecision(entryState);
 
-    Algorithm safetyAlgorithm;
-    try {
-      safetyAlgorithm = createSafteyAlgorithm();
-    } catch (InvalidConfigurationException | IOException e) {
-      logger.logUserException(
-          Level.WARNING,
-          e,
-          "The configuration file " + safteyConfig + " could not be read");
-      return AlgorithmStatus.UNSOUND_AND_PRECISE;
-    }
-
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
     ImmutableSet<CFANode> loopHeads = cfa.getAllLoopHeads().get();
 
     for (CFANode loopHead : loopHeads) {
       shutdownNotifier.shutdownIfNecessary();
-      CPAcheckerResult.Result loopTermiantion =
-          prooveLoopTermination(safetyAlgorithm, pReachedSet, loopHead);
+      CPAcheckerResult.Result loopTermiantion = prooveLoopTermination(pReachedSet, loopHead);
 
       if (loopTermiantion == Result.FALSE) {
         logger.logf(Level.FINE, "Proved non-termination of loop with head %s.", loopHead);
@@ -160,36 +137,13 @@ public class TerminationAlgorithm implements Algorithm {
     return status;
   }
 
-  private Algorithm createSafteyAlgorithm()
-      throws InvalidConfigurationException, IOException, CPAException {
-    CoreComponentsFactory safetyAnalysisFactory =
-        new CoreComponentsFactory(
-        createSafetyConfig(), logger, shutdownNotifier, new AggregatedReachedSets());
-    ConfigurableProgramAnalysis cpa = safetyAnalysisFactory.createCPA(cfa, specification);
-    return safetyAnalysisFactory.createAlgorithm(cpa, programDenotation, cfa, specification);
-  }
-
-  private Configuration createSafetyConfig()
-      throws IOException, InvalidConfigurationException {
-    ConfigurationBuilder safetyConfigBuilder = Configuration.builder();
-    safetyConfigBuilder.copyFrom(globalConfig);
-    safetyConfigBuilder.clearOption("terminationAlgorithm.safteyConfig");
-    safetyConfigBuilder.clearOption("algorithm.termination");
-    safetyConfigBuilder.loadFromFile(safteyConfig);
-    safetyConfigBuilder.setOption("specification", "config/specification/default.spc");
-
-    Configuration safetyConfig = safetyConfigBuilder.build();
-    return safetyConfig;
-  }
-
-  private Result prooveLoopTermination(
-      Algorithm pSafetyAlgorithm, ReachedSet pReachedSet, CFANode pLoopHead)
+  private Result prooveLoopTermination(ReachedSet pReachedSet, CFANode pLoopHead)
           throws CPAEnabledAnalysisPropertyViolationException, CPAException, InterruptedException {
 
     logger.logf(Level.FINE, "Prooving (non)-termination of loop with head %s", pLoopHead);
 
     // TODO Add additional nodes and edges to CFA
-    AlgorithmStatus status = pSafetyAlgorithm.run(pReachedSet);
+    AlgorithmStatus status = safetyAlgorithm.run(pReachedSet);
     Optional<AbstractState> targetState =
         pReachedSet.asCollection().stream().filter(AbstractStates::isTargetState).findAny();
 

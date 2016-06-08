@@ -253,15 +253,6 @@ public class CoreComponentsFactory {
               programDenotation,
               aggregatedReachedSets);
 
-    } else if (useTerminationAlgorithm) {
-      algorithm = new TerminationAlgorithm(
-          config,
-          logger,
-          shutdownNotifier,
-          specification,
-          cfa,
-          programDenotation);
-
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 
@@ -329,6 +320,15 @@ public class CoreComponentsFactory {
 
       if (unknownIfUnrestrictedProgram) {
         algorithm = new RestrictedProgramDomainAlgorithm(algorithm, cfa);
+      }
+
+      if (useTerminationAlgorithm) {
+        algorithm = new TerminationAlgorithm(
+            config,
+            logger,
+            shutdownNotifier,
+            cfa,
+            algorithm);
       }
     }
 
