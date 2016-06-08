@@ -36,7 +36,6 @@ import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -64,28 +63,15 @@ import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CPAs;
 
-import java.nio.file.Path;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 /**
  * Algorithm that uses a safety-analysis to prove (non-)termination.
  */
 @Options
 public class TerminationAlgorithm implements Algorithm {
-
-  @Option(
-      secure = true,
-      name = "terminationAlgorithm.safteyConfig",
-      required = true,
-      description =
-          "File with configuration to use for safety properties."
-    )
-    @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-    private @Nullable Path safteyConfig;
 
   @Option(
       secure=true,
