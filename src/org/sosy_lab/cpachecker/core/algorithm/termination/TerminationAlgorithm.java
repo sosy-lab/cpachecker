@@ -28,6 +28,11 @@ import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.WARNING;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.MultimapBuilder;
+import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -37,19 +42,31 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.termination.TerminationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
+import org.sosy_lab.cpachecker.util.CPAs;
 
 import java.nio.file.Path;
 import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
@@ -82,18 +99,36 @@ public class TerminationAlgorithm implements Algorithm {
   private final CFA cfa;
   private final Algorithm safetyAlgorithm;
 
+  private final TerminationCPA terminationCpa;
+  private final Set<CVariableDeclaration> globalDeclaration;
+  private final SetMultimap<String, CVariableDeclaration> localDeclarations;
+
   public TerminationAlgorithm(
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       CFA pCfa,
-      Algorithm pSafetyAlgorithm)
+      Algorithm pSafetyAlgorithm,
+      ConfigurableProgramAnalysis pSafetyAnalysis)
           throws InvalidConfigurationException {
         logger = checkNotNull(pLogger);
         shutdownNotifier = pShutdownNotifier;
         safetyAlgorithm = checkNotNull(pSafetyAlgorithm);
         cfa = checkNotNull(pCfa);
         pConfig.inject(this);
+
+        terminationCpa = CPAs.retrieveCPA(pSafetyAnalysis, TerminationCPA.class);
+        if (terminationCpa == null) {
+          throw new InvalidConfigurationException("TerminationAlgorithm requires TerminationCPA");
+        }
+
+        DeclarationCollectionCFAVisitor visitor = new DeclarationCollectionCFAVisitor();
+        for (CFANode function : cfa.getAllFunctionHeads()) {
+          CFATraversal.dfs().ignoreFunctionCalls().traverseOnce(function, visitor);
+        }
+        localDeclarations = ImmutableSetMultimap.copyOf(visitor.localDeclarations);
+        globalDeclaration = ImmutableSet.copyOf(visitor.globalDeclaration);
+
   }
 
   @Override
@@ -106,7 +141,11 @@ public class TerminationAlgorithm implements Algorithm {
 
     } else if (!cfa.getLoopStructure().isPresent()) {
       logger.log(WARNING, "Loop structure is not present, but required for termination analysis.");
-      return AlgorithmStatus.UNSOUND_AND_PRECISE;
+      return AlgorithmStatus.UNSOUND_AND_PRECISE.withPrecise(false);
+
+    } else if (cfa.getLanguage() != Language.C) {
+      logger.log(WARNING, "Termination analysis supports only C.");
+      return AlgorithmStatus.UNSOUND_AND_PRECISE.withPrecise(false);
     }
 
     AbstractState entryState = pReachedSet.getFirstState();
@@ -142,7 +181,16 @@ public class TerminationAlgorithm implements Algorithm {
 
     logger.logf(Level.FINE, "Prooving (non)-termination of loop with head %s", pLoopHead);
 
-    // TODO Add additional nodes and edges to CFA
+    // Pass current loop and relevant variables to TerminationCPA.
+    String function = pLoopHead.getFunctionName();
+    Set<CVariableDeclaration> relevantVariabels =
+        ImmutableSet
+          .<CVariableDeclaration>builder()
+          .addAll(globalDeclaration)
+          .addAll(localDeclarations.get(function))
+          .build();
+    terminationCpa.setProcessedLoop(pLoopHead, relevantVariabels);
+
     AlgorithmStatus status = safetyAlgorithm.run(pReachedSet);
     Optional<AbstractState> targetState =
         pReachedSet.asCollection().stream().filter(AbstractStates::isTargetState).findAny();
@@ -163,5 +211,33 @@ public class TerminationAlgorithm implements Algorithm {
     }
 
     return result;
+  }
+
+  private static class DeclarationCollectionCFAVisitor extends DefaultCFAVisitor {
+
+    private final Set<CVariableDeclaration> globalDeclaration = Sets.newLinkedHashSet();
+
+    private final Multimap<String, CVariableDeclaration> localDeclarations =
+        MultimapBuilder.hashKeys().linkedHashSetValues().build();
+
+
+    @Override
+    public TraversalProcess visitEdge(CFAEdge pEdge) {
+      if (pEdge instanceof CDeclarationEdge) {
+        CDeclaration declaration = ((CDeclarationEdge) pEdge).getDeclaration();
+        if (declaration instanceof CVariableDeclaration) {
+          CVariableDeclaration variableDeclaration = (CVariableDeclaration) declaration;
+
+          if (variableDeclaration.isGlobal()) {
+            globalDeclaration.add(variableDeclaration);
+          } else {
+            localDeclarations.put(pEdge.getPredecessor().getFunctionName(), variableDeclaration);
+          }
+
+        }
+      }
+
+      return TraversalProcess.CONTINUE;
+    }
   }
 }
