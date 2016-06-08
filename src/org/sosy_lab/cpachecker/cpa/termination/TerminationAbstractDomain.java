@@ -40,16 +40,18 @@ public class TerminationAbstractDomain implements AbstractDomain {
   @Override
   public TerminationState join(AbstractState pState1, AbstractState pState2)
       throws CPAException, InterruptedException {
-    AbstractState wrappedState1 = ((TerminationState) pState1).getWrappedState();
-    AbstractState wrappedState2 = ((TerminationState) pState2).getWrappedState();
-    return new TerminationState(abstractDomain.join(wrappedState1, wrappedState2));
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public boolean isLessOrEqual(AbstractState pState1, AbstractState pState2)
       throws CPAException, InterruptedException {
-    AbstractState wrappedState1 = ((TerminationState) pState1).getWrappedState();
-    AbstractState wrappedState2 = ((TerminationState) pState2).getWrappedState();
-    return abstractDomain.isLessOrEqual(wrappedState1, wrappedState2);
+    TerminationState state1 = (TerminationState) pState1;
+    TerminationState state2 = (TerminationState) pState2;
+    AbstractState wrappedState1 = state1.getWrappedState();
+    AbstractState wrappedState2 = state2.getWrappedState();
+
+    return state1.isPartOfLoop() == state2.isPartOfLoop()
+        && abstractDomain.isLessOrEqual(wrappedState1, wrappedState2);
   }
 }

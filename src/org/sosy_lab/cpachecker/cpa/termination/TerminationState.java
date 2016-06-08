@@ -25,14 +25,69 @@ package org.sosy_lab.cpachecker.cpa.termination;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Preconditions;
+
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
+import javax.annotation.concurrent.Immutable;
+
+@Immutable
 public class TerminationState extends AbstractSingleWrapperState {
 
-  private static final long serialVersionUID = 1L;
+  private static final long serialVersionUID = 2L;
 
-  public TerminationState(AbstractState pWrappedState) {
+  private final boolean loop;
+
+  /**
+   * Creates a new {@link TerminationState} that is part of the lasso's stem.
+   *
+   * @param pWrappedState
+   *          the {@link AbstractState} to wrap
+   * @return the created {@link TerminationState}
+   */
+  public static TerminationState createStemState(AbstractState pWrappedState) {
+    return new TerminationState(pWrappedState, false);
+  }
+
+  private TerminationState(AbstractState pWrappedState, boolean pLoop) {
     super(checkNotNull(pWrappedState));
+    loop = pLoop;
+  }
+
+  /**
+   * Creates a new {@link TerminationState} that is part of the lasso's loop iff this
+   * {@link TerminationState} is part of the lasso's loop.
+   *
+   * @param pWrappedState
+   *            the {@link AbstractState} to wrap
+   * @return the created {@link TerminationState}
+   */
+  public TerminationState createSuccessor(AbstractState pWrappedState) {
+    return new TerminationState(pWrappedState, loop);
+  }
+
+  /**
+   * Creates a new {@link TerminationState} that is the first state of the lasso's loop.
+   *
+   * @return the created {@link TerminationState}
+   */
+  public TerminationState enterLoop() {
+    Preconditions.checkArgument(!loop, "% is already part of the lasso's loop", this);
+    return new TerminationState(getWrappedState(), loop);
+  }
+
+  /**
+   * @return <code>true</code> iff this {@link TerminationState} is part of the lasso's loop.
+   */
+  public boolean isPartOfLoop() {
+    return loop;
+  }
+
+  /**
+   * @return <code>true</code> iff this {@link TerminationState} is part of the lasso's stem.
+   */
+  public boolean isPartOfStem() {
+    return !loop;
   }
 }

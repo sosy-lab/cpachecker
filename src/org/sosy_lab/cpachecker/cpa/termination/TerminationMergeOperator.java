@@ -41,14 +41,22 @@ public class TerminationMergeOperator implements MergeOperator {
   @Override
   public TerminationState merge(AbstractState pState1, AbstractState pState2, Precision pPrecision)
       throws CPAException, InterruptedException {
-    AbstractState wrappedState1 = ((TerminationState) pState1).getWrappedState();
-    AbstractState wrappedState2 = ((TerminationState) pState2).getWrappedState();
-    AbstractState mergedState = mergeOperator.merge(wrappedState1, wrappedState2, pPrecision);
+    TerminationState state1 = (TerminationState) pState1;
+    TerminationState state2 = (TerminationState) pState2;
 
-    if (mergedState == wrappedState2) {
-      return (TerminationState) pState2;
+    if (state1.isPartOfLoop() != state2.isPartOfLoop()) {
+      return state2;
+
     } else {
-      return new TerminationState(mergedState);
+      AbstractState wrappedState1 = state1.getWrappedState();
+      AbstractState wrappedState2 = state2.getWrappedState();
+      AbstractState mergedState = mergeOperator.merge(wrappedState1, wrappedState2, pPrecision);
+
+      if (mergedState == wrappedState2) {
+        return state2;
+      } else {
+        return state2.createSuccessor(mergedState);
+      }
     }
   }
 }

@@ -28,7 +28,6 @@ import static org.sosy_lab.cpachecker.cfa.ast.FileLocation.DUMMY;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.EQUALS;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.ONE;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.ZERO;
-import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.createDummyLiteral;
 import static org.sosy_lab.cpachecker.util.CFAUtils.edgeHasType;
 import static org.sosy_lab.cpachecker.util.CFAUtils.enteringEdges;
 
@@ -53,7 +52,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -138,18 +136,6 @@ public class TerminationTransferRelation implements TransferRelation {
           "__VERIFIER_nondet_int",
           Collections.emptyList());
 
-  private static final String PRIMED_PC_NAME = "__PC__" + PRIMED_VARIABLE_POSTFIX;
-  private static final CVariableDeclaration PRIMED_PC =
-      new CVariableDeclaration(
-          FileLocation.DUMMY,
-          false,
-          CStorageClass.AUTO,
-          CNumericTypes.INT,
-          PRIMED_PC_NAME,
-          PRIMED_PC_NAME,
-          PRIMED_PC_NAME,
-          new CInitializerExpression(FileLocation.DUMMY, CIntegerLiteralExpression.ZERO));
-
   /**
    * The loop that is currently analyzed by the {@link TerminationAlgorithm}
    */
@@ -223,6 +209,7 @@ public class TerminationTransferRelation implements TransferRelation {
               null);
       relevantVariables.put(relevantVariable, primedVariable);
     }
+
     relevantVariables = builder.build();
   }
 
@@ -231,38 +218,29 @@ public class TerminationTransferRelation implements TransferRelation {
       AbstractState pState, Precision pPrecision)
       throws CPATransferException, InterruptedException {
     CFANode location = AbstractStates.extractLocation(pState);
-    AbstractState wrappedState = ((TerminationState) pState).getWrappedState();
-    Collection<? extends AbstractState> successors;
+    TerminationState terminationState = (TerminationState) pState;
+    Collection<? extends TerminationState> statesAtCurrentLocation;
 
     if (location == null) {
-      throw new UnsupportedOperationException(
-          "TerminationTransferRelation requieres location infromation.");
+      throw new UnsupportedOperationException("TransferRelation requires location information.");
 
     } else if (!loopHead.isPresent()
         && enteringEdges(location).anyMatch(edgeHasType(CFAEdgeType.FunctionCallEdge))
         && loopHead.get().getFunctionName().equals(location.getFunctionName())) {
-      successors = declarePrimedVariables(location, wrappedState, pPrecision);
+      statesAtCurrentLocation = declarePrimedVariables(terminationState, pPrecision, location);
 
     } else if (loopHead.isPresent() && location.equals(loopHead.get())) {
-      successors = insertRankingRelation(wrappedState, pPrecision, location);
+      statesAtCurrentLocation = insertRankingRelation(terminationState, pPrecision, location);
 
     } else {
-      successors = transferRelation.getAbstractSuccessors(wrappedState, pPrecision);
+      statesAtCurrentLocation = Collections.singleton(terminationState);
     }
 
-    return wrapStates(successors);
+    return getAbstractSuccessors0(statesAtCurrentLocation, pPrecision);
   }
 
-  private Collection<? extends TerminationState> wrapStates(
-      Collection<? extends AbstractState> states) {
-    return states
-        .stream()
-        .map(TerminationState::new)
-        .collect(Collectors.toCollection(ArrayList::new));
-  }
-
-  private Collection<? extends AbstractState> declarePrimedVariables(
-      CFANode pCfaNode, AbstractState pState, Precision pPrecision)
+  private Collection<? extends TerminationState> declarePrimedVariables(
+      TerminationState pState, Precision pPrecision, CFANode pCfaNode)
       throws CPATransferException, InterruptedException {
     String function = pCfaNode.getFunctionName();
 
@@ -280,33 +258,28 @@ public class TerminationTransferRelation implements TransferRelation {
         function);
 
     CFANode currentNode = pCfaNode;
-    Collection<AbstractState> states = Collections.singletonList(pState);
+    Collection<TerminationState> states = Collections.singletonList(pState);
 
     for (CVariableDeclaration primedVariable : relevantVariables.values()) {
       CFANode nextNode = creatCfaNode(function);
       CFAEdge edge = createDeclarationEdge(primedVariable, currentNode, nextNode);
-      states = getWrappedSucessors(states, pPrecision, edge);
+      states = getAbstractSuccessorsForEdge0(states, pPrecision, edge);
       currentNode = nextNode;
     }
 
-    // primed program counter
-    CFAEdge edge = createDeclarationEdge(PRIMED_PC, currentNode, pCfaNode);
-    states = getWrappedSucessors(states, pPrecision, edge);
     resetCfa();
 
-    // original edges after pCfaNode
-    Collection<AbstractState> resultingSuccessors = Lists.newArrayListWithCapacity(2);
-    for (AbstractState state : states) {
-      resultingSuccessors.addAll(transferRelation.getAbstractSuccessors(state, pPrecision));
-    }
+    // blank edge back to original CFA node
+    CFAEdge edge = createBlankEdge(currentNode, pCfaNode, "");
+    states = getAbstractSuccessorsForEdge0(states, pPrecision, edge);
 
-    return resultingSuccessors;
+    return getAbstractSuccessors0(states, pPrecision);
   }
 
-  private Collection<? extends AbstractState> insertRankingRelation(
-      AbstractState pWrappedState, Precision pPrecision, CFANode loopHead)
+  private Collection<? extends TerminationState> insertRankingRelation(
+      TerminationState loopHeadState, Precision pPrecision, CFANode loopHead)
       throws CPATransferException, InterruptedException {
-    Collection<AbstractState> resultingSuccessors;
+    Collection<TerminationState> resultingSuccessors;
     String functionName = loopHead.getFunctionName();
 
     logger.logf(
@@ -316,14 +289,23 @@ public class TerminationTransferRelation implements TransferRelation {
         loopHead,
         functionName);
 
-    // loopHead - [!(rankingFunction)] -> potentialNonTerminationNode
+    Collection<? extends TerminationState> potentialNonTerminationStates;
     CFANode potentialNonTerminationNode = creatCfaNode(functionName);
-    CFAEdge negativeRankingRelation =
-        createAssumeEdge(rankingRelations, loopHead, potentialNonTerminationNode, false);
 
-    Collection<? extends AbstractState> potentialNonTerminationStates =
-        transferRelation.getAbstractSuccessorsForEdge(
-            pWrappedState, pPrecision, negativeRankingRelation);
+    // Do not check the ranking relation in the stem.
+    if (loopHeadState.isPartOfLoop()) {
+
+      // loopHead - [!(rankingFunction)] -> potentialNonTerminationNode
+      CFAEdge negativeRankingRelation =
+          createAssumeEdge(rankingRelations, loopHead, potentialNonTerminationNode, false);
+
+      potentialNonTerminationStates =
+          getAbstractSuccessorsForEdge0(
+              Collections.singleton(loopHeadState), pPrecision, negativeRankingRelation);
+
+    } else {
+      potentialNonTerminationStates = Collections.emptyList();
+    }
 
     // non termination label is reachable
     if (!potentialNonTerminationStates.isEmpty()) {
@@ -334,27 +316,27 @@ public class TerminationTransferRelation implements TransferRelation {
           createBlankEdge(
               potentialNonTerminationNode, nodeAfterLabel, "Label: __CPACHECKER_NON_TERMINATION");
       resultingSuccessors =
-          getWrappedSucessors(potentialNonTerminationStates, pPrecision, nonTerminationLabel);
+          getAbstractSuccessorsForEdge0(
+              potentialNonTerminationStates, pPrecision, nonTerminationLabel);
 
     } else {
-      resultingSuccessors = Lists.newArrayListWithCapacity(2);
-
-      // loopHead - [rankingFunction] -> node1);
+      // loopHead - [rankingFunction] -> node1
       CFANode node1 = creatCfaNode(functionName);
       CFAEdge positiveRankingRelation =
           createAssumeEdge(rankingRelations, loopHead, potentialNonTerminationNode, true);
 
-      Collection<? extends AbstractState> states =
-          transferRelation.getAbstractSuccessorsForEdge(
-              pWrappedState, pPrecision, positiveRankingRelation);
+      Collection<TerminationState> statesAtNode1 =
+          getAbstractSuccessorsForEdge0(
+              Collections.singleton(loopHeadState), pPrecision, positiveRankingRelation);
 
-      // node3 - int __CPAchecker_termination_temp;  -> node 5
+      // node1 - int __CPAchecker_termination_temp;  -> node 2
       CFANode node2 = creatCfaNode(functionName);
       CVariableDeclaration nondetVariable = createLoaclVariable(functionName, TMP_VARIABLE_NAME);
       CFAEdge nondetEdge = createDeclarationEdge(nondetVariable, node1, node2);
-      states = getWrappedSucessors(states, pPrecision, nondetEdge);
+      Collection<TerminationState> statesAtNode2 =
+          getAbstractSuccessorsForEdge0(statesAtNode1, pPrecision, nondetEdge);
 
-      // node3 - __CPAchecker_termination_temp = __VERIFIER_nondet_int  -> node 5
+      // node2 - __CPAchecker_termination_temp = __VERIFIER_nondet_int  -> node 3
       CFANode node3 = creatCfaNode(functionName);
       CFunctionCallAssignmentStatement nondetAssignment =
           new CFunctionCallAssignmentStatement(
@@ -368,7 +350,8 @@ public class TerminationTransferRelation implements TransferRelation {
                   NONDET_INT));
 
       CFAEdge nondetAssignmentEdge = crateCStatementEdge(nondetAssignment, node2, node3);
-      states = getWrappedSucessors(states, pPrecision, nondetAssignmentEdge);
+      Collection<TerminationState> statesAtNode3 =
+          getAbstractSuccessorsForEdge0(statesAtNode2, pPrecision, nondetAssignmentEdge);
 
       // node3 - [! (__CPAchecker_termination_temp == 0)] -> node 4
       CFANode node4 = creatCfaNode(functionName);
@@ -384,51 +367,49 @@ public class TerminationTransferRelation implements TransferRelation {
       CFAEdge negativeNodetAssumeEdge =
           createAssumeEdge(nondetTmpVariableAssumption, node3, node4, false);
 
-      Collection<AbstractState> statesAtNode4 =
-          getWrappedSucessors(states, pPrecision, negativeNodetAssumeEdge);
+      // Enter loop only once.
+      Collection<TerminationState> nonLoopStatesAtNode3 =
+          statesAtNode3
+              .stream()
+              .filter(TerminationState::isPartOfStem)
+              .collect(Collectors.toCollection(ArrayList::new));
+      Collection<TerminationState> statesAtNode4 =
+          getAbstractSuccessorsForEdge0(nonLoopStatesAtNode3, pPrecision, negativeNodetAssumeEdge);
 
-      Collection<AbstractState> statesAtNode5 = Lists.newArrayListWithCapacity(2);
+      Collection<TerminationState> statesAtNode5 = Lists.newArrayList();
 
-      // node4 - x' = x; y' = y; ... pc' = pc; -> node 5
+      // node4 - x' = x; y' = y; ... -> node 5
       CFANode node5 = creatCfaNode(functionName);
-      statesAtNode5.addAll(initializePrimedVariables(node4, node5, statesAtNode4, pPrecision));
+      initializePrimedVariables(node4, node5, statesAtNode4, pPrecision)
+          .stream()
+          .map(TerminationState::enterLoop) // pc' = loopHead
+          .forEach(statesAtNode5::add);
 
       // node3 - [__CPAchecker_termination_temp == 0] -> node 5
       CFAEdge positiveNodetAssumeEdge =
           createAssumeEdge(nondetTmpVariableAssumption, node3, node5, true);
-
-      statesAtNode5.addAll(getWrappedSucessors(statesAtNode4, pPrecision, positiveNodetAssumeEdge));
+      statesAtNode5.addAll(
+          getAbstractSuccessorsForEdge0(statesAtNode3, pPrecision, positiveNodetAssumeEdge));
 
       // node5 - BlankEdge -> loopHead
       CFAEdge edgeBackToLoopHead = createBlankEdge(node5, loopHead, "");
-      Collection<AbstractState> statesAtLoopHead =
-          getWrappedSucessors(statesAtNode5, pPrecision, edgeBackToLoopHead);
+      resultingSuccessors =
+          getAbstractSuccessorsForEdge0(statesAtNode5, pPrecision, edgeBackToLoopHead);
       resetCfa();
-
-      // original edges after loop head
-      for (AbstractState state : statesAtLoopHead) {
-        resultingSuccessors.addAll(transferRelation.getAbstractSuccessors(state, pPrecision));
-      }
     }
 
     return resultingSuccessors;
   }
 
-  private Collection<? extends AbstractState> initializePrimedVariables(
+  private Collection<? extends TerminationState> initializePrimedVariables(
       CFANode startNode,
       CFANode endNode,
-      Collection<? extends AbstractState> pStates,
+      Collection<? extends TerminationState> pStates,
       Precision pPrecision)
       throws CPATransferException, InterruptedException {
-    CIntegerLiteralExpression loopHeadProgramLocation =
-        loopHead
-            .map(CFANode::getNodeNumber)
-            .map(pc -> createDummyLiteral(pc, CNumericTypes.INT))
-            .orElseThrow(IllegalStateException::new);
-
     String function = startNode.getFunctionName();
     CFANode currentNode = startNode;
-    Collection<? extends AbstractState> states = pStates;
+    Collection<? extends TerminationState> states = pStates;
 
     // x' = x; y' = y; ....
     for (Entry<CVariableDeclaration, CVariableDeclaration> relevantVariable :
@@ -440,14 +421,13 @@ public class TerminationTransferRelation implements TransferRelation {
       CStatement assignment = createAssignmentStatement(primedVariable, unprimedVariable);
       CFAEdge edge = crateCStatementEdge(assignment, currentNode, nextNode);
 
-      states = getWrappedSucessors(states, pPrecision, edge);
+      states = getAbstractSuccessorsForEdge0(states, pPrecision, edge);
       currentNode = nextNode;
     }
 
-    // pc' = loopHead.get().getNodeNumber()
-    CStatement assignment = createAssignmentStatement(PRIMED_PC, loopHeadProgramLocation);
-    CFAEdge edge = crateCStatementEdge(assignment, currentNode, endNode);
-    states = getWrappedSucessors(states, pPrecision, edge);
+    // blank edge to endNode
+    CFAEdge edge = createBlankEdge(currentNode, endNode, "");
+    states = getAbstractSuccessorsForEdge0(states, pPrecision, edge);
 
     return states;
   }
@@ -466,12 +446,6 @@ public class TerminationTransferRelation implements TransferRelation {
         FileLocation.DUMMY,
         new CIdExpression(FileLocation.DUMMY, pLeftHandSide),
         new CIdExpression(FileLocation.DUMMY, pRightHandSide));
-  }
-
-  private CExpressionAssignmentStatement createAssignmentStatement(
-      CSimpleDeclaration pLeftHandSide, CExpression pRightHandSide) {
-    return new CExpressionAssignmentStatement(
-        FileLocation.DUMMY, new CIdExpression(FileLocation.DUMMY, pLeftHandSide), pRightHandSide);
   }
 
   private CVariableDeclaration createLoaclVariable(String functionName, String variableName) {
@@ -505,23 +479,45 @@ public class TerminationTransferRelation implements TransferRelation {
 
   private BlankEdge createBlankEdge(CFANode pPredecessor, CFANode pSuccessor, String pDescription) {
     BlankEdge edge =
-        new BlankEdge(
-            pDescription + ";", FileLocation.DUMMY, pPredecessor, pSuccessor, pDescription);
+        new BlankEdge(pDescription + ";", DUMMY, pPredecessor, pSuccessor, pDescription);
     addToCfa(edge);
     return edge;
   }
 
-  private Collection<AbstractState> getWrappedSucessors(
-      Collection<? extends AbstractState> pStates, Precision pPrecision, CFAEdge pEdge)
+  private Collection<TerminationState> getAbstractSuccessorsForEdge0(
+      Collection<? extends TerminationState> pStates, Precision pPrecision, CFAEdge pEdge)
       throws CPATransferException, InterruptedException {
+    Collection<TerminationState> successors = Lists.newArrayListWithCapacity(pStates.size());
 
-    Collection<AbstractState> sucessors = Lists.newArrayListWithCapacity(pStates.size());
-    for (AbstractState state : pStates) {
-      sucessors.addAll(transferRelation.getAbstractSuccessorsForEdge(state, pPrecision, pEdge));
+    for (TerminationState state : pStates) {
+      AbstractState wrappedState = state.getWrappedState();
+      transferRelation
+          .getAbstractSuccessorsForEdge(wrappedState, pPrecision, pEdge)
+          .stream()
+          .map(state::createSuccessor)
+          .forEach(successors::add);
     }
 
-    return sucessors;
+    return successors;
   }
+
+  private Collection<TerminationState> getAbstractSuccessors0(
+      Collection<? extends TerminationState> pStates, Precision pPrecision)
+      throws CPATransferException, InterruptedException {
+    Collection<TerminationState> resultingSuccessors =
+        Lists.newArrayListWithCapacity(pStates.size());
+
+    for (TerminationState state : pStates) {
+      transferRelation
+          .getAbstractSuccessors(state.getWrappedState(), pPrecision)
+          .stream()
+          .map(state::createSuccessor)
+          .forEach(resultingSuccessors::add);
+    }
+
+    return resultingSuccessors;
+  }
+
 
   private CFANode creatCfaNode(String functionName) {
     return new CFANode(functionName);

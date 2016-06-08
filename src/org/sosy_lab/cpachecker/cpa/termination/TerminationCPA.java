@@ -115,6 +115,6 @@ public class TerminationCPA extends AbstractSingleWrapperCPA {
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    return new TerminationState(getWrappedCpa().getInitialState(pNode, pPartition));
+    return TerminationState.createStemState(getWrappedCpa().getInitialState(pNode, pPartition));
   }
 }
