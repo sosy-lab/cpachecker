@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils;
@@ -227,7 +228,13 @@ class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
     final BooleanFormula nextInequality = ptsMgs.getNextBaseAddressInequality(
         pName, bases, lastBase);
     lastBase = pName;
-    return nextInequality;
+    if (!options.trackFunctionPointers() && CTypes.isFunctionPointer(pType)) {
+      // Avoid adding constraints about function addresses,
+      // otherwise we might track facts about function pointers for code like "if (p == &f)".
+      return formulaManager.getBooleanFormulaManager().makeBoolean(true);
+    } else {
+      return nextInequality;
+    }
   }
 
   /**
