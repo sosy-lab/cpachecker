@@ -78,6 +78,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
+import org.sosy_lab.cpachecker.util.predicates.invariants.AggregatedReachedSetInvariants;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -231,6 +232,8 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     } else if (induction) {
       invariantGenerator =
           new AbstractInvariantGenerator() {
+            private final AggregatedReachedSetInvariants reachedSetInvariants =
+                new AggregatedReachedSetInvariants(pAggregatedReachedSets, cfa);
 
             @Override
             public void start(CFANode pInitialLocation) {
@@ -251,13 +254,13 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
             @Override
             public InvariantSupplier get() throws CPAException, InterruptedException {
-              return pAggregatedReachedSets.asInvariantSupplier();
+              return reachedSetInvariants.asInvariantSupplier();
             }
 
             @Override
             public ExpressionTreeSupplier getAsExpressionTree()
                 throws CPAException, InterruptedException {
-              return pAggregatedReachedSets.asExpressionTreeSupplier();
+              return reachedSetInvariants.asExpressionTreeSupplier();
             }
           };
     } else {

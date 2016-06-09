@@ -87,6 +87,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.RCNFManager;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
+import org.sosy_lab.cpachecker.util.predicates.invariants.AggregatedReachedSetInvariants;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -263,7 +264,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
   private final Map<CFANode, BooleanFormula> loopFormulaCache = new HashMap<>();
   private final Map<CFANode, Set<BooleanFormula>> locationInvariantsCache = new HashMap<>();
 
-  private final AggregatedReachedSets aggregatedReachedSets;
+  private final AggregatedReachedSetInvariants aggregatedReachedSets;
   private InvariantSupplier globalInvariantsSupplier;
   private final Specification specification;
 
@@ -280,8 +281,8 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     config = pConfig;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
-    aggregatedReachedSets = pAggregatedReachedSets;
-    globalInvariantsSupplier = pAggregatedReachedSets.asInvariantSupplier();
+    aggregatedReachedSets = new AggregatedReachedSetInvariants(pAggregatedReachedSets, pCfa);
+    globalInvariantsSupplier = aggregatedReachedSets.asInvariantSupplier();
     specification = pSpecification;
 
     cfa = pCfa;

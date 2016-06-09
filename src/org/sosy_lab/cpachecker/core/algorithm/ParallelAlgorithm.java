@@ -130,7 +130,7 @@ public class ParallelAlgorithm implements Algorithm {
     cfa = checkNotNull(pCfa);
     filename = checkNotNull(pFilename);
 
-    aggregatedReachedSetManager = new AggregatedReachedSetManager(cfa);
+    aggregatedReachedSetManager = new AggregatedReachedSetManager();
     aggregatedReachedSetManager.addAggregated(pAggregatedReachedSets);
   }
 
