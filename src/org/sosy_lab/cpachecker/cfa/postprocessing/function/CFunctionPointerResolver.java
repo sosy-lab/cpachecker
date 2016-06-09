@@ -66,8 +66,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -313,9 +313,7 @@ public class CFunctionPointerResolver {
 
     if (nameExp instanceof CPointerExpression) {
       CExpression operand = ((CPointerExpression)nameExp).getOperand();
-      CType operandType = operand.getExpressionType().getCanonicalType();
-      if (operandType instanceof CPointerType
-          && ((CPointerType)operandType).getType() instanceof CFunctionType) {
+      if (CTypes.isFunctionPointer(operand.getExpressionType())) {
         // *fp is the same as fp
         nameExp = operand;
       }
