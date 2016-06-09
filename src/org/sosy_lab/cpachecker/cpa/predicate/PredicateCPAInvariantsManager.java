@@ -264,6 +264,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
   private final Map<CFANode, Set<BooleanFormula>> locationInvariantsCache = new HashMap<>();
 
   private final AggregatedReachedSets aggregatedReachedSets;
+  private InvariantSupplier globalInvariantsSupplier;
   private final Specification specification;
 
   public PredicateCPAInvariantsManager(
@@ -280,6 +281,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
     aggregatedReachedSets = pAggregatedReachedSets;
+    globalInvariantsSupplier = pAggregatedReachedSets.asInvariantSupplier();
     specification = pSpecification;
 
     cfa = pCfa;
@@ -302,6 +304,10 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     return addToPrecision;
   }
 
+  public void updateGlobalInvariants() {
+    globalInvariantsSupplier = aggregatedReachedSets.asInvariantSupplier();
+  }
+
   @Override
   public BooleanFormula getInvariantFor(
       CFANode pNode, FormulaManagerView pFmgr, PathFormulaManager pPfmgr, PathFormula pContext) {
@@ -310,7 +316,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     BooleanFormula globalInvariant = bfmgr.makeBoolean(true);
 
     if (useGlobalInvariants) {
-      globalInvariant = aggregatedReachedSets.asInvariantSupplier().getInvariantFor(pNode, pFmgr, pPfmgr, pContext);
+      globalInvariant = globalInvariantsSupplier.getInvariantFor(pNode, pFmgr, pPfmgr, pContext);
     }
 
     if (localInvariants == null) {

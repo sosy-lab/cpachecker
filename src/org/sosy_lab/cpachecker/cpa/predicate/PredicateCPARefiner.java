@@ -384,6 +384,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   }
 
   private List<BooleanFormula> addInvariants(final List<ARGState> abstractionStatesTrace) {
+    invariantsManager.updateGlobalInvariants(); // we want to have the newest invariants
     List<BooleanFormula> precisionIncrement = new ArrayList<>();
     boolean invIsTriviallyTrue = true;
 
