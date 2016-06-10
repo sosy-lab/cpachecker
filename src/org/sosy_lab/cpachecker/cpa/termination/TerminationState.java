@@ -29,11 +29,12 @@ import com.google.common.base.Preconditions;
 
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 
 import javax.annotation.concurrent.Immutable;
 
 @Immutable
-public class TerminationState extends AbstractSingleWrapperState {
+public class TerminationState extends AbstractSingleWrapperState implements Graphable {
 
   private static final long serialVersionUID = 2L;
 
@@ -89,5 +90,46 @@ public class TerminationState extends AbstractSingleWrapperState {
    */
   public boolean isPartOfStem() {
     return !loop;
+  }
+
+  @Override
+  public String toDOTLabel() {
+    StringBuilder sb = new StringBuilder();
+    if (loop) {
+      sb.append("loop");
+    } else {
+      sb.append("stem");
+    }
+
+    if (getWrappedState() instanceof Graphable) {
+      sb.append("\n");
+      sb.append(((Graphable)getWrappedState()).toDOTLabel());
+    }
+
+    return sb.toString();
+  }
+
+  @Override
+  public boolean shouldBeHighlighted() {
+    if (getWrappedState() instanceof Graphable) {
+      return ((Graphable)getWrappedState()).shouldBeHighlighted();
+    }
+    return false;
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append(TerminationState.class.getSimpleName());
+    if (loop) {
+      sb.append("(loop)");
+    } else {
+      sb.append("(stem)");
+    }
+
+    sb.append(" ");
+    sb.append(getWrappedState());
+
+   return sb.toString();
   }
 }
