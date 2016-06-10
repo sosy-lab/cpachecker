@@ -121,6 +121,8 @@ public class TerminationAlgorithm implements Algorithm {
   public AlgorithmStatus run(ReachedSet pReachedSet)
       throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
 
+    logger.log(Level.INFO, "Starting termination algorithm.");
+
     if (!checkTermination) {
       logger.logf(WARNING, "%s does not support safety properties.", getClass().getSimpleName());
       return AlgorithmStatus.UNSOUND_AND_PRECISE.withPrecise(false);
@@ -159,6 +161,10 @@ public class TerminationAlgorithm implements Algorithm {
     }
 
     // We did not find a non-terminating loop.
+    logger.log(Level.INFO, "Termination algorithm did not find a non-terminating loop.");
+    while (pReachedSet.hasWaitingState()) {
+      pReachedSet.popFromWaitlist();
+    }
     return status;
   }
 
