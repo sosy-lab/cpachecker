@@ -236,6 +236,7 @@ public class TerminationTransferRelation implements TransferRelation {
       statesAtCurrentLocation = Collections.singleton(terminationState);
     }
 
+    assert !statesAtCurrentLocation.isEmpty();
     return getAbstractSuccessors0(statesAtCurrentLocation, pPrecision);
   }
 
@@ -323,7 +324,7 @@ public class TerminationTransferRelation implements TransferRelation {
       // loopHead - [rankingFunction] -> node1
       CFANode node1 = creatCfaNode(functionName);
       CFAEdge positiveRankingRelation =
-          createAssumeEdge(rankingRelations, loopHead, potentialNonTerminationNode, true);
+          createAssumeEdge(rankingRelations, loopHead, node1, true);
 
       Collection<TerminationState> statesAtNode1 =
           getAbstractSuccessorsForEdge0(
@@ -336,7 +337,7 @@ public class TerminationTransferRelation implements TransferRelation {
       Collection<TerminationState> statesAtNode2 =
           getAbstractSuccessorsForEdge0(statesAtNode1, pPrecision, nondetEdge);
 
-      // node2 - __CPAchecker_termination_temp = __VERIFIER_nondet_int  -> node 3
+      // node2 - __CPAchecker_termination_temp = __VERIFIER_nondet_int()  -> node 3
       CFANode node3 = creatCfaNode(functionName);
       CFunctionCallAssignmentStatement nondetAssignment =
           new CFunctionCallAssignmentStatement(
