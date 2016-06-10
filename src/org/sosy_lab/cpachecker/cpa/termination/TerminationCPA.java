@@ -49,6 +49,7 @@ public class TerminationCPA extends AbstractSingleWrapperCPA {
   private final TerminationTransferRelation transferRelation;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
+  private final PrecisionAdjustment precisionAdjustment;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(TerminationCPA.class);
@@ -63,6 +64,7 @@ public class TerminationCPA extends AbstractSingleWrapperCPA {
     abstractDomain = new TerminationAbstractDomain(pCpa.getAbstractDomain());
     stopOperator = new TerminationStopOperator(pCpa.getStopOperator());
     mergeOperator = new TerminationMergeOperator(pCpa.getMergeOperator());
+    precisionAdjustment = new TerminationPrecisionAdjustment(pCpa.getPrecisionAdjustment());
   }
 
   /**
@@ -110,7 +112,7 @@ public class TerminationCPA extends AbstractSingleWrapperCPA {
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return getWrappedCpa().getPrecisionAdjustment();
+    return precisionAdjustment;
   }
 
   @Override
