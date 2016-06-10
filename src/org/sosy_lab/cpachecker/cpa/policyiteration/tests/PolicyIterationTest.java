@@ -4,7 +4,6 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
@@ -88,7 +87,6 @@ public class PolicyIterationTest {
   }
 
   @Test
-  @Ignore("seems to require some kind of strengthening after the precision adjustment to work")
   public void pointers_loop_true_assert() throws Exception {
     check("pointers/pointers_loop_true_assert.c",
         ImmutableMap.of(
@@ -229,15 +227,18 @@ public class PolicyIterationTest {
     return props;
   }
 
-  private static final String CPAS_W_SLICING = Joiner.on(", ").join(ImmutableList.<String>builder()
-          .add("cpa.location.LocationCPA")
-          .add("cpa.callstack.CallstackCPA")
-          .add("cpa.functionpointer.FunctionPointerCPA")
-          .add("cpa.loopstack.LoopstackCPA")
-          .add("cpa.formulaslicing.FormulaSlicingCPA")
-          .add("cpa.policyiteration.PolicyCPA")
-          .build()
-
-  );
+  private static final String CPAS_W_SLICING =
+      Joiner.on(", ")
+          .join(
+              ImmutableList.<String>builder()
+                  .add("cpa.location.LocationCPA")
+                  .add("cpa.callstack.CallstackCPA")
+                  .add("cpa.functionpointer.FunctionPointerCPA")
+                  .add("cpa.loopstack.LoopstackCPA")
+                  .add("cpa.formulaslicing.FormulaSlicingCPA")
+                  .add("cpa.policyiteration.PolicyCPA")
+                  .add("cpa.targetreachability.TargetReachabilityCPA")
+                  .add("cpa.assumptions.storage.AssumptionStorageCPA")
+                  .build());
 
 }

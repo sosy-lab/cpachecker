@@ -1,7 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import com.google.common.base.Function;
-import java.util.Optional;
 
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -49,6 +48,8 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * Policy iteration CPA.
@@ -233,6 +234,14 @@ public class PolicyCPA extends SingleEdgeTransferRelation
         (PolicyState)state,
         (PolicyPrecision)precision, states,
         fullState);
+  }
+
+  @Override
+  public Optional<AbstractState> strengthen(
+      AbstractState pState, Precision pPrecision, List<AbstractState> otherStates)
+      throws CPAException, InterruptedException {
+    return policyIterationManager.strengthen(
+        (PolicyState) pState, (PolicyPrecision) pPrecision, otherStates);
   }
 
   @Override
