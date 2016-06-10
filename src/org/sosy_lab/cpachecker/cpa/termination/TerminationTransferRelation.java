@@ -60,9 +60,9 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -124,6 +124,8 @@ public class TerminationTransferRelation implements TransferRelation {
    *
    *
    */
+
+  private final static String NON_TERMINATION_LABEL = "__CPACHECKER_NON_TERMINATION";
 
   private final static String TMP_VARIABLE_NAME = "__CPAchecker_termination_temp";
 
@@ -311,14 +313,13 @@ public class TerminationTransferRelation implements TransferRelation {
     // non termination label is reachable
     if (!potentialNonTerminationStates.isEmpty()) {
 
-      // loopHead - Label: __CPACHECKER_NON_TERMINATION; -> state
-      CFANode nodeAfterLabel = new CFATerminationNode(functionName);
+      // loopHead - Label: __CPACHECKER_NON_TERMINATION; -> nodeAfterLabel
+      CFANode nodeAfterLabel = new CLabelNode(functionName, NON_TERMINATION_LABEL);
       CFAEdge nonTerminationLabel =
           createBlankEdge(
-              potentialNonTerminationNode, nodeAfterLabel, "Label: __CPACHECKER_NON_TERMINATION");
-      resultingSuccessors =
-          getAbstractSuccessorsForEdge0(
-              potentialNonTerminationStates, pPrecision, nonTerminationLabel);
+              potentialNonTerminationNode, nodeAfterLabel, "Label: " + NON_TERMINATION_LABEL);
+      resultingSuccessors = getAbstractSuccessorsForEdge0(
+          potentialNonTerminationStates, pPrecision, nonTerminationLabel);
 
     } else {
       // loopHead - [rankingFunction] -> node1
