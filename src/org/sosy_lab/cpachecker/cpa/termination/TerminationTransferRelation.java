@@ -165,11 +165,11 @@ public class TerminationTransferRelation implements TransferRelation {
     transferRelation = Preconditions.checkNotNull(pTransferRelation);
     binaryExpressionBuilder = new CBinaryExpressionBuilder(pMachineModel, pLogger);
     logger = Preconditions.checkNotNull(pLogger);
-    rankingRelations = resetRankingRelation();
+    resetRankingRelation();
   }
 
-  private CBinaryExpression resetRankingRelation() {
-    return binaryExpressionBuilder.buildBinaryExpressionUnchecked(ONE, ZERO, EQUALS);
+  private void resetRankingRelation() {
+    rankingRelations = binaryExpressionBuilder.buildBinaryExpressionUnchecked(ONE, ZERO, EQUALS);
   }
 
   /**
