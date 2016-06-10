@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.isSimpleType;
 
-import java.util.Optional;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -94,6 +92,7 @@ import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -446,6 +445,14 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       }
     } else if (type instanceof CCompositeType) {
       final CCompositeType compositeType = (CCompositeType) type;
+      if (compositeType.getKind() == ComplexTypeKind.UNION) {
+        // If it is a union, we must make sure that the first member is initialized,
+        // but only if none of the members appear in alreadyAssigned.
+        // The way it is currently implemented this is very difficult to check,
+        // so for now we initialize none of the union members to be safe.
+        // TODO: add implicit initializers for union members
+        return;
+      }
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         final CType memberType = memberDeclaration.getType();
         final CLeftHandSide newLhs = new CFieldReference(lhs.getFileLocation(),
