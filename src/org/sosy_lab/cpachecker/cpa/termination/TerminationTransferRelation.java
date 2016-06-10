@@ -95,10 +95,10 @@ public class TerminationTransferRelation implements TransferRelation {
    *          original edge(s) after loop head   v   original loop head
    *   ... <------------------------------------ 0 <-------------------------------------------
    *                                            / \                                            |
-   *                       [ranking_relation]  /   \ [! (ranking_relation)]                    |
+   *                      [ranking_relation]   /   \ [! (ranking_relation)]                    |
    *                                          /     \                                          |
    *                                         v       v                                         |
-   *                                  node1  0       0 potential non-termination               |
+   *                                  node1  0<------0 potential non-termination               |
    *                                         |       |                                         |
    *     int __CPAchecker_termination_temp;  |       | Label: __CPACHECKER_NON_TERMINATION     |
    *                                         |       |                                         |
@@ -241,7 +241,15 @@ public class TerminationTransferRelation implements TransferRelation {
     resetCfa();
 
     assert !statesAtCurrentLocation.isEmpty();
-    return getAbstractSuccessors0(statesAtCurrentLocation, pPrecision);
+    Collection<TerminationState> abstractSuccessors =
+        getAbstractSuccessors0(statesAtCurrentLocation, pPrecision);
+
+    // add all intermediate target states
+    statesAtCurrentLocation
+        .stream()
+        .filter(AbstractStates::isTargetState)
+        .forEach(abstractSuccessors::add);
+    return abstractSuccessors;
   }
 
   private Collection<? extends TerminationState> declarePrimedVariables(
@@ -292,20 +300,17 @@ public class TerminationTransferRelation implements TransferRelation {
         loopHead,
         functionName);
 
-    Collection<? extends TerminationState> potentialNonTerminationStates;
+    // loopHead - [!(rankingFunction)] -> potentialNonTerminationNode
     CFANode potentialNonTerminationNode = creatCfaNode(functionName);
+    CFAEdge negativeRankingRelation =
+        createAssumeEdge(rankingRelations, loopHead, potentialNonTerminationNode, false);
 
-    // Do not check the ranking relation in the stem.
+    Collection<? extends TerminationState> potentialNonTerminationStates =
+        getAbstractSuccessorsForEdge0(
+            Collections.singleton(loopHeadState), pPrecision, negativeRankingRelation);
+
+    // non-termination requires a loop
     if (loopHeadState.isPartOfLoop()) {
-
-      // loopHead - [!(rankingFunction)] -> potentialNonTerminationNode
-      CFAEdge negativeRankingRelation =
-          createAssumeEdge(rankingRelations, loopHead, potentialNonTerminationNode, false);
-
-      potentialNonTerminationStates =
-          getAbstractSuccessorsForEdge0(
-              Collections.singleton(loopHeadState), pPrecision, negativeRankingRelation);
-
       // loopHead - Label: __CPACHECKER_NON_TERMINATION; -> nodeAfterLabel
       CFANode nodeAfterLabel = new CLabelNode(functionName, NON_TERMINATION_LABEL);
       CFAEdge nonTerminationLabel =
@@ -316,14 +321,20 @@ public class TerminationTransferRelation implements TransferRelation {
               potentialNonTerminationStates, pPrecision, nonTerminationLabel));
     }
 
-    // loopHead - [rankingFunction] -> node1
     CFANode node1 = creatCfaNode(functionName);
+    Collection<TerminationState> statesAtNode1 = Lists.newArrayListWithCapacity(2);
+
+    // potentialNonTerminationNode --> node1
+    CFAEdge blankEdge = createBlankEdge(potentialNonTerminationNode, node1, "");
+    statesAtNode1.addAll(
+        getAbstractSuccessorsForEdge0(potentialNonTerminationStates, pPrecision, blankEdge));
+
+    // loopHead --> node1
     CFAEdge positiveRankingRelation =
         createAssumeEdge(rankingRelations, loopHead, node1, true);
-
-    Collection<TerminationState> statesAtNode1 =
+    statesAtNode1.addAll(
         getAbstractSuccessorsForEdge0(
-            Collections.singleton(loopHeadState), pPrecision, positiveRankingRelation);
+            Collections.singleton(loopHeadState), pPrecision, positiveRankingRelation));
 
     // node1 - int __CPAchecker_termination_temp;  -> node 2
     CFANode node2 = creatCfaNode(functionName);
