@@ -79,8 +79,8 @@ public interface PrecisionAdjustment {
    *  {@link org.sosy_lab.cpachecker.cpa.composite.CompositeCPA}.
    *
    * @return Result of the strengthening operation.
-   * @throws CPAException
-   * @throws InterruptedException
+   * @throws CPAException By the CPA code, when errors happen.
+   * @throws InterruptedException On interrupt.
    */
   default Optional<AbstractState> strengthen(
       AbstractState pState, Precision pPrecision, List<AbstractState> otherStates)
