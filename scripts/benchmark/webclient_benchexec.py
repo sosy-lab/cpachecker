@@ -51,7 +51,7 @@ _print_lock = threading.Lock()
 
 def init(config, benchmark):
     global _webclient
-    
+
     if not config.debug:
         logging.getLogger('requests').setLevel(logging.WARNING)
 
@@ -130,7 +130,7 @@ def _submitRunsParallel(runSet, benchmark, output_handler):
     global _webclient
 
     logging.info('Submitting runs...')
-    
+
     meta_information = json.dumps({"tool": {"name": _webclient.tool_name(), \
                                             "revision": _webclient.tool_revision(), \
                                             "benchexec-module" : benchmark.tool_module}, \
@@ -147,7 +147,7 @@ def _submitRunsParallel(runSet, benchmark, output_handler):
         logging.warning("CPU core requirement is not supported by the WebInterface.")
     if MEMLIMIT in limits and limits[MEMLIMIT] != benchmark.requirements.memory:
         logging.warning("Memory requirement is not supported by the WebInterface.")
-        
+
     cpu_model = benchmark.requirements.cpu_model
     priority = benchmark.config.cloudPriority
     result_files_patterns = benchmark.result_files_patterns
@@ -183,8 +183,8 @@ def _submitRunsParallel(runSet, benchmark, output_handler):
             except (HTTPError, WebClientError) as e:
                 output_handler.set_error("VerifierCloud problem", runSet)
                 logging.warning('Could not submit run %s: %s.', run.identifier, e)
-                return result_futures # stop submitting runs 
-            
+                return result_futures # stop submitting runs
+
             finally:
                 submissonCounter += 1
     finally:
@@ -209,11 +209,11 @@ def _handle_results(result_futures, output_handler, benchmark, run_set):
             result = result_future.result()
             f = executor.submit(_unzip_and_handle_result, result, run, output_handler, benchmark)
             f.add_done_callback(_log_future_exception)
-        
+
         except WebClientError as e:
             output_handler.set_error("VerifierCloud problem", run_set)
             logging.warning("Execution of %s failed: %s", run.identifier, e)
-            
+
     executor.shutdown(wait=True)
 
 IGNORED_VALUES = set(['command', 'timeLimit', 'coreLimit', 'returnvalue', 'exitsignal'])

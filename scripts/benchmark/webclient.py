@@ -46,7 +46,7 @@ from time import time
 
 import requests
 from requests import HTTPError
-import urllib.parse 
+import urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
 from concurrent.futures import Future
@@ -208,7 +208,7 @@ try:
                     params.append(("run", run_id))
 
                 headers = {"Accept-Encoding": "UTF-8"}
-                
+
                 logging.debug("Creating Server-Send Event connection.")
                 try:
                     self._sse_client = ShouldReconnectSeeClient(
@@ -339,7 +339,7 @@ class WebInterface:
             self._base64_user_pwd = base64.b64encode(user_pwd.encode("utf-8")).decode("utf-8")
         else:
             self._base64_user_pwd = None
-        
+
         self._unfinished_runs = {}
         self._unfinished_runs_lock = threading.Lock()
         self._downloading_result_futures = {}
@@ -490,14 +490,14 @@ class WebInterface:
 
         params = []
         opened_files = [] # open file handles are passed to the request library
-        
+
         for programPath in run.sourcefiles:
             norm_path = self._normalize_path_for_cloud(programPath)
             params.append(('programTextHash', (norm_path, self._get_sha1_hash(programPath))))
-            
+
         for required_file in required_files:
             norm_path = self._normalize_path_for_cloud(required_file)
-            params.append(('requiredFileHash', (norm_path, self._get_sha1_hash(required_file))))    
+            params.append(('requiredFileHash', (norm_path, self._get_sha1_hash(required_file))))
 
         params.append(('svnBranch', svn_branch or self._svn_branch))
         params.append(('revision', svn_revision or self._svn_revision))
@@ -522,7 +522,7 @@ class WebInterface:
                 params.append(('resultFilesPattern', pattern))
         else:
             params.append(('resultFilesPattern', ''))
-        
+
         if priority:
             params.append(('priority', priority))
 
@@ -543,7 +543,7 @@ class WebInterface:
 
         for opened_file in opened_files:
             opened_file.close()
-        
+
         # program files or required files given as hash value are not known by the cloud system
         if statusCode == 412 and counter < 1:
             headers = {"Content-Type": "application/octet-stream",
@@ -556,7 +556,7 @@ class WebInterface:
                     compressedProgramText = zlib.compress(programFile.read(), 9)
                     self._request('POST', filePath, data=compressedProgramText, headers=headers,\
                                    expectedStatusCodes=[200, 204], user_pwd=user_pwd)
-                    
+
             # upload all required files
             for required_file_path in required_files:
                 with open(required_file_path, 'rb') as required_file:
@@ -575,7 +575,7 @@ class WebInterface:
 
     def _handle_options(self, run, params, rlimits):
         opened_files = []
-        
+
         # TODO use code from CPAchecker module, it add -stats and sets -timelimit,
         # instead of doing it here manually, too
         if self._tool_name == "CPAchecker":
@@ -596,7 +596,7 @@ class WebInterface:
                         params.append(('heap', next(i)))
                     elif option == "-stack":
                         params.append(('stack', next(i)))
-                        
+
                     elif option == "-noout":
                         params.append(("option", "output.disable=true"))
                     elif option == "-outputpath":
@@ -665,7 +665,7 @@ class WebInterface:
         file = open(path, 'rb')
         params.append((name, (norm_path, file)))
         return file
-    
+
     def _normalize_path_for_cloud(self, path):
         norm_path = os.path.normpath(path)
         if '..' in norm_path or os.path.isabs(norm_path):
@@ -689,7 +689,7 @@ class WebInterface:
             logging.warning('No runs were submitted to the VerifierCloud before or a rate limit is hit.')
         else:
             logging.info('Submitted %s run collection: %s', len(run_collections), ",".join(run_collections))
-            
+
         self._result_downloader.start()
 
     def _is_finished(self, run_id):
@@ -737,7 +737,7 @@ class WebInterface:
                 # client error
                 if type(exception) is HTTPError and exception.response and  \
                     400 <= exception.response.status_code and exception.response.status_code <= 499:
-                    
+
                     attempts = self._download_attempts.pop(run_id, 1);
                     if attempts < 10:
                         self._download_attempts[run_id] = attempts + 1;
@@ -802,14 +802,14 @@ class WebInterface:
             auth = (user_pwd.split(":")[0], user_pwd.split(":")[1])
         else:
             auth = None
-        
+
         counter = 0
         while (counter < 5):
             counter += 1
             # send request
             try:
                 response = self._connection.request(method, url, data=data, files=files, headers=headers, auth=auth)
-                
+
             except Exception as e:
                 if (counter < 5):
                     logging.debug("Exception during %s request to %s: %s", method, path, e)
@@ -825,20 +825,20 @@ class WebInterface:
                 message = ""
                 if response.status_code == 401:
                     message = 'Error 401: Permission denied. Please check the URL given to --cloudMaster and specify credentials if necessary.'
-                
+
                 elif response.status_code == 404:
                     message = 'Error 404: Not found. Please check the URL given to --cloudMaster.'
-                    
+
                 elif response.status_code == 503:
                     message = 'Error 503: Service Unavailable.'
                     if counter < 5:
                         logging.debug(message)
                         sleep(60)
                         continue
-                    
+
                 else:
                     message += response.content.decode('UTF-8')
-                    
+
                 logging.warning(message)
                 raise requests.HTTPError(path, message, response=response)
 

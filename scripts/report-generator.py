@@ -168,17 +168,17 @@ def main():
     report_path = os.path.join(cpa_output_dir, config.get('report.file', 'Report.html'))
 
     counter_example_paths = glob.glob(counter_example_path_template.replace('%d', '*'))
-    
+
     report_count = len(counter_example_paths)
     if os.path.exists(report_path):
         report_count = report_count + 1
-    
+
     if report_count == 0:
         print("No reports found in " + cpa_output_dir)
         return
 
     print ('Generating', report_count, 'reports')
-    
+
     #if there is an ARG.dot create an SVG in the report dir
     if os.path.isfile(arg_path):
         print ('Generating SVG for ARG (press Ctrl+C if this takes too long)')

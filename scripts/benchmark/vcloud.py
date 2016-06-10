@@ -210,7 +210,7 @@ def getBenchmarkDataForCloud(benchmark):
 
             # we assume, that VCloud-client only splits its input at tabs,
             # so we can use all other chars for the info, that is needed to run the tool.
-            argString = json.dumps(cmdline) 
+            argString = json.dumps(cmdline)
             assert not "\t" in argString # cannot call toTabList(), if there is a tab
 
             log_file = os.path.relpath(run.log_file, benchmark.log_folder)
