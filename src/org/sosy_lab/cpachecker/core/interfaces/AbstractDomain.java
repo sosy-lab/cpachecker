@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
-import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public interface AbstractDomain {
@@ -35,10 +34,6 @@ public interface AbstractDomain {
    * This is an optional method. If a domain is expected to be used only with
    * merge-sep, it does not have to provide an implementation of this method.
    * This method should then throw an {@link UnsupportedOperationException}.
-   *
-   * If {@link MergeJoinOperator} is used,
-   * please also follow the note in the documentation of
-   * {@link MergeOperator#merge(AbstractState, AbstractState, Precision)}.
    *
    * @param state1 an abstract state
    * @param state2 an abstract state
@@ -52,6 +47,10 @@ public interface AbstractDomain {
   /**
    * Returns true if state1 is less or equal than state2 with respect to
    * the lattice.
+   *
+   * The is-less-or-equal relation needs to be consistent with the equality relation
+   * defined by {@link AbstractState#equals(Object)}, i.e.
+   * {@code s1.equals(s2) ==> isLessOrEqual(s1, s2) && isLessOrEqual(s2, s1)}.
    *
    * @param state1 an abstract state
    * @param state2 an abstract state
