@@ -328,7 +328,7 @@ public class CPAMain {
             "Verifying termination is not supported if option termination.config is not specified.");
       }
       config = Configuration.builder()
-                            .loadFromFile(options.overflowConfig)
+                            .loadFromFile(options.terminationConfig)
                             .setOptions(cmdLineOptions)
                             .clearOption("termination.config")
                             .clearOption("output.disable")
