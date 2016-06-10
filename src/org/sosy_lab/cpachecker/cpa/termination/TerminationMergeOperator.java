@@ -55,7 +55,7 @@ public class TerminationMergeOperator implements MergeOperator {
       if (mergedState == wrappedState2) {
         return state2;
       } else {
-        return state2.createSuccessor(mergedState);
+        return state2.withWrappedState(mergedState);
       }
     }
   }

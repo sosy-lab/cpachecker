@@ -494,7 +494,7 @@ public class TerminationTransferRelation implements TransferRelation {
       transferRelation
           .getAbstractSuccessorsForEdge(wrappedState, pPrecision, pEdge)
           .stream()
-          .map(state::createSuccessor)
+          .map(state::withWrappedState)
           .forEach(successors::add);
     }
 
@@ -511,7 +511,7 @@ public class TerminationTransferRelation implements TransferRelation {
       transferRelation
           .getAbstractSuccessors(state.getWrappedState(), pPrecision)
           .stream()
-          .map(state::createSuccessor)
+          .map(state::withWrappedState)
           .forEach(resultingSuccessors::add);
     }
 

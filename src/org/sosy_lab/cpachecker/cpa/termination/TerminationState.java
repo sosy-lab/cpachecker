@@ -63,7 +63,7 @@ public class TerminationState extends AbstractSingleWrapperState {
    *            the {@link AbstractState} to wrap
    * @return the created {@link TerminationState}
    */
-  public TerminationState createSuccessor(AbstractState pWrappedState) {
+  public TerminationState withWrappedState(AbstractState pWrappedState) {
     return new TerminationState(pWrappedState, loop);
   }
 

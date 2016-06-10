@@ -56,6 +56,6 @@ public class TerminationPrecisionAdjustment implements PrecisionAdjustment {
     Optional<PrecisionAdjustmentResult> result =
         precisionAdjustment.prec(wrappedState, pPrecision, pStates, pStateProjection, pFullState);
 
-    return result.map(r -> r.withAbstractState(state.createSuccessor(r.abstractState())));
+    return result.map(r -> r.withAbstractState(state.withWrappedState(r.abstractState())));
   }
 }
