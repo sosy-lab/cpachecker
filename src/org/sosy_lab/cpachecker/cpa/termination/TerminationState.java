@@ -74,7 +74,7 @@ public class TerminationState extends AbstractSingleWrapperState {
    */
   public TerminationState enterLoop() {
     Preconditions.checkArgument(!loop, "% is already part of the lasso's loop", this);
-    return new TerminationState(getWrappedState(), loop);
+    return new TerminationState(getWrappedState(), true);
   }
 
   /**
