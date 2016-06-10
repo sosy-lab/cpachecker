@@ -565,7 +565,7 @@ class WebInterface:
                                    expectedStatusCodes=[200, 204], user_pwd=user_pwd)
 
             # retry submission of run
-            return self._submit(run, limits, cpu_model, result_files_patterns, meta_information,
+            return self._submit(run, limits, cpu_model, required_files, result_files_patterns, meta_information,
                                 priority, user_pwd, svn_branch, svn_revision, counter + 1)
 
         else:
