@@ -27,7 +27,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableList;
 
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -36,18 +35,17 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 class CompositePrecisionAdjustment implements PrecisionAdjustment {
   private final ImmutableList<PrecisionAdjustment> precisionAdjustments;
   private final ImmutableList<Function<AbstractState, AbstractState>> stateProjectionFunctions;
 
-  private final LogManager logger;
-
-  CompositePrecisionAdjustment(
-      ImmutableList<PrecisionAdjustment> precisionAdjustments, LogManager pLogger) {
+  CompositePrecisionAdjustment(ImmutableList<PrecisionAdjustment> precisionAdjustments) {
     this.precisionAdjustments = precisionAdjustments;
-    logger = pLogger;
 
     ImmutableList.Builder<Function<AbstractState, AbstractState>> stateProjectionFunctions =
         ImmutableList.builder();
@@ -114,9 +112,56 @@ class CompositePrecisionAdjustment implements PrecisionAdjustment {
       outPrecisions.add(newPrecision);
     }
 
-    AbstractState outElement = modified ? new CompositeState(outElements.build())     : pElement;
-    Precision outPrecision     = modified ? new CompositePrecision(outPrecisions.build()) : pPrecision;
+    CompositeState outElement = modified ? new CompositeState(outElements.build()) : comp;
+    CompositePrecision outPrecision =
+        modified ? new CompositePrecision(outPrecisions.build()) : prec;
+    Optional<CompositeState> outElementStrengthened = callStrengthen(outElement, outPrecision);
+    if (!outElementStrengthened.isPresent()) {
+      return Optional.empty();
+    }
+    outElement = outElementStrengthened.get();
 
-    return Optional.of(PrecisionAdjustmentResult.create(outElement, outPrecision, action));
+    PrecisionAdjustmentResult out =
+        PrecisionAdjustmentResult.create(outElement, outPrecision, action);
+
+    return Optional.of(out);
+  }
+
+  /**
+   * Call {@link #strengthen(AbstractState, Precision, List)} on contained precision adjustments.
+   * Returns identity if all of the strengthening operations are identities.
+   */
+  private Optional<CompositeState> callStrengthen(
+      CompositeState pCompositeState, CompositePrecision pCompositePrecision)
+      throws CPAException, InterruptedException {
+    List<AbstractState> wrappedStates = pCompositeState.getWrappedStates();
+    List<Precision> wrappedPrecisions = pCompositePrecision.getWrappedPrecisions();
+    int dim = wrappedStates.size();
+    ImmutableList.Builder<AbstractState> newElements = ImmutableList.builder();
+
+    boolean modified = false;
+    for (int i = 0; i < dim; i++) {
+      PrecisionAdjustment precisionAdjustment = precisionAdjustments.get(i);
+      AbstractState oldElement = wrappedStates.get(i);
+      Precision oldPrecision = wrappedPrecisions.get(i);
+      Optional<AbstractState> out =
+          precisionAdjustment.strengthen(
+              oldElement,
+              oldPrecision,
+              Stream.concat(
+                      wrappedStates.subList(0, i).stream(),
+                      wrappedStates.subList(i + 1, dim).stream())
+                  .collect(Collectors.toList()));
+      if (!out.isPresent()) {
+        return Optional.empty();
+      }
+      AbstractState unwrapped = out.get();
+      if (unwrapped != oldElement) {
+        modified = true;
+      }
+      newElements.add(unwrapped);
+    }
+    CompositeState outState = modified ? new CompositeState(newElements.build()) : pCompositeState;
+    return Optional.of(outState);
   }
 }
