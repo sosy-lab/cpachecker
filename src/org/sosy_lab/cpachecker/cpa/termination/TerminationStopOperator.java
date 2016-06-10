@@ -24,14 +24,15 @@
 package org.sosy_lab.cpachecker.cpa.termination;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.stream.Collectors;
 
 public class TerminationStopOperator implements StopOperator {
 
@@ -45,13 +46,16 @@ public class TerminationStopOperator implements StopOperator {
   public boolean stop(
       AbstractState pState, Collection<AbstractState> pReached, Precision pPrecision)
       throws CPAException, InterruptedException {
+    TerminationState terminationState = (TerminationState) pState;
+    AbstractState wrappedState = terminationState.getWrappedState();
 
-    Collection<AbstractState> wrappedReached = Lists.newArrayListWithCapacity(pReached.size());
-    for (AbstractState abstractState : pReached) {
-      wrappedReached.add(((TerminationState) abstractState).getWrappedState());
-    }
-
-    AbstractState wrappedState = ((TerminationState) pState).getWrappedState();
+    // Separate states from loop and stem.
+    Collection<AbstractState> wrappedReached = pReached
+      .stream()
+      .map(s -> (TerminationState) s)
+      .filter(s -> terminationState.isPartOfLoop() == s.isPartOfLoop())
+      .map(TerminationState::getWrappedState)
+      .collect(Collectors.toCollection(ArrayList::new));
 
     return stopOperator.stop(wrappedState, wrappedReached, pPrecision);
   }
