@@ -224,7 +224,7 @@ public class TerminationTransferRelation implements TransferRelation {
     if (location == null) {
       throw new UnsupportedOperationException("TransferRelation requires location information.");
 
-    } else if (!loopHead.isPresent()
+    } else if (loopHead.isPresent()
         && enteringEdges(location).anyMatch(edgeHasType(CFAEdgeType.FunctionCallEdge))
         && loopHead.get().getFunctionName().equals(location.getFunctionName())) {
       statesAtCurrentLocation = declarePrimedVariables(terminationState, pPrecision, location);
