@@ -282,7 +282,7 @@ public class TerminationTransferRelation implements TransferRelation {
   private Collection<? extends TerminationState> insertRankingRelation(
       TerminationState loopHeadState, Precision pPrecision, CFANode loopHead)
       throws CPATransferException, InterruptedException {
-    Collection<TerminationState> resultingSuccessors;
+    Collection<TerminationState> resultingSuccessors = Lists.newArrayList();
     String functionName = loopHead.getFunctionName();
 
     logger.logf(
@@ -306,98 +306,91 @@ public class TerminationTransferRelation implements TransferRelation {
           getAbstractSuccessorsForEdge0(
               Collections.singleton(loopHeadState), pPrecision, negativeRankingRelation);
 
-    } else {
-      potentialNonTerminationStates = Collections.emptyList();
-    }
-
-    // non termination label is reachable
-    if (!potentialNonTerminationStates.isEmpty()) {
-
       // loopHead - Label: __CPACHECKER_NON_TERMINATION; -> nodeAfterLabel
       CFANode nodeAfterLabel = new CLabelNode(functionName, NON_TERMINATION_LABEL);
       CFAEdge nonTerminationLabel =
           createBlankEdge(
               potentialNonTerminationNode, nodeAfterLabel, "Label: " + NON_TERMINATION_LABEL);
-      resultingSuccessors = getAbstractSuccessorsForEdge0(
-          potentialNonTerminationStates, pPrecision, nonTerminationLabel);
-
-    } else {
-      // loopHead - [rankingFunction] -> node1
-      CFANode node1 = creatCfaNode(functionName);
-      CFAEdge positiveRankingRelation =
-          createAssumeEdge(rankingRelations, loopHead, node1, true);
-
-      Collection<TerminationState> statesAtNode1 =
+      resultingSuccessors.addAll(
           getAbstractSuccessorsForEdge0(
-              Collections.singleton(loopHeadState), pPrecision, positiveRankingRelation);
-
-      // node1 - int __CPAchecker_termination_temp;  -> node 2
-      CFANode node2 = creatCfaNode(functionName);
-      CVariableDeclaration nondetVariable = createLoaclVariable(functionName, TMP_VARIABLE_NAME);
-      CFAEdge nondetEdge = createDeclarationEdge(nondetVariable, node1, node2);
-      Collection<TerminationState> statesAtNode2 =
-          getAbstractSuccessorsForEdge0(statesAtNode1, pPrecision, nondetEdge);
-
-      // node2 - __CPAchecker_termination_temp = __VERIFIER_nondet_int()  -> node 3
-      CFANode node3 = creatCfaNode(functionName);
-      CFunctionCallAssignmentStatement nondetAssignment =
-          new CFunctionCallAssignmentStatement(
-              FileLocation.DUMMY,
-              new CIdExpression(FileLocation.DUMMY, nondetVariable),
-              new CFunctionCallExpression(
-                  FileLocation.DUMMY,
-                  CNumericTypes.INT,
-                  new CIdExpression(FileLocation.DUMMY, NONDET_INT),
-                  Collections.emptyList(),
-                  NONDET_INT));
-
-      CFAEdge nondetAssignmentEdge = crateCStatementEdge(nondetAssignment, node2, node3);
-      Collection<TerminationState> statesAtNode3 =
-          getAbstractSuccessorsForEdge0(statesAtNode2, pPrecision, nondetAssignmentEdge);
-
-      // node3 - [! (__CPAchecker_termination_temp == 0)] -> node 4
-      CFANode node4 = creatCfaNode(functionName);
-      CExpression nondetTmpVariable = new CIdExpression(FileLocation.DUMMY, nondetVariable);
-      CExpression nondetTmpVariableAssumption =
-          new CBinaryExpression(
-              FileLocation.DUMMY,
-              CNumericTypes.INT,
-              CNumericTypes.INT,
-              nondetTmpVariable,
-              CIntegerLiteralExpression.ZERO,
-              BinaryOperator.EQUALS);
-      CFAEdge negativeNodetAssumeEdge =
-          createAssumeEdge(nondetTmpVariableAssumption, node3, node4, false);
-
-      // Enter loop only once.
-      Collection<TerminationState> nonLoopStatesAtNode3 =
-          statesAtNode3
-              .stream()
-              .filter(TerminationState::isPartOfStem)
-              .collect(Collectors.toCollection(ArrayList::new));
-      Collection<TerminationState> statesAtNode4 =
-          getAbstractSuccessorsForEdge0(nonLoopStatesAtNode3, pPrecision, negativeNodetAssumeEdge);
-
-      Collection<TerminationState> statesAtNode5 = Lists.newArrayList();
-
-      // node4 - x' = x; y' = y; ... -> node 5
-      CFANode node5 = creatCfaNode(functionName);
-      initializePrimedVariables(node4, node5, statesAtNode4, pPrecision)
-          .stream()
-          .map(TerminationState::enterLoop) // pc' = loopHead
-          .forEach(statesAtNode5::add);
-
-      // node3 - [__CPAchecker_termination_temp == 0] -> node 5
-      CFAEdge positiveNodetAssumeEdge =
-          createAssumeEdge(nondetTmpVariableAssumption, node3, node5, true);
-      statesAtNode5.addAll(
-          getAbstractSuccessorsForEdge0(statesAtNode3, pPrecision, positiveNodetAssumeEdge));
-
-      // node5 - BlankEdge -> loopHead
-      CFAEdge edgeBackToLoopHead = createBlankEdge(node5, loopHead, "");
-      resultingSuccessors =
-          getAbstractSuccessorsForEdge0(statesAtNode5, pPrecision, edgeBackToLoopHead);
+              potentialNonTerminationStates, pPrecision, nonTerminationLabel));
     }
+
+    // loopHead - [rankingFunction] -> node1
+    CFANode node1 = creatCfaNode(functionName);
+    CFAEdge positiveRankingRelation =
+        createAssumeEdge(rankingRelations, loopHead, node1, true);
+
+    Collection<TerminationState> statesAtNode1 =
+        getAbstractSuccessorsForEdge0(
+            Collections.singleton(loopHeadState), pPrecision, positiveRankingRelation);
+
+    // node1 - int __CPAchecker_termination_temp;  -> node 2
+    CFANode node2 = creatCfaNode(functionName);
+    CVariableDeclaration nondetVariable = createLoaclVariable(functionName, TMP_VARIABLE_NAME);
+    CFAEdge nondetEdge = createDeclarationEdge(nondetVariable, node1, node2);
+    Collection<TerminationState> statesAtNode2 =
+        getAbstractSuccessorsForEdge0(statesAtNode1, pPrecision, nondetEdge);
+
+    // node2 - __CPAchecker_termination_temp = __VERIFIER_nondet_int()  -> node 3
+    CFANode node3 = creatCfaNode(functionName);
+    CFunctionCallAssignmentStatement nondetAssignment =
+        new CFunctionCallAssignmentStatement(
+            FileLocation.DUMMY,
+            new CIdExpression(FileLocation.DUMMY, nondetVariable),
+            new CFunctionCallExpression(
+                FileLocation.DUMMY,
+                CNumericTypes.INT,
+                new CIdExpression(FileLocation.DUMMY, NONDET_INT),
+                Collections.emptyList(),
+                NONDET_INT));
+
+    CFAEdge nondetAssignmentEdge = crateCStatementEdge(nondetAssignment, node2, node3);
+    Collection<TerminationState> statesAtNode3 =
+        getAbstractSuccessorsForEdge0(statesAtNode2, pPrecision, nondetAssignmentEdge);
+
+    // node3 - [! (__CPAchecker_termination_temp == 0)] -> node 4
+    CFANode node4 = creatCfaNode(functionName);
+    CExpression nondetTmpVariable = new CIdExpression(FileLocation.DUMMY, nondetVariable);
+    CExpression nondetTmpVariableAssumption =
+        new CBinaryExpression(
+            FileLocation.DUMMY,
+            CNumericTypes.INT,
+            CNumericTypes.INT,
+            nondetTmpVariable,
+            CIntegerLiteralExpression.ZERO,
+            BinaryOperator.EQUALS);
+    CFAEdge negativeNodetAssumeEdge =
+        createAssumeEdge(nondetTmpVariableAssumption, node3, node4, false);
+
+    // Enter loop only once.
+    Collection<TerminationState> nonLoopStatesAtNode3 =
+        statesAtNode3
+            .stream()
+            .filter(TerminationState::isPartOfStem)
+            .collect(Collectors.toCollection(ArrayList::new));
+    Collection<TerminationState> statesAtNode4 =
+        getAbstractSuccessorsForEdge0(nonLoopStatesAtNode3, pPrecision, negativeNodetAssumeEdge);
+
+    Collection<TerminationState> statesAtNode5 = Lists.newArrayList();
+
+    // node4 - x' = x; y' = y; ... -> node 5
+    CFANode node5 = creatCfaNode(functionName);
+    initializePrimedVariables(node4, node5, statesAtNode4, pPrecision)
+        .stream()
+        .map(TerminationState::enterLoop) // pc' = loopHead
+        .forEach(statesAtNode5::add);
+
+    // node3 - [__CPAchecker_termination_temp == 0] -> node 5
+    CFAEdge positiveNodetAssumeEdge =
+        createAssumeEdge(nondetTmpVariableAssumption, node3, node5, true);
+    statesAtNode5.addAll(
+        getAbstractSuccessorsForEdge0(statesAtNode3, pPrecision, positiveNodetAssumeEdge));
+
+    // node5 - BlankEdge -> loopHead
+    CFAEdge edgeBackToLoopHead = createBlankEdge(node5, loopHead, "");
+    resultingSuccessors.addAll(
+        getAbstractSuccessorsForEdge0(statesAtNode5, pPrecision, edgeBackToLoopHead));
 
     return resultingSuccessors;
   }
