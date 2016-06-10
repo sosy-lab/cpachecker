@@ -238,6 +238,8 @@ public class TerminationTransferRelation implements TransferRelation {
       statesAtCurrentLocation = Collections.singleton(terminationState);
     }
 
+    resetCfa();
+
     assert !statesAtCurrentLocation.isEmpty();
     return getAbstractSuccessors0(statesAtCurrentLocation, pPrecision);
   }
@@ -269,8 +271,6 @@ public class TerminationTransferRelation implements TransferRelation {
       states = getAbstractSuccessorsForEdge0(states, pPrecision, edge);
       currentNode = nextNode;
     }
-
-    resetCfa();
 
     // blank edge back to original CFA node
     CFAEdge edge = createBlankEdge(currentNode, pCfaNode, "");
@@ -397,7 +397,6 @@ public class TerminationTransferRelation implements TransferRelation {
       CFAEdge edgeBackToLoopHead = createBlankEdge(node5, loopHead, "");
       resultingSuccessors =
           getAbstractSuccessorsForEdge0(statesAtNode5, pPrecision, edgeBackToLoopHead);
-      resetCfa();
     }
 
     return resultingSuccessors;
