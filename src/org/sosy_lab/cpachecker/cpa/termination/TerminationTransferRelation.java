@@ -207,7 +207,7 @@ public class TerminationTransferRelation implements TransferRelation {
               relevantVariable.getOrigName() + PRIMED_VARIABLE_POSTFIX,
               relevantVariable.getQualifiedName() + PRIMED_VARIABLE_POSTFIX,
               null);
-      relevantVariables.put(relevantVariable, primedVariable);
+      builder.put(relevantVariable, primedVariable);
     }
 
     relevantVariables = builder.build();
