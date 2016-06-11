@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core;
 
+import static java.util.stream.Collectors.joining;
+
 import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -155,6 +157,7 @@ public final class Specification {
 
   @Override
   public String toString() {
-    return "Specification" + specificationAutomata;
+    return "Specification"
+        + specificationAutomata.stream().map(Automaton::getName).collect(joining(", ", "[", "]"));
   }
 }
