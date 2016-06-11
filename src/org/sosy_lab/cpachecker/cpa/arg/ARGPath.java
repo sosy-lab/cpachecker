@@ -83,6 +83,11 @@ public class ARGPath extends AbstractAppender {
           + " without having to compute it again.")
   private List<CFAEdge> fullPath = null;
 
+  protected ARGPath(ARGPath pArgPath) {
+    states = pArgPath.states;
+    edges = pArgPath.edges;
+  }
+
   ARGPath(List<ARGState> pStates) {
     checkArgument(!pStates.isEmpty(), "ARGPaths may not be empty");
     states = ImmutableList.copyOf(pStates);

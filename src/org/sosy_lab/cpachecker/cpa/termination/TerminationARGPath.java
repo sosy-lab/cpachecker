@@ -1,0 +1,107 @@
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2016  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
+package org.sosy_lab.cpachecker.cpa.termination;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
+
+import com.google.common.collect.ImmutableList;
+
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * Adds intermediate {@link CFAEdge}s created by {@link TerminationTransferRelation}
+ * during the analysis to the full path.
+ */
+public class TerminationARGPath extends ARGPath {
+
+  private final TerminationTransferRelation terminationTransferRelation;
+
+  public TerminationARGPath(
+      ARGPath pBasicArgPath, TerminationTransferRelation pTerminationTransferRelation) {
+    super(pBasicArgPath);
+    terminationTransferRelation = checkNotNull(pTerminationTransferRelation);
+  }
+
+  @Override
+  public List<CFAEdge> getFullPath() {
+    ImmutableList.Builder<CFAEdge> fullPath = ImmutableList.builder();
+    PathIterator it = pathIterator();
+
+    while (it.hasNext()) {
+      ARGState prev = it.getAbstractState();
+      CFAEdge curOutgoingEdge = it.getOutgoingEdge();
+      it.advance();
+      ARGState succ = it.getAbstractState();
+
+      TerminationState terminationPrev = extractStateByType(prev, TerminationState.class);
+      TerminationState terminationSucc = extractStateByType(succ, TerminationState.class);
+
+      // insert transition from loop to stem
+      if (terminationPrev.isPartOfStem() && terminationSucc.isPartOfLoop()) {
+        CFANode curNode = extractLocation(prev);
+        fullPath.addAll(terminationTransferRelation.createStemToLoopTransition(curNode, curNode));
+      }
+
+      // compute path between cur and next node
+      if (curOutgoingEdge == null) {
+        CFANode curNode = extractLocation(prev);
+        CFANode nextNode = extractLocation(succ);
+
+        // add negated ranking relation before target state (non-termination label)
+        if (AbstractStates.isTargetState(succ)) {
+          fullPath.add(
+              terminationTransferRelation.createNegatedRankingRelationAssumeEdge(
+                  curNode, nextNode));
+          nextNode = curNode;
+        }
+
+        // we assume a linear chain of edges from 'prev' to 'succ'
+        while (curNode != nextNode) {
+          if (!(curNode.getNumLeavingEdges() == 1 && curNode.getLeavingSummaryEdge() == null)) {
+            return Collections.emptyList();
+          }
+
+          CFAEdge intermediateEdge = curNode.getLeavingEdge(0);
+          fullPath.add(intermediateEdge);
+          curNode = intermediateEdge.getSuccessor();
+        }
+
+        // we have a normal connection without hole in the edges
+      } else {
+        fullPath.add(curOutgoingEdge);
+      }
+    }
+
+    return fullPath.build();
+  }
+}

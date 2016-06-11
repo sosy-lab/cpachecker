@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.termination;
 
+import com.google.common.base.Preconditions;
+
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -38,12 +41,13 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 import java.util.Set;
 
 public class TerminationCPA extends AbstractSingleWrapperCPA {
+
+  private final Configuration config;
 
   private final AbstractDomain abstractDomain;
   private final TerminationTransferRelation transferRelation;
@@ -55,9 +59,11 @@ public class TerminationCPA extends AbstractSingleWrapperCPA {
     return AutomaticCPAFactory.forType(TerminationCPA.class);
   }
 
-  public TerminationCPA(ConfigurableProgramAnalysis pCpa, CFA pCfa, LogManager pLogger) {
+  public TerminationCPA(
+      ConfigurableProgramAnalysis pCpa, CFA pCfa, Configuration pConfig, LogManager pLogger) {
     super(pCpa);
 
+    config = Preconditions.checkNotNull(pConfig);
     transferRelation =
         new TerminationTransferRelation(
             pCpa.getTransferRelation(), pCfa.getMachineModel(), pLogger);
@@ -79,6 +85,10 @@ public class TerminationCPA extends AbstractSingleWrapperCPA {
     transferRelation.setProcessedLoop(pLoopHead, pRelevantVariables);
   }
 
+  public Configuration getConfig() {
+    return config;
+  }
+
   /**
    * Adds a new ranking relation that is valid for the loop currently processed.
    *
@@ -96,7 +106,7 @@ public class TerminationCPA extends AbstractSingleWrapperCPA {
   }
 
   @Override
-  public TransferRelation getTransferRelation() {
+  public TerminationTransferRelation getTransferRelation() {
     return transferRelation;
   }
 

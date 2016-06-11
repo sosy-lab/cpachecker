@@ -2043,6 +2043,11 @@ cpa.statistics.statisticsCPAFile = no default value
 # evenness)
 cpa.stator.congruence.trackCongruenceSum = false
 
+# Which refinement algorithm to use? (give class name, required for
+# termination algorithm with CEGAR) If the package name starts with
+# 'org.sosy_lab.cpachecker.', this prefix can be omitted.
+cpa.termination.refiner = no default value
+
 # allow assignments of a new thread to the same left-hand-side as an existing
 # thread.
 cpa.threading.allowMultipleLHS = false

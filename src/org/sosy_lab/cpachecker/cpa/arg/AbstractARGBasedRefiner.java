@@ -65,6 +65,12 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
   private final ARGCPA argCpa;
   private final LogManager logger;
 
+  protected AbstractARGBasedRefiner(AbstractARGBasedRefiner pAbstractARGBasedRefiner) {
+    refiner = pAbstractARGBasedRefiner.refiner;
+    argCpa = pAbstractARGBasedRefiner.argCpa;
+    logger = pAbstractARGBasedRefiner.logger;
+  }
+
   protected AbstractARGBasedRefiner(ARGBasedRefiner pRefiner, ARGCPA pCpa, LogManager pLogger) {
     refiner = pRefiner;
     argCpa = pCpa;
