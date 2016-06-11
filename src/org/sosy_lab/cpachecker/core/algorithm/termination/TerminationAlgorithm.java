@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.WARNING;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
@@ -37,8 +38,6 @@ import com.google.common.collect.Sets;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
@@ -49,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -63,6 +63,9 @@ import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CPAs;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -70,15 +73,9 @@ import java.util.logging.Level;
 /**
  * Algorithm that uses a safety-analysis to prove (non-)termination.
  */
-@Options
 public class TerminationAlgorithm implements Algorithm {
 
-  @Option(
-      secure=true,
-      name="termination.check",
-      description="Whether to check for the termination property "
-          + "(this can be specified by passing an appropriate .prp file to the -spec parameter).")
-  private boolean checkTermination = false;
+  private final static Path SPEC_FILE = Paths.get("config/specification/sv-comp-reachability.spc");
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -94,6 +91,7 @@ public class TerminationAlgorithm implements Algorithm {
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       CFA pCfa,
+      Specification pSpecification,
       Algorithm pSafetyAlgorithm,
       ConfigurableProgramAnalysis pSafetyAnalysis)
           throws InvalidConfigurationException {
@@ -101,7 +99,15 @@ public class TerminationAlgorithm implements Algorithm {
         shutdownNotifier = pShutdownNotifier;
         safetyAlgorithm = checkNotNull(pSafetyAlgorithm);
         cfa = checkNotNull(pCfa);
-        pConfig.inject(this);
+
+        Specification requiredSpecification =
+            Specification.fromFiles(Collections.singleton(SPEC_FILE), pCfa, pConfig, pLogger);
+        Preconditions.checkArgument(
+            requiredSpecification.equals(pSpecification),
+            "%s requires %s, but %s is given.",
+            TerminationAlgorithm.class.getSimpleName(),
+            requiredSpecification,
+            pSpecification);
 
         terminationCpa = CPAs.retrieveCPA(pSafetyAnalysis, TerminationCPA.class);
         if (terminationCpa == null) {
@@ -117,17 +123,21 @@ public class TerminationAlgorithm implements Algorithm {
 
   }
 
+  /**
+   * Loads the specification required to run the {@link TerminationAlgorithm}.
+   */
+  public static Specification loadTerminationSpecification(
+      CFA pCfa, Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
+    return Specification.fromFiles(Collections.singleton(SPEC_FILE), pCfa, pConfig, pLogger);
+  }
+
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet)
       throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
 
     logger.log(Level.INFO, "Starting termination algorithm.");
 
-    if (!checkTermination) {
-      logger.logf(WARNING, "%s does not support safety properties.", getClass().getSimpleName());
-      return AlgorithmStatus.UNSOUND_AND_PRECISE.withPrecise(false);
-
-    } else if (!cfa.getLoopStructure().isPresent()) {
+    if (!cfa.getLoopStructure().isPresent()) {
       logger.log(WARNING, "Loop structure is not present, but required for termination analysis.");
       return AlgorithmStatus.UNSOUND_AND_PRECISE.withPrecise(false);
 

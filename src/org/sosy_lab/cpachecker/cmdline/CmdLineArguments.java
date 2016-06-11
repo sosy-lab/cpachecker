@@ -50,6 +50,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -104,7 +105,6 @@ class CmdLineArguments {
   private static final String MEMORYSAFETY_SPECIFICATION_FILE_MEMTRACK = "config/specification/memorysafety-memtrack.spc";
   private static final String OVERFLOW_SPECIFICATION_FILE = "config/specification/overflow.spc";
   private static final String DEADLOCK_SPECIFICATION_FILE = "config/specification/deadlock.spc";
-  private static final String TERMINATION_SPECIFICATION_FILE = "config/specification/termination_as_reach.spc";
 
   private static final Pattern PROPERTY_FILE_PATTERN = Pattern.compile("(.)+\\.prp");
 
@@ -439,43 +439,43 @@ class CmdLineArguments {
       Set<PropertyType> properties) throws InvalidCmdlineArgumentException {
     final List<String> specifications = new ArrayList<>();
     for (PropertyType property : properties) {
-      String newSpec = null;
+      Optional<String> newSpec = null;
       switch (property) {
       case VALID_DEREF:
         putIfNotDifferent(options, "memorysafety.check", "true");
-        newSpec = MEMORYSAFETY_SPECIFICATION_FILE_DEREF;
+        newSpec = Optional.of(MEMORYSAFETY_SPECIFICATION_FILE_DEREF);
         break;
       case VALID_FREE:
         putIfNotDifferent(options, "memorysafety.check", "true");
-        newSpec = MEMORYSAFETY_SPECIFICATION_FILE_FREE;
+        newSpec = Optional.of(MEMORYSAFETY_SPECIFICATION_FILE_FREE);
         break;
       case VALID_MEMTRACK:
         putIfNotDifferent(options, "memorysafety.check", "true");
-        newSpec = MEMORYSAFETY_SPECIFICATION_FILE_MEMTRACK;
+        newSpec = Optional.of(MEMORYSAFETY_SPECIFICATION_FILE_MEMTRACK);
         break;
       case REACHABILITY_LABEL:
-        newSpec = REACHABILITY_LABEL_SPECIFICATION_FILE;
+        newSpec = Optional.of(REACHABILITY_LABEL_SPECIFICATION_FILE);
         break;
       case OVERFLOW:
         putIfNotExistent(options, "overflow.check", "true");
-        newSpec = OVERFLOW_SPECIFICATION_FILE;
+        newSpec = Optional.of(OVERFLOW_SPECIFICATION_FILE);
         break;
       case DEADLOCK:
-        newSpec = DEADLOCK_SPECIFICATION_FILE;
+        newSpec = Optional.of(DEADLOCK_SPECIFICATION_FILE);
         break;
       case TERMINATION:
         putIfNotExistent(options, "termination.check", "true");
-        newSpec = TERMINATION_SPECIFICATION_FILE;
+        newSpec = Optional.empty();
         break;
       case REACHABILITY:
-        newSpec = REACHABILITY_SPECIFICATION_FILE;
+        newSpec = Optional.of(REACHABILITY_SPECIFICATION_FILE);
         break;
       default:
         ERROR_OUTPUT.println("Checking for the property " + property + " is currently not supported by CPAchecker.");
         System.exit(ERROR_EXIT_CODE);
       }
       assert newSpec != null;
-      specifications.add(newSpec);
+      newSpec.ifPresent(specifications::add);
     }
     return Joiner.on(",").join(specifications);
   }

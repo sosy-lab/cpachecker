@@ -215,9 +215,22 @@ public class CoreComponentsFactory {
       final ConfigurableProgramAnalysis cpa,
       final String programDenotation,
       final CFA cfa,
-      final Specification specification)
+      final Specification pSpecification)
       throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating algorithms");
+
+    // TerminationAlgorithm requires hard coded specification.
+    Specification specification;
+    if (useTerminationAlgorithm) {
+      if (!pSpecification.equals(Specification.alwaysSatisfied())) {
+        throw new InvalidConfigurationException(
+            pSpecification + "is not usable with termination analysis");
+      } else {
+        specification = TerminationAlgorithm.loadTerminationSpecification(cfa, config, logger);
+      }
+    } else {
+      specification = pSpecification;
+    }
 
     Algorithm algorithm;
 
@@ -328,6 +341,7 @@ public class CoreComponentsFactory {
             logger,
             shutdownNotifier,
             cfa,
+            specification,
             algorithm,
             cpa);
       }
