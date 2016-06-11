@@ -103,7 +103,7 @@ public class TerminationState extends AbstractSingleWrapperState implements Grap
 
     if (getWrappedState() instanceof Graphable) {
       sb.append("\n");
-      sb.append(((Graphable)getWrappedState()).toDOTLabel());
+      sb.append(((Graphable) getWrappedState()).toDOTLabel());
     }
 
     return sb.toString();
@@ -112,7 +112,7 @@ public class TerminationState extends AbstractSingleWrapperState implements Grap
   @Override
   public boolean shouldBeHighlighted() {
     if (getWrappedState() instanceof Graphable) {
-      return ((Graphable)getWrappedState()).shouldBeHighlighted();
+      return ((Graphable) getWrappedState()).shouldBeHighlighted();
     }
     return false;
   }
@@ -130,6 +130,6 @@ public class TerminationState extends AbstractSingleWrapperState implements Grap
     sb.append(" ");
     sb.append(getWrappedState());
 
-   return sb.toString();
+    return sb.toString();
   }
 }

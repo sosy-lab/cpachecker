@@ -341,8 +341,7 @@ public class TerminationTransferRelation implements TransferRelation {
         getAbstractSuccessorsForEdge0(potentialNonTerminationStates, pPrecision, blankEdge));
 
     // loopHead --> node1
-    CFAEdge positiveRankingRelation =
-        createAssumeEdge(rankingRelations, loopHead, node1, true);
+    CFAEdge positiveRankingRelation = createAssumeEdge(rankingRelations, loopHead, node1, true);
     statesAtNode1.addAll(
         getAbstractSuccessorsForEdge0(
             Collections.singleton(loopHeadState), pPrecision, positiveRankingRelation));
@@ -481,7 +480,6 @@ public class TerminationTransferRelation implements TransferRelation {
     builder.add(edge);
 
     return builder.build();
-
   }
 
   private CStatementEdge crateCStatementEdge(
@@ -569,7 +567,6 @@ public class TerminationTransferRelation implements TransferRelation {
 
     return resultingSuccessors;
   }
-
 
   private CFANode creatCfaNode(String functionName) {
     return new CFANode(functionName);

@@ -50,12 +50,13 @@ public class TerminationStopOperator implements StopOperator {
     AbstractState wrappedState = terminationState.getWrappedState();
 
     // Separate states from loop and stem.
-    Collection<AbstractState> wrappedReached = pReached
-      .stream()
-      .map(s -> (TerminationState) s)
-      .filter(s -> terminationState.isPartOfLoop() == s.isPartOfLoop())
-      .map(TerminationState::getWrappedState)
-      .collect(Collectors.toCollection(ArrayList::new));
+    Collection<AbstractState> wrappedReached =
+        pReached
+            .stream()
+            .map(s -> (TerminationState) s)
+            .filter(s -> terminationState.isPartOfLoop() == s.isPartOfLoop())
+            .map(TerminationState::getWrappedState)
+            .collect(Collectors.toCollection(ArrayList::new));
 
     return stopOperator.stop(wrappedState, wrappedReached, pPrecision);
   }
