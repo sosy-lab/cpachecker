@@ -208,7 +208,7 @@ public class TerminationAlgorithm implements Algorithm {
     Result result = null;
 
     while (result == null) {
-      if (status.isSound() && !targetState.isPresent()) {
+      if (status.isSound() && !targetState.isPresent() && !pReachedSet.hasWaitingState()) {
         result = Result.TRUE;
 
       } else if (status.isPrecise() && targetState.isPresent()){
