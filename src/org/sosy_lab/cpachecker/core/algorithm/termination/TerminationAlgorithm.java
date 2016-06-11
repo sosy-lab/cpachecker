@@ -70,12 +70,16 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 /**
  * Algorithm that uses a safety-analysis to prove (non-)termination.
  */
 public class TerminationAlgorithm implements Algorithm {
 
-  private final static Path SPEC_FILE = Paths.get("config/specification/sv-comp-reachability.spc");
+  private final static Path SPEC_FILE = Paths.get("config/specification/termination_as_reach.spc");
+
+  @Nullable private static Specification terminationSpecification;
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -100,8 +104,7 @@ public class TerminationAlgorithm implements Algorithm {
         safetyAlgorithm = checkNotNull(pSafetyAlgorithm);
         cfa = checkNotNull(pCfa);
 
-        Specification requiredSpecification =
-            Specification.fromFiles(Collections.singleton(SPEC_FILE), pCfa, pConfig, pLogger);
+        Specification requiredSpecification = loadTerminationSpecification(pCfa, pConfig, pLogger);
         Preconditions.checkArgument(
             requiredSpecification.equals(pSpecification),
             "%s requires %s, but %s is given.",
@@ -128,7 +131,12 @@ public class TerminationAlgorithm implements Algorithm {
    */
   public static Specification loadTerminationSpecification(
       CFA pCfa, Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
-    return Specification.fromFiles(Collections.singleton(SPEC_FILE), pCfa, pConfig, pLogger);
+    if (terminationSpecification == null) {
+      terminationSpecification =
+          Specification.fromFiles(Collections.singleton(SPEC_FILE), pCfa, pConfig, pLogger);
+    }
+
+    return terminationSpecification;
   }
 
   @Override
