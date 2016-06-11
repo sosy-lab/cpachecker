@@ -24,7 +24,8 @@
 package org.sosy_lab.cpachecker.core;
 
 import static com.google.common.base.Verify.verifyNotNull;
-import static org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm.loadTerminationSpecification;
+
+import com.google.common.base.Preconditions;
 
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -223,16 +224,7 @@ public class CoreComponentsFactory {
     // TerminationAlgorithm requires hard coded specification.
     Specification specification;
     if (useTerminationAlgorithm) {
-
-      Specification terminationSpecification = loadTerminationSpecification(cfa, config, logger);
-      if (!pSpecification.equals(Specification.alwaysSatisfied())
-          && !pSpecification.equals(terminationSpecification)) {
-        throw new InvalidConfigurationException(
-            pSpecification + "is not usable with termination analysis");
-      } else {
-        specification = terminationSpecification;
-      }
-
+      specification = loadTerminationSpecification(cfa, pSpecification);
     } else {
       specification = pSpecification;
     }
@@ -371,7 +363,7 @@ public class CoreComponentsFactory {
     return reached;
   }
 
-  public ConfigurableProgramAnalysis createCPA(final CFA cfa, final Specification specification)
+  public ConfigurableProgramAnalysis createCPA(final CFA cfa, final Specification pSpecification)
       throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
 
@@ -380,6 +372,29 @@ public class CoreComponentsFactory {
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
     }
 
+    // TerminationAlgorithm requires hard coded specification.
+    Specification specification;
+    if (useTerminationAlgorithm) {
+      specification = loadTerminationSpecification(cfa, pSpecification);
+    } else {
+      specification = pSpecification;
+    }
+
     return cpaFactory.buildCPAs(cfa, specification, aggregatedReachedSets);
+  }
+
+  private Specification loadTerminationSpecification(CFA cfa, Specification originalSpecification)
+      throws InvalidConfigurationException {
+    Preconditions.checkState(useTerminationAlgorithm);
+    Specification terminationSpecification =
+        TerminationAlgorithm.loadTerminationSpecification(cfa, config, logger);
+
+    if (!originalSpecification.equals(Specification.alwaysSatisfied())
+        && !originalSpecification.equals(terminationSpecification)) {
+      throw new InvalidConfigurationException(
+          originalSpecification + "is not usable with termination analysis");
+    }
+
+    return terminationSpecification;
   }
 }
