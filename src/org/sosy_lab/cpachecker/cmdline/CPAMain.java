@@ -330,6 +330,7 @@ public class CPAMain {
       config = Configuration.builder()
                             .loadFromFile(options.terminationConfig)
                             .setOptions(cmdLineOptions)
+                            .clearOption("termination.check")
                             .clearOption("termination.config")
                             .clearOption("output.disable")
                             .clearOption("output.path")
