@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -100,7 +101,7 @@ public class TerminationARGBasedRefiner extends AbstractARGBasedRefiner {
   @Override
   protected ARGPath computePath(ARGState pLastElement, ARGReachedSet pReached)
       throws InterruptedException, CPATransferException {
-    ARGPath basicPath = super.computePath(pLastElement, pReached);
+    ARGPath basicPath = ARGUtils.getOnePathTo(pLastElement);
     return new TerminationARGPath(basicPath, terminationCPA.getTransferRelation());
   }
 }
