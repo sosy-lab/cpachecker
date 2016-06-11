@@ -104,4 +104,21 @@ public class TerminationARGPath extends ARGPath {
 
     return fullPath.build();
   }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object pOther) {
+    if (this == pOther) {
+      return true;
+    }
+    if (!(pOther instanceof TerminationARGPath)) {
+      return false;
+    }
+
+    return super.equals(pOther);
+  }
 }
