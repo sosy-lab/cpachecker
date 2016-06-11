@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core;
 
 import static com.google.common.base.Verify.verifyNotNull;
+import static org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm.loadTerminationSpecification;
 
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -222,12 +223,16 @@ public class CoreComponentsFactory {
     // TerminationAlgorithm requires hard coded specification.
     Specification specification;
     if (useTerminationAlgorithm) {
-      if (!pSpecification.equals(Specification.alwaysSatisfied())) {
+
+      Specification terminationSpecification = loadTerminationSpecification(cfa, config, logger);
+      if (!pSpecification.equals(Specification.alwaysSatisfied())
+          && !pSpecification.equals(terminationSpecification)) {
         throw new InvalidConfigurationException(
             pSpecification + "is not usable with termination analysis");
       } else {
-        specification = TerminationAlgorithm.loadTerminationSpecification(cfa, config, logger);
+        specification = terminationSpecification;
       }
+
     } else {
       specification = pSpecification;
     }
