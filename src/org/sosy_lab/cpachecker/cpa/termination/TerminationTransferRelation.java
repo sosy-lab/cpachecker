@@ -32,6 +32,7 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.edgeHasType;
 import static org.sosy_lab.cpachecker.util.CFAUtils.enteringEdges;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.Lists;
@@ -79,6 +80,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -154,6 +157,10 @@ public class TerminationTransferRelation implements TransferRelation {
   private Map<CVariableDeclaration, CVariableDeclaration> relevantVariables =
       Collections.emptyMap();
 
+  // reusing of intermediate location is required to build counter examples
+  private List<CFANode> relevantVariablesInitializationIntermediateLocations =
+      Collections.emptyList();
+
   private Set<CFAEdge> createdCfaEdges = Sets.newLinkedHashSet();
 
   private final TransferRelation transferRelation;
@@ -196,7 +203,9 @@ public class TerminationTransferRelation implements TransferRelation {
   void setProcessedLoop(CFANode pLoopHead, Set<CVariableDeclaration> pRelevantVariables) {
     loopHead = Optional.of(pLoopHead);
     resetRankingRelation();
+    resetCfa();
 
+    ImmutableList.Builder<CFANode> intermediateStates = ImmutableList.builder();
     Builder<CVariableDeclaration, CVariableDeclaration> builder = ImmutableMap.builder();
     for (CVariableDeclaration relevantVariable : pRelevantVariables) {
       CVariableDeclaration primedVariable =
@@ -210,8 +219,10 @@ public class TerminationTransferRelation implements TransferRelation {
               relevantVariable.getQualifiedName() + PRIMED_VARIABLE_POSTFIX,
               null);
       builder.put(relevantVariable, primedVariable);
+      intermediateStates.add(new CFANode(pLoopHead.getFunctionName()));
     }
 
+    relevantVariablesInitializationIntermediateLocations = intermediateStates.build();
     relevantVariables = builder.build();
   }
 
@@ -303,7 +314,7 @@ public class TerminationTransferRelation implements TransferRelation {
     // loopHead - [!(rankingFunction)] -> potentialNonTerminationNode
     CFANode potentialNonTerminationNode = creatCfaNode(functionName);
     CFAEdge negativeRankingRelation =
-        createAssumeEdge(rankingRelations, loopHead, potentialNonTerminationNode, false);
+        createNegatedRankingRelationAssumeEdge(loopHead, potentialNonTerminationNode);
 
     Collection<? extends TerminationState> potentialNonTerminationStates =
         getAbstractSuccessorsForEdge0(
@@ -406,35 +417,71 @@ public class TerminationTransferRelation implements TransferRelation {
     return resultingSuccessors;
   }
 
+  protected CFAEdge createNegatedRankingRelationAssumeEdge(CFANode startNode, CFANode endNode) {
+    return createAssumeEdge(rankingRelations, startNode, endNode, false);
+  }
+
   private Collection<? extends TerminationState> initializePrimedVariables(
       CFANode startNode,
       CFANode endNode,
       Collection<? extends TerminationState> pStates,
       Precision pPrecision)
       throws CPATransferException, InterruptedException {
-    String function = startNode.getFunctionName();
     CFANode currentNode = startNode;
     Collection<? extends TerminationState> states = pStates;
+    Iterator<CFANode> intermediateLocations =
+        relevantVariablesInitializationIntermediateLocations.iterator();
 
     // x' = x; y' = y; ....
+    for (CStatement assignment : createPrimedVariableAssignments()) {
+      CFANode nextNode = intermediateLocations.next();
+      CFAEdge edge = crateCStatementEdge(assignment, currentNode, nextNode);
+      states = getAbstractSuccessorsForEdge0(states, pPrecision, edge);
+      currentNode = nextNode;
+    }
+
+    CFAEdge edge = createBlankEdge(currentNode, endNode, "");
+    states = getAbstractSuccessorsForEdge0(states, pPrecision, edge);
+
+    return states;
+  }
+
+  private List<CStatement> createPrimedVariableAssignments() {
+    ImmutableList.Builder<CStatement> builder = ImmutableList.builder();
+
     for (Entry<CVariableDeclaration, CVariableDeclaration> relevantVariable :
         relevantVariables.entrySet()) {
-      CFANode nextNode = creatCfaNode(function);
 
       CVariableDeclaration unprimedVariable = relevantVariable.getKey();
       CVariableDeclaration primedVariable = relevantVariable.getValue();
       CStatement assignment = createAssignmentStatement(primedVariable, unprimedVariable);
+
+      builder.add(assignment);
+    }
+
+    return builder.build();
+  }
+
+  protected List<CFAEdge> createStemToLoopTransition(CFANode startNode, CFANode endNode) {
+    CFANode currentNode = startNode;
+    ImmutableList.Builder<CFAEdge> builder = ImmutableList.builder();
+
+    Iterator<CFANode> intermediateLocations =
+        relevantVariablesInitializationIntermediateLocations.iterator();
+    for (CStatement assignment : createPrimedVariableAssignments()) {
+      CFANode nextNode = intermediateLocations.next();
       CFAEdge edge = crateCStatementEdge(assignment, currentNode, nextNode);
 
-      states = getAbstractSuccessorsForEdge0(states, pPrecision, edge);
+      builder.add(edge);
       currentNode = nextNode;
     }
 
     // blank edge to endNode
     CFAEdge edge = createBlankEdge(currentNode, endNode, "");
-    states = getAbstractSuccessorsForEdge0(states, pPrecision, edge);
+    builder.add(edge);
 
-    return states;
+    return builder.build();
+
   }
 
   private CStatementEdge crateCStatementEdge(
