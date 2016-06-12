@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -36,6 +33,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+
+import java.util.HashSet;
+import java.util.Set;
 
 
 public class ValueAnalysisReducer implements Reducer {
@@ -54,10 +54,10 @@ public class ValueAnalysisReducer implements Reducer {
     ValueAnalysisState expandedState = (ValueAnalysisState)pExpandedState;
 
     ValueAnalysisState clonedElement = ValueAnalysisState.copyOf(expandedState);
+    Set<String> blockVariables = getBlockVariables(pContext);
     for (MemoryLocation trackedVar : expandedState.getTrackedMemoryLocations()) {
       // ignore offset (like "3" from "array[3]") to match assignments in loops ("array[i]=12;")
       final String simpleName = trackedVar.getAsSimpleString();
-      Set<String> blockVariables = getBlockVariables(pContext);
       if (!blockVariables.contains(simpleName)) {
         clonedElement.forget(trackedVar);
       }
