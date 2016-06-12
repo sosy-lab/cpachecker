@@ -1,10 +1,10 @@
 Getting Started with CPAchecker
 ===============================
 
-Installation Instructions:  `INSTALL.md`
-Develop and Contribute:     `doc/Developing.md`
+Installation Instructions:  [`INSTALL.md`](INSTALL.md)
+Develop and Contribute:     [`doc/Developing.md`](doc/Developing.md)
 
-More details can be found in `doc/*.md`
+More documentation can be found in the [`doc`](doc) folder.
 
 Prepare Programs for Verification by CPAchecker
 -----------------------------------------------
@@ -80,4 +80,4 @@ Also some of these files are only produced if an error is found (or vice-versa).
 CPAchecker will overwrite files in this directory!
 A graphical report which can be viewed in a browser can be generated
 from these files by running `scripts/report-generator.py`
-(cf. `doc/BuildReport.md`).
+(cf. [`doc/BuildReport.md`](doc/BuildReport.md)).
