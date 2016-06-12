@@ -25,48 +25,27 @@ package org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
+
+import org.sosy_lab.cpachecker.cfa.blocks.Block;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.cfa.blocks.Block;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
-
 public class CachingRelevantPredicatesComputer implements RefineableRelevantPredicatesComputer {
 
-  private final Map<Pair<Block, ImmutableSet<AbstractionPredicate>>, ImmutableSet<AbstractionPredicate>> irrelevantCache = Maps.newHashMap();
   private final Map<Pair<Block, ImmutableSet<AbstractionPredicate>>, ImmutableSet<AbstractionPredicate>> relevantCache = Maps.newHashMap();
 
   private final RelevantPredicatesComputer delegate;
 
   public CachingRelevantPredicatesComputer(RelevantPredicatesComputer pDelegate) {
     delegate = checkNotNull(pDelegate);
-  }
-
-  @Override
-  public Set<AbstractionPredicate> getIrrelevantPredicates(
-      Block pContext, Collection<AbstractionPredicate> pPredicates) {
-
-    if (pPredicates.isEmpty()) {
-      return Collections.emptySet();
-    }
-
-    ImmutableSet<AbstractionPredicate> predicates = ImmutableSet.copyOf(pPredicates);
-    Pair<Block, ImmutableSet<AbstractionPredicate>> key = Pair.of(pContext, predicates);
-
-    ImmutableSet<AbstractionPredicate> result = irrelevantCache.get(key);
-    if (result == null) {
-      result = ImmutableSet.copyOf(delegate.getIrrelevantPredicates(pContext, predicates));
-      irrelevantCache.put(key, result);
-    }
-
-    return result;
   }
 
   @Override
@@ -103,7 +82,6 @@ public class CachingRelevantPredicatesComputer implements RefineableRelevantPred
 
       // we copy every useful data into the new Computer
       putAllExceptBlock(this.relevantCache, newCachingComputer.relevantCache, pBlock);
-      putAllExceptBlock(this.irrelevantCache, newCachingComputer.irrelevantCache, pBlock);
 
       return newCachingComputer;
     }

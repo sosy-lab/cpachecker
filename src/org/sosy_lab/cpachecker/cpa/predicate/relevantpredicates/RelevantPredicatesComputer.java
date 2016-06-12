@@ -23,20 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates;
 
-import java.util.Collection;
-import java.util.Set;
-
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
+import java.util.Collection;
+import java.util.Set;
+
 
 /**
- * Interface for the computation of (ir-)relevant predicates of a given block.
+ * Interface for the computation of relevant predicates of a given block.
  *
  * We assume, that a computer is immutable. We allow internal caching and optimizations,
- * but the set of (ir-)relevant variables must remain constant (within one instance).
+ * but the set of relevant variables must remain constant (within one instance).
  */
 public interface RelevantPredicatesComputer {
-  public Set<AbstractionPredicate> getIrrelevantPredicates(Block context, Collection<AbstractionPredicate> predicates);
   public Set<AbstractionPredicate> getRelevantPredicates(Block context, Collection<AbstractionPredicate> predicates);
 }

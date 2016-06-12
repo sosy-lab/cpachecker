@@ -28,6 +28,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Cto
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
@@ -50,6 +51,7 @@ import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.logging.Level;
 
 
@@ -84,7 +86,8 @@ public class BAMPredicateReducer implements Reducer {
 
       Collection<AbstractionPredicate> predicates = pamgr.extractPredicates(oldRegion);
       Collection<AbstractionPredicate> removePredicates =
-          cpa.getRelevantPredicatesComputer().getIrrelevantPredicates(pContext, predicates);
+          Sets.difference(new HashSet<>(predicates),
+              cpa.getRelevantPredicatesComputer().getRelevantPredicates(pContext, predicates));
 
       PathFormula pathFormula = predicateElement.getPathFormula();
 
