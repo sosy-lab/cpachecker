@@ -23,9 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.octagon.refiner;
 
-import static org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision.createStaticPrecision;
-
 import java.util.Optional;
+
+import static org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision.createStaticPrecision;
+
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Lists;
@@ -36,7 +37,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;

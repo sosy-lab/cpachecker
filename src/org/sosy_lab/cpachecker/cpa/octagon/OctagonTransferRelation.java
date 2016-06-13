@@ -84,7 +84,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
-import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonState.Type;
 import org.sosy_lab.cpachecker.cpa.octagon.coefficients.IOctagonCoefficients;
 import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctagonIntervalCoefficients;
