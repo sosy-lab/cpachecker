@@ -25,27 +25,26 @@ package org.sosy_lab.cpachecker.util.predicates.weakening;
 
 import static org.sosy_lab.solver.api.SolverContext.ProverOptions.GENERATE_UNSAT_CORE_OVER_ASSUMPTIONS;
 
-import com.google.common.base.Optional;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager.InductiveWeakeningStatistics;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager.InductiveWeakeningStatistics;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.ProverEnvironment;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Perform weakening by destructive iterations.
@@ -105,13 +104,11 @@ public class DestructiveWeakeningManager {
       Set<BooleanFormula> selectors,
       Set<BooleanFormula> toAbstract
   ) {
-    List<BooleanFormula> out = new ArrayList<>();
-    for (BooleanFormula sel : selectors) {
-      if (!toAbstract.contains(sel)) {
-        out.add(bfmgr.not(sel));
-      }
-    }
-    return bfmgr.and(out);
+    return bfmgr.and(
+        selectors.stream().filter(
+            sel -> !toAbstract.contains(sel)
+        ).map(bfmgr::not).collect(Collectors.toList())
+    );
   }
 
   /**

@@ -11,7 +11,6 @@ import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
-import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
@@ -645,7 +644,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
           throw new CPATransferException("Unexpected solver state");
         }
 
-        Optional<Rational> value = Optionals.fromGuavaOptional(optEnvironment.upper(handle, EPSILON));
+        Optional<Rational> value = optEnvironment.upper(handle, EPSILON);
 
         if (value.isPresent() &&
             !templateManager.isOverflowing(template, value.get())) {
@@ -909,9 +908,9 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         switch (status) {
           case OPT:
 
-            Optional<Rational> bound = Optionals.fromGuavaOptional(optEnvironment.upper(handle, EPSILON));
             Optional<PolicyBound> policyBound = getPolicyBound(template,
                 optEnvironment, bound, annotatedFormula, p, state, objective);
+            Optional<Rational> bound = optEnvironment.upper(handle, EPSILON);
             if (policyBound.isPresent()) {
               abstraction.put(template, policyBound.get());
             }
