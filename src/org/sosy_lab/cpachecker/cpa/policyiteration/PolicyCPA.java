@@ -102,8 +102,6 @@ public class PolicyCPA extends SingleEdgeTransferRelation
         new StateFormulaConversionManager(
             formulaManager,
             pathFormulaManager, cfa, pLogger);
-    PolicyPrecision policyPrecision = new PolicyPrecision(pLogger, pConfig, cfa,
-        statistics, stateFormulaConversionManager);
     CongruenceManager pCongruenceManager = new CongruenceManager(
         pConfig,
         solver,
