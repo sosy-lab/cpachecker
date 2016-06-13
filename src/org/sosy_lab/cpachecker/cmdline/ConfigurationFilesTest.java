@@ -237,7 +237,7 @@ public class ConfigurationFilesTest {
         logHandler
             .getStoredLogRecords()
             .stream()
-            .filter(record -> record.getLevel().intValue() >= Level.WARNING.intValue())
+            .filter(record -> record.getLevel().intValue() >= Level.SEVERE.intValue())
             .map(LogRecord::getMessage)
             .filter(s -> !ALLOWED_WARNINGS.matcher(s).matches());
 
