@@ -1,6 +1,5 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration.congruence;
 
-import java.util.Optional;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -9,9 +8,10 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationStatistics;
+import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyPrecision;
+import org.sosy_lab.cpachecker.cpa.policyiteration.StateFormulaConversionManager;
 import org.sosy_lab.cpachecker.cpa.policyiteration.Template;
 import org.sosy_lab.cpachecker.cpa.policyiteration.Template.Kind;
-import org.sosy_lab.cpachecker.cpa.policyiteration.TemplateManager;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -29,6 +29,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Options(prefix="cpa.stator.congruence")
 public class CongruenceManager {
@@ -39,20 +41,22 @@ public class CongruenceManager {
   private boolean trackCongruenceSum = false;
 
   private final Solver solver;
-  private final TemplateManager templateManager;
+  private final StateFormulaConversionManager stateFormulaConversionManager;
   private final BitvectorFormulaManager bvfmgr;
   private final FormulaManagerView fmgr;
   private final PolicyIterationStatistics statistics;
   private final PathFormulaManager pfmgr;
 
   public CongruenceManager(Configuration config,
-      Solver pSolver, TemplateManager pTemplateManager,
-      FormulaManagerView pFmgr, PolicyIterationStatistics pStatistics,
-      PathFormulaManager pPfmgr)
+                           Solver pSolver,
+                           StateFormulaConversionManager pStateFormulaConversionManager,
+                           FormulaManagerView pFmgr,
+                           PolicyIterationStatistics pStatistics,
+                           PathFormulaManager pPfmgr)
       throws InvalidConfigurationException {
     config.inject(this);
     solver = pSolver;
-    templateManager = pTemplateManager;
+    stateFormulaConversionManager = pStateFormulaConversionManager;
     fmgr = pFmgr;
     statistics = pStatistics;
     bvfmgr = fmgr.getBitvectorFormulaManager();
@@ -63,15 +67,12 @@ public class CongruenceManager {
       CongruenceState a,
       CongruenceState b
   ) {
-    Map<Template, Congruence> abstraction = new HashMap<>();
-    for (Template t : Sets.intersection(
-        a.getAbstraction().keySet(), b.getAbstraction().keySet()
-    )) {
-      if (a.getAbstraction().get(t) == b.getAbstraction().get(t)) {
-        abstraction.put(t, a.getAbstraction().get(t));
-      }
-    }
-    return new CongruenceState(abstraction);
+    Map<Template, Congruence> abstraction = Sets.intersection(
+          a.getAbstraction().keySet(), b.getAbstraction().keySet())
+        .stream()
+        .filter(t -> a.getAbstraction().get(t).equals(b.getAbstraction().get(t)))
+        .collect(Collectors.toMap(t -> t, t -> a.getAbstraction().get(t)));
+    return new CongruenceState(abstraction, this);
   }
 
   public boolean isLessOrEqual(CongruenceState a, CongruenceState b) {
@@ -90,7 +91,8 @@ public class CongruenceManager {
   public CongruenceState performAbstraction(
       CFANode node,
       PathFormula p,
-      BooleanFormula startConstraints
+      BooleanFormula startConstraints,
+      PolicyPrecision pPrecision
   ) throws CPATransferException, InterruptedException {
 
     Map<Template, Congruence> abstraction = new HashMap<>();
@@ -102,12 +104,12 @@ public class CongruenceManager {
       //noinspection ResultOfMethodCallIgnored
       env.push(startConstraints);
 
-      for (Template template : templateManager.templatesForNode(node)) {
+      for (Template template : pPrecision.templatesForNode(node)) {
         if (!shouldUseTemplate(template)) {
           continue;
         }
 
-        Formula formula = templateManager.toFormula(pfmgr, fmgr, template, p);
+        Formula formula = stateFormulaConversionManager.toFormula(pfmgr, fmgr, template, p);
 
         // Test odd <=> isEven is UNSAT.
         try {
@@ -128,7 +130,6 @@ public class CongruenceManager {
               fmgr.makeModularCongruence(formula, makeBv(bvfmgr, formula, 1), 2));
           if (env.isUnsat()) {
             abstraction.put(template, Congruence.EVEN);
-            continue;
           }
         } finally {
           env.pop();
@@ -140,7 +141,7 @@ public class CongruenceManager {
       statistics.congruenceTimer.stop();
     }
 
-    return new CongruenceState(abstraction);
+    return new CongruenceState(abstraction, this);
   }
 
   public BooleanFormula toFormula(
@@ -156,7 +157,7 @@ public class CongruenceManager {
       Template template = entry.getKey();
       Congruence congruence = entry.getValue();
 
-      Formula formula = templateManager.toFormula(pfmgr, fmgr, template, ref);
+      Formula formula = stateFormulaConversionManager.toFormula(pfmgr, fmgr, template, ref);
       Formula remainder;
       switch (congruence) {
         case ODD:

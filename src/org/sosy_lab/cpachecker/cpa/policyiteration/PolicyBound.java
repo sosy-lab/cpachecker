@@ -9,9 +9,9 @@ import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Policy with a local bound.
@@ -47,7 +47,7 @@ public class PolicyBound {
 
   private PolicyBound(PathFormula pFormula, Rational pBound,
       PolicyAbstractedState pPredecessor,
-      Set<Template> pDependencies) {
+      Collection<Template> pDependencies) {
     formula = pFormula;
     bound = pBound;
     predecessor = pPredecessor;
@@ -56,7 +56,7 @@ public class PolicyBound {
 
   public static PolicyBound of(PathFormula pFormula, Rational bound,
       PolicyAbstractedState pUpdatedFrom,
-      Set<Template> pDependencies
+      Collection<Template> pDependencies
   ) {
     return new PolicyBound(pFormula, bound, pUpdatedFrom,
         pDependencies);
@@ -68,7 +68,7 @@ public class PolicyBound {
 
   public PolicyBound withNoDependencies() {
     return new PolicyBound(formula, bound, predecessor,
-        ImmutableSet.<Template>of());
+        ImmutableSet.of());
   }
 
   /**

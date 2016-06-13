@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableMap;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
+import org.sosy_lab.cpachecker.cpa.policyiteration.congruence.CongruenceManager;
 import org.sosy_lab.cpachecker.cpa.policyiteration.congruence.CongruenceState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -189,12 +190,13 @@ public final class PolicyAbstractedState extends PolicyState
    * @return Empty abstracted state associated with {@code node}.
    */
   public static PolicyAbstractedState empty(CFANode node,
-      BooleanFormula pPredicate,
-      StateFormulaConversionManager pManager) {
+                                            BooleanFormula pPredicate,
+                                            StateFormulaConversionManager pManager,
+                                            CongruenceManager pCongruenceManager) {
     return new PolicyAbstractedState(
         node, // node
         ImmutableMap.of(), // abstraction
-        CongruenceState.empty(),
+        CongruenceState.empty(pCongruenceManager),
         -1,
         pManager,
         SSAMap.emptySSAMap(),

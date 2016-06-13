@@ -19,6 +19,13 @@ public class PolicyIterationTest {
 
   private static final String TEST_DIR_PATH = "test/programs/policyiteration/";
 
+  @Test public void many_smt_calls_true_assert() throws Exception {
+    check("many_smt_calls_true_assert.c", ImmutableMap.of(
+      "analysis.traversal.useLeafInformation", "true",
+        "cpa.lpi.allowedCoefficients", "1,2,3"
+    ));
+  }
+
   @Test public void stateful_true_assert() throws Exception {
     check("stateful_true_assert.c");
   }
