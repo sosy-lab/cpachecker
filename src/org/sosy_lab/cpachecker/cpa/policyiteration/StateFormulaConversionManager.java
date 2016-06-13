@@ -12,7 +12,6 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -71,7 +70,7 @@ public class StateFormulaConversionManager {
       FormulaManagerView fmgrv,
       PathFormulaManager pfmgr,
       PolicyAbstractedState abstractState,
-      boolean attachExtraInvariant) throws CPAException {
+      boolean attachExtraInvariant) {
 
     // Returns the abstract state together with the conjoined extra invariant.
     PathFormula inputPath = getPathFormula(abstractState, fmgrv,
@@ -102,7 +101,7 @@ public class StateFormulaConversionManager {
   }
 
   BooleanFormula getStartConstraintsWithExtraInvariant(
-      PolicyIntermediateState state) throws CPAException {
+      PolicyIntermediateState state) {
     return bfmgr.and(abstractStateToConstraints(
         fmgr, pfmgr, state.getGeneratingState(), true));
   }

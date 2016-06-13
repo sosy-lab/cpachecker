@@ -1268,8 +1268,7 @@ public class PolicyIterationManager {
     pReachedSet.clear();
   }
 
-  public boolean isLessOrEqual(PolicyState state1, PolicyState state2)
-      throws CPAException {
+  public boolean isLessOrEqual(PolicyState state1, PolicyState state2) {
     Preconditions.checkState(state1.isAbstract() == state2.isAbstract());
     boolean out;
     if (state1.isAbstract()) {
@@ -1283,7 +1282,7 @@ public class PolicyIterationManager {
   }
 
   public PolicyState merge(PolicyState state1, PolicyState state2)
-      throws CPAException, InterruptedException {
+      throws InterruptedException {
 
     Preconditions.checkState(state1.isAbstract() == state2.isAbstract(),
         "Only states with the same abstraction status should be allowed to merge");
