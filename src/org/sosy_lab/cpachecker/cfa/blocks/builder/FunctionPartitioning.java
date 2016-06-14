@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
-import java.util.Set;
+import com.google.common.base.Preconditions;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 
-import com.google.common.base.Preconditions;
+import java.util.Set;
 
 
 /**
@@ -48,18 +48,12 @@ public class FunctionPartitioning extends PartitioningHeuristic {
 
   @Override
   protected boolean shouldBeCached(CFANode pNode) {
-    if (pNode.getFunctionName().startsWith("__VERIFIER_")) {
-      // exception for __VERIFIER helper functions
-      // TODO do we need this? why?
-      return false;
-    }
     return pNode instanceof FunctionEntryNode;
   }
 
   @Override
   protected Set<CFANode> getBlockForNode(CFANode pNode) {
     Preconditions.checkArgument(shouldBeCached(pNode));
-    Set<CFANode> blockNodes = TRAVERSE_CFA_INSIDE_FUNCTION.collectNodesReachableFrom(pNode);
-    return blockNodes;
+    return TRAVERSE_CFA_INSIDE_FUNCTION.collectNodesReachableFrom(pNode);
   }
 }
