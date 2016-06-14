@@ -87,6 +87,7 @@ public class ConfigurationFilesTest {
       Pattern.compile(
           ".*File .* does not exist.*"
               + "|The following configuration options were specified but are not used:.*"
+              + "|MathSAT5 is available for research and evaluation purposes only.*"
               + "|Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.",
           Pattern.DOTALL);
 
@@ -237,14 +238,14 @@ public class ConfigurationFilesTest {
         logHandler
             .getStoredLogRecords()
             .stream()
-            .filter(record -> record.getLevel().intValue() >= Level.SEVERE.intValue())
+            .filter(record -> record.getLevel().intValue() >= Level.WARNING.intValue())
             .map(LogRecord::getMessage)
             .filter(s -> !ALLOWED_WARNINGS.matcher(s).matches());
 
     if (severeMessages.count() > 0) {
       assert_()
           .fail(
-              "Not true that log for config %s does not contain messages with level SEVERE:\n%s",
+              "Not true that log for config %s does not contain messages with level WARNING or higher:\n%s",
               configFile,
               logHandler
                   .getStoredLogRecords()
