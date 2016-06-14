@@ -173,30 +173,61 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
 
     switch (cfaEdge.getEdgeType()) {
 
-    case AssumeEdge:
-      final AssumeEdge assumption = (AssumeEdge) cfaEdge;
-      successor = handleAssumption(assumption, assumption.getExpression(), assumption.getTruthAssumption());
-      break;
+      case AssumeEdge:
+        final AssumeEdge assumption = (AssumeEdge) cfaEdge;
+        successor =
+            handleAssumption(
+                assumption, assumption.getExpression(), assumption.getTruthAssumption());
+        break;
 
-    case FunctionCallEdge:
-      final FunctionCallEdge fnkCall = (FunctionCallEdge) cfaEdge;
-      final FunctionEntryNode succ = fnkCall.getSuccessor();
-      final String calledFunctionName = succ.getFunctionName();
-      successor = handleFunctionCallEdge(fnkCall, fnkCall.getArguments(),
-          succ.getFunctionParameters(), calledFunctionName);
-      break;
+      case FunctionCallEdge:
+        final FunctionCallEdge fnkCall = (FunctionCallEdge) cfaEdge;
+        final FunctionEntryNode succ = fnkCall.getSuccessor();
+        final String calledFunctionName = succ.getFunctionName();
+        successor =
+            handleFunctionCallEdge(
+                fnkCall, fnkCall.getArguments(), succ.getFunctionParameters(), calledFunctionName);
+        break;
 
-    case FunctionReturnEdge:
-      final String callerFunctionName = cfaEdge.getSuccessor().getFunctionName();
-      final FunctionReturnEdge fnkReturnEdge = (FunctionReturnEdge) cfaEdge;
-      final FunctionSummaryEdge summaryEdge = fnkReturnEdge.getSummaryEdge();
-      successor = handleFunctionReturnEdge(fnkReturnEdge,
-          summaryEdge, summaryEdge.getExpression(), callerFunctionName);
+      case FunctionReturnEdge:
+        final String callerFunctionName = cfaEdge.getSuccessor().getFunctionName();
+        final FunctionReturnEdge fnkReturnEdge = (FunctionReturnEdge) cfaEdge;
+        final FunctionSummaryEdge summaryEdge = fnkReturnEdge.getSummaryEdge();
+        successor =
+            handleFunctionReturnEdge(
+                fnkReturnEdge, summaryEdge, summaryEdge.getExpression(), callerFunctionName);
+        break;
 
-      break;
+      case DeclarationEdge:
+        final ADeclarationEdge declarationEdge = (ADeclarationEdge) cfaEdge;
+        successor = handleDeclarationEdge(declarationEdge, declarationEdge.getDeclaration());
+        break;
 
-    default:
-      successor = handleSimpleEdge(cfaEdge);
+      case StatementEdge:
+        final AStatementEdge statementEdge = (AStatementEdge) cfaEdge;
+        successor = handleStatementEdge(statementEdge, statementEdge.getStatement());
+        break;
+
+      case ReturnStatementEdge:
+        // this statement is a function return, e.g. return (a);
+        // note that this is different from return edge,
+        // this is a statement edge, which leads the function to the
+        // last node of its CFA, where return edge is from that last node
+        // to the return site of the caller function
+        final AReturnStatementEdge returnEdge = (AReturnStatementEdge) cfaEdge;
+        successor = handleReturnStatementEdge(returnEdge);
+        break;
+
+      case BlankEdge:
+        successor = handleBlankEdge((BlankEdge) cfaEdge);
+        break;
+
+      case CallToReturnEdge:
+        successor = handleFunctionSummaryEdge((FunctionSummaryEdge) cfaEdge);
+        break;
+
+      default:
+        throw new UnrecognizedCFAEdgeException(cfaEdge);
     }
 
     final Collection<T> result = postProcessing(successor);
@@ -221,40 +252,6 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     state = null;
     precision = null;
     functionName = null;
-  }
-
-  /** This function handles simple edges like Declarations, Statements,
-   * ReturnStatements and BlankEdges.
-   * They have in common, that they all can be part of an MultiEdge. */
-  protected S handleSimpleEdge(final CFAEdge cfaEdge) throws CPATransferException {
-
-    switch (cfaEdge.getEdgeType()) {
-    case DeclarationEdge:
-      final ADeclarationEdge declarationEdge = (ADeclarationEdge) cfaEdge;
-      return handleDeclarationEdge(declarationEdge, declarationEdge.getDeclaration());
-
-    case StatementEdge:
-      final AStatementEdge statementEdge = (AStatementEdge) cfaEdge;
-      return handleStatementEdge(statementEdge, statementEdge.getStatement());
-
-    case ReturnStatementEdge:
-      // this statement is a function return, e.g. return (a);
-      // note that this is different from return edge,
-      // this is a statement edge, which leads the function to the
-      // last node of its CFA, where return edge is from that last node
-      // to the return site of the caller function
-      final AReturnStatementEdge returnEdge = (AReturnStatementEdge) cfaEdge;
-      return handleReturnStatementEdge(returnEdge);
-
-    case BlankEdge:
-      return handleBlankEdge((BlankEdge) cfaEdge);
-
-    case CallToReturnEdge:
-      return handleFunctionSummaryEdge((FunctionSummaryEdge) cfaEdge);
-
-    default:
-      throw new UnrecognizedCFAEdgeException(cfaEdge);
-    }
   }
 
   /** This is a fast check, if the edge should be analyzed.
