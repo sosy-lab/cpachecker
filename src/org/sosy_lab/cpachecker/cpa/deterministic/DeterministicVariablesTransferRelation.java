@@ -53,14 +53,12 @@ import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -78,8 +76,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import javax.annotation.Nullable;
-
 public class DeterministicVariablesTransferRelation
   extends ForwardingTransferRelation<DeterministicVariablesState, DeterministicVariablesState, Precision> implements Statistics {
 
@@ -88,22 +84,6 @@ public class DeterministicVariablesTransferRelation
 
   private Set<CFANode> assumes = new HashSet<>();
   private Set<CFANode> nondetAssumes = new HashSet<>();
-
-  @Override
-  protected void setInfo(final AbstractState abstractState,
-      final Precision abstractPrecision,
-      final CFAEdge cfaEdge) {
-    super.setInfo(abstractState, abstractPrecision, cfaEdge);
-  }
-
-  @Override
-  protected Collection<DeterministicVariablesState> postProcessing(final @Nullable DeterministicVariablesState successor) {
-    if (successor == null) {
-      return Collections.emptySet();
-    }
-
-    return Collections.singleton(successor);
-  }
 
   @Override
   protected DeterministicVariablesState handleDeclarationEdge(final ADeclarationEdge pCfaEdge, final ADeclaration pDeclaration)
