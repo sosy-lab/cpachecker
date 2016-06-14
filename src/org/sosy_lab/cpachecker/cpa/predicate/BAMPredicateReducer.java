@@ -85,9 +85,11 @@ public class BAMPredicateReducer implements Reducer {
       Region oldRegion = oldAbstraction.asRegion();
 
       Collection<AbstractionPredicate> predicates = pamgr.extractPredicates(oldRegion);
-      Collection<AbstractionPredicate> removePredicates =
-          Sets.difference(new HashSet<>(predicates),
-              cpa.getRelevantPredicatesComputer().getRelevantPredicates(pContext, predicates));
+    Collection<AbstractionPredicate> removePredicates =
+        Sets.difference(
+            new HashSet<>(predicates),
+            new HashSet<>(
+                cpa.getRelevantPredicatesComputer().getRelevantPredicates(pContext, predicates)));
 
       PathFormula pathFormula = predicateElement.getPathFormula();
 

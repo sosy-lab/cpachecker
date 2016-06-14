@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2016  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,14 +28,18 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
 import java.util.Collection;
 
-
 /**
- * Interface for the computation of relevant predicates of a given block.
- *
- * We assume, that a computer is immutable. We allow internal caching and optimizations,
- * but the set of relevant variables must remain constant (within one instance).
+ * This is a dummy computer, that considers all predicates as relevant.
+ * BAM-predicate-analysis using this RelevantPredicateComputer will run
+ * very similar to the default predicate-analysis without BAM,
+ * because the abstractions and precisions are nearly not reduced.
+ * In this case the only beneficial part of BAM is the BAM-cache.
  */
-public interface RelevantPredicatesComputer {
+public class AllRelevantPredicatesComputer implements RelevantPredicatesComputer {
+
+  @Override
   public Collection<AbstractionPredicate> getRelevantPredicates(
-      Block context, Collection<AbstractionPredicate> predicates);
+      Block pContext, Collection<AbstractionPredicate> pPredicates) {
+    return pPredicates;
+  }
 }

@@ -1325,8 +1325,13 @@ cpa.predicate.abstractions.file = "abstractions.txt"
 # (signature, not name!).
 cpa.predicate.addRangeConstraintsForNondet = false
 
-# whether to use auxiliary predidates for reduction
-cpa.predicate.bam.auxiliaryPredicateComputer = true
+# which strategy/heuristic should be used to compute relevant predicates for
+# a block-reduction?
+# AUXILIARY: dependencies between variables.
+# OCCURENCE: occurence of variables in the block.
+# ALL: all variables are relevant.
+cpa.predicate.bam.predicateComputer = "AUXILIARY"
+  allowed values: [AUXILIARY, OCCURRENCE, ALL]
 
 # force abstractions immediately after threshold is reached (no effect if
 # threshold = 0)
