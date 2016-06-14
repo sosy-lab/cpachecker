@@ -610,11 +610,6 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     return false;
   }
 
-  @Deprecated
-  protected static String buildVarName(@Nullable final String function, final String var) {
-    return (function == null) ? var : function + "::" + var;
-  }
-
   protected static Pair<AExpression, Boolean> simplifyAssumption(AExpression pExpression, boolean pAssumeTruth) {
     if (isBooleanExpression(pExpression)) {
       if (pExpression instanceof CBinaryExpression) {
