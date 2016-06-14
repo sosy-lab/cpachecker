@@ -280,7 +280,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
             pReached,
             abstractionStatesTrace,
             counterexample.getInterpolants(),
-            repeatedCounterexample && wereInvariantsUsedInLastRefinement);
+            repeatedCounterexample && !wereInvariantsUsedInLastRefinement);
 
         // set some invariants flags, they are necessary to make sure we
         // call performRefinement in a way that it doesn't think it is a repeated
