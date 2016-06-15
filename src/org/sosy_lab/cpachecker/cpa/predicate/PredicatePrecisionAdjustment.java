@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.MoreObjects.firstNonNull;
 
 import com.google.common.base.Function;
-import java.util.Optional;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.collect.PersistentMap;
@@ -50,6 +49,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -157,8 +157,12 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     maxBlockSize = Math.max(maxBlockSize, pathFormula.getLength());
 
     // get invariants and add them
-    BooleanFormula invariant =
-        invariants.getInvariantFor(loc, fmgr, pathFormulaManager, pathFormula);
+    // the need to be instantiated
+    // TODO pointer target set is ignored, and perhaps the invariant does also contain
+    // variables which are not relevant in predicate CPA. This can lead to wrong behaviour
+    // as some variables might not get an index and come later on a second time, leading to
+    // unsatisfiable formulas
+    BooleanFormula invariant = fmgr.instantiate(invariants.getInvariantFor(loc, fmgr, pathFormulaManager, pathFormula), pathFormula.getSsa());
 
     // we don't want to add trivially true invariants
     if (!fmgr.getBooleanFormulaManager().isTrue(invariant)) {
