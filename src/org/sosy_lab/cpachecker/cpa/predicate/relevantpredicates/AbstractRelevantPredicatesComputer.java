@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 public abstract class AbstractRelevantPredicatesComputer<T> implements RelevantPredicatesComputer {
@@ -88,4 +89,22 @@ public abstract class AbstractRelevantPredicatesComputer<T> implements RelevantP
 
   @ForOverride
   protected abstract T precompute(Block pContext, Collection<AbstractionPredicate> pPredicates);
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == this) {
+      return true;
+    }
+    if (o instanceof AbstractRelevantPredicatesComputer) {
+      AbstractRelevantPredicatesComputer<?> other = (AbstractRelevantPredicatesComputer<?>) o;
+      return fmgr.equals(other.fmgr) && relevantPredicates.equals(other.relevantPredicates);
+    }
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(fmgr, relevantPredicates);
+  }
+
 }

@@ -59,4 +59,9 @@ public class OccurrenceComputer extends AbstractRelevantPredicatesComputer<Block
     }
     return false;
   }
+
+  @Override
+  public boolean equals(Object o) {
+    return o instanceof OccurrenceComputer && super.equals(o);
+  }
 }
