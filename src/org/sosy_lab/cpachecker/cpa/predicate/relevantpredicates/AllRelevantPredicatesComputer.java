@@ -37,6 +37,11 @@ import java.util.Collection;
  */
 public class AllRelevantPredicatesComputer implements RelevantPredicatesComputer {
 
+  /** We have no inner state, thus a singleton-instance is sufficient. */
+  public static final AllRelevantPredicatesComputer INSTANCE = new AllRelevantPredicatesComputer();
+
+  private AllRelevantPredicatesComputer() {}
+
   @Override
   public Collection<AbstractionPredicate> getRelevantPredicates(
       Block pContext, Collection<AbstractionPredicate> pPredicates) {

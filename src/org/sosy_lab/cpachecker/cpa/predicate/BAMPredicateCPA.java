@@ -95,7 +95,7 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
             new CachingRelevantPredicatesComputer(new RefineableOccurrenceComputer(fmgr));
         break;
       case "ALL":
-        relevantPredicatesComputer = new AllRelevantPredicatesComputer();
+        relevantPredicatesComputer = AllRelevantPredicatesComputer.INSTANCE;
         break;
       default:
         throw new AssertionError("unhandled case");
