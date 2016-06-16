@@ -92,8 +92,8 @@ public class ValueTransferBasedStrongestPostOperator
       final CFAEdge pOperation
   ) throws CPAException, InterruptedException {
 
-    ValueAnalysisState oldValues = getValueStateOfCompositeState(pOrigin);
-    ConstraintsState oldConstraints = getConstraintsStateOfCompositeState(pOrigin);
+    ValueAnalysisState oldValues = pOrigin.getValueState();
+    ConstraintsState oldConstraints = pOrigin.getConstraintsState();
 
 
     assert oldValues != null && oldConstraints != null;
@@ -140,16 +140,6 @@ public class ValueTransferBasedStrongestPostOperator
     }
   }
 
-  private ValueAnalysisState getValueStateOfCompositeState(final ForgettingCompositeState pState) {
-    return pState.getValueState();
-  }
-
-  private ConstraintsState getConstraintsStateOfCompositeState(
-      final ForgettingCompositeState pState
-  ) {
-    return pState.getConstraintsState();
-  }
-
   @Override
   public ForgettingCompositeState handleFunctionCall(
       final ForgettingCompositeState pStateBeforeCall,
@@ -171,10 +161,10 @@ public class ValueTransferBasedStrongestPostOperator
     // Do not forget any information about constraints.
     // In constraints, IdExpressions are already resolved to symbolic expression and as such
     // independent of scope.
-    final ConstraintsState constraintsState = getConstraintsStateOfCompositeState(pNext);
+    final ConstraintsState constraintsState = pNext.getConstraintsState();
 
-    ValueAnalysisState currentValueState = getValueStateOfCompositeState(pNext);
-    ValueAnalysisState callStateValueState = getValueStateOfCompositeState(callState);
+    ValueAnalysisState currentValueState = pNext.getValueState();
+    ValueAnalysisState callStateValueState = callState.getValueState();
 
     currentValueState = currentValueState.rebuildStateAfterFunctionCall(
             callStateValueState, (FunctionExitNode) pEdge.getPredecessor());
@@ -189,7 +179,7 @@ public class ValueTransferBasedStrongestPostOperator
       final ARGPath pErrorPath,
       final Precision pPrecision
   ) {
-    ValueAnalysisState oldValueState = getValueStateOfCompositeState(pNext);
+    ValueAnalysisState oldValueState = pNext.getValueState();
 
     assert pPrecision instanceof VariableTrackingPrecision;
     ValueAnalysisState newValueState =
