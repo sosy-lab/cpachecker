@@ -647,7 +647,7 @@ public class TigerAlgorithm
             }
 
             statistics_numberOfProcessedTestGoals -= testsuite.getTimedOutGoals().size();
-            testsuite.getTimedOutGoals().clear();
+            testsuite.prepareForRetryAfterTimeout();
           }
         }
 
@@ -1436,8 +1436,6 @@ public class TigerAlgorithm
 
       if (useTigerAlgorithm_with_pc) {
         testsuite.addInfeasibleGoal(pGoal, testsuite.getRemainingPresenceCondition(pGoal), lGoalPrediction);
-        testsuite.setInfeasiblePresenceCondition(pGoal, testsuite.getRemainingPresenceCondition(pGoal));
-        testsuite.setRemainingPresenceCondition(pGoal, pcm().makeFalse());
         logger.logf(Level.WARNING, "Goal %d is infeasible for remaining PC!", pGoal.getIndex());
       } else {
         logger.logf(Level.WARNING, "Goal %d is infeasible!", pGoal.getIndex());
@@ -1619,67 +1617,15 @@ public class TigerAlgorithm
     pOut.println("Number of test goals:                              " + statistics_numberOfTestGoals);
     pOut.println("Number of processed test goals:                    " + statistics_numberOfProcessedTestGoals);
 
-    Set<Goal> feasibleGoals = null;
-    Set<Goal> partiallyFeasibleGoals = null;
-    Set<Goal> infeasibleGoals = null;
-    Set<Goal> partiallyInfeasibleGoals = null;
-    Set<Goal> timedoutGoals = null;
-    Set<Goal> partiallyTimedoutGoals = null;
+   if (useTigerAlgorithm_with_pc) {
+      pOut.println("Number of feasible test goals:                     " + testsuite.getNumberOfFeasibleTestGoals());
+      pOut.println("Number of partially feasible test goals:           " + testsuite.getNumberOfPartiallyFeasibleTestGoals());
+      pOut.println("Number of infeasible test goals:                   " + testsuite.getNumberOfInfeasibleTestGoals());
+      pOut.println("Number of partially infeasible test goals:         " + testsuite.getNumberOfPartiallyInfeasibleTestGoals());
+      pOut.println("Number of timedout test goals:                     " + testsuite.getNumberOfTimedoutTestGoals());
+      pOut.println("Number of partially timedout test goals:           " + testsuite.getNumberOfPartiallyTimedOutTestGoals());
 
-    if (useTigerAlgorithm_with_pc) {
-      feasibleGoals = Sets.newLinkedHashSet();
-      partiallyFeasibleGoals = Sets.newLinkedHashSet();
-      infeasibleGoals = Sets.newLinkedHashSet();
-      partiallyInfeasibleGoals = Sets.newLinkedHashSet();
-      timedoutGoals = Sets.newLinkedHashSet();
-      partiallyTimedoutGoals = Sets.newLinkedHashSet();
-
-      for (Goal goal : testsuite.getGoals()) {
-        List<TestCase> testcases = testsuite.getCoveringTestCases(goal);
-        if (testcases != null && !testcases.isEmpty()) {
-          // goal is feasible
-          boolean partiallyFeasible = false;
-          if (testsuite.isGoalInfeasible(goal)) {
-            // goal is partially feasible
-            partiallyInfeasibleGoals.add(goal);
-            partiallyFeasible = true;
-          }
-          if (testsuite.isGoalTimedout(goal)) {
-            // goal is partially timedout
-            partiallyTimedoutGoals.add(goal);
-            partiallyFeasible = true;
-          }
-          if (partiallyFeasible) {
-            // goal is partially feasible
-            partiallyFeasibleGoals.add(goal);
-          } else {
-            // goal feasible
-            feasibleGoals.add(goal);
-          }
-        } else if (testsuite.isGoalInfeasible(goal)) {
-          // goal is infeasible
-          if (testsuite.isGoalTimedout(goal)) {
-            // goal is partially timed out
-            partiallyInfeasibleGoals.add(goal);
-            partiallyInfeasibleGoals.add(goal);
-          } else {
-            // goal is infeasible
-            infeasibleGoals.add(goal);
-          }
-        } else {
-          // goal is timedout
-          timedoutGoals.add(goal);
-        }
-      }
-
-      pOut.println("Number of feasible test goals:                     " + feasibleGoals.size());
-      pOut.println("Number of partially feasible test goals:           " + partiallyFeasibleGoals.size());
-      pOut.println("Number of infeasible test goals:                   " + infeasibleGoals.size());
-      pOut.println("Number of partially infeasible test goals:         " + partiallyInfeasibleGoals.size());
-      pOut.println("Number of timedout test goals:                     " + timedoutGoals.size());
-      pOut.println("Number of partially timedout test goals:           " + partiallyTimedoutGoals.size());
-
-      if (timedoutGoals.size() > 0 || partiallyTimedoutGoals.size() > 0) {
+      if (testsuite.getNumberOfTimedoutTestGoals() > 0 || testsuite.getNumberOfPartiallyTimedOutTestGoals() > 0) {
         pOut.println("Timeout occured during processing of a test goal!");
       }
     } else {
@@ -1719,18 +1665,18 @@ public class TigerAlgorithm
 
         if (useTigerAlgorithm_with_pc) {
           Set<Goal> feasible = Sets.newLinkedHashSet();
-          feasible.addAll(feasibleGoals);
-          feasible.addAll(partiallyFeasibleGoals);
-          feasible.removeAll(partiallyTimedoutGoals);
+          feasible.addAll(testsuite.getFeasibleGoals());
+          feasible.addAll(testsuite.getPartiallyFeasibleGoals());
+          feasible.removeAll(testsuite.getPartiallyTimedOutGoals());
           for (Goal goal : feasible) {
             List<TestCase> tests = testsuite.getCoveringTestCases(goal);
             TestCase lastTestCase = getLastTestCase(tests);
             lastTestCase.incrementNumberOfNewlyCoveredGoals();
           }
           Set<Goal> partially = Sets.newLinkedHashSet();
-          partially.addAll(feasibleGoals);
-          partially.addAll(partiallyFeasibleGoals);
-          partially.removeAll(partiallyInfeasibleGoals);
+          partially.addAll(testsuite.getFeasibleGoals());
+          partially.addAll(testsuite.getPartiallyFeasibleGoals());
+          partially.removeAll(testsuite.getPartiallyTimedOutGoals());
           for (Goal goal : partially) {
             List<TestCase> tests = testsuite.getCoveringTestCases(goal);
             TestCase lastTestCase = getLastTestCase(tests);

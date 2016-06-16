@@ -50,30 +50,43 @@ import java.util.Set;
 
 public class TestSuite extends AlgorithmResult {
 
-  private int numberOfFeasibleGoals = 0;
   private boolean printLabels;
   boolean useTigerAlgorithm_with_pc;
   private long generationStartTime = 0;
 
   private Map<TestCase, List<Goal>> mapping;
   private Map<Goal, List<TestCase>> coveringTestCases;
-  private Map<Pair<TestCase, Goal>, PresenceCondition> coveringPresenceConditions;
+
   private Set<Goal> testGoals;
+  private Set<Goal> feasibleGoals;
+  private Set<Goal> partiallyFeasibleGoals;
+  private Set<Goal> partiallyInfeasibleGoals;
   private Set<Goal> infeasibleGoals;
-  private Map<Integer, Pair<Goal, PresenceCondition>> timedOutGoals;
+  private Set<Goal> timedOutGoals;
+  private Set<Goal> partiallyTimedOutGoals;
+
   private Map<Goal, PresenceCondition> remainingPresenceConditions;
+  private Map<Goal, PresenceCondition> remainingPresenceConditionsBeforeTimeout;
+  private Map<Pair<TestCase, Goal>, PresenceCondition> coveringPresenceConditions;
   private Map<Goal, PresenceCondition> infeasiblePresenceConditions;
+  private Map<Integer, Pair<Goal, PresenceCondition>> timedOutPresenceCondition;
 
   public TestSuite(boolean pPrintLabels, boolean pUseTigerAlgorithm_with_pc) {
     mapping = new HashMap<>();
     coveringTestCases = new HashMap<>();
     coveringPresenceConditions = new HashMap<>();
     testGoals = Sets.newLinkedHashSet();
+    feasibleGoals = Sets.newLinkedHashSet();
+    partiallyFeasibleGoals = Sets.newLinkedHashSet();
+    partiallyInfeasibleGoals = Sets.newLinkedHashSet();
     infeasibleGoals = Sets.newLinkedHashSet();
-    timedOutGoals = new HashMap<>();
+    timedOutGoals = Sets.newLinkedHashSet();
+    partiallyTimedOutGoals = Sets.newLinkedHashSet();
+    timedOutPresenceCondition = new HashMap<>();
     printLabels = pPrintLabels;
     useTigerAlgorithm_with_pc = pUseTigerAlgorithm_with_pc;
     remainingPresenceConditions = new HashMap<>();
+    remainingPresenceConditionsBeforeTimeout = new HashMap<>();
     infeasiblePresenceConditions = new HashMap<>();
   }
 
@@ -81,32 +94,90 @@ public class TestSuite extends AlgorithmResult {
     return PresenceConditions.manager();
   }
 
+  public boolean isVariabilityAware() {
+    return useTigerAlgorithm_with_pc;
+  }
+
+  public Set<TestCase> getTestCases() {
+    return mapping.keySet();
+  }
+
+  public List<TestCase> getCoveringTestCases(Goal pGoal) {
+    return coveringTestCases.get(pGoal);
+  }
+
+  public int getNumberOfTestCases() {
+    return getTestCases().size();
+  }
+
   public Set<Goal> getGoals() {
     return testGoals;
   }
 
+  public void addGoals(Collection<Goal> pGoals) {
+    if (isVariabilityAware()) {
+      for (Goal goal : pGoals) {
+        remainingPresenceConditions.put(goal, pcm().makeTrue());
+      }
+    }
+
+    testGoals.addAll(pGoals);
+  }
+
+  public Set<Goal> getFeasibleGoals() {
+    return feasibleGoals;
+  }
+
   public int getNumberOfFeasibleTestGoals() {
-    return numberOfFeasibleGoals;
+    return feasibleGoals.size();
+  }
+
+  public Set<Goal> getPartiallyFeasibleGoals() {
+    return partiallyFeasibleGoals;
+  }
+
+  public int getNumberOfPartiallyFeasibleTestGoals() {
+    return partiallyFeasibleGoals.size();
+  }
+
+  public Set<Goal> getInfeasibleGoals() {
+    return infeasibleGoals;
   }
 
   public int getNumberOfInfeasibleTestGoals() {
     return infeasibleGoals.size();
   }
 
-  public int getNumberOfTimedoutTestGoals() {
-    return timedOutGoals.size();
+  public Set<Goal> getPartiallyInfeasibleGoals() {
+    return partiallyInfeasibleGoals;
   }
 
-  public boolean hasTimedoutTestGoals() {
-    return !timedOutGoals.isEmpty();
-  }
-
-  public void addTimedOutGoal(Goal goal, PresenceCondition presenceCondition) {
-    timedOutGoals.put(goal.getIndex(), Pair.of(goal, presenceCondition));
+  public int getNumberOfPartiallyInfeasibleTestGoals() {
+    return partiallyInfeasibleGoals.size();
   }
 
   public Map<Integer, Pair<Goal, PresenceCondition>> getTimedOutGoals() {
-    return timedOutGoals;
+    return timedOutPresenceCondition;
+  }
+
+  public int getNumberOfTimedoutTestGoals() {
+    return timedOutPresenceCondition.size();
+  }
+
+  public Set<Goal> getPartiallyTimedOutGoals() {
+    return partiallyTimedOutGoals;
+  }
+
+  public int getNumberOfPartiallyTimedOutTestGoals() {
+    return partiallyTimedOutGoals.size();
+  }
+
+  public boolean isGoalCoveredByTestCase(Goal pGoal, TestCase pTestCase) {
+    return coveringTestCases.get(pGoal).contains(pTestCase);
+  }
+
+  public boolean hasTimedoutTestGoals() {
+    return !partiallyTimedOutGoals.isEmpty();
   }
 
   public PresenceCondition getRemainingPresenceCondition(Goal pGoal) {
@@ -117,67 +188,37 @@ public class TestSuite extends AlgorithmResult {
     remainingPresenceConditions.put(pGoal, presenceCondtion);
   }
 
-  public PresenceCondition getInfeasiblePresenceCondition(Goal pGoal) {
-    return PresenceConditions.orFalse(infeasiblePresenceConditions.get(pGoal));
-  }
-
   public void setInfeasiblePresenceCondition(Goal pGoal, PresenceCondition presenceCondtion) {
     infeasiblePresenceConditions.put(pGoal, presenceCondtion);
   }
 
-  public List<TestCase> getCoveringTestCases(Goal pGoal) {
-    return coveringTestCases.get(pGoal);
-  }
-
-  public boolean isGoalCoveredByTestCase(Goal pGoal, TestCase pTestCase) {
-    return coveringTestCases.get(pGoal).contains(pTestCase);
-  }
-
-  public void addInfeasibleGoal(Goal goal, PresenceCondition presenceCondition, Prediction[] pGoalPrediction) {
-    if (useTigerAlgorithm_with_pc) {
-      if (presenceCondition != null && infeasibleGoals.contains(goal)) {
-        setInfeasiblePresenceCondition(goal,
-            pcm().makeOr(infeasiblePresenceConditions.get(goal), presenceCondition));
-      } else {
-        setInfeasiblePresenceCondition(goal, presenceCondition);
-      }
-    }
-
-    if (!infeasibleGoals.contains(goal)) {
-      infeasibleGoals.add(goal);
-    }
-
-    if (pGoalPrediction != null) {
-      pGoalPrediction[goal.getIndex() - 1] = Prediction.INFEASIBLE;
-    }
+  public PresenceCondition getInfeasiblePresenceCondition(Goal pGoal) {
+    return PresenceConditions.orFalse(infeasiblePresenceConditions.get(pGoal));
   }
 
   public boolean addTestCase(TestCase testcase, Goal goal, PresenceCondition pPresenceCondition) {
-    if (testSuiteAlreadyContrainsTestCase(testcase, goal)) { return true; }
-    if (!isGoalPariallyCovered(goal)) {
-      numberOfFeasibleGoals++;
-    }
-
-    List<Goal> goals = mapping.get(testcase);
-    List<TestCase> testcases = coveringTestCases.get(goal);
+    if (contains(testcase, goal)) { return true; }
 
     boolean testcaseExisted = true;
 
-    if (goals == null) {
-      goals = new LinkedList<>();
-      mapping.put(testcase, goals);
+    List<Goal> goalsCovByTC = mapping.get(testcase);
+    List<TestCase> covTCs = coveringTestCases.get(goal);
+
+    if (goalsCovByTC == null) {
+      goalsCovByTC = new LinkedList<>();
+      mapping.put(testcase, goalsCovByTC);
       testcaseExisted = false;
     }
 
-    if (testcases == null) {
-      testcases = new LinkedList<>();
-      coveringTestCases.put(goal, testcases);
+    if (covTCs == null) {
+      covTCs = new LinkedList<>();
+      coveringTestCases.put(goal, covTCs);
     }
 
-    goals.add(goal);
-    testcases.add(testcase);
+    goalsCovByTC.add(goal);
+    covTCs.add(testcase);
 
-    if (useTigerAlgorithm_with_pc) {
+    if (isVariabilityAware()) {
       coveringPresenceConditions.put(Pair.of(testcase, goal), pPresenceCondition);
 
       setRemainingPresenceCondition(goal,
@@ -185,38 +226,74 @@ public class TestSuite extends AlgorithmResult {
               pcm().makeNegation(pPresenceCondition)));
     }
 
-    return testcaseExisted;
-  }
+    if (!isVariabilityAware()) {
+      feasibleGoals.add(goal);
+    } else {
+      PresenceCondition remainingPC = getRemainingPresenceCondition(goal);
 
-  private boolean isGoalPariallyCovered(Goal pGoal) {
-    if (useTigerAlgorithm_with_pc) {
-      if (pcm().checkEqualsFalse(remainingPresenceConditions.get(pGoal))) {
-        return true;
+      if (pcm().checkEqualsFalse(remainingPC)) {
+        partiallyFeasibleGoals.remove(goal);
+        feasibleGoals.add(goal);
+      } else {
+        partiallyFeasibleGoals.add(goal);
       }
     }
 
-    List<TestCase> testCases = coveringTestCases.get(pGoal);
-    return (testCases != null && testCases.size() > 0);
+    return testcaseExisted;
   }
 
-  private boolean testSuiteAlreadyContrainsTestCase(TestCase pTestcase, Goal pGoal) {
+  public void addInfeasibleGoal(Goal pGoal, PresenceCondition pPresenceCondition, Prediction[] pGoalPrediction) {
+    if (isVariabilityAware()) {
+      setRemainingPresenceCondition(pGoal, pcm().makeFalse());
+
+      infeasiblePresenceConditions.put(pGoal, pPresenceCondition);
+    }
+
+    if (!isVariabilityAware()) {
+      infeasibleGoals.add(pGoal);
+    } else {
+      if (partiallyFeasibleGoals.contains(pGoal)) {
+        partiallyInfeasibleGoals.add(pGoal);
+      } else {
+        infeasibleGoals.add(pGoal);
+      }
+    }
+
+    if (pGoalPrediction != null) {
+      pGoalPrediction[pGoal.getIndex() - 1] = Prediction.INFEASIBLE;
+    }
+  }
+
+  public void addTimedOutGoal(Goal pGoal, PresenceCondition pPresenceCondition) {
+    if (isVariabilityAware()) {
+      remainingPresenceConditionsBeforeTimeout.put(pGoal, getRemainingPresenceCondition(pGoal));
+      setRemainingPresenceCondition(pGoal, pcm().makeFalse());
+
+      timedOutPresenceCondition.put(pGoal.getIndex(), Pair.of(pGoal, pPresenceCondition));
+    }
+
+    if (!isVariabilityAware()) {
+      timedOutGoals.add(pGoal);
+    } else {
+      if (partiallyFeasibleGoals.contains(pGoal)) {
+        partiallyTimedOutGoals.add(pGoal);
+      } else {
+        timedOutGoals.add(pGoal);
+      }
+    }
+  }
+
+  public void addTimedOutGoals(Set<Goal> pTestGoalsToBeProcessed) {
+    for (Goal goal : pTestGoalsToBeProcessed) {
+      addTimedOutGoal(goal, remainingPresenceConditions.get(goal));
+    }
+  }
+
+  private boolean contains(TestCase pTestcase, Goal pGoal) {
     List<Goal> goals = mapping.get(pTestcase);
     if (goals != null) { return goals.contains(pGoal); }
 
     return false;
-  }
-
-  public Set<TestCase> getTestCases() {
-    return mapping.keySet();
-  }
-
-  public int getNumberOfTestCases() {
-    return getTestCases().size();
-  }
-
-
-  public Set<Goal> getInfeasibleGoals() {
-    return infeasibleGoals;
   }
 
   public List<Goal> getTestGoalsCoveredByTestCase(TestCase testcase) {
@@ -229,6 +306,120 @@ public class TestSuite extends AlgorithmResult {
 
   public void setGenerationStartTime(long pGenerationStartTime) {
     generationStartTime = pGenerationStartTime;
+  }
+
+  public Pair<String, Integer> parseVariableName(String name) {
+    String variableName;
+    if (name.contains("::")) {
+      variableName = name.substring(name.indexOf("::") + 2, name.indexOf("@"));
+    } else {
+      variableName = name.substring(0, name.indexOf("@"));
+    }
+    int ssaIndex = new Integer(name.substring(name.indexOf("@") + 1));
+
+    return Pair.of(variableName, ssaIndex);
+  }
+
+  /**
+   * Returns the label of a test goal if there is one; otherwise the goal index will be returned.
+   */
+  public String getTestGoalLabel(Goal goal) {
+    String label = "";
+
+    CFANode predecessor = goal.getCriticalEdge().getPredecessor();
+    if (predecessor instanceof CLabelNode && !((CLabelNode) predecessor).getLabel().isEmpty()) {
+      label = ((CLabelNode) predecessor).getLabel();
+    } else {
+      label = new Integer(goal.getIndex()).toString();
+    }
+
+    return label;
+  }
+
+  /**
+   * Summarizes the presence conditions of tests in this testsuite that cover the parameter test goal.
+   */
+  public PresenceCondition getGoalCoverage(Goal pGoal) {
+    if (pcm() == null) {
+      return null;
+    }
+
+    PresenceCondition totalCoverage = pcm().makeFalse();
+    for (Entry<TestCase, List<Goal>> entry : this.mapping.entrySet()) {
+      if (entry.getValue().contains(pGoal)) {
+        assert entry.getKey().getPresenceCondition() != null;
+        totalCoverage = pcm().makeOr(totalCoverage, entry.getKey().getPresenceCondition());
+      }
+    }
+
+    return totalCoverage;
+  }
+
+  public boolean isGoalInfeasible(Goal goal) {
+    return infeasibleGoals.contains(goal);
+  }
+
+  public boolean isGoalCovered(Goal pGoal) {
+    if (isVariabilityAware()) {
+      return pcm().checkEqualsFalse(remainingPresenceConditions.get(pGoal));
+    } else {
+      List<TestCase> testCases = coveringTestCases.get(pGoal);
+      return (testCases != null && testCases.size() > 0);
+    }
+  }
+
+  public boolean areGoalsCovered(Set<Goal> pTestGoalsToBeProcessed) {
+    for (Goal goal : pTestGoalsToBeProcessed) {
+      if (!isGoalCovered(goal)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  public boolean areGoalsInfeasible(Set<Goal> pTestGoalsToBeProcessed) {
+    for (Goal goal : pTestGoalsToBeProcessed) {
+      if (!isGoalInfeasible(goal)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  public boolean areGoalsCoveredOrInfeasible(Set<Goal> pGoals) {
+    for (Goal goal : pGoals) {
+      if (!(isGoalCovered(goal) || isGoalInfeasible(goal))) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  public boolean isGoalCoveredOrInfeasible(Goal pGoal) {
+    return isGoalCovered(pGoal) || isGoalInfeasible(pGoal);
+  }
+
+  public boolean isGoalTimedout(Goal pGoal) {
+    return timedOutPresenceCondition.containsKey(pGoal);
+  }
+
+  public Appender dumpRegion(PresenceCondition region) {
+    return pcm().dump(region);
+  }
+
+  public void prepareForRetryAfterTimeout() {
+    for (Goal goal : timedOutGoals) {
+      setRemainingPresenceCondition(goal, remainingPresenceConditionsBeforeTimeout.get(goal));
+    }
+
+    for (Goal goal : partiallyTimedOutGoals) {
+      setRemainingPresenceCondition(goal, remainingPresenceConditionsBeforeTimeout.get(goal));
+    }
+
+    timedOutGoals.clear();
+    partiallyTimedOutGoals.clear();
+    remainingPresenceConditionsBeforeTimeout.clear();
   }
 
   @Override
@@ -318,10 +509,10 @@ public class TestSuite extends AlgorithmResult {
       str.append("\n");
     }
 
-    if (!timedOutGoals.isEmpty()) {
+    if (!timedOutPresenceCondition.isEmpty()) {
       str.append("timed out:\n");
 
-      for (Entry<Integer, Pair<Goal, PresenceCondition>> entry : timedOutGoals.entrySet()) {
+      for (Entry<Integer, Pair<Goal, PresenceCondition>> entry : timedOutPresenceCondition.entrySet()) {
         str.append("Goal ");
         str.append(getTestGoalLabel(entry.getValue().getFirst()));
 
@@ -337,128 +528,6 @@ public class TestSuite extends AlgorithmResult {
     }
 
     return str.toString().replace("__SELECTED_FEATURE_", "");
-  }
-
-  public Pair<String, Integer> parseVariableName(String name) {
-    String variableName;
-    if (name.contains("::")) {
-      variableName = name.substring(name.indexOf("::") + 2, name.indexOf("@"));
-    } else {
-      variableName = name.substring(0, name.indexOf("@"));
-    }
-    int ssaIndex = new Integer(name.substring(name.indexOf("@") + 1));
-
-    return Pair.of(variableName, ssaIndex);
-  }
-
-  /**
-   * Returns the label of a test goal if there is one; otherwise the goal index will be returned.
-   */
-  public String getTestGoalLabel(Goal goal) {
-    String label = "";
-
-    CFANode predecessor = goal.getCriticalEdge().getPredecessor();
-    if (predecessor instanceof CLabelNode && !((CLabelNode) predecessor).getLabel().isEmpty()) {
-      label = ((CLabelNode) predecessor).getLabel();
-    } else {
-      label = new Integer(goal.getIndex()).toString();
-    }
-
-    return label;
-  }
-
-  /**
-   * Summarizes the presence conditions of tests in this testsuite that cover the parameter test goal.
-   */
-  public PresenceCondition getGoalCoverage(Goal pGoal) {
-    if (pcm() == null) {
-      return null;
-    }
-
-    PresenceCondition totalCoverage = pcm().makeFalse();
-    for (Entry<TestCase, List<Goal>> entry : this.mapping.entrySet()) {
-      if (entry.getValue().contains(pGoal)) {
-        assert entry.getKey().getPresenceCondition() != null;
-        totalCoverage = pcm().makeOr(totalCoverage, entry.getKey().getPresenceCondition());
-      }
-    }
-    return totalCoverage;
-  }
-
-  public boolean isGoalInfeasible(Goal goal) {
-    return infeasibleGoals.contains(goal);
-  }
-
-  public void addGoals(Collection<Goal> pGoals) {
-    if (useTigerAlgorithm_with_pc) {
-      for (Goal goal : pGoals) {
-        remainingPresenceConditions.put(goal, pcm().makeTrue());
-      }
-    }
-    testGoals.addAll(pGoals);
-  }
-
-  public boolean isGoalCovered(Goal pGoal) {
-    if (useTigerAlgorithm_with_pc) {
-      return pcm().checkEqualsFalse(remainingPresenceConditions.get(pGoal));
-    } else {
-      List<TestCase> testCases = coveringTestCases.get(pGoal);
-      return (testCases != null && testCases.size() > 0);
-    }
-  }
-
-  public boolean areGoalsCovered(Set<Goal> pTestGoalsToBeProcessed) {
-    for (Goal goal : pTestGoalsToBeProcessed) {
-      if (!isGoalCovered(goal)) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  public boolean areGoalsInfeasible(Set<Goal> pTestGoalsToBeProcessed) {
-    for (Goal goal : pTestGoalsToBeProcessed) {
-      if (!isGoalInfeasible(goal)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  public void addTimedOutGoals(Set<Goal> pTestGoalsToBeProcessed) {
-    for (Goal goal : pTestGoalsToBeProcessed) {
-      addTimedOutGoal(goal, remainingPresenceConditions.get(goal));
-    }
-  }
-
-  public boolean areGoalsCoveredOrInfeasible(Set<Goal> pGoals) {
-    for (Goal goal : pGoals) {
-      if (!(isGoalCovered(goal) || isGoalInfeasible(goal))) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  public boolean isGoalCoveredOrInfeasible(Goal pGoal) {
-    return isGoalCovered(pGoal) || isGoalInfeasible(pGoal);
-  }
-
-  public boolean isGoalTimedout(Goal pGoal) {
-    return timedOutGoals.containsKey(pGoal);
-  }
-
-  public int size() {
-    return getTestCases().size();
-  }
-
-  public Appender dumpRegion(PresenceCondition region) {
-    return pcm().dump(region);
-  }
-
-  public boolean isVariabilityAware() {
-    return useTigerAlgorithm_with_pc;
   }
 
 }

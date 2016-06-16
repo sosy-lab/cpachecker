@@ -727,9 +727,12 @@ public class TigerTest {
     assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
-    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyFeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyInfeasibleTestGoals()).isEqualTo(1);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyTimedOutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == miniFaseTS.size());
     assertTrue(TigerTestHelper.validTestCases(testSuite, miniFaseTS, miniFaseFm));
@@ -758,9 +761,12 @@ public class TigerTest {
     assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
-    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyFeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyInfeasibleTestGoals()).isEqualTo(1);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyTimedOutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == miniFaseTS.size());
     assertTrue(TigerTestHelper.validTestCases(testSuite, miniFaseTS, miniFaseFm));
@@ -789,9 +795,12 @@ public class TigerTest {
     assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
-    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyFeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyInfeasibleTestGoals()).isEqualTo(1);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyTimedOutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == miniFaseTS.size());
     assertTrue(TigerTestHelper.validTestCases(testSuite, miniFaseTS, miniFaseFm));
@@ -821,9 +830,12 @@ public class TigerTest {
     assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
-    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyFeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyInfeasibleTestGoals()).isEqualTo(1);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyTimedOutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == miniFaseTS.size());
     assertTrue(TigerTestHelper.validTestCases(testSuite, miniFaseTS, miniFaseFm));
@@ -852,9 +864,12 @@ public class TigerTest {
     assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
-    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyFeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyInfeasibleTestGoals()).isEqualTo(1);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyTimedOutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == miniFaseTS.size());
     assertTrue(TigerTestHelper.validTestCases(testSuite, miniFaseTS, miniFaseFm));
@@ -883,9 +898,12 @@ public class TigerTest {
     assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
-    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyFeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyInfeasibleTestGoals()).isEqualTo(1);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyTimedOutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == miniFaseTS.size());
     assertTrue(TigerTestHelper.validTestCases(testSuite, miniFaseTS, miniFaseFm));
@@ -915,9 +933,12 @@ public class TigerTest {
     assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
-    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyFeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyInfeasibleTestGoals()).isEqualTo(1);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyTimedOutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == miniFaseTS.size());
     assertTrue(TigerTestHelper.validTestCases(testSuite, miniFaseTS, miniFaseFm));
@@ -948,9 +969,12 @@ public class TigerTest {
     assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
-    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyFeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyInfeasibleTestGoals()).isEqualTo(1);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyTimedOutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == miniFaseTS.size());
     assertTrue(TigerTestHelper.validTestCases(testSuite, miniFaseTS, miniFaseFm));
@@ -981,9 +1005,13 @@ public class TigerTest {
     assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(7);
-    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(7);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyFeasibleTestGoals()).isEqualTo(7);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyInfeasibleTestGoals()).isEqualTo(7);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyTimedOutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == faseTS.size());
     assertTrue(TigerTestHelper.validTestCases(testSuite, faseTS, faseFm));
@@ -1015,9 +1043,13 @@ public class TigerTest {
     assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(7);
-    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(7);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyFeasibleTestGoals()).isEqualTo(7);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyInfeasibleTestGoals()).isEqualTo(7);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyTimedOutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == faseTS.size());
     assertTrue(TigerTestHelper.validTestCases(testSuite, faseTS, faseFm));
@@ -1041,9 +1073,13 @@ public class TigerTest {
     assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(7);
-    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(7);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyFeasibleTestGoals()).isEqualTo(7);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyInfeasibleTestGoals()).isEqualTo(7);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyTimedOutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == faseTS.size());
     assertTrue(TigerTestHelper.validTestCases(testSuite, faseTS, faseFm));
@@ -1069,9 +1105,12 @@ public class TigerTest {
     assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(7);
-    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(7);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyFeasibleTestGoals()).isEqualTo(7);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyInfeasibleTestGoals()).isEqualTo(7);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyTimedOutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == faseTS.size());
     assertTrue(TigerTestHelper.validTestCases(testSuite, faseTS, faseFm));
@@ -1101,9 +1140,13 @@ public class TigerTest {
     assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(7);
-    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(7);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyFeasibleTestGoals()).isEqualTo(7);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyInfeasibleTestGoals()).isEqualTo(7);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyTimedOutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == faseTS.size());
     assertTrue(TigerTestHelper.validTestCases(testSuite, faseTS, faseFm));
@@ -1134,9 +1177,13 @@ public class TigerTest {
     assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(7);
-    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(7);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyFeasibleTestGoals()).isEqualTo(7);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyInfeasibleTestGoals()).isEqualTo(7);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyTimedOutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == faseTS.size());
     assertTrue(TigerTestHelper.validTestCases(testSuite, faseTS, faseFm));
@@ -1167,9 +1214,13 @@ public class TigerTest {
     assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(7);
-    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(7);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyFeasibleTestGoals()).isEqualTo(7);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyInfeasibleTestGoals()).isEqualTo(7);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyTimedOutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == faseTS.size());
     assertTrue(TigerTestHelper.validTestCases(testSuite, faseTS, faseFm));
@@ -1200,9 +1251,13 @@ public class TigerTest {
     assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(7);
-    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(7);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyFeasibleTestGoals()).isEqualTo(7);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyInfeasibleTestGoals()).isEqualTo(7);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyTimedOutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == faseTS.size());
     assertTrue(TigerTestHelper.validTestCases(testSuite, faseTS, faseFm));
@@ -1232,9 +1287,13 @@ public class TigerTest {
     assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(7);
-    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(7);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyFeasibleTestGoals()).isEqualTo(7);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyInfeasibleTestGoals()).isEqualTo(7);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyTimedOutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == faseTS.size());
     assertTrue(TigerTestHelper.validTestCases(testSuite, faseTS, faseFm));
@@ -1265,9 +1324,13 @@ public class TigerTest {
     assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(7);
-    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(7);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyFeasibleTestGoals()).isEqualTo(7);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyInfeasibleTestGoals()).isEqualTo(7);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfPartiallyTimedOutTestGoals()).isEqualTo(0);
 
     assertTrue(testSuite.getGoals().size() == faseTS.size());
     assertTrue(TigerTestHelper.validTestCases(testSuite, faseTS, faseFm));
