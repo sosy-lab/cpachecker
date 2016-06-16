@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner;
 
-import java.util.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
@@ -51,6 +50,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 import java.util.Collection;
 import java.util.Deque;
+import java.util.Optional;
 
 /**
  * Strongest post-operator based on symbolic value analysis.
@@ -156,7 +156,7 @@ public class ValueTransferBasedStrongestPostOperator
       final CFAEdge pEdge,
       final Deque<ForgettingCompositeState> pCallstack
   ) {
-    pCallstack.addLast(pStateBeforeCall);
+    pCallstack.push(pStateBeforeCall);
     return pStateBeforeCall;
   }
 
@@ -166,7 +166,7 @@ public class ValueTransferBasedStrongestPostOperator
       final CFAEdge pEdge,
       final Deque<ForgettingCompositeState> pCallstack
   ) {
-    final ForgettingCompositeState callState = pCallstack.removeLast();
+    final ForgettingCompositeState callState = pCallstack.pop();
 
     // Do not forget any information about constraints.
     // In constraints, IdExpressions are already resolved to symbolic expression and as such
