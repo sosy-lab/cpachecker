@@ -30,24 +30,31 @@ import java.util.ArrayDeque;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.SortedSet;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableMultimap.Builder;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.UnmodifiableIterator;
 
@@ -308,7 +315,6 @@ public class CFAUtils {
     return false;
   }
 
-
   /**
    * This Visitor searches for backwards edges in the CFA, if some backwards edges
    * were found can be obtained by calling the method hasBackwardsEdges()
@@ -378,4 +384,24 @@ public class CFAUtils {
     String prefix = checkNotNull(function) + "::";
     return Collections3.subSetWithPrefix(variables, prefix);
   }
+
+  public static ImmutableMap<String, CFAEdge> getLabeledEdges(CFA pCfa) {
+    ImmutableMap.Builder<String, CFAEdge> result = ImmutableMap.<String, CFAEdge>builder();
+    for (CLabelNode n: Iterables.filter(pCfa.getAllNodes(), CLabelNode.class)) {
+      CFAEdge e = Iterables.getOnlyElement(CFAUtils.leavingEdges(n));
+      result.put(n.getLabel(), e);
+    }
+    return result.build();
+  }
+
+  public static ImmutableMultimap<Integer, CFAEdge> getLineEdges(CFA pCfa) {
+    Builder<Integer, CFAEdge> result = ImmutableMultimap.<Integer, CFAEdge>builder();
+    for (CFANode n: pCfa.getAllNodes()) {
+      for (CFAEdge e: CFAUtils.leavingEdges(n)) {
+        result.put(e.getFileLocation().getStartingLineNumber(), e);
+      }
+    }
+    return result.build();
+  }
+
 }
