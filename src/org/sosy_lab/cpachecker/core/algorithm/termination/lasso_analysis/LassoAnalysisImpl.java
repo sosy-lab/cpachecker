@@ -59,6 +59,7 @@ import de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationAr
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationArgumentSynthesizer;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.templates.AffineTemplate;
 import de.uni_freiburg.informatik.ultimate.logic.SMTLIBException;
+import de.uni_freiburg.informatik.ultimate.logic.Script.LBool;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 public class LassoAnalysisImpl implements LassoAnalysis {
@@ -143,8 +144,8 @@ public class LassoAnalysisImpl implements LassoAnalysis {
             nonTerminationAnalysisSettings,
             toolchainStorage,
             toolchainStorage)) {
-      nonTerminationArgumentSynthesizer.synthesize();
-      if (nonTerminationArgumentSynthesizer.synthesisSuccessful()) {
+      LBool result = nonTerminationArgumentSynthesizer.synthesize();
+      if (result.equals(LBool.SAT) && nonTerminationArgumentSynthesizer.synthesisSuccessful()) {
         nonTerminationArgument = nonTerminationArgumentSynthesizer.getArgument();
         logger.logf(Level.FINE, "Proved non-termintion: %s", nonTerminationArgument);
       }
@@ -160,8 +161,8 @@ public class LassoAnalysisImpl implements LassoAnalysis {
             Collections.emptySet(),
             toolchainStorage,
             toolchainStorage)) {
-      terminationArgumentSynthesizer.synthesize();
-      if (terminationArgumentSynthesizer.synthesisSuccessful()) {
+      LBool result = terminationArgumentSynthesizer.synthesize();
+      if (result.equals(LBool.SAT) && terminationArgumentSynthesizer.synthesisSuccessful()) {
         terminationArgument = terminationArgumentSynthesizer.getArgument();
         logger.logf(Level.FINEST, "Found termination argument: %s", terminationArgument);
       }
