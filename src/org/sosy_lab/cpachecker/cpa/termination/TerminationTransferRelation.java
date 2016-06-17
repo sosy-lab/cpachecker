@@ -28,6 +28,7 @@ import static org.sosy_lab.cpachecker.cfa.ast.FileLocation.DUMMY;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.EQUALS;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.ONE;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.ZERO;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -38,6 +39,7 @@ import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.MoreStrings;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -147,6 +149,22 @@ public class TerminationTransferRelation implements TransferRelation {
   private Optional<Loop> loop = Optional.empty();
 
   /**
+   * All locations after an outgoing edge of the loop currently processed or an empty set.
+   * Needs to be set before modifying the {@link CFA}!
+   *
+   * @see Loop#getOutgoingEdges()
+   */
+  private Set<CFANode> loopLeavingLocations = Collections.emptySet();
+
+  /**
+   * All outgoing edges of the loop currently processed or an empty set.
+   * Needs to be set before modifying the {@link CFA}!
+   *
+   * @see Loop#getOutgoingEdges()
+   */
+  private Set<CFAEdge> loopLeavingEdges = Collections.emptySet();
+
+  /**
    * The current ranking relation as disjunction.
    */
   private CExpression rankingRelations;
@@ -201,9 +219,13 @@ public class TerminationTransferRelation implements TransferRelation {
    *        all variables that might be relevant to prove (non-)termination of the given loop.
    */
   void setProcessedLoop(Loop pLoop, Set<CVariableDeclaration> pRelevantVariables) {
-    loop = Optional.of(pLoop);
-    resetRankingRelation();
     resetCfa();
+    loop = Optional.of(pLoop);
+    loopLeavingLocations =
+        pLoop.getOutgoingEdges().stream().map(CFAEdge::getSuccessor).collect(Collectors.toSet());
+    loopLeavingEdges =
+        pLoop.getOutgoingEdges().stream().collect(Collectors.toSet());
+    resetRankingRelation();
 
     String functionName = pLoop.getLoopHeads().iterator().next().getFunctionName();
     ImmutableList.Builder<CFANode> intermediateStates = ImmutableList.builder();
@@ -252,7 +274,7 @@ public class TerminationTransferRelation implements TransferRelation {
 
     resetCfa();
 
-    assert !statesAtCurrentLocation.isEmpty();
+    assert !statesAtCurrentLocation.isEmpty() : pState + " has no successors.";
     Collection<TerminationState> abstractSuccessors =
         getAbstractSuccessors0(statesAtCurrentLocation, pPrecision);
 
@@ -541,12 +563,17 @@ public class TerminationTransferRelation implements TransferRelation {
     Collection<TerminationState> successors = Lists.newArrayListWithCapacity(pStates.size());
 
     for (TerminationState state : pStates) {
-      AbstractState wrappedState = state.getWrappedState();
-      transferRelation
-          .getAbstractSuccessorsForEdge(wrappedState, pPrecision, pEdge)
-          .stream()
-          .map(state::withWrappedState)
-          .forEach(successors::add);
+
+      // Loop states should never leave the loop currently processed.
+      if (state.isPartOfStem() || ! loopLeavingEdges.contains(pEdge)) {
+
+        AbstractState wrappedState = state.getWrappedState();
+        transferRelation
+            .getAbstractSuccessorsForEdge(wrappedState, pPrecision, pEdge)
+            .stream()
+            .map(state::withWrappedState)
+            .forEach(successors::add);
+      }
     }
 
     return successors;
@@ -563,6 +590,7 @@ public class TerminationTransferRelation implements TransferRelation {
           .getAbstractSuccessors(state.getWrappedState(), pPrecision)
           .stream()
           .map(state::withWrappedState)
+          .filter(s -> s.isPartOfStem() || !loopLeavingLocations.contains(extractLocation(s)))
           .forEach(resultingSuccessors::add);
     }
 
