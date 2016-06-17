@@ -253,7 +253,7 @@ public final class LoopStructure {
     }
 
     /**
-     * Get the set of all incoming CFA edges,
+     * Get the set of all outgoing CFA edges,
      * i.e., edges which connect a loop node with a non-loop CFA node inside the same function.
      * Although called functions are not considered loop nodes,
      * this set does not contain any edges from inside the loop to called functions.
