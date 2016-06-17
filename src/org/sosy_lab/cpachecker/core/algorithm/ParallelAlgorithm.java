@@ -76,8 +76,11 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -285,11 +288,11 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
       algorithm = coreComponents.createAlgorithm(cpa, filename, cfa, specification);
 
-      if (algorithm instanceof StatisticsProvider) {
-        ((StatisticsProvider)algorithm).collectStatistics(stats.getNewSubStatistics());
-      }
-
       reached = createInitialReachedSet(cpa, mainEntryNode, coreComponents);
+
+      if (algorithm instanceof StatisticsProvider) {
+        ((StatisticsProvider) algorithm).collectStatistics(stats.getNewSubStatistics(reached));
+      }
 
     } catch (IOException | InvalidConfigurationException e) {
       logger.logUserException(
@@ -489,12 +492,12 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
   private static class ParallelAlgorithmStatistics implements Statistics {
 
-    private final Collection<Collection<Statistics>> allAnalysesStats = new ArrayList<>();
+    private final Map<Collection<Statistics>, ReachedSet> allAnalysesStats = new HashMap<>();
     private int noOfAlgorithmsUsed = 0;
 
-    public Collection<Statistics> getNewSubStatistics() {
+    public Collection<Statistics> getNewSubStatistics(ReachedSet pReached) {
       Collection<Statistics> subStats = new ArrayList<>();
-      allAnalysesStats.add(subStats);
+      allAnalysesStats.put(subStats, pReached);
       return subStats;
     }
 
@@ -513,8 +516,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     private void printSubStatistics(PrintStream out, Result result, ReachedSet reached) {
-      for (Collection<Statistics> subStats : allAnalysesStats) {
-        for (Statistics s : subStats) {
+      for (Entry<Collection<Statistics>, ReachedSet> subStats : allAnalysesStats.entrySet()) {
+        for (Statistics s : subStats.getKey()) {
           String name = s.getName();
           if (!isNullOrEmpty(name)) {
             name = name + " statistics";
@@ -522,7 +525,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
             out.println(name);
             out.println(Strings.repeat("-", name.length()));
           }
-          s.printStatistics(out, result, reached);
+          s.printStatistics(out, result, subStats.getValue());
         }
       }
     }
