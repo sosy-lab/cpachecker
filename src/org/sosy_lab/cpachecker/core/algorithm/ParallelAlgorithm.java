@@ -358,6 +358,13 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
             if (status.isSound()
                 && !from(currentReached)
                     .anyMatch(or(AbstractStates::isTargetState, AbstractStates::hasAssumptions))) {
+              singleLogger.log(Level.INFO, SUCCESS_MESSAGE);
+              shutdownManager.requestShutdown(SUCCESS_MESSAGE);
+              if (oldReached != null) {
+                aggregatedReachedSetManager.updateReachedSet(oldReached, currentReached);
+              } else {
+                aggregatedReachedSetManager.addReachedSet(currentReached);
+              }
               return ParallelAnalysisResult.of(currentReached, status);
             }
 
