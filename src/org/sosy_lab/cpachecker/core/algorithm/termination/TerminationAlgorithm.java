@@ -86,6 +86,7 @@ public class TerminationAlgorithm implements Algorithm {
   private final CFA cfa;
   private final Algorithm safetyAlgorithm;
 
+  private final LassoAnalysis lassoAnalysis;
   private final TerminationCPA terminationCpa;
   private final Set<CVariableDeclaration> globalDeclaration;
   private final SetMultimap<String, CVariableDeclaration> localDeclarations;
@@ -124,6 +125,10 @@ public class TerminationAlgorithm implements Algorithm {
         localDeclarations = ImmutableSetMultimap.copyOf(visitor.localDeclarations);
         globalDeclaration = ImmutableSet.copyOf(visitor.globalDeclaration);
 
+    // ugly class loader hack
+    LassoAnalysisLoader lassoAnalysisLoader =
+        new LassoAnalysisLoader(pConfig, pLogger, pShutdownNotifier, pCfa);
+    lassoAnalysis = lassoAnalysisLoader.load();
   }
 
   /**
@@ -190,6 +195,8 @@ public class TerminationAlgorithm implements Algorithm {
           throws CPAEnabledAnalysisPropertyViolationException, CPAException, InterruptedException {
 
     logger.logf(Level.FINE, "Prooving (non)-termination of loop with head %s", pLoopHead);
+    AbstractState entryState = pReachedSet.getFirstState();
+    Precision entryStatePrecision = pReachedSet.getPrecision(entryState);
 
     // Pass current loop and relevant variables to TerminationCPA.
     String function = pLoopHead.getFunctionName();
@@ -201,19 +208,34 @@ public class TerminationAlgorithm implements Algorithm {
           .build();
     terminationCpa.setProcessedLoop(pLoopHead, relevantVariabels);
 
-    AlgorithmStatus status = safetyAlgorithm.run(pReachedSet);
-    Optional<AbstractState> targetState =
-        pReachedSet.asCollection().stream().filter(AbstractStates::isTargetState).findAny();
 
     Result result = null;
 
     while (result == null) {
+      AlgorithmStatus status = safetyAlgorithm.run(pReachedSet);
+      Optional<AbstractState> targetState =
+          pReachedSet.asCollection().stream().filter(AbstractStates::isTargetState).findAny();
+
       if (status.isSound() && !targetState.isPresent() && !pReachedSet.hasWaitingState()) {
         result = Result.TRUE;
 
       } else if (status.isPrecise() && targetState.isPresent()){
-        // TODO extract error path and try to find a ranking function
-        result =  Result.UNKNOWN;
+        LassoAnalysis.LassoAnalysisResult lassoAnalysisResult =
+            lassoAnalysis.checkTermination(targetState.get());
+        if (lassoAnalysisResult.getNonTerminationArgument().isPresent()) {
+          result = Result.FALSE;
+
+        } else if (lassoAnalysisResult.getTerminationArgument().isPresent()) {
+          // TODO extract ranking function
+
+          // Prepare reached set for next iteration.
+          pReachedSet.clear();
+          pReachedSet.add(entryState, entryStatePrecision);
+          result = Result.UNKNOWN;
+
+        } else {
+          result = Result.UNKNOWN;
+        }
 
       } else {
         result =  Result.UNKNOWN;
