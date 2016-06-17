@@ -62,9 +62,11 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
@@ -163,18 +165,18 @@ public class TerminationAlgorithm implements Algorithm {
     Precision entryStatePrecision = pReachedSet.getPrecision(entryState);
 
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
-    ImmutableSet<CFANode> loopHeads = cfa.getAllLoopHeads().get();
 
-    for (CFANode loopHead : loopHeads) {
+    Collection<Loop> allLoops = cfa.getLoopStructure().get().getAllLoops();
+    for (Loop loop : allLoops) {
       shutdownNotifier.shutdownIfNecessary();
-      CPAcheckerResult.Result loopTermiantion = prooveLoopTermination(pReachedSet, loopHead);
+      CPAcheckerResult.Result loopTermiantion = prooveLoopTermination(pReachedSet, loop);
 
       if (loopTermiantion == Result.FALSE) {
-        logger.logf(Level.FINE, "Proved non-termination of loop with head %s.", loopHead);
+        logger.logf(Level.FINE, "Proved non-termination of %s.", loop);
         return status.withSound(false);
 
       } else if (loopTermiantion != Result.TRUE) {
-        logger.logf(FINE, "Could not prove (non-)termination of loop with head %s.", loopHead);
+        logger.logf(FINE, "Could not prove (non-)termination of %s.", loop);
         status = status.withSound(false);
       }
 
@@ -191,28 +193,28 @@ public class TerminationAlgorithm implements Algorithm {
     return status;
   }
 
-  private Result prooveLoopTermination(ReachedSet pReachedSet, CFANode pLoopHead)
+  private Result prooveLoopTermination(ReachedSet pReachedSet, Loop pLoop)
           throws CPAEnabledAnalysisPropertyViolationException, CPAException, InterruptedException {
 
-    logger.logf(Level.FINE, "Prooving (non)-termination of loop with head %s", pLoopHead);
+    logger.logf(Level.FINE, "Prooving (non)-termination of %s", pLoop);
     AbstractState entryState = pReachedSet.getFirstState();
     Precision entryStatePrecision = pReachedSet.getPrecision(entryState);
 
     // Pass current loop and relevant variables to TerminationCPA.
-    String function = pLoopHead.getFunctionName();
+    String function = pLoop.getLoopHeads().iterator().next().getFunctionName();
     Set<CVariableDeclaration> relevantVariabels =
         ImmutableSet
           .<CVariableDeclaration>builder()
           .addAll(globalDeclaration)
           .addAll(localDeclarations.get(function))
           .build();
-    terminationCpa.setProcessedLoop(pLoopHead, relevantVariabels);
-
+    terminationCpa.setProcessedLoop(pLoop, relevantVariabels);
 
     Result result = null;
 
     while (result == null) {
       AlgorithmStatus status = safetyAlgorithm.run(pReachedSet);
+      terminationCpa.resetCfa();
       Optional<AbstractState> targetState =
           pReachedSet.asCollection().stream().filter(AbstractStates::isTargetState).findAny();
 

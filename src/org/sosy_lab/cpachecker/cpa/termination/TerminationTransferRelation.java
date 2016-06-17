@@ -28,8 +28,6 @@ import static org.sosy_lab.cpachecker.cfa.ast.FileLocation.DUMMY;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.EQUALS;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.ONE;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.ZERO;
-import static org.sosy_lab.cpachecker.util.CFAUtils.edgeHasType;
-import static org.sosy_lab.cpachecker.util.CFAUtils.enteringEdges;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -59,7 +57,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -76,6 +73,8 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -91,11 +90,12 @@ import java.util.stream.Collectors;
 public class TerminationTransferRelation implements TransferRelation {
 
   /*
-   *  Inserted nodes and edges:                  .
-   *                                             . int x',y',z', ..., pc';
+   *  Inserted nodes and edges:                  .  int x',y',z', ..., pc';
    *                                             .
+   *                                             .
+   *                                             .  [stay_in_loop]
    *                                             |
-   *          original edge(s) after loop head   v   original loop head
+   *          original edge(s) after loop head   v   loop head
    *   ... <------------------------------------ 0 <-------------------------------------------
    *                                            / \                                            |
    *                      [ranking_relation]   /   \ [! (ranking_relation)]                    |
@@ -144,7 +144,7 @@ public class TerminationTransferRelation implements TransferRelation {
   /**
    * The loop that is currently analyzed by the {@link TerminationAlgorithm}
    */
-  private Optional<CFANode> loopHead = Optional.empty();
+  private Optional<Loop> loop = Optional.empty();
 
   /**
    * The current ranking relation as disjunction.
@@ -195,18 +195,20 @@ public class TerminationTransferRelation implements TransferRelation {
   /**
    * Sets the loop to check for non-termination.
    *
-   * @param pLoopHead
-   *        the loop's head node
+   * @param pLoop
+   *        the loop to process
    * @param pRelevantVariables
    *        all variables that might be relevant to prove (non-)termination of the given loop.
    */
-  void setProcessedLoop(CFANode pLoopHead, Set<CVariableDeclaration> pRelevantVariables) {
-    loopHead = Optional.of(pLoopHead);
+  void setProcessedLoop(Loop pLoop, Set<CVariableDeclaration> pRelevantVariables) {
+    loop = Optional.of(pLoop);
     resetRankingRelation();
     resetCfa();
 
+    String functionName = pLoop.getLoopHeads().iterator().next().getFunctionName();
     ImmutableList.Builder<CFANode> intermediateStates = ImmutableList.builder();
     Builder<CVariableDeclaration, CVariableDeclaration> builder = ImmutableMap.builder();
+
     for (CVariableDeclaration relevantVariable : pRelevantVariables) {
       CVariableDeclaration primedVariable =
           new CVariableDeclaration(
@@ -219,7 +221,7 @@ public class TerminationTransferRelation implements TransferRelation {
               relevantVariable.getQualifiedName() + PRIMED_VARIABLE_POSTFIX,
               null);
       builder.put(relevantVariable, primedVariable);
-      intermediateStates.add(new CFANode(pLoopHead.getFunctionName()));
+      intermediateStates.add(new CFANode(functionName));
     }
 
     relevantVariablesInitializationIntermediateLocations = intermediateStates.build();
@@ -237,12 +239,11 @@ public class TerminationTransferRelation implements TransferRelation {
     if (location == null) {
       throw new UnsupportedOperationException("TransferRelation requires location information.");
 
-    } else if (loopHead.isPresent()
-        && enteringEdges(location).anyMatch(edgeHasType(CFAEdgeType.FunctionCallEdge))
-        && loopHead.get().getFunctionName().equals(location.getFunctionName())) {
+    } else if (loop.isPresent()
+        && CFAUtils.leavingEdges(location).anyMatch(edge -> loop.get().getIncomingEdges().contains(edge))) {
       statesAtCurrentLocation = declarePrimedVariables(terminationState, pPrecision, location);
 
-    } else if (loopHead.isPresent() && location.equals(loopHead.get())) {
+    } else if (loop.map(Loop::getLoopHeads).map(lh -> lh.contains(location)).orElse(false)) {
       statesAtCurrentLocation = insertRankingRelation(terminationState, pPrecision, location);
 
     } else {
@@ -306,7 +307,7 @@ public class TerminationTransferRelation implements TransferRelation {
 
     logger.logf(
         FINEST,
-        "Adding ranking relations %s after loop head %s in function %s.",
+        "Adding ranking relations %s after location %s in function %s.",
         rankingRelations,
         loopHead,
         functionName);
@@ -585,7 +586,7 @@ public class TerminationTransferRelation implements TransferRelation {
   /**
    * Removes all temporarily added {@link CFAEdge}s from the CFA.
    */
-  private void resetCfa() {
+  void resetCfa() {
     createdCfaEdges.forEach(CFACreationUtils::removeEdgeFromNodes);
     createdCfaEdges.clear();
   }
@@ -597,4 +598,4 @@ public class TerminationTransferRelation implements TransferRelation {
     throw new UnsupportedOperationException(
         "TerminationCPA does not support returning successors for a single edge.");
   }
-}
+ }

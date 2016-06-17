@@ -30,6 +30,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -42,6 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 import java.util.Set;
 
@@ -76,13 +78,13 @@ public class TerminationCPA extends AbstractSingleWrapperCPA {
   /**
    * Sets the loop to check for non-termination.
    *
-   * @param pLoopHead
-   *        the loop's head node
+   * @param loop
+   *        the loop to process
    * @param pRelevantVariables
    *        all variables that might be relevant to prove (non-)termination of the given loop.
    */
-  public void setProcessedLoop(CFANode pLoopHead, Set<CVariableDeclaration> pRelevantVariables) {
-    transferRelation.setProcessedLoop(pLoopHead, pRelevantVariables);
+  public void setProcessedLoop(Loop loop, Set<CVariableDeclaration> pRelevantVariables) {
+    transferRelation.setProcessedLoop(loop, pRelevantVariables);
   }
 
   public Configuration getConfig() {
@@ -96,8 +98,15 @@ public class TerminationCPA extends AbstractSingleWrapperCPA {
    *            the new ranking relation to add as condition
    * @throws UnrecognizedCCodeException if <code>pRankingRelation</code> is not a valid condition
    */
-  void addRankingRelation(CExpression pRankingRelation) throws UnrecognizedCCodeException {
+  public void addRankingRelation(CExpression pRankingRelation) throws UnrecognizedCCodeException {
     transferRelation.addRankingRelation(pRankingRelation);
+  }
+
+  /**
+   * Removes all temporarily added {@link CFAEdge}s from the CFA.
+   */
+  public void resetCfa() {
+    transferRelation.resetCfa();
   }
 
   @Override
