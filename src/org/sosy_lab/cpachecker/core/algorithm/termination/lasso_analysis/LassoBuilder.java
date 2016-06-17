@@ -70,7 +70,6 @@ import de.uni_freiburg.informatik.ultimate.lassoranker.LinearTransition;
 import de.uni_freiburg.informatik.ultimate.lassoranker.exceptions.TermException;
 import de.uni_freiburg.informatik.ultimate.lassoranker.variables.InequalityConverter;
 import de.uni_freiburg.informatik.ultimate.lassoranker.variables.RankVar;
-import de.uni_freiburg.informatik.ultimate.lassoranker.variables.ReplacementVar;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 class LassoBuilder {
@@ -142,8 +141,8 @@ class LassoBuilder {
       loopPathFormula = pathFormulaManager.makeAnd(loopPathFormula, edge);
     }
 
-    logger.logf(Level.FINER, "Stem formula %s", stemPathFormula.getFormula());
-    logger.logf(Level.FINER, "Loop formula %s", loopPathFormula.getFormula());
+    logger.logf(Level.FINE, "Stem formula %s", stemPathFormula.getFormula());
+    logger.logf(Level.FINE, "Loop formula %s", loopPathFormula.getFormula());
 
     LinearTransition stem = createLinearTransition(stemPathFormula);
     LinearTransition loop = createLinearTransition(loopPathFormula);
@@ -190,7 +189,7 @@ class LassoBuilder {
     ImmutableMap.Builder<RankVar, Term> outVars = ImmutableMap.builder();
     for (Formula variable : outVeriablesCollector.getVariables()) {
       Term term = formulaManager.extractInfo(variable);
-      outVars.put(new ReplacementVar(term.toString(), term), term);
+      outVars.put(new TermRankVar(term), term);
     }
 
     return outVars.build();
