@@ -62,32 +62,32 @@ public class CPAcheckerLogger extends Logger implements ILogger {
 
   @Override
   public void error(Object pMessage, Throwable pThrowable) {
-    logException(Level.SEVERE, pMessage, pThrowable);
+    logException(Level.WARNING, pMessage, pThrowable);
   }
 
   @Override
   public void error(Object pMessage) {
-    logger.log(Level.SEVERE, pMessage);
-  }
-
-  @Override
-  public boolean isWarnEnabled() {
-    return logger.wouldBeLogged(Level.WARNING);
-  }
-
-  @Override
-  public void warn(Object pMessage) {
     logger.log(Level.WARNING, pMessage);
   }
 
   @Override
-  public boolean isInfoEnabled() {
+  public boolean isWarnEnabled() {
     return logger.wouldBeLogged(Level.INFO);
   }
 
   @Override
-  public void info(Object pMessage) {
+  public void warn(Object pMessage) {
     logger.log(Level.INFO, pMessage);
+  }
+
+  @Override
+  public boolean isInfoEnabled() {
+    return logger.wouldBeLogged(Level.FINE);
+  }
+
+  @Override
+  public void info(Object pMessage) {
+    logger.log(Level.FINE, pMessage);
   }
 
   @Override
