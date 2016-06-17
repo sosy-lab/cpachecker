@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
@@ -152,9 +153,10 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
     ListeningExecutorService exec = listeningDecorator(newFixedThreadPool(configFiles.size()));
     List<ListenableFuture<ParallelAnalysisResult>> futures = new ArrayList<>();
-    int counter = 1;
+
     for (Path p : configFiles) {
-      futures.add(exec.submit(createAlgorithm(p, counter++)));
+      futures.add(exec.submit(createAlgorithm(p)));
+      stats.noOfAlgorithmsUsed++;
     }
     addCancellationCallback(futures);
 
@@ -235,8 +237,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     futures.forEach(f -> Futures.addCallback(f, callback));
   }
 
-  private Callable<ParallelAnalysisResult> createAlgorithm(
-      Path singleConfigFileName, int numberOfAnalysis) {
+  private Callable<ParallelAnalysisResult> createAlgorithm(Path singleConfigFileName) {
     final Configuration singleConfig;
     final Algorithm algorithm;
     final ReachedSet reached;
@@ -269,7 +270,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       ShutdownManager singleShutdownManager =
           ShutdownManager.createWithParent(shutdownManager.getNotifier());
 
-      singleLogger = logger.withComponentName("Parallel analysis " + numberOfAnalysis);
+      singleLogger = logger.withComponentName("Parallel analysis " + stats.noOfAlgorithmsUsed);
       ResourceLimitChecker singleLimits =
           ResourceLimitChecker.fromConfiguration(singleConfig, singleLogger, singleShutdownManager);
       singleLimits.start();
@@ -291,7 +292,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       reached = createInitialReachedSet(cpa, mainEntryNode, coreComponents);
 
       if (algorithm instanceof StatisticsProvider) {
-        ((StatisticsProvider) algorithm).collectStatistics(stats.getNewSubStatistics(reached));
+        ((StatisticsProvider) algorithm)
+            .collectStatistics(stats.getNewSubStatistics(reached, singleConfigFileName.toString()));
       }
 
     } catch (IOException | InvalidConfigurationException e) {
@@ -492,12 +494,13 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
   private static class ParallelAlgorithmStatistics implements Statistics {
 
-    private final Map<Collection<Statistics>, ReachedSet> allAnalysesStats = new HashMap<>();
+    private final Map<Collection<Statistics>, Pair<ReachedSet, String>> allAnalysesStats =
+        new HashMap<>();
     private int noOfAlgorithmsUsed = 0;
 
-    public Collection<Statistics> getNewSubStatistics(ReachedSet pReached) {
+    public Collection<Statistics> getNewSubStatistics(ReachedSet pReached, String name) {
       Collection<Statistics> subStats = new ArrayList<>();
-      allAnalysesStats.put(subStats, pReached);
+      allAnalysesStats.put(subStats, Pair.of(pReached, name));
       return subStats;
     }
 
@@ -507,16 +510,19 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     @Override
-    public void printStatistics(PrintStream out, Result result,
-        ReachedSet reached) {
-
+    public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
       out.println("Number of algorithms used:        " + noOfAlgorithmsUsed);
-
-      printSubStatistics(out, result, reached);
+      printSubStatistics(out, result);
     }
 
-    private void printSubStatistics(PrintStream out, Result result, ReachedSet reached) {
-      for (Entry<Collection<Statistics>, ReachedSet> subStats : allAnalysesStats.entrySet()) {
+    private void printSubStatistics(PrintStream out, Result result) {
+      for (Entry<Collection<Statistics>, Pair<ReachedSet, String>> subStats :
+          allAnalysesStats.entrySet()) {
+        out.println();
+        out.println();
+        String title = "Statistics for: " + subStats.getValue().getSecond();
+        out.println(title);
+        out.println(String.format(String.format("%%%ds", title.length()), " ").replace(" ", "="));
         for (Statistics s : subStats.getKey()) {
           String name = s.getName();
           if (!isNullOrEmpty(name)) {
@@ -525,7 +531,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
             out.println(name);
             out.println(Strings.repeat("-", name.length()));
           }
-          s.printStatistics(out, result, subStats.getValue());
+          s.printStatistics(out, result, subStats.getValue().getFirst());
         }
       }
     }
