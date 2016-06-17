@@ -25,12 +25,14 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.or;
+import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.util.concurrent.MoreExecutors.listeningDecorator;
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
 
 import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -48,11 +50,14 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
@@ -65,9 +70,11 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -80,7 +87,7 @@ import java.util.logging.Level;
 import javax.annotation.Nullable;
 
 @Options(prefix = "parallelAlgorithm")
-public class ParallelAlgorithm implements Algorithm {
+public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(
     secure = true,
@@ -107,6 +114,7 @@ public class ParallelAlgorithm implements Algorithm {
   private final CFA cfa;
   private final String filename;
   private final Specification specification;
+  private final ParallelAlgorithmStatistics stats = new ParallelAlgorithmStatistics();
 
   private ParallelAnalysisResult finalResult = null;
   private CFANode mainEntryNode = null;
@@ -276,6 +284,10 @@ public class ParallelAlgorithm implements Algorithm {
       GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
       algorithm = coreComponents.createAlgorithm(cpa, filename, cfa, specification);
+
+      if (algorithm instanceof StatisticsProvider) {
+        ((StatisticsProvider)algorithm).collectStatistics(stats.getNewSubStatistics());
+      }
 
       reached = createInitialReachedSet(cpa, mainEntryNode, coreComponents);
 
@@ -473,5 +485,51 @@ public class ParallelAlgorithm implements Algorithm {
     public @Nullable AlgorithmStatus getStatus() {
       return status;
     }
+  }
+
+  private static class ParallelAlgorithmStatistics implements Statistics {
+
+    private final Collection<Collection<Statistics>> allAnalysesStats = new ArrayList<>();
+    private int noOfAlgorithmsUsed = 0;
+
+    public Collection<Statistics> getNewSubStatistics() {
+      Collection<Statistics> subStats = new ArrayList<>();
+      allAnalysesStats.add(subStats);
+      return subStats;
+    }
+
+    @Override
+    public String getName() {
+      return "Parallel Algorithm";
+    }
+
+    @Override
+    public void printStatistics(PrintStream out, Result result,
+        ReachedSet reached) {
+
+      out.println("Number of algorithms used:        " + noOfAlgorithmsUsed);
+
+      printSubStatistics(out, result, reached);
+    }
+
+    private void printSubStatistics(PrintStream out, Result result, ReachedSet reached) {
+      for (Collection<Statistics> subStats : allAnalysesStats) {
+        for (Statistics s : subStats) {
+          String name = s.getName();
+          if (!isNullOrEmpty(name)) {
+            name = name + " statistics";
+            out.println("");
+            out.println(name);
+            out.println(Strings.repeat("-", name.length()));
+          }
+          s.printStatistics(out, result, reached);
+        }
+      }
+    }
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
   }
 }
