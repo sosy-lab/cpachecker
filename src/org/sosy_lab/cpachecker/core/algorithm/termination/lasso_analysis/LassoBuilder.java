@@ -113,34 +113,27 @@ class LassoBuilder {
     boolean loopStarted = false;
     path.advance(); // the first state has no incoming edge
 
-    while (path.hasNext()) {
-      if (path.isPositionWithState()) {
-        ARGState currentState = path.getAbstractState();
-        TerminationState terminationState =
-            extractStateByType(currentState, TerminationState.class);
+    while (path.advanceIfPossible()) {
+      if (!loopStarted) {
+        ARGState nextState = path.getNextAbstractState();
+        TerminationState nextTerminationState =
+            extractStateByType(nextState, TerminationState.class);
 
-        if (terminationState.isPartOfStem() && !loopStarted) {
-          stemEdges.add(path.getIncomingEdge());
+        if (path.isPositionWithState()) {
+          ARGState state = path.getAbstractState();
+          TerminationState terminationState = extractStateByType(state, TerminationState.class);
+          loopStarted = nextTerminationState.isPartOfLoop() && !terminationState.isPartOfStem();
 
-        } else if (terminationState.isPartOfLoop() && !loopStarted) {
-          loopStarted = true;
-          loopEdges.add(path.getIncomingEdge());
-
-        } else if (terminationState.isPartOfLoop() && loopStarted) {
-          loopEdges.add(path.getIncomingEdge());
         } else {
-          throw new AssertionError();
-        }
-
-      } else {
-        if (loopStarted) {
-          loopEdges.add(path.getIncomingEdge());
-        } else {
-          stemEdges.add(path.getIncomingEdge());
+          loopStarted = nextTerminationState.isPartOfLoop();
         }
       }
 
-      path.advance();
+      if (loopStarted) {
+        loopEdges.add(path.getIncomingEdge());
+      } else {
+        stemEdges.add(path.getIncomingEdge());
+      }
     }
 
     PathFormula stemPathFormula = pathFormulaManager.makeFormulaForPath(stemEdges);
