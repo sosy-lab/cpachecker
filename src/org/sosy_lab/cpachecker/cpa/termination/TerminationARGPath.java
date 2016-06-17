@@ -44,6 +44,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 /**
  * Adds intermediate {@link CFAEdge}s created by {@link TerminationTransferRelation}
  * during the analysis to the full path.
@@ -52,6 +54,8 @@ public class TerminationARGPath extends ARGPath {
 
   private final TerminationTransferRelation terminationTransferRelation;
 
+  // Construct full path at most once.
+  @Nullable private List<CFAEdge> terminationFullPath = null;
 
   public TerminationARGPath(
       ARGPath pBasicArgPath, TerminationTransferRelation pTerminationTransferRelation) {
@@ -61,6 +65,10 @@ public class TerminationARGPath extends ARGPath {
 
   @Override
   public List<CFAEdge> getFullPath() {
+    if (terminationFullPath != null) {
+      return terminationFullPath;
+    }
+
     ImmutableList.Builder<CFAEdge> fullPathBuilder = ImmutableList.builder();
     PathIterator it = pathIterator();
     Set<CFAEdge> intermediateTermiantionEdges = Sets.newHashSet();
@@ -117,7 +125,7 @@ public class TerminationARGPath extends ARGPath {
       }
     }
 
-    ImmutableList<CFAEdge> terminationFullPath = fullPathBuilder.build();
+    terminationFullPath = fullPathBuilder.build();
     return terminationFullPath;
   }
 
