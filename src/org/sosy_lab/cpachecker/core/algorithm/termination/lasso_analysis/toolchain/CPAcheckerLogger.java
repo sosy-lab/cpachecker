@@ -35,6 +35,11 @@ public class CPAcheckerLogger extends Logger implements ILogger {
 
   private final LogManager logger;
 
+  public CPAcheckerLogger(LogManager pLogger) {
+    super("");
+    logger = pLogger;
+  }
+
   public CPAcheckerLogger(LogManager pLogger, String name) {
     super(name);
     logger = pLogger.withComponentName(name);
@@ -116,7 +121,7 @@ public class CPAcheckerLogger extends Logger implements ILogger {
   }
 
   private void logException(Level level, Object pMessage, Throwable pThrowable) {
-    if (pThrowable == null) {
+    if (pThrowable != null) {
       logger.logException(level, pThrowable, pMessage.toString());
     } else {
       logger.log(level, pMessage);

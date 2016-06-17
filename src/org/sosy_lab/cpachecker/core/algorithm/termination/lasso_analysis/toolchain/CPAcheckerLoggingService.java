@@ -59,7 +59,7 @@ public class CPAcheckerLoggingService implements ILoggingService {
 
   @Override
   public ILogger getControllerLogger() {
-    return new CPAcheckerLogger(logger, null);
+    return new CPAcheckerLogger(logger);
   }
 
   @Override

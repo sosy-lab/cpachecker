@@ -25,11 +25,14 @@ package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis;
 
 import com.google.common.base.Preconditions;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import javax.annotation.Nullable;
 
 import de.uni_freiburg.informatik.ultimate.lassoranker.variables.RankVar;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
+@SuppressFBWarnings(value = "SE_BAD_FIELD", justification = "TermRankVar is never serialized.")
 public class TermRankVar extends RankVar {
 
   private static final long serialVersionUID = 1L;

@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.core.algorithm.termination;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import org.sosy_lab.common.ChildFirstPatternClassLoader;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Classes.UnsuitedClassException;
@@ -83,6 +85,7 @@ public class LassoAnalysisLoader {
     cfa = checkNotNull(pCfa);
   }
 
+  @SuppressFBWarnings("DP_CREATE_CLASSLOADER_INSIDE_DO_PRIVILEGED")
   public LassoAnalysis load() throws InvalidConfigurationException {
     ClassLoader TerminationAlgorithmClassLoader = TerminationAlgorithm.class.getClassLoader();
     SolverContext solverContext =
