@@ -494,7 +494,7 @@ class WebInterface:
         for programPath in run.sourcefiles:
             norm_path = self._normalize_path_for_cloud(programPath)
             params.append(('programTextHash', (norm_path, self._get_sha1_hash(programPath))))
-
+  
         for required_file in required_files:
             norm_path = self._normalize_path_for_cloud(required_file)
             params.append(('requiredFileHash', (norm_path, self._get_sha1_hash(required_file))))
@@ -640,12 +640,11 @@ class WebInterface:
                     elif option == "-config":
                         configPath = next(i)
                         tokens = configPath.split('/')
-                        if not (tokens[0] == "config" and len(tokens) == 2):
-                            logging.warning('Configuration %s of run %s is not from the default config directory.',
-                                            configPath, run.identifier)
-                            return (configPath, opened_files)
-                        config = tokens[1].split('.')[0]
-                        params.append(('configuration', config))
+                        if (tokens[0] == "config" and len(tokens) == 2):
+                            config = tokens[1].split('.')[0]
+                            params.append(('configuration', config))
+                        else:
+                            params.append(("option", "configuration.file=" + configPath))
 
                     elif option == "-setprop":
                         params.append(("option", next(i)))
