@@ -62,7 +62,6 @@ public class ControlVariables {
    */
   private CVariableDeclaration threadCreationArgumentsArrayDeclaration;
 
-  private CVariableDeclaration threadReturnValueArrayDeclaration;
   /**
    * The declaration of the global variable <i>bool isThreadActive[T];</i>
    */
@@ -94,7 +93,7 @@ public class ControlVariables {
   private void buildGlobalVariableDeclaration() {
     currentThreadDeclaration = createCurrentThreadDeclaration();
     threadCreationArgumentsArrayDeclaration = createThreadCreationArgumentsArrayDeclaration();
-    threadReturnValueArrayDeclaration = createThreadReturnValueArrayDeclaration();
+//    threadReturnValueArrayDeclaration = createThreadReturnValueArrayDeclaration();
     isThreadActiveArrayDeclaration = createIsThreadActiveArrayDeclaration();
     isThreadFinishedDeclaration = createIsThreadFinishedDeclaration();
   }
@@ -132,7 +131,7 @@ public class ControlVariables {
   private CVariableDeclaration createThreadReturnValueArrayDeclaration() {
     String variableName = "threadReturnValue";
 
-    CVariableDeclaration threadReturnValueArrayDeclaration = ArrayDeclarationUtils.buildStaticNumericArrayDeclaration(CNumericTypes.INT, THREAD_COUNT, 0, variableName);
+    CVariableDeclaration threadReturnValueArrayDeclaration = buildStaticVoidPointerArrayDeclaration(THREAD_COUNT, variableName);
     return threadReturnValueArrayDeclaration;
   }
 
@@ -170,10 +169,6 @@ public class ControlVariables {
     return threadCreationArgumentsArrayDeclaration;
   }
 
-  public CVariableDeclaration getThreadReturnValueArrayDeclaration() {
-    return threadReturnValueArrayDeclaration;
-  }
-
   public CVariableDeclaration getIsThreadActiveArrayDeclaration() {
     return isThreadActiveArrayDeclaration;
   }
@@ -188,10 +183,6 @@ public class ControlVariables {
 
   public CFAEdge getDummyThreadCreationArgumentsArrayDeclarationEdge() {
     return getDummyDeclarationEdge(threadCreationArgumentsArrayDeclaration);
-  }
-
-  public CFAEdge getDummyThreadReturnValueArrayDeclarationEdge() {
-    return getDummyDeclarationEdge(threadReturnValueArrayDeclaration);
   }
 
   public CFAEdge getDummyIsThreadActiveArrayDeclarationEdge() {

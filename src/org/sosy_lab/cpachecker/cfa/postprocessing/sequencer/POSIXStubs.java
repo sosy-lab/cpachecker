@@ -109,8 +109,6 @@ public class POSIXStubs {
   }
 
   public void buildPThreadJoinBody() {
-    // TODO review
-    // TODO return value is buggy
     CVariableDeclaration retVal = new CVariableDeclaration(FileLocation.DUMMY, false,
         CStorageClass.AUTO, CNumericTypes.INT, "__temp_retval_", "__temp_retval_",
         "__temp_retval_", new CInitializerExpression(FileLocation.DUMMY, null));
@@ -132,11 +130,7 @@ public class POSIXStubs {
     AssumeEdge assumeEdge = new CAssumeEdge("", FileLocation.DUMMY, CFASequenceBuilder.DUMMY_NODE,
         CFASequenceBuilder.DUMMY_NODE, isThreadNotFinished, true);
 
-    CExpression arrayExpression = new CIdExpression(FileLocation.DUMMY,
-        controlVariables.getThreadReturnValueArrayDeclaration());
-    CArraySubscriptExpression returnValue = new CArraySubscriptExpression(FileLocation.DUMMY,
-        CNumericTypes.INT, arrayExpression, new CIdExpression(FileLocation.DUMMY,
-            controlVariables.getCurrentThreadDeclaration()));
+    CExpression returnValue = CIntegerLiteralExpression.ZERO;
     CReturnStatement a = new CReturnStatement(FileLocation.DUMMY,
         Optional.<CExpression> of(returnValue), Optional.<CAssignment> absent());
     CReturnStatementEdge returnEdge = new CReturnStatementEdge("", a, FileLocation.DUMMY,

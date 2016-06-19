@@ -12,8 +12,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -106,11 +106,7 @@ public class ControlCodeBuilder {
         cfa);
 
     globalVarBuilder.addChainLink(controlVariables
-        .getDummyCurrentThreadDeclarationEdge());
-    globalVarBuilder.addChainLink(controlVariables
         .getDummyThreadCreationArgumentsArrayDeclarationEdge());
-    globalVarBuilder.addChainLink(controlVariables
-        .getDummyThreadReturnValueArrayDeclarationEdge());
     globalVarBuilder.addChainLink(controlVariables
         .getDummyIsThreadActiveArrayDeclarationEdge());
     globalVarBuilder.addChainLink(controlVariables
@@ -413,12 +409,7 @@ public class ControlCodeBuilder {
     CFunctionCallExpression functionCallExpression = new CFunctionCallExpression(FileLocation.DUMMY, threadDeclaration.getType(),
         new CIdExpression(FileLocation.DUMMY, threadDeclaration), param, threadDeclaration);
 
-
-    CIdExpression a = new CIdExpression(FileLocation.DUMMY, controlVariables.getThreadReturnValueArrayDeclaration());
-    CArraySubscriptExpression b = new CArraySubscriptExpression(FileLocation.DUMMY, CNumericTypes.INT, a, ExpressionUtils.getThreadNumberNumberExpression(thread));
-
-
-    CFunctionCallAssignmentStatement threadStartExpression = new CFunctionCallAssignmentStatement(FileLocation.DUMMY, b, functionCallExpression);
+    CFunctionCallStatement threadStartExpression = new CFunctionCallStatement(FileLocation.DUMMY, functionCallExpression);
 
     return new CStatementEdge("", threadStartExpression, FileLocation.DUMMY, CFASequenceBuilder.DUMMY_NODE, CFASequenceBuilder.DUMMY_NODE);
   }
