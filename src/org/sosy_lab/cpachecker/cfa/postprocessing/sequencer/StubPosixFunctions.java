@@ -37,8 +37,6 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
-// TODO static posix stub functions. Add to POSIX Stub function
-@Deprecated
 public class StubPosixFunctions {
 
   private static CBinaryExpressionBuilder BINARY_BUILDER;
@@ -53,7 +51,6 @@ public class StubPosixFunctions {
   /**
    * Don't use this due it can only handle special cases
    */
-  @Deprecated
   public static void stubThreadCreationNoFunction(
       CStatementEdge functionCallEdge, CThread thread,
       ControlVariables controlVariables, MutableCFA cfa, LogManager logger) throws UnrecognizedCCodeException {
@@ -89,12 +86,10 @@ public class StubPosixFunctions {
 
     CFAEdge edge2 = getSavePThreadArgument(thread, threadCreationArgument, controlVariables);
     CFAEdge edge3 = getActivateThreadStatement(thread, controlVariables);
-//    CFAEdge edge5 = getNotFinishedThreadStatement(thread, controlVariables); // TODO only for test purpose
     CFAEdge edge4 = new BlankEdge("", FileLocation.DUMMY, CFASequenceBuilder.DUMMY_NODE, CFASequenceBuilder.DUMMY_NODE, "THREAD CREATION");
 
     builder.addChainLink(edge2);
     builder.addChainLink(edge3);
-//    builder.addChainLink(edge5);
     builder.addChainLink(edge4, successor);
 
     CFACreationUtils.removeEdgeFromNodes(functionCallEdge);
@@ -208,7 +203,6 @@ public class StubPosixFunctions {
     return ExpressionUtils.getDummyAssignement(leftHandSide, threadCreationArgument);
   }
 
-  @Deprecated
   public static void stubThreadCreationIntoFunction(
       SequencePreparator threadIdentificator,
       ControlVariables controlVariables, MutableCFA cfa, LogManager logger) {
@@ -222,7 +216,6 @@ public class StubPosixFunctions {
     }
   }
 
-  @Deprecated
   public static void stubMutexIntoFunction(SequencePreparator threadIdentificator,
       ControlVariables controlVariables, MutableCFA cfa, LogManager logger) {
 
@@ -235,7 +228,6 @@ public class StubPosixFunctions {
     }
   }
 
-  @Deprecated
   public static void stubMutexLocktoFunction(SequencePreparator threadIdentificator,
       MutableCFA cfa, LogManager logger) {
 
@@ -248,7 +240,6 @@ public class StubPosixFunctions {
     }
   }
 
-  @Deprecated
   public static void stubMutexUnlocktoFunction(SequencePreparator threadIdentificator,
       MutableCFA cfa, LogManager logger) {
     for(Entry<CThread, CStatementEdge> mutexUnlock : threadIdentificator.getMutexUnlockEdges().entrySet()) {
@@ -293,14 +284,12 @@ public class StubPosixFunctions {
 
     CFAEdge freeMutex = ExpressionUtils.getDummyAssignement(flag, FREE);
 
-    // TODO add assertion. only locking thread can unlock
 
     builder.addChainLink(freeMutex, successor);
 
     CFACreationUtils.removeEdgeFromNodes(functionCall);
   }
 
-  @Deprecated
   private static void stubThreadMutexLockNoFunction(CThread threadContext, CStatementEdge functionCall,
       MutableCFA cfa, LogManager logger) throws UnrecognizedCCodeException {
 
@@ -326,10 +315,6 @@ public class StubPosixFunctions {
     givenMutexVariable = getGivenMutexVariable(functionCallStatement, 0, logger);
     assert givenMutexVariable instanceof CLeftHandSide;
 
-    if (givenMutexVariable == null) {
-      throw new UnrecognizedCCodeException("Given parameter must be a valid mutex", functionCallStatement);
-    }
-
     //TODO add assertion. only not destroyed mutex can be locked
     ALeftHandSide flag = getMutexFlag(givenMutexVariable);
 
@@ -347,7 +332,6 @@ public class StubPosixFunctions {
     CFACreationUtils.removeEdgeFromNodes(functionCall);
   }
 
-  @Deprecated
   private static void stubThreadMutexInitNoFunction(AStatementEdge pMutexInit,
       MutableCFA cfa, LogManager logger) throws UnrecognizedCCodeException {
 

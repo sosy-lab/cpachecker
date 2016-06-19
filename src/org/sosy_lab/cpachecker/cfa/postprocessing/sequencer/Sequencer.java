@@ -53,8 +53,6 @@ public class Sequencer {
   }
 
 
-  // TODO replace declaration of function calls of stubbed functions!!!!!
-  // TODO assert edges in threaedIdentificator were not replaced !!
   public void sequenceCFA() {
     StubDeclaration stubDeclaration = new StubDeclaration(logger, cfa);
     stubDeclaration.replaceDecWithStub();
@@ -63,7 +61,7 @@ public class Sequencer {
     ControlVariables controlVariables = new ControlVariables(threads);
     POSIXStubs posixStubs = new POSIXStubs(controlVariables, stubDeclaration, cfa, logger);
 
-    //TODO this stub or the posixStub stub
+
     StubPosixFunctions.setBinaryBuilder(new CBinaryExpressionBuilder(cfa.getMachineModel(), logger));
     StubPosixFunctions.stubThreadCreationIntoFunction(threadIdentificator, controlVariables, cfa, logger);
     StubPosixFunctions.stubMutexIntoFunction(threadIdentificator, controlVariables, cfa, logger);

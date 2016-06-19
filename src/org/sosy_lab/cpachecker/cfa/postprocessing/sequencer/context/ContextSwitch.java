@@ -81,10 +81,7 @@ public class ContextSwitch {
     return true;
   }
 
-  //TODO what is with function cloner!
-//  public void addContextStatementCause(CFAEdge contextStatementCause) {
-//    this.contextStatementCause.add(contextStatementCause);
-//  }
+
 
   @Override
   public String toString() {

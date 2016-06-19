@@ -43,7 +43,7 @@ import com.google.common.base.Optional;
 public class POSIXStubs {
 
   public final static CTypedefType THREAD_TYPE = new CTypedefType(false, false, "pthread_t", CNumericTypes.UNSIGNED_LONG_INT);
-  public final static CType MUTEX_TYPE = null; //TODO
+  public final static CType MUTEX_TYPE = null;
 
   public static final AExpression FREE = new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(-1));
   public static final AExpression DESTROY = new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(-2));

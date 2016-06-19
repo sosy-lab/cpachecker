@@ -52,7 +52,6 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-// TODO review!!
 public class ControlCodeBuilder {
 
   private LogManager logger;
@@ -133,20 +132,14 @@ public class ControlCodeBuilder {
 
     injectOutGoingContextSwitchEdges();
 
-    CFANode exitBeforeReturn = new CFANode(THREAD_SIMULATION_FUNCTION_NAME);
 
     CFASequenceBuilder sequenceBuilder = new CFASequenceBuilder(schedulerSimulationFunctionEntry, cfa);
 
-//    for(CThread thread : threads.getAllThreads()) {
-//      CExpression expression = BINARY_BUILDER.buildBinaryExpressionUnchecked(new CIdExpression(FileLocation.d, pDeclaration), op2, op)
-//      CAssumeEdge a = new CAssumeEdge("", FileLocation.DUMMY, CFASequenceBuilder.DUMMY_NODE, CFASequenceBuilder.DUMMY_NODE, , true)
-//      sequenceBuilder.addAssumeEdge();
-//    }
 
     for(CThread thread : threads.getAllThreads()) {
       CFASequenceBuilder threadBuilder = appendThreadSchedule(sequenceBuilder, thread);
 
-      CFASequenceBuilder isThreadActivePath = createThreadUseableAssume(threadBuilder, thread); //TODO remove finished assume!!
+      CFASequenceBuilder isThreadActivePath = createThreadUseableAssume(threadBuilder, thread);
 
       if(threads.getMainThread().equals(thread)) {
         createThreadAttendant(isThreadActivePath, thread);
@@ -164,20 +157,6 @@ public class ControlCodeBuilder {
       }
       isThreadActivePath.lockSequenceBuilder();
     }
-
-
-//    CFASequenceBuilder scheduleEnd = new CFASequenceBuilder(exitBeforeReturn, cfa);
-//
-//    //TODO replace this with the last assume edge to make a more detailed check
-////    for(CThread thread : threads.getAllThreads()) {
-////      AssumeEdge isThreadNotFinished = new CAssumeEdge("", FileLocation.DUMMY, CFASequenceBuilder.DUMMY_NODE, CFASequenceBuilder.DUMMY_NODE, createThreadNotFinishedAssumeExpression(thread), true);
-////      CFASequenceBuilder threadIsNotFinished = scheduleEnd.addAssumeEdge(isThreadNotFinished, schedulerSimulationFunctionEntry);
-////      threadIsNotFinished.lockSequenceBuilder();
-////    }
-//
-//    scheduleEnd = scheduleEnd.addAssumeEdge(getAnyThreadNotFinishedAssume(), new CFANode(THREAD_SIMULATION_FUNCTION_NAME), schedulerSimulationFunctionEntry);
-//    scheduleEnd.addChainLink(new BlankEdge("", FileLocation.DUMMY, CFASequenceBuilder.DUMMY_NODE, CFASequenceBuilder.DUMMY_NODE, "default return"), schedulerSimulationFunctionEntry.getExitNode());
-//    scheduleEnd.lockSequenceBuilder();
 
     return schedulerSimulationFunctionEntry;
   }
@@ -234,7 +213,6 @@ public class ControlCodeBuilder {
     return new CAssumeEdge(exp1.toString(), FileLocation.DUMMY, CFASequenceBuilder.DUMMY_NODE, CFASequenceBuilder.DUMMY_NODE, exp1, true);
   }
 
-  //TODO to utils
   private static CExpression getConstantSubscriptExpression(int i, CVariableDeclaration dec, CType arrayType) {
     CArraySubscriptExpression subscript = new CArraySubscriptExpression(FileLocation.DUMMY, arrayType,
         new CIdExpression(FileLocation.DUMMY, dec), new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(i)));
@@ -390,10 +368,6 @@ public class ControlCodeBuilder {
         assert summaryEdge.getPredecessor() != null;
         assert CFAUtils.leavingEdges(summaryEdge.getPredecessor()).size() == 1;
         assert CFAUtils.leavingEdges(summaryEdge.getPredecessor()).get(0) instanceof ContextSwitchEdge;
-
-
-        // there is no context switch edge at this moment
-//        assert CFAUtils.enteringEdges(summaryEdge.getSuccessor()).size() == 0; //TODO dont forget to uncomment!!!
       }
     }
 
@@ -435,8 +409,6 @@ public class ControlCodeBuilder {
     CFunctionDeclaration threadDeclaration = threadEntryNode.getFunctionDefinition();
 
     assert threadDeclaration.getParameters().size() == param.size();
-    // thread start functions must have at least one parameter which must be a generic pointer
-//    Preconditions.checkElementIndex(0, threadDeclaration.getParameters().size());
 
     CFunctionCallExpression functionCallExpression = new CFunctionCallExpression(FileLocation.DUMMY, threadDeclaration.getType(),
         new CIdExpression(FileLocation.DUMMY, threadDeclaration), param, threadDeclaration);
@@ -448,11 +420,9 @@ public class ControlCodeBuilder {
 
     CFunctionCallAssignmentStatement threadStartExpression = new CFunctionCallAssignmentStatement(FileLocation.DUMMY, b, functionCallExpression);
 
-//    CFunctionCallStatement statement = new CFunctionCallStatement(FileLocation.DUMMY, functionCallExpression);
     return new CStatementEdge("", threadStartExpression, FileLocation.DUMMY, CFASequenceBuilder.DUMMY_NODE, CFASequenceBuilder.DUMMY_NODE);
   }
 
-  // TODO to controlVariables
   public CExpression getCurrentThreadExpression() {
     return new CIdExpression(FileLocation.DUMMY, controlVariables.getCurrentThreadDeclaration());
   }
