@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate.counterexamples;
 
-import java.util.List;
-import java.util.logging.Level;
+import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -32,15 +31,16 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CounterexampleFilter;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 
+import java.util.List;
 import java.util.Optional;
-import com.google.common.collect.ImmutableList;
+import java.util.logging.Level;
 
 /**
  * A {@link CounterexampleFilter} that defines counterexamples as similar,
@@ -57,7 +57,7 @@ public class UnsatCoreCounterexampleFilter extends AbstractNegatedPathCounterexa
   private final Solver solver;
 
   public UnsatCoreCounterexampleFilter(Configuration pConfig, LogManager pLogger,
-      ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
+      ConfigurableProgramAnalysis<?> pCpa) throws InvalidConfigurationException {
     super(pConfig, pLogger, pCpa);
     logger = pLogger;
 

@@ -23,19 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.octagon;
 
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.octagon.Octagon;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.util.octagon.Octagon;
-
-class OctagonDomain implements AbstractDomain {
+class OctagonDomain implements AbstractDomain<OctagonState> {
 
   private static long totaltime = 0;
   private final LogManager logger;
@@ -45,15 +45,13 @@ class OctagonDomain implements AbstractDomain {
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractState element1, AbstractState element2) {
+  public boolean isLessOrEqual(OctagonState octState1, OctagonState octState2) {
 
     Map<OctagonState, Set<OctagonState>> covers = new HashMap<>();
 
     long start = System.currentTimeMillis();
-    OctagonState octState1 = (OctagonState) element1;
-    OctagonState octState2 = (OctagonState) element2;
 
-    if (covers.containsKey(octState2) && ((HashSet<OctagonState>)(covers.get(octState2))).contains(octState1)) {
+    if (covers.containsKey(octState2) && ((covers.get(octState2))).contains(octState1)) {
       return true;
     }
 
@@ -83,8 +81,8 @@ class OctagonDomain implements AbstractDomain {
   }
 
   @Override
-  public AbstractState join(AbstractState successor, AbstractState reached) {
-    Pair<OctagonState, OctagonState> shrinkedStates = getShrinkedStates((OctagonState)successor, (OctagonState)reached);
+  public OctagonState join(OctagonState successor, OctagonState reached) {
+    Pair<OctagonState, OctagonState> shrinkedStates = getShrinkedStates(successor, reached);
     Octagon newOctagon = shrinkedStates.getFirst().getOctagon().getManager()
                            .union(shrinkedStates.getFirst().getOctagon(), shrinkedStates.getSecond().getOctagon());
 
@@ -97,7 +95,7 @@ class OctagonDomain implements AbstractDomain {
                                      shrinkedStates.getFirst().getVariableToIndexMap(),
                                      shrinkedStates.getFirst().getVariableToTypeMap(),
                                      logger);
-    if (((OctagonState)reached).isLoopHead()) {
+    if ((reached).isLoopHead()) {
       newState = newState.asLoopHead();
     }
     if (newState.equals(reached)) {

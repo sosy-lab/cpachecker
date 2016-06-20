@@ -25,16 +25,16 @@ package org.sosy_lab.cpachecker.cpa.arg.counterexamples;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.HashSet;
-import java.util.Set;
+import com.google.errorprone.annotations.ForOverride;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 
+import java.util.HashSet;
 import java.util.Optional;
-import com.google.errorprone.annotations.ForOverride;
+import java.util.Set;
 
 /**
  * Abstract base implementation of {@link CounterexampleFilter}.
@@ -59,7 +59,7 @@ public abstract class AbstractSetBasedCounterexampleFilter<T> implements Counter
   private final Set<T> foundCounterexamples = new HashSet<>();
 
   public AbstractSetBasedCounterexampleFilter(
-      Configuration config, LogManager logger, ConfigurableProgramAnalysis cpa) {
+      Configuration config, LogManager logger, ConfigurableProgramAnalysis<?> cpa) {
     // We do not need the parameter objects,
     // this constructor is only to encourage sub-classes
     // to define a constructor with the same signature

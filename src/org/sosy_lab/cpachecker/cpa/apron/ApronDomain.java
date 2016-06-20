@@ -23,20 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.apron;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.util.Pair;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 import apron.Abstract0;
 import apron.ApronException;
 
-class ApronDomain implements AbstractDomain {
+class ApronDomain implements AbstractDomain<ApronState> {
 
   private final LogManager logger;
 
@@ -45,14 +44,11 @@ class ApronDomain implements AbstractDomain {
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractState element1, AbstractState element2) {
+  public boolean isLessOrEqual(ApronState apronState1, ApronState apronState2) {
 
     Map<ApronState, Set<ApronState>> covers = new HashMap<>();
 
-    ApronState apronState1 = (ApronState) element1;
-    ApronState apronState2 = (ApronState) element2;
-
-    if (covers.containsKey(apronState2) && ((HashSet<ApronState>)(covers.get(apronState2))).contains(apronState1)) {
+    if (covers.containsKey(apronState2) && (covers.get(apronState2)).contains(apronState1)) {
       return true;
     }
 
@@ -64,14 +60,15 @@ class ApronDomain implements AbstractDomain {
   }
 
   @Override
-  public AbstractState join(AbstractState successor, AbstractState reached) {
+  public ApronState join(ApronState successor, ApronState reached) {
     Pair<ApronState, ApronState> shrinkedStates;
     Abstract0 newApronState;
     ApronState firstState;
     try {
-      shrinkedStates = getShrinkedStates((ApronState)successor, (ApronState)reached);
+      shrinkedStates = getShrinkedStates(successor, reached);
       firstState = shrinkedStates.getFirst();
-      newApronState = firstState.getApronNativeState().joinCopy(firstState.getManager().getManager(), shrinkedStates.getSecond().getApronNativeState());
+      newApronState = firstState.getApronNativeState().joinCopy(
+          firstState.getManager().getManager(), shrinkedStates.getSecond().getApronNativeState());
 
     } catch (ApronException e) {
       throw new RuntimeException("An error occured while operating with the apron library", e);
@@ -82,7 +79,7 @@ class ApronDomain implements AbstractDomain {
                                          shrinkedStates.getFirst().getIntegerVariableToIndexMap(),
                                          shrinkedStates.getFirst().getRealVariableToIndexMap(),
                                          shrinkedStates.getFirst().getVariableToTypeMap(),
-                                         ((ApronState)successor).isLoopHead(),
+                                         successor.isLoopHead(),
                                          logger);
     if (newState.equals(reached)) {
       return reached;

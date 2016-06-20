@@ -23,23 +23,21 @@
  */
 package org.sosy_lab.cpachecker.cpa.pointer2;
 
-import java.util.Map.Entry;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
+import java.util.Map.Entry;
 
-public enum PointerDomain implements AbstractDomain {
+
+public enum PointerDomain implements AbstractDomain<PointerState> {
 
   INSTANCE;
 
   @Override
-  public AbstractState join(AbstractState pState1, AbstractState pState2) throws CPAException {
-    PointerState state1 = (PointerState) pState1;
-    PointerState state2 = (PointerState) pState2;
+  public PointerState join(PointerState state1, PointerState state2) throws
+                                                                    CPAException {
     PointerState result = state2;
     for (Entry<MemoryLocation, LocationSet> pointsToEntry : state1.getPointsToMap().entrySet()) {
       result = result.addPointsToInformation(pointsToEntry.getKey(), pointsToEntry.getValue());
@@ -54,12 +52,11 @@ public enum PointerDomain implements AbstractDomain {
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractState pState1, AbstractState pState2) throws CPAException, InterruptedException {
-    if (pState1 == pState2) {
+  public boolean isLessOrEqual(PointerState state1, PointerState state2)
+      throws CPAException, InterruptedException {
+    if (state1 == state2) {
       return true;
     }
-    PointerState state1 = (PointerState) pState1;
-    PointerState state2 = (PointerState) pState2;
     for (Entry<MemoryLocation, LocationSet> pointsToEntry : state1.getPointsToMap().entrySet()) {
       LocationSet rightSide = state2.getPointsToSet(pointsToEntry.getKey());
       if (!rightSide.containsAll(pointsToEntry.getValue())) {

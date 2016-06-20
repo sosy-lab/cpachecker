@@ -46,10 +46,10 @@ import java.util.Map;
  * CAUTION: The cache for precision adjustment is only correct for CPAs that do
  * _NOT_ depend on the reached set when performing prec.
  */
-public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
+public class CacheCPA<T extends AbstractState> implements ConfigurableProgramAnalysis<T>, WrapperCPA {
 
-  private final ConfigurableProgramAnalysis mCachedCPA;
-  private final Map<CFANode, AbstractState> mInitialStatesCache;
+  private final ConfigurableProgramAnalysis<T> mCachedCPA;
+  private final Map<CFANode, T> mInitialStatesCache;
   private final Map<CFANode, Precision> mInitialPrecisionsCache;
   private final CacheTransferRelation mCacheTransferRelation;
   private final CachePrecisionAdjustment mCachePrecisionAdjustment;
@@ -59,7 +59,7 @@ public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
     return new AutomaticCPAFactory(CacheCPA.class);
   }
 
-  public CacheCPA(ConfigurableProgramAnalysis pCachedCPA) {
+  public CacheCPA(ConfigurableProgramAnalysis<T> pCachedCPA) {
     mCachedCPA = pCachedCPA;
     mInitialStatesCache = new HashMap<>();
     mInitialPrecisionsCache = new HashMap<>();
@@ -69,7 +69,7 @@ public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<T> getAbstractDomain() {
     return mCachedCPA.getAbstractDomain();
   }
 
@@ -94,8 +94,8 @@ public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    AbstractState lInitialState = mInitialStatesCache.get(pNode);
+  public T getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+    T lInitialState = mInitialStatesCache.get(pNode);
 
     if (lInitialState == null) {
       lInitialState = mCachedCPA.getInitialState(pNode, pPartition);
@@ -118,8 +118,7 @@ public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
   }
 
   @Override
-  public <T extends ConfigurableProgramAnalysis> T retrieveWrappedCpa(
-      Class<T> pType) {
+  public <S extends ConfigurableProgramAnalysis<?>> S retrieveWrappedCpa (Class<S> pType) {
     if (pType.isAssignableFrom(getClass())) {
       return pType.cast(this);
     }
@@ -134,7 +133,7 @@ public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
   }
 
   @Override
-  public ImmutableList<ConfigurableProgramAnalysis> getWrappedCPAs() {
+  public ImmutableList<ConfigurableProgramAnalysis<?>> getWrappedCPAs() {
     return ImmutableList.of(mCachedCPA);
   }
 }

@@ -61,7 +61,7 @@ public interface ForcedCovering {
   boolean tryForcedCovering(AbstractState state, Precision precision, ReachedSet reached) throws CPAException, InterruptedException;
 
   interface Factory {
-    ForcedCovering create(Configuration config, LogManager logger, ConfigurableProgramAnalysis cpa)
+    ForcedCovering create(Configuration config, LogManager logger, ConfigurableProgramAnalysis<?> cpa)
         throws InvalidConfigurationException;
   }
 }

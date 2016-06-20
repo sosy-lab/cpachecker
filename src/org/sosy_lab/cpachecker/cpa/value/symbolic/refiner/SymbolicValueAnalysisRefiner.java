@@ -72,7 +72,7 @@ public class SymbolicValueAnalysisRefiner
   @Option(secure = true, description = "whether or not to do lazy-abstraction", name = "restart", toUppercase = true)
   private RestartStrategy restartStrategy = RestartStrategy.PIVOT;
 
-  public static SymbolicValueAnalysisRefiner create(final ConfigurableProgramAnalysis pCpa)
+  public static SymbolicValueAnalysisRefiner create(final ConfigurableProgramAnalysis<?> pCpa)
       throws InvalidConfigurationException {
 
     final ARGCPA argCpa = retrieveCPA(pCpa, ARGCPA.class);

@@ -62,7 +62,7 @@ public class PCCStrategyBuilder {
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      ConfigurableProgramAnalysis pCpa,
+      ConfigurableProgramAnalysis<?> pCpa,
       CFA pCfa,
       Specification pSpecification)
       throws InvalidConfigurationException {
@@ -71,8 +71,8 @@ public class PCCStrategyBuilder {
     pConfig.inject(builder);
 
     ProofChecker proofChecker = pCpa instanceof ProofChecker ? (ProofChecker) pCpa : null;
-    PropertyCheckerCPA propertyChecker =
-        pCpa instanceof PropertyCheckerCPA ? (PropertyCheckerCPA) pCpa : null;
+    PropertyCheckerCPA<?> propertyChecker =
+        pCpa instanceof PropertyCheckerCPA ? (PropertyCheckerCPA<?>) pCpa : null;
 
     return builder.strategy.create(
         pConfig, pLogger, pShutdownNotifier, pCfa, pSpecification, proofChecker, propertyChecker);

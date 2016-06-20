@@ -28,7 +28,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 
@@ -36,7 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
  * Instances of this class are configurable program analyses for analyzing a
  * program to gain information about pointer aliasing.
  */
-public class PointerCPA extends AbstractCPA {
+public class PointerCPA extends AbstractCPA<PointerState> {
 
   @Options(prefix="cpa.pointer2")
   public static class PointerOptions {
@@ -66,7 +65,7 @@ public class PointerCPA extends AbstractCPA {
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public PointerState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return PointerState.INITIAL_STATE;
   }
 

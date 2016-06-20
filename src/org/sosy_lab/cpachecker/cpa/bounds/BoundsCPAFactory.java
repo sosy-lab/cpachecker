@@ -38,7 +38,7 @@ public class BoundsCPAFactory extends AbstractCPAFactory {
   private CFA cfa;
 
   @Override
-  public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException, CPAException {
+  public ConfigurableProgramAnalysis<BoundsState> createInstance() throws InvalidConfigurationException, CPAException {
     checkNotNull(cfa, "CFA instance needed to create LoopstackCPA");
     return new BoundsCPA(getConfiguration(), cfa, getLogger());
   }

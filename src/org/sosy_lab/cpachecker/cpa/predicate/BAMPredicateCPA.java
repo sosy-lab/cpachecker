@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
  * Implements an BAM-based predicate CPA.
  */
 @Options(prefix="cpa.predicate.bam")
-public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgramAnalysisWithBAM {
+public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgramAnalysisWithBAM<PredicateAbstractState> {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(BAMPredicateCPA.class).withOptions(BAMBlockOperator.class);

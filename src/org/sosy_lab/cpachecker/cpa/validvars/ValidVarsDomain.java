@@ -24,35 +24,26 @@
 package org.sosy_lab.cpachecker.cpa.validvars;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 
-public class ValidVarsDomain implements AbstractDomain{
+public class ValidVarsDomain implements AbstractDomain<ValidVarsState> {
 
   @Override
-  public AbstractState join(AbstractState pState1, AbstractState pState2)
+  public ValidVarsState join(ValidVarsState v1, ValidVarsState v2)
       throws CPAException, InterruptedException {
-    if (pState1 instanceof ValidVarsState && pState2 instanceof ValidVarsState) {
-      ValidVarsState v1 = (ValidVarsState) pState1;
-      ValidVarsState v2 = (ValidVarsState) pState2;
-      ValidVars newVars = v1.getValidVariables().mergeWith(v2.getValidVariables());
+    ValidVars newVars = v1.getValidVariables().mergeWith(v2.getValidVariables());
 
-      if (newVars != v2.getValidVariables()) {
-        return new ValidVarsState(newVars);
-      }
+    if (newVars != v2.getValidVariables()) {
+      return new ValidVarsState(newVars);
     }
-    return pState2;
+    return v2;
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractState pState1, AbstractState pState2) throws CPAException, InterruptedException {
-    if (pState1 instanceof ValidVarsState && pState2 instanceof ValidVarsState) {
-      ValidVarsState v1 = (ValidVarsState) pState1;
-      ValidVarsState v2 = (ValidVarsState) pState2;
-      return v1.getValidVariables().isSubsetOf(v2.getValidVariables());
-    }
-    return false;
+  public boolean isLessOrEqual(ValidVarsState v1, ValidVarsState v2)
+      throws CPAException, InterruptedException {
+    return v1.getValidVariables().isSubsetOf(v2.getValidVariables());
   }
 
 }

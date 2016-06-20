@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.callstack;
 
-import java.util.Collection;
-import java.util.Set;
+import com.google.common.collect.Iterables;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -37,7 +36,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.CFASingleLoopTransformation;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
+import org.sosy_lab.cpachecker.core.defaults.FlatLatticeNoTopDomain;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -52,10 +51,11 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
-import com.google.common.collect.Iterables;
+import java.util.Collection;
+import java.util.Set;
 
-public class CallstackCPA extends AbstractCPA
-    implements ConfigurableProgramAnalysisWithBAM, ProofChecker {
+public class CallstackCPA extends AbstractCPA<CallstackState>
+    implements ConfigurableProgramAnalysisWithBAM<CallstackState>, ProofChecker {
 
   private final Reducer reducer;
 
@@ -79,7 +79,7 @@ public class CallstackCPA extends AbstractCPA
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public CallstackState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     if (cfa.getLoopStructure().isPresent()) {
       LoopStructure loopStructure = cfa.getLoopStructure().get();
       Collection<Loop> artificialLoops = loopStructure.getLoopsForFunction(
@@ -123,7 +123,8 @@ public class CallstackCPA extends AbstractCPA
 
   @Override
   public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException, InterruptedException {
-    return (getAbstractDomain().isLessOrEqual(pElement, pOtherElement)) || ((CallstackState) pElement)
+    return (getAbstractDomain().isLessOrEqual((CallstackState) pElement,
+        (CallstackState) pOtherElement)) || ((CallstackState) pElement)
         .sameStateInProofChecking((CallstackState) pOtherElement);
   }
 
@@ -138,10 +139,10 @@ public class CallstackCPA extends AbstractCPA
       pConfig.inject(this);
     }
 
-    public AbstractDomain initializeDomain() throws InvalidConfigurationException {
+    public AbstractDomain<CallstackState> initializeDomain() throws InvalidConfigurationException {
       switch (domainType) {
       case "FLAT":
-        return new FlatLatticeDomain();
+        return new FlatLatticeNoTopDomain<>();
       case "FLATPCC":
         return new CallstackPCCAbstractDomain();
       default:

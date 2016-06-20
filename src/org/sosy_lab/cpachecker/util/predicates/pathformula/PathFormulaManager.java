@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
-import java.util.List;
-import java.util.Map;
-
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -36,6 +33,9 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.Model.ValueAssignment;
+
+import java.util.List;
+import java.util.Map;
 
 public interface PathFormulaManager {
 

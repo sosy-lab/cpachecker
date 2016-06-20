@@ -103,7 +103,7 @@ public interface PCCStrategy {
         CFA cfa,
         Specification specification,
         ProofChecker proofChecker,
-        PropertyCheckerCPA propertyChecker)
+        PropertyCheckerCPA<?> propertyChecker)
         throws InvalidConfigurationException;
   }
 }

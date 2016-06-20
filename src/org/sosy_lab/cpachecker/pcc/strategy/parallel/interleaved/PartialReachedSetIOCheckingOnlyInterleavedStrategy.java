@@ -68,14 +68,14 @@ import javax.annotation.Nullable;
 public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends AbstractStrategy {
 
   private final PartitioningIOHelper ioHelper;
-  private final PropertyCheckerCPA cpa;
+  private final PropertyCheckerCPA<?> cpa;
   private final ShutdownNotifier shutdownNotifier;
 
   public PartialReachedSetIOCheckingOnlyInterleavedStrategy(
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
-      final @Nullable PropertyCheckerCPA pCpa)
+      final @Nullable PropertyCheckerCPA<?> pCpa)
       throws InvalidConfigurationException {
     super(pConfig, pLogger);
     ioHelper = new PartitioningIOHelper(pConfig, pLogger, pShutdownNotifier);

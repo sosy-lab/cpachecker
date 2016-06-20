@@ -78,7 +78,11 @@ import java.util.logging.Level;
  * This class implements an AutomatonAnalysis as described in the related Documentation.
  */
 @Options(prefix="cpa.automaton")
-public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, StatisticsProvider, ConfigurableProgramAnalysisWithBAM, ProofChecker {
+public class ControlAutomatonCPA implements
+                                 ConfigurableProgramAnalysis<AutomatonState>,
+                                 StatisticsProvider,
+                                 ConfigurableProgramAnalysisWithBAM<AutomatonState>,
+                                 ProofChecker {
 
   @Option(secure=true, name="dotExport",
       description="export automaton to file")
@@ -115,7 +119,8 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   private final AutomatonState topState = new AutomatonState.TOP(this);
   private final AutomatonState bottomState = new AutomatonState.BOTTOM(this);
 
-  private final AbstractDomain automatonDomain = new FlatLatticeDomain(topState);
+  private final AbstractDomain<AutomatonState> automatonDomain =
+      new FlatLatticeDomain<>(topState);
   private final StopOperator stopOperator = new StopSepOperator(automatonDomain);
   private final AutomatonTransferRelation transferRelation;
   private final PrecisionAdjustment precisionAdjustment;
@@ -138,7 +143,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
     this.precisionAdjustment = composePrecisionAdjustmentOp(pConfig);
 
     if (mergeOnTop) {
-      this.mergeOperator = new AutomatonTopMergeOperator(automatonDomain, topState);
+      this.mergeOperator = new AutomatonTopMergeOperator<>(automatonDomain, topState);
     } else {
       this.mergeOperator = MergeSepOperator.getInstance();
     }
@@ -212,12 +217,12 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<AutomatonState> getAbstractDomain() {
     return automatonDomain;
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public AutomatonState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return AutomatonState.automatonStateFactory(automaton.getInitialVariables(), automaton.getInitialState(), this, 0, 0, null);
   }
 
@@ -265,14 +270,19 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   }
 
   @Override
-  public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
+  public boolean areAbstractSuccessors(AbstractState pElement,
+                                       CFAEdge pCfaEdge,
+                                       Collection<? extends AbstractState> pSuccessors)
+      throws CPATransferException, InterruptedException {
     return pSuccessors.equals(getTransferRelation().getAbstractSuccessorsForEdge(
         pElement, SingletonPrecision.getInstance(), pCfaEdge));
   }
 
   @Override
-  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException, InterruptedException {
-    return getAbstractDomain().isLessOrEqual(pElement, pOtherElement);
+  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement)
+      throws CPAException, InterruptedException {
+    return getAbstractDomain().isLessOrEqual(
+        (AutomatonState) pElement, (AutomatonState) pOtherElement);
   }
 
   MachineModel getMachineModel() {

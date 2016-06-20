@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.deterministic;
 
-import java.io.PrintStream;
-import java.util.Collection;
-
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -35,7 +32,6 @@ import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -48,9 +44,14 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
-public class DeterministicVariablesCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
+import java.io.PrintStream;
+import java.util.Collection;
 
-  private final AbstractDomain domain;
+public class DeterministicVariablesCPA implements
+                                       ConfigurableProgramAnalysis<DeterministicVariablesState>,
+                                       StatisticsProvider {
+
+  private final AbstractDomain<DeterministicVariablesState> domain;
   private final DeterministicVariablesTransferRelation transfer;
   private final MergeOperator merge;
   private final StopOperator stop;
@@ -61,14 +62,14 @@ public class DeterministicVariablesCPA implements ConfigurableProgramAnalysis, S
 
   private DeterministicVariablesCPA() {
 
-    domain   = DelegateAbstractDomain.<DeterministicVariablesState>getInstance();
+    domain   = DelegateAbstractDomain.getInstance();
     transfer = new DeterministicVariablesTransferRelation();
     merge    = new MergeJoinOperator(domain);
     stop     = new StopSepOperator(domain);
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<DeterministicVariablesState> getAbstractDomain() {
     return domain;
   }
 
@@ -93,7 +94,7 @@ public class DeterministicVariablesCPA implements ConfigurableProgramAnalysis, S
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public DeterministicVariablesState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return new DeterministicVariablesState();
   }
 

@@ -31,9 +31,9 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class MonitorMerge implements MergeOperator {
 
-  private ConfigurableProgramAnalysis wrappedCpa;
+  private ConfigurableProgramAnalysis<?> wrappedCpa;
 
-  public MonitorMerge(ConfigurableProgramAnalysis pWrappedCPA) {
+  public MonitorMerge(ConfigurableProgramAnalysis<?> pWrappedCPA) {
     wrappedCpa = pWrappedCPA;
   }
 

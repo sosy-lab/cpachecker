@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.sign;
 
-import java.util.Collection;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -54,10 +52,13 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-@Options(prefix="cpa.sign")
-public class SignCPA implements ConfigurableProgramAnalysis, ProofChecker {
+import java.util.Collection;
 
-  private AbstractDomain domain;
+@Options(prefix="cpa.sign")
+public class SignCPA implements ConfigurableProgramAnalysis<SignState>,
+                                ProofChecker {
+
+  private AbstractDomain<SignState> domain;
 
   private SignTransferRelation transfer;
 
@@ -77,7 +78,7 @@ public class SignCPA implements ConfigurableProgramAnalysis, ProofChecker {
   public SignCPA(LogManager pLogger, Configuration config) throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
-    domain = DelegateAbstractDomain.<SignState>getInstance();
+    domain = DelegateAbstractDomain.getInstance();
     transfer = new SignTransferRelation(logger);
 
     if (stopType.equals("SEP")) {
@@ -97,7 +98,7 @@ public class SignCPA implements ConfigurableProgramAnalysis, ProofChecker {
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<SignState> getAbstractDomain() {
     return domain;
   }
 
@@ -122,7 +123,7 @@ public class SignCPA implements ConfigurableProgramAnalysis, ProofChecker {
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public SignState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return SignState.TOP;
   }
 
@@ -133,15 +134,16 @@ public class SignCPA implements ConfigurableProgramAnalysis, ProofChecker {
 
   @Override
   public boolean areAbstractSuccessors(AbstractState pState, CFAEdge pCfaEdge,
-      Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
+                                       Collection<? extends AbstractState> pSuccessors)
+      throws CPATransferException, InterruptedException {
     try {
       Collection<? extends AbstractState> computedSuccessors =
           transfer.getAbstractSuccessorsForEdge(
               pState, SingletonPrecision.getInstance(), pCfaEdge);
       boolean found;
-      for (AbstractState comp:computedSuccessors) {
+      for (AbstractState comp : computedSuccessors) {
         found = false;
-        for (AbstractState e:pSuccessors) {
+        for (AbstractState e : pSuccessors) {
           if (isCoveredBy(comp, e)) {
             found = true;
             break;
@@ -158,8 +160,9 @@ public class SignCPA implements ConfigurableProgramAnalysis, ProofChecker {
   }
 
   @Override
-  public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException, InterruptedException {
-    return domain.isLessOrEqual(pState, pOtherState);
+  public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws
+                                                              CPAException, InterruptedException {
+    return domain.isLessOrEqual((SignState) pState, (SignState) pOtherState);
   }
 
 }

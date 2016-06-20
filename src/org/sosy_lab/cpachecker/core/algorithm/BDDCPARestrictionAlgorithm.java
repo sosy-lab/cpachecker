@@ -67,7 +67,7 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
   private final NamedRegionManager manager;
   private Region errorSummary;
 
-  public BDDCPARestrictionAlgorithm(Algorithm algorithm, ConfigurableProgramAnalysis pCpa,
+  public BDDCPARestrictionAlgorithm(Algorithm algorithm, ConfigurableProgramAnalysis<?> pCpa,
       Configuration config, LogManager logger) throws InvalidConfigurationException {
     this.algorithm = algorithm;
     this.logger = logger;

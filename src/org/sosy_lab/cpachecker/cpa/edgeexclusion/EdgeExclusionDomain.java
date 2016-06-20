@@ -24,25 +24,26 @@
 package org.sosy_lab.cpachecker.cpa.edgeexclusion;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * This is the abstract domain of the edge exclusion CPA.
  */
-enum EdgeExclusionDomain implements AbstractDomain {
+enum EdgeExclusionDomain implements AbstractDomain<EdgeExclusionState> {
 
   INSTANCE;
 
   @Override
-  public AbstractState join(AbstractState pState1, AbstractState pState2) throws CPAException {
+  public EdgeExclusionState join(EdgeExclusionState pState1, EdgeExclusionState pState2)
+      throws CPAException {
     assert pState1 == EdgeExclusionState.TOP;
     assert pState2 == EdgeExclusionState.TOP;
     return EdgeExclusionState.TOP;
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractState pState1, AbstractState pState2) throws CPAException, InterruptedException {
+  public boolean isLessOrEqual(EdgeExclusionState pState1, EdgeExclusionState pState2) throws
+                                                                 CPAException, InterruptedException {
     assert pState1 == EdgeExclusionState.TOP;
     assert pState2 == EdgeExclusionState.TOP;
     return true;

@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopNeverOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -49,7 +48,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 @Options(prefix="cpa.pointerA")
-public class AndersenCPA implements ConfigurableProgramAnalysis {
+public class AndersenCPA implements ConfigurableProgramAnalysis<AndersenState> {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(AndersenCPA.class);
@@ -63,7 +62,7 @@ public class AndersenCPA implements ConfigurableProgramAnalysis {
       description="which stop operator to use for PointerACPA")
   private String stopType = "SEP";
 
-  private AbstractDomain abstractDomain;
+  private AbstractDomain<AndersenState> abstractDomain;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
   private TransferRelation transferRelation;
@@ -73,7 +72,7 @@ public class AndersenCPA implements ConfigurableProgramAnalysis {
   private AndersenCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
 
-    abstractDomain      = DelegateAbstractDomain.<AndersenState>getInstance();
+    abstractDomain      = DelegateAbstractDomain.getInstance();
     transferRelation    = new AndersenTransferRelation(logger);
     mergeOperator       = initializeMergeOperator();
     stopOperator        = initializeStopOperator();
@@ -108,7 +107,7 @@ public class AndersenCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<AndersenState> getAbstractDomain() {
     return abstractDomain;
   }
 
@@ -128,7 +127,7 @@ public class AndersenCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public AndersenState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return new AndersenState();
   }
 

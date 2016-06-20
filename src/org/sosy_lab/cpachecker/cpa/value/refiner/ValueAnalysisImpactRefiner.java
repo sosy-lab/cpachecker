@@ -78,7 +78,7 @@ public class ValueAnalysisImpactRefiner
   private StatTimer timePrecision = new StatTimer("precision");
   private StatTimer timeRemove = new StatTimer("remove");
 
-  public static ValueAnalysisImpactRefiner create(final ConfigurableProgramAnalysis pCpa)
+  public static ValueAnalysisImpactRefiner create(final ConfigurableProgramAnalysis<?> pCpa)
     throws InvalidConfigurationException {
 
     final ARGCPA argCpa = retrieveCPA(pCpa, ARGCPA.class);

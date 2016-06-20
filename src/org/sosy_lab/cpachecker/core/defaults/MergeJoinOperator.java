@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 /**
  * Standard merge-join operator
  */
+@SuppressWarnings({"rawtypes", "unchecked"})
 public class MergeJoinOperator implements MergeOperator {
 
   private final AbstractDomain domain;

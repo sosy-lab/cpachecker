@@ -23,16 +23,16 @@
  */
 package org.sosy_lab.cpachecker.util;
 
-import java.util.logging.Level;
+import com.google.common.base.Throwables;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.TreeTraverser;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 
-import com.google.common.base.Throwables;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.TreeTraverser;
+import java.util.logging.Level;
 
 /**
  * Helper functions to work with CPAs.
@@ -48,7 +48,7 @@ public class CPAs {
    * @param cls The type to search for.
    * @return The found CPA, or null if none was found.
    */
-  public static <T extends ConfigurableProgramAnalysis> T retrieveCPA(ConfigurableProgramAnalysis cpa, Class<T> cls) {
+  public static <T extends ConfigurableProgramAnalysis<?>> T retrieveCPA (ConfigurableProgramAnalysis<?> cpa, Class<T> cls) {
     if (cls.isInstance(cpa)) {
       return cls.cast(cpa);
     } else if (cpa instanceof WrapperCPA) {
@@ -63,14 +63,14 @@ public class CPAs {
    * a single CPA, including the root CPA itself.
    * The tree of elements is traversed in pre-order.
    */
-  public static FluentIterable<ConfigurableProgramAnalysis> asIterable(final ConfigurableProgramAnalysis pCpa) {
+  public static FluentIterable<ConfigurableProgramAnalysis<?>> asIterable(final ConfigurableProgramAnalysis<?> pCpa) {
 
-    return new TreeTraverser<ConfigurableProgramAnalysis>() {
+    return new TreeTraverser<ConfigurableProgramAnalysis<?>>() {
       @Override
-      public Iterable<ConfigurableProgramAnalysis> children(ConfigurableProgramAnalysis cpa) {
+      public Iterable<ConfigurableProgramAnalysis<?>> children(ConfigurableProgramAnalysis<?> cpa) {
         return (cpa instanceof WrapperCPA)
              ? ((WrapperCPA)cpa).getWrappedCPAs()
-             : ImmutableList.<ConfigurableProgramAnalysis>of();
+             : ImmutableList.of();
       }
     }.preOrderTraversal(pCpa);
   }
@@ -79,8 +79,8 @@ public class CPAs {
    * Close all CPAs (including wrapped CPAs) if they support this.
    * @param cpa A CPA (possibly a WrapperCPA).
    */
-  public static void closeCpaIfPossible(ConfigurableProgramAnalysis cpa, LogManager logger) {
-    for (ConfigurableProgramAnalysis currentCpa : CPAs.asIterable(cpa)) {
+  public static void closeCpaIfPossible(ConfigurableProgramAnalysis<?> cpa, LogManager logger) {
+    for (ConfigurableProgramAnalysis<?> currentCpa : CPAs.asIterable(cpa)) {
       closeIfPossible(currentCpa, logger);
     }
   }

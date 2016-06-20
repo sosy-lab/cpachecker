@@ -80,7 +80,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Options(prefix="cpa.value")
-public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider, ProofChecker, ConfigurableProgramAnalysisWithConcreteCex {
+public class ValueAnalysisCPA implements
+                              ConfigurableProgramAnalysisWithBAM<ValueAnalysisState>,
+                              StatisticsProvider,
+                              ProofChecker,
+                              ConfigurableProgramAnalysisWithConcreteCex {
 
   @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
       description="which merge operator to use for ValueAnalysisCPA")
@@ -98,7 +102,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
     return AutomaticCPAFactory.forType(ValueAnalysisCPA.class);
   }
 
-  private AbstractDomain abstractDomain;
+  private AbstractDomain<ValueAnalysisState> abstractDomain;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
   private ValueAnalysisTransferRelation transferRelation;
@@ -125,7 +129,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
 
     config.inject(this);
 
-    abstractDomain      = DelegateAbstractDomain.<ValueAnalysisState>getInstance();
+    abstractDomain      = DelegateAbstractDomain.getInstance();
     transferRelation    = new ValueAnalysisTransferRelation(config, logger, cfa);
     precision           = initializePrecision(config, cfa);
     mergeOperator       = initializeMergeOperator();
@@ -237,7 +241,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<ValueAnalysisState> getAbstractDomain() {
     return abstractDomain;
   }
 
@@ -257,7 +261,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public ValueAnalysisState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return new ValueAnalysisState(cfa.getMachineModel());
   }
 
@@ -336,7 +340,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
 
   @Override
   public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException, InterruptedException {
-     return abstractDomain.isLessOrEqual(pState, pOtherState);
+     return abstractDomain.isLessOrEqual((ValueAnalysisState) pState, (ValueAnalysisState) pOtherState);
   }
 
   @Override

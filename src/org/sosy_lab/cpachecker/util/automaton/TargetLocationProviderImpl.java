@@ -77,7 +77,7 @@ public class TargetLocationProviderImpl implements TargetLocationProvider {
 
       ReachedSetFactory reachedSetFactory = new ReachedSetFactory(configuration);
       CPABuilder cpaBuilder = new CPABuilder(configuration, logManager, shutdownNotifier, reachedSetFactory);
-      final ConfigurableProgramAnalysis cpa =
+      final ConfigurableProgramAnalysis<?> cpa =
           cpaBuilder.buildCPAs(cfa, specification, new AggregatedReachedSets());
 
       ReachedSet reached = reachedSetFactory.create();

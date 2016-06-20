@@ -24,8 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.cfapath;
 
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 
-public class CFAPathDomain extends FlatLatticeDomain {
+public class CFAPathDomain extends FlatLatticeDomain<CFAPathState>
+    implements AbstractDomain<CFAPathState> {
 
   private static final CFAPathDomain sDomainInstance = new CFAPathDomain();
 

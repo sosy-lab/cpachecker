@@ -37,6 +37,7 @@ import java.util.Iterator;
  * of the reached set into a single state, and then checks the
  * partial order relation.
  */
+@SuppressWarnings({"rawtypes", "unchecked"})
 public class StopJoinOperator implements StopOperator {
 
  private final AbstractDomain domain;

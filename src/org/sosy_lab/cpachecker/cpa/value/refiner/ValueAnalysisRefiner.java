@@ -114,7 +114,7 @@ public class ValueAnalysisRefiner
   private final StatCounter rootRelocations = new StatCounter("Number of root relocations");
   private final StatCounter repeatedRefinements = new StatCounter("Number of similar, repeated refinements");
 
-  public static ValueAnalysisRefiner create(final ConfigurableProgramAnalysis pCpa)
+  public static ValueAnalysisRefiner create(final ConfigurableProgramAnalysis<?> pCpa)
       throws InvalidConfigurationException {
 
     final ARGCPA argCpa = retrieveCPA(pCpa, ARGCPA.class);

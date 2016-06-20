@@ -23,10 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.chc;
 
-import java.io.PrintStream;
-import java.util.Collection;
-import java.util.logging.Level;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -38,7 +34,6 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -51,8 +46,12 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
+import java.io.PrintStream;
+import java.util.Collection;
+import java.util.logging.Level;
+
 @Options(prefix="cpa.chc")
-public class CHCCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
+public class CHCCPA implements ConfigurableProgramAnalysis<CHCState>, StatisticsProvider {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(CHCCPA.class);
@@ -89,7 +88,7 @@ public class CHCCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
   private String mergeType = "SEP";
 
 
-  private final AbstractDomain abstractDomain;
+  private final AbstractDomain<CHCState> abstractDomain;
   private final Precision precision;
   private final PrecisionAdjustment precisionAdjustment;
   private final MergeOperator mergeOperator;
@@ -114,7 +113,7 @@ public class CHCCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<CHCState> getAbstractDomain() {
     return abstractDomain;
   }
 
@@ -139,7 +138,7 @@ public class CHCCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public CHCState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     CHCState initialState = new CHCState();
     initialState.setNodeNumber(1);
     return initialState;

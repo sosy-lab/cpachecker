@@ -52,7 +52,7 @@ class LocationCPAFactory extends AbstractCPAFactory {
   }
 
   @Override
-  public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
+  public ConfigurableProgramAnalysis<LocationState> createInstance() throws InvalidConfigurationException {
     checkNotNull(cfa, "CFA instance needed to create LocationCPA");
 
     switch (locationType) {

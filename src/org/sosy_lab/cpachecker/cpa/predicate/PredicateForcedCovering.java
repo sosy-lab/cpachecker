@@ -107,7 +107,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
   private final ImpactUtility impact;
 
   public PredicateForcedCovering(Configuration config, LogManager pLogger,
-      ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
+      ConfigurableProgramAnalysis<?> pCpa) throws InvalidConfigurationException {
     logger = pLogger;
 
     if (!(pCpa instanceof ARGCPA)) {

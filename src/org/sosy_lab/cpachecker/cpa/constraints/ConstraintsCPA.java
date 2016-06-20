@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints;
 
-import java.util.Collection;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -37,7 +35,6 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -48,18 +45,25 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.constraints.domain.*;
-import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.ConstraintsPrecision;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.AliasedSubsetLessOrEqualOperator;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsMergeOperator;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ImplicationLessOrEqualOperator;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.SubsetLessOrEqualOperator;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.ConstraintsPrecisionAdjustment;
+import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.ConstraintsPrecision;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.FullConstraintsPrecision;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+
+import java.util.Collection;
 
 /**
  * Configurable Program Analysis that tracks constraints for analysis.
  */
 @Options(prefix = "cpa.constraints")
-public class ConstraintsCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
+public class ConstraintsCPA implements ConfigurableProgramAnalysis<ConstraintsState>,
+    StatisticsProvider {
 
   public enum ComparisonType { SUBSET, ALIASED_SUBSET, IMPLICATION }
 
@@ -73,7 +77,7 @@ public class ConstraintsCPA implements ConfigurableProgramAnalysis, StatisticsPr
 
   private final LogManager logger;
 
-  private AbstractDomain abstractDomain;
+  private AbstractDomain<ConstraintsState> abstractDomain;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
   private TransferRelation transferRelation;
@@ -119,7 +123,7 @@ public class ConstraintsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     return new StopSepOperator(abstractDomain);
   }
 
-  private AbstractDomain initializeAbstractDomain() {
+  private AbstractDomain<ConstraintsState> initializeAbstractDomain() {
     switch (lessOrEqualType) {
       case SUBSET:
         abstractDomain = SubsetLessOrEqualOperator.getInstance();
@@ -141,7 +145,7 @@ public class ConstraintsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<ConstraintsState> getAbstractDomain() {
     return abstractDomain;
   }
 
@@ -166,7 +170,7 @@ public class ConstraintsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   }
 
   @Override
-  public AbstractState getInitialState(CFANode node, StateSpacePartition partition) {
+  public ConstraintsState getInitialState(CFANode node, StateSpacePartition partition) {
     return new ConstraintsState();
   }
 

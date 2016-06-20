@@ -23,19 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cpa.uninitvars;
 
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
+import org.sosy_lab.cpachecker.util.Pair;
+
 import java.util.Collection;
 import java.util.Iterator;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.util.Pair;
-
-public class UninitializedVariablesDomain implements AbstractDomain {
+public class UninitializedVariablesDomain implements AbstractDomain<UninitializedVariablesState> {
 
   @Override
-  public AbstractState join(AbstractState element1, AbstractState element2) {
-      UninitializedVariablesState uninitVarsElement1 = (UninitializedVariablesState)element1;
-      UninitializedVariablesState uninitVarsElement2 = (UninitializedVariablesState)element2;
+  public UninitializedVariablesState join(UninitializedVariablesState uninitVarsElement1,
+                            UninitializedVariablesState uninitVarsElement2) {
 
     if (uninitVarsElement2.getGlobalVariables().containsAll(uninitVarsElement1.getGlobalVariables())
         && uninitVarsElement2.getLocalVariables().containsAll(uninitVarsElement1.getLocalVariables())) {
@@ -53,11 +51,9 @@ public class UninitializedVariablesDomain implements AbstractDomain {
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractState element1, AbstractState element2) {
+  public boolean isLessOrEqual(UninitializedVariablesState uninitVarsElement1,
+                               UninitializedVariablesState uninitVarsElement2) {
       // returns true if element1 < element2 on lattice
-      UninitializedVariablesState uninitVarsElement1 = (UninitializedVariablesState)element1;
-      UninitializedVariablesState uninitVarsElement2 = (UninitializedVariablesState)element2;
-
       if (!uninitVarsElement1.getGlobalVariables().containsAll(
                               uninitVarsElement2.getGlobalVariables())) {
         return false;

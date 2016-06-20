@@ -26,8 +26,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
-import java.util.Optional;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -47,6 +45,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
+
+import java.util.Optional;
 
 import javax.annotation.Nullable;
 
@@ -76,7 +76,7 @@ public class PredicateCPARefinerFactory {
    *    If there is no PredicateCPA configured or if configuration is invalid.
    */
   @SuppressWarnings("options")
-  public PredicateCPARefinerFactory(ConfigurableProgramAnalysis pCpa)
+  public PredicateCPARefinerFactory(ConfigurableProgramAnalysis<?> pCpa)
       throws InvalidConfigurationException {
     predicateCpa = CPAs.retrieveCPA(checkNotNull(pCpa), PredicateCPA.class);
     if (predicateCpa == null) {

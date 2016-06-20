@@ -102,7 +102,7 @@ public class PredicateCPATest {
       factory.set(new ReachedSetFactory(config), ReachedSetFactory.class);
       factory.set(Specification.alwaysSatisfied(), Specification.class);
 
-      ConfigurableProgramAnalysis cpa = factory.createInstance();
+      ConfigurableProgramAnalysis<?> cpa = factory.createInstance();
       if (cpa instanceof AutoCloseable) {
         ((AutoCloseable)cpa).close();
       }

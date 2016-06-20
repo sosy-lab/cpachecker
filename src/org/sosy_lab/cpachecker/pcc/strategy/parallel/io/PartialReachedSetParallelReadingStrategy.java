@@ -66,7 +66,7 @@ import javax.annotation.Nullable;
 public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
 
   private final PartitioningIOHelper ioHelper;
-  private final PropertyCheckerCPA cpa;
+  private final PropertyCheckerCPA<?> cpa;
   private final ShutdownNotifier shutdownNotifier;
   private final Lock lock = new ReentrantLock();
 
@@ -78,7 +78,7 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
-      final @Nullable PropertyCheckerCPA pCpa)
+      final @Nullable PropertyCheckerCPA<?> pCpa)
       throws InvalidConfigurationException {
     super(pConfig, pLogger);
     pConfig.inject(this);

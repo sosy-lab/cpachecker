@@ -147,8 +147,8 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   }
 
   /** retrieve the wrapped CPA or throw an exception. */
-  protected static final <T extends ConfigurableProgramAnalysis> T retrieveCPA(
-      ConfigurableProgramAnalysis pCpa, Class<T> retrieveCls)
+  protected static final <T extends ConfigurableProgramAnalysis<?>> T retrieveCPA(
+      ConfigurableProgramAnalysis<?> pCpa, Class<T> retrieveCls)
           throws InvalidConfigurationException {
     final T extractedCPA = CPAs.retrieveCPA(pCpa, retrieveCls);
     if (extractedCPA == null) {

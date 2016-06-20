@@ -23,14 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.programcounter;
 
-import java.math.BigInteger;
-import java.util.Objects;
-import java.util.Set;
+import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
-import com.google.common.collect.ImmutableSet;
+import java.math.BigInteger;
+import java.util.Objects;
+import java.util.Set;
 
 
 public class ProgramCounterState implements AbstractState, LatticeAbstractState<ProgramCounterState> {
@@ -147,7 +147,7 @@ public class ProgramCounterState implements AbstractState, LatticeAbstractState<
     return new ProgramCounterState(ImmutableSet.of(pPCValue));
   }
 
-  public static AbstractState getStateForValues(Iterable<BigInteger> pValues) {
+  public static ProgramCounterState getStateForValues(Iterable<BigInteger> pValues) {
     ImmutableSet.Builder<BigInteger> builder = ImmutableSet.builder();
     for (BigInteger value : pValues) {
       builder.add(value);

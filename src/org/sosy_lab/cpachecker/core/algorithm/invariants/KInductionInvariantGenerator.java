@@ -171,7 +171,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
   private final KInductionInvariantGeneratorStatistics stats = new KInductionInvariantGeneratorStatistics();
 
   private final BMCAlgorithmForInvariantGeneration algorithm;
-  private final ConfigurableProgramAnalysis cpa;
+  private final ConfigurableProgramAnalysis<?> cpa;
   private final ReachedSetFactory reachedSetFactory;
 
   private final LogManager logger;
@@ -578,7 +578,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
     Specification automatonAsSpec =
         Specification.fromFiles(
             ImmutableList.of(options.invariantsAutomatonFile), pCFA, config, pLogger);
-    ConfigurableProgramAnalysis cpa =
+    ConfigurableProgramAnalysis<?> cpa =
         builder.buildCPAs(pCFA, automatonAsSpec, new AggregatedReachedSets());
     CPAAlgorithm algorithm = CPAAlgorithm.create(cpa, pLogger, config, notifier);
     CFANode rootNode = pCFA.getMainFunction();

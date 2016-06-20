@@ -242,7 +242,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     final Algorithm algorithm;
     final ReachedSet reached;
     final LogManager singleLogger;
-    final ConfigurableProgramAnalysis cpa;
+    final ConfigurableProgramAnalysis<?> cpa;
     final boolean supplyReached;
     final boolean supplyRefinableReached;
     final CoreComponentsFactory coreComponents;
@@ -330,7 +330,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       final boolean supplyRefinableReached,
       final boolean supplyReached,
       final Algorithm algorithm,
-      final ConfigurableProgramAnalysis cpa,
+      final ConfigurableProgramAnalysis<?> cpa,
       final ReachedSet reached,
       final LogManager singleLogger,
       final CoreComponentsFactory componentsFactory) {
@@ -434,7 +434,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   private ReachedSet createInitialReachedSet(
-      ConfigurableProgramAnalysis cpa, CFANode mainFunction, CoreComponentsFactory pFactory) {
+      ConfigurableProgramAnalysis<?> cpa, CFANode mainFunction, CoreComponentsFactory pFactory) {
     AbstractState initialState = cpa.getInitialState(mainFunction, getDefaultPartition());
     Precision initialPrecision = cpa.getInitialPrecision(mainFunction, getDefaultPartition());
 

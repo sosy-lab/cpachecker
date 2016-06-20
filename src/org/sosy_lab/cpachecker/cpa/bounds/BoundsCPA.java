@@ -26,14 +26,9 @@ package org.sosy_lab.cpachecker.cpa.bounds;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
-import java.io.PrintStream;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -46,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
+import org.sosy_lab.cpachecker.core.defaults.FlatLatticeNoTopDomain;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -64,12 +60,17 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
+import java.io.PrintStream;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 @Options(prefix="cpa.bounds")
-public class BoundsCPA extends AbstractCPA implements ReachedSetAdjustingCPA, StatisticsProvider, Statistics {
+public class BoundsCPA extends AbstractCPA<BoundsState> implements ReachedSetAdjustingCPA, StatisticsProvider, Statistics {
 
   private final LogManager logger;
 
@@ -106,7 +107,7 @@ public class BoundsCPA extends AbstractCPA implements ReachedSetAdjustingCPA, St
   }
 
   private BoundsCPA(Configuration config, CFA pCfa, LogManager pLogger, DelegatingTransferRelation pDelegatingTransferRelation) throws InvalidConfigurationException, CPAException {
-    super("sep", "sep", pDelegatingTransferRelation);
+    super("sep", "sep", new FlatLatticeNoTopDomain<>(), pDelegatingTransferRelation);
     if (!pCfa.getLoopStructure().isPresent()) {
       throw new CPAException("UnifiedLoopstackCPA cannot work without loop-structure information in CFA.");
     }
@@ -119,7 +120,7 @@ public class BoundsCPA extends AbstractCPA implements ReachedSetAdjustingCPA, St
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public BoundsState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     if (pNode instanceof FunctionEntryNode) {
       // shortcut for the common case, a function start node can never be in a loop
       // (loops don't span across functions)

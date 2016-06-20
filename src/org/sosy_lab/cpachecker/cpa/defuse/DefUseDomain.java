@@ -23,27 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.defuse;
 
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
+
 import java.util.HashSet;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-
-public class DefUseDomain implements AbstractDomain {
+public class DefUseDomain implements AbstractDomain<DefUseState> {
   @Override
-  public boolean isLessOrEqual(AbstractState element1, AbstractState element2) {
-            DefUseState defUseState1 = (DefUseState) element1;
-            DefUseState defUseState2 = (DefUseState) element2;
-
+  public boolean isLessOrEqual(DefUseState defUseState1, DefUseState defUseState2) {
             return defUseState2.containsAllOf(defUseState1);
     }
 
     @Override
-    public AbstractState join(AbstractState element1, AbstractState element2) {
-            // Useless code, but helps to catch bugs by causing cast exceptions
-            DefUseState defUseState1 = (DefUseState) element1;
-            DefUseState defUseState2 = (DefUseState) element2;
-
+    public DefUseState join(DefUseState defUseState1, DefUseState defUseState2) {
             Set<DefUseDefinition> joined = new HashSet<> ();
             for (DefUseDefinition definition : defUseState1) {
               joined.add(definition);

@@ -26,9 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.logging.Level;
+import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -49,7 +47,9 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 
-import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Level;
 
 @Options(prefix="adjustableconditions")
 public class RestartWithConditionsAlgorithm implements Algorithm {
@@ -65,7 +65,7 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
   private int adjustmentLimit = -1;
 
   public RestartWithConditionsAlgorithm(Algorithm pAlgorithm,
-        ConfigurableProgramAnalysis pCpa, Configuration config, LogManager pLogger)
+        ConfigurableProgramAnalysis<?> pCpa, Configuration config, LogManager pLogger)
         throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;

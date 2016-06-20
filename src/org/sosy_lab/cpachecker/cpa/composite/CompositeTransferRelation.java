@@ -416,7 +416,9 @@ final class CompositeTransferRelation implements TransferRelation {
     return Collections.singletonList(element);
   }
 
-  boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors, List<ConfigurableProgramAnalysis> cpas) throws CPATransferException, InterruptedException {
+  boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge,
+                                Collection<? extends AbstractState>
+                                    pSuccessors, List<ConfigurableProgramAnalysis<?>> cpas) throws CPATransferException, InterruptedException {
     Preconditions.checkNotNull(pCfaEdge);
 
     CompositeState compositeState = (CompositeState)pElement;

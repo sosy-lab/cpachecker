@@ -108,11 +108,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
+@SuppressWarnings("rawtypes")
 @Options(prefix="enabledanalysis")
 public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, StatisticsProvider{
 
   private final Algorithm algorithm;
-  private final ConfigurableProgramAnalysis cpa;
+  private final ConfigurableProgramAnalysis<?> cpa;
   private final PredicateCPA predCPA;
   private final CFA cfa;
   private final LogManager logger;
@@ -140,10 +141,11 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     VALUE(ValueAnalysisState.class, ValueAnalysisCPA.class);
 
     private Class<? extends AbstractState> stateClass;
-    private Class<? extends ConfigurableProgramAnalysis> cpaClass;
+    private Class<? extends ConfigurableProgramAnalysis<?>> cpaClass;
 
-    private Enabler(Class<? extends AbstractState> pStateClassOfEnabler,
-        Class<? extends ConfigurableProgramAnalysis> pCPAClassOfEnabler) {
+    private Enabler(
+        Class<? extends AbstractState> pStateClassOfEnabler,
+        Class<? extends ConfigurableProgramAnalysis<?>> pCPAClassOfEnabler) {
       stateClass = pStateClassOfEnabler;
       cpaClass = pCPAClassOfEnabler;
     }

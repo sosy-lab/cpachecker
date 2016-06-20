@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.conditions.global;
 
-import java.util.Collection;
-import java.util.logging.Level;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -56,13 +53,17 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
+import java.util.Collection;
+import java.util.logging.Level;
 
-public class GlobalConditionsCPA implements ConfigurableProgramAnalysisWithBAM, AdjustableConditionCPA, ProofChecker {
+
+public class GlobalConditionsCPA implements
+                                 ConfigurableProgramAnalysisWithBAM<SingletonAbstractState>, AdjustableConditionCPA, ProofChecker {
 
   private final PrecisionAdjustment precisionAdjustment;
   private final GlobalConditionsThresholds thresholds;
 
-  private final AbstractDomain domain;
+  private final AbstractDomain<SingletonAbstractState> domain;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(GlobalConditionsCPA.class);
@@ -86,7 +87,7 @@ public class GlobalConditionsCPA implements ConfigurableProgramAnalysisWithBAM, 
       precisionAdjustment = StaticPrecisionAdjustment.getInstance();
     }
 
-    domain = new FlatLatticeDomain(SingletonAbstractState.INSTANCE);
+    domain = new FlatLatticeDomain<>(SingletonAbstractState.INSTANCE);
   }
 
   @Override
@@ -95,7 +96,7 @@ public class GlobalConditionsCPA implements ConfigurableProgramAnalysisWithBAM, 
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public SingletonAbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return SingletonAbstractState.INSTANCE;
   }
 
@@ -105,7 +106,7 @@ public class GlobalConditionsCPA implements ConfigurableProgramAnalysisWithBAM, 
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<SingletonAbstractState> getAbstractDomain() {
     return domain;
   }
 

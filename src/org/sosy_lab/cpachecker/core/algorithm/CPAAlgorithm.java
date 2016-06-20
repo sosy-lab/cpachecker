@@ -141,11 +141,11 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
     private final ForcedCovering forcedCovering;
 
-    private final ConfigurableProgramAnalysis cpa;
+    private final ConfigurableProgramAnalysis<?> cpa;
     private final LogManager logger;
     private final ShutdownNotifier shutdownNotifier;
 
-    public CPAAlgorithmFactory(ConfigurableProgramAnalysis cpa, LogManager logger,
+    public CPAAlgorithmFactory(ConfigurableProgramAnalysis<?> cpa, LogManager logger,
         Configuration config, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
 
       config.inject(this);
@@ -166,7 +166,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  public static CPAAlgorithm create(ConfigurableProgramAnalysis cpa, LogManager logger,
+  public static CPAAlgorithm create(ConfigurableProgramAnalysis<?> cpa, LogManager logger,
       Configuration config, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
 
     return new CPAAlgorithmFactory(cpa, logger, config, pShutdownNotifier).newInstance();
@@ -188,7 +188,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
   private final AlgorithmStatus status;
 
-  private CPAAlgorithm(ConfigurableProgramAnalysis cpa, LogManager logger,
+  private CPAAlgorithm(ConfigurableProgramAnalysis<?> cpa, LogManager logger,
       ShutdownNotifier pShutdownNotifier,
       ForcedCovering pForcedCovering,
       boolean pIsImprecise) {

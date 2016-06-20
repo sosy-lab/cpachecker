@@ -66,7 +66,7 @@ public class BackwardTargetsReachedSetStrategy extends SequentialReadStrategy im
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
-      final @Nullable PropertyCheckerCPA pCpa)
+      final @Nullable PropertyCheckerCPA<?> pCpa)
       throws InvalidConfigurationException {
     super(pConfig, pLogger);
     pConfig.inject(this);

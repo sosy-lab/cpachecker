@@ -24,8 +24,6 @@
  */
 package org.sosy_lab.cpachecker.util.refinement;
 
-import java.util.Optional;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -43,6 +41,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import java.util.Deque;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -106,7 +105,7 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
       final FeasibilityChecker<S> pFeasibilityChecker,
       final InterpolantManager<S, I> pInterpolantManager,
       final S pInitialState,
-      final Class<? extends ConfigurableProgramAnalysis> pCpaToRefine,
+      final Class<? extends ConfigurableProgramAnalysis<?>> pCpaToRefine,
       final Configuration pConfig,
       final ShutdownNotifier pShutdownNotifier,
       final CFA pCfa

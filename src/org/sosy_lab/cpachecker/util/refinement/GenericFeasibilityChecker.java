@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.refinement;
 
-import java.util.Optional;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -41,6 +39,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -60,7 +59,7 @@ public class GenericFeasibilityChecker<S extends ForgetfulState<?>>
   public GenericFeasibilityChecker(
       final StrongestPostOperator<S> pStrongestPostOp,
       final S pInitialState,
-      final Class<? extends ConfigurableProgramAnalysis> pCpaToRefine,
+      final Class<? extends ConfigurableProgramAnalysis<?>> pCpaToRefine,
       final LogManager pLogger,
       final Configuration pConfig,
       final CFA pCfa

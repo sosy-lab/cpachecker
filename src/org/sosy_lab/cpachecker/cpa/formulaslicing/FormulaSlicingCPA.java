@@ -1,7 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
 import com.google.common.base.Function;
-import java.util.Optional;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -40,12 +39,13 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager;
 
 import java.util.Collection;
+import java.util.Optional;
 
 
 public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   implements
-    ConfigurableProgramAnalysis,
-    AbstractDomain,
+    ConfigurableProgramAnalysis<SlicingState>,
+    AbstractDomain<SlicingState>,
     PrecisionAdjustment,
     StatisticsProvider, MergeOperator {
 
@@ -91,7 +91,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<SlicingState> getAbstractDomain() {
     return this;
   }
 
@@ -116,7 +116,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   }
 
   @Override
-  public AbstractState getInitialState(CFANode node,
+  public SlicingState getInitialState(CFANode node,
       StateSpacePartition partition) {
     return manager.getInitialState(node);
   }
@@ -129,17 +129,16 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   }
 
   @Override
-  public AbstractState join(AbstractState state1, AbstractState state2)
+  public SlicingState join(SlicingState state1, SlicingState state2)
       throws CPAException, InterruptedException {
     throw new UnsupportedOperationException("FormulaSlicingCPA should be used" +
      " with its own merge operator");
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractState state1, AbstractState state2)
+  public boolean isLessOrEqual(SlicingState state1, SlicingState state2)
       throws CPAException, InterruptedException {
-    return manager.isLessOrEqual((SlicingState)state1,
-        (SlicingState)state2);
+    return manager.isLessOrEqual(state1, state2);
   }
 
   @Override

@@ -23,11 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.reachdef;
 
-import java.util.Collection;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -61,6 +56,11 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils;
 
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
+
 /*
  * Requires preprocessing with cil to get proper result because preprocessing guarantees that
  * 1) no two variables accessible in function f, have same name in function f
@@ -70,11 +70,11 @@ import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils;
  * with CallstackCPA.
  */
 @Options(prefix="cpa.reachdef")
-public class ReachingDefCPA implements ConfigurableProgramAnalysis, ProofChecker {
+public class ReachingDefCPA implements ConfigurableProgramAnalysis<ReachingDefState>, ProofChecker {
 
   private LogManager logger;
 
-  private AbstractDomain domain;
+  private AbstractDomain<ReachingDefState> domain;
 
   private ReachingDefTransferRelation transfer;
 
@@ -97,7 +97,7 @@ public class ReachingDefCPA implements ConfigurableProgramAnalysis, ProofChecker
     config.inject(this);
     this.logger = logger;
 
-    domain = DelegateAbstractDomain.<ReachingDefState>getInstance();
+    domain = DelegateAbstractDomain.getInstance();
     transfer = new ReachingDefTransferRelation(logger, shutdownNotifier);
 
     if (stopType.equals("SEP")) {
@@ -117,7 +117,7 @@ public class ReachingDefCPA implements ConfigurableProgramAnalysis, ProofChecker
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<ReachingDefState> getAbstractDomain() {
     return domain;
   }
 
@@ -142,7 +142,7 @@ public class ReachingDefCPA implements ConfigurableProgramAnalysis, ProofChecker
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public ReachingDefState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     logger.log(Level.FINE, "Start extracting all declared variables in program.",
         "Distinguish between local and global variables.");
     Pair<Set<String>, Map<FunctionEntryNode, Set<String>>> result = ReachingDefUtils.getAllVariables(pNode);
@@ -185,7 +185,7 @@ public class ReachingDefCPA implements ConfigurableProgramAnalysis, ProofChecker
 
   @Override
   public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException, InterruptedException {
-    return domain.isLessOrEqual(pState, pOtherState);
+    return domain.isLessOrEqual((ReachingDefState) pState, (ReachingDefState) pOtherState);
   }
 
 }

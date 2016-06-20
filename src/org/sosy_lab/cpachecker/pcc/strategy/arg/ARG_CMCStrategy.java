@@ -161,7 +161,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
     try {
       final ReachedSetFactory factory = new ReachedSetFactory(globalConfig);
       List<ARGState> incompleteStates = new ArrayList<>();
-      ConfigurableProgramAnalysis cpa;
+      ConfigurableProgramAnalysis<?> cpa;
 
       Triple<InputStream, ZipInputStream, ObjectInputStream> streams = null;
       try {
@@ -231,7 +231,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
     }
   }
 
-  @SuppressWarnings("unused")
+  @SuppressWarnings({"unchecked", "rawtypes", "unused"})
   private boolean checkAndReadInterleaved() throws InterruptedException, CPAException {
     final ConfigurableProgramAnalysis[] cpas = new ConfigurableProgramAnalysis[roots.length];
     try {
@@ -344,7 +344,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
   }
 
    private boolean checkPartialARG(ReachedSet pReachedSet, ARGState pRoot, List<ARGState> pIncompleteStates,
-      int iterationNumber, ConfigurableProgramAnalysis cpa) throws CPAException, InterruptedException,
+      int iterationNumber, ConfigurableProgramAnalysis<?> cpa) throws CPAException, InterruptedException,
       InvalidConfigurationException {
     logger.log(Level.FINER, "Set up proof checking for partial ARG ", iterationNumber);
     // set up proof checker

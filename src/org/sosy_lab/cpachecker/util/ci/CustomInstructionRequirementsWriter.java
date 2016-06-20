@@ -63,7 +63,7 @@ public class CustomInstructionRequirementsWriter {
   private final PathCounterTemplate fileTemplate;
 
   public CustomInstructionRequirementsWriter(final PathCounterTemplate ciReqFiles,
-      final Class<?> reqirementsState, final LogManager log, final ConfigurableProgramAnalysis cpa,
+      final Class<?> reqirementsState, final LogManager log, final ConfigurableProgramAnalysis<?> cpa,
       boolean enableRequirementSlicing) throws CPAException {
     fileTemplate = ciReqFiles;
     this.requirementsState = reqirementsState;
@@ -126,7 +126,7 @@ public class CustomInstructionRequirementsWriter {
     }
   }
 
-  private void createRequirementTranslator(final ConfigurableProgramAnalysis cpa) throws CPAException {
+  private void createRequirementTranslator(final ConfigurableProgramAnalysis<?> cpa) throws CPAException {
     if (requirementsState.equals(SignState.class)) {
       abstractReqTranslator = new SignRequirementsTranslator(logger);
     } else if (requirementsState.equals(ValueAnalysisState.class)) {

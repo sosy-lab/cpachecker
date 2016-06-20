@@ -29,27 +29,30 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class TerminationAbstractDomain implements AbstractDomain {
+public class TerminationAbstractDomain<T extends AbstractState> implements
+                                        AbstractDomain<TerminationState> {
 
-  private final AbstractDomain abstractDomain;
+  private final AbstractDomain<T> abstractDomain;
 
-  public TerminationAbstractDomain(AbstractDomain pAbstractDomain) {
+  public TerminationAbstractDomain(AbstractDomain<T> pAbstractDomain) {
     abstractDomain = Preconditions.checkNotNull(pAbstractDomain);
   }
 
   @Override
-  public TerminationState join(AbstractState pState1, AbstractState pState2)
+  public TerminationState join(TerminationState pState1,
+                                  TerminationState pState2)
       throws CPAException, InterruptedException {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractState pState1, AbstractState pState2)
+  @SuppressWarnings("unchecked")
+  public boolean isLessOrEqual(
+      TerminationState state1,
+      TerminationState state2)
       throws CPAException, InterruptedException {
-    TerminationState state1 = (TerminationState) pState1;
-    TerminationState state2 = (TerminationState) pState2;
-    AbstractState wrappedState1 = state1.getWrappedState();
-    AbstractState wrappedState2 = state2.getWrappedState();
+    T wrappedState1 = (T) state1.getWrappedState();
+    T wrappedState2 = (T) state2.getWrappedState();
 
     return state1.isPartOfLoop() == state2.isPartOfLoop()
         && abstractDomain.isLessOrEqual(wrappedState1, wrappedState2);

@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.pcc;
 
-import java.util.Collection;
-import java.util.logging.Level;
-
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -36,15 +33,18 @@ import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.error.DummyErrorState;
 
+import java.util.Collection;
+import java.util.logging.Level;
+
 
 public class AlgorithmWithPropertyCheck implements Algorithm, StatisticsProvider {
 
   private final Algorithm analysis;
   private final LogManager logger;
-  private PropertyCheckerCPA cpa;
+  private PropertyCheckerCPA<?> cpa;
 
   public AlgorithmWithPropertyCheck(Algorithm analysisAlgorithm, LogManager logger,
-      PropertyCheckerCPA cpa) {
+      PropertyCheckerCPA<?> cpa) {
     analysis = analysisAlgorithm;
     this.logger = logger;
     this.cpa = cpa;

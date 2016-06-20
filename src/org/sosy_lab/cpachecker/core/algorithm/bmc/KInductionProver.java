@@ -92,7 +92,7 @@ class KInductionProver implements AutoCloseable {
 
   private final Algorithm algorithm;
 
-  private final ConfigurableProgramAnalysis cpa;
+  private final ConfigurableProgramAnalysis<?> cpa;
 
   private final ReachedSet reached;
 
@@ -146,7 +146,7 @@ class KInductionProver implements AutoCloseable {
       CFA pCFA,
       LogManager pLogger,
       Algorithm pAlgorithm,
-      ConfigurableProgramAnalysis pCPA,
+      ConfigurableProgramAnalysis<?> pCPA,
       InvariantGenerator pInvariantGenerator,
       BMCStatistics pStats,
       ReachedSetFactory pReachedSetFactory,

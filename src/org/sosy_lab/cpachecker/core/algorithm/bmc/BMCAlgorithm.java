@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
-import java.util.Optional;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -90,6 +89,7 @@ import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -106,7 +106,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path invariantsExport = Paths.get("invariants.graphml");
 
-  private final ConfigurableProgramAnalysis cpa;
+  private final ConfigurableProgramAnalysis<?> cpa;
 
   private final FormulaManagerView fmgr;
   private final PathFormulaManager pmgr;
@@ -121,7 +121,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   public BMCAlgorithm(
       Algorithm pAlgorithm,
-      ConfigurableProgramAnalysis pCPA,
+      ConfigurableProgramAnalysis<?> pCPA,
       Configuration pConfig,
       LogManager pLogger,
       ReachedSetFactory pReachedSetFactory,
@@ -308,7 +308,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
       CounterexampleTraceInfo cexInfo =
           CounterexampleTraceInfo.feasible(
-              ImmutableList.<BooleanFormula>of(cexFormula), model, branchingInformation);
+              ImmutableList.of(cexFormula), model, branchingInformation);
       CounterexampleInfo counterexample =
           pathChecker.createCounterexample(targetPath, cexInfo, shouldCheckBranching);
       counterexample.getTargetPath().getLastState().addCounterexampleInformation(counterexample);

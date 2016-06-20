@@ -29,12 +29,12 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.solver.SolverException;
 
 @Options(prefix="cpa.predicate")
-public class PredicateAbstractDomain implements AbstractDomain {
+public class PredicateAbstractDomain implements
+                                     AbstractDomain<PredicateAbstractState> {
 
   @Option(secure=true, description="whether to include the symbolic path formula in the "
     + "coverage checks or do only the fast abstract checks")
@@ -54,13 +54,10 @@ public class PredicateAbstractDomain implements AbstractDomain {
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractState element1,
-                                       AbstractState element2) throws CPAException, InterruptedException {
+  public boolean isLessOrEqual(PredicateAbstractState e1, PredicateAbstractState e2)
+      throws CPAException, InterruptedException {
     coverageCheckTimer.start();
     try {
-
-    PredicateAbstractState e1 = (PredicateAbstractState)element1;
-    PredicateAbstractState e2 = (PredicateAbstractState)element2;
 
     // TODO time statistics (previously in formula manager)
     /*
@@ -111,8 +108,8 @@ public class PredicateAbstractDomain implements AbstractDomain {
   }
 
   @Override
-  public AbstractState join(AbstractState pElement1,
-      AbstractState pElement2) throws CPAException {
+  public PredicateAbstractState join(PredicateAbstractState pElement1,
+      PredicateAbstractState pElement2) throws CPAException {
     throw new UnsupportedOperationException();
   }
 }

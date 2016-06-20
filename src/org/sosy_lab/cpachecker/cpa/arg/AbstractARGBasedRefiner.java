@@ -81,7 +81,7 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
    * Create a {@link Refiner} instance from a {@link ARGBasedRefiner} instance.
    */
   public static Refiner forARGBasedRefiner(
-      final ARGBasedRefiner pRefiner, final ConfigurableProgramAnalysis pCpa)
+      final ARGBasedRefiner pRefiner, final ConfigurableProgramAnalysis<?> pCpa)
       throws InvalidConfigurationException {
     checkArgument(
         !(pRefiner instanceof Refiner),

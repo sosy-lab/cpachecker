@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.core.defaults.SingletonCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -42,7 +41,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 /**
  * This CPA can be used to prevent the traversal of specific CFA edges.
  */
-public enum EdgeExclusionCPA implements ConfigurableProgramAnalysis {
+public enum EdgeExclusionCPA implements ConfigurableProgramAnalysis<EdgeExclusionState> {
 
   /**
    * The singleton instance of this CPA.
@@ -69,7 +68,7 @@ public enum EdgeExclusionCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public EdgeExclusionState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return EdgeExclusionState.TOP;
   }
 
@@ -79,7 +78,7 @@ public enum EdgeExclusionCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<EdgeExclusionState> getAbstractDomain() {
     return EdgeExclusionDomain.INSTANCE;
   }
 

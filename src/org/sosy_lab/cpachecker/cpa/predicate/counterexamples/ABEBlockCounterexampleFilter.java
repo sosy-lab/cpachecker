@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.predicate.counterexamples;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import java.util.Optional;
 import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -38,6 +37,8 @@ import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CounterexampleFilter;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
+import java.util.Optional;
+
 /**
  * An implementation of {@link CounterexampleFilter} that bases path similarity
  * on the ABE blocks the path contains
@@ -45,7 +46,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  */
 public class ABEBlockCounterexampleFilter extends AbstractSetBasedCounterexampleFilter<ImmutableList<CFANode>> {
 
-  public ABEBlockCounterexampleFilter(Configuration pConfig, LogManager pLogger, ConfigurableProgramAnalysis pCpa) {
+  public ABEBlockCounterexampleFilter(Configuration pConfig, LogManager pLogger, ConfigurableProgramAnalysis<?> pCpa) {
     super(pConfig, pLogger, pCpa);
   }
 

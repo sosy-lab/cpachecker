@@ -23,16 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.monitor;
 
-import java.util.Collection;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
+import org.sosy_lab.cpachecker.core.defaults.FlatLatticeNoTopDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -41,22 +38,24 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 
-public class MonitorCPA extends AbstractSingleWrapperCPA {
+import java.util.Collection;
+
+public class MonitorCPA extends AbstractSingleWrapperCPA<MonitorState> {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(MonitorCPA.class);
   }
 
-  private final AbstractDomain abstractDomain;
+  private final AbstractDomain<MonitorState> abstractDomain;
   private final MonitorTransferRelation transferRelation;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
   private final Statistics stats;
 
-  private MonitorCPA(ConfigurableProgramAnalysis pCpa, Configuration config) throws InvalidConfigurationException {
+  private MonitorCPA(ConfigurableProgramAnalysis<?> pCpa, Configuration config) throws InvalidConfigurationException {
     super(pCpa);
-    abstractDomain = new FlatLatticeDomain();
+    abstractDomain = new FlatLatticeNoTopDomain<>();
     transferRelation = new MonitorTransferRelation(getWrappedCpa(), config);
     precisionAdjustment = new MonitorPrecisionAdjustment(getWrappedCpa().getPrecisionAdjustment());
     mergeOperator = new MonitorMerge(getWrappedCpa());
@@ -65,12 +64,12 @@ public class MonitorCPA extends AbstractSingleWrapperCPA {
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<MonitorState> getAbstractDomain() {
     return this.abstractDomain;
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public MonitorState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return new MonitorState(getWrappedCpa().getInitialState(pNode, pPartition), 0L);
   }
 

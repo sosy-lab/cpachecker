@@ -23,20 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cpa.monitor;
 
-import java.util.Collection;
-import java.util.Collections;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+import java.util.Collection;
+import java.util.Collections;
+
 public class MonitorStop implements StopOperator {
 
-  private final ConfigurableProgramAnalysis wrappedCpa;
+  private final ConfigurableProgramAnalysis<?> wrappedCpa;
 
-  public MonitorStop(ConfigurableProgramAnalysis cpa) {
+  public MonitorStop(ConfigurableProgramAnalysis<?> cpa) {
     this.wrappedCpa = cpa;
   }
 

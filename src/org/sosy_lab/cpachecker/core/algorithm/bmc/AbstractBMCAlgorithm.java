@@ -124,9 +124,9 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
   protected final BMCStatistics stats;
   private final Algorithm algorithm;
-  private final ConfigurableProgramAnalysis cpa;
+  private final ConfigurableProgramAnalysis<?> cpa;
 
-  private final @Nullable ConfigurableProgramAnalysis stepCaseCPA;
+  private final @Nullable ConfigurableProgramAnalysis<?> stepCaseCPA;
   private final @Nullable Algorithm stepCaseAlgorithm;
 
   protected final InvariantGenerator invariantGenerator;
@@ -150,7 +150,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
   protected AbstractBMCAlgorithm(
       Algorithm pAlgorithm,
-      ConfigurableProgramAnalysis pCPA,
+      ConfigurableProgramAnalysis<?> pCPA,
       Configuration pConfig,
       LogManager pLogger,
       ReachedSetFactory pReachedSetFactory,

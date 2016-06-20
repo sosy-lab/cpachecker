@@ -85,12 +85,12 @@ class BAMCPAStatistics implements Statistics {
   private final Predicate<Pair<ARGState,ARGState>> highlightSummaryEdge = input ->
     input.getFirst().getEdgeToChild(input.getSecond()) instanceof FunctionSummaryEdge;
 
-  private final BAMCPA cpa;
+  private final BAMCPA<?> cpa;
   private final BAMDataManager data;
   private List<BAMBasedRefiner> refiners = new ArrayList<>();
   private final LogManager logger;
 
-  public BAMCPAStatistics(BAMCPA cpa, BAMDataManager pData, Configuration config, LogManager logger)
+  public BAMCPAStatistics(BAMCPA<?> cpa, BAMDataManager pData, Configuration config, LogManager logger)
           throws InvalidConfigurationException {
     config.inject(this);
 

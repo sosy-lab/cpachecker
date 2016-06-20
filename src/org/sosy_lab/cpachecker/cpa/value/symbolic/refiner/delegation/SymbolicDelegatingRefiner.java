@@ -23,12 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.delegation;
 
-import java.io.PrintStream;
-import java.util.Collection;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -67,6 +61,12 @@ import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
 import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
 import org.sosy_lab.cpachecker.util.refinement.PathInterpolator;
 
+import java.io.PrintStream;
+import java.util.Collection;
+import java.util.logging.Level;
+
+import javax.annotation.Nullable;
+
 /**
  * Refiner for {@link ValueAnalysisCPA} using symbolic values and
  * {@link org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA ConstraintsCPA}
@@ -87,7 +87,7 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
   private final Timer explicitRefinementTime = new Timer();
   private final Timer symbolicRefinementTime = new Timer();
 
-  public static SymbolicDelegatingRefiner create(final ConfigurableProgramAnalysis pCpa)
+  public static SymbolicDelegatingRefiner create(final ConfigurableProgramAnalysis<?> pCpa)
       throws InvalidConfigurationException {
 
     final ARGCPA argCpa = CPAs.retrieveCPA(pCpa, ARGCPA.class);

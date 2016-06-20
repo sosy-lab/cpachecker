@@ -54,14 +54,14 @@ public class ReachedSetStrategy extends SequentialReadStrategy {
 
   protected AbstractState[] reachedSet;
   protected Multimap<CFANode, AbstractState> statesPerLocation;
-  protected PropertyCheckerCPA cpa;
+  protected PropertyCheckerCPA<?> cpa;
   protected final ShutdownNotifier shutdownNotifier;
 
   public ReachedSetStrategy(
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      @Nullable PropertyCheckerCPA pCpa)
+      @Nullable PropertyCheckerCPA<?> pCpa)
       throws InvalidConfigurationException {
     super(pConfig, pLogger);
     cpa= pCpa;

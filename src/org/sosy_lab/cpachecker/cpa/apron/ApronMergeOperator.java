@@ -77,7 +77,7 @@ public class ApronMergeOperator {
           return el2;
         }
       }
-      return domain.join(el1, el2);
+      return domain.join((ApronState) el1, (ApronState) el2);
     }
   }
 

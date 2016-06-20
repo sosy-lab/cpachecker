@@ -63,7 +63,7 @@ public class ARG_CPAStrategy extends AbstractARGStrategy {
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
-      final @Nullable PropertyCheckerCPA pCpa)
+      final @Nullable PropertyCheckerCPA<?> pCpa)
       throws InvalidConfigurationException {
     super(pConfig, pLogger, pCpa == null ? new DefaultPropertyChecker() : pCpa.getPropChecker(), pShutdownNotifier);
     pConfig.inject(this);

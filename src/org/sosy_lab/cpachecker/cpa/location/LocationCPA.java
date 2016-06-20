@@ -23,14 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.location;
 
-import java.util.Collection;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
+import org.sosy_lab.cpachecker.core.defaults.FlatLatticeNoTopDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.NoOpReducer;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -56,12 +54,13 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
+import java.util.Collection;
 import java.util.Optional;
 
-public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurableProgramAnalysisWithBAM, ProofChecker {
+public class LocationCPA implements ConfigurableProgramAnalysis<LocationState>, ConfigurableProgramAnalysisWithBAM<LocationState>, ProofChecker {
 
   private final LocationStateFactory stateFactory;
-  private final AbstractDomain abstractDomain = new FlatLatticeDomain();
+  private final AbstractDomain<LocationState> abstractDomain = new FlatLatticeNoTopDomain<>();
   private final LocationTransferRelation transferRelation;
   private final StopOperator stopOperator = new StopSepOperator(abstractDomain);
 
@@ -80,7 +79,7 @@ public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurablePro
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<LocationState> getAbstractDomain() {
     return abstractDomain;
   }
 
@@ -110,7 +109,7 @@ public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurablePro
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public LocationState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return stateFactory.getState(pNode);
   }
 
@@ -127,6 +126,6 @@ public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurablePro
 
   @Override
   public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException, InterruptedException {
-    return abstractDomain.isLessOrEqual(pElement, pOtherElement);
+    return abstractDomain.isLessOrEqual((LocationState) pElement, (LocationState) pOtherElement);
   }
 }

@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.functionpointer;
 
-import java.util.Collection;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -52,9 +50,13 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-public class FunctionPointerCPA implements ConfigurableProgramAnalysisWithBAM, ProofChecker{
+import java.util.Collection;
 
-  private AbstractDomain abstractDomain;
+public class FunctionPointerCPA implements
+                                ConfigurableProgramAnalysisWithBAM<FunctionPointerState>,
+                                ProofChecker{
+
+  private AbstractDomain<FunctionPointerState> abstractDomain;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
   private TransferRelation transferRelation;
@@ -66,7 +68,7 @@ public class FunctionPointerCPA implements ConfigurableProgramAnalysisWithBAM, P
   }
 
   private FunctionPointerCPA(LogManager pLogger, Configuration pConfig) throws InvalidConfigurationException {
-    this.abstractDomain = DelegateAbstractDomain.<FunctionPointerState>getInstance();
+    this.abstractDomain = DelegateAbstractDomain.getInstance();
 
     this.mergeOperator = MergeSepOperator.getInstance();
 
@@ -77,7 +79,7 @@ public class FunctionPointerCPA implements ConfigurableProgramAnalysisWithBAM, P
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<FunctionPointerState> getAbstractDomain() {
     return abstractDomain;
   }
 
@@ -102,7 +104,7 @@ public class FunctionPointerCPA implements ConfigurableProgramAnalysisWithBAM, P
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public FunctionPointerState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return FunctionPointerState.createEmptyState();
   }
 
@@ -130,7 +132,8 @@ public class FunctionPointerCPA implements ConfigurableProgramAnalysisWithBAM, P
         found = false;
         for (AbstractState e2 : computedSuccessors) {
 
-          if (abstractDomain.isLessOrEqual(e2, e1)) {
+          if (abstractDomain.isLessOrEqual((FunctionPointerState) e2,
+              (FunctionPointerState) e1)) {
             found = true;
             break;
           }
@@ -147,6 +150,6 @@ public class FunctionPointerCPA implements ConfigurableProgramAnalysisWithBAM, P
 
   @Override
   public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException, InterruptedException {
-    return abstractDomain.isLessOrEqual(pState, pOtherState);
+    return abstractDomain.isLessOrEqual((FunctionPointerState) pState, (FunctionPointerState) pOtherState);
   }
 }

@@ -76,7 +76,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
 
   public ProofCheckAlgorithm(
-      ConfigurableProgramAnalysis cpa,
+      ConfigurableProgramAnalysis<?> cpa,
       Configuration pConfig,
       LogManager logger,
       ShutdownNotifier pShutdownNotifier,
@@ -105,7 +105,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   protected ProofCheckAlgorithm(
-      ConfigurableProgramAnalysis cpa,
+      ConfigurableProgramAnalysis<?> cpa,
       Configuration pConfig,
       LogManager logger,
       ShutdownNotifier pShutdownNotifier,

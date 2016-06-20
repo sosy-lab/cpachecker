@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.rtt;
 
-import java.util.Collection;
-
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -34,7 +32,6 @@ import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -46,7 +43,10 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-public class RTTCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
+import java.util.Collection;
+
+public class RTTCPA implements ConfigurableProgramAnalysis<RTTState>,
+    StatisticsProvider {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(RTTCPA.class);
@@ -55,7 +55,7 @@ public class RTTCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
   private Precision precision;
 
-  private  AbstractDomain abstractDomain;
+  private  AbstractDomain<RTTState> abstractDomain;
   private  MergeOperator mergeOperator;
   private  StopOperator stopOperator;
   private  TransferRelation transferRelation;
@@ -69,7 +69,7 @@ public class RTTCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
     this.logger = logger;
 
     mergeOperator = new MergeSepOperator();
-    abstractDomain = DelegateAbstractDomain.<RTTState>getInstance();
+    abstractDomain = DelegateAbstractDomain.getInstance();
     stopOperator = new StopSepOperator(abstractDomain);
     precision = SingletonPrecision.getInstance();
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
@@ -80,7 +80,7 @@ public class RTTCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<RTTState> getAbstractDomain() {
     return abstractDomain;
   }
 
@@ -105,7 +105,7 @@ public class RTTCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public RTTState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return new RTTState();
   }
 

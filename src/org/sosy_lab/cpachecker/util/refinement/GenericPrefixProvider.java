@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.refinement;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
-import java.util.Optional;
 import com.google.common.collect.FluentIterable;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -52,6 +51,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 
 /**
@@ -79,7 +79,7 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
       final LogManager pLogger,
       final CFA pCfa,
       final Configuration config,
-      final Class<? extends ConfigurableProgramAnalysis> pCpaToRefine
+      final Class<? extends ConfigurableProgramAnalysis<?>> pCpaToRefine
   ) throws InvalidConfigurationException {
     logger = pLogger;
     cfa    = pCfa;

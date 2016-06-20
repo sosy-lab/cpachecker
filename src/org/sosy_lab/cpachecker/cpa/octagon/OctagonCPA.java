@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -51,7 +50,7 @@ import org.sosy_lab.cpachecker.util.octagon.OctagonIntManager;
 import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
 
 @Options(prefix="cpa.octagon")
-public final class OctagonCPA implements ConfigurableProgramAnalysis {
+public final class OctagonCPA implements ConfigurableProgramAnalysis<OctagonState> {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(OctagonCPA.class);
@@ -66,7 +65,7 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
       description="this option determines which initial precision should be used")
   private String precisionType = "STATIC_FULL";
 
-  private final AbstractDomain abstractDomain;
+  private final AbstractDomain<OctagonState> abstractDomain;
   private final TransferRelation transferRelation;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
@@ -124,7 +123,7 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<OctagonState> getAbstractDomain() {
     return abstractDomain;
   }
 
@@ -149,7 +148,7 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public OctagonState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return new OctagonState(logger, octagonManager);
   }
 

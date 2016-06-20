@@ -42,13 +42,13 @@ public abstract class AbstractCPAFactory implements CPAFactory {
   private @Nullable ShutdownNotifier shutdownNotifier = null;
 
   @Override
-  public CPAFactory setChild(ConfigurableProgramAnalysis pChild)
+  public CPAFactory setChild(ConfigurableProgramAnalysis<?> pChild)
       throws UnsupportedOperationException {
     throw new UnsupportedOperationException("Cannot wrap CPA");
   }
 
   @Override
-  public CPAFactory setChildren(List<ConfigurableProgramAnalysis> pChildren)
+  public CPAFactory setChildren(List<ConfigurableProgramAnalysis<?>> pChildren)
       throws UnsupportedOperationException {
     throw new UnsupportedOperationException("Cannot wrap CPAs");
   }

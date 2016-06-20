@@ -23,10 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.defuse;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -40,7 +36,6 @@ import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -50,8 +45,12 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 @Options(prefix="cpa.defuse")
-public class DefUseCPA implements ConfigurableProgramAnalysis {
+public class DefUseCPA implements ConfigurableProgramAnalysis<DefUseState> {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(DefUseCPA.class);
@@ -61,7 +60,7 @@ public class DefUseCPA implements ConfigurableProgramAnalysis {
       description="which merge operator to use for DefUseCPA")
   private String mergeType = "sep";
 
-  private AbstractDomain abstractDomain;
+  private AbstractDomain<DefUseState> abstractDomain;
   private TransferRelation transferRelation;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
@@ -83,7 +82,7 @@ public class DefUseCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<DefUseState> getAbstractDomain() {
     return abstractDomain;
   }
 
@@ -109,7 +108,7 @@ public class DefUseCPA implements ConfigurableProgramAnalysis {
 
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public DefUseState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     Set<DefUseDefinition> defUseDefinitions = new HashSet<>();
     if (pNode instanceof CFunctionEntryNode) {
       List<String> parameterNames = ((CFunctionEntryNode)pNode).getFunctionParameterNames();

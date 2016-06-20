@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.uninitvars;
 
-import java.util.Collection;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -38,7 +36,6 @@ import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -50,8 +47,12 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
+import java.util.Collection;
+
 @Options(prefix="cpa.uninitvars")
-public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
+public class UninitializedVariablesCPA implements
+                                       ConfigurableProgramAnalysis<UninitializedVariablesState>,
+                                       StatisticsProvider {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(UninitializedVariablesCPA.class);
@@ -66,7 +67,7 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, S
       description="which stop operator to use for UninitializedVariablesCPA?")
   private String stopType = "sep";
 
-  private final AbstractDomain abstractDomain;
+  private final AbstractDomain<UninitializedVariablesState> abstractDomain;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
@@ -104,12 +105,12 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, S
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<UninitializedVariablesState> getAbstractDomain() {
     return abstractDomain;
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public UninitializedVariablesState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return new UninitializedVariablesState(pNode.getFunctionName());
   }
 

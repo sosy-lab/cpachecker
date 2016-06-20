@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.validvars;
 
-import java.util.Collection;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -51,10 +49,13 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
+import java.util.Collection;
+
 // requires that function names are unique, no two functions may have the same name although they have different signature
 // currently ensured by parser
 @Options(prefix="cpa.validVars")
-public class ValidVarsCPA implements ConfigurableProgramAnalysis, ProofChecker {
+public class ValidVarsCPA implements ConfigurableProgramAnalysis<ValidVarsState>,
+    ProofChecker {
 
   @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
       description="which merge operator to use for ValidVarsCPA")
@@ -64,7 +65,7 @@ public class ValidVarsCPA implements ConfigurableProgramAnalysis, ProofChecker {
     return AutomaticCPAFactory.forType(ValidVarsCPA.class);
   }
 
-  private final AbstractDomain domain;
+  private final AbstractDomain<ValidVarsState> domain;
   private final TransferRelation transfer;
   private final MergeOperator merge;
   private final StopOperator stop;
@@ -85,7 +86,7 @@ public class ValidVarsCPA implements ConfigurableProgramAnalysis, ProofChecker {
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<ValidVarsState> getAbstractDomain() {
     return domain;
   }
 
@@ -110,7 +111,7 @@ public class ValidVarsCPA implements ConfigurableProgramAnalysis, ProofChecker {
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public ValidVarsState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return new ValidVarsState(ValidVars.initial);
   }
 
@@ -147,7 +148,7 @@ public class ValidVarsCPA implements ConfigurableProgramAnalysis, ProofChecker {
 
   @Override
   public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException, InterruptedException {
-    return domain.isLessOrEqual(pState, pOtherState);
+    return domain.isLessOrEqual((ValidVarsState) pState, (ValidVarsState) pOtherState);
   }
 
 }

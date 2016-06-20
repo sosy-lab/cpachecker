@@ -54,7 +54,7 @@ public class ReachedSetParallelStrategy extends ReachedSetStrategy{
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      @Nullable PropertyCheckerCPA pCpa)
+      @Nullable PropertyCheckerCPA<?> pCpa)
       throws InvalidConfigurationException {
     super(pConfig, pLogger, pShutdownNotifier, pCpa);
   }

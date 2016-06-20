@@ -297,7 +297,7 @@ public class CPAchecker {
         GlobalInfo.getInstance().storeCFA(cfa);
         shutdownNotifier.shutdownIfNecessary();
 
-        ConfigurableProgramAnalysis cpa;
+        ConfigurableProgramAnalysis<?> cpa;
         Specification specification;
         stats.cpaCreationTime.start();
         try {
@@ -505,7 +505,7 @@ public class CPAchecker {
       final Set<? extends CFANode> pLocations,
       final Object pPartitionKey,
       final ReachedSet pReached,
-      final ConfigurableProgramAnalysis pCpa) {
+      final ConfigurableProgramAnalysis<?> pCpa) {
 
     for (CFANode loc: pLocations) {
       StateSpacePartition putIntoPartition = partitionInitialStates
@@ -521,7 +521,7 @@ public class CPAchecker {
 
   private void initializeReachedSet(
       final ReachedSet pReached,
-      final ConfigurableProgramAnalysis pCpa,
+      final ConfigurableProgramAnalysis<?> pCpa,
       final Specification pSpecification,
       final FunctionEntryNode pAnalysisEntryFunction,
       final CFA pCfa)

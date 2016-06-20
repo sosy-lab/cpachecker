@@ -252,11 +252,11 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
     AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_PRECISE;
     boolean provideReachedForNextAlgorithm = false;
-    final List<ConfigurableProgramAnalysis> cpasToClose = new ArrayList<>();
+    final List<ConfigurableProgramAnalysis<?>> cpasToClose = new ArrayList<>();
 
     while (configFilesIterator.hasNext()) {
       stats.totalTime.start();
-      @Nullable ConfigurableProgramAnalysis currentCpa = null;
+      @Nullable ConfigurableProgramAnalysis<?> currentCpa = null;
       ReachedSet currentReached;
       ShutdownManager singleShutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
 
@@ -272,7 +272,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
         singleConfigFileName = Paths.get(CONFIG_FILE_CONDITION_SPLITTER.split(singleConfigFileName.toString()).iterator().next());
 
         try {
-          Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> currentAlg =
+          Triple<Algorithm, ConfigurableProgramAnalysis<?>, ReachedSet> currentAlg =
               createNextAlgorithm(
                   singleConfigFileName,
                   mainFunction,
@@ -421,7 +421,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       }
     }
 
-    for (ConfigurableProgramAnalysis cpa : cpasToClose) {
+    for (ConfigurableProgramAnalysis<?> cpa : cpasToClose) {
       CPAs.closeCpaIfPossible(cpa, logger);
     }
 
@@ -430,7 +430,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     return status;
   }
 
-  private Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createNextAlgorithm(
+  private Triple<Algorithm, ConfigurableProgramAnalysis<?>, ReachedSet> createNextAlgorithm(
       Path singleConfigFileName,
       CFANode mainFunction,
       ShutdownManager singleShutdownManager,
@@ -439,7 +439,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       throws InvalidConfigurationException, CPAException, IOException {
 
     ReachedSet reached;
-    ConfigurableProgramAnalysis cpa;
+    ConfigurableProgramAnalysis<?> cpa;
     Algorithm algorithm;
 
     ConfigurationBuilder singleConfigBuilder = Configuration.builder();
@@ -485,7 +485,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   private ReachedSet createInitialReachedSetForRestart(
-      ConfigurableProgramAnalysis cpa,
+      ConfigurableProgramAnalysis<?> cpa,
       CFANode mainFunction,
       CoreComponentsFactory pFactory,
       LogManager singleLogger) {

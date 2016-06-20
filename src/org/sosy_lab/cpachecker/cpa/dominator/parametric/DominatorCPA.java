@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 public class DominatorCPA {
 
-  private ConfigurableProgramAnalysis cpa;
+  private ConfigurableProgramAnalysis<?> cpa;
 
   private DominatorDomain abstractDomain;
   private TransferRelation transferRelation;
@@ -47,7 +47,7 @@ public class DominatorCPA {
   private StopOperator stopOperator;
   private PrecisionAdjustment precisionAdjustment;
 
-  public DominatorCPA(ConfigurableProgramAnalysis cpa) {
+  public DominatorCPA(ConfigurableProgramAnalysis<?> cpa) {
     this.cpa = cpa;
 
     this.abstractDomain = new DominatorDomain(this.cpa);
@@ -57,7 +57,7 @@ public class DominatorCPA {
     this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
   }
 
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<DominatorState> getAbstractDomain() {
     return abstractDomain;
   }
 
@@ -77,7 +77,7 @@ public class DominatorCPA {
     return precisionAdjustment;
   }
 
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public DominatorState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     AbstractState dominatedInitialState_tmp = this.cpa.getInitialState(pNode, pPartition);
 
     AbstractState dominatedInitialState = dominatedInitialState_tmp;

@@ -54,7 +54,6 @@ import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -104,7 +103,8 @@ import javax.annotation.concurrent.GuardedBy;
 /**
  * This is a CPA for collecting simple invariants about integer variables.
  */
-public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdjustingCPA, StatisticsProvider {
+public class InvariantsCPA implements ConfigurableProgramAnalysis<InvariantsState>,
+    ReachedSetAdjustingCPA, StatisticsProvider {
 
   /**
    * A formula visitor for collecting the variables contained in a formula.
@@ -195,7 +195,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
   private final Set<MemoryLocation> interestingVariables = new LinkedHashSet<>();
 
   private final MergeOperator mergeOperator;
-  private final AbstractDomain abstractDomain;
+  private final AbstractDomain<InvariantsState> abstractDomain;
 
   private final StateToFormulaWriter writer;
 
@@ -259,7 +259,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<InvariantsState> getAbstractDomain() {
     return abstractDomain;
   }
 
@@ -279,7 +279,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public InvariantsState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     Set<CFANode> relevantLocations = new LinkedHashSet<>();
     Set<CFANode> targetLocations = new LinkedHashSet<>();
 

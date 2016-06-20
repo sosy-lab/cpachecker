@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.ldd;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -45,7 +42,6 @@ import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -57,7 +53,10 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.ldd.LDDRegionManager;
 
-public class LDDAbstractionCPA implements ConfigurableProgramAnalysis {
+import java.util.HashMap;
+import java.util.Map;
+
+public class LDDAbstractionCPA implements ConfigurableProgramAnalysis<LDDAbstractState> {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(LDDAbstractionCPA.class);
@@ -123,7 +122,7 @@ public class LDDAbstractionCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<LDDAbstractState> getAbstractDomain() {
     return this.domain;
   }
 
@@ -148,7 +147,7 @@ public class LDDAbstractionCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public LDDAbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return this.initialState;
   }
 

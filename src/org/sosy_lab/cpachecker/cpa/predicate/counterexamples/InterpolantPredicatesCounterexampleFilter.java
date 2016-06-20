@@ -23,11 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate.counterexamples;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -36,15 +32,19 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CounterexampleFilter;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
-import com.google.common.collect.ImmutableSet;
+import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * A {@link CounterexampleFilter} that defines counterexamples as similar,
@@ -65,7 +65,8 @@ public class InterpolantPredicatesCounterexampleFilter extends AbstractNegatedPa
   private final PredicateAbstractionManager predAbsMgr;
 
   public InterpolantPredicatesCounterexampleFilter(Configuration pConfig, LogManager pLogger,
-      ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
+                                                   ConfigurableProgramAnalysis<?> pCpa) throws
+                                           InvalidConfigurationException {
     super(pConfig, pLogger, pCpa);
     logger = pLogger;
 

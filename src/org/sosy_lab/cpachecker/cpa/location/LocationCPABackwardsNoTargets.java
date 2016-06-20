@@ -27,13 +27,12 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
+import org.sosy_lab.cpachecker.core.defaults.FlatLatticeNoTopDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -45,10 +44,10 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateFactory;
 import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateFactory.LocationStateType;
 
-public class LocationCPABackwardsNoTargets implements ConfigurableProgramAnalysis {
+public class LocationCPABackwardsNoTargets implements ConfigurableProgramAnalysis<LocationState> {
 
   private final LocationStateFactory stateFactory;
-  private final AbstractDomain abstractDomain = new FlatLatticeDomain();
+  private final AbstractDomain<LocationState> abstractDomain = new FlatLatticeNoTopDomain<>();
   private final TransferRelation transferRelation;
   private final StopOperator stopOperator = new StopSepOperator(abstractDomain);
 
@@ -62,7 +61,7 @@ public class LocationCPABackwardsNoTargets implements ConfigurableProgramAnalysi
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<LocationState> getAbstractDomain() {
     return abstractDomain;
   }
 
@@ -87,7 +86,7 @@ public class LocationCPABackwardsNoTargets implements ConfigurableProgramAnalysi
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public LocationState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return stateFactory.getState(pNode);
   }
 

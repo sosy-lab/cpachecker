@@ -82,7 +82,7 @@ public class CPAcheckerInvariantGenerator extends AbstractInvariantGenerator {
   private final CFA cfa;
   private final ReachedSet reached;
   private final Algorithm algorithm;
-  private final ConfigurableProgramAnalysis cpa;
+  private final ConfigurableProgramAnalysis<?> cpa;
   private final ShutdownManager shutdownNotifier;
 
   private volatile boolean generationCompleted = false;

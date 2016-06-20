@@ -110,12 +110,12 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
   private boolean trackVariablesBesidesEqAddBool = true;
 
   private final Optional<VariableClassification> vc;
-  private final Class<? extends ConfigurableProgramAnalysis> cpaClass;
+  private final Class<? extends ConfigurableProgramAnalysis<?>> cpaClass;
 
   ConfigurablePrecision(
       Configuration config,
       Optional<VariableClassification> pVc,
-      Class<? extends ConfigurableProgramAnalysis> cpaClass)
+      Class<? extends ConfigurableProgramAnalysis<?>> cpaClass)
       throws InvalidConfigurationException {
     super();
     config.inject(this);
@@ -244,7 +244,7 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
   }
 
   @Override
-  protected Class<? extends ConfigurableProgramAnalysis> getCPAClass() {
+  protected Class<? extends ConfigurableProgramAnalysis<?>> getCPAClass() {
     return cpaClass;
   }
 

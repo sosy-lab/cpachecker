@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg.counterexamples;
 
+import com.google.common.collect.ImmutableSet;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -30,7 +32,6 @@ import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 
 import java.util.Optional;
-import com.google.common.collect.ImmutableSet;
 
 
 /**
@@ -45,7 +46,9 @@ import com.google.common.collect.ImmutableSet;
  */
 public class PathEdgesEqualityCounterexampleFilter extends AbstractSetBasedCounterexampleFilter<ImmutableSet<CFAEdge>> {
 
-  public PathEdgesEqualityCounterexampleFilter(Configuration pConfig, LogManager pLogger, ConfigurableProgramAnalysis pCpa) {
+  public PathEdgesEqualityCounterexampleFilter(Configuration pConfig,
+                                               LogManager pLogger,
+                                               ConfigurableProgramAnalysis<?> pCpa) {
     super(pConfig, pLogger, pCpa);
   }
 

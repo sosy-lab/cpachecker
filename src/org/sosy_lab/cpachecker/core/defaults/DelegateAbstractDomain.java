@@ -13,7 +13,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  * the analysis.
  */
 public class DelegateAbstractDomain<E extends LatticeAbstractState<E>>
-    implements AbstractDomain {
+    implements AbstractDomain<E> {
   private DelegateAbstractDomain() {}
 
   public static <E extends LatticeAbstractState<E>>
@@ -23,16 +23,14 @@ public class DelegateAbstractDomain<E extends LatticeAbstractState<E>>
 
 
   @Override
-  @SuppressWarnings("unchecked")
-  public AbstractState join(AbstractState state1, AbstractState state2)
+  public E join(E state1, E state2)
       throws CPAException {
-    return ((E) state1).join((E) state2);
+    return state1.join(state2);
   }
 
   @Override
-  @SuppressWarnings("unchecked")
-  public boolean isLessOrEqual(AbstractState state1, AbstractState state2)
+  public boolean isLessOrEqual(E state1, E state2)
       throws CPAException, InterruptedException {
-    return ((E) state1).isLessOrEqual((E) state2);
+    return state1.isLessOrEqual(state2);
   }
 }

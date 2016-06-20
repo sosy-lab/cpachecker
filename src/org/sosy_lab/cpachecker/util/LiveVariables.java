@@ -517,6 +517,7 @@ public class LiveVariables {
 
     logger.log(Level.INFO, "Stopping live variables collection ...");
 
+    @SuppressWarnings("unchecked")
     LiveVariablesCPA liveVarCPA = ((WrapperCPA) analysisParts.cpa).retrieveWrappedCpa(LiveVariablesCPA.class);
 
     return liveVarCPA.getLiveVariables();
@@ -542,7 +543,7 @@ public class LiveVariables {
       Configuration config =
           Configuration.builder().loadFromResource(LiveVariables.class, configFile).build();
       ReachedSetFactory reachedFactory = new ReachedSetFactory(config);
-      ConfigurableProgramAnalysis cpa =
+      ConfigurableProgramAnalysis<?> cpa =
           new CPABuilder(config, logger, shutdownNotifier, reachedFactory)
               .buildCPAs(cfa, Specification.alwaysSatisfied(), new AggregatedReachedSets());
       Algorithm algorithm = CPAAlgorithm.create(cpa,
@@ -564,11 +565,12 @@ public class LiveVariables {
 
   private static class AnalysisParts {
 
-    private final ConfigurableProgramAnalysis cpa;
+    private final ConfigurableProgramAnalysis<?> cpa;
     private final Algorithm algorithm;
     private final ReachedSet reachedSet;
 
-    private AnalysisParts(ConfigurableProgramAnalysis pCPA, Algorithm pAlgorithm, ReachedSet pReachedSet) {
+    private AnalysisParts(ConfigurableProgramAnalysis<?> pCPA,
+                          Algorithm pAlgorithm, ReachedSet pReachedSet) {
       cpa = pCPA;
       algorithm = pAlgorithm;
       reachedSet = pReachedSet;

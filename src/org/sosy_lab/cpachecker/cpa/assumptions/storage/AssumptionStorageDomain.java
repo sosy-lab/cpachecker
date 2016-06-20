@@ -24,12 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.assumptions.storage;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-public class AssumptionStorageDomain implements AbstractDomain {
+public class AssumptionStorageDomain implements AbstractDomain<AssumptionStorageState> {
 
   private final FormulaManagerView formulaManager;
   private final BooleanFormulaManagerView bfmgr;
@@ -41,10 +40,8 @@ public class AssumptionStorageDomain implements AbstractDomain {
   }
 
   @Override
-  public AbstractState join(AbstractState pElement1, AbstractState pElement2) {
-
-    AssumptionStorageState storageElement1= (AssumptionStorageState)pElement1;
-    AssumptionStorageState storageElement2 = (AssumptionStorageState)pElement2;
+  public AssumptionStorageState join(AssumptionStorageState storageElement1,
+                            AssumptionStorageState storageElement2) {
 
     // create the disjunction of the stop formulas
     // however, if one of them is true, we would loose the information from the other
@@ -68,7 +65,7 @@ public class AssumptionStorageDomain implements AbstractDomain {
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractState pElement1, AbstractState pElement2) {
+  public boolean isLessOrEqual(AssumptionStorageState pElement1, AssumptionStorageState pElement2) {
     throw new UnsupportedOperationException();
   }
 }

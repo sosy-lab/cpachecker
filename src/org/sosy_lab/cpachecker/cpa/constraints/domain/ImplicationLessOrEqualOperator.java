@@ -23,25 +23,24 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints.domain;
 
-import java.util.Map;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
+
+import java.util.Map;
 
 /**
  * Less-or-equal operator for
  * {@link org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA ConstraintsCPA} that defines
  * less-or-equal as <code>c less or equal c' iff </code>
  */
-public class ImplicationLessOrEqualOperator implements AbstractDomain {
+public class ImplicationLessOrEqualOperator implements AbstractDomain<ConstraintsState> {
 
   private final Solver solver;
 
@@ -51,15 +50,9 @@ public class ImplicationLessOrEqualOperator implements AbstractDomain {
 
   @Override
   public boolean isLessOrEqual(
-      final AbstractState pLesserState,
-      final AbstractState pBiggerState
-  ) throws UnrecognizedCCodeException, InterruptedException, CPAException {
-
-    assert pLesserState instanceof ConstraintsState;
-    assert pBiggerState instanceof ConstraintsState;
-
-    ConstraintsState lesserState = (ConstraintsState) pLesserState;
-    ConstraintsState biggerState = (ConstraintsState) pBiggerState;
+      final ConstraintsState lesserState,
+      final ConstraintsState biggerState
+  ) throws InterruptedException, CPAException {
 
     // if the bigger state is not yet initialized, it has to be empty to be bigger than the lesser
     // state. if the lesser is not yet initialized, it must be empty and as such the bigger state
@@ -110,7 +103,7 @@ public class ImplicationLessOrEqualOperator implements AbstractDomain {
   }
 
   @Override
-  public AbstractState join(AbstractState state1, AbstractState state2)
+  public ConstraintsState join(ConstraintsState state1, ConstraintsState state2)
       throws CPAException, InterruptedException {
 
     throw new UnsupportedOperationException("ConstraintsCPA's domain does not support join");

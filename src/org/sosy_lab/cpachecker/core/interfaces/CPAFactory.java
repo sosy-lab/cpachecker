@@ -23,13 +23,13 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
-import java.util.List;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+
+import java.util.List;
 
 /**
  * Interface for classes which know how to create an instance of one specific
@@ -89,7 +89,8 @@ public interface CPAFactory {
    * @return this
    * @throws UnsupportedOperationException if this is no wrapper CPA
    */
-  public CPAFactory setChild(ConfigurableProgramAnalysis child) throws UnsupportedOperationException;
+  public CPAFactory setChild(ConfigurableProgramAnalysis<?> child)
+      throws UnsupportedOperationException;
 
   /**
    * Provides at least one child to the CPA. If the CPA does not support wrapping
@@ -98,7 +99,8 @@ public interface CPAFactory {
    * @return this
    * @throws UnsupportedOperationException if this is no wrapper CPA
    */
-  public CPAFactory setChildren(List<ConfigurableProgramAnalysis> children) throws UnsupportedOperationException;
+  public CPAFactory setChildren(List<ConfigurableProgramAnalysis<?>> children)
+      throws UnsupportedOperationException;
 
   /**
    * Provides an object of arbitrary type to the CPA.
@@ -119,5 +121,6 @@ public interface CPAFactory {
    * @return a new ConfigurableProgramAnalysis instance
    * @exception CPAException If the CPA cannot be instantiated.
    */
-  public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException, CPAException;
+  public ConfigurableProgramAnalysis<?> createInstance()
+      throws InvalidConfigurationException, CPAException;
 }

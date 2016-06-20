@@ -32,13 +32,14 @@ import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA.PartitionState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 public class PartitioningCPATest {
 
   private PartitioningCPA cpa;
-  private AbstractDomain domain;
+  private AbstractDomain<PartitionState> domain;
 
   @Before
   public void setUp() {
@@ -48,11 +49,11 @@ public class PartitioningCPATest {
 
   @Test
   public void testIsLessOrEqual_EqualPartition() throws CPAException, InterruptedException {
-    AbstractState p1 = cpa.getInitialState(
+    PartitionState p1 = cpa.getInitialState(
         TestDataTools.DUMMY_CFA_NODE,
         StateSpacePartition.getPartitionWithKey(InitialStatesFor.ENTRY));
 
-    AbstractState p2 = cpa.getInitialState(
+    PartitionState p2 = cpa.getInitialState(
         TestDataTools.DUMMY_CFA_NODE,
         StateSpacePartition.getPartitionWithKey(InitialStatesFor.ENTRY));
 
@@ -78,11 +79,11 @@ public class PartitioningCPATest {
 
   @Test
   public void testIsLessOrEqual_DifferentPartitions() throws CPAException, InterruptedException {
-    AbstractState p1 = cpa.getInitialState(
+    PartitionState p1 = cpa.getInitialState(
         TestDataTools.DUMMY_CFA_NODE,
         StateSpacePartition.getPartitionWithKey(InitialStatesFor.ENTRY));
 
-    AbstractState p2 = cpa.getInitialState(
+    PartitionState p2 = cpa.getInitialState(
         TestDataTools.DUMMY_CFA_NODE,
         StateSpacePartition.getPartitionWithKey(InitialStatesFor.EXIT));
 

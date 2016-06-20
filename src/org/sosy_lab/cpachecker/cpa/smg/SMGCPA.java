@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopNeverOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithConcreteCex;
@@ -57,7 +56,7 @@ import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
 import java.util.logging.Level;
 
 @Options(prefix="cpa.smg")
-public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramAnalysisWithConcreteCex {
+public class SMGCPA implements ConfigurableProgramAnalysis<SMGState>, ConfigurableProgramAnalysisWithConcreteCex {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(SMGCPA.class);
@@ -86,7 +85,7 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
     return externalAllocationSize;
   }
 
-  private final AbstractDomain abstractDomain;
+  private final AbstractDomain<SMGState> abstractDomain;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
@@ -114,7 +113,7 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
     assumptionToEdgeAllocator = new AssumptionToEdgeAllocator(config, logger, machineModel);
     precisionAdjustment = new SMGPrecisionAdjustment();
 
-    abstractDomain = DelegateAbstractDomain.<SMGState>getInstance();
+    abstractDomain = DelegateAbstractDomain.getInstance();
     mergeOperator = MergeSepOperator.getInstance();
 
     if(stopType.equals("NEVER")) {
@@ -138,7 +137,7 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<SMGState> getAbstractDomain() {
     return abstractDomain;
   }
 
@@ -186,7 +185,7 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public SMGState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return getInitialState(pNode);
   }
 

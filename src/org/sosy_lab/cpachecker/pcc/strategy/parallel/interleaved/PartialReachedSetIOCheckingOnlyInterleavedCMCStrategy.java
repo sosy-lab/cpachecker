@@ -96,6 +96,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
   }
 
   @Override
+  @SuppressWarnings("rawtypes")
   public boolean checkCertificate(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     pReachedSet.popFromWaitlist();
     if (numProofs <= 0) {
@@ -201,7 +202,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
       return;
     }
 
-    List<ConfigurableProgramAnalysis> cpas = ((HistoryForwardingReachedSet) pReached).getCPAs();
+    List<ConfigurableProgramAnalysis<?>> cpas = ((HistoryForwardingReachedSet) pReached).getCPAs();
 
     if (partialReachedSets.size() != cpas.size()) {
       logger.log(Level.SEVERE, "Analysis inconsistent. Proof cannot be generated.");
@@ -245,12 +246,14 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
     private final AtomicBoolean checkResult;
     private final Semaphore mainSemaphore, startReading;
     private final CMCPartitioningIOHelper[] ioHelperPerProofPart;
-    private final PropertyCheckerCPA[] cpas;
+    private final PropertyCheckerCPA<?>[] cpas;
     private final AbstractState[] roots;
     private final ReachedSetFactory factory;
 
     public ProofPartReader(final Semaphore pReadNext, Semaphore pPartitionsAvailable, final AtomicBoolean pCheckResult,
-        final CMCPartitioningIOHelper[] pIoHelpers, final PropertyCheckerCPA[] pCpas, final AbstractState[] pRoots,
+        final CMCPartitioningIOHelper[] pIoHelpers, final
+                           PropertyCheckerCPA<?>[] pCpas, final
+                           AbstractState[] pRoots,
         final ReachedSetFactory pFactory) {
       startReading = pReadNext;
       checkResult = pCheckResult;
@@ -270,7 +273,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
         o.readInt();
 
         CMCPartitioningIOHelper ioHelper;
-        ConfigurableProgramAnalysis cpa;
+        ConfigurableProgramAnalysis<?> cpa;
 
         boolean mustReadAndCheckSequentially;
 
@@ -287,7 +290,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
             abortPreparation();
             break;
           }
-          cpas[i] = (PropertyCheckerCPA) cpa;
+          cpas[i] = (PropertyCheckerCPA<?>) cpa;
           GlobalInfo.getInstance().setUpInfoFromCPA(cpas[i]);
 
           mustReadAndCheckSequentially = CPAs.retrieveCPA(cpa, PredicateCPA.class) != null;

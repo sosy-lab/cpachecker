@@ -214,7 +214,7 @@ public class CoreComponentsFactory {
   }
 
   public Algorithm createAlgorithm(
-      final ConfigurableProgramAnalysis cpa,
+      final ConfigurableProgramAnalysis<?> cpa,
       final String programDenotation,
       final CFA cfa,
       final Specification pSpecification)
@@ -363,7 +363,8 @@ public class CoreComponentsFactory {
     return reached;
   }
 
-  public ConfigurableProgramAnalysis createCPA(final CFA cfa, final Specification pSpecification)
+  public ConfigurableProgramAnalysis<?> createCPA(final CFA cfa, final
+  Specification pSpecification)
       throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
 

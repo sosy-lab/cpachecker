@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 class PredicateStopOperator extends StopSepOperator implements ForcedCoveringStopOperator {
 
-  PredicateStopOperator(AbstractDomain pD) {
+  PredicateStopOperator(AbstractDomain<?> pD) {
     super(pD);
   }
 

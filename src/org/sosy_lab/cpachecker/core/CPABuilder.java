@@ -84,7 +84,7 @@ public class CPABuilder {
     config.inject(this);
   }
 
-  public ConfigurableProgramAnalysis buildCPAs(
+  public ConfigurableProgramAnalysis<?> buildCPAs(
       final CFA cfa,
       final Specification specification,
       AggregatedReachedSets pAggregatedReachedSets)
@@ -92,7 +92,7 @@ public class CPABuilder {
     return buildCPAs(cfa, specification, ImmutableList.of(), pAggregatedReachedSets);
   }
 
-  public ConfigurableProgramAnalysis buildCPAs(
+  public ConfigurableProgramAnalysis<?> buildCPAs(
       final CFA cfa,
       final Specification specification,
       final List<Automaton> additionalAutomata,
@@ -101,7 +101,7 @@ public class CPABuilder {
     Set<String> usedAliases = new HashSet<>();
 
     List<Automaton> specAutomata = specification.getSpecificationAutomata();
-    List<ConfigurableProgramAnalysis> cpas =
+    List<ConfigurableProgramAnalysis<?>> cpas =
         new ArrayList<>(specAutomata.size() + additionalAutomata.size());
 
     for (Automaton automaton : Iterables.concat(specAutomata, additionalAutomata)) {
@@ -126,11 +126,11 @@ public class CPABuilder {
         cpaName, CPA_OPTION_NAME, usedAliases, cpas, cfa, specification, pAggregatedReachedSets);
   }
 
-  private ConfigurableProgramAnalysis buildCPAs(
+  private ConfigurableProgramAnalysis<?> buildCPAs(
       String optionValue,
       String optionName,
       Set<String> usedAliases,
-      List<ConfigurableProgramAnalysis> cpas,
+      List<ConfigurableProgramAnalysis<?>> cpas,
       final CFA cfa,
       final Specification specification,
       AggregatedReachedSets pAggregatedReachedSets)
@@ -192,7 +192,7 @@ public class CPABuilder {
     }
 
     // finally call createInstance
-    ConfigurableProgramAnalysis cpa;
+    ConfigurableProgramAnalysis<?> cpa;
     try {
       cpa = factory.createInstance();
     } catch (IllegalStateException e) {
@@ -286,7 +286,7 @@ public class CPABuilder {
       String cpaAlias,
       CPAFactory factory,
       Set<String> usedAliases,
-      List<ConfigurableProgramAnalysis> cpas,
+      List<ConfigurableProgramAnalysis<?>> cpas,
       final CFA cfa,
       final Specification specification,
       AggregatedReachedSets pAggregatedReachedSets)
@@ -313,7 +313,7 @@ public class CPABuilder {
             + childOptionName + " and " + childrenOptionName + " are specified!");
       }
 
-      ConfigurableProgramAnalysis child =
+      ConfigurableProgramAnalysis<?> child =
           buildCPAs(
               childCpaName,
               childOptionName,
@@ -332,7 +332,8 @@ public class CPABuilder {
 
     } else if (childrenCpaNames != null) {
       // several children CPAs
-      ImmutableList.Builder<ConfigurableProgramAnalysis> childrenCpas = ImmutableList.builder();
+      ImmutableList.Builder<ConfigurableProgramAnalysis<?>> childrenCpas =
+          ImmutableList.builder();
 
       for (String currentChildCpaName : LIST_SPLITTER.split(childrenCpaNames)) {
         childrenCpas.add(

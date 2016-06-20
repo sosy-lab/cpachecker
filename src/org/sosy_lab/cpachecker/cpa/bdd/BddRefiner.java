@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
  */
 public abstract class BddRefiner implements Refiner {
 
-  public static Refiner create(ConfigurableProgramAnalysis cpa)
+  public static Refiner create(ConfigurableProgramAnalysis<?> cpa)
       throws InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(BddRefiner.class.getSimpleName() + " could not find the BDDCPA");

@@ -70,7 +70,8 @@ import java.util.Collection;
 
 
 @Options(prefix = "cpa.bam")
-public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvider, ProofChecker {
+public class BAMCPA<T extends AbstractState> extends AbstractSingleWrapperCPA<T>
+    implements StatisticsProvider, ProofChecker {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(BAMCPA.class);
@@ -119,7 +120,7 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
       description = "Use more fast partitioning builder, which can not handle loops")
   private boolean useExtendedPartitioningBuilder = false;
 
-  public BAMCPA(ConfigurableProgramAnalysis pCpa, Configuration config, LogManager pLogger,
+  public BAMCPA(ConfigurableProgramAnalysis<T> pCpa, Configuration config, LogManager pLogger,
       ReachedSetFactory pReachedSetFactory, ShutdownNotifier pShutdownNotifier, CFA pCfa) throws InvalidConfigurationException, CPAException {
     super(pCpa);
     config.inject(this);
@@ -127,9 +128,10 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     logger = pLogger;
     cfa = pCfa;
 
-    if (!(pCpa instanceof ConfigurableProgramAnalysisWithBAM)) { throw new InvalidConfigurationException(
+    if (!(pCpa instanceof ConfigurableProgramAnalysisWithBAM)) { throw new
+        InvalidConfigurationException(
         "BAM needs CPAs that are capable for BAM"); }
-    Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithBAM) pCpa).getReducer();
+    Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithBAM<T>) pCpa).getReducer();
     if (wrappedReducer == null) { throw new InvalidConfigurationException("BAM needs CPAs that are capable for BAM"); }
 
     if (pCpa instanceof ProofChecker) {
@@ -163,7 +165,8 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  @SuppressWarnings("unchecked")
+  public T getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     if (blockPartitioning == null) {
       BlockPartitioningBuilder blockBuilder;
       if (useExtendedPartitioningBuilder) {
@@ -185,7 +188,7 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
         predicateCpa.setPartitioning(blockPartitioning);
       }
     }
-    return getWrappedCpa().getInitialState(pNode, pPartition);
+    return (T) getWrappedCpa().getInitialState(pNode, pPartition);
   }
 
   @Override
@@ -194,8 +197,9 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
-    return getWrappedCpa().getAbstractDomain();
+  @SuppressWarnings("unchecked")
+  public AbstractDomain<T> getAbstractDomain() {
+    return (AbstractDomain<T>) getWrappedCpa().getAbstractDomain();
   }
 
   @Override
@@ -223,7 +227,7 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   }
 
   @Override
-  protected ConfigurableProgramAnalysis getWrappedCpa() {
+  protected ConfigurableProgramAnalysis<?> getWrappedCpa() {
     // override for visibility
     return super.getWrappedCpa();
   }

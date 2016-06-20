@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.cpa.alwaystop;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.SingletonCPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -40,7 +38,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
  * Implementation of a CPA with only one element in the abstract state space.
  * Contains various assertions that may be used to test algorithms and wrapper CPAs.
  */
-public enum AlwaysTopCPA implements ConfigurableProgramAnalysis {
+public enum AlwaysTopCPA implements ConfigurableProgramAnalysis<AlwaysTopState> {
 
   INSTANCE;
 
@@ -49,12 +47,12 @@ public enum AlwaysTopCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AlwaysTopDomain getAbstractDomain() {
     return AlwaysTopDomain.INSTANCE;
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public AlwaysTopState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return AlwaysTopState.INSTANCE;
   }
 

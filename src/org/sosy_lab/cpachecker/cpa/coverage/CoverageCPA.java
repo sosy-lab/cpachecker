@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.coverage;
 
-import java.util.Collection;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -40,7 +38,6 @@ import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -53,8 +50,11 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.coverage.CoverageData.CoverageMode;
 
+import java.util.Collection;
+
 @Options
-public class CoverageCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
+public class CoverageCPA implements ConfigurableProgramAnalysis<CoverageState>,
+    StatisticsProvider {
 
   public static CPAFactory factory() {
     AutomaticCPAFactory factory = AutomaticCPAFactory.forType(CoverageCPA.class);
@@ -63,7 +63,7 @@ public class CoverageCPA implements ConfigurableProgramAnalysis, StatisticsProvi
 
   private final TransferRelation transfer;
   private final PrecisionAdjustment prec;
-  private final AbstractDomain domain;
+  private final AbstractDomain<CoverageState> domain;
   private final Precision precision;
   private final MergeOperator merge;
   private final StopOperator stop;
@@ -82,7 +82,7 @@ public class CoverageCPA implements ConfigurableProgramAnalysis, StatisticsProvi
 
     pConfig.inject(this);
 
-    domain = new FlatLatticeDomain(CoverageState.getSingleton());
+    domain = new FlatLatticeDomain<>(CoverageState.getSingleton());
     prec = StaticPrecisionAdjustment.getInstance();
     precision = SingletonPrecision.getInstance();
     stop = new StopSepOperator(domain);
@@ -104,7 +104,7 @@ public class CoverageCPA implements ConfigurableProgramAnalysis, StatisticsProvi
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<CoverageState> getAbstractDomain() {
     return domain;
   }
 
@@ -129,7 +129,7 @@ public class CoverageCPA implements ConfigurableProgramAnalysis, StatisticsProvi
   }
 
   @Override
-  public AbstractState getInitialState(CFANode node, StateSpacePartition partition) {
+  public CoverageState getInitialState(CFANode node, StateSpacePartition partition) {
     return CoverageState.getSingleton();
   }
 

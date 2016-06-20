@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.storage;
 
-import java.util.Collection;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -57,6 +55,8 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
+import java.util.Collection;
+
 /**
  * CPA used to capture the assumptions that ought to be dumped.
  *
@@ -64,13 +64,13 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
  * to dumpInvariants() is needed to process the reachable states
  * and produce the actual invariants.
  */
-public class AssumptionStorageCPA implements ConfigurableProgramAnalysis, ProofChecker {
+public class AssumptionStorageCPA implements ConfigurableProgramAnalysis<AssumptionStorageState>, ProofChecker {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(AssumptionStorageCPA.class);
   }
 
-  private final AbstractDomain abstractDomain;
+  private final AbstractDomain<AssumptionStorageState> abstractDomain;
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
   private final FormulaManagerView formulaManager;
@@ -94,12 +94,12 @@ public class AssumptionStorageCPA implements ConfigurableProgramAnalysis, ProofC
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<AssumptionStorageState> getAbstractDomain() {
     return abstractDomain;
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public AssumptionStorageState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return topState;
   }
 

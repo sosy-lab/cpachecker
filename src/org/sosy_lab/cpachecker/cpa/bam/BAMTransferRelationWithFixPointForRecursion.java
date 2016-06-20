@@ -74,7 +74,9 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
   private boolean targetFound = false;
   final Collection<AbstractState> potentialRecursionUpdateStates = new HashSet<>();
 
-  public BAMTransferRelationWithFixPointForRecursion(Configuration pConfig, LogManager pLogger, BAMCPA bamCpa,
+  public BAMTransferRelationWithFixPointForRecursion(Configuration pConfig,
+                                                     LogManager pLogger,
+                                                     BAMCPA<?> bamCpa,
                              ProofChecker wrappedChecker, BAMDataManager data, ShutdownNotifier pShutdownNotifier)
                                  throws InvalidConfigurationException {
     super(pConfig, pLogger, bamCpa, wrappedChecker, data, pShutdownNotifier);

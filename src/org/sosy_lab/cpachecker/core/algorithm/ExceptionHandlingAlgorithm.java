@@ -97,7 +97,7 @@ public class ExceptionHandlingAlgorithm implements Algorithm, StatisticsProvider
   private final ShutdownNotifier shutdownNotifier;
   private final ExceptionHandlingOptions options;
 
-  private ExceptionHandlingAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
+  private ExceptionHandlingAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis<?> pCpa,
       ExceptionHandlingOptions pOptions, LogManager pLogger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     options = pOptions;
     algorithm = pAlgorithm;
@@ -112,7 +112,7 @@ public class ExceptionHandlingAlgorithm implements Algorithm, StatisticsProvider
   public static Algorithm create(
       Configuration pConfig,
       Algorithm pAlgorithm,
-      ConfigurableProgramAnalysis pCpa,
+      ConfigurableProgramAnalysis<?> pCpa,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       boolean pCheckCounterexamples,

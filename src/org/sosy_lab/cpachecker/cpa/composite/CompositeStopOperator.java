@@ -81,7 +81,8 @@ class CompositeStopOperator implements StopOperator, ForcedCoveringStopOperator 
     return true;
   }
 
-  boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement, List<ConfigurableProgramAnalysis> cpas) throws CPAException, InterruptedException {
+  boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement, List<ConfigurableProgramAnalysis<?>> cpas) throws
+                                                                 CPAException, InterruptedException {
     CompositeState compositeState = (CompositeState)pElement;
     CompositeState compositeOtherElement = (CompositeState)pOtherElement;
 

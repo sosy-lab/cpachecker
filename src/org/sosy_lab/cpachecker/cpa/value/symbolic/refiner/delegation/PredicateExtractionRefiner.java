@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
  */
 public abstract class PredicateExtractionRefiner implements Refiner {
 
-  public static Refiner create(final ConfigurableProgramAnalysis pCpa)
+  public static Refiner create(final ConfigurableProgramAnalysis<?> pCpa)
       throws InvalidConfigurationException {
 
     final ValueAnalysisCPA valueAnalysisCpa = CPAs.retrieveCPA(pCpa, ValueAnalysisCPA.class);

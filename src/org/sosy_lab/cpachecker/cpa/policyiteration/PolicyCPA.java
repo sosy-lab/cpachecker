@@ -52,9 +52,9 @@ import java.util.Optional;
  */
 @Options(prefix="cpa.lpi", deprecatedPrefix="cpa.stator.policy")
 public class PolicyCPA extends SingleEdgeTransferRelation
-    implements ConfigurableProgramAnalysis,
+    implements ConfigurableProgramAnalysis<PolicyState>,
                StatisticsProvider,
-               AbstractDomain,
+               AbstractDomain<PolicyState>,
                PrecisionAdjustment,
                AdjustableConditionCPA,
                ReachedSetAdjustingCPA,
@@ -132,12 +132,12 @@ public class PolicyCPA extends SingleEdgeTransferRelation
   }
 
   @Override
-  public AbstractState getInitialState(CFANode node, StateSpacePartition pPartition) {
+  public PolicyState getInitialState(CFANode node, StateSpacePartition pPartition) {
     return policyIterationManager.getInitialState(node);
   }
 
   @Override
-  public AbstractState join(AbstractState state1, AbstractState state2)
+  public PolicyState join(PolicyState state1, PolicyState state2)
       throws CPAException, InterruptedException {
     throw new UnsupportedOperationException("PolicyCPA should be used with its"
         + " own merge operator");
@@ -150,11 +150,9 @@ public class PolicyCPA extends SingleEdgeTransferRelation
    * always return {@code true}.
    */
   @Override
-  public boolean isLessOrEqual(AbstractState state1, AbstractState state2)
+  public boolean isLessOrEqual(PolicyState state1, PolicyState state2)
       throws CPAException, InterruptedException {
-    return policyIterationManager.isLessOrEqual(
-        (PolicyState) state1, (PolicyState) state2
-    );
+    return policyIterationManager.isLessOrEqual(state1,  state2);
   }
 
   @Override
@@ -169,7 +167,7 @@ public class PolicyCPA extends SingleEdgeTransferRelation
 }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<PolicyState> getAbstractDomain() {
     return this;
   }
 

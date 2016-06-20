@@ -102,7 +102,7 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
   private final Configuration config;
   private final ShutdownNotifier shutdownNotifier;
   private final Algorithm analysisAlgorithm;
-  private final ConfigurableProgramAnalysis cpa;
+  private final ConfigurableProgramAnalysis<?> cpa;
   private final CFA analyzedProgram;
   private final Specification specification;
   private final ResultCheckStatistics stats;
@@ -118,7 +118,7 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
 
   public ResultCheckAlgorithm(
       Algorithm pAlgorithm,
-      ConfigurableProgramAnalysis pCpa,
+      ConfigurableProgramAnalysis<?> pCpa,
       CFA pCfa,
       Configuration pConfig,
       LogManager pLogger,
@@ -211,7 +211,7 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   private ReachedSet initializeReachedSetForChecking(Configuration pConfig,
-      ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
+      ConfigurableProgramAnalysis<?> pCpa) throws InvalidConfigurationException {
     CoreComponentsFactory factory =
         new CoreComponentsFactory(pConfig, logger, shutdownNotifier, new AggregatedReachedSets());
    ReachedSet reached = factory.createReachedSet();
@@ -230,7 +230,7 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
     stats.proofGenStats = proofGen.generateProofUnchecked(pVerificationResult);
 
     Configuration checkConfig = config;
-    ConfigurableProgramAnalysis checkerCPA = cpa;
+    ConfigurableProgramAnalysis<?> checkerCPA = cpa;
     if(checkerConfig != null) {
       try {
         checkConfig = Configuration.builder().copyFrom(config).loadFromFile(checkerConfig).build();

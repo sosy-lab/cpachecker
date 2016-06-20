@@ -52,6 +52,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -109,14 +111,17 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
   private final CFA cfa;
   private final LogManagerWithoutDuplicates logger;
-  private final ConfigurableProgramAnalysis callstackCPA;
-  private final ConfigurableProgramAnalysis locationCPA;
+  private final ConfigurableProgramAnalysis<CallstackState> callstackCPA;
+  private final ConfigurableProgramAnalysis<LocationState> locationCPA;
 
   private final GlobalAccessChecker globalAccessChecker = new GlobalAccessChecker();
 
   public ThreadingTransferRelation(
-      Configuration pConfig, ConfigurableProgramAnalysis pCallstackCPA,
-      ConfigurableProgramAnalysis pLocationCPA, CFA pCfa, LogManager pLogger)
+      Configuration pConfig,
+      ConfigurableProgramAnalysis<CallstackState>
+      pCallstackCPA,
+      ConfigurableProgramAnalysis<LocationState> pLocationCPA, CFA pCfa, LogManager
+          pLogger)
           throws InvalidConfigurationException {
     pConfig.inject(this);
     cfa = pCfa;

@@ -29,8 +29,6 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -43,7 +41,6 @@ import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -60,6 +57,8 @@ import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.ImmediateChecksParser;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.InitialMapParser;
 
 import java.lang.reflect.Field;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedSet;
@@ -71,7 +70,8 @@ import java.util.logging.Level;
  * CPA for enforcing a Security Policy
  */
 @Options(prefix="cpa.ifcsecurity")
-public class PolicyEnforcementCPA implements ConfigurableProgramAnalysis {
+public class PolicyEnforcementCPA implements
+                                  ConfigurableProgramAnalysis<PolicyEnforcementState<SecurityClasses>> {
   /*
    * Default Security Enforcer: Explicit Flow without Dependency (Access Control)
    *
@@ -81,7 +81,7 @@ public class PolicyEnforcementCPA implements ConfigurableProgramAnalysis {
   @SuppressWarnings("unused")
   private LogManager logger;
 
-  private AbstractDomain domain;
+  private AbstractDomain<PolicyEnforcementState<SecurityClasses>> domain;
 
   private PolicyEnforcementRelation<SecurityClasses> transfer;
 
@@ -146,7 +146,7 @@ public class PolicyEnforcementCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<PolicyEnforcementState<SecurityClasses>> getAbstractDomain() {
     return domain;
   }
 
@@ -172,7 +172,7 @@ public class PolicyEnforcementCPA implements ConfigurableProgramAnalysis {
 
   @SuppressWarnings("unchecked")
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public PolicyEnforcementState<SecurityClasses> getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     PolicyEnforcementState<SecurityClasses> initialstate=new PolicyEnforcementState<>();
 
 

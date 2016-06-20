@@ -29,7 +29,6 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Function;
-import java.util.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Throwables;
@@ -74,6 +73,7 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -131,7 +131,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
   private final CPAInvariantGeneratorStatistics stats;
   private final LogManager logger;
   private final CPAAlgorithm algorithm;
-  private final ConfigurableProgramAnalysis cpa;
+  private final ConfigurableProgramAnalysis<?> cpa;
   private final ReachedSetFactory reachedSetFactory;
   private final CFA cfa;
 
@@ -242,7 +242,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
 
             @Override
             public CPAInvariantGenerator apply(CPAInvariantGenerator pToAdjust) {
-              ConfigurableProgramAnalysis cpa = pToAdjust.cpa;
+              ConfigurableProgramAnalysis<?> cpa = pToAdjust.cpa;
               LogManager logger = pToAdjust.logger;
               List<AdjustableConditionCPA> conditionCPAs =
                   CPAs.asIterable(cpa).filter(AdjustableConditionCPA.class).toList();
@@ -356,7 +356,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
       final int pIteration,
       final CFA pCFA,
       ReachedSetFactory pReachedSetFactory,
-      ConfigurableProgramAnalysis pCPA,
+      ConfigurableProgramAnalysis<?> pCPA,
       CPAAlgorithm pAlgorithm,
       CPAInvariantGeneratorStatistics pStats) throws InvalidConfigurationException {
     config.inject(this);

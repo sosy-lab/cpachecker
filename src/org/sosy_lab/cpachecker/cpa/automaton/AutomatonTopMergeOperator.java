@@ -29,23 +29,24 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class AutomatonTopMergeOperator implements MergeOperator {
+public class AutomatonTopMergeOperator<T extends AbstractState> implements MergeOperator {
 
-  private final AbstractDomain domain;
-  private final AbstractState topState;
+  private final AbstractDomain<T> domain;
+  private final T topState;
 
-  public AutomatonTopMergeOperator(AbstractDomain pDomain, AbstractState pTopState) {
+  public AutomatonTopMergeOperator(AbstractDomain<T> pDomain, T pTopState) {
     this.domain = pDomain;
     this.topState = pTopState;
   }
 
   @Override
+  @SuppressWarnings("unchecked")
   public AbstractState merge(AbstractState el1, AbstractState el2, Precision p)
     throws CPAException, InterruptedException {
 
     boolean anyAutomatonTop =
-        domain.isLessOrEqual(topState, el1)
-        || domain.isLessOrEqual(topState, el2);
+        domain.isLessOrEqual(topState, (T) el1)
+        || domain.isLessOrEqual(topState, (T) el2);
 
     if (anyAutomatonTop) {
       return topState;

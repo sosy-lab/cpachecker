@@ -182,7 +182,7 @@ public class RestartAlgorithmWithARGReplay implements Algorithm, StatisticsProvi
       // predicate analysis
       logger.log(Level.FINE, "Creating CPA for PredicateAnalysis");
       Configuration singleConfig1 = getConfigFromFile(configFiles.get(0));
-      ConfigurableProgramAnalysis cpa1 = getCPA(reachedSetFactory, singleConfig1);
+      ConfigurableProgramAnalysis<?> cpa1 = getCPA(reachedSetFactory, singleConfig1);
       Algorithm algorithm1 = getAlgorithm(shutdownNotifier, singleConfig1, logger, cpa1);
       ReachedSet reached1 = createInitialReachedSetForRestart(cpa1, mainFunction, singleConfig1, logger);
 
@@ -199,7 +199,7 @@ public class RestartAlgorithmWithARGReplay implements Algorithm, StatisticsProvi
       // predicate bit-precise analysis
       logger.log(Level.FINE, "Creating CPA for PredicateAnalysis-Bitprecise");
       Configuration singleConfig2 = getConfigFromFile(configFiles.get(1));
-      ConfigurableProgramAnalysis cpa2 = getCPA(reachedSetFactory, singleConfig2);
+      ConfigurableProgramAnalysis<?> cpa2 = getCPA(reachedSetFactory, singleConfig2);
 
       {
         // this is the important step: re-use the reached-set
@@ -243,10 +243,10 @@ public class RestartAlgorithmWithARGReplay implements Algorithm, StatisticsProvi
     return singleConfig;
   }
 
-  private ConfigurableProgramAnalysis getCPA(ReachedSetFactory reachedSetFactory, Configuration singleConfig1)
+  private ConfigurableProgramAnalysis<?> getCPA(ReachedSetFactory reachedSetFactory, Configuration singleConfig1)
       throws InvalidConfigurationException, CPAException {
     CPABuilder builder1 = new CPABuilder(singleConfig1, logger, shutdownNotifier, reachedSetFactory);
-    ConfigurableProgramAnalysis cpa1 =
+    ConfigurableProgramAnalysis<?> cpa1 =
         builder1.buildCPAs(cfa, specification, new AggregatedReachedSets());
     if (cpa1 instanceof StatisticsProvider) {
       ((StatisticsProvider)cpa1).collectStatistics(stats.getSubStatistics());
@@ -255,7 +255,7 @@ public class RestartAlgorithmWithARGReplay implements Algorithm, StatisticsProvi
   }
 
   private Algorithm getAlgorithm(ShutdownNotifier singleShutdownNotifier, Configuration singleConfig,
-      LogManager singleLogger, ConfigurableProgramAnalysis cpa) throws InvalidConfigurationException, CPAException {
+      LogManager singleLogger, ConfigurableProgramAnalysis<?> cpa) throws InvalidConfigurationException, CPAException {
     singleLogger.log(Level.FINE, "Creating algorithms");
     Algorithm algorithm = CPAAlgorithm.create(cpa, singleLogger, singleConfig, singleShutdownNotifier);
 
@@ -266,7 +266,7 @@ public class RestartAlgorithmWithARGReplay implements Algorithm, StatisticsProvi
   }
 
   private ReachedSet createInitialReachedSetForRestart(
-      ConfigurableProgramAnalysis cpa,
+      ConfigurableProgramAnalysis<?> cpa,
       CFANode mainFunction,
       Configuration singleConfig,
       LogManager singleLogger) throws InvalidConfigurationException {

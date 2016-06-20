@@ -29,18 +29,18 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 
 public class SingletonCPAFactory extends AbstractCPAFactory {
 
-  private final ConfigurableProgramAnalysis instance;
+  private final ConfigurableProgramAnalysis<?> instance;
 
-  public SingletonCPAFactory(ConfigurableProgramAnalysis pInstance) {
+  public SingletonCPAFactory(ConfigurableProgramAnalysis<?> pInstance) {
     instance = checkNotNull(pInstance);
   }
 
-  public static SingletonCPAFactory forInstance(ConfigurableProgramAnalysis pInstance) {
+  public static SingletonCPAFactory forInstance(ConfigurableProgramAnalysis<?> pInstance) {
     return new SingletonCPAFactory(pInstance);
   }
 
   @Override
-  public ConfigurableProgramAnalysis createInstance() {
+  public ConfigurableProgramAnalysis<?> createInstance() {
     return instance;
   }
 

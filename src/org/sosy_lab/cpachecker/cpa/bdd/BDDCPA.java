@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
-import java.io.PrintStream;
-import java.util.Collection;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -43,7 +40,6 @@ import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -60,8 +56,11 @@ import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 
+import java.io.PrintStream;
+import java.util.Collection;
+
 @Options(prefix="cpa.bdd")
-public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
+public class BDDCPA implements ConfigurableProgramAnalysisWithBAM<BDDState>, StatisticsProvider {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(BDDCPA.class);
@@ -70,7 +69,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
   private final NamedRegionManager manager;
   private final BitvectorManager bvmgr;
   private final PredicateManager predmgr;
-  private final AbstractDomain abstractDomain;
+  private final AbstractDomain<BDDState> abstractDomain;
   private VariableTrackingPrecision precision;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
@@ -95,7 +94,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
 
     RegionManager rmgr = new BDDManagerFactory(config, logger).createRegionManager();
 
-    abstractDomain    = DelegateAbstractDomain.<BDDState>getInstance();
+    abstractDomain    = DelegateAbstractDomain.getInstance();
     stopOperator      = new StopSepOperator(abstractDomain);
     mergeOperator     = (merge.equals("sep")) ? MergeSepOperator.getInstance() : new MergeJoinOperator(abstractDomain);
     precision         = VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), getClass());
@@ -116,7 +115,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<BDDState> getAbstractDomain() {
     return abstractDomain;
   }
 
@@ -136,7 +135,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public BDDState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return new BDDState(manager, bvmgr, manager.makeTrue());
   }
 

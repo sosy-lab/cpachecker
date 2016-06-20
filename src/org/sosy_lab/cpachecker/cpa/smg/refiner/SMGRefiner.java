@@ -123,7 +123,7 @@ public class SMGRefiner implements Refiner {
     shutdownNotifier = pShutdownNotifier;
   }
 
-  public static final SMGRefiner create(ConfigurableProgramAnalysis pCpa)
+  public static final SMGRefiner create(ConfigurableProgramAnalysis<?> pCpa)
       throws InvalidConfigurationException {
 
     ARGCPA argCpa = retrieveCPA(pCpa, ARGCPA.class);
@@ -396,8 +396,8 @@ public class SMGRefiner implements Refiner {
   }
 
   /** retrieve the wrapped CPA or throw an exception. */
-  private static final <T extends ConfigurableProgramAnalysis> T retrieveCPA(
-      ConfigurableProgramAnalysis pCpa, Class<T> retrieveCls)
+  private static final <T extends ConfigurableProgramAnalysis<?>> T retrieveCPA(
+      ConfigurableProgramAnalysis<?> pCpa, Class<T> retrieveCls)
           throws InvalidConfigurationException {
     final T extractedCPA = CPAs.retrieveCPA(pCpa, retrieveCls);
     if (extractedCPA == null) {

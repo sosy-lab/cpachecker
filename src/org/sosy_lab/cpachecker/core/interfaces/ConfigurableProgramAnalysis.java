@@ -32,12 +32,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
  * which takes no arguments, returns an instance of {@link CPAFactory} and never
  * fails that is, it never returns null or throws an exception).
  */
-public interface ConfigurableProgramAnalysis {
-  public AbstractDomain getAbstractDomain();
-  public TransferRelation getTransferRelation();
-  public MergeOperator getMergeOperator();
-  public StopOperator getStopOperator();
-  public PrecisionAdjustment getPrecisionAdjustment();
-  public AbstractState getInitialState(CFANode node, StateSpacePartition partition);
-  public Precision getInitialPrecision(CFANode node, StateSpacePartition partition);
+public interface ConfigurableProgramAnalysis<S extends AbstractState> {
+  AbstractDomain<S> getAbstractDomain();
+  TransferRelation getTransferRelation();
+  MergeOperator getMergeOperator();
+  StopOperator getStopOperator();
+  PrecisionAdjustment getPrecisionAdjustment();
+  S getInitialState(CFANode node, StateSpacePartition partition);
+  Precision getInitialPrecision(CFANode node, StateSpacePartition partition);
 }

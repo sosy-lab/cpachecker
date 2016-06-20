@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.core.interfaces;
 
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public interface AbstractDomain {
+public interface AbstractDomain<T extends AbstractState> {
 
   /**
    * Returns the smallest state of the lattice that is greater than both
@@ -42,7 +42,7 @@ public interface AbstractDomain {
    * @throws UnsupportedOperationException If this domain does not provide a join method.
    * @throws InterruptedException If the operation could not complete due to a shutdown request.
    */
-  public AbstractState join(AbstractState state1, AbstractState state2) throws CPAException, InterruptedException;
+  T join(T state1, T state2) throws CPAException, InterruptedException;
 
   /**
    * Returns true if state1 is less or equal than state2 with respect to
@@ -54,10 +54,10 @@ public interface AbstractDomain {
    *
    * @param state1 an abstract state
    * @param state2 an abstract state
-   * @return (state1 <= state2)
+   * @return Whether {@code state1 <= state2}
    * @throws CPAException If any error occurred.
    * @throws InterruptedException If the operation could not complete due to a shutdown request.
    */
-  public boolean isLessOrEqual(AbstractState state1, AbstractState state2) throws CPAException, InterruptedException;
-
+  boolean isLessOrEqual(T state1, T state2) throws CPAException,
+                                                               InterruptedException;
 }

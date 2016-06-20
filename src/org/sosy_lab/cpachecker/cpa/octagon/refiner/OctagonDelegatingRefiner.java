@@ -48,7 +48,7 @@ import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
  */
 public abstract class OctagonDelegatingRefiner implements Refiner {
 
-  public static Refiner create(ConfigurableProgramAnalysis cpa) throws InvalidConfigurationException {
+  public static Refiner create(ConfigurableProgramAnalysis<?> cpa) throws InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(OctagonDelegatingRefiner.class.getSimpleName() + " could not find the OctagonCPA");
     }

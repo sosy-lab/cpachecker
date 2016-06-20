@@ -1,8 +1,8 @@
 /*
- *  CPAchecker is a tool for configurable software verification.
+ * CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2016  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,37 +25,21 @@ package org.sosy_lab.cpachecker.core.defaults;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-import java.util.Collection;
-
 /**
- * Standard stop-sep operator
+ * Like {@link FlatLatticeDomain}, but with no top state: join is not supported.
  */
-@SuppressWarnings({"rawtypes", "unchecked"})
-public class StopSepOperator implements StopOperator {
-
-  private final AbstractDomain domain;
-
-  /**
-   * Creates a stop-sep operator based on the given
-   * partial order
-   */
-  public StopSepOperator(AbstractDomain d) {
-    domain = d;
+public class FlatLatticeNoTopDomain<T extends AbstractState> implements
+                                                              AbstractDomain<T> {
+  @Override
+  public T join(T state1, T state2) throws CPAException, InterruptedException {
+    throw new UnsupportedOperationException("Join is not supported");
   }
 
   @Override
-  public boolean stop(AbstractState el, Collection<AbstractState> reached, Precision precision)
-    throws CPAException, InterruptedException {
-
-    for (AbstractState reachedState : reached) {
-      if (domain.isLessOrEqual(el, reachedState)) {
-        return true;
-      }
-    }
-    return false;
+  public boolean isLessOrEqual(T state1, T state2)
+      throws CPAException, InterruptedException {
+    return state1.equals(state2);
   }
 }

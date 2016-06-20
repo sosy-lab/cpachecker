@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopNeverOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -40,7 +39,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 @Unmaintained
-public class CFAPathCPA implements ConfigurableProgramAnalysis {
+public class CFAPathCPA implements ConfigurableProgramAnalysis<CFAPathState> {
 
   private final CFAPathDomain mDomain;
   private final CFAPathTransferRelation mTransferRelation;
@@ -67,7 +66,7 @@ public class CFAPathCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<CFAPathState> getAbstractDomain() {
     return mDomain;
   }
 
@@ -92,7 +91,8 @@ public class CFAPathCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractState getInitialState(CFANode node, StateSpacePartition partition) {
+  public CFAPathState getInitialState(CFANode node, StateSpacePartition
+      partition) {
     return mInitialState;
   }
 

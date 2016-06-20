@@ -23,14 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints.domain;
 
-import java.util.Set;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.AliasCreator.Environment;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+
+import java.util.Set;
 
 /**
  * Less-or-equal operator of the semi-lattice of the {@link ConstraintsCPA}.
@@ -44,7 +43,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  * with <code>d(s)</code>.
  * </p>
  */
-public class AliasedSubsetLessOrEqualOperator implements AbstractDomain {
+public class AliasedSubsetLessOrEqualOperator
+    implements AbstractDomain<ConstraintsState> {
 
   private static final AliasedSubsetLessOrEqualOperator SINGLETON =
       new AliasedSubsetLessOrEqualOperator();
@@ -60,7 +60,7 @@ public class AliasedSubsetLessOrEqualOperator implements AbstractDomain {
   }
 
   @Override
-  public AbstractState join(AbstractState state1, AbstractState state2)
+  public ConstraintsState join(ConstraintsState state1, ConstraintsState state2)
       throws CPAException, InterruptedException {
     throw new UnsupportedOperationException("ConstraintsCPA's domain does not support join");
   }
@@ -75,24 +75,19 @@ public class AliasedSubsetLessOrEqualOperator implements AbstractDomain {
    * with <code>d(s)</code>.
    * </p>
    *
-   * @param pLesserState the state that should be less or equal the second state
-   * @param pBiggerState the state that should be equal or bigger the first state
+   * @param lesserState the state that should be less or equal the second state
+   * @param biggerState the state that should be equal or bigger the first state
    * @return <code>true</code> if the first given state is less or equal the given second state
    */
   @Override
   public boolean isLessOrEqual(
-      final AbstractState pLesserState,
-      final AbstractState pBiggerState
+      final ConstraintsState lesserState,
+      final ConstraintsState biggerState
   ) {
-    assert pLesserState instanceof ConstraintsState;
-    assert pBiggerState instanceof ConstraintsState;
 
-    if (simpleSubsetOperator.isLessOrEqual(pLesserState, pBiggerState)) {
+    if (simpleSubsetOperator.isLessOrEqual(lesserState, biggerState)) {
       return true;
     }
-
-    ConstraintsState lesserState = (ConstraintsState) pLesserState;
-    ConstraintsState biggerState = (ConstraintsState) pBiggerState;
 
     if (biggerState.size() > lesserState.size()) {
       return false;

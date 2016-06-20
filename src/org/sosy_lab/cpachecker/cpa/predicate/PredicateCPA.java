@@ -78,7 +78,8 @@ import java.util.logging.Level;
  */
 @Options(prefix = "cpa.predicate")
 public class PredicateCPA
-    implements ConfigurableProgramAnalysis, StatisticsProvider, ProofChecker, AutoCloseable {
+    implements ConfigurableProgramAnalysis<PredicateAbstractState>, StatisticsProvider,
+    ProofChecker, AutoCloseable {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PredicateCPA.class).withOptions(BlockOperator.class);
@@ -254,7 +255,7 @@ public class PredicateCPA
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<PredicateAbstractState> getAbstractDomain() {
     return domain;
   }
 
@@ -302,7 +303,8 @@ public class PredicateCPA
   }
 
   @Override
-  public AbstractState getInitialState(CFANode node, StateSpacePartition pPartition) {
+  public PredicateAbstractState getInitialState(CFANode node, StateSpacePartition
+      pPartition) {
     return topState;
   }
 

@@ -35,8 +35,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 public abstract class PredicateGlobalRefiner implements Refiner {
 
-  public static Refiner create(ConfigurableProgramAnalysis pCpa)
-      throws InvalidConfigurationException {
+  public static Refiner create(ConfigurableProgramAnalysis<?> pCpa) throws InvalidConfigurationException {
 
     PredicateCPA predicateCpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
     if (predicateCpa == null) {

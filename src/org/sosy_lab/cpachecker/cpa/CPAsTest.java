@@ -80,6 +80,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @RunWith(Parameterized.class)
+@SuppressWarnings({"rawtypes", "unchecked"})
 public class CPAsTest {
 
   @Parameters(name = "{0}")

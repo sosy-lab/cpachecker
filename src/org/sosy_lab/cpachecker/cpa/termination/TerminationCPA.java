@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -47,11 +46,11 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 import java.util.Set;
 
-public class TerminationCPA extends AbstractSingleWrapperCPA {
+public class TerminationCPA extends AbstractSingleWrapperCPA<TerminationState> {
 
   private final Configuration config;
 
-  private final AbstractDomain abstractDomain;
+  private final AbstractDomain<TerminationState> abstractDomain;
   private final TerminationTransferRelation transferRelation;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
@@ -62,14 +61,14 @@ public class TerminationCPA extends AbstractSingleWrapperCPA {
   }
 
   public TerminationCPA(
-      ConfigurableProgramAnalysis pCpa, CFA pCfa, Configuration pConfig, LogManager pLogger) {
+      ConfigurableProgramAnalysis<?> pCpa, CFA pCfa, Configuration pConfig, LogManager pLogger) {
     super(pCpa);
 
     config = Preconditions.checkNotNull(pConfig);
     transferRelation =
         new TerminationTransferRelation(
             pCpa.getTransferRelation(), pCfa.getMachineModel(), pLogger);
-    abstractDomain = new TerminationAbstractDomain(pCpa.getAbstractDomain());
+    abstractDomain = new TerminationAbstractDomain<>(pCpa.getAbstractDomain());
     stopOperator = new TerminationStopOperator(pCpa.getStopOperator());
     mergeOperator = new TerminationMergeOperator(pCpa.getMergeOperator());
     precisionAdjustment = new TerminationPrecisionAdjustment(pCpa.getPrecisionAdjustment());
@@ -110,7 +109,7 @@ public class TerminationCPA extends AbstractSingleWrapperCPA {
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<TerminationState> getAbstractDomain() {
     return abstractDomain;
   }
 
@@ -135,7 +134,7 @@ public class TerminationCPA extends AbstractSingleWrapperCPA {
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public TerminationState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return TerminationState.createStemState(getWrappedCpa().getInitialState(pNode, pPartition));
   }
 }

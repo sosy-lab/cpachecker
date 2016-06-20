@@ -23,27 +23,28 @@
  */
 package org.sosy_lab.cpachecker.util.globalinfo;
 
+import com.google.common.base.Preconditions;
+
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.apron.ApronCPA;
-import org.sosy_lab.cpachecker.util.ApronManager;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.util.ApronManager;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 import java.util.Optional;
-import com.google.common.base.Preconditions;
 
 
 public class GlobalInfo {
   private static GlobalInfo instance;
   private CFAInfo cfaInfo;
   private AutomatonInfo automatonInfo = new AutomatonInfo();
-  private ConfigurableProgramAnalysis cpa;
+  private ConfigurableProgramAnalysis<?> cpa;
   private FormulaManagerView predicateFormulaManagerView;
   private FormulaManagerView assumptionFormulaManagerView;
   private AbstractionManager absManager;
@@ -70,17 +71,17 @@ public class GlobalInfo {
   }
 
 
-  public Optional<ConfigurableProgramAnalysis> getCPA() {
+  public Optional<ConfigurableProgramAnalysis<?>> getCPA() {
     return Optional.ofNullable(cpa);
   }
 
-  public void setUpInfoFromCPA(ConfigurableProgramAnalysis cpa) {
+  public void setUpInfoFromCPA(ConfigurableProgramAnalysis<?> cpa) {
     this.cpa = cpa;
     absManager = null;
     apronManager = null;
     apronLogger = null;
     if (cpa != null) {
-      for (ConfigurableProgramAnalysis c : CPAs.asIterable(cpa)) {
+      for (ConfigurableProgramAnalysis<?> c : CPAs.asIterable(cpa)) {
         if (c instanceof ControlAutomatonCPA) {
           ((ControlAutomatonCPA) c).registerInAutomatonInfo(automatonInfo);
         } else if (c instanceof ApronCPA) {

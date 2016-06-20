@@ -48,7 +48,7 @@ import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
  */
 public abstract class ApronDelegatingRefiner implements Refiner {
 
-  public static Refiner create(ConfigurableProgramAnalysis cpa)
+  public static Refiner create(ConfigurableProgramAnalysis<?> cpa)
       throws InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(ApronDelegatingRefiner.class.getSimpleName() + " could not find the ApronCPA");

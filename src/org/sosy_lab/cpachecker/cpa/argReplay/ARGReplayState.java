@@ -23,22 +23,22 @@
  */
 package org.sosy_lab.cpachecker.cpa.argReplay;
 
-import java.util.Set;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
-import com.google.common.collect.Sets;
+import java.util.Set;
 
 /** Abstract state of a powerset domain. */
 public class ARGReplayState implements LatticeAbstractState<ARGReplayState> {
 
   private final Set<ARGState> states;
 
-  private final ConfigurableProgramAnalysis cpa;
+  private final ConfigurableProgramAnalysis<?> cpa;
 
-  ARGReplayState(Set<ARGState> states, ConfigurableProgramAnalysis cpa) {
+  ARGReplayState(Set<ARGState> states, ConfigurableProgramAnalysis<?> cpa) {
     this.states = states;
     this.cpa = cpa;
   }
@@ -47,7 +47,7 @@ public class ARGReplayState implements LatticeAbstractState<ARGReplayState> {
     return states;
   }
 
-  public ConfigurableProgramAnalysis getCPA() {
+  public ConfigurableProgramAnalysis<?> getCPA() {
     return cpa;
   }
 

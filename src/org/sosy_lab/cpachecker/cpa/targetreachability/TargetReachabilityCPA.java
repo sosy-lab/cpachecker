@@ -75,7 +75,7 @@ import javax.annotation.Nullable;
  */
 @Options(prefix="cpa.property_reachability")
 public class TargetReachabilityCPA extends SingleEdgeTransferRelation
-    implements ConfigurableProgramAnalysis,
+    implements ConfigurableProgramAnalysis<ReachabilityState>,
                StatisticsProvider,
                Statistics {
   @Option(secure=true, description="Do not follow states which can not "
@@ -85,7 +85,7 @@ public class TargetReachabilityCPA extends SingleEdgeTransferRelation
   private final Timer backwardsReachability = new Timer();
   private final ImmutableSet<CFANode> targetReachableFrom;
 
-  private final AbstractDomain abstractDomain;
+  private final AbstractDomain<ReachabilityState> abstractDomain;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
 
@@ -98,7 +98,7 @@ public class TargetReachabilityCPA extends SingleEdgeTransferRelation
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
-    abstractDomain = new FlatLatticeDomain(ReachabilityState.RELEVANT_TO_TARGET);
+    abstractDomain = new FlatLatticeDomain<>(ReachabilityState.RELEVANT_TO_TARGET);
     mergeOperator = new MergeJoinOperator(abstractDomain);
     stopOperator = new StopSepOperator(abstractDomain);
 
@@ -128,7 +128,7 @@ public class TargetReachabilityCPA extends SingleEdgeTransferRelation
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<ReachabilityState> getAbstractDomain() {
     return abstractDomain;
   }
 
@@ -153,7 +153,7 @@ public class TargetReachabilityCPA extends SingleEdgeTransferRelation
   }
 
   @Override
-  public AbstractState getInitialState(
+  public ReachabilityState getInitialState(
       CFANode node, StateSpacePartition partition) {
     return ReachabilityState.RELEVANT_TO_TARGET;
   }

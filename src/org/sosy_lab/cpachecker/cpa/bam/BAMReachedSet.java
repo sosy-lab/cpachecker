@@ -49,7 +49,7 @@ import javax.annotation.Nullable;
 
 public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
-  private final BAMCPA bamCpa;
+  private final BAMCPA<?> bamCpa;
   private final ARGPath path;
   private final ARGState rootOfSubgraph;
   private final Timer removeCachedSubtreeTimer;
@@ -64,7 +64,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
     }
   };
 
-  public BAMReachedSet(BAMCPA cpa, ARGReachedSet pMainReachedSet, ARGPath pPath,
+  public BAMReachedSet(BAMCPA<?> cpa, ARGReachedSet pMainReachedSet, ARGPath pPath,
       ARGState pRootOfSubgraph,
       Timer pRemoveCachedSubtreeTimer) {
     super(pMainReachedSet);

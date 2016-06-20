@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.interval;
 
-import java.util.Collection;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -59,8 +57,12 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 
+import java.util.Collection;
+
 @Options(prefix="cpa.interval")
-public class IntervalAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider, ProofChecker {
+public class IntervalAnalysisCPA implements
+                                 ConfigurableProgramAnalysisWithBAM<IntervalAnalysisState>,
+                                 StatisticsProvider, ProofChecker {
 
   /**
    * This method returns a CPAfactory for the interval analysis CPA.
@@ -81,7 +83,7 @@ public class IntervalAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, 
   /**
    * the abstract domain of the interval analysis
    */
-  private AbstractDomain abstractDomain;
+  private AbstractDomain<IntervalAnalysisState> abstractDomain;
 
   /**
    * the merge operator of the interval analysis
@@ -137,7 +139,7 @@ public class IntervalAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, 
    * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#getAbstractDomain()
    */
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<IntervalAnalysisState> getAbstractDomain() {
     return abstractDomain;
   }
 
@@ -174,7 +176,8 @@ public class IntervalAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, 
    * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#getInitialState(org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode)
    */
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public IntervalAnalysisState getInitialState(CFANode pNode, StateSpacePartition
+      pPartition) {
     return new IntervalAnalysisState();
   }
 
@@ -222,7 +225,7 @@ public class IntervalAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, 
 
   @Override
   public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException, InterruptedException {
-    return abstractDomain.isLessOrEqual(pState, pOtherState);
+    return abstractDomain.isLessOrEqual((IntervalAnalysisState) pState, (IntervalAnalysisState) pOtherState);
   }
 
   @Override

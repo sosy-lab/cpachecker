@@ -46,7 +46,7 @@ public class PolicyUnguidedRefiner implements Refiner {
 
 
   public static PolicyUnguidedRefiner create(
-      final ConfigurableProgramAnalysis pCpa
+      final ConfigurableProgramAnalysis<?> pCpa
   ) throws InvalidConfigurationException {
 
     PolicyCPA policyCPA = CPAs.retrieveCPA(pCpa, PolicyCPA.class);

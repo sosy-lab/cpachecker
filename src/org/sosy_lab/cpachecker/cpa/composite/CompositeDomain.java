@@ -32,27 +32,26 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import java.util.List;
 
-class CompositeDomain implements AbstractDomain {
+class CompositeDomain implements AbstractDomain<CompositeState> {
 
-  private final ImmutableList<AbstractDomain> domains;
+  private final ImmutableList<AbstractDomain<?>> domains;
 
-  CompositeDomain(ImmutableList<AbstractDomain> domains) {
+  CompositeDomain(ImmutableList<AbstractDomain<?>> domains) {
       this.domains = domains;
   }
 
   @Override
-  public AbstractState join(AbstractState pElement1,
-      AbstractState pElement2) throws CPAException {
+  public CompositeState join(CompositeState pElement1,
+      CompositeState pElement2) throws CPAException {
     // a simple join is here not possible, because it would over-approximate,
     // but join needs to return the least upper bound
     throw new UnsupportedOperationException();
   }
 
+  @SuppressWarnings({"rawtypes", "unchecked"})
   @Override
-  public boolean isLessOrEqual(AbstractState pElement1, AbstractState pElement2) throws CPAException, InterruptedException {
-    CompositeState comp1 = (CompositeState)pElement1;
-    CompositeState comp2 = (CompositeState)pElement2;
-
+  public boolean isLessOrEqual(CompositeState comp1, CompositeState comp2)
+      throws CPAException, InterruptedException {
     List<AbstractState> comp1Elements = comp1.getWrappedStates();
     List<AbstractState> comp2Elements = comp2.getWrappedStates();
 

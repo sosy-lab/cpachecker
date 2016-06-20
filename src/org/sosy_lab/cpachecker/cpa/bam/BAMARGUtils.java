@@ -46,13 +46,13 @@ import java.util.Stack;
 class BAMARGUtils {
   private BAMARGUtils() {}
 
-  public static Multimap<Block, ReachedSet> gatherReachedSets(BAMCPA cpa, ReachedSet finalReachedSet) {
+  public static Multimap<Block, ReachedSet> gatherReachedSets(BAMCPA<?> cpa, ReachedSet finalReachedSet) {
     Multimap<Block, ReachedSet> result = HashMultimap.create();
     gatherReachedSets(cpa, cpa.getBlockPartitioning().getMainBlock(), finalReachedSet, result);
     return result;
   }
 
-  private static void gatherReachedSets(BAMCPA cpa, Block block, ReachedSet reachedSet, Multimap<Block, ReachedSet> blockToReachedSet) {
+  private static void gatherReachedSets(BAMCPA<?> cpa, Block block, ReachedSet reachedSet, Multimap<Block, ReachedSet> blockToReachedSet) {
     if (blockToReachedSet.containsEntry(block, reachedSet)) {
       return; //avoid looping in recursive block calls
     }
@@ -92,7 +92,7 @@ class BAMARGUtils {
     }
   }
 
-  private static Pair<Block, ReachedSet> getCachedReachedSet(BAMCPA cpa, ARGState root) {
+  private static Pair<Block, ReachedSet> getCachedReachedSet(BAMCPA<?> cpa, ARGState root) {
     CFANode rootNode = extractLocation(root);
     Block rootSubtree = cpa.getBlockPartitioning().getBlockForCallNode(rootNode);
 

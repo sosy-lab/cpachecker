@@ -74,13 +74,13 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
   private int nextPartition;
   private final PartitioningIOHelper ioHelper;
   private final ShutdownNotifier shutdown;
-  private final PropertyCheckerCPA cpa;
+  private final PropertyCheckerCPA<?> cpa;
 
   public PartialReachedSetParallelIOCheckingInterleavedStrategy(
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
-      final @Nullable PropertyCheckerCPA pCpa)
+      final @Nullable PropertyCheckerCPA<?> pCpa)
       throws InvalidConfigurationException {
     super(pConfig, pLogger);
     pConfig.inject(this);

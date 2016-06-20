@@ -120,7 +120,9 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   // statistics
   private int automatonStates = 0;
 
-  public AssumptionCollectorAlgorithm(Algorithm algo, ConfigurableProgramAnalysis pCpa,
+  public AssumptionCollectorAlgorithm(
+      Algorithm algo,
+      ConfigurableProgramAnalysis<?> pCpa,
       CFA pCFA,
       ShutdownNotifier pShutdownNotifier,
       Configuration config, LogManager logger) throws InvalidConfigurationException {

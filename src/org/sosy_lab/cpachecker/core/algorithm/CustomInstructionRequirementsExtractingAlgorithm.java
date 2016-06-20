@@ -129,7 +129,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
   private Class<? extends AbstractState> requirementsStateClass;
 
   private CFA cfa;
-  private final ConfigurableProgramAnalysis cpa;
+  private final ConfigurableProgramAnalysis<?> cpa;
 
   /**
    * Constructor of CustomInstructionRequirementsExtractingAlgorithm
@@ -142,7 +142,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
    */
   @SuppressWarnings("unchecked")
   public CustomInstructionRequirementsExtractingAlgorithm(final Algorithm analysisAlgorithm,
-      final ConfigurableProgramAnalysis cpa, final Configuration config, final LogManager logger,
+      final ConfigurableProgramAnalysis<?> cpa, final Configuration config, final LogManager logger,
       final ShutdownNotifier sdNotifier, final CFA cfa) throws InvalidConfigurationException {
 
     config.inject(this);

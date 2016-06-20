@@ -77,7 +77,7 @@ public class OctagonMergeOperator {
           return el2;
         }
       }
-      return domain.join(el1, el2);
+      return domain.join((OctagonState) el1, (OctagonState) el2);
     }
   }
 

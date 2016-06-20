@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.pcc.propertychecker.PropertyCheckerBuilder;
 import java.util.Collection;
 
 @Options(prefix="cpa.propertychecker")
-public class PropertyCheckerCPA extends AbstractSingleWrapperCPA implements ProofChecker {
+public class PropertyCheckerCPA<T extends AbstractState> extends AbstractSingleWrapperCPA<T> implements ProofChecker {
 
   @Option(secure=true,
       description = "Qualified name for class which checks that the computed abstraction adheres to the desired property.")
@@ -66,10 +66,12 @@ public class PropertyCheckerCPA extends AbstractSingleWrapperCPA implements Proo
 
   private final PropertyChecker propChecker;
   private final ProofChecker wrappedProofChecker;
+  private final ConfigurableProgramAnalysis<T> wrappedCpa;
 
-  public PropertyCheckerCPA(ConfigurableProgramAnalysis pCpa, Configuration pConfig)
+  public PropertyCheckerCPA(ConfigurableProgramAnalysis<T> pCpa, Configuration pConfig)
       throws InvalidConfigurationException {
     super(pCpa);
+    wrappedCpa = pCpa;
     pConfig.inject(this);
     propChecker = PropertyCheckerBuilder.buildPropertyChecker(className, parameters);
     if (pCpa instanceof ProofChecker) {
@@ -84,8 +86,8 @@ public class PropertyCheckerCPA extends AbstractSingleWrapperCPA implements Proo
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
-    return getWrappedCpa().getAbstractDomain();
+  public AbstractDomain<T> getAbstractDomain() {
+    return wrappedCpa.getAbstractDomain();
   }
 
   @Override
@@ -109,8 +111,8 @@ public class PropertyCheckerCPA extends AbstractSingleWrapperCPA implements Proo
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    return getWrappedCpa().getInitialState(pNode, pPartition);
+  public T getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+    return wrappedCpa.getInitialState(pNode, pPartition);
   }
 
   public PropertyChecker getPropChecker() {

@@ -58,7 +58,7 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
 
   public BMCAlgorithmForInvariantGeneration(
       Algorithm pAlgorithm,
-      ConfigurableProgramAnalysis pCPA,
+      ConfigurableProgramAnalysis<?> pCPA,
       Configuration pConfig,
       LogManager pLogger,
       ReachedSetFactory pReachedSetFactory,

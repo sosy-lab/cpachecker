@@ -23,7 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.programcounter;
 
-import java.math.BigInteger;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Iterables;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -32,7 +33,6 @@ import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -40,19 +40,18 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Iterables;
+import java.math.BigInteger;
 
 /**
  * This CPA tracks the value of the artificial program counter variable
  * introduced by single loop transformation.
  */
-public class ProgramCounterCPA extends AbstractCPA implements ConfigurableProgramAnalysis {
+public class ProgramCounterCPA extends AbstractCPA<ProgramCounterState> implements ConfigurableProgramAnalysis<ProgramCounterState> {
 
   private final CFA cfa;
 
   public ProgramCounterCPA(CFA pCFA) {
-    super("sep", "sep", DelegateAbstractDomain.<ProgramCounterState>getInstance(), ProgramCounterTransferRelation.INSTANCE);
+    super("sep", "sep", DelegateAbstractDomain.getInstance(), ProgramCounterTransferRelation.INSTANCE);
     this.cfa = pCFA;
   }
 
@@ -66,7 +65,7 @@ public class ProgramCounterCPA extends AbstractCPA implements ConfigurableProgra
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public ProgramCounterState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     // Try to get all possible program counter values
     SingleLoopHead singleLoopHead = null;
     if (pNode instanceof SingleLoopHead) {

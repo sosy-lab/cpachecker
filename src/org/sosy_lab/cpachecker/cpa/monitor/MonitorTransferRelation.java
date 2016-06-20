@@ -78,7 +78,7 @@ public class MonitorTransferRelation extends SingleEdgeTransferRelation {
 
   private final ExecutorService executor;
 
-  public MonitorTransferRelation(ConfigurableProgramAnalysis pWrappedCPA,
+  public MonitorTransferRelation(ConfigurableProgramAnalysis<?> pWrappedCPA,
       Configuration config) throws InvalidConfigurationException {
     config.inject(this);
 

@@ -100,7 +100,7 @@ public class TerminationAlgorithm implements Algorithm {
       CFA pCfa,
       Specification pSpecification,
       Algorithm pSafetyAlgorithm,
-      ConfigurableProgramAnalysis pSafetyAnalysis)
+      ConfigurableProgramAnalysis<?> pSafetyAnalysis)
           throws InvalidConfigurationException {
         logger = checkNotNull(pLogger);
         shutdownNotifier = pShutdownNotifier;

@@ -31,7 +31,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
+import org.sosy_lab.cpachecker.core.defaults.FlatLatticeNoTopDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
+import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -60,7 +61,9 @@ import java.util.Collections;
  * It can be configured to work with any condition that implements this interface.
  */
 @Options(prefix="cpa.conditions.path")
-public class PathConditionsCPA implements ConfigurableProgramAnalysisWithBAM, AdjustableConditionCPA, StatisticsProvider {
+public class PathConditionsCPA implements
+                               ConfigurableProgramAnalysisWithBAM<AvoidanceReportingState>,
+                               AdjustableConditionCPA, StatisticsProvider {
 
   @Option(secure = true, description = "The condition", name = "condition", required = true)
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.cpa.conditions.path")
@@ -68,7 +71,7 @@ public class PathConditionsCPA implements ConfigurableProgramAnalysisWithBAM, Ad
 
   private final PathCondition condition;
 
-  private final AbstractDomain domain = new FlatLatticeDomain();
+  private final AbstractDomain<AvoidanceReportingState> domain = new FlatLatticeNoTopDomain<>();
   private final TransferRelation transfer = new SingleEdgeTransferRelation() {
       @Override
       public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
@@ -98,7 +101,7 @@ public class PathConditionsCPA implements ConfigurableProgramAnalysisWithBAM, Ad
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public AvoidanceReportingState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return condition.getInitialState(pNode);
   }
 
@@ -113,7 +116,7 @@ public class PathConditionsCPA implements ConfigurableProgramAnalysisWithBAM, Ad
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<AvoidanceReportingState> getAbstractDomain() {
     return domain;
   }
 

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.threading;
 
-import java.util.Collection;
+import com.google.common.base.Preconditions;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -31,13 +31,12 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
+import org.sosy_lab.cpachecker.core.defaults.FlatLatticeNoTopDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -49,21 +48,23 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
 
-import com.google.common.base.Preconditions;
+import java.util.Collection;
 
-public class ThreadingCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
+public class ThreadingCPA implements ConfigurableProgramAnalysis<ThreadingState>, StatisticsProvider {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ThreadingCPA.class);
   }
 
-  private final AbstractDomain abstractDomain = new FlatLatticeDomain();
+  private final AbstractDomain<ThreadingState> abstractDomain = new FlatLatticeNoTopDomain<>();
   private final MergeOperator mergeOperator = MergeSepOperator.getInstance();
   private final StopOperator stopOperator = new StopSepOperator(abstractDomain);
-  private final ConfigurableProgramAnalysis locationCPA;
-  private final ConfigurableProgramAnalysis callstackCPA;
+  private final ConfigurableProgramAnalysis<LocationState> locationCPA;
+  private final ConfigurableProgramAnalysis<CallstackState> callstackCPA;
   private final ThreadingTransferRelation transferRelation;
 
   public ThreadingCPA(Configuration config, LogManager pLogger, CFA pCfa) throws InvalidConfigurationException {
@@ -73,7 +74,7 @@ public class ThreadingCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<ThreadingState> getAbstractDomain() {
     return abstractDomain;
   }
 
@@ -98,7 +99,7 @@ public class ThreadingCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public ThreadingState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     Preconditions.checkNotNull(pNode);
     String mainThread = pNode.getFunctionName();
     ThreadingState ts = new ThreadingState();

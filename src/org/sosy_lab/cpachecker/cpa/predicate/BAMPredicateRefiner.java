@@ -94,12 +94,12 @@ import java.util.logging.Level;
  */
 public abstract class BAMPredicateRefiner implements Refiner {
 
-  public static Refiner create(ConfigurableProgramAnalysis pCpa)
+  public static Refiner create(ConfigurableProgramAnalysis<?> pCpa)
       throws InvalidConfigurationException {
     return BAMBasedRefiner.forARGBasedRefiner(create0(pCpa), pCpa);
   }
 
-  public static ARGBasedRefiner create0(ConfigurableProgramAnalysis pCpa)
+  public static ARGBasedRefiner create0(ConfigurableProgramAnalysis<?> pCpa)
       throws InvalidConfigurationException {
     if (!(pCpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(BAMPredicateRefiner.class.getSimpleName() + " could not find the PredicateCPA");

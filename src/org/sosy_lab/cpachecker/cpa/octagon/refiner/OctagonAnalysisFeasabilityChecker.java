@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.octagon.refiner;
 
-import java.util.Optional;
-
 import static org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision.createStaticPrecision;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -52,6 +50,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Optional;
 
 public class OctagonAnalysisFeasabilityChecker {
 
@@ -62,7 +61,7 @@ public class OctagonAnalysisFeasabilityChecker {
   private final ARGPath foundPath;
 
   public OctagonAnalysisFeasabilityChecker(Configuration pConfig, ShutdownNotifier pShutdownNotifier,
-      ARGPath pPath, Class<? extends ConfigurableProgramAnalysis> pClass, Optional<VariableClassification> pVarClass, TransferRelation pTransfer,
+      ARGPath pPath, Class<? extends ConfigurableProgramAnalysis<?>> pClass, Optional<VariableClassification> pVarClass, TransferRelation pTransfer,
       AbstractState pInitialState) throws InvalidConfigurationException, CPAException, InterruptedException {
 
     shutdownNotifier = pShutdownNotifier;

@@ -66,7 +66,7 @@ public interface CounterexampleFilter {
 
   interface Factory {
     CounterexampleFilter create(
-        Configuration config, LogManager logger, ConfigurableProgramAnalysis cpa)
+        Configuration config, LogManager logger, ConfigurableProgramAnalysis<?> cpa)
         throws InvalidConfigurationException;
   }
 }

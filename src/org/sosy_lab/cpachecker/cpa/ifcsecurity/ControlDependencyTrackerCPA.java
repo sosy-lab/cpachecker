@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -59,11 +58,12 @@ import java.util.logging.Level;
  * CPA for tracking the Active Control Dependencies
  */
 @Options(prefix = "cpa.ifcsecurity")
-public class ControlDependencyTrackerCPA implements ConfigurableProgramAnalysis {
+public class ControlDependencyTrackerCPA implements
+                                         ConfigurableProgramAnalysis<ControlDependencyTrackerState> {
 
   @SuppressWarnings("unused")
   private LogManager logger;
-  private AbstractDomain domain;
+  private AbstractDomain<ControlDependencyTrackerState> domain;
   private ControlDependencyTrackerRelation transfer;
   @SuppressWarnings("unused")
   private CFA cfa;
@@ -126,7 +126,7 @@ public class ControlDependencyTrackerCPA implements ConfigurableProgramAnalysis 
     logger.log(Level.FINE, recd);
     this.rcd = recd;
 
-    domain = DelegateAbstractDomain.<ControlDependencyTrackerState> getInstance();
+    domain = DelegateAbstractDomain.getInstance();
     transfer = new ControlDependencyTrackerRelation(logger, shutdownNotifier, rcd);
 
     if (stopType.equals("SEP")) {
@@ -210,7 +210,7 @@ public class ControlDependencyTrackerCPA implements ConfigurableProgramAnalysis 
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<ControlDependencyTrackerState> getAbstractDomain() {
     return domain;
   }
 
@@ -235,7 +235,7 @@ public class ControlDependencyTrackerCPA implements ConfigurableProgramAnalysis 
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public ControlDependencyTrackerState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     ControlDependencyTrackerState initialstate = new ControlDependencyTrackerState();
     return initialstate;
   }

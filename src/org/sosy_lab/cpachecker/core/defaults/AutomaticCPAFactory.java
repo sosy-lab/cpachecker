@@ -61,6 +61,7 @@ import javax.annotation.Nullable;
  * Parameters can be marked as optional with an annotation to specify that the
  * factory may pass null for them.
  */
+@SuppressWarnings("rawtypes")
 public class AutomaticCPAFactory implements CPAFactory {
 
   /**
@@ -104,7 +105,8 @@ public class AutomaticCPAFactory implements CPAFactory {
       throw new IllegalArgumentException(e);
     }
 
-    checkArgument(ConfigurableProgramAnalysis.class.isAssignableFrom(cls), "Class %s does not implement the CPA interface and cannot be used with AutomaticCPAFactory", className);
+    checkArgument(ConfigurableProgramAnalysis.class.isAssignableFrom(cls),
+        "Class %s does not implement the CPA interface and cannot be used with AutomaticCPAFactory", className);
 
     return new AutomaticCPAFactory(cls.asSubclass(ConfigurableProgramAnalysis.class));
   }
@@ -120,7 +122,7 @@ public class AutomaticCPAFactory implements CPAFactory {
   }
 
   @Override
-  public ConfigurableProgramAnalysis createInstance()
+  public ConfigurableProgramAnalysis<?> createInstance()
       throws InvalidConfigurationException, CPAException {
 
     Constructor<?>[] allConstructors = type.getDeclaredConstructors();
@@ -210,7 +212,7 @@ public class AutomaticCPAFactory implements CPAFactory {
   }
 
   @Override
-  public CPAFactory setChild(ConfigurableProgramAnalysis pChild)
+  public CPAFactory setChild(ConfigurableProgramAnalysis<?> pChild)
       throws UnsupportedOperationException {
     return set(pChild, ConfigurableProgramAnalysis.class);
   }
@@ -231,7 +233,7 @@ public class AutomaticCPAFactory implements CPAFactory {
   }
 
   @Override
-  public CPAFactory setChildren(List<ConfigurableProgramAnalysis> pChildren)
+  public CPAFactory setChildren(List<ConfigurableProgramAnalysis<?>> pChildren)
       throws UnsupportedOperationException {
     throw new UnsupportedOperationException("Cannot automatically create CPAs " +
       "with multiple children CPAs!");
@@ -302,7 +304,8 @@ public class AutomaticCPAFactory implements CPAFactory {
     }
 
     @Override
-    public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException, CPAException {
+    public ConfigurableProgramAnalysis<?> createInstance()
+        throws InvalidConfigurationException, CPAException {
       T options;
       try {
         // create options holder class instance

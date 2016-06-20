@@ -85,7 +85,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
 
   private final LogManager logger;
 
-  private final ConfigurableProgramAnalysis cpa;
+  private final ConfigurableProgramAnalysis<?> cpa;
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
@@ -135,7 +135,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
 
   public ImpactAlgorithm(Configuration config, LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      ConfigurableProgramAnalysis pCpa, CFA cfa) throws InvalidConfigurationException {
+      ConfigurableProgramAnalysis<?> pCpa, CFA cfa) throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
     cpa = pCpa;

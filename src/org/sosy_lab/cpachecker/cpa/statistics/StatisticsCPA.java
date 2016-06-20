@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -63,7 +62,8 @@ import java.util.Collection;
  */
 @Options(prefix = "cpa.statistics")
 @Unmaintained
-public class StatisticsCPA implements StatisticsProvider, ConfigurableProgramAnalysis {
+public class StatisticsCPA implements StatisticsProvider,
+                                      ConfigurableProgramAnalysis<StatisticsState> {
 
   private StatisticsStateFactory factory;
   private StatisticsCPAStatistics stats;
@@ -140,7 +140,7 @@ public class StatisticsCPA implements StatisticsProvider, ConfigurableProgramAna
   private String mergeType = "sep";
 
 
-  private final AbstractDomain abstractDomain;
+  private final AbstractDomain<StatisticsState> abstractDomain;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
@@ -242,7 +242,7 @@ public class StatisticsCPA implements StatisticsProvider, ConfigurableProgramAna
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public StatisticsState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return factory.createNew(pNode);
   }
 
@@ -253,7 +253,7 @@ public class StatisticsCPA implements StatisticsProvider, ConfigurableProgramAna
 
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<StatisticsState> getAbstractDomain() {
     return abstractDomain;
   }
 

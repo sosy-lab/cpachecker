@@ -24,26 +24,21 @@
 package org.sosy_lab.cpachecker.cpa.callstack;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 
-public class CallstackPCCAbstractDomain implements AbstractDomain {
+public class CallstackPCCAbstractDomain
+    implements AbstractDomain<CallstackState> {
 
   @Override
-  public AbstractState join(AbstractState pState1, AbstractState pState2) throws CPAException, InterruptedException {
+  public CallstackState join(CallstackState pState1, CallstackState pState2)
+      throws CPAException, InterruptedException {
     return pState2;
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractState pState1, AbstractState pState2) throws CPAException, InterruptedException {
-    if (pState1 instanceof CallstackState && pState2 instanceof CallstackState) {
-      return isLessOrEqual((CallstackState) pState1, (CallstackState) pState2);
-    }
-    return false;
-  }
-
-  private boolean isLessOrEqual(CallstackState state1, CallstackState state2){
+  public boolean isLessOrEqual(CallstackState state1, CallstackState state2)
+      throws CPAException, InterruptedException {
     if (state1 == state2) {
       return true;
     }

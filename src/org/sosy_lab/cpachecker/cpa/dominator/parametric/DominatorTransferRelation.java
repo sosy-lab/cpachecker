@@ -35,9 +35,9 @@ import java.util.Collection;
 
 public class DominatorTransferRelation extends SingleEdgeTransferRelation {
 
-  private final ConfigurableProgramAnalysis cpa;
+  private final ConfigurableProgramAnalysis<?> cpa;
 
-  public DominatorTransferRelation(ConfigurableProgramAnalysis cpa) {
+  public DominatorTransferRelation(ConfigurableProgramAnalysis<?> cpa) {
     if (cpa == null) {
       throw new IllegalArgumentException("cpa is null!");
     }

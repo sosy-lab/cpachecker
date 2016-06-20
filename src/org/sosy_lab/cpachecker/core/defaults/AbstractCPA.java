@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.defaults;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -38,18 +39,15 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
  * if no other domain is given, and the standard implementations for merge-(sep|join)
  * and stop-sep.
  */
-public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
+public abstract class AbstractCPA<T extends AbstractState> implements
+                                      ConfigurableProgramAnalysis<T> {
 
-  private final AbstractDomain abstractDomain;
+  private final AbstractDomain<T> abstractDomain;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
 
-  protected AbstractCPA(String mergeType, String stopType, TransferRelation transfer) {
-    this(mergeType, stopType, new FlatLatticeDomain(), transfer);
-  }
-
-  protected AbstractCPA(String mergeType, String stopType, AbstractDomain domain, TransferRelation transfer) {
+  protected AbstractCPA(String mergeType, String stopType, AbstractDomain<T> domain, TransferRelation transfer) {
     this.abstractDomain = domain;
 
     if (mergeType.equalsIgnoreCase("join")) {
@@ -66,7 +64,7 @@ public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<T> getAbstractDomain() {
     return abstractDomain;
   }
 

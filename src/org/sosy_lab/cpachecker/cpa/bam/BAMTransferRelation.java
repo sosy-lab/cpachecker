@@ -109,7 +109,7 @@ public class BAMTransferRelation implements TransferRelation {
   private final CPAAlgorithmFactory algorithmFactory;
   private final TransferRelation wrappedTransfer;
   protected final Reducer wrappedReducer;
-  protected final BAMCPA bamCPA;
+  protected final BAMCPA<?> bamCPA;
   private final ProofChecker wrappedProofChecker;
 
   // Callstack-CPA is used for additional recursion handling
@@ -122,7 +122,7 @@ public class BAMTransferRelation implements TransferRelation {
 
   boolean breakAnalysis = false;
 
-  public BAMTransferRelation(Configuration pConfig, LogManager pLogger, BAMCPA bamCpa,
+  public BAMTransferRelation(Configuration pConfig, LogManager pLogger, BAMCPA<?> bamCpa,
                              ProofChecker wrappedChecker,
       BAMDataManager pData, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     logger = pLogger;

@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
-import java.util.List;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -46,6 +44,8 @@ import org.sosy_lab.cpachecker.util.refinement.InterpolationTree;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 
+import java.util.List;
+
 @Options(prefix = "cpa.value.refinement")
 public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
 
@@ -54,7 +54,7 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
       description = "whether to use the top-down interpolation strategy or the bottom-up interpolation strategy")
   private boolean useTopDownInterpolationStrategy = true;
 
-  public static ValueAnalysisGlobalRefiner create(final ConfigurableProgramAnalysis pCpa)
+  public static ValueAnalysisGlobalRefiner create(final ConfigurableProgramAnalysis<?> pCpa)
       throws InvalidConfigurationException {
 
     final ARGCPA argCpa = retrieveCPA(pCpa, ARGCPA.class);

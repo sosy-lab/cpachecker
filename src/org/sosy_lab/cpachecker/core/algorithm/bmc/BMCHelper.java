@@ -153,7 +153,9 @@ public final class BMCHelper {
    * set.
    * @throws InterruptedException if the unrolling is interrupted.
    */
-  public static AlgorithmStatus unroll(LogManager pLogger, ReachedSet pReachedSet, Algorithm pAlgorithm, ConfigurableProgramAnalysis pCPA) throws CPAException, InterruptedException {
+  public static AlgorithmStatus unroll(LogManager pLogger, ReachedSet
+      pReachedSet, Algorithm pAlgorithm, ConfigurableProgramAnalysis<?> pCPA)
+      throws CPAException, InterruptedException {
     return unroll(pLogger, pReachedSet, new ReachedSetInitializer() {
 
       @Override
@@ -164,7 +166,9 @@ public final class BMCHelper {
     }, pAlgorithm, pCPA);
   }
 
-  public static AlgorithmStatus unroll(LogManager pLogger, ReachedSet pReachedSet, ReachedSetInitializer pInitializer, Algorithm pAlgorithm, ConfigurableProgramAnalysis pCPA) throws CPAException, InterruptedException {
+  public static AlgorithmStatus unroll(LogManager pLogger, ReachedSet
+      pReachedSet, ReachedSetInitializer pInitializer, Algorithm pAlgorithm,
+                                       ConfigurableProgramAnalysis<?> pCPA) throws CPAException, InterruptedException {
     adjustReachedSet(pLogger, pReachedSet, pInitializer, pCPA);
     return pAlgorithm.run(pReachedSet);
   }
@@ -178,7 +182,9 @@ public final class BMCHelper {
    * @param pReachedSet the reached set to be adjusted.
    * @param pInitializer initializes the reached set.
    */
-  public static void adjustReachedSet(LogManager pLogger, ReachedSet pReachedSet, ReachedSetInitializer pInitializer, ConfigurableProgramAnalysis pCPA) throws CPAException, InterruptedException {
+  public static void adjustReachedSet(LogManager pLogger, ReachedSet
+      pReachedSet, ReachedSetInitializer pInitializer,
+                                      ConfigurableProgramAnalysis<?> pCPA) throws CPAException, InterruptedException {
     Preconditions.checkArgument(!pReachedSet.isEmpty());
     CFANode initialLocation = extractLocation(pReachedSet.getFirstState());
     for (AdjustableConditionCPA conditionCPA : CPAs.asIterable(pCPA).filter(AdjustableConditionCPA.class)) {

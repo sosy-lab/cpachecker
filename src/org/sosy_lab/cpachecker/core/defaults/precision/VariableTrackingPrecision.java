@@ -52,7 +52,8 @@ public abstract class VariableTrackingPrecision implements Precision {
    * the tracking of variables depend on the configuration options and the variable
    * classification.
    */
-  public static VariableTrackingPrecision createStaticPrecision(Configuration config, Optional<VariableClassification> vc, Class<? extends ConfigurableProgramAnalysis> cpaClass)
+  public static VariableTrackingPrecision createStaticPrecision(
+      Configuration config, Optional<VariableClassification> vc, Class<? extends ConfigurableProgramAnalysis<?>> cpaClass)
           throws InvalidConfigurationException {
     return new ConfigurablePrecision(config, vc, cpaClass);
   }
@@ -99,7 +100,7 @@ public abstract class VariableTrackingPrecision implements Precision {
     }
   }
 
-  public static Predicate<Precision> isMatchingCPAClass(final Class<? extends ConfigurableProgramAnalysis> cpaClass) {
+  public static Predicate<Precision> isMatchingCPAClass(final Class<? extends ConfigurableProgramAnalysis<?>> cpaClass) {
      return pPrecision -> pPrecision instanceof VariableTrackingPrecision
          && ((VariableTrackingPrecision) pPrecision).getCPAClass() == cpaClass;
   }
@@ -178,7 +179,7 @@ public abstract class VariableTrackingPrecision implements Precision {
    * @return the owner CPA of this precision
    */
   @ForOverride
-  protected abstract Class<? extends ConfigurableProgramAnalysis> getCPAClass();
+  protected abstract Class<? extends ConfigurableProgramAnalysis<?>> getCPAClass();
 
   @Override
   abstract public boolean equals(Object other);

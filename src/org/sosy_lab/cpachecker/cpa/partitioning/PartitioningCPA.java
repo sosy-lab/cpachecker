@@ -23,9 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.partitioning;
 
+import com.google.common.base.Objects;
+
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.IdentityTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -41,23 +42,20 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-
-import com.google.common.base.Objects;
+import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA.PartitionState;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * CPA for partitioning the state space of an analysis;
  * one set of reached states can be used to analyze
  * disjoint partitions of the state space.
  */
-public class PartitioningCPA implements ConfigurableProgramAnalysis {
+public class PartitioningCPA implements
+                             ConfigurableProgramAnalysis<PartitionState>,
+                             AbstractDomain<PartitionState> {
 
-  /**
-   * The abstract domain of the PartitioningCPA is a flat lattice.
-   * The elements of the lattice are the partitions.
-   */
-  private final AbstractDomain abstractDomain = new FlatLatticeDomain();
-  private final StopOperator stopOperator = new StopJoinOperator(abstractDomain);
-  private final MergeOperator mergeOperator = new MergeJoinOperator(abstractDomain);
+  private final StopOperator stopOperator = new StopJoinOperator(this);
+  private final MergeOperator mergeOperator = new MergeJoinOperator(this);
 
   /**
    * The transfer relation keeps the partition of the predecessor state.
@@ -69,6 +67,24 @@ public class PartitioningCPA implements ConfigurableProgramAnalysis {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PartitioningCPA.class);
+  }
+
+  @Override
+  public PartitionState join(
+      PartitionState state1, PartitionState state2)
+      throws CPAException, InterruptedException {
+    if (state1.equals(state2)) {
+      return state1;
+    } else {
+      return state2;
+    }
+  }
+
+  @Override
+  public boolean isLessOrEqual(
+      PartitionState state1, PartitionState state2)
+      throws CPAException, InterruptedException {
+    return state1.equals(state2);
   }
 
   /**
@@ -112,8 +128,8 @@ public class PartitioningCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
-    return abstractDomain;
+  public AbstractDomain<PartitionState> getAbstractDomain() {
+    return this;
   }
 
   @Override
@@ -137,7 +153,8 @@ public class PartitioningCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public PartitionState getInitialState(CFANode pNode, StateSpacePartition
+      pPartition) {
     return new PartitionState(pPartition);
   }
 

@@ -80,7 +80,7 @@ import javax.annotation.Nullable;
 import apron.ApronException;
 
 @Options(prefix="cpa.apron")
-public final class ApronCPA implements ConfigurableProgramAnalysis, ProofChecker, StatisticsProvider {
+public final class ApronCPA implements ConfigurableProgramAnalysis<ApronState>, ProofChecker, StatisticsProvider {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ApronCPA.class);
@@ -106,7 +106,7 @@ public final class ApronCPA implements ConfigurableProgramAnalysis, ProofChecker
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path precisionFile = null;
 
-  private final AbstractDomain abstractDomain;
+  private final AbstractDomain<ApronState> abstractDomain;
   private final TransferRelation transferRelation;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
@@ -163,7 +163,7 @@ public final class ApronCPA implements ConfigurableProgramAnalysis, ProofChecker
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<ApronState> getAbstractDomain() {
     return abstractDomain;
   }
 
@@ -188,7 +188,7 @@ public final class ApronCPA implements ConfigurableProgramAnalysis, ProofChecker
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public ApronState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     try {
       return new ApronState(logger, apronManager);
     } catch (ApronException e) {
@@ -245,7 +245,7 @@ public final class ApronCPA implements ConfigurableProgramAnalysis, ProofChecker
 
   @Override
   public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException, InterruptedException {
-     return abstractDomain.isLessOrEqual(pState, pOtherState);
+     return abstractDomain.isLessOrEqual((ApronState) pState, (ApronState) pOtherState);
   }
 
   @Override

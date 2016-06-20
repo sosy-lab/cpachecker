@@ -57,11 +57,12 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
   final Timer computeCounterexampleTimer = new Timer();
   final Timer removeCachedSubtreeTimer = new Timer();
 
-  private final BAMCPA bamCpa;
+  private final BAMCPA<?> bamCpa;
   private ARGState rootOfSubgraph = null;
 
   private BAMBasedRefiner(
-      ARGBasedRefiner pRefiner, ARGCPA pArgCpa, BAMCPA pBamCpa, LogManager pLogger) {
+      ARGBasedRefiner pRefiner, ARGCPA pArgCpa, BAMCPA<?> pBamCpa, LogManager
+      pLogger) {
     super(pRefiner, pArgCpa, pLogger);
 
     bamCpa = pBamCpa;
@@ -72,7 +73,7 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
    * Create a {@link Refiner} instance that supports BAM from a {@link ARGBasedRefiner} instance.
    */
   public static Refiner forARGBasedRefiner(
-      final ARGBasedRefiner pRefiner, final ConfigurableProgramAnalysis pCpa)
+      final ARGBasedRefiner pRefiner, final ConfigurableProgramAnalysis<?> pCpa)
       throws InvalidConfigurationException {
     checkArgument(
         !(pRefiner instanceof Refiner),
@@ -81,7 +82,7 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
     if (!(pCpa instanceof BAMCPA)) {
       throw new InvalidConfigurationException("BAM CPA needed for BAM-based refinement");
     }
-    BAMCPA bamCpa = (BAMCPA) pCpa;
+    BAMCPA<?> bamCpa = (BAMCPA<?>) pCpa;
     ARGCPA argCpa = bamCpa.retrieveWrappedCpa(ARGCPA.class);
     if (argCpa == null) {
       throw new InvalidConfigurationException("ARG CPA needed for refinement");

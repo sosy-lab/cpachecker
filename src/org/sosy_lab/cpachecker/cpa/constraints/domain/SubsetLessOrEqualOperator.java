@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.constraints.domain;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -34,7 +33,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  * <code>c less or equal c' iff c' subset of c</code> with <code>c, c'</code> being
  * ConstraintsStates.
  */
-public class SubsetLessOrEqualOperator implements AbstractDomain {
+public class SubsetLessOrEqualOperator
+    implements AbstractDomain<ConstraintsState> {
 
   private static final SubsetLessOrEqualOperator SINGLETON = new SubsetLessOrEqualOperator();
 
@@ -48,15 +48,9 @@ public class SubsetLessOrEqualOperator implements AbstractDomain {
 
   @Override
   public boolean isLessOrEqual(
-      final AbstractState pLesserState,
-      final AbstractState pBiggerState
+      final ConstraintsState lesserState,
+      final ConstraintsState biggerState
   ) {
-    assert pLesserState instanceof ConstraintsState;
-    assert pBiggerState instanceof ConstraintsState;
-
-    ConstraintsState lesserState = (ConstraintsState) pLesserState;
-    ConstraintsState biggerState = (ConstraintsState) pBiggerState;
-
     if (biggerState.size() > lesserState.size()) {
       return false;
     }
@@ -69,7 +63,7 @@ public class SubsetLessOrEqualOperator implements AbstractDomain {
   }
 
   @Override
-  public AbstractState join(AbstractState state1, AbstractState state2)
+  public ConstraintsState join(ConstraintsState state1, ConstraintsState state2)
       throws CPAException, InterruptedException {
     throw new UnsupportedOperationException("ConstraintsCPA's domain does not support join");
   }

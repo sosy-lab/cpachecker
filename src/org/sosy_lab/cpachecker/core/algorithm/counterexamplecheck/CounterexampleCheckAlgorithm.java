@@ -83,7 +83,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
   private CounterexampleCheckerType checkerType = CounterexampleCheckerType.CBMC;
 
   public CounterexampleCheckAlgorithm(Algorithm algorithm,
-      ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger,
+      ConfigurableProgramAnalysis<?> pCpa, Configuration config, LogManager logger,
       ShutdownNotifier pShutdownNotifier, CFA cfa, String filename) throws InvalidConfigurationException {
     this.algorithm = algorithm;
     this.logger = logger;

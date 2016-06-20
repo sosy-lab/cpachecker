@@ -58,7 +58,7 @@ public abstract class RefinablePrecision extends VariableTrackingPrecision {
 
   @Override
   @SuppressWarnings("ForOverride")
-  protected final Class<? extends ConfigurableProgramAnalysis> getCPAClass() {
+  protected final Class<? extends ConfigurableProgramAnalysis<?>> getCPAClass () {
     return baseline.getCPAClass();
   }
 

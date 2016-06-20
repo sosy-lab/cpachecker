@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -38,9 +37,10 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.dominator.parametric.DominatorState;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 
-public class DominatorCPA implements ConfigurableProgramAnalysis {
+public class DominatorCPA implements ConfigurableProgramAnalysis<DominatorState> {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(DominatorCPA.class);
@@ -53,7 +53,7 @@ public class DominatorCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain<DominatorState> getAbstractDomain() {
     return this.parametricDominatorCPA.getAbstractDomain();
   }
 
@@ -78,7 +78,7 @@ public class DominatorCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public DominatorState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return this.parametricDominatorCPA.getInitialState(pNode, pPartition);
   }
 

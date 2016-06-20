@@ -23,9 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate.counterexamples;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.logging.Level;
+import com.google.common.collect.Lists;
+import com.google.errorprone.annotations.ForOverride;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -44,9 +43,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.solver.api.BooleanFormula;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
-import com.google.common.collect.Lists;
-import com.google.errorprone.annotations.ForOverride;
+import java.util.logging.Level;
 
 /**
  * An abstract {@link CounterexampleFilter} implementation
@@ -62,7 +62,7 @@ abstract class AbstractNegatedPathCounterexampleFilter<T> extends AbstractSetBas
   private final PathFormulaManager pfmgr;
 
   protected AbstractNegatedPathCounterexampleFilter(Configuration pConfig, LogManager pLogger,
-      ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
+                                                    ConfigurableProgramAnalysis<?> pCpa) throws InvalidConfigurationException {
     super(pConfig, pLogger, pCpa);
 
     PredicateCPA predicateCpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
