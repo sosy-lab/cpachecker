@@ -459,39 +459,14 @@ public class TerminationTransferRelation implements TransferRelation {
       Collection<? extends TerminationState> pStates,
       Precision pPrecision)
       throws CPATransferException, InterruptedException {
-    CFANode currentNode = startNode;
     Collection<? extends TerminationState> states = pStates;
-    Iterator<CFANode> intermediateLocations =
-        relevantVariablesInitializationIntermediateLocations.iterator();
 
     // x' = x; y' = y; ....
-    for (CStatement assignment : createPrimedVariableAssignments()) {
-      CFANode nextNode = intermediateLocations.next();
-      CFAEdge edge = crateCStatementEdge(assignment, currentNode, nextNode);
-      states = getAbstractSuccessorsForEdge0(states, pPrecision, edge);
-      currentNode = nextNode;
+    for (CFAEdge assignment : createStemToLoopTransition(startNode, endNode)) {
+      states = getAbstractSuccessorsForEdge0(states, pPrecision, assignment);
     }
-
-    CFAEdge edge = createBlankEdge(currentNode, endNode, "");
-    states = getAbstractSuccessorsForEdge0(states, pPrecision, edge);
 
     return states;
-  }
-
-  private List<CStatement> createPrimedVariableAssignments() {
-    ImmutableList.Builder<CStatement> builder = ImmutableList.builder();
-
-    for (Entry<CVariableDeclaration, CVariableDeclaration> relevantVariable :
-        relevantVariables.entrySet()) {
-
-      CVariableDeclaration unprimedVariable = relevantVariable.getKey();
-      CVariableDeclaration primedVariable = relevantVariable.getValue();
-      CStatement assignment = createAssignmentStatement(primedVariable, unprimedVariable);
-
-      builder.add(assignment);
-    }
-
-    return builder.build();
   }
 
   protected List<CFAEdge> createStemToLoopTransition(CFANode startNode, CFANode endNode) {
@@ -511,6 +486,22 @@ public class TerminationTransferRelation implements TransferRelation {
     // blank edge to endNode
     CFAEdge edge = createBlankEdge(currentNode, endNode, "");
     builder.add(edge);
+
+    return builder.build();
+  }
+
+  private List<CStatement> createPrimedVariableAssignments() {
+    ImmutableList.Builder<CStatement> builder = ImmutableList.builder();
+
+    for (Entry<CVariableDeclaration, CVariableDeclaration> relevantVariable :
+        relevantVariables.entrySet()) {
+
+      CVariableDeclaration unprimedVariable = relevantVariable.getKey();
+      CVariableDeclaration primedVariable = relevantVariable.getValue();
+      CStatement assignment = createAssignmentStatement(primedVariable, unprimedVariable);
+
+      builder.add(assignment);
+    }
 
     return builder.build();
   }
