@@ -59,6 +59,10 @@ public interface LassoAnalysis {
 
     private Optional<?> terminationArgument;
 
+    public static LassoAnalysisResult unknown() {
+      return new LassoAnalysisResult(Optional.empty(), Optional.empty());
+    }
+
     public LassoAnalysisResult(
         Optional<?> pNonTerminationArgument, Optional<?> pTerminationArgument) {
       checkArgument(!(pNonTerminationArgument.isPresent() && pTerminationArgument.isPresent()));

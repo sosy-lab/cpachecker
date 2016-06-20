@@ -37,10 +37,9 @@ import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -105,11 +104,9 @@ class LassoBuilder {
     dnfTransformation = new DnfTransformation(formulaManagerView);
   }
 
-  public Lasso buildLasso(AbstractState targetState)
+  public Lasso buildLasso(CounterexampleInfo pCounterexampleInfo)
       throws CPATransferException, InterruptedException, TermException {
-    ARGState argState = extractStateByType(targetState, ARGState.class);
-    ARGState lastLassoState = argState.getParents().iterator().next();
-    PathIterator path = ARGUtils.getOnePathTo(lastLassoState).fullPathIterator();
+    PathIterator path = pCounterexampleInfo.getTargetPath().fullPathIterator();
 
     List<CFAEdge> stemEdges = Lists.newArrayList();
     List<CFAEdge> loopEdges = Lists.newArrayList();
@@ -132,7 +129,8 @@ class LassoBuilder {
         }
       }
 
-      if (loopStarted) {
+      // the last state is the dummy target state
+      if (loopStarted && path.hasNext()) {
         loopEdges.add(path.getIncomingEdge());
       } else {
         stemEdges.add(path.getIncomingEdge());

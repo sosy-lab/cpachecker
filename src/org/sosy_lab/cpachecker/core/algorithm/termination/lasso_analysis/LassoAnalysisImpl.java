@@ -33,7 +33,9 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.termination.LassoAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.toolchain.LassoRankerToolchainStorage;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -115,10 +117,16 @@ public class LassoAnalysisImpl implements LassoAnalysis {
   public LassoAnalysisResult checkTermination(AbstractState targetState)
       throws CPATransferException, InterruptedException {
     Preconditions.checkArgument(AbstractStates.isTargetState(targetState));
+    ARGState argState = AbstractStates.extractStateByType(targetState, ARGState.class);
+    Optional<CounterexampleInfo> counterexample = argState.getCounterexampleInformation();
+    if (!counterexample.isPresent()) {
+      logger.log(Level.WARNING, "Missing counterexample information.");
+      return LassoAnalysisResult.unknown();
+    }
 
     Lasso lasso;
     try {
-      lasso = lassoBuilder.buildLasso(targetState);
+      lasso = lassoBuilder.buildLasso(counterexample.get());
     } catch (TermException e) {
       logger.logUserException(Level.WARNING, e, "Could not extract lasso.");
       return new LassoAnalysisResult(Optional.empty(), Optional.empty());
@@ -130,7 +138,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
       return checkTermination(lasso);
     } catch (IOException | SMTLIBException | TermException e) {
       logger.logUserException(Level.WARNING, e, "Could not check (non)-termination of lasso.");
-      return new LassoAnalysisResult(Optional.empty(), Optional.empty());
+      return LassoAnalysisResult.unknown();
     }
   }
 
