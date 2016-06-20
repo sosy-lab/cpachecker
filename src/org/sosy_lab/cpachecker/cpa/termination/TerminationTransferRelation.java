@@ -274,16 +274,19 @@ public class TerminationTransferRelation implements TransferRelation {
 
     resetCfa();
 
-    assert !statesAtCurrentLocation.isEmpty() : pState + " has no successors.";
-    Collection<TerminationState> abstractSuccessors =
-        getAbstractSuccessors0(statesAtCurrentLocation, pPrecision);
+    Collection<TerminationState> targetStates =
+        statesAtCurrentLocation
+            .stream()
+            .filter(AbstractStates::isTargetState)
+            .collect(Collectors.toList());
 
-    // add all intermediate target states
-    statesAtCurrentLocation
-        .stream()
-        .filter(AbstractStates::isTargetState)
-        .forEach(abstractSuccessors::add);
-    return abstractSuccessors;
+    // break if target state is reachable
+    if (!targetStates.isEmpty()) {
+      return targetStates;
+    }
+
+    assert !statesAtCurrentLocation.isEmpty() : pState + " has no successors.";
+    return getAbstractSuccessors0(statesAtCurrentLocation, pPrecision);
   }
 
   private Collection<? extends TerminationState> declarePrimedVariables(
@@ -350,9 +353,13 @@ public class TerminationTransferRelation implements TransferRelation {
       CFAEdge nonTerminationLabel =
           createBlankEdge(
               potentialNonTerminationNode, nodeAfterLabel, "Label: " + NON_TERMINATION_LABEL);
-      resultingSuccessors.addAll(
-          getAbstractSuccessorsForEdge0(
-              potentialNonTerminationStates, pPrecision, nonTerminationLabel));
+
+      Collection<TerminationState> targetStates = getAbstractSuccessorsForEdge0(
+          potentialNonTerminationStates, pPrecision, nonTerminationLabel);
+
+      if (!targetStates.isEmpty()) {
+        return targetStates;
+      }
     }
 
     CFANode node1 = creatCfaNode(functionName);
