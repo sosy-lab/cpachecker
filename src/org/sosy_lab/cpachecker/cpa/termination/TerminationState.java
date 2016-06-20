@@ -27,45 +27,63 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Preconditions;
 
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithDummyLocation;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+
+import java.util.Collection;
+import java.util.Collections;
 
 import javax.annotation.concurrent.Immutable;
 
 @Immutable
-public class TerminationState extends AbstractSingleWrapperState implements Graphable {
+public class TerminationState extends AbstractSingleWrapperState
+    implements AbstractStateWithDummyLocation, Graphable {
 
-  private static final long serialVersionUID = 2L;
+  private static final long serialVersionUID = 3L;
 
   private final boolean loop;
 
+  private final boolean dummyLocation;
+
+  private final Collection<CFAEdge> enteringEdges;
+
   /**
-   * Creates a new {@link TerminationState} that is part of the lasso's stem.
+   * Creates a new {@link TerminationState} that is part of the
+   * lasso's stem and has no dummy location.
    *
    * @param pWrappedState
    *          the {@link AbstractState} to wrap
    * @return the created {@link TerminationState}
    */
   public static TerminationState createStemState(AbstractState pWrappedState) {
-    return new TerminationState(pWrappedState, false);
+    return new TerminationState(pWrappedState, false, false, Collections.emptyList());
   }
 
-  private TerminationState(AbstractState pWrappedState, boolean pLoop) {
+  private TerminationState(
+      AbstractState pWrappedState,
+      boolean pLoop,
+      boolean pDummyLocation,
+      Collection<CFAEdge> pEnteringEdges) {
     super(checkNotNull(pWrappedState));
+    Preconditions.checkArgument(pDummyLocation || pEnteringEdges.isEmpty());
     loop = pLoop;
+    dummyLocation = pDummyLocation;
+    enteringEdges = checkNotNull(pEnteringEdges);
   }
 
   /**
-   * Creates a new {@link TerminationState} that is part of the lasso's loop iff this
-   * {@link TerminationState} is part of the lasso's loop.
+   * Creates a new {@link TerminationState} from this {@link TerminationState}
+   * but with the given <code>pWrappedState</code>.
    *
    * @param pWrappedState
    *            the {@link AbstractState} to wrap
    * @return the created {@link TerminationState}
    */
   public TerminationState withWrappedState(AbstractState pWrappedState) {
-    return new TerminationState(pWrappedState, loop);
+    return new TerminationState(pWrappedState, loop, dummyLocation, enteringEdges);
   }
 
   /**
@@ -75,7 +93,28 @@ public class TerminationState extends AbstractSingleWrapperState implements Grap
    */
   public TerminationState enterLoop() {
     Preconditions.checkArgument(!loop, "% is already part of the lasso's loop", this);
-    return new TerminationState(getWrappedState(), true);
+    return new TerminationState(getWrappedState(), true, dummyLocation, enteringEdges);
+  }
+
+  /**
+   * Creates a new {@link TerminationState} with a dummy location and  the given entering edges.
+   *
+   * @param pEnteringEdges
+   *         the edges entering the location represented by the created state
+   * @return the created {@link TerminationState}
+   */
+  public TerminationState withDummyLocation(Collection<CFAEdge> pEnteringEdges) {
+    return new TerminationState(getWrappedState(), loop, true, pEnteringEdges);
+  }
+
+  @Override
+  public boolean isDummyLocation() {
+    return dummyLocation;
+  }
+
+  @Override
+  public Collection<CFAEdge> getEnteringEdges() {
+    return enteringEdges;
   }
 
   /**

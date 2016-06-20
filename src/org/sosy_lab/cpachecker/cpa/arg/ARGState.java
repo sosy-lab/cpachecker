@@ -29,7 +29,6 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
 
-import java.util.Optional;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.UniqueIdGenerator;
@@ -38,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithDummyLocation;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -49,6 +49,7 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
@@ -165,6 +166,20 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
             && currentLoc.getEnteringSummaryEdge().getSuccessor().equals(childLoc)) { // Backwards
           return currentLoc.getEnteringSummaryEdge();
 
+        }
+      }
+    }
+
+    // check for dummy location
+    AbstractStateWithDummyLocation stateWithDummyLocation =
+        AbstractStates.extractStateByType(pChild, AbstractStateWithDummyLocation.class);
+    if (stateWithDummyLocation != null && stateWithDummyLocation.isDummyLocation()) {
+
+      for (CFAEdge enteringEdge : stateWithDummyLocation.getEnteringEdges()) {
+        for (CFANode currentLocation : currentLocs) {
+          if (enteringEdge.getPredecessor().equals(currentLocation)) {
+            return enteringEdge;
+          }
         }
       }
     }

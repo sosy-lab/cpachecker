@@ -358,7 +358,10 @@ public class TerminationTransferRelation implements TransferRelation {
           potentialNonTerminationStates, pPrecision, nonTerminationLabel);
 
       if (!targetStates.isEmpty()) {
-        return targetStates;
+        return targetStates
+            .stream()
+            .map(ts -> ts.withDummyLocation(Collections.singleton(negativeRankingRelation)))
+            .collect(Collectors.toList());
       }
     }
 
