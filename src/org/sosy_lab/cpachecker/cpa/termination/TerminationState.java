@@ -48,7 +48,8 @@ public class TerminationState extends AbstractSingleWrapperState
 
   private final boolean dummyLocation;
 
-  private final Collection<CFAEdge> enteringEdges;
+  // TODO
+  private final transient Collection<CFAEdge> enteringEdges;
 
   /**
    * Creates a new {@link TerminationState} that is part of the
@@ -171,4 +172,9 @@ public class TerminationState extends AbstractSingleWrapperState
 
     return sb.toString();
   }
+
+  private Object readResolve() {
+    return new TerminationState(getWrappedState(), loop, dummyLocation, Collections.emptyList());
+  }
+
 }
