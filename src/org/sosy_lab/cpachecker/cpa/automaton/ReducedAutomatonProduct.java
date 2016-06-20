@@ -55,12 +55,6 @@ public final class ReducedAutomatonProduct {
     UNKNOWN   // the choice might be ambiguous
   }
 
-  public static enum Trinary {
-    TRUE,
-    FALSE,
-    UNKNOWN;
-  }
-
   public final static class ReducedTransitionList {
 
     private TransitionCollectionQuality quality = TransitionCollectionQuality.DISTINCT;
