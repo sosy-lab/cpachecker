@@ -714,7 +714,37 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
           List<SMGExplicitValueAndState> sizeValueAndStates = evaluateExplicitValue(currentState, pCfaEdge, sizeExpr);
 
           for (SMGExplicitValueAndState sizeValueAndState : sizeValueAndStates) {
-            result.add(evaluateMemcpy(sizeValueAndState.getSmgState(), targetStr1AndState.getObject(), sourceStr2AndState.getObject(), sizeValueAndState.getObject()));
+            SMGState sizeState = sizeValueAndState.getSmgState();
+            SMGAddressValue targetObject = targetStr1AndState.getObject();
+            SMGAddressValue sourceObject = sourceStr2AndState.getObject();
+            SMGExplicitValue explicitSizeValue = sizeValueAndState.getObject();
+            if (!targetObject.isUnknown() && !sourceObject.isUnknown()) {
+              SMGValueAndStateList sizeSymbolicValueAndStates =
+                  evaluateExpressionValue(sizeState, pCfaEdge, sizeExpr);
+              int symbolicValueSize = expressionEvaluator.getSizeof(pCfaEdge, sizeExpr
+                  .getExpressionType(), sizeState) * machineModel.getSizeofCharInBits();
+              for (SMGValueAndState sizeSymbolicValueAndState : sizeSymbolicValueAndStates
+                  .getValueAndStateList()) {
+                SMGSymbolicValue symbolicValue = sizeSymbolicValueAndState.getObject();
+
+                int sourceRangeOffset = sourceObject.getOffset().getAsInt();
+                int sourceSize = sourceObject.getObject().getSize();
+                int availableSource = sourceSize - sourceRangeOffset;
+
+                int targetRangeOffset = targetObject.getOffset().getAsInt();
+                int targetSize = targetObject.getObject().getSize();
+                int availableTarget = targetSize - targetRangeOffset;
+
+                if (explicitSizeValue.isUnknown()) {
+                  sizeState.addErrorPredicate(symbolicValue, symbolicValueSize, SMGKnownExpValue
+                      .valueOf(availableSource), symbolicValueSize, pCfaEdge);
+                  sizeState.addErrorPredicate(symbolicValue, symbolicValueSize, SMGKnownExpValue
+                      .valueOf(availableTarget), symbolicValueSize, pCfaEdge);
+                }
+              }
+            }
+            result.add(evaluateMemcpy(sizeState, targetObject, sourceObject,
+                explicitSizeValue));
           }
         }
       }
@@ -1945,6 +1975,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       boolean doesNotFitIntoObject = fieldOffset < 0
           || fieldOffset + getSizeof(pEdge, pType, pSmgState) > pObject.getSize();
 
+//      if (doesNotFitIntoObject && !pSmgState.isObjectExternallyAllocated(pObject)) {
       if (doesNotFitIntoObject) {
         // Field does not fit size of declared Memory
         logger.log(Level.WARNING, pEdge.getFileLocation() + ":", "Field " + "("
