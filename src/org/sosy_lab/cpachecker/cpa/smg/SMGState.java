@@ -1168,7 +1168,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     // Do not create a value if the read is invalid.
     if(valueAndState.getObject().isUnknown()  && valueAndState.getSmgState().invalidRead == false) {
       SMGStateEdgePair stateAndNewEdge;
-      if (valueAndState.getSmgState().heap.isObjectExternallyAllocated(pObject) && pType.getCanonicalType()
+      if (valueAndState.getSmgState().isObjectExternallyAllocated(pObject) && pType.getCanonicalType()
           instanceof CPointerType) {
         SMGAddressValue new_address = valueAndState.getSmgState().addExternalAllocation(genRecursiveLabel(pObject.getLabel()));
         stateAndNewEdge = writeValue(pObject, pOffset, pType, new_address);
@@ -1348,6 +1348,10 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     performConsistencyCheck(SMGRuntimeCheck.HALF);
 
     return new SMGStateEdgePair(this, new_edge);
+  }
+
+  public boolean isObjectExternallyAllocated(SMGObject pObject) {
+    return heap.isObjectExternallyAllocated(pObject);
   }
 
   public static class SMGStateEdgePair {
@@ -1605,7 +1609,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   public SMGAddressValue addExternalAllocation(String pLabel) throws SMGInconsistentException {
     SMGRegion new_object = new SMGRegion(externalAllocationSize, pLabel);
     int new_value = SMGValueFactory.getNewValue();
-    SMGEdgePointsTo points_to = new SMGEdgePointsTo(new_value, new_object, 0);
+    SMGEdgePointsTo points_to = new SMGEdgePointsTo(new_value, new_object, externalAllocationSize/2 );
     heap.addHeapObject(new_object);
     heap.addValue(new_value);
     heap.addPointsToEdge(points_to);
@@ -1613,7 +1617,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     heap.setExternallyAllocatedFlag(new_object, true);
 
     performConsistencyCheck(SMGRuntimeCheck.HALF);
-    return SMGKnownAddVal.valueOf(new_value, new_object, 0);
+    return SMGKnownAddVal.valueOf(new_value, new_object, externalAllocationSize/2);
   }
 
   /** memory allocated on the stack is automatically freed when leaving the current function scope */
@@ -1905,9 +1909,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     heap.addNeqRelation(pKnownVal1.getAsInt(), pKnownVal2.getAsInt());
   }
 
-public void addPredicateRelation(SMGSymbolicValue pV1, int pCType1,
-                                 SMGSymbolicValue pV2, int pCType2,
-                                 BinaryOperator pOp, CFAEdge pEdge) {
+  public void addPredicateRelation(SMGSymbolicValue pV1, int pCType1,
+                                   SMGSymbolicValue pV2, int pCType2,
+                                   BinaryOperator pOp, CFAEdge pEdge) {
   if (pEdge instanceof CAssumeEdge) {
     BinaryOperator temp;
     if (((CAssumeEdge) pEdge).getTruthAssumption()) {
@@ -1915,10 +1919,10 @@ public void addPredicateRelation(SMGSymbolicValue pV1, int pCType1,
     } else {
       temp = pOp.getOppositLogicalOperator();
     }
-    logger.log(Level.WARNING, "SymValue1 " + pV1 + " " + temp +" SymValue2 " + pV2 +
+    logger.log(Level.FINER, "SymValue1 " + pV1 + " " + temp +" SymValue2 " + pV2 +
         "; AddPredicate: " + pEdge.toString());
     if (!pV1.isUnknown() && !pV2.isUnknown()) {
-      logger.log(Level.WARNING,
+      logger.log(Level.FINER,
           "SymValue1 " + pV1.getAsInt() + " " + temp + " SymValue2 " + pV2.getAsInt() +
               "; AddPredicate: " + pEdge.toString());
     }
@@ -1937,10 +1941,10 @@ public void addPredicateRelation(SMGSymbolicValue pV1, int pCType1,
       } else {
         temp = pOp.getOppositLogicalOperator();
       }
-      logger.log(Level.WARNING, "SymValue " + pV1 + " " + temp + "; ExplValue " + pV2 +
+      logger.log(Level.FINER, "SymValue " + pV1 + " " + temp + "; ExplValue " + pV2 +
           "; AddPredicate: " + pEdge.toString());
       if (!pV1.isUnknown()) {
-        logger.log(Level.WARNING, "SymValue " + pV1.getAsInt() + " " + temp + "; ExplValue " + pV2 +
+        logger.log(Level.FINER, "SymValue " + pV1.getAsInt() + " " + temp + "; ExplValue " + pV2 +
             "; AddPredicate: " + pEdge.toString());
       }
     }
@@ -1954,7 +1958,7 @@ public void addPredicateRelation(SMGSymbolicValue pV1, int pCType1,
   public void addErrorPredicate(SMGSymbolicValue pSymbolicValue, Integer pCType1,
                                 SMGExplicitValue pExplicitValue, Integer pCType2,
                                 CFAEdge pEdge) {
-    logger.log(Level.WARNING, "Add Error Predicate: SymValue  " + pSymbolicValue + " ; ExplValue " +
+    logger.log(Level.FINER, "Add Error Predicate: SymValue  " + pSymbolicValue + " ; ExplValue " +
         pExplicitValue + "; on edge: " + pEdge.toString());
     heap.addErrorRelation(pSymbolicValue, pCType1, pExplicitValue, pCType2, pEdge);
   }
