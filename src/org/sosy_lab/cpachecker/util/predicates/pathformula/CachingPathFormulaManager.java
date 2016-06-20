@@ -37,6 +37,7 @@ import org.sosy_lab.solver.api.Model.ValueAssignment;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Implementation of {@link PathFormulaManager} that delegates to another
@@ -160,7 +161,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public BooleanFormula buildBranchingFormula(Iterable<ARGState> pElementsOnPath)
+  public BooleanFormula buildBranchingFormula(Set<ARGState> pElementsOnPath)
       throws CPATransferException, InterruptedException {
     return delegate.buildBranchingFormula(pElementsOnPath);
   }

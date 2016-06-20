@@ -229,7 +229,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
 
       if (shouldCheckBranching) {
-        Iterable<ARGState> arg = from(pReachedSet).filter(ARGState.class);
+        Set<ARGState> arg = from(pReachedSet).filter(ARGState.class).toSet();
 
         // get the branchingFormula
         // this formula contains predicates for all branches we took

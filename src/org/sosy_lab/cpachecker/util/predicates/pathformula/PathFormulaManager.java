@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
-import java.util.List;
-import java.util.Map;
-
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -36,6 +33,10 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.Model.ValueAssignment;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public interface PathFormulaManager {
 
@@ -76,12 +77,12 @@ public interface PathFormulaManager {
    * @param pElementsOnPath The ARG states that should be considered.
    * @return A formula containing a predicate for each branching.
    */
-  BooleanFormula buildBranchingFormula(Iterable<ARGState> pElementsOnPath)
+  BooleanFormula buildBranchingFormula(Set<ARGState> pElementsOnPath)
       throws CPATransferException, InterruptedException;
 
   /**
    * Extract the information about the branching predicates created by
-   * {@link #buildBranchingFormula(Iterable)} from a satisfying assignment.
+   * {@link #buildBranchingFormula(Set)} from a satisfying assignment.
    *
    * A map is created that stores for each ARGState (using its element id as
    * the map key) which edge was taken (the positive or the negated one).

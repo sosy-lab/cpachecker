@@ -31,6 +31,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.MapsDifference;
@@ -83,6 +84,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
@@ -609,15 +611,17 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
    * @return A formula containing a predicate for each branching.
    */
   @Override
-  public BooleanFormula buildBranchingFormula(Iterable<ARGState> elementsOnPath) throws CPATransferException, InterruptedException {
+  public BooleanFormula buildBranchingFormula(Set<ARGState> elementsOnPath) throws CPATransferException, InterruptedException {
     // build the branching formula that will help us find the real error path
     BooleanFormula branchingFormula = bfmgr.makeBoolean(true);
     for (final ARGState pathElement : elementsOnPath) {
+      Set<ARGState> children = Sets.newHashSet(pathElement.getChildren());
+      Set<ARGState> childrenOnPath = Sets.intersection(children, elementsOnPath).immutableCopy();
 
-      if (pathElement.getChildren().size() > 1) {
-        if (pathElement.getChildren().size() > 2) {
+      if (childrenOnPath.size() > 1) {
+        if (childrenOnPath.size() > 2) {
           // can't create branching formula
-          if (from(pathElement.getChildren()).anyMatch(AbstractStates.IS_TARGET_STATE)) {
+          if (from(childrenOnPath).anyMatch(AbstractStates.IS_TARGET_STATE)) {
             // We expect this situation of one of the children is a target state created by PredicateCPA.
             continue;
           } else {
@@ -626,10 +630,10 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           }
         }
 
-        FluentIterable<CFAEdge> outgoingEdges = from(pathElement.getChildren()).transform(
-            child -> pathElement.getEdgeToChild(child));
+        FluentIterable<CFAEdge> outgoingEdges =
+            from(childrenOnPath).transform(pathElement::getEdgeToChild);
         if (!outgoingEdges.allMatch(Predicates.instanceOf(AssumeEdge.class))) {
-          if (from(pathElement.getChildren()).anyMatch(AbstractStates.IS_TARGET_STATE)) {
+          if (from(childrenOnPath).anyMatch(AbstractStates.IS_TARGET_STATE)) {
             // We expect this situation of one of the children is a target state created by PredicateCPA.
             continue;
           } else {
@@ -680,7 +684,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   /**
    * Extract the information about the branching predicates created by
-   * {@link #buildBranchingFormula(Iterable)} from a satisfying assignment.
+   * {@link #buildBranchingFormula(Set)} from a satisfying assignment.
    *
    * A map is created that stores for each ARGState (using its element id as
    * the map key) which edge was taken (the positive or the negated one).
