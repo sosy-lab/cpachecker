@@ -32,7 +32,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.termination.LassoAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.toolchain.CPAcheckerToolchainStorage;
+import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.toolchain.LassoRankerToolchainStorage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -77,7 +77,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
   private final NonTerminationAnalysisSettings nonTerminationAnalysisSettings;
   private final TerminationAnalysisSettings terminationAnalysisSettings;
 
-  private final CPAcheckerToolchainStorage toolchainStorage;
+  private final LassoRankerToolchainStorage toolchainStorage;
 
   @SuppressWarnings("unchecked")
   public LassoAnalysisImpl(
@@ -108,7 +108,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     lassoRankerPreferences.externalSolver = false; // use SMTInterpol
     nonTerminationAnalysisSettings = new NonTerminationAnalysisSettings();
     terminationAnalysisSettings = new TerminationAnalysisSettings();
-    toolchainStorage = new CPAcheckerToolchainStorage(pLogger, pShutdownNotifier);
+    toolchainStorage = new LassoRankerToolchainStorage(pLogger, pShutdownNotifier);
   }
 
   @Override

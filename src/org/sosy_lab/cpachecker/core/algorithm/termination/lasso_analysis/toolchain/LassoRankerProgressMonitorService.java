@@ -29,11 +29,11 @@ import org.sosy_lab.common.ShutdownNotifier;
 import de.uni_freiburg.informatik.ultimate.core.model.services.IProgressAwareTimer;
 import de.uni_freiburg.informatik.ultimate.core.model.services.IProgressMonitorService;
 
-public class CPAcheckerProgressMonitorService implements IProgressMonitorService {
+public class LassoRankerProgressMonitorService implements IProgressMonitorService {
 
   private final ShutdownManager shutdownManager;
 
-  public CPAcheckerProgressMonitorService(ShutdownNotifier pShutdownNotifier) {
+  public LassoRankerProgressMonitorService(ShutdownNotifier pShutdownNotifier) {
     shutdownManager = ShutdownManager.createWithParent(pShutdownNotifier);
   }
 

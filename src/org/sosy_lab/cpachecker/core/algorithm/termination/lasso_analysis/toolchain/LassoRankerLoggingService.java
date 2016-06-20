@@ -34,32 +34,32 @@ import java.io.Writer;
 import de.uni_freiburg.informatik.ultimate.core.model.services.ILogger;
 import de.uni_freiburg.informatik.ultimate.core.model.services.ILoggingService;
 
-public class CPAcheckerLoggingService implements ILoggingService {
+public class LassoRankerLoggingService implements ILoggingService {
 
   private final LogManager logger;
 
-  public CPAcheckerLoggingService(LogManager pLogger) {
+  public LassoRankerLoggingService(LogManager pLogger) {
     logger = Preconditions.checkNotNull(pLogger);
   }
 
   @Override
   public ILogger getLogger(String pPluginId) {
-    return new CPAcheckerLogger(logger, pPluginId);
+    return new LassoRankerLogger(logger, pPluginId);
   }
 
   @Override
   public ILogger getLogger(Class<?> pClazz) {
-    return new CPAcheckerLogger(logger, pClazz.getSimpleName());
+    return new LassoRankerLogger(logger, pClazz.getSimpleName());
   }
 
   @Override
   public ILogger getLoggerForExternalTool(String pId) {
-    return new CPAcheckerLogger(logger, pId);
+    return new LassoRankerLogger(logger, pId);
   }
 
   @Override
   public ILogger getControllerLogger() {
-    return new CPAcheckerLogger(logger);
+    return new LassoRankerLogger(logger);
   }
 
   @Override
@@ -68,7 +68,7 @@ public class CPAcheckerLoggingService implements ILoggingService {
       return null;
     }
 
-    if (Logger.class.isAssignableFrom(pBackingType) && pLogger instanceof CPAcheckerLogger) {
+    if (Logger.class.isAssignableFrom(pBackingType) && pLogger instanceof LassoRankerLogger) {
       return (Logger) pLogger;
     }
 

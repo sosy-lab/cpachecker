@@ -31,16 +31,16 @@ import java.util.logging.Level;
 
 import de.uni_freiburg.informatik.ultimate.core.model.services.ILogger;
 
-public class CPAcheckerLogger extends Logger implements ILogger {
+public class LassoRankerLogger extends Logger implements ILogger {
 
   private final LogManager logger;
 
-  public CPAcheckerLogger(LogManager pLogger) {
+  public LassoRankerLogger(LogManager pLogger) {
     super("");
     logger = pLogger;
   }
 
-  public CPAcheckerLogger(LogManager pLogger, String name) {
+  public LassoRankerLogger(LogManager pLogger, String name) {
     super(name);
     logger = pLogger.withComponentName(name);
   }

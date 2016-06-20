@@ -43,17 +43,17 @@ import de.uni_freiburg.informatik.ultimate.core.model.services.IStorable;
 import de.uni_freiburg.informatik.ultimate.core.model.services.IToolchainStorage;
 import de.uni_freiburg.informatik.ultimate.core.model.services.IUltimateServiceProvider;
 
-public class CPAcheckerToolchainStorage implements IToolchainStorage, IUltimateServiceProvider {
+public class LassoRankerToolchainStorage implements IToolchainStorage, IUltimateServiceProvider {
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
-  private final CPAcheckerLoggingService cpaCheckerLoggingService;
+  private final LassoRankerLoggingService cpaCheckerLoggingService;
   private final Map<String, IStorable> toolchainStorage;
 
-  public CPAcheckerToolchainStorage(LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
+  public LassoRankerToolchainStorage(LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
     logger = Preconditions.checkNotNull(pLogger);
     shutdownNotifier = Preconditions.checkNotNull(pShutdownNotifier);
-    cpaCheckerLoggingService = new CPAcheckerLoggingService(pLogger);
+    cpaCheckerLoggingService = new LassoRankerLoggingService(pLogger);
     toolchainStorage = Maps.newConcurrentMap();
   }
 
@@ -112,7 +112,7 @@ public class CPAcheckerToolchainStorage implements IToolchainStorage, IUltimateS
 
   @Override
   public IProgressMonitorService getProgressMonitorService() {
-    return new CPAcheckerProgressMonitorService(shutdownNotifier);
+    return new LassoRankerProgressMonitorService(shutdownNotifier);
   }
 
   @Override
