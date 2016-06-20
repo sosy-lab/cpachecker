@@ -135,7 +135,7 @@ final class CompositeTransferRelation implements TransferRelation {
     CompositePrecision compositePrecision = (CompositePrecision)precision;
 
     Collection<CompositeState> results = new ArrayList<>(1);
-    getAbstractSuccessorForEdge(compositeState, compositePrecision, cfaEdge, results);
+    getAbstractSuccessorForSimpleEdge(compositeState, compositePrecision, cfaEdge, results);
 
     return results;
   }
