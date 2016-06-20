@@ -2439,6 +2439,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
             SMGAddressValueAndStateList configAllocEdge = builtins.evaluateConfigurableAllocationFunction(pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
             return configAllocEdge;
           }
+          if (builtins.isExternalAllocationFunction(functionName)) {
+            SMGAddressValueAndStateList extAllocEdge = builtins.evaluateExternalAllocation(pIastFunctionCallExpression, getInitialSmgState());
+            return extAllocEdge;
+          }
           switch (functionName) {
           case "__builtin_alloca":
             SMGAddressValueAndStateList allocEdge = builtins.evaluateAlloca(pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
