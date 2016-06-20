@@ -52,9 +52,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.AbstractInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.DoNothingInvariantGenerator;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplierWithoutContext;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -78,7 +76,6 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
-import org.sosy_lab.cpachecker.util.predicates.invariants.AggregatedReachedSetInvariants;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -232,8 +229,6 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     } else if (induction) {
       invariantGenerator =
           new AbstractInvariantGenerator() {
-            private final AggregatedReachedSetInvariants reachedSetInvariants =
-                new AggregatedReachedSetInvariants(pAggregatedReachedSets, cfa);
 
             @Override
             public void start(CFANode pInitialLocation) {
@@ -253,15 +248,8 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
             }
 
             @Override
-            public InvariantSupplierWithoutContext getWithoutContext()
-                throws CPAException, InterruptedException {
-              return reachedSetInvariants.asInvariantSupplier();
-            }
-
-            @Override
-            public ExpressionTreeSupplier getAsExpressionTree()
-                throws CPAException, InterruptedException {
-              return reachedSetInvariants.asExpressionTreeSupplier();
+            public AggregatedReachedSets get() throws CPAException, InterruptedException {
+              return pAggregatedReachedSets;
             }
           };
     } else {

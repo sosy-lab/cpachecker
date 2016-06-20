@@ -87,8 +87,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.RCNFManager;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
-import org.sosy_lab.cpachecker.util.predicates.invariants.AggregatedReachedSetInvariants;
-import org.sosy_lab.cpachecker.util.predicates.invariants.PredicateInvariantsAdapter;
+import org.sosy_lab.cpachecker.util.predicates.invariants.FormulaInvariantsSupplier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -265,8 +264,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
   private final Map<CFANode, BooleanFormula> loopFormulaCache = new HashMap<>();
   private final Map<CFANode, Set<BooleanFormula>> locationInvariantsCache = new HashMap<>();
 
-  private final AggregatedReachedSetInvariants aggregatedReachedSets;
-  private InvariantSupplier globalInvariantsSupplier;
+  private final FormulaInvariantsSupplier globalInvariants;
   private final Specification specification;
 
   public PredicateCPAInvariantsManager(
@@ -285,7 +283,8 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     specification = pSpecification;
     cfa = pCfa;
 
-    aggregatedReachedSets = new AggregatedReachedSetInvariants(pAggregatedReachedSets, pCfa);
+    globalInvariants =
+        new FormulaInvariantsSupplier(pAggregatedReachedSets, logger, cfa.getMachineModel());
     updateGlobalInvariants();
 
     semiCNFConverter = new RCNFManager(pConfig);
@@ -309,9 +308,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
   }
 
   public void updateGlobalInvariants() {
-    globalInvariantsSupplier =
-        new PredicateInvariantsAdapter(
-            aggregatedReachedSets.asInvariantSupplier(), logger, cfa.getMachineModel());
+    globalInvariants.updateInvariants();
   }
 
   @Override
@@ -322,7 +319,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     BooleanFormula globalInvariant = bfmgr.makeBoolean(true);
 
     if (useGlobalInvariants) {
-      globalInvariant = globalInvariantsSupplier.getInvariantFor(pNode, pFmgr, pPfmgr, pContext);
+      globalInvariant = globalInvariants.getInvariantFor(pNode, pFmgr, pPfmgr, pContext);
     }
 
     if (localInvariants == null) {
@@ -760,7 +757,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
 
     invGen.start(cfa.getMainFunction());
     InvariantSupplier invSup =
-        new PredicateInvariantsAdapter(invGen.getWithoutContext(), logger, cfa.getMachineModel());
+        new FormulaInvariantsSupplier(invGen.get(), logger, cfa.getMachineModel());
 
     // we do only want to use invariants that can be used to make the program safe
     if (!useStrongInvariantsOnly || invGen.isProgramSafe()) {

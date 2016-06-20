@@ -166,7 +166,7 @@ public class KInductionInvariantChecker {
     }
 
     invGen.start(cfa.getMainFunction());
-    invGen.getWithoutContext(); // let invariant generator do the work
+    invGen.get(); // let invariant generator do the work
 
     if (limits != null) {
       limits.cancel();

@@ -24,22 +24,24 @@
 package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.predicates.invariants.PredicateInvariantsAdapter;
+import org.sosy_lab.cpachecker.util.predicates.invariants.ExpressionTreeInvariantSupplier;
+import org.sosy_lab.cpachecker.util.predicates.invariants.FormulaInvariantsSupplier;
 
 
 /**
  * Interface for methods to generate invariants about the program.
  *
  * First {@link #start(CFANode)} needs to be called with the entry point
- * of the CFA, and then {@link #getWithoutContext()} can be called to retrieve the reached
+ * of the CFA, and then {@link #get()} can be called to retrieve the reached
  * set with the invariants.
  *
  * It is a good idea to call {@link #start(CFANode)} as soon as possible
- * and {@link #getWithoutContext()} as late as possible to minimize waiting times
+ * and {@link #get()} as late as possible to minimize waiting times
  * if the generator is configured for asynchronous execution.
  *
- * It is also a good idea to call {@link #getWithoutContext()} only if really necessary
+ * It is also a good idea to call {@link #get()} only if really necessary
  * (in synchronous case, it is expensive).
  */
 public interface InvariantGenerator {
@@ -57,10 +59,8 @@ public interface InvariantGenerator {
   void cancel();
 
   /**
-   * Retrieve the generated {@link InvariantSupplierWithoutContext}. The returned invariant supplier
-   * does not make sure that the invariants can be used out of the box with other analyses. Most
-   * probably you have to add  an adapter surrounding the {@link InvariantSupplierWithoutContext}
-   * which changes the invariants to make sure all requirements are met (c.f. {@link PredicateInvariantsAdapter}).
+   * Retrieve the generated {@link AggregatedReachedSets} object. It can be used to extract invariants
+   * by e.g. using {@link FormulaInvariantsSupplier} or {@link ExpressionTreeInvariantSupplier}.
    *
    * Can be called only after {@link #start(CFANode)} was called.
    *
@@ -71,20 +71,7 @@ public interface InvariantGenerator {
    * @throws CPAException If the invariant generation failed.
    * @throws InterruptedException If the invariant generation was interrupted.
    */
-  InvariantSupplierWithoutContext getWithoutContext() throws CPAException, InterruptedException;
-
-  /**
-   * Retrieve the generated invariant as an expression tree.
-   * Can be called only after {@link #start(CFANode)} was called.
-   *
-   * Depending on the invariant generator, this method may either block
-   * for some time during the invariant generation runs,
-   * or return a current snapshot of the invariants quickly.
-   *
-   * @throws CPAException If the invariant generation failed.
-   * @throws InterruptedException If the invariant generation was interrupted.
-   */
-  ExpressionTreeSupplier getAsExpressionTree() throws CPAException, InterruptedException;
+  AggregatedReachedSets get() throws CPAException, InterruptedException;
 
   /**
    * Return whether the invariant generation has already proved

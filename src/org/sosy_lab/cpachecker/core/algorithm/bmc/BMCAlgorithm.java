@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
-import java.util.Optional;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -48,6 +47,7 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -71,6 +71,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.predicates.AssignmentToPathAllocator;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.predicates.invariants.ExpressionTreeInvariantSupplier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -90,6 +91,7 @@ import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -329,6 +331,14 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             ARGState rootState =
                 AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class);
             if (rootState != null && invariantsExport != null) {
+              ExpressionTreeSupplier tmp;
+              try {
+                tmp = new ExpressionTreeInvariantSupplier(invariantGenerator.get(), cfa);
+              } catch (CPAException | InterruptedException e1) {
+                tmp = ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE;
+              }
+              final ExpressionTreeSupplier expSup = tmp;
+
               try (Writer w = MoreFiles.openOutputFile(invariantsExport, StandardCharsets.UTF_8)) {
                 argPathExporter.writeProofWitness(
                     w,
@@ -342,20 +352,12 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
                       public ExpressionTree<Object> provideInvariantFor(
                           CFAEdge pCFAEdge,
                           Optional<? extends Collection<? extends ARGState>> pStates) {
-                        try {
-                          CFANode node = pCFAEdge.getSuccessor();
-                          ExpressionTree<Object> result =
-                              invariantGenerator.getAsExpressionTree().getInvariantFor(node);
-                          if (ExpressionTrees.getFalse().equals(result) && !pStates.isPresent()) {
-                            return ExpressionTrees.getTrue();
-                          }
-                          return result;
-
-                        } catch (CPAException e) {
-                          return ExpressionTrees.getTrue();
-                        } catch (InterruptedException e) {
+                        CFANode node = pCFAEdge.getSuccessor();
+                        ExpressionTree<Object> result = expSup.getInvariantFor(node);
+                        if (ExpressionTrees.getFalse().equals(result) && !pStates.isPresent()) {
                           return ExpressionTrees.getTrue();
                         }
+                        return result;
                       }
                     });
               } catch (IOException e) {

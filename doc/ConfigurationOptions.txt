@@ -2297,12 +2297,6 @@ invariantChecker.kInductionConfig = "config/bmc-invgen.properties"
 # (Use seconds or specify a unit; 0 for infinite)
 invariantChecker.timeForInvariantCheck = 0ns
 
-# adjust invariant generation conditions if supported by the analysis
-invariantGeneration.adjustConditions = false
-
-# generate invariants in parallel to the normal analysis
-invariantGeneration.async = false
-
 # configuration file for invariant generation
 invariantGeneration.config = no default value
 

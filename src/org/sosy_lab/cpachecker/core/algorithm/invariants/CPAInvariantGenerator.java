@@ -62,7 +62,6 @@ import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.predicates.invariants.AggregatedReachedSetInvariants;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -256,27 +255,11 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
   }
 
   @Override
-  public InvariantSupplierWithoutContext getWithoutContext()
-      throws CPAException, InterruptedException {
+  public AggregatedReachedSets get() throws CPAException, InterruptedException {
     checkState(invariantGenerationFuture != null);
 
     try {
-      return new AggregatedReachedSetInvariants(invariantGenerationFuture.get(), cfa).asInvariantSupplier();
-    } catch (ExecutionException e) {
-      Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
-      throw new UnexpectedCheckedException("invariant generation", e.getCause());
-    } catch (CancellationException e) {
-      shutdownManager.getNotifier().shutdownIfNecessary();
-      throw e;
-    }
-  }
-
-  @Override
-  public ExpressionTreeSupplier getAsExpressionTree() throws CPAException, InterruptedException {
-    checkState(invariantGenerationFuture != null);
-
-    try {
-      return new AggregatedReachedSetInvariants(invariantGenerationFuture.get(), cfa).asExpressionTreeSupplier();
+      return invariantGenerationFuture.get();
     } catch (ExecutionException e) {
       Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
       throw new UnexpectedCheckedException("invariant generation", e.getCause());

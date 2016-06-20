@@ -60,7 +60,8 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-import org.sosy_lab.cpachecker.util.predicates.invariants.PredicateInvariantsAdapter;
+import org.sosy_lab.cpachecker.util.predicates.invariants.ExpressionTreeInvariantSupplier;
+import org.sosy_lab.cpachecker.util.predicates.invariants.FormulaInvariantsSupplier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -214,12 +215,11 @@ class KInductionProver implements AutoCloseable {
     }
     try {
       if (invariantGenerator instanceof KInductionInvariantGenerator) {
-        return ((KInductionInvariantGenerator) invariantGenerator).getWithContext();
+        return ((KInductionInvariantGenerator) invariantGenerator).getSupplier();
       } else {
-        // in the general case getWithContext is not implemented so we use getWithoutContext
-        // and wrap the invariant supplier in an adapter
-        return new PredicateInvariantsAdapter(
-            invariantGenerator.getWithoutContext(), logger, cfa.getMachineModel());
+        // in the general case we have to retrieve the invariants from a reachedset
+        return new FormulaInvariantsSupplier(
+            invariantGenerator.get(), logger, cfa.getMachineModel());
       }
     } catch (CPAException e) {
       logger.logUserException(Level.FINE, e, "Invariant generation failed.");
@@ -239,7 +239,7 @@ class KInductionProver implements AutoCloseable {
       return expressionTreeSupplier;
     }
     try {
-      return invariantGenerator.getAsExpressionTree();
+      return new ExpressionTreeInvariantSupplier(invariantGenerator.get(), cfa);
     } catch (CPAException e) {
       logger.logUserException(Level.FINE, e, "Invariant generation failed.");
       invariantGenerationRunning = false;

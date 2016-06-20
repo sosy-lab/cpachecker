@@ -56,6 +56,7 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
@@ -176,14 +177,13 @@ public class CPAcheckerInvariantGenerator extends AbstractInvariantGenerator {
   }
 
   @Override
-  public InvariantSupplierWithoutContext getWithoutContext()
-      throws CPAException, InterruptedException {
+  public AggregatedReachedSets get() throws CPAException, InterruptedException {
     if (generationCompleted) {
       checkState(programIsSafe || !reached.hasWaitingState());
       checkState(!reached.isEmpty());
-      return new FormulaAndTreeSupplier(new LazyLocationMapping(reached), cfa);
+      return new AggregatedReachedSets(Collections.singleton(reached));
     } else {
-      return InvariantSupplierWithoutContext.TrivialInvariantSupplier.INSTANCE;
+      return new AggregatedReachedSets();
     }
   }
 }

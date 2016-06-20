@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 
@@ -36,14 +37,8 @@ public abstract class AbstractInvariantGenerator implements InvariantGenerator {
   public abstract void cancel();
 
   @Override
-  public InvariantSupplierWithoutContext getWithoutContext()
-      throws CPAException, InterruptedException {
-    return InvariantSupplierWithoutContext.TrivialInvariantSupplier.INSTANCE;
-  }
-
-  @Override
-  public ExpressionTreeSupplier getAsExpressionTree() throws CPAException, InterruptedException {
-    return ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE;
+  public AggregatedReachedSets get() throws CPAException, InterruptedException {
+    return new AggregatedReachedSets();
   }
 
   @Override
