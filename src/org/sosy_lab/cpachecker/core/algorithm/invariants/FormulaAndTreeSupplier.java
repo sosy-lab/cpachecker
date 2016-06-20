@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.Or;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -48,13 +47,16 @@ import org.sosy_lab.solver.api.BooleanFormulaManager;
 import java.util.Objects;
 import java.util.Set;
 
-public class FormulaAndTreeSupplier implements InvariantSupplier, ExpressionTreeSupplier {
+public class FormulaAndTreeSupplier
+    implements InvariantSupplierWithoutContext, ExpressionTreeSupplier {
 
-  private final InvariantSupplier invariantSupplier;
+  private final InvariantSupplierWithoutContext invariantSupplier;
 
   private final ExpressionTreeSupplier expressionTreeSupplier;
 
-  public FormulaAndTreeSupplier(InvariantSupplier pInvariantSupplier, ExpressionTreeSupplier pExpressionTreeSupplier) {
+  public FormulaAndTreeSupplier(
+      InvariantSupplierWithoutContext pInvariantSupplier,
+      ExpressionTreeSupplier pExpressionTreeSupplier) {
     this.invariantSupplier = pInvariantSupplier;
     this.expressionTreeSupplier = pExpressionTreeSupplier;
   }
@@ -71,15 +73,15 @@ public class FormulaAndTreeSupplier implements InvariantSupplier, ExpressionTree
 
   @Override
   public BooleanFormula getInvariantFor(
-      CFANode pNode, FormulaManagerView pFmgr, PathFormulaManager pPfmgr, PathFormula pContext) {
-    return invariantSupplier.getInvariantFor(pNode, pFmgr, pPfmgr, pContext);
+      CFANode pNode, FormulaManagerView pFmgr, PathFormulaManager pPfmgr) {
+    return invariantSupplier.getInvariantFor(pNode, pFmgr, pPfmgr);
   }
 
   /**
    * {@link InvariantSupplier} that extracts invariants from a {@link ReachedSet}
    * with {@link FormulaReportingState}s.
    */
-  public static class ReachedSetBasedInvariantSupplier implements InvariantSupplier {
+  public static class ReachedSetBasedInvariantSupplier implements InvariantSupplierWithoutContext {
 
     private final LazyLocationMapping lazyLocationMapping;
 
@@ -89,10 +91,7 @@ public class FormulaAndTreeSupplier implements InvariantSupplier, ExpressionTree
 
     @Override
     public BooleanFormula getInvariantFor(
-        CFANode pLocation,
-        FormulaManagerView fmgr,
-        PathFormulaManager pfmgr,
-        PathFormula pContext) {
+        CFANode pLocation, FormulaManagerView fmgr, PathFormulaManager pfmgr) {
       BooleanFormulaManager bfmgr = fmgr.getBooleanFormulaManager();
       BooleanFormula invariant = bfmgr.makeBoolean(false);
 

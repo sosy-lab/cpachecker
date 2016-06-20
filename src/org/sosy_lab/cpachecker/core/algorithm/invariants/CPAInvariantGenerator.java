@@ -29,7 +29,6 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Function;
-import java.util.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Throwables;
@@ -52,7 +51,6 @@ import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier.TrivialInvariantSupplier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -74,6 +72,7 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -391,7 +390,8 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
   }
 
   @Override
-  public InvariantSupplier get() throws CPAException, InterruptedException {
+  public InvariantSupplierWithoutContext getWithoutContext()
+      throws CPAException, InterruptedException {
     checkState(invariantGenerationFuture != null);
 
     try {
@@ -474,8 +474,8 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
         if (!algorithm.run(taskReached).isSound()) {
           // ignore unsound invariant and abort
           return new FormulaAndTreeSupplier(
-              TrivialInvariantSupplier.INSTANCE,
-              org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE);
+              InvariantSupplierWithoutContext.TrivialInvariantSupplier.INSTANCE,
+              ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE);
         }
       }
 

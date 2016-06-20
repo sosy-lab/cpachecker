@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -59,6 +60,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.predicates.invariants.PredicateInvariantsAdapter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -211,7 +213,14 @@ class KInductionProver implements AutoCloseable {
       return invariantsSupplier;
     }
     try {
-      return invariantGenerator.get();
+      if (invariantGenerator instanceof KInductionInvariantGenerator) {
+        return ((KInductionInvariantGenerator) invariantGenerator).getWithContext();
+      } else {
+        // in the general case getWithContext is not implemented so we use getWithoutContext
+        // and wrap the invariant supplier in an adapter
+        return new PredicateInvariantsAdapter(
+            invariantGenerator.getWithoutContext(), logger, cfa.getMachineModel());
+      }
     } catch (CPAException e) {
       logger.logUserException(Level.FINE, e, "Invariant generation failed.");
       invariantGenerationRunning = false;

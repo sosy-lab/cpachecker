@@ -176,13 +176,14 @@ public class CPAcheckerInvariantGenerator extends AbstractInvariantGenerator {
   }
 
   @Override
-  public InvariantSupplier get() throws CPAException, InterruptedException {
+  public InvariantSupplierWithoutContext getWithoutContext()
+      throws CPAException, InterruptedException {
     if (generationCompleted) {
       checkState(programIsSafe || !reached.hasWaitingState());
       checkState(!reached.isEmpty());
       return new FormulaAndTreeSupplier(new LazyLocationMapping(reached), cfa);
     } else {
-      return InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
+      return InvariantSupplierWithoutContext.TrivialInvariantSupplier.INSTANCE;
     }
   }
 }

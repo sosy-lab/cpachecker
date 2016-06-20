@@ -36,8 +36,9 @@ public abstract class AbstractInvariantGenerator implements InvariantGenerator {
   public abstract void cancel();
 
   @Override
-  public InvariantSupplier get() throws CPAException, InterruptedException {
-    return InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
+  public InvariantSupplierWithoutContext getWithoutContext()
+      throws CPAException, InterruptedException {
+    return InvariantSupplierWithoutContext.TrivialInvariantSupplier.INSTANCE;
   }
 
   @Override

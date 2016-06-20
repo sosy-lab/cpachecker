@@ -389,7 +389,13 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
   }
 
   @Override
-  public InvariantSupplier get() throws CPAException, InterruptedException {
+  public InvariantSupplierWithoutContext getWithoutContext()
+      throws CPAException, InterruptedException {
+    throw new UnsupportedOperationException(
+        "This invariant generator does only use invariants which have a context");
+  }
+
+  public InvariantSupplier getWithContext() throws InterruptedException, CPAException {
     checkState(invariantGenerationFuture != null);
 
     if (async && (!invariantGenerationFuture.isDone()) || cancelled.get()) {
@@ -411,7 +417,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
 
   @Override
   public ExpressionTreeSupplier getAsExpressionTree() throws CPAException, InterruptedException {
-    get();
+    getWithoutContext();
     return algorithm.getCurrentInvariantsAsExpressionTree();
   }
 

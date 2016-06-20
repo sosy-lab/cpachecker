@@ -74,7 +74,7 @@ public class AdjustableInvariantGenerator<T extends InvariantGenerator> extends 
     started.set(true);
     setSupplier(
         new FormulaAndTreeSupplier(
-            InvariantSupplier.TrivialInvariantSupplier.INSTANCE,
+            InvariantSupplierWithoutContext.TrivialInvariantSupplier.INSTANCE,
             ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE));
   }
 
@@ -85,11 +85,12 @@ public class AdjustableInvariantGenerator<T extends InvariantGenerator> extends 
       next = initialGenerator;
       setSupplier(
           new FormulaAndTreeSupplier(
-              InvariantSupplier.TrivialInvariantSupplier.INSTANCE,
+              InvariantSupplierWithoutContext.TrivialInvariantSupplier.INSTANCE,
               ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE));
     } else {
       try {
-        setSupplier(new FormulaAndTreeSupplier(current.get(), current.getAsExpressionTree()));
+        setSupplier(
+            new FormulaAndTreeSupplier(current.getWithoutContext(), current.getAsExpressionTree()));
       } finally {
         if (current.isProgramSafe()) {
           isProgramSafe.set(true);
@@ -127,7 +128,8 @@ public class AdjustableInvariantGenerator<T extends InvariantGenerator> extends 
     } catch (ExecutionException e) {
       if (e.getCause() instanceof InterruptedException) {
         return new FormulaAndTreeSupplier(
-            invariantGenerator.get().get(), invariantGenerator.get().getAsExpressionTree());
+            invariantGenerator.get().getWithoutContext(),
+            invariantGenerator.get().getAsExpressionTree());
       }
       Throwables.propagateIfPossible(e.getCause(), CPAException.class);
       throw new UnexpectedCheckedException("invariant generation", e.getCause());
@@ -138,7 +140,8 @@ public class AdjustableInvariantGenerator<T extends InvariantGenerator> extends 
   }
 
   @Override
-  public InvariantSupplier get() throws CPAException, InterruptedException {
+  public InvariantSupplierWithoutContext getWithoutContext()
+      throws CPAException, InterruptedException {
     return getInternal();
   }
 

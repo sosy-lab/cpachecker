@@ -88,6 +88,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.RCNFManager;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.invariants.AggregatedReachedSetInvariants;
+import org.sosy_lab.cpachecker.util.predicates.invariants.PredicateInvariantsAdapter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -281,12 +282,14 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     config = pConfig;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
-    aggregatedReachedSets = new AggregatedReachedSetInvariants(pAggregatedReachedSets, pCfa);
-    globalInvariantsSupplier = aggregatedReachedSets.asInvariantSupplier();
     specification = pSpecification;
-
     cfa = pCfa;
+
+    aggregatedReachedSets = new AggregatedReachedSetInvariants(pAggregatedReachedSets, pCfa);
+    updateGlobalInvariants();
+
     semiCNFConverter = new RCNFManager(pConfig);
+
   }
 
   public boolean shouldInvariantsBeComputed() {
@@ -306,7 +309,9 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
   }
 
   public void updateGlobalInvariants() {
-    globalInvariantsSupplier = aggregatedReachedSets.asInvariantSupplier();
+    globalInvariantsSupplier =
+        new PredicateInvariantsAdapter(
+            aggregatedReachedSets.asInvariantSupplier(), logger, cfa.getMachineModel());
   }
 
   @Override
@@ -754,7 +759,8 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       throws CPAException, InterruptedException {
 
     invGen.start(cfa.getMainFunction());
-    InvariantSupplier invSup = invGen.get();
+    InvariantSupplier invSup =
+        new PredicateInvariantsAdapter(invGen.getWithoutContext(), logger, cfa.getMachineModel());
 
     // we do only want to use invariants that can be used to make the program safe
     if (!useStrongInvariantsOnly || invGen.isProgramSafe()) {

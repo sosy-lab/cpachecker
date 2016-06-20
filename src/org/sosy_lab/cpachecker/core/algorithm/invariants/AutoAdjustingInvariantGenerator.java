@@ -67,19 +67,24 @@ public class AutoAdjustingInvariantGenerator<T extends InvariantGenerator> exten
   public void start(final CFANode pInitialLocation) {
     invariantGenerator.start(pInitialLocation);
     ExecutorService executor = Executors.newSingleThreadExecutor();
-    taskFuture.set(executor.submit(new Callable<FormulaAndTreeSupplier>() {
+    taskFuture.set(
+        executor.submit(
+            new Callable<FormulaAndTreeSupplier>() {
 
-      @Override
-      public FormulaAndTreeSupplier call() throws Exception {
-        while (!cancelled.get() && !invariantGenerator.isProgramSafe() && invariantGenerator.adjustAndContinue(pInitialLocation)) {
-          if (shutdownNotifier.shouldShutdown()) {
-            cancel();
-          }
-        }
-        return new FormulaAndTreeSupplier(invariantGenerator.get(), invariantGenerator.getAsExpressionTree());
-      }
-
-    }));
+              @Override
+              public FormulaAndTreeSupplier call() throws Exception {
+                while (!cancelled.get()
+                    && !invariantGenerator.isProgramSafe()
+                    && invariantGenerator.adjustAndContinue(pInitialLocation)) {
+                  if (shutdownNotifier.shouldShutdown()) {
+                    cancel();
+                  }
+                }
+                return new FormulaAndTreeSupplier(
+                    invariantGenerator.getWithoutContext(),
+                    invariantGenerator.getAsExpressionTree());
+              }
+            }));
     executor.shutdown();
   }
 
@@ -90,7 +95,8 @@ public class AutoAdjustingInvariantGenerator<T extends InvariantGenerator> exten
   }
 
   @Override
-  public InvariantSupplier get() throws CPAException, InterruptedException {
+  public InvariantSupplierWithoutContext getWithoutContext()
+      throws CPAException, InterruptedException {
     return getInternal();
   }
 
@@ -107,13 +113,14 @@ public class AutoAdjustingInvariantGenerator<T extends InvariantGenerator> exten
       } catch (ExecutionException e) {
         if (e.getCause() instanceof InterruptedException) {
           return new FormulaAndTreeSupplier(
-              invariantGenerator.get(), invariantGenerator.getAsExpressionTree());
+              invariantGenerator.getWithoutContext(), invariantGenerator.getAsExpressionTree());
         }
         Throwables.propagateIfPossible(e.getCause(), CPAException.class);
         throw new UnexpectedCheckedException("invariant generation", e.getCause());
       }
     }
-    return new FormulaAndTreeSupplier(invariantGenerator.get(), invariantGenerator.getAsExpressionTree());
+    return new FormulaAndTreeSupplier(
+        invariantGenerator.getWithoutContext(), invariantGenerator.getAsExpressionTree());
   }
 
   @Override

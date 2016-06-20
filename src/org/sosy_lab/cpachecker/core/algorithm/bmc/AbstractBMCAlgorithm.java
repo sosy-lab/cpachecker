@@ -54,7 +54,7 @@ import org.sosy_lab.cpachecker.core.algorithm.invariants.AbstractInvariantGenera
 import org.sosy_lab.cpachecker.core.algorithm.invariants.DoNothingInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplierWithoutContext;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -253,7 +253,8 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
             }
 
             @Override
-            public InvariantSupplier get() throws CPAException, InterruptedException {
+            public InvariantSupplierWithoutContext getWithoutContext()
+                throws CPAException, InterruptedException {
               return reachedSetInvariants.asInvariantSupplier();
             }
 
