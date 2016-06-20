@@ -126,6 +126,7 @@ public class TerminationARGPath extends ARGPath {
     }
 
     terminationFullPath = fullPathBuilder.build();
+    terminationTransferRelation.resetCfa();
     return terminationFullPath;
   }
 
