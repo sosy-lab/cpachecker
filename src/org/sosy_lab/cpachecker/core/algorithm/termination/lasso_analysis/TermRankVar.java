@@ -27,21 +27,23 @@ import com.google.common.base.Preconditions;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 import de.uni_freiburg.informatik.ultimate.lassoranker.variables.RankVar;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 @SuppressFBWarnings(value = "SE_BAD_FIELD", justification = "TermRankVar is never serialized.")
+@Immutable
 public class TermRankVar extends RankVar {
 
-  private static final long serialVersionUID = 1L;
+  private static final long serialVersionUID = 2L;
 
   private final Term term;
 
-  @Nullable private String id;
+  private final String idenifier;
 
-  public TermRankVar(Term pTerm) {
+  public TermRankVar(String pIdenifier, Term pTerm) {
+    idenifier = Preconditions.checkNotNull(pIdenifier);
     term = Preconditions.checkNotNull(pTerm);
   }
 
@@ -52,11 +54,7 @@ public class TermRankVar extends RankVar {
 
   @Override
   public String getGloballyUniqueId() {
-    if (id!=null) {
-      return id;
-    }
-    String id = term.toStringDirect();
-    return id;
+    return idenifier;
   }
 
   @Override

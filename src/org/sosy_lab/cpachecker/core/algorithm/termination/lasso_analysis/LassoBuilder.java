@@ -25,12 +25,14 @@ package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static de.uni_freiburg.informatik.ultimate.lassoranker.variables.InequalityConverter.NlaHandling.EXCEPTION;
-import static java.util.Collections.emptyMap;
+import static java.util.stream.Collectors.toSet;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.log.LogManager;
@@ -58,8 +60,10 @@ import org.sosy_lab.solver.visitors.TraversalProcess;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
@@ -144,17 +148,27 @@ class LassoBuilder {
     logger.logf(Level.FINE, "Stem formula %s", stemPathFormula.getFormula());
     logger.logf(Level.FINE, "Loop formula %s", loopPathFormula.getFormula());
 
-    LinearTransition stem = createLinearTransition(stemPathFormula);
-    LinearTransition loop = createLinearTransition(loopPathFormula);
+    LinearTransition stem = createLinearTransition(stemPathFormula, Optional.empty());
+    LinearTransition loop = createLinearTransition(loopPathFormula, Optional.of(stem.getOutVars()));
     Lasso lasso = new Lasso(stem, loop);
     return lasso;
   }
 
-  private LinearTransition createLinearTransition(PathFormula path)
+  private LinearTransition createLinearTransition(
+      PathFormula path, Optional<Map<RankVar, Term>> potentialInVars)
       throws InterruptedException, TermException {
     List<List<LinearInequality>> polyhedra = extractPolyhedra(path);
     Map<RankVar, Term> outVars = extractOutVars(path);
-    Map<RankVar, Term> inVars = emptyMap();
+
+    // an  output variable of the stem is an input variable of the loop
+    // if it exists an output variable of the loop with the same identifier
+    Set<String> outVarNames =
+        outVars.keySet().stream().map(RankVar::getGloballyUniqueId).collect(toSet());
+    Map<RankVar, Term> inVars =
+        potentialInVars
+            .map(vars -> Maps.filterKeys(vars, v -> outVarNames.contains(v.getGloballyUniqueId())))
+            .orElse(Collections.emptyMap());
+
     LinearTransition linearTransition = new LinearTransition(polyhedra, inVars, outVars);
     return linearTransition;
   }
@@ -189,7 +203,10 @@ class LassoBuilder {
     ImmutableMap.Builder<RankVar, Term> outVars = ImmutableMap.builder();
     for (Formula variable : outVeriablesCollector.getVariables()) {
       Term term = formulaManager.extractInfo(variable);
-      outVars.put(new TermRankVar(term), term);
+      Formula uninstantiatedVariable = formulaManagerView.uninstantiate(variable);
+      Set<String> variableNames = formulaManagerView.extractVariableNames(uninstantiatedVariable);
+      String variableName = Iterables.getOnlyElement(variableNames);
+      outVars.put(new TermRankVar(variableName, term), term);
     }
 
     return outVars.build();
