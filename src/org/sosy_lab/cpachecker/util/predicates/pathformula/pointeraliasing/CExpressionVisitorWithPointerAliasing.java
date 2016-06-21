@@ -122,7 +122,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     this.baseVisitor = new BaseVisitor(cfaEdge, pts);
   }
 
-  public CRightHandSideVisitor<Formula, UnrecognizedCCodeException> asFormulaVisitor() {
+  CRightHandSideVisitor<Formula, UnrecognizedCCodeException> asFormulaVisitor() {
     return new AdaptingExpressionToFormulaVisitor(this);
   }
 
