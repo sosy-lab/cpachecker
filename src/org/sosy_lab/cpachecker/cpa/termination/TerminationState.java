@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithDummyLocation;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 
+import java.io.ObjectOutputStream;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -48,8 +49,7 @@ public class TerminationState extends AbstractSingleWrapperState
 
   private final boolean dummyLocation;
 
-  // TODO
-  private final transient Collection<CFAEdge> enteringEdges;
+  private final Collection<CFAEdge> enteringEdges;
 
   /**
    * Creates a new {@link TerminationState} that is part of the
@@ -173,8 +173,13 @@ public class TerminationState extends AbstractSingleWrapperState
     return sb.toString();
   }
 
-  private Object readResolve() {
-    return new TerminationState(getWrappedState(), loop, dummyLocation, Collections.emptyList());
+  /**
+   * Throws {@link UnsupportedOperationException}.
+   * @param out unused
+   */
+  private void writeObject(ObjectOutputStream out) {
+    throw new UnsupportedOperationException(
+        TerminationState.class.getSimpleName() + "does not support serialization.");
   }
 
 }
