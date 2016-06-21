@@ -1719,7 +1719,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       return setInvalidFree();
     }
 
-    if (!(offset == 0)) {
+    if (!(offset == 0) && !heap.isObjectExternallyAllocated(smgObject)) {
       // you may not invoke free on any address that you
       // didn't get through a malloc invocation.
       // TODO: externally allocated memory could be freed partially
