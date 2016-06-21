@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.SolverContext;
 import org.sosy_lab.solver.basicimpl.AbstractFormulaManager;
 
@@ -106,7 +107,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
             AnalysisDirection.FORWARD);
 
     lassoBuilder =
-        new LassoBuilder(pLogger, formulaManager, formulaManagerView, pathFormulaManager);
+        new LassoBuilder(pLogger, formulaManager, solver, pathFormulaManager);
 
     lassoRankerPreferences = new LassoRankerPreferences();
     lassoRankerPreferences.externalSolver = false; // use SMTInterpol
@@ -132,7 +133,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     Collection<Lasso> lassos;
     try {
       lassos = lassoBuilder.buildLasso(counterexample.get());
-    } catch (TermException e) {
+    } catch (TermException | SolverException e) {
       logger.logUserException(Level.WARNING, e, "Could not extract lasso.");
       return LassoAnalysisResult.unknown();
     }
@@ -149,7 +150,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
       throws IOException, SMTLIBException, TermException {
 
     for (Lasso lasso : lassos) {
-      logger.logf(Level.FINE, "Analysing (non)-termination of %s.", lasso);
+      logger.logf(Level.FINE, "Analysing (non)-termination of lasso:\n%s.", lasso);
       LassoAnalysisResult result = checkTermination(lasso);
       if (! result.isUnknowm()) {
         return result;
@@ -172,7 +173,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
       LBool result = nonTerminationArgumentSynthesizer.synthesize();
       if (result.equals(LBool.SAT) && nonTerminationArgumentSynthesizer.synthesisSuccessful()) {
         nonTerminationArgument = nonTerminationArgumentSynthesizer.getArgument();
-        logger.logf(Level.FINE, "Proved non-termintion: %s", nonTerminationArgument);
+        logger.logf(Level.INFO, "Proved non-termintion: %s", nonTerminationArgument);
       }
     }
 
@@ -189,7 +190,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
       LBool result = terminationArgumentSynthesizer.synthesize();
       if (result.equals(LBool.SAT) && terminationArgumentSynthesizer.synthesisSuccessful()) {
         terminationArgument = terminationArgumentSynthesizer.getArgument();
-        logger.logf(Level.FINER, "Found termination argument: %s", terminationArgument);
+        logger.logf(Level.FINE, "Found termination argument: %s", terminationArgument);
       }
     }
 
