@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
+import static com.google.common.collect.FluentIterable.from;
+
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
@@ -52,6 +55,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -98,13 +102,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       boolean mergeSep = true;
       boolean simplePrec = true;
 
-      PredicateAbstractionManager abmgr = null;
-
       for (ConfigurableProgramAnalysis sp : cpas) {
-        if (sp instanceof org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA) {
-          abmgr = ((org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA)sp).getPredicateManager();
-        }
-
         domains.add(sp.getAbstractDomain());
         transferRelations.add(sp.getTransferRelation());
         stopOperators.add(sp.getStopOperator());
@@ -132,6 +130,9 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       } else {
         if (options.inCPAEnabledAnalysis) {
           if (options.merge.equals("AGREE")) {
+            Optional<PredicateCPA> predicateCPA = from(cpas).filter(PredicateCPA.class).first();
+            Preconditions.checkState(predicateCPA.isPresent(), "Option 'inCPAEnabledAnalysis' needs PredicateCPA");
+            PredicateAbstractionManager abmgr = predicateCPA.get().getPredicateManager();
             compositeMerge = new CompositeMergeAgreeCPAEnabledAnalysisOperator(mergeOperators.build(), stopOps, abmgr);
           } else {
             throw new InvalidConfigurationException("Merge PLAIN is currently not supported in predicated analysis");
