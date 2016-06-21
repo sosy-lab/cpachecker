@@ -125,7 +125,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     }
   }
 
-  public CExpressionVisitorWithPointerAliasing(final CToFormulaConverterWithPointerAliasing cToFormulaConverter,
+  CExpressionVisitorWithPointerAliasing(final CToFormulaConverterWithPointerAliasing cToFormulaConverter,
                                           final CFAEdge cfaEdge,
                                           final String function,
                                           final SSAMapBuilder ssa,
@@ -183,7 +183,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
    * @param isSafe     A flag, if the formula is safe or not.
    * @return A formula for the value.
    */
-  Formula asValueFormula(final Expression e, final CType type, final boolean isSafe) {
+  private Formula asValueFormula(final Expression e, final CType type, final boolean isSafe) {
     if (e.isValue()) {
       return e.asValue().getValue();
     } else if (e.asLocation().isAliased()) {
@@ -212,7 +212,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
    * @param type The type of the expression.
    * @return A safe formula for the value.
    */
-  Formula asSafeValueFormula(final Expression e, final CType type) {
+  private Formula asSafeValueFormula(final Expression e, final CType type) {
     return asValueFormula(e, type, true);
   }
 
