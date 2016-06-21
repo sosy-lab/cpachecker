@@ -46,10 +46,12 @@ import org.sosy_lab.solver.api.SolverContext;
 import org.sosy_lab.solver.basicimpl.AbstractFormulaManager;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.logging.Level;
 
+import de.uni_freiburg.informatik.ultimate.lassoranker.AnalysisType;
 import de.uni_freiburg.informatik.ultimate.lassoranker.Lasso;
 import de.uni_freiburg.informatik.ultimate.lassoranker.LassoRankerPreferences;
 import de.uni_freiburg.informatik.ultimate.lassoranker.exceptions.TermException;
@@ -110,6 +112,9 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     lassoRankerPreferences.externalSolver = false; // use SMTInterpol
     nonTerminationAnalysisSettings = new NonTerminationAnalysisSettings();
     terminationAnalysisSettings = new TerminationAnalysisSettings();
+    terminationAnalysisSettings.analysis = AnalysisType.Linear_with_guesses;
+    terminationAnalysisSettings.numnon_strict_invariants = 3;
+    terminationAnalysisSettings.numstrict_invariants = 3;
     toolchainStorage = new LassoRankerToolchainStorage(pLogger, pShutdownNotifier);
   }
 
@@ -124,22 +129,34 @@ public class LassoAnalysisImpl implements LassoAnalysis {
       return LassoAnalysisResult.unknown();
     }
 
-    Lasso lasso;
+    Collection<Lasso> lassos;
     try {
-      lasso = lassoBuilder.buildLasso(counterexample.get());
+      lassos = lassoBuilder.buildLasso(counterexample.get());
     } catch (TermException e) {
       logger.logUserException(Level.WARNING, e, "Could not extract lasso.");
-      return new LassoAnalysisResult(Optional.empty(), Optional.empty());
+      return LassoAnalysisResult.unknown();
     }
 
-    logger.logf(Level.INFO, "Extracted lasso: %s", lasso);
-
     try {
-      return checkTermination(lasso);
+      return checkTermination(lassos);
     } catch (IOException | SMTLIBException | TermException e) {
       logger.logUserException(Level.WARNING, e, "Could not check (non)-termination of lasso.");
       return LassoAnalysisResult.unknown();
     }
+  }
+
+  private LassoAnalysisResult checkTermination(Collection<Lasso> lassos)
+      throws IOException, SMTLIBException, TermException {
+
+    for (Lasso lasso : lassos) {
+      logger.logf(Level.FINE, "Analysing (non)-termination of %s.", lasso);
+      LassoAnalysisResult result = checkTermination(lasso);
+      if (! result.isUnknowm()) {
+        return result;
+      }
+    }
+
+    return LassoAnalysisResult.unknown();
   }
 
   private LassoAnalysisResult checkTermination(Lasso lasso)
@@ -172,7 +189,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
       LBool result = terminationArgumentSynthesizer.synthesize();
       if (result.equals(LBool.SAT) && terminationArgumentSynthesizer.synthesisSuccessful()) {
         terminationArgument = terminationArgumentSynthesizer.getArgument();
-        logger.logf(Level.FINEST, "Found termination argument: %s", terminationArgument);
+        logger.logf(Level.FINER, "Found termination argument: %s", terminationArgument);
       }
     }
 

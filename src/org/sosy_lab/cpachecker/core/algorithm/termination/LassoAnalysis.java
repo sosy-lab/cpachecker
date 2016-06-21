@@ -77,5 +77,9 @@ public interface LassoAnalysis {
     public Optional<?> getTerminationArgument() {
       return terminationArgument;
     }
+
+    public boolean isUnknowm() {
+      return !nonTerminationArgument.isPresent() && !terminationArgument.isPresent();
+    }
   }
 }

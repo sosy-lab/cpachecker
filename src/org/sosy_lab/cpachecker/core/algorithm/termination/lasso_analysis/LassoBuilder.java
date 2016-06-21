@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static de.uni_freiburg.informatik.ultimate.lassoranker.variables.InequalityConverter.NlaHandling.EXCEPTION;
 import static java.util.stream.Collectors.toSet;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
@@ -104,7 +105,7 @@ class LassoBuilder {
     dnfTransformation = new DnfTransformation(formulaManagerView);
   }
 
-  public Lasso buildLasso(CounterexampleInfo pCounterexampleInfo)
+  public Collection<Lasso> buildLasso(CounterexampleInfo pCounterexampleInfo)
       throws CPATransferException, InterruptedException, TermException {
     PathIterator path = pCounterexampleInfo.getTargetPath().fullPathIterator();
 
@@ -146,13 +147,26 @@ class LassoBuilder {
     logger.logf(Level.FINE, "Stem formula %s", stemPathFormula.getFormula());
     logger.logf(Level.FINE, "Loop formula %s", loopPathFormula.getFormula());
 
-    LinearTransition stem = createLinearTransition(stemPathFormula, Optional.empty());
-    LinearTransition loop = createLinearTransition(loopPathFormula, Optional.of(stem.getOutVars()));
-    Lasso lasso = new Lasso(stem, loop);
-    return lasso;
+    return createLassos(stemPathFormula, loopPathFormula);
   }
 
-  private LinearTransition createLinearTransition(
+  private Collection<Lasso> createLassos(PathFormula stemPathFormula, PathFormula loopPathFormula)
+      throws InterruptedException, TermException {
+    Collection<LinearTransition> stem = createLinearTransitions(stemPathFormula, Optional.empty());
+    Map<RankVar, Term> stemOutVars = stem.iterator().next().getOutVars();
+    Collection<LinearTransition> loop = createLinearTransitions(loopPathFormula, Optional.of(stemOutVars));
+
+    Collection<Lasso> lassos = Lists.newArrayListWithCapacity(loop.size() * stem.size());
+    for (LinearTransition stemPolyhedron : stem) {
+      for (LinearTransition loopPolyhedron : loop) {
+        lassos.add(new Lasso(stemPolyhedron, loopPolyhedron));
+      }
+    }
+
+    return lassos;
+  }
+
+  private Collection<LinearTransition> createLinearTransitions(
       PathFormula path, Optional<Map<RankVar, Term>> potentialInVars)
       throws InterruptedException, TermException {
     List<List<LinearInequality>> polyhedra = extractPolyhedra(path);
@@ -167,8 +181,14 @@ class LassoBuilder {
             .map(vars -> Maps.filterKeys(vars, v -> outVarNames.contains(v.getGloballyUniqueId())))
             .orElse(Collections.emptyMap());
 
-    LinearTransition linearTransition = new LinearTransition(polyhedra, inVars, outVars);
-    return linearTransition;
+    Collection<LinearTransition> linearTransitions = newArrayListWithCapacity(polyhedra.size());
+    for (List<LinearInequality> polyhedron : polyhedra) {
+      LinearTransition linearTransition =
+          new LinearTransition(Collections.singletonList(polyhedron), inVars, outVars);
+      linearTransitions.add(linearTransition);
+    }
+
+    return linearTransitions;
   }
 
   private List<List<LinearInequality>> extractPolyhedra(PathFormula path)
