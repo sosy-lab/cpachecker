@@ -87,22 +87,22 @@ public class LassoRankerLogger extends Logger implements ILogger {
 
   @Override
   public boolean isInfoEnabled() {
-    return logger.wouldBeLogged(Level.FINE);
-  }
-
-  @Override
-  public void info(Object pMessage) {
-    logger.log(Level.FINE, pMessage);
-  }
-
-  @Override
-  public boolean isDebugEnabled() {
     return logger.wouldBeLogged(Level.FINEST);
   }
 
   @Override
-  public void debug(Object pMessage) {
+  public void info(Object pMessage) {
     logger.log(Level.FINEST, pMessage);
+  }
+
+  @Override
+  public boolean isDebugEnabled() {
+    return logger.wouldBeLogged(Level.ALL);
+  }
+
+  @Override
+  public void debug(Object pMessage) {
+    logger.log(Level.ALL, pMessage);
   }
 
   @Override
