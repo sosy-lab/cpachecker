@@ -121,7 +121,7 @@ public class TargetLocationProviderImpl implements TargetLocationProvider {
       if (!shutdownNotifier.shouldShutdown()) {
         logManager.logException(Level.WARNING, e, "Unable to find target locations. Defaulting to selecting all locations as potential target locations.");
       } else {
-        logManager.logDebugException(e);
+        logManager.log(Level.WARNING, "Finding target locations timed out, defaulting to select all locations as potential target locations.");
       }
       return allNodes;
     }
