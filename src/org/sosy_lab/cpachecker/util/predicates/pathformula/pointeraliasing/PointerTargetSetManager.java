@@ -403,7 +403,7 @@ public class PointerTargetSetManager {
     } else {
       if (ssa.getIndex(variablePrefix) > 0) {
         final FormulaType<?> variableFormulaType = typeHandler.getFormulaTypeFromCType(variableType);
-        result = bfmgr.and(result, formulaManager.makeEqual(makeDereferece(variableType, address, ssa),
+        result = bfmgr.and(result, formulaManager.makeEqual(makeDereference(variableType, address, ssa),
                                                   formulaManager.makeVariable(variableFormulaType,
                                                                     variablePrefix,
                                                                     ssa.getIndex(variablePrefix))));
@@ -413,9 +413,8 @@ public class PointerTargetSetManager {
     return result;
   }
 
-  private Formula makeDereferece(final CType type,
-                                 final Formula address,
-                                 final SSAMapBuilder ssa) {
+  private Formula makeDereference(
+      final CType type, final Formula address, final SSAMapBuilder ssa) {
     final String ufName = CToFormulaConverterWithPointerAliasing.getUFName(type);
     final int index = ssa.getIndex(ufName);
     final FormulaType<?> returnType = typeHandler.getFormulaTypeFromCType(type);

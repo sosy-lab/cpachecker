@@ -126,7 +126,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     return new AdaptingExpressionToFormulaVisitor(this);
   }
 
-  private void addEqualBaseAdressConstraint(final Formula p1, final Formula p2) {
+  private void addEqualBaseAddressConstraint(final Formula p1, final Formula p2) {
     if (errorConditions.isEnabled()) {
       // Constraint is only necessary for correct error conditions
       constraints.addConstraint(conv.fmgr.makeEqual(conv.makeBaseAddressOfTerm(p1),
@@ -184,7 +184,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     final Formula coeff = conv.fmgr.makeNumber(conv.voidPointerFormulaType, conv.getSizeof(elementType));
     final Formula baseAddress = base.asAliasedLocation().getAddress();
     final Formula address = conv.fmgr.makePlus(baseAddress, conv.fmgr.makeMultiply(coeff, index));
-    addEqualBaseAdressConstraint(baseAddress, address);
+    addEqualBaseAddressConstraint(baseAddress, address);
     return AliasedLocation.ofAddress(address);
   }
 
@@ -211,7 +211,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
                                                     conv.ptsMgr.getOffset((CCompositeType) fieldOwnerType, fieldName));
 
         final Formula address = conv.fmgr.makePlus(base.getAddress(), offset);
-        addEqualBaseAdressConstraint(base.getAddress(), address);
+        addEqualBaseAddressConstraint(base.getAddress(), address);
         return AliasedLocation.ofAddress(address);
       } else {
         throw new UnrecognizedCCodeException("Field owner of a non-composite type", edge, e);
@@ -338,7 +338,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
             final Formula offset = conv.fmgr.makeNumber(conv.voidPointerFormulaType,
                                                         conv.ptsMgr.getOffset(compositeType, fieldName));
             addressExpression = AliasedLocation.ofAddress(conv.fmgr.makePlus(base, offset));
-            addEqualBaseAdressConstraint(base, addressExpression.getAddress());
+            addEqualBaseAddressConstraint(base, addressExpression.getAddress());
           }
         }
 
@@ -405,10 +405,10 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     switch (op) {
     case PLUS:
       if (t1 instanceof CPointerType) {
-        addEqualBaseAdressConstraint(result, f1);
+        addEqualBaseAddressConstraint(result, f1);
       }
       if (t2 instanceof CPointerType) {
-        addEqualBaseAdressConstraint(result, f2);
+        addEqualBaseAddressConstraint(result, f2);
       }
       break;
     case MINUS:

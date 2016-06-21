@@ -103,7 +103,7 @@ class DynamicMemoryHandler {
 
     if ((conv.options.isSuccessfulAllocFunctionName(functionName) ||
         conv.options.isSuccessfulZallocFunctionName(functionName))) {
-      return Value.ofValue(handleSucessfulMemoryAllocation(functionName, e.getParameterExpressions(), e));
+      return Value.ofValue(handleSuccessfulMemoryAllocation(functionName, e.getParameterExpressions(), e));
 
     } else if ((conv.options.isMemoryAllocationFunction(functionName) ||
             conv.options.isMemoryAllocationFunctionWithZeroing(functionName))) {
@@ -170,10 +170,10 @@ class DynamicMemoryHandler {
                                                     CPointerType.POINTER_TO_VOID,
                                                     ssa);
       return conv.bfmgr.ifThenElse(conv.bfmgr.not(conv.fmgr.makeEqual(nondet, conv.nullPointer)),
-                                    handleSucessfulMemoryAllocation(delegateFunctionName, parameters, e),
+                                    handleSuccessfulMemoryAllocation(delegateFunctionName, parameters, e),
                                     conv.nullPointer);
     } else {
-      return handleSucessfulMemoryAllocation(delegateFunctionName, parameters, e);
+      return handleSuccessfulMemoryAllocation(delegateFunctionName, parameters, e);
     }
   }
 
@@ -181,7 +181,7 @@ class DynamicMemoryHandler {
    * Handle memory allocation functions that cannot fail
    * (i.e., do not return NULL) and do not zero the memory.
    */
-  private Formula handleSucessfulMemoryAllocation(final String functionName,
+  private Formula handleSuccessfulMemoryAllocation(final String functionName,
       List<CExpression> parameters,
       final CFunctionCallExpression e) throws UnrecognizedCCodeException, InterruptedException {
     // e.getFunctionNameExpression() should not be used
@@ -201,7 +201,7 @@ class DynamicMemoryHandler {
     final CType newType;
     if (isSizeof(parameter)) {
       newType = getSizeofType(parameter);
-    } else if (isSizeofMultilple(parameter)) {
+    } else if (isSizeofMultiple(parameter)) {
       final CBinaryExpression product = (CBinaryExpression) parameter;
       final CType operand1Type = getSizeofType(product.getOperand1());
       final CType operand2Type = getSizeofType(product.getOperand2());
@@ -320,7 +320,7 @@ class DynamicMemoryHandler {
            e instanceof CTypeIdExpression && ((CTypeIdExpression) e).getOperator() == TypeIdOperator.SIZEOF;
   }
 
-  private static boolean isSizeofMultilple(final CExpression e) {
+  private static boolean isSizeofMultiple(final CExpression e) {
     return e instanceof CBinaryExpression &&
            ((CBinaryExpression) e).getOperator() == BinaryOperator.MULTIPLY &&
            (isSizeof(((CBinaryExpression) e).getOperand1()) ||
