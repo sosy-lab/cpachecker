@@ -107,7 +107,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         "Use the theory of arrays for heap memory abstraction. "
             + "This supports pointer aliasing and replaces the option \"handlePointerAliasing\"."
   )
-  boolean handleHeapArray = false;
+  private boolean handleHeapArray = false;
 
   @Option(secure = true, description = "Use quantifiers together with the heap-array converter. "
       + "This requires the option \"handleHeapArray=true\" and a SMT solver that is capable of the "
@@ -124,29 +124,19 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   private static final CType NONDET_TYPE = CNumericTypes.INT;
   private final FormulaType<?> NONDET_FORMULA_TYPE;
 
-  final FormulaManagerView fmgr;
-  final BooleanFormulaManagerView bfmgr;
-  final ArrayFormulaManagerView afmgr;
-  final CtoFormulaConverter converter;
-  final CtoFormulaTypeHandler typeHandler;
+  private final FormulaManagerView fmgr;
+  private final BooleanFormulaManagerView bfmgr;
+  private final ArrayFormulaManagerView afmgr;
+  private final CtoFormulaConverter converter;
+  private final CtoFormulaTypeHandler typeHandler;
   private final LogManager logger;
-  final ShutdownNotifier shutdownNotifier;
+  private final ShutdownNotifier shutdownNotifier;
 
   @Option(
     secure = true,
     description = "add special information to formulas about non-deterministic functions"
   )
-  boolean useNondetFlags = false;
-
-  @Deprecated
-  public PathFormulaManagerImpl(FormulaManagerView pFmgr,
-      Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
-      MachineModel pMachineModel, AnalysisDirection pDirection)
-          throws InvalidConfigurationException {
-
-    this(pFmgr, config, pLogger, pShutdownNotifier,
-        pMachineModel, Optional.empty(), pDirection);
-  }
+  private boolean useNondetFlags = false;
 
   public PathFormulaManagerImpl(FormulaManagerView pFmgr,
       Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
