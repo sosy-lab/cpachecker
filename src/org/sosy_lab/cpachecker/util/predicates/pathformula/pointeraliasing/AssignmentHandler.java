@@ -99,6 +99,18 @@ class AssignmentHandler {
     errorConditions = pErrorConditions;
   }
 
+  /**
+   * Creates a formula to handle assignments.
+   *
+   * @param lhs The left hand side of an assignment.
+   * @param lhsForChecking The left hand side of an assignment to check.
+   * @param rhs Either {@code null} or the right hand side of the assignment.
+   * @param batchMode A flag indicating batch mode.
+   * @param destroyedTypes Either {@code null} or a set of destroyed types.
+   * @return A formula for the assignment.
+   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws InterruptedException If the execution was interrupted.
+   */
   BooleanFormula handleAssignment(final CLeftHandSide lhs,
                                   final CLeftHandSide lhsForChecking,
                                   final @Nullable CRightHandSide rhs,
@@ -166,6 +178,15 @@ class AssignmentHandler {
     return result;
   }
 
+  /**
+   * Handles initialization assignments.
+   *
+   * @param variable The left hand side of the variable.
+   * @param assignments A list of assignment statements.
+   * @return A boolean formula for the assignment.
+   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws InterruptedException It the execution was interrupted.
+   */
   BooleanFormula handleInitializationAssignments(
       final CLeftHandSide variable, final List<CExpressionAssignmentStatement> assignments)
       throws UnrecognizedCCodeException, InterruptedException {
@@ -189,6 +210,19 @@ class AssignmentHandler {
     return result;
   }
 
+  /**
+   * Creates a formula for an assignment.
+   *
+   * @param lvalueType The type of the lvalue.
+   * @param rvalueType The type of the rvalue.
+   * @param lvalue The location of the lvalue.
+   * @param rvalue The rvalue expression.
+   * @param useOldSSAIndices A flag indicating if we should use the old SSA indices or not.
+   * @param updatedTypes Either {@code null} or a set of updated types.
+   * @return A formula for the assignment.
+   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws InterruptedException If the execution was interrupted.
+   */
   BooleanFormula makeAssignment(@Nonnull CType lvalueType,
                                 final @Nonnull CType rvalueType,
                                 final @Nonnull Location lvalue,
@@ -256,6 +290,19 @@ class AssignmentHandler {
     updateSSA(updatedTypes, ssa);
   }
 
+  /**
+   * Creates a formula for a destructive assignment.
+   *
+   * @param lvalueType The type of the lvalue.
+   * @param rvalueType The type of the rvalue.
+   * @param lvalue The location of the lvalue.
+   * @param rvalue The rvalue expression.
+   * @param useOldSSAIndices A flag indicating if we should use the old SSA indices or not.
+   * @param updatedTypes Either {@code null} or a set of updated types.
+   * @param updatedVariables Either {@code null} or a set of updated variables.
+   * @return A formula for the assignment.
+   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   */
   private BooleanFormula makeDestructiveAssignment(@Nonnull CType lvalueType,
                                                    @Nonnull CType rvalueType,
                                                    final @Nonnull  Location lvalue,
@@ -380,6 +427,19 @@ class AssignmentHandler {
     }
   }
 
+  /**
+   * Creates a formula for a simple destructive assignment.
+   *
+   * @param lvalueType The type of the lvalue.
+   * @param rvalueType The type of the rvalue.
+   * @param lvalue The location of the lvalue.
+   * @param rvalue The rvalue expression.
+   * @param useOldSSAIndices A flag indicating if we should use the old SSA indices or not.
+   * @param updatedTypes Either {@code null} or a set of updated types.
+   * @param updatedVariables Either {@code null} or a set of updated variables.
+   * @return A formula for the assignment.
+   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   */
   private BooleanFormula makeSimpleDestructiveAssignment(@Nonnull CType lvalueType,
                                                          @Nonnull CType rvalueType,
                                                          final @Nonnull Location lvalue,
@@ -390,7 +450,8 @@ class AssignmentHandler {
   throws UnrecognizedCCodeException {
     lvalueType = CTypeUtils.simplifyType(lvalueType);
     rvalueType = CTypeUtils.simplifyType(rvalueType);
-    rvalueType = implicitCastToPointer(rvalueType); // Arrays and functions are implicitly converted to pointers
+    // Arrays and functions are implicitly converted to pointers
+    rvalueType = implicitCastToPointer(rvalueType);
 
     Preconditions.checkArgument(isSimpleType(lvalueType),
                                 "To assign to/from arrays/structures/unions use makeDestructiveAssignment");
@@ -603,6 +664,12 @@ class AssignmentHandler {
     }
   }
 
+  /**
+   * Updates the SSA map.
+   *
+   * @param types A set of types that should be added to the SSA map.
+   * @param ssa The current SSA map.
+   */
   private void updateSSA(final @Nonnull Set<CType> types, final SSAMapBuilder ssa) {
     for (final CType type : types) {
       final String ufName = CToFormulaConverterWithPointerAliasing.getUFName(type);
@@ -610,6 +677,14 @@ class AssignmentHandler {
     }
   }
 
+  /**
+   * Shifts the array's lvalue.
+   *
+   * @param lvalue The lvalue location.
+   * @param offset The offset of the shift.
+   * @param lvalueElementType The type of the lvalue element.
+   * @return A tuple of location and type after the shift.
+   */
   private Pair<AliasedLocation, CType> shiftArrayLvalue(final AliasedLocation lvalue,
                                                         final int offset,
                                                         final CType lvalueElementType) {
@@ -618,6 +693,15 @@ class AssignmentHandler {
     return Pair.of(newLvalue, lvalueElementType);
   }
 
+  /**
+   * Shifts the array's rvalue.
+   *
+   * @param rvalue The rvalue expression.
+   * @param rvalueType The type of the rvalue.
+   * @param offset The offset of the shift.
+   * @param lvalueElementType The type of the lvalue element.
+   * @return A tuple of expression and type after the shift.
+   */
   private Pair<? extends Expression, CType> shiftArrayRvalue(final Expression rvalue,
                                                              final CType rvalueType,
                                                              final int offset,
@@ -646,6 +730,15 @@ class AssignmentHandler {
     }
   }
 
+  /**
+   * Shifts the composite lvalue.
+   *
+   * @param lvalue The lvalue location.
+   * @param offset The offset of the shift.
+   * @param memberName The name of the member.
+   * @param memberType The type of the member.
+   * @return A tuple of location and type after the shift.
+   */
   private Pair<? extends Location, CType> shiftCompositeLvalue(final Location lvalue,
                                                                final int offset,
                                                                final String memberName,
@@ -665,6 +758,16 @@ class AssignmentHandler {
 
   }
 
+  /**
+   * Shifts the composite rvalue.
+   *
+   * @param rvalue The rvalue expression.
+   * @param offset The offset of the shift.
+   * @param memberName The name of the member.
+   * @param rvalueType The type of the rvalue.
+   * @param memberType The type of the member.
+   * @return A tuple of expression and type after the shift.
+   */
   private Pair<? extends Expression, CType> shiftCompositeRvalue(final Expression rvalue,
                                                                  final int offset,
                                                                  final String memberName,

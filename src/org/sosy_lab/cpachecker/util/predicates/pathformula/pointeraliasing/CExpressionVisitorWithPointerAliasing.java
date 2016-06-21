@@ -72,23 +72,53 @@ import java.util.logging.Level;
 class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Expression, UnrecognizedCCodeException>
                                        implements CRightHandSideVisitor<Expression, UnrecognizedCCodeException> {
 
+  /**
+   * A simple expression to formula visitor.
+   */
   private static class AdaptingExpressionToFormulaVisitor extends AdaptingCExpressionVisitor<Formula, Expression, UnrecognizedCCodeException>
                                                              implements CRightHandSideVisitor<Formula, UnrecognizedCCodeException> {
 
+    /**
+     * Creates a new expression to formula visitor.
+     *
+     * @param pDelegate The delegate.
+     */
     private AdaptingExpressionToFormulaVisitor(CExpressionVisitorWithPointerAliasing pDelegate) {
       super(pDelegate);
     }
 
+    /**
+     * Returns a formula for an expression value on a right hand side.
+     *
+     * @param value The expression value.
+     * @param rhs The right hand side.
+     * @return A formula for the expression value.
+     * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+     */
     @Override
     protected Formula convert(Expression value, CExpression rhs) throws UnrecognizedCCodeException {
       return convert0(value, rhs);
     }
 
+    /**
+     * Returns a formula for an expression value on a right hand side.
+     *
+     * @param value The expression value.
+     * @param rhs The right hand side.
+     * @return A formula for the expression value.
+     */
     private Formula convert0(Expression value, CRightHandSide rhs) {
       CType type = CTypeUtils.simplifyType(rhs.getExpressionType());
       return ((CExpressionVisitorWithPointerAliasing)delegate).asValueFormula(value, type);
     }
 
+    /**
+     * Evaluates a formula for a function call expression.
+     *
+     * @param e The function call expression.
+     * @return A formula for the function call expression.
+     * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+     */
     @Override
     public Formula visit(CFunctionCallExpression e) throws UnrecognizedCCodeException {
       return convert0(((CExpressionVisitorWithPointerAliasing)delegate).visit(e), e);
@@ -122,10 +152,21 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     this.baseVisitor = new BaseVisitor(cfaEdge, pts);
   }
 
+  /**
+   * Returns a formula visitor for right hand side expressions.
+   *
+   * @return A formula visitor for right hand side expressions.
+   */
   CRightHandSideVisitor<Formula, UnrecognizedCCodeException> asFormulaVisitor() {
     return new AdaptingExpressionToFormulaVisitor(this);
   }
 
+  /**
+   * Adds a constraint that both given formulae have the same base address.
+   *
+   * @param p1 The first formula.
+   * @param p2 The second formula.
+   */
   private void addEqualBaseAddressConstraint(final Formula p1, final Formula p2) {
     if (errorConditions.isEnabled()) {
       // Constraint is only necessary for correct error conditions
@@ -134,6 +175,14 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     }
   }
 
+  /**
+   * Creates a formula for the value of an expression.
+   *
+   * @param e The expression.
+   * @param type       The type of the expression.
+   * @param isSafe     A flag, if the formula is safe or not.
+   * @return A formula for the value.
+   */
   Formula asValueFormula(final Expression e, final CType type, final boolean isSafe) {
     if (e.isValue()) {
       return e.asValue().getValue();
@@ -145,14 +194,35 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     }
   }
 
+  /**
+   * Creates a formula for the value of an expression.
+   *
+   * @param e The expression.
+   * @param type The type of the expression.
+   * @return A formula for the value.
+   */
   Formula asValueFormula(final Expression e, final CType type) {
     return asValueFormula(e, type, false);
   }
 
+  /**
+   * Creates a safe formula for the value of an expression.
+   *
+   * @param e The expression.
+   * @param type The type of the expression.
+   * @return A safe formula for the value.
+   */
   Formula asSafeValueFormula(final Expression e, final CType type) {
     return asValueFormula(e, type, true);
   }
 
+  /**
+   * Evaluates the aliased location of an array subscript expression.
+   *
+   * @param e The array expression.
+   * @return The location of the array expression.
+   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   */
   @Override
   public AliasedLocation visit(final CArraySubscriptExpression e) throws UnrecognizedCCodeException {
     Expression base = e.getArrayExpression().accept(this);
@@ -188,6 +258,13 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     return AliasedLocation.ofAddress(address);
   }
 
+  /**
+   * Evaluates the location of the reference to a field of a composite type.
+   *
+   * @param e The reference to a field.
+   * @return The location of the reference.
+   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   */
   @Override
   public Location visit(CFieldReference e) throws UnrecognizedCCodeException {
 
@@ -219,6 +296,12 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     }
   }
 
+  /**
+   * Checks, whether a C expression is an unaliased location or not.
+   *
+   * @param e The C expression to check.
+   * @return Whether the expression is an unaliased location or not.
+   */
   static boolean isUnaliasedLocation(final CExpression e) {
     if (e instanceof CIdExpression) {
       return true;
@@ -229,11 +312,24 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     }
   }
 
+  /**
+   * Checks, whether the given type is revealing or not.
+   *
+   * @param type The type to check.
+   * @return Whether the given type is revealing or not.
+   */
   static boolean isRevealingType(final CType type) {
     return (type instanceof CPointerType || type instanceof CArrayType) &&
            !type.equals(CPointerType.POINTER_TO_VOID);
   }
 
+  /**
+   * Evaluates the expression of a cast expression.
+   *
+   * @param e The C cast expression.
+   * @return The expression representing the cast.
+   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   */
   @Override
   public Expression visit(final CCastExpression e) throws UnrecognizedCCodeException {
     final CType resultType = CTypeUtils.simplifyType(e.getExpressionType());
@@ -271,6 +367,13 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
 //    }
   }
 
+  /**
+   * Evaluates the expression of a identification expression.
+   *
+   * @param e The C id expression.
+   * @return The expression.
+   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   */
   @Override
   public Expression visit(final CIdExpression e) throws UnrecognizedCCodeException {
     Variable variable = e.accept(baseVisitor);
@@ -292,6 +395,13 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     }
   }
 
+  /**
+   * Evaluates the value of an unary expression in C.
+   *
+   * @param e The C expression.
+   * @return The value of the expression.
+   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   */
   @Override
   public Value visit(final CUnaryExpression e) throws UnrecognizedCCodeException {
     if (e.getOperator() == UnaryOperator.AMPER) {
@@ -376,6 +486,13 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     }
   }
 
+  /**
+   * Evaluates the aliased location of a pointer expression.
+   *
+   * @param e The C pointer expression.
+   * @return The aliased location of the expression.
+   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   */
   @Override
   public AliasedLocation visit(final CPointerExpression e) throws UnrecognizedCCodeException {
     final CExpression operand = e.getOperand();
@@ -388,6 +505,13 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     }
   }
 
+  /**
+   * Evaluates the value of a binary expression.
+   *
+   * @param exp The C expression.
+   * @return The value of the expression.
+   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   */
   @Override
   public Value visit(final CBinaryExpression exp) throws UnrecognizedCCodeException {
     final CType returnType = exp.getExpressionType();
@@ -420,11 +544,25 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     return Value.ofValue(result);
   }
 
+  /**
+   * Evaluates the return value of a C expression.
+   *
+   * @param e The C expression.
+   * @return The value of the expression.
+   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   */
   @Override
   protected Value visitDefault(final CExpression e) throws UnrecognizedCCodeException {
     return Value.ofValue(e.accept(delegate));
   }
 
+  /**
+   * Evaluates the return value of a function call expression.
+   *
+   * @param e The function call expression.
+   * @return The value of the expression.
+   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   */
   @Override
   public Value visit(final CFunctionCallExpression e) throws UnrecognizedCCodeException {
     final CExpression functionNameExpression = e.getFunctionNameExpression();
@@ -456,18 +594,38 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     return Value.ofValue(checkNotNull(delegate.visit(e)));
   }
 
+  /**
+   * Returns a list of the used fields of composite types.
+   *
+   * @return A list of the used fields.
+   */
   List<Pair<CCompositeType, String>> getUsedFields() {
     return Collections.unmodifiableList(usedFields);
   }
 
+  /**
+   * Returns a list of the initialized fields of composite types.
+   *
+   * @return A list of the initialized fields.
+   */
   List<Pair<CCompositeType, String>> getInitializedFields() {
     return Collections.unmodifiableList(initializedFields);
   }
 
+  /**
+   * Returns a list of the addressed fields of composite types.
+   *
+   * @return A list of the addressed fields.
+   */
   List<Pair<CCompositeType, String>> getAddressedFields() {
     return Collections.unmodifiableList(addressedFields);
   }
 
+  /**
+   * Returns a map of the used deferred allocation pointers.
+   *
+   * @return A map of the used deferred allocation pointers.
+   */
   Map<String, CType> getUsedDeferredAllocationPointers() {
     return Collections.unmodifiableMap(usedDeferredAllocationPointers);
   }

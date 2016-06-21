@@ -23,17 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
-import java.math.BigInteger;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.logging.Level;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -57,15 +46,26 @@ import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Formula;
+
+import java.math.BigInteger;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.logging.Level;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * This class is responsible for handling everything related to dynamic memory,
@@ -98,6 +98,16 @@ class DynamicMemoryHandler {
     errorConditions = pErrorConditions;
   }
 
+  /**
+   * Handles a dynamic memory function and returns its value.
+   *
+   * @param e The function call expression.
+   * @param functionName The name of the function.
+   * @param expressionVisitor A visitor to evaluate the expression's value.
+   * @return The value of the function call.
+   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws InterruptedException If the execution was interrupted.
+   */
   Value handleDynamicMemoryFunction(final CFunctionCallExpression e, final String functionName,
       final CExpressionVisitorWithPointerAliasing expressionVisitor) throws UnrecognizedCCodeException, InterruptedException {
 
@@ -119,6 +129,12 @@ class DynamicMemoryHandler {
   /**
    * Handle memory allocation functions that may fail (i.e., return null)
    * and that may or may not zero the memory.
+   *
+   * @param e The function call expression.
+   * @param functionName The name of the allocation function.
+   * @return A formula for the memory allocation.
+   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws InterruptedException If the execution was interrupted.
    */
   private Formula handleMemoryAllocation(final CFunctionCallExpression e,
       final String functionName) throws UnrecognizedCCodeException, InterruptedException {
@@ -180,6 +196,13 @@ class DynamicMemoryHandler {
   /**
    * Handle memory allocation functions that cannot fail
    * (i.e., do not return NULL) and do not zero the memory.
+   *
+   * @param functionName The name of the memory allocation function.
+   * @param parameters The list of function parameters.
+   * @param e The function call expression.
+   * @return A formula for the function call.
+   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws InterruptedException If the execution was interrupted.
    */
   private Formula handleSuccessfulMemoryAllocation(final String functionName,
       List<CExpression> parameters,
@@ -254,7 +277,12 @@ class DynamicMemoryHandler {
   }
 
   /**
-   * Handle calls to free()
+   * Handles calls to {@code free()}.
+   *
+   * @param e The parameters of the {@code free()} call.
+   * @param expressionVisitor A visitor to evaluate the value of the function call.
+   * @return The return value of the function call.
+   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    */
   private Value handleMemoryFree(final CFunctionCallExpression e,
       final CExpressionVisitorWithPointerAliasing expressionVisitor) throws UnrecognizedCCodeException {
@@ -279,6 +307,16 @@ class DynamicMemoryHandler {
     return Value.nondetValue(); // free does not return anything, so nondet is ok
   }
 
+  /**
+   * Creates a formula for memory allocations.
+   *
+   * @param isZeroing A flag indicating if the variable is zeroing.
+   * @param type The type.
+   * @param base The name of the base.
+   * @return A formula for the memory allocation.
+   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws InterruptedException If the execution gets interrupted.
+   */
   private Formula makeAllocation(final boolean isZeroing, final CType type, final String base)
       throws UnrecognizedCCodeException, InterruptedException {
     final CType baseType = CTypeUtils.getBaseType(type);
@@ -299,6 +337,15 @@ class DynamicMemoryHandler {
     return result;
   }
 
+  /**
+   * Creates a name for an allocation.
+   *
+   * @param functionName The name of the function.
+   * @param type The type of the function.
+   * @param ssa The SSA map.
+   * @param conv The C to SMT formula converter.
+   * @return A name for allocations.
+   */
   static String makeAllocVariableName(final String functionName, final CType type,
       final SSAMapBuilder ssa, final CtoFormulaConverter conv) {
     return functionName
@@ -308,6 +355,12 @@ class DynamicMemoryHandler {
         + conv.makeFreshIndex(functionName, type, ssa);
   }
 
+  /**
+   * Tries to evaluate an expression, i.e. get the value if it is an integer literal.
+   *
+   * @param e The C expression.
+   * @return The value, if the expression is an integer literal, or {@code null}
+   */
   private static Integer tryEvaluateExpression(CExpression e) {
     if (e instanceof CIntegerLiteralExpression) {
       return ((CIntegerLiteralExpression)e).getValue().intValue();
@@ -315,11 +368,24 @@ class DynamicMemoryHandler {
     return null;
   }
 
+  /**
+   * Returns, whether a expression is a {@code sizeof} expression.
+   *
+   * @param e The C expression.
+   * @return True, if the expression is a {@code sizeof} expression, false otherwise.
+   */
   private static boolean isSizeof(final CExpression e) {
     return e instanceof CUnaryExpression && ((CUnaryExpression) e).getOperator() == UnaryOperator.SIZEOF ||
            e instanceof CTypeIdExpression && ((CTypeIdExpression) e).getOperator() == TypeIdOperator.SIZEOF;
   }
 
+  /**
+   * Returns, whether the expression is a multiplication of the {@code sizeof} operator.
+   *
+   * @param e The expression type.
+   * @return True, if the expression is a multiplication of the {@code sizeof} operator, false
+   * otherwise.
+   */
   private static boolean isSizeofMultiple(final CExpression e) {
     return e instanceof CBinaryExpression &&
            ((CBinaryExpression) e).getOperator() == BinaryOperator.MULTIPLY &&
@@ -327,6 +393,12 @@ class DynamicMemoryHandler {
             isSizeof(((CBinaryExpression) e).getOperand2()));
   }
 
+  /**
+   * Returns a C type for the size of an expression.
+   *
+   * @param e The expression type to get the size from.
+   * @return The size of the expression.
+   */
   private static CType getSizeofType(CExpression e) {
     if (e instanceof CUnaryExpression &&
         ((CUnaryExpression) e).getOperator() == UnaryOperator.SIZEOF) {
@@ -342,13 +414,14 @@ class DynamicMemoryHandler {
 
   // Handling of deferred allocations
 
- /**
-  * The function tries to recover dynamically allocated array type from the pointer type it was casted or assigned to
-  * @param type the revealing <em>pointed</em> type (e.g. {@code char} for {@code char *}) of the pointer
-  *        to which the void * variable was casted or assigned to
-  * @param sizeLiteral the size specified at the allocation site
-  * @return the recovered array type or the {@code type} parameter in case the type can't be recovered
-  */
+  /**
+   * The function tries to recover dynamically allocated array type from the pointer type it was casted or assigned to.
+   *
+   * @param type the revealing <em>pointed</em> type (e.g. {@code char} for {@code char *}) of the pointer
+   *        to which the void * variable was casted or assigned to.
+   * @param sizeLiteral the size specified at the allocation site.
+   * @return the recovered array type or the {@code type} parameter in case the type can't be recovered
+   */
   private CType refineType(final @Nonnull CType type, final @Nonnull CIntegerLiteralExpression sizeLiteral) {
     assert sizeLiteral.getValue() != null;
 
@@ -387,9 +460,14 @@ class DynamicMemoryHandler {
     }
   }
 
-  /** Returns the type of the allocated dynamic variable by the usage pointer
-   *  type of the void * variable and the allocation size
-   * */
+  /**
+   * Returns the type of the allocated dynamic variable by the usage pointer type of the void *
+   * variable and the allocation size
+   *
+   * @param type The usage pointer type.
+   * @param sizeLiteral The allocation size.
+   * @return The type of the allocated dynamic variable.
+   */
   private CType getAllocationType(final @Nonnull CType type, final @Nullable CIntegerLiteralExpression sizeLiteral) {
     if (type instanceof CPointerType) {
       return sizeLiteral != null ? refineType(((CPointerType) type).getType(), sizeLiteral) :
@@ -401,6 +479,14 @@ class DynamicMemoryHandler {
     }
   }
 
+  /**
+   * Handles the type revelation of deferred allocations.
+   *
+   * @param pointerVariable The name of the pointer variable.
+   * @param type The type of the pointer variable.
+   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws InterruptedException if the execution was interrupted.
+   */
   private void handleDeferredAllocationTypeRevelation(final @Nonnull String pointerVariable,
                                                       final @Nonnull CType type)
                                                           throws UnrecognizedCCodeException, InterruptedException {
@@ -412,6 +498,13 @@ class DynamicMemoryHandler {
     }
   }
 
+  /**
+   * Handles the escape of a deferred allocation from tracking.
+   *
+   * @param pointerVariable The name of the pointer variable.
+   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws InterruptedException       If the execution was interrupted.
+   */
   private void handleDeferredAllocationPointerEscape(final String pointerVariable)
       throws UnrecognizedCCodeException, InterruptedException {
     final DeferredAllocationPool deferredAllocationPool = pts.removeDeferredAllocation(pointerVariable);
@@ -437,6 +530,19 @@ class DynamicMemoryHandler {
     }
   }
 
+  /**
+   * Handles deferred allocations in assignment expressions.
+   *
+   * @param lhs The left hand side of the C expression.
+   * @param rhs The right hand side of the C expression.
+   * @param lhsLocation The location of the left hand side in the source file.
+   * @param rhsExpression The expression of the right hand side.
+   * @param lhsType The type of the left hand side.
+   * @param lhsUsedDeferredAllocationPointers A map of all used deferred allocation pointers on the left hand side.
+   * @param rhsUsedDeferredAllocationPointers A map of all used deferred allocation pointers on the right hand side.
+   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws InterruptedException If the execution was interrupted.
+   */
   void handleDeferredAllocationsInAssignment(final CLeftHandSide lhs, final CRightHandSide rhs,
       final Location lhsLocation, final Expression rhsExpression, final CType lhsType,
       final Map<String, CType> lhsUsedDeferredAllocationPointers,
@@ -491,6 +597,18 @@ class DynamicMemoryHandler {
     }
   }
 
+  /**
+   * Handles deferred allocations in assignment expressions.
+   *
+   * @param lhs The left hand side of the C expression.
+   * @param rhs The right hand side of the C expression.
+   * @param lhsLocation The location of the left hand side in the source file.
+   * @param rhsExpression The expression of the right hand side.
+   * @param lhsUsedDeferredAllocationPointers A map of all used deferred allocation pointers on the left hand side.
+   * @param rhsUsedDeferredAllocationPointers A map of all used deferred allocation pointers on the right hand side.
+   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws InterruptedException If the execution was interrupted.
+   */
   private void handleDeferredAllocationsInAssignment(final CLeftHandSide lhs,
                                                      final CRightHandSide rhs,
                                                      final Location lhsLocation,
@@ -614,6 +732,14 @@ class DynamicMemoryHandler {
     }
   }
 
+  /**
+   * Handles deferred allocations in assume expressions.
+   *
+   * @param e The expression in the C code.
+   * @param usedDeferredAllocationPointers A map of all used deferred allocation pointers.
+   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws InterruptedException If the execution gets interrupted.
+   */
   void handleDeferredAllocationsInAssume(final CExpression e,
                                          final Map<String, CType> usedDeferredAllocationPointers)
        throws UnrecognizedCCodeException, InterruptedException {
@@ -649,6 +775,12 @@ class DynamicMemoryHandler {
     }
   }
 
+  /**
+   * Removes a pointer variable from tracking.
+   *
+   * @param pointerVariable The name of the pointer variable.
+   * @param isReturn A flag indicating if the variable is a return variable.
+   */
   private void handleDeferredAllocationPointerRemoval(final String pointerVariable,
       final boolean isReturn) {
     if (pts.removeDeferredAllocatinPointer(pointerVariable)) {
@@ -663,6 +795,8 @@ class DynamicMemoryHandler {
   /**
    * The function removes local void * pointers (deferred allocations)
    * declared in current function scope from tracking after returning from the function.
+   *
+   * @param function The name of the function.
    */
   void handleDeferredAllocationInFunctionExit(final String function) {
     SortedSet<String> localVariables = CFAUtils.filterVariablesOfFunction(pts.getDeferredAllocationVariables(), function);
