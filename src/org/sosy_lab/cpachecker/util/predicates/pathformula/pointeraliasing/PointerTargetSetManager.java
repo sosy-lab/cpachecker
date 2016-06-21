@@ -240,9 +240,9 @@ public class PointerTargetSetManager {
 
     final List<Pair<CCompositeType, String>> sharedFields = new ArrayList<>();
     final BooleanFormula mergeFormula2 =
-        makeValueImportConstraints(basesOnlyPts1.getSnapshot(), sharedFields, resultSSA, pts2);
+        makeValueImportConstraints(basesOnlyPts1.getSnapshot(), sharedFields, resultSSA);
     final BooleanFormula mergeFormula1 =
-        makeValueImportConstraints(basesOnlyPts2.getSnapshot(), sharedFields, resultSSA, pts1);
+        makeValueImportConstraints(basesOnlyPts2.getSnapshot(), sharedFields, resultSSA);
 
     if (!sharedFields.isEmpty()) {
       final PointerTargetSetBuilder resultPTSBuilder = new RealPointerTargetSetBuilder(
@@ -358,7 +358,7 @@ public class PointerTargetSetManager {
    * Create constraint that imports the old value of a variable into the memory handled with UFs.
    */
   private BooleanFormula makeValueImportConstraints(final PersistentSortedMap<String, CType> newBases,
-      final List<Pair<CCompositeType, String>> sharedFields, final SSAMapBuilder ssa, final PointerTargetSet pts) {
+      final List<Pair<CCompositeType, String>> sharedFields, final SSAMapBuilder ssa) {
     BooleanFormula mergeFormula = bfmgr.makeBoolean(true);
     for (final Map.Entry<String, CType> base : newBases.entrySet()) {
       if (!options.isDynamicAllocVariableName(base.getKey()) &&
@@ -371,8 +371,7 @@ public class PointerTargetSetManager {
                                                                         base.getKey(),
                                                                         base.getValue(),
                                                                         sharedFields,
-                                                                        ssa,
-                                                                        pts));
+                                                                        ssa));
       }
     }
     return mergeFormula;
@@ -382,8 +381,7 @@ public class PointerTargetSetManager {
                                                 final String variablePrefix,
                                                 final CType variableType,
                                                 final List<Pair<CCompositeType, String>> sharedFields,
-                                                final SSAMapBuilder ssa,
-                                                final PointerTargetSet pts) {
+                                                final SSAMapBuilder ssa) {
 
     assert !CTypeUtils.containsArray(variableType) : "Array access can't be encoded as a varaible";
 
@@ -404,8 +402,7 @@ public class PointerTargetSetManager {
                                        newPrefix,
                                        memberType,
                                        sharedFields,
-                                       ssa,
-                                       pts));
+                                       ssa));
         }
         if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
           offset += typeHandler.getSizeof(memberType);
