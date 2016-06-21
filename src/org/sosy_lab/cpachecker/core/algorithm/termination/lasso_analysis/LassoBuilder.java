@@ -197,8 +197,7 @@ class LassoBuilder {
     return new LinearTransition(polyhedra, inVars, outVars);
   }
 
-  private Collection<BooleanFormula> toDnf(PathFormula path)
-      throws InterruptedException {
+  private Collection<BooleanFormula> toDnf(PathFormula path) throws InterruptedException {
     BooleanFormula simplified = formulaManagerView.simplify(path.getFormula());
     BooleanFormula nnf = formulaManagerView.applyTactic(simplified, Tactic.NNF);
     BooleanFormula notEqualEliminated = transformRecursively(notEqualElimination, nnf);

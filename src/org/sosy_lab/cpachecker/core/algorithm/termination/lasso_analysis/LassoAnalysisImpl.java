@@ -106,8 +106,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
             pCfa,
             AnalysisDirection.FORWARD);
 
-    lassoBuilder =
-        new LassoBuilder(pLogger, formulaManager, solver, pathFormulaManager);
+    lassoBuilder = new LassoBuilder(pLogger, formulaManager, solver, pathFormulaManager);
 
     lassoRankerPreferences = new LassoRankerPreferences();
     lassoRankerPreferences.externalSolver = false; // use SMTInterpol
@@ -152,7 +151,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     for (Lasso lasso : lassos) {
       logger.logf(Level.FINE, "Analysing (non)-termination of lasso:\n%s.", lasso);
       LassoAnalysisResult result = checkTermination(lasso);
-      if (! result.isUnknowm()) {
+      if (!result.isUnknowm()) {
         return result;
       }
     }

@@ -135,7 +135,8 @@ public class TerminationCPA extends AbstractSingleWrapperCPA {
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
+      throws InterruptedException {
     return TerminationState.createStemState(getWrappedCpa().getInitialState(pNode, pPartition));
   }
 }

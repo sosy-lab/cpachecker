@@ -223,8 +223,7 @@ public class TerminationTransferRelation implements TransferRelation {
     loop = Optional.of(pLoop);
     loopLeavingLocations =
         pLoop.getOutgoingEdges().stream().map(CFAEdge::getSuccessor).collect(Collectors.toSet());
-    loopLeavingEdges =
-        pLoop.getOutgoingEdges().stream().collect(Collectors.toSet());
+    loopLeavingEdges = pLoop.getOutgoingEdges().stream().collect(Collectors.toSet());
     resetRankingRelation();
 
     String functionName = pLoop.getLoopHeads().iterator().next().getFunctionName();
@@ -262,7 +261,8 @@ public class TerminationTransferRelation implements TransferRelation {
       throw new UnsupportedOperationException("TransferRelation requires location information.");
 
     } else if (loop.isPresent()
-        && CFAUtils.leavingEdges(location).anyMatch(edge -> loop.get().getIncomingEdges().contains(edge))) {
+        && CFAUtils.leavingEdges(location)
+            .anyMatch(edge -> loop.get().getIncomingEdges().contains(edge))) {
       statesAtCurrentLocation = declarePrimedVariables(terminationState, pPrecision, location);
 
     } else if (loop.map(Loop::getLoopHeads).map(lh -> lh.contains(location)).orElse(false)) {
@@ -354,8 +354,9 @@ public class TerminationTransferRelation implements TransferRelation {
           createBlankEdge(
               potentialNonTerminationNode, nodeAfterLabel, "Label: " + NON_TERMINATION_LABEL);
 
-      Collection<TerminationState> targetStates = getAbstractSuccessorsForEdge0(
-          potentialNonTerminationStates, pPrecision, nonTerminationLabel);
+      Collection<TerminationState> targetStates =
+          getAbstractSuccessorsForEdge0(
+              potentialNonTerminationStates, pPrecision, nonTerminationLabel);
 
       if (!targetStates.isEmpty()) {
         return targetStates
@@ -566,7 +567,7 @@ public class TerminationTransferRelation implements TransferRelation {
     for (TerminationState state : pStates) {
 
       // Loop states should never leave the loop currently processed.
-      if (state.isPartOfStem() || ! loopLeavingEdges.contains(pEdge)) {
+      if (state.isPartOfStem() || !loopLeavingEdges.contains(pEdge)) {
 
         AbstractState wrappedState = state.getWrappedState();
         transferRelation
@@ -627,4 +628,4 @@ public class TerminationTransferRelation implements TransferRelation {
     throw new UnsupportedOperationException(
         "TerminationCPA does not support returning successors for a single edge.");
   }
- }
+}

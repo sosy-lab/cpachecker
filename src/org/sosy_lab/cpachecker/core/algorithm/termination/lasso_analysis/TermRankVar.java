@@ -79,5 +79,4 @@ public class TermRankVar extends RankVar {
   public String toString() {
     return getGloballyUniqueId();
   }
-
 }

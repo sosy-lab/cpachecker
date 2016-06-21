@@ -101,31 +101,31 @@ public class TerminationAlgorithm implements Algorithm {
       Specification pSpecification,
       Algorithm pSafetyAlgorithm,
       ConfigurableProgramAnalysis pSafetyAnalysis)
-          throws InvalidConfigurationException {
-        logger = checkNotNull(pLogger);
-        shutdownNotifier = pShutdownNotifier;
-        safetyAlgorithm = checkNotNull(pSafetyAlgorithm);
-        cfa = checkNotNull(pCfa);
+      throws InvalidConfigurationException {
+    logger = checkNotNull(pLogger);
+    shutdownNotifier = pShutdownNotifier;
+    safetyAlgorithm = checkNotNull(pSafetyAlgorithm);
+    cfa = checkNotNull(pCfa);
 
-        Specification requiredSpecification = loadTerminationSpecification(pCfa, pConfig, pLogger);
-        Preconditions.checkArgument(
-            requiredSpecification.equals(pSpecification),
-            "%s requires %s, but %s is given.",
-            TerminationAlgorithm.class.getSimpleName(),
-            requiredSpecification,
-            pSpecification);
+    Specification requiredSpecification = loadTerminationSpecification(pCfa, pConfig, pLogger);
+    Preconditions.checkArgument(
+        requiredSpecification.equals(pSpecification),
+        "%s requires %s, but %s is given.",
+        TerminationAlgorithm.class.getSimpleName(),
+        requiredSpecification,
+        pSpecification);
 
-        terminationCpa = CPAs.retrieveCPA(pSafetyAnalysis, TerminationCPA.class);
-        if (terminationCpa == null) {
-          throw new InvalidConfigurationException("TerminationAlgorithm requires TerminationCPA");
-        }
+    terminationCpa = CPAs.retrieveCPA(pSafetyAnalysis, TerminationCPA.class);
+    if (terminationCpa == null) {
+      throw new InvalidConfigurationException("TerminationAlgorithm requires TerminationCPA");
+    }
 
-        DeclarationCollectionCFAVisitor visitor = new DeclarationCollectionCFAVisitor();
-        for (CFANode function : cfa.getAllFunctionHeads()) {
-          CFATraversal.dfs().ignoreFunctionCalls().traverseOnce(function, visitor);
-        }
-        localDeclarations = ImmutableSetMultimap.copyOf(visitor.localDeclarations);
-        globalDeclaration = ImmutableSet.copyOf(visitor.globalDeclaration);
+    DeclarationCollectionCFAVisitor visitor = new DeclarationCollectionCFAVisitor();
+    for (CFANode function : cfa.getAllFunctionHeads()) {
+      CFATraversal.dfs().ignoreFunctionCalls().traverseOnce(function, visitor);
+    }
+    localDeclarations = ImmutableSetMultimap.copyOf(visitor.localDeclarations);
+    globalDeclaration = ImmutableSet.copyOf(visitor.globalDeclaration);
 
     // ugly class loader hack
     LassoAnalysisLoader lassoAnalysisLoader =
@@ -194,7 +194,7 @@ public class TerminationAlgorithm implements Algorithm {
   }
 
   private Result prooveLoopTermination(ReachedSet pReachedSet, Loop pLoop)
-          throws CPAEnabledAnalysisPropertyViolationException, CPAException, InterruptedException {
+      throws CPAEnabledAnalysisPropertyViolationException, CPAException, InterruptedException {
 
     logger.logf(Level.FINE, "Prooving (non)-termination of %s", pLoop);
     AbstractState entryState = pReachedSet.getFirstState();
@@ -203,11 +203,10 @@ public class TerminationAlgorithm implements Algorithm {
     // Pass current loop and relevant variables to TerminationCPA.
     String function = pLoop.getLoopHeads().iterator().next().getFunctionName();
     Set<CVariableDeclaration> relevantVariabels =
-        ImmutableSet
-          .<CVariableDeclaration>builder()
-          .addAll(globalDeclaration)
-          .addAll(localDeclarations.get(function))
-          .build();
+        ImmutableSet.<CVariableDeclaration>builder()
+            .addAll(globalDeclaration)
+            .addAll(localDeclarations.get(function))
+            .build();
     terminationCpa.setProcessedLoop(pLoop, relevantVariabels);
 
     Result result = null;
@@ -221,7 +220,7 @@ public class TerminationAlgorithm implements Algorithm {
       if (status.isSound() && !targetState.isPresent() && !pReachedSet.hasWaitingState()) {
         result = Result.TRUE;
 
-      } else if (status.isPrecise() && targetState.isPresent()){
+      } else if (status.isPrecise() && targetState.isPresent()) {
         LassoAnalysis.LassoAnalysisResult lassoAnalysisResult =
             lassoAnalysis.checkTermination(targetState.get());
         if (lassoAnalysisResult.getNonTerminationArgument().isPresent()) {
@@ -240,7 +239,7 @@ public class TerminationAlgorithm implements Algorithm {
         }
 
       } else {
-        result =  Result.UNKNOWN;
+        result = Result.UNKNOWN;
       }
     }
 
@@ -254,7 +253,6 @@ public class TerminationAlgorithm implements Algorithm {
     private final Multimap<String, CVariableDeclaration> localDeclarations =
         MultimapBuilder.hashKeys().linkedHashSetValues().build();
 
-
     @Override
     public TraversalProcess visitEdge(CFAEdge pEdge) {
       if (pEdge instanceof CDeclarationEdge) {
@@ -267,7 +265,6 @@ public class TerminationAlgorithm implements Algorithm {
           } else {
             localDeclarations.put(pEdge.getPredecessor().getFunctionName(), variableDeclaration);
           }
-
         }
       }
 
