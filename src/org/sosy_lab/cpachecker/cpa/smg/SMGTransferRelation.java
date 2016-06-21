@@ -191,8 +191,9 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   private ImmutableSet<String> deallocationFunctions = ImmutableSet.of(
       "free");
 
-  @Option(secure = true, name="externalAllocationFunction", description = "Function which indicate on external allocated memory")
-  private String externalAllocationFunction = "ext_allocation";
+  @Option(secure = true, name="externalAllocationFunction", description = "Functions which indicate on external allocated memory")
+  private ImmutableSet<String> externalAllocationFunction = ImmutableSet.of(
+      "ext_allocation");
 
   final private LogManagerWithoutDuplicates logger;
   final private MachineModel machineModel;
@@ -666,7 +667,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     }
 
     public boolean isExternalAllocationFunction(String functionName) {
-      return externalAllocationFunction.equals(functionName);
+      return externalAllocationFunction.contains(functionName);
     }
 
     public SMGAddressValueAndStateList evaluateMemcpy(CFunctionCallExpression pFunctionCall,
