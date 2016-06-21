@@ -321,7 +321,7 @@ public class TerminationTransferRelation implements TransferRelation {
     CFAEdge edge = createBlankEdge(currentNode, pCfaNode, "");
     states = getAbstractSuccessorsForEdge0(states, pPrecision, edge);
 
-    return getAbstractSuccessors0(states, pPrecision);
+    return states;
   }
 
   private Collection<? extends TerminationState> insertRankingRelation(
