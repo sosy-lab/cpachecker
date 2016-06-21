@@ -580,7 +580,7 @@ class KInductionProver implements AutoCloseable {
     return true;
   }
 
-  private void ensureReachedSetInitialized(ReachedSet pReachedSet) {
+  private void ensureReachedSetInitialized(ReachedSet pReachedSet) throws InterruptedException {
     if (pReachedSet.size() > 1 || !cfa.getLoopStructure().isPresent()) {
       return;
     }

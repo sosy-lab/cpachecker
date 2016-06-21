@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.monitor;
 
-import java.util.Collection;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -40,6 +38,8 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+
+import java.util.Collection;
 
 public class MonitorCPA extends AbstractSingleWrapperCPA {
 
@@ -70,7 +70,7 @@ public class MonitorCPA extends AbstractSingleWrapperCPA {
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
     return new MonitorState(getWrappedCpa().getInitialState(pNode, pPartition), 0L);
   }
 

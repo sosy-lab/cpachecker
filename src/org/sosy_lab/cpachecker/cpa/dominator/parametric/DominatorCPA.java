@@ -77,7 +77,7 @@ public class DominatorCPA {
     return precisionAdjustment;
   }
 
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
     AbstractState dominatedInitialState_tmp = this.cpa.getInitialState(pNode, pPartition);
 
     AbstractState dominatedInitialState = dominatedInitialState_tmp;

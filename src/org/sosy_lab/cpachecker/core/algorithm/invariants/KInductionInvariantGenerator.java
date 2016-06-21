@@ -582,10 +582,11 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
     CPAAlgorithm algorithm = CPAAlgorithm.create(cpa, pLogger, config, notifier);
     CFANode rootNode = pCFA.getMainFunction();
     StateSpacePartition partition = StateSpacePartition.getDefaultPartition();
-    reachedSet.add(
-        cpa.getInitialState(rootNode, partition),
-        cpa.getInitialPrecision(rootNode, partition));
+
     try {
+      reachedSet.add(
+          cpa.getInitialState(rootNode, partition),
+          cpa.getInitialPrecision(rootNode, partition));
       algorithm.run(reachedSet);
     } catch (InterruptedException e) {
       // Candidate collection was interrupted,

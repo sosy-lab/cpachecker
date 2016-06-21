@@ -339,7 +339,7 @@ public class LiveVariables {
       final LogManager logger,
       final ShutdownNotifier pShutdownNotifier,
       final Configuration config)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, IllegalArgumentException, AssertionError, InterruptedException {
     checkNotNull(variableClassification);
     checkNotNull(globalsList);
     checkNotNull(pCFA);
@@ -387,7 +387,7 @@ public class LiveVariables {
       final ShutdownNotifier pShutdownNotifier,
       final CFA cfa,
       final LiveVariablesConfiguration config)
-      throws AssertionError {
+      throws AssertionError, IllegalArgumentException, InterruptedException {
     // prerequisites for creating the live variables
     Set<Wrapper<ASimpleDeclaration>> globalVariables;
     switch (config.evaluationStrategy) {
@@ -464,7 +464,7 @@ public class LiveVariables {
           Functions.compose(ASimpleDeclaration::getQualifiedName, FROM_EQUIV_WRAPPER);
 
   private static Multimap<CFANode, Wrapper<ASimpleDeclaration>> addLiveVariablesFromCFA(final CFA pCfa, final LogManager logger,
-                                              AnalysisParts analysisParts, EvaluationStrategy evaluationStrategy) {
+                                              AnalysisParts analysisParts, EvaluationStrategy evaluationStrategy) throws IllegalArgumentException, InterruptedException {
 
     Optional<LoopStructure> loopStructure = pCfa.getLoopStructure();
 

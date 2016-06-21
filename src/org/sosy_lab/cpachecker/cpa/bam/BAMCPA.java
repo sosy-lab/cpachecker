@@ -163,7 +163,7 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
     if (blockPartitioning == null) {
       BlockPartitioningBuilder blockBuilder;
       if (useExtendedPartitioningBuilder) {
@@ -189,7 +189,7 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
     return getWrappedCpa().getInitialPrecision(pNode, pPartition);
   }
 

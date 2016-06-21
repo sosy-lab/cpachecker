@@ -109,7 +109,7 @@ public class PropertyCheckerCPA extends AbstractSingleWrapperCPA implements Proo
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
     return getWrappedCpa().getInitialState(pNode, pPartition);
   }
 

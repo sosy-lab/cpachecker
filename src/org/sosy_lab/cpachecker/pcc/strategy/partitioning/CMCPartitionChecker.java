@@ -23,18 +23,9 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -48,9 +39,18 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
 
 
 public class CMCPartitionChecker {
@@ -75,7 +75,7 @@ public class CMCPartitionChecker {
 
 
   public CMCPartitionChecker(final ConfigurableProgramAnalysis pCpa, final AtomicBoolean pCheckResult,
-      final ShutdownNotifier pShutdown, final LogManager pLogger, final AbstractState pRoot) {
+      final ShutdownNotifier pShutdown, final LogManager pLogger, final AbstractState pRoot) throws InterruptedException {
     cpa = pCpa;
     stopOp = cpa.getStopOperator();
     transfer = cpa.getTransferRelation();

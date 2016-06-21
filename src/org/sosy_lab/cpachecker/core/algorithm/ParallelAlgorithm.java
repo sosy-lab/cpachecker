@@ -306,7 +306,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       return () -> {
         return ParallelAnalysisResult.absent();
       };
-    } catch (CPAException e) {
+    } catch (CPAException | InterruptedException e) {
       logger.logUserException(
           Level.WARNING,
           e,
@@ -434,7 +434,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   private ReachedSet createInitialReachedSet(
-      ConfigurableProgramAnalysis cpa, CFANode mainFunction, CoreComponentsFactory pFactory) {
+      ConfigurableProgramAnalysis cpa, CFANode mainFunction, CoreComponentsFactory pFactory) throws InterruptedException {
     AbstractState initialState = cpa.getInitialState(mainFunction, getDefaultPartition());
     Precision initialPrecision = cpa.getInitialPrecision(mainFunction, getDefaultPartition());
 

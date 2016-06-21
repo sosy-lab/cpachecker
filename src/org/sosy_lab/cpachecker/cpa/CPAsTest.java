@@ -190,7 +190,7 @@ public class CPAsTest {
   }
 
   @Test
-  public void getInitialState() {
+  public void getInitialState() throws InterruptedException {
     assertThat(cpa.getInitialState(main, partition)).named("initial state").isNotNull();
   }
 

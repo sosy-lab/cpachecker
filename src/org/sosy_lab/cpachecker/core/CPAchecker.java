@@ -505,7 +505,7 @@ public class CPAchecker {
       final Set<? extends CFANode> pLocations,
       final Object pPartitionKey,
       final ReachedSet pReached,
-      final ConfigurableProgramAnalysis pCpa) {
+      final ConfigurableProgramAnalysis pCpa) throws InterruptedException {
 
     for (CFANode loc: pLocations) {
       StateSpacePartition putIntoPartition = partitionInitialStates
@@ -525,7 +525,7 @@ public class CPAchecker {
       final Specification pSpecification,
       final FunctionEntryNode pAnalysisEntryFunction,
       final CFA pCfa)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, InterruptedException {
 
     logger.log(Level.FINE, "Creating initial reached set");
 

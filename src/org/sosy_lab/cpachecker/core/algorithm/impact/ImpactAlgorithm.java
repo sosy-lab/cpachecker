@@ -147,11 +147,11 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     imgr = new InterpolationManager(pfmgr, solver, cfa.getLoopStructure(), cfa.getVarClassification(), config, pShutdownNotifier, logger);
   }
 
-  public AbstractState getInitialState(CFANode location) {
+  public AbstractState getInitialState(CFANode location) throws InterruptedException {
     return new Vertex(bfmgr, bfmgr.makeBoolean(true), cpa.getInitialState(location, StateSpacePartition.getDefaultPartition()));
   }
 
-  public Precision getInitialPrecision(CFANode location) {
+  public Precision getInitialPrecision(CFANode location) throws InterruptedException {
     return cpa.getInitialPrecision(location, StateSpacePartition.getDefaultPartition());
   }
 

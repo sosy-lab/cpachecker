@@ -187,11 +187,12 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   }
 
   /** handle all edges related to thread-management:
-   * THREAD_START, THREAD_JOIN, THREAD_EXIT, THREAD_MUTEX_LOCK, VERIFIER_ATOMIC,... */
+   * THREAD_START, THREAD_JOIN, THREAD_EXIT, THREAD_MUTEX_LOCK, VERIFIER_ATOMIC,...
+   */
   private Collection<ThreadingState> getAbstractSuccessorsForEdge0(
       final CFAEdge cfaEdge, final ThreadingState threadingState,
       final String activeThread, final Collection<ThreadingState> results)
-          throws UnrecognizedCodeException {
+          throws UnrecognizedCodeException, InterruptedException {
     switch (cfaEdge.getEdgeType()) {
     case StatementEdge: {
       AStatement statement = ((AStatementEdge)cfaEdge).getStatement();
@@ -323,7 +324,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
   private Collection<ThreadingState> startNewThread(
       final ThreadingState threadingState, final AStatement statement,
-      final Collection<ThreadingState> results) throws UnrecognizedCodeException {
+      final Collection<ThreadingState> results) throws UnrecognizedCodeException, InterruptedException {
 
     // first check for some possible errors and unsupported parts
     List<? extends AExpression> params = ((AFunctionCall)statement).getFunctionCallExpression().getParameterExpressions();

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.threading;
 
-import java.util.Collection;
+import com.google.common.base.Preconditions;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -51,7 +51,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 
-import com.google.common.base.Preconditions;
+import java.util.Collection;
 
 public class ThreadingCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
@@ -98,7 +98,7 @@ public class ThreadingCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
     Preconditions.checkNotNull(pNode);
     String mainThread = pNode.getFunctionName();
     ThreadingState ts = new ThreadingState();

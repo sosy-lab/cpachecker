@@ -211,7 +211,7 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   private ReachedSet initializeReachedSetForChecking(Configuration pConfig,
-      ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
+      ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException, IllegalArgumentException, InterruptedException {
     CoreComponentsFactory factory =
         new CoreComponentsFactory(pConfig, logger, shutdownNotifier, new AggregatedReachedSets());
    ReachedSet reached = factory.createReachedSet();

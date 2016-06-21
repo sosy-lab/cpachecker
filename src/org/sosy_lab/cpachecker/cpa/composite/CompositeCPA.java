@@ -264,7 +264,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
     Preconditions.checkNotNull(pNode);
 
     ImmutableList.Builder<AbstractState> initialStates = ImmutableList.builder();
@@ -276,7 +276,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition partition) {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition partition) throws InterruptedException {
     Preconditions.checkNotNull(pNode);
 
     ImmutableList.Builder<Precision> initialPrecisions = ImmutableList.builder();

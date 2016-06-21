@@ -436,7 +436,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       ShutdownManager singleShutdownManager,
       boolean pProvideReachedForNextAlgorithm,
       ReachedSet pCurrentReached)
-      throws InvalidConfigurationException, CPAException, IOException {
+      throws InvalidConfigurationException, CPAException, IOException, InterruptedException {
 
     ReachedSet reached;
     ConfigurableProgramAnalysis cpa;
@@ -488,7 +488,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       ConfigurableProgramAnalysis cpa,
       CFANode mainFunction,
       CoreComponentsFactory pFactory,
-      LogManager singleLogger) {
+      LogManager singleLogger) throws InterruptedException {
     singleLogger.log(Level.FINE, "Creating initial reached set");
 
     AbstractState initialState = cpa.getInitialState(mainFunction, StateSpacePartition.getDefaultPartition());

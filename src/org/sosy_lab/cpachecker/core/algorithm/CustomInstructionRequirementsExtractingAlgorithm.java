@@ -173,9 +173,13 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
       throw new InvalidConfigurationException(requirementsStateClassName + "is not an abstract state.");
     }
 
-    if (AbstractStates.extractStateByType(cpa.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()),
-                                          requirementsStateClass) == null) {
-      throw new InvalidConfigurationException(requirementsStateClass + "is not an abstract state.");
+    try {
+      if (AbstractStates.extractStateByType(cpa.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()),
+                                            requirementsStateClass) == null) {
+        throw new InvalidConfigurationException(requirementsStateClass + "is not an abstract state.");
+      }
+    } catch (InterruptedException e) {
+      throw new InvalidConfigurationException(requirementsStateClass + "initial state computation did not finish in time");
     }
 
     this.cfa = cfa;

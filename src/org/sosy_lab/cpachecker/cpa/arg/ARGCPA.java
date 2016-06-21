@@ -216,7 +216,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
     // TODO some code relies on the fact that this method is called only one and the result is the root of the ARG
     return new ARGState(getWrappedCpa().getInitialState(pNode, pPartition), null);
   }

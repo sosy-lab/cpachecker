@@ -94,7 +94,7 @@ public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
     AbstractState lInitialState = mInitialStatesCache.get(pNode);
 
     if (lInitialState == null) {
@@ -106,7 +106,7 @@ public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
     Precision lInitialPrecision = mInitialPrecisionsCache.get(pNode);
 
     if (lInitialPrecision == null) {
