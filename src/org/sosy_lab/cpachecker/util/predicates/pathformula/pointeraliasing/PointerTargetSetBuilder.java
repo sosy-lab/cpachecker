@@ -338,11 +338,7 @@ public interface PointerTargetSetBuilder {
       }
       fields = fields.putAndCopy(field, true);
 
-      if (oldTargets != targets) {
-        // Target added
-        return true;
-      }
-      return false;
+      return oldTargets != targets;
     }
 
     /**
