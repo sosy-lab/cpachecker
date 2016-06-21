@@ -684,7 +684,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   }
 
   @Override
-  protected BooleanFormula makePredicate(final CExpression e, final boolean truthAssumtion,
+  protected BooleanFormula makePredicate(final CExpression e, final boolean truthAssumption,
       final CFAEdge edge, final String function,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
@@ -698,7 +698,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       memoryHandler.handleDeferredAllocationsInAssume(e, ev.getUsedDeferredAllocationPointers());
     }
 
-    if (!truthAssumtion) {
+    if (!truthAssumption) {
       result = bfmgr.not(result);
     }
 
