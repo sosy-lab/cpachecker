@@ -152,9 +152,8 @@ public interface PointerTargetSetBuilder {
 
     // Used in addEssentialFields()
     private static final Function<Pair<CCompositeType, String>, Triple<CCompositeType, String, CType>>
-      typeFieldFunction = new Function<Pair<CCompositeType, String>, Triple<CCompositeType, String, CType>>() {
-        @Override
-        public Triple<CCompositeType, String, CType> apply(Pair<CCompositeType, String> field) {
+      typeFieldFunction =
+        field -> {
           final CCompositeType fieldComposite = field.getFirst();
           final String fieldName = field.getSecond();
           for (final CCompositeTypeMemberDeclaration declaration : fieldComposite.getMembers()) {
@@ -164,19 +163,16 @@ public interface PointerTargetSetBuilder {
           }
           throw new AssertionError("Tried to start tracking for a non-existent field " + fieldName +
                                    " in composite type " + fieldComposite);
-        }
-      };
+        };
 
     // Used in addEssentialFields()
     private static final Comparator<Triple<CCompositeType, String, CType>>
-      simpleTypedFieldsFirstComparator = new Comparator<Triple<CCompositeType, String, CType>>() {
-        @Override
-        public int compare(Triple<CCompositeType, String, CType> field1, Triple<CCompositeType, String, CType> field2) {
+      simpleTypedFieldsFirstComparator =
+        (field1, field2) -> {
           final int isField1Simple = field1.getThird() instanceof CCompositeType ? 1 : 0;
           final int isField2Simple = field2.getThird() instanceof CCompositeType ? 1 : 0;
           return isField1Simple - isField2Simple;
-        }
-      };
+        };
 
     /**
      * Creates a new RealPointerTargetSetBuilder.
