@@ -541,6 +541,9 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
           s.printStatistics(out, result, subStats.getValue().getFirst());
         }
       }
+      out.println("\n");
+      out.println("Other statistics");
+      out.println("================");
     }
   }
 
