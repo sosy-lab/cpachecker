@@ -55,8 +55,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
 
-import javax.annotation.Nullable;
-
 
 public interface PointerTargetSetBuilder {
 
@@ -276,7 +274,6 @@ public interface PointerTargetSetBuilder {
      * Recursively adds pointer targets for the given base variable when the newly used field is added for tracking.
      * @param base the base variable
      * @param currentType the type of the base variable or of the next subfield
-     * @param containerType either {@code null} or the type of the innermost container of the next considered subfield
      * @param properOffset either {@code 0} or the offset of the next subfield in its innermost container
      * @param containerOffset either {@code 0} or the offset of the innermost container relative to the base address
      * @param composite the composite of the newly used field
@@ -284,7 +281,6 @@ public interface PointerTargetSetBuilder {
      */
     private void addTargets(final String base,
                             final CType currentType,
-                            final @Nullable CType containerType,
                             final int properOffset,
                             final int containerOffset,
                             final String composite,
@@ -303,7 +299,7 @@ public interface PointerTargetSetBuilder {
         }
         int offset = 0;
         for (int i = 0; i < length; ++i) {
-          addTargets(base, arrayType.getType(), arrayType, offset, containerOffset + properOffset,
+          addTargets(base, arrayType.getType(), offset, containerOffset + properOffset,
                      composite, memberName);
           offset += ptsMgr.getSize(arrayType.getType());
         }
@@ -315,7 +311,7 @@ public interface PointerTargetSetBuilder {
         final boolean isTargetComposite = type.equals(composite);
         for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
           if (fields.containsKey(CompositeField.of(type, memberDeclaration.getName()))) {
-            addTargets(base, memberDeclaration.getType(), compositeType, offset, containerOffset + properOffset,
+            addTargets(base, memberDeclaration.getType(), offset, containerOffset + properOffset,
                        composite, memberName);
           }
           if (isTargetComposite && memberDeclaration.getName().equals(memberName)) {
@@ -338,7 +334,7 @@ public interface PointerTargetSetBuilder {
 
       final PersistentSortedMap<String, PersistentList<PointerTarget>> oldTargets = targets;
       for (final PersistentSortedMap.Entry<String, CType> baseEntry : bases.entrySet()) {
-        addTargets(baseEntry.getKey(), baseEntry.getValue(), null, 0, 0, type, fieldName);
+        addTargets(baseEntry.getKey(), baseEntry.getValue(), 0, 0, type, fieldName);
       }
       fields = fields.putAndCopy(field, true);
 
