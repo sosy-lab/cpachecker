@@ -128,8 +128,8 @@ public class PointerTargetSetManager {
 
     PersistentSortedMap<String, CType> mergedBases =
         merge(
-            pts1.bases,
-            pts2.bases,
+            pts1.getBases(),
+            pts2.getBases(),
             Equivalence.equals(),
             BaseUnitingConflictHandler.INSTANCE,
             new MapsDifference.DefaultVisitor<String, CType>() {
@@ -162,8 +162,8 @@ public class PointerTargetSetManager {
 
     PersistentSortedMap<CompositeField, Boolean> mergedFields =
         merge(
-            pts1.fields,
-            pts2.fields,
+            pts1.getFields(),
+            pts2.getFields(),
             Equivalence.equals(),
             PersistentSortedMaps.<CompositeField, Boolean>getExceptionMergeConflictHandler(),
             new MapsDifference.DefaultVisitor<CompositeField, Boolean>() {
@@ -180,7 +180,7 @@ public class PointerTargetSetManager {
     shutdownNotifier.shutdownIfNecessary();
 
     PersistentSortedMap<String, PersistentList<PointerTarget>> mergedTargets =
-      merge(pts1.targets, pts2.targets, PointerTargetSetManager.<String, PointerTarget>mergeOnConflict());
+      merge(pts1.getTargets(), pts2.getTargets(), PointerTargetSetManager.<String, PointerTarget>mergeOnConflict());
     shutdownNotifier.shutdownIfNecessary();
 
     // Targets is always the cross product of bases and fields.
@@ -202,24 +202,24 @@ public class PointerTargetSetManager {
 
     final String lastBase;
     final BooleanFormula basesMergeFormula;
-    if (pts1.lastBase == null ||
-        pts2.lastBase == null ||
-        pts1.lastBase.equals(pts2.lastBase)) {
+    if (pts1.getLastBase() == null ||
+        pts2.getLastBase() == null ||
+        pts1.getLastBase().equals(pts2.getLastBase())) {
       // Trivial case: either no allocations on one branch at all, or no difference.
       // Just take the first non-null value, the second is either equal or null.
-      lastBase = (pts1.lastBase != null) ? pts1.lastBase : pts2.lastBase;
+      lastBase = (pts1.getLastBase() != null) ? pts1.getLastBase() : pts2.getLastBase();
       basesMergeFormula = bfmgr.makeBoolean(true);
 
     } else if (basesOnlyPts1.isEmpty()) {
-      assert pts2.bases.keySet().containsAll(pts1.bases.keySet());
+      assert pts2.getBases().keySet().containsAll(pts1.getBases().keySet());
       // One branch has a strict superset of the allocations of the other.
-      lastBase = pts2.lastBase;
+      lastBase = pts2.getLastBase();
       basesMergeFormula = bfmgr.makeBoolean(true);
 
     } else if (basesOnlyPts2.isEmpty()) {
-      assert pts1.bases.keySet().containsAll(pts2.bases.keySet());
+      assert pts1.getBases().keySet().containsAll(pts2.getBases().keySet());
       // One branch has a strict superset of the allocations of the other.
-      lastBase = pts1.lastBase;
+      lastBase = pts1.getLastBase();
       basesMergeFormula = bfmgr.makeBoolean(true);
 
     } else {
@@ -230,8 +230,8 @@ public class PointerTargetSetManager {
           FAKE_ALLOC_FUNCTION_NAME, fakeBaseType, resultSSA, conv);
       mergedBases = mergedBases.putAndCopy(fakeBaseName, fakeBaseType);
       lastBase = fakeBaseName;
-      basesMergeFormula = formulaManager.makeAnd(getNextBaseAddressInequality(fakeBaseName, pts1.bases, pts1.lastBase),
-                                                 getNextBaseAddressInequality(fakeBaseName, pts2.bases, pts2.lastBase));
+      basesMergeFormula = formulaManager.makeAnd(getNextBaseAddressInequality(fakeBaseName, pts1.getBases(), pts1.getLastBase()),
+                                                 getNextBaseAddressInequality(fakeBaseName, pts2.getBases(), pts2.getLastBase()));
     }
 
     PointerTargetSet resultPTS =
@@ -273,7 +273,7 @@ public class PointerTargetSetManager {
         }
       };
     PersistentSortedMap<String, DeferredAllocationPool> mergedDeferredAllocations =
-      merge(pts1.deferredAllocations, pts2.deferredAllocations, deferredAllocationMergingConflictHandler);
+      merge(pts1.getDeferredAllocations(), pts2.getDeferredAllocations(), deferredAllocationMergingConflictHandler);
     for (final DeferredAllocationPool merged : mergedDeferredAllocationPools.keySet()) {
       for (final String pointerVariable : merged.getPointerVariables()) {
         mergedDeferredAllocations = mergedDeferredAllocations.putAndCopy(pointerVariable, merged);

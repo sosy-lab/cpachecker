@@ -224,23 +224,21 @@ public final class PointerTargetSet implements Serializable {
 
   private static final Joiner joiner = Joiner.on(" ");
 
-  // The following fields are modified in the derived class only
-
   // The set of known memory objects.
   // This includes allocated memory regions and global/local structs/arrays.
   // The key of the map is the name of the base (without the BASE_PREFIX).
   // There are also "fake" bases in the map for variables that have their address
   // taken somewhere but are not yet tracked.
-  final PersistentSortedMap<String, CType> bases;
+  private final PersistentSortedMap<String, CType> bases;
 
   // The last added memory region (used to create the chain of inequalities between bases).
-  final String lastBase;
+  private final String lastBase;
 
   // The set of "shared" fields that are accessed directly via pointers,
   // so they are represented with UFs instead of as variables.
-  final PersistentSortedMap<CompositeField, Boolean> fields;
+  private final PersistentSortedMap<CompositeField, Boolean> fields;
 
-  final PersistentSortedMap<String, DeferredAllocationPool> deferredAllocations;
+  private final PersistentSortedMap<String, DeferredAllocationPool> deferredAllocations;
 
   // The complete set of tracked memory locations.
   // The map key is the type of the memory location.
@@ -249,7 +247,7 @@ public final class PointerTargetSet implements Serializable {
   // for all values of i from this map).
   // This means that when a location is not present in this map,
   // its value is not tracked and might get lost.
-  final PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
+  private final PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
 
   private static final String BASE_PREFIX = "__ADDRESS_OF_";
 

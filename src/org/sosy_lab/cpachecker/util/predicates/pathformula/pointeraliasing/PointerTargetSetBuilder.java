@@ -183,11 +183,11 @@ public interface PointerTargetSetBuilder {
         final FormulaManagerView pFormulaManager,
         final PointerTargetSetManager pPtsMgr,
         final FormulaEncodingWithPointerAliasingOptions pOptions) {
-      bases = pointerTargetSet.bases;
-      lastBase = pointerTargetSet.lastBase;
-      fields = pointerTargetSet.fields;
-      deferredAllocations = pointerTargetSet.deferredAllocations;
-      targets = pointerTargetSet.targets;
+      bases = pointerTargetSet.getBases();
+      lastBase = pointerTargetSet.getLastBase();
+      fields = pointerTargetSet.getFields();
+      deferredAllocations = pointerTargetSet.getDeferredAllocations();
+      targets = pointerTargetSet.getTargets();
       formulaManager = pFormulaManager;
       ptsMgr = pPtsMgr;
       options = pOptions;
