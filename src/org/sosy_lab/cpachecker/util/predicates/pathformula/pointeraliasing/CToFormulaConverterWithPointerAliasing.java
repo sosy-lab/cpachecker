@@ -278,8 +278,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
                                  final Variable base,
                                  final List<Pair<CCompositeType, String>> fields,
                                  final SSAMapBuilder ssa,
-                                 final Constraints constraints,
-                                 final PointerTargetSetBuilder pts) throws UnrecognizedCCodeException {
+                                 final Constraints constraints) throws UnrecognizedCCodeException {
     final CType baseType = CTypeUtils.simplifyType(base.getType());
     if (baseType instanceof CArrayType) {
       throw new UnrecognizedCCodeException("Array access can't be encoded as a varaible", cfaEdge);
@@ -300,8 +299,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
                                     newBase,
                                     fields,
                                     ssa,
-                                    constraints,
-                                    pts);
+                                    constraints);
         }
         if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
           offset += getSizeof(memberType);
