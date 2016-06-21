@@ -993,7 +993,7 @@ public class SMGExpressionEvaluator {
             SMGSymbolicValue value = symbolicValueAndState.getObject();
             int size = arrayAddress.getObject().getSize();
             int typeSize = getSizeof(cfaEdge, exp.getExpressionType(), newState, exp);
-            int index = size / typeSize;
+            int index = (size / typeSize) + 1;
             int subscriptSize = getSizeof(cfaEdge, exp.getSubscriptExpression().getExpressionType
                 (), newState, exp) * machineModel.getSizeofCharInBits();
             newState.addErrorPredicate(value, subscriptSize, SMGKnownExpValue.valueOf(index),
