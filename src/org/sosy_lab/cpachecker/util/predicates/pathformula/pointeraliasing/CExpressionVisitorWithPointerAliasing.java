@@ -69,6 +69,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
+/**
+ * A visitor the handle C expressions with the support for pointer aliasing.
+ */
 class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Expression, UnrecognizedCCodeException>
                                        implements CRightHandSideVisitor<Expression, UnrecognizedCCodeException> {
 
@@ -125,6 +128,17 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     }
   }
 
+  /**
+   * Creates a new visitor for C expression supporting pointer aliasing.
+   *
+   * @param cToFormulaConverter The C to SMT formula converter.
+   * @param cfaEdge The current edge in the CFA (for logging purposes).
+   * @param function The name of the current function (for logging purposes).
+   * @param ssa The SSA map.
+   * @param constraints Additional constraints from CFA parsing.
+   * @param errorConditions Additional error conditions.
+   * @param pts The underlying set of pointer targets.
+   */
   CExpressionVisitorWithPointerAliasing(final CToFormulaConverterWithPointerAliasing cToFormulaConverter,
                                           final CFAEdge cfaEdge,
                                           final String function,

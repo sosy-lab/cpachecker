@@ -86,6 +86,16 @@ class DynamicMemoryHandler {
   private final Constraints constraints;
   private final ErrorConditions errorConditions;
 
+  /**
+   * Creates a new DynamicMemoryHandler
+   *
+   * @param pConv The C to SMT formula converter.
+   * @param pEdge The current edge in the CFA (for logging purposes).
+   * @param pSsa The SSA map.
+   * @param pPts The underlying pointer target set
+   * @param pConstraints Additional constraints.
+   * @param pErrorConditions Additional error conditions.
+   */
   DynamicMemoryHandler(CToFormulaConverterWithPointerAliasing pConv,
       CFAEdge pEdge, SSAMapBuilder pSsa,
       PointerTargetSetBuilder pPts, Constraints pConstraints,

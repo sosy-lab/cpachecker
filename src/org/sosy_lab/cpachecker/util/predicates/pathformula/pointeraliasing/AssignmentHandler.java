@@ -66,7 +66,9 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-
+/**
+ * Implements a handler for assignments.
+ */
 class AssignmentHandler {
 
   private final FormulaEncodingWithPointerAliasingOptions options;

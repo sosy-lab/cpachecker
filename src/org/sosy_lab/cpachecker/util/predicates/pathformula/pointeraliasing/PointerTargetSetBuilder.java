@@ -118,6 +118,7 @@ public interface PointerTargetSetBuilder {
 
   /**
    * Actual builder implementation for PointerTargetSet.
+   *
    * Its state starts with an existing set, but may be changed later.
    * It supports read access, but it is not recommended to use
    * instances of this class except for the short period of time
@@ -177,6 +178,14 @@ public interface PointerTargetSetBuilder {
         }
       };
 
+    /**
+     * Creates a new RealPointerTargetSetBuilder.
+     *
+     * @param pointerTargetSet The underlying PointerTargetSet
+     * @param pFormulaManager The formula manager for SMT formulae
+     * @param pPtsMgr The PointerTargetSetManager
+     * @param pOptions Additional configuration options.
+     */
     public RealPointerTargetSetBuilder(final PointerTargetSet pointerTargetSet,
         final FormulaManagerView pFormulaManager,
         final PointerTargetSetManager pPtsMgr,
@@ -195,15 +204,22 @@ public interface PointerTargetSetBuilder {
     /**
      * Recursively adds pointer targets for every used (tracked) (sub)field of the newly allocated base.
      *
-     * Note: the recursion doesn't proceed on unused (untracked) (sub)fields.
+     * Note: The recursion doesn't proceed on unused (untracked) (sub)fields.
      *
-     * @param name the name of the newly allocated base variable
-     * @param type type of the allocated base or the next added pointer target
+     * @param name The name of the newly allocated base variable
+     * @param type The type of the allocated base or the next added pointer target
      */
     private void addTargets(final String name, CType type) {
       targets = ptsMgr.addToTargets(name, type, null, 0, 0, targets, fields);
     }
 
+    /**
+     * Returns a boolean formula for a prepared base of a pointer.
+     *
+     * @param name The name of the variable.
+     * @param type The type of the variable.
+     * @return A boolean formula representing the base.
+     */
     @Override
     public BooleanFormula prepareBase(final String name, CType type) {
       type = CTypeUtils.simplifyType(type);
@@ -220,6 +236,12 @@ public interface PointerTargetSetBuilder {
       return nextInequality;
     }
 
+    /**
+     * Shares a base of a pointer.
+     *
+     * @param name The variable name.
+     * @param type The type of the variable.
+     */
     @Override
     public void shareBase(final String name, CType type) {
       type = CTypeUtils.simplifyType(type);
@@ -241,7 +263,11 @@ public interface PointerTargetSetBuilder {
 
     /**
      * Adds the newly allocated base of the given type for tracking along with all its tracked (sub)fields
-     * (if its a structure/union) or all its elements (if its an array).
+     * (if it is a structure/union) or all its elements (if it is an array).
+     *
+     * @param name The name of the base
+     * @param type The type of the base
+     * @return A formula representing the base
      */
     @Override
     public BooleanFormula addBase(final String name, CType type) {
@@ -265,6 +291,13 @@ public interface PointerTargetSetBuilder {
       }
     }
 
+    /**
+     * Returns, whether a field of a composite type is tracked or not.
+     *
+     * @param compositeType The composite type.
+     * @param fieldName The name of the field in the composite type.
+     * @return True, if the field is already tracked, false otherwise.
+     */
     @Override
     public boolean tracksField(final CCompositeType compositeType, final String fieldName) {
       return fields.containsKey(CompositeField.of(CTypeUtils.typeToString(compositeType), fieldName));
@@ -272,12 +305,13 @@ public interface PointerTargetSetBuilder {
 
     /**
      * Recursively adds pointer targets for the given base variable when the newly used field is added for tracking.
-     * @param base the base variable
-     * @param currentType the type of the base variable or of the next subfield
-     * @param properOffset either {@code 0} or the offset of the next subfield in its innermost container
-     * @param containerOffset either {@code 0} or the offset of the innermost container relative to the base address
-     * @param composite the composite of the newly used field
-     * @param memberName the name of the newly used field
+     *
+     * @param base The base variable
+     * @param currentType The type of the base variable or of the next subfield
+     * @param properOffset Either {@code 0} or the offset of the next subfield in its innermost container
+     * @param containerOffset Either {@code 0} or the offset of the innermost container relative to the base address
+     * @param composite The composite of the newly used field
+     * @param memberName The name of the newly used field
      */
     private void addTargets(final String base,
                             final CType currentType,
@@ -324,6 +358,13 @@ public interface PointerTargetSetBuilder {
       }
     }
 
+    /**
+     * Adds a field of a composite type to the tracking.
+     *
+     * @param composite The composite type with the field in it.
+     * @param fieldName The name of the field in the composite type.
+     * @return True, if the addition of the target was successful, false otherwise
+     */
     @Override
     public boolean addField(final CCompositeType composite, final String fieldName) {
       final String type = CTypeUtils.typeToString(composite);
@@ -343,7 +384,11 @@ public interface PointerTargetSetBuilder {
 
     /**
      * Should be used to remove the newly added field if it didn't turn out to correspond to any actual pointer target.
+     *
      * This can happen if we try to track a field of a composite that has no corresponding allocated bases.
+     *
+     * @param composite The composite type which's field should be removed.
+     * @param fieldName The name of the field that should be removed.
      */
     private void shallowRemoveField(final CCompositeType composite, final String fieldName) {
       final String type = CTypeUtils.typeToString(composite);
@@ -353,18 +398,21 @@ public interface PointerTargetSetBuilder {
 
     /**
      * Used to start tracking for fields that were used in some expression or an assignment LHS.
+     *
      * Each field is added for tracking only if it's present in some currently allocated object;
-     * an inner structure/union field is added only if the field corresponding to the inner
-     * composite itself is already tracked; also, a field corresponding to an inner composite is added
-     * only if any fields of that composite are already tracked. The latter two optimizations cause problems
+     * an inner structure/union field is added only if the field corresponding to the inner composite
+     * itself is already tracked; also, a field corresponding to an inner composite is added only if
+     * any fields of that composite are already tracked. The latter two optimizations cause problems
      * when adding an inner composite field along with the corresponding containing field e.g.:
      *
      * <p>{@code pouter->inner.f = /*...* /;}</p>
      *
-     * Here {@code inner.f} is not added because inner is not yet tracked and {@code outer.inner}
-     * is not added because no fields in structure <tt>inner</tt> are tracked. The issue is solved by grouping the
-     * requested fields into chunks by their nesting and avoid optimizations when adding fields of the same chunk.
+     * Here {@code inner.f} is not added because inner is not yet tracked and {@code outer.inner} is
+     * not added because no fields in structure <tt>inner</tt> are tracked. The issue is solved by
+     * grouping the requested fields into chunks by their nesting and avoid optimizations when adding
+     * fields of the same chunk.
      *
+     * @param fields The fields that should be tracked.
      */
     @Override
     public void addEssentialFields(final List<Pair<CCompositeType, String>> fields) {
@@ -409,6 +457,14 @@ public interface PointerTargetSetBuilder {
       }
     }
 
+    /**
+     * Adds a pointer variable to the pool of tracked deferred allocations.
+     *
+     * @param pointerVariable The name of the pointer variable.
+     * @param isZeroing A flag indicating if the variable is zeroing.
+     * @param size he size of the memory.
+     * @param baseVariable The name of the base variable.
+     */
     private void addDeferredAllocation(final String pointerVariable,
                                       final boolean isZeroing,
                                       final CIntegerLiteralExpression size,
@@ -420,6 +476,13 @@ public interface PointerTargetSetBuilder {
                                                                                       baseVariable));
     }
 
+    /**
+     * Adds a temporary deferred allocation to the tracking pool.
+     *
+     * @param isZeroing A flag indicating if the variable is zeroing.
+     * @param size The size of the memory.
+     * @param baseVariable The name of the base variable.
+     */
     @Override
     public void addTemporaryDeferredAllocation(final boolean isZeroing,
                                                final CIntegerLiteralExpression size,
@@ -427,6 +490,12 @@ public interface PointerTargetSetBuilder {
       addDeferredAllocation(baseVariable, isZeroing, size, baseVariable);
     }
 
+    /**
+     * Adds a pointer to the tracking of deferred memory allocations.
+     *
+     * @param newPointerVariable The new pointer variable.
+     * @param originalPointerVariable The original pointer variable.
+     */
     @Override
     public void addDeferredAllocationPointer(final String newPointerVariable,
                                              final String originalPointerVariable) {
@@ -441,7 +510,9 @@ public interface PointerTargetSetBuilder {
 
     /**
      * Removes pointer to a deferred memory allocation from tracking.
-     * @return whether the removed variable was the only pointer to the corresponding referred allocation
+     *
+     * @param oldPointerVariable The variable to be removed.
+     * @return Whether the removed variable was the only pointer to the corresponding referred allocation.
      */
     @Override
     public boolean removeDeferredAllocatinPointer(final String oldPointerVariable) {
@@ -459,43 +530,87 @@ public interface PointerTargetSetBuilder {
       }
     }
 
+    /**
+     * Removes a variable from the pool of deferred allocations and returns the pool without the
+     * variable.
+     *
+     * @param allocatedPointerVariable The name of the variable to be removed.
+     * @return The deferred allocation pool without the variable.
+     */
     @Override
     public DeferredAllocationPool removeDeferredAllocation(final String allocatedPointerVariable) {
       final DeferredAllocationPool deferredAllocationPool = deferredAllocations.get(allocatedPointerVariable);
       for (final String pointerVariable : deferredAllocationPool.getPointerVariables()) {
         deferredAllocations = deferredAllocations.removeAndCopy(pointerVariable);
       }
+
       return deferredAllocationPool;
     }
 
+    /**
+     * Returns a set of all deferred allocation variables.
+     *
+     * @return The set of deferred allocation variables.
+     */
     @Override
     public SortedSet<String> getDeferredAllocationVariables() {
       return deferredAllocations.keySet();
     }
 
+    /**
+     * Checks, if a variable is a temporary deferred allocation pointer.
+     *
+     * @param pointerVariable The variable name.
+     * @return True, if the variable is a temporary deferred allocation pointer, false otherwise.
+     */
     @Override
     public boolean isTemporaryDeferredAllocationPointer(final String pointerVariable) {
       final DeferredAllocationPool deferredAllocationPool = deferredAllocations.get(pointerVariable);
       assert deferredAllocationPool == null || deferredAllocationPool.getBaseVariables().size() >= 1 :
-             "Inconsistent deferred alloction pool: no bases";
+             "Inconsistent deferred allocation pool: no bases";
       return deferredAllocationPool != null && deferredAllocationPool.getBaseVariables().get(0).equals(pointerVariable);
     }
 
+    /**
+     * Checks, if a variable is a deferred allocation pointer.
+     *
+     * @param pointerVariable The variable name.
+     * @return True, if the variable is a deferred allocation pointer, false otherwise.
+     */
     @Override
     public boolean isDeferredAllocationPointer(final String pointerVariable) {
       return deferredAllocations.containsKey(pointerVariable);
     }
 
+    /**
+     * Returns, if a variable is the actual base of a pointer.
+     *
+     * @param name The name of the variable.
+     * @return True, if the variable is an actual base, false otherwise.
+     */
     @Override
     public boolean isActualBase(final String name) {
       return bases.containsKey(name) && !PointerTargetSetManager.isFakeBaseType(bases.get(name));
     }
 
+    /**
+     * Returns, if a variable name is a prepared base.
+     *
+     * @param name The name of the variable.
+     * @return True, if the variable is a prepared base, false otherwise.
+     */
     @Override
     public boolean isPreparedBase(final String name) {
       return bases.containsKey(name);
     }
 
+    /**
+     * Checks, if a variable is a base of a pointer.
+     *
+     * @param name The name of the variable.
+     * @param type The type of the variable.
+     * @return True, if the variable is a base, false otherwise.
+     */
     @Override
     public boolean isBase(final String name, CType type) {
       type = CTypeUtils.simplifyType(type);
@@ -503,23 +618,48 @@ public interface PointerTargetSetBuilder {
       return baseType != null && baseType.equals(type);
     }
 
+    /**
+     * Returns a set of all pointer bases.
+     *
+     * @return A set of all pointer bases.
+     */
     @Override
     public SortedSet<String> getAllBases() {
       return bases.keySet();
     }
 
+    /**
+     * Gets a list of all targets of a pointer type.
+     *
+     * @param type The type of the pointer variable.
+     * @return A list of all targets of a pointer type.
+     */
     @Override
     public PersistentList<PointerTarget> getAllTargets(final CType type) {
       return firstNonNull(targets.get(CTypeUtils.typeToString(type)),
                           PersistentLinkedList.<PointerTarget>of());
     }
 
+    /**
+     * Gets all matching targets of a pointer target pattern.
+     *
+     * @param type The type of the pointer variable.
+     * @param pattern The pointer target pattern.
+     * @return A list of matching pointer targets.
+     */
     @Override
     public Iterable<PointerTarget> getMatchingTargets(final CType type,
         final PointerTargetPattern pattern) {
       return from(getAllTargets(type)).filter(pattern);
     }
 
+    /**
+     * Gets all spurious targets of a pointer target pattern.
+     *
+     * @param type The type of the pointer variable.
+     * @param pattern The pointer target pattern.
+     * @return A list of spurious pointer targets.
+     */
     @Override
     public Iterable<PointerTarget> getSpuriousTargets(final CType type,
         final PointerTargetPattern pattern) {
@@ -528,6 +668,8 @@ public interface PointerTargetSetBuilder {
 
     /**
      * Returns an immutable PointerTargetSet with all the changes made to the builder.
+     *
+     * @return A PointerTargetSet with all changes made to the builder.
      */
     @Override
     public PointerTargetSet build() {

@@ -70,6 +70,9 @@ import java.util.Map;
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
 
+/**
+ * A manager for pointer target sets.
+ */
 public class PointerTargetSetManager {
 
   private static final String UNITED_BASE_UNION_TAG_PREFIX = "__VERIFIER_base_union_of_";
@@ -119,6 +122,14 @@ public class PointerTargetSetManager {
   private final FunctionFormulaManagerView ffmgr;
   private final TypeHandlerWithPointerAliasing typeHandler;
 
+  /**
+   * Creates a new PointerTargetSetManager.
+   *
+   * @param pOptions Additional configuration options.
+   * @param pFormulaManager The manager for SMT formulae.
+   * @param pTypeHandler A type handler for certain types.
+   * @param pShutdownNotifier A notifier for external shutdowns to stop long-running algorithms.
+   */
   public PointerTargetSetManager(FormulaEncodingWithPointerAliasingOptions pOptions,
       FormulaManagerView pFormulaManager, TypeHandlerWithPointerAliasing pTypeHandler,
       ShutdownNotifier pShutdownNotifier) {
