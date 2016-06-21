@@ -33,6 +33,7 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.enteringEdges;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 
@@ -67,6 +68,9 @@ import java.util.Set;
 public class LocationState implements AbstractStateWithLocation, AbstractQueryableState, Partitionable, Serializable {
 
   private static final long serialVersionUID = -801176497691618779L;
+
+  private final static Predicate<CFAEdge> NOT_FUNCTIONCALL =
+      not(or(instanceOf(FunctionReturnEdge.class), instanceOf(FunctionCallEdge.class)));
 
   @Options(prefix="cpa.location")
   public static class LocationStateFactory {
@@ -139,22 +143,20 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
       justification = "backwards analysis not serializable"
     )
     private final CFA cfa;
-    private boolean followFunctionCalls;
 
     protected BackwardsLocationState(CFANode locationNode, CFA pCfa, boolean pFollowFunctionCalls) {
       super(locationNode, pFollowFunctionCalls);
       cfa = pCfa;
-      followFunctionCalls = pFollowFunctionCalls;
     }
 
     @Override
     public Iterable<CFAEdge> getOutgoingEdges() {
-      if (followFunctionCalls) {
-        return enteringEdges(getLocationNode());
+      return super.getIngoingEdges();
+    }
 
-      } else {
-        return allEnteringEdges(getLocationNode()).filter(not(or(instanceOf(FunctionReturnEdge.class), instanceOf(FunctionCallEdge.class))));
-      }
+    @Override
+    public Iterable<CFAEdge> getIngoingEdges() {
+      return super.getOutgoingEdges();
     }
 
     @Override
@@ -207,7 +209,17 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
       return leavingEdges(locationNode);
 
     } else {
-      return allLeavingEdges(locationNode).filter(not(or(instanceOf(FunctionReturnEdge.class), instanceOf(FunctionCallEdge.class))));
+      return allLeavingEdges(locationNode).filter(NOT_FUNCTIONCALL);
+    }
+  }
+
+  @Override
+  public Iterable<CFAEdge> getIngoingEdges() {
+    if (followFunctionCalls) {
+      return enteringEdges(locationNode);
+
+    } else {
+      return allEnteringEdges(locationNode).filter(NOT_FUNCTIONCALL);
     }
   }
 

@@ -207,6 +207,11 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
   }
 
   @Override
+  public Iterable<CFAEdge> getIngoingEdges() {
+    return getLocations().transformAndConcat(AbstractStateWithLocations::getIngoingEdges);
+  }
+
+  @Override
   public String toDOTLabel() {
     StringBuilder sb = new StringBuilder();
 

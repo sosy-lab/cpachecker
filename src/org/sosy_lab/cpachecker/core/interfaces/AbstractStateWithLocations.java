@@ -67,4 +67,10 @@ public interface AbstractStateWithLocations extends AbstractState {
    * @return A (possibly empty) iterable of edges without duplicates.
    */
   Iterable<CFAEdge> getOutgoingEdges();
+
+  /**
+   * same as {@link #getOutgoingEdges()}, but swap "ingoing" and "outgoing"
+   */
+  Iterable<CFAEdge> getIngoingEdges();
+
 }
