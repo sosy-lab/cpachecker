@@ -88,7 +88,8 @@ public class ConfigurationFilesTest {
           ".*File .* does not exist.*"
               + "|The following configuration options were specified but are not used:.*"
               + "|MathSAT5 is available for research and evaluation purposes only.*"
-              + "|Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.",
+              + "|Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist."
+              + "|Finding target locations was interrupted.*",
           Pattern.DOTALL);
 
   private static final ImmutableList<String> UNUSED_OPTIONS =

@@ -119,9 +119,16 @@ public class TargetLocationProviderImpl implements TargetLocationProvider {
 
     } catch (InterruptedException e) {
       if (!shutdownNotifier.shouldShutdown()) {
-        logManager.logException(Level.WARNING, e, "Unable to find target locations. Defaulting to selecting all locations as potential target locations.");
+        logManager.logException(
+            Level.WARNING,
+            e,
+            "Unable to find target locations. Defaulting to selecting all locations as potential target locations.");
       } else {
-        logManager.log(Level.WARNING, "Finding target locations timed out, defaulting to select all locations as potential target locations.");
+        // can happen, if several algorithms are executed in parallel,
+        // one of them finishes earlier and kills the other one.
+        logManager.log(
+            Level.WARNING,
+            "Finding target locations was interrupted. Defaulting to select all locations as potential target locations.");
       }
       return allNodes;
     }
