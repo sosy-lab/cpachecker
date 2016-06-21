@@ -260,9 +260,7 @@ public class PointerTargetSetManager {
       final PointerTargetSet pts2) {
     final Map<DeferredAllocationPool, DeferredAllocationPool> mergedDeferredAllocationPools = new HashMap<>();
     final MergeConflictHandler<String, DeferredAllocationPool> deferredAllocationMergingConflictHandler =
-      new MergeConflictHandler<String, DeferredAllocationPool>() {
-      @Override
-      public DeferredAllocationPool resolveConflict(String key, DeferredAllocationPool a, DeferredAllocationPool b) {
+      (key, a, b) -> {
         final DeferredAllocationPool result = a.mergeWith(b);
         final DeferredAllocationPool oldResult = mergedDeferredAllocationPools.get(result);
         if (oldResult == null) {
@@ -273,8 +271,7 @@ public class PointerTargetSetManager {
           mergedDeferredAllocationPools.put(newResult, newResult);
           return newResult;
         }
-      }
-    };
+      };
     PersistentSortedMap<String, DeferredAllocationPool> mergedDeferredAllocations =
       merge(pts1.deferredAllocations, pts2.deferredAllocations, deferredAllocationMergingConflictHandler);
     for (final DeferredAllocationPool merged : mergedDeferredAllocationPools.keySet()) {
@@ -346,12 +343,7 @@ public class PointerTargetSetManager {
   }
 
   private static <K, T> MergeConflictHandler<K, PersistentList<T>> mergeOnConflict() {
-    return new MergeConflictHandler<K, PersistentList<T>>() {
-      @Override
-      public PersistentList<T> resolveConflict(K key, PersistentList<T> list1, PersistentList<T> list2) {
-        return DeferredAllocationPool.mergeLists(list1, list2);
-      }
-    };
+    return (key, list1, list2) -> DeferredAllocationPool.mergeLists(list1, list2);
   }
 
   /**
