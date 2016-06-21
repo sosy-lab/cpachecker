@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithDummyLocation;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.Collection;
 import java.util.Collections;
@@ -182,4 +183,12 @@ public class TerminationState extends AbstractSingleWrapperState
         TerminationState.class.getSimpleName() + "does not support serialization.");
   }
 
+  /**
+   * Throws {@link UnsupportedOperationException}.
+   * @param in unused
+   */
+  private void readObject(ObjectInputStream in) {
+    throw new UnsupportedOperationException(
+        TerminationState.class.getSimpleName() + "does not support serialization.");
+  }
 }
