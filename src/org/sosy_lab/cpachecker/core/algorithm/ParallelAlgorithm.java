@@ -306,11 +306,17 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       return () -> {
         return ParallelAnalysisResult.absent();
       };
-    } catch (CPAException | InterruptedException e) {
+    } catch (CPAException e) {
       logger.logUserException(
           Level.WARNING,
           e,
           "Skipping analysis due to problems while creating the necessary components.");
+      return () -> {
+        return ParallelAnalysisResult.absent();
+      };
+    } catch (InterruptedException e) {
+      logger.log(Level.INFO, "Skipping one analysis because the timelimit"
+          + " was already over before the analysis could be started.");
       return () -> {
         return ParallelAnalysisResult.absent();
       };
