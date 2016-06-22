@@ -248,7 +248,7 @@ public class ReportGenerator {
       throws IOException {
 
     if (isReadable(sourcePath)) {
-      int iterator = 0;
+      int iterator = 1;
       try (BufferedReader source =
           new BufferedReader(
               new InputStreamReader(
