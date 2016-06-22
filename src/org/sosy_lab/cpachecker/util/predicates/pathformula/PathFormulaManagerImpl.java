@@ -303,7 +303,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final SSAMapMerger merger =
         new SSAMapMerger(
             useNondetFlags,
-            handleArrays,
+            handleHeapArray,
             fmgr,
             afmgr,
             converter,
