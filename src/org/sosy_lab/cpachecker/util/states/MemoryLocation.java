@@ -151,13 +151,8 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
   }
 
   public String getAsSimpleString() {
-    /*
-          String simpleName = identifier + "[" + offset + "]";
-
-    return isOnFunctionStack() ? (functionName + "::" + simpleName) : simpleName;
-    */
-
-    return isOnFunctionStack() ? (functionName + "::" + identifier) : (identifier);
+    final String simpleName = identifier + "[" + offset + "]";
+    return isOnFunctionStack() ? (functionName + "::" + simpleName) : (simpleName);
   }
 
   public String serialize() {
