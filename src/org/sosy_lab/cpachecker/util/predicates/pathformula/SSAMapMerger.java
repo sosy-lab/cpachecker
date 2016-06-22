@@ -49,8 +49,6 @@ import org.sosy_lab.solver.api.FormulaType;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.annotation.Nullable;
-
 public class SSAMapMerger {
 
   private final FormulaManagerView fmgr;
@@ -68,7 +66,6 @@ public class SSAMapMerger {
       boolean pUseNondetFlags,
       boolean pHandleHeapArray,
       FormulaManagerView pFmgr,
-      @Nullable ArrayFormulaManagerView pAfmgr,
       CtoFormulaConverter pConverter,
       CtoFormulaTypeHandler pTypeHandler,
       ShutdownNotifier pShutdownNotifier,
@@ -78,7 +75,7 @@ public class SSAMapMerger {
     fmgr = pFmgr;
     ffmgr = pFmgr.getFunctionFormulaManager();
     bfmgr = pFmgr.getBooleanFormulaManager();
-    afmgr = pAfmgr; // initialized in calling class, do not use pFmgr.getArrayFormulaManager()!
+    afmgr = handleHeapArray ? pFmgr.getArrayFormulaManager() : null;
     converter = pConverter;
     typeHandler = pTypeHandler;
     shutdownNotifier = pShutdownNotifier;

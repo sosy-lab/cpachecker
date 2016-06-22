@@ -65,7 +65,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFo
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
-import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.QuantifiedFormulaManagerView;
@@ -126,7 +125,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
-  private final ArrayFormulaManagerView afmgr;
   private final CtoFormulaConverter converter;
   private final CtoFormulaTypeHandler typeHandler;
   private final LogManager logger;
@@ -162,7 +160,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     shutdownNotifier = pShutdownNotifier;
 
     if (handleArrays) {
-      afmgr = fmgr.getArrayFormulaManager();
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
       typeHandler = new CtoFormulaTypeHandlerWithArrays(pLogger, pMachineModel);
       converter = new CToFormulaConverterWithArrays(options, fmgr, pMachineModel,
@@ -172,7 +169,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
 
     } else if (handleHeapArray) {
-      afmgr = fmgr.getArrayFormulaManager();
       final FormulaEncodingWithPointerAliasingOptions options =
           new FormulaEncodingWithPointerAliasingOptions(config);
       TypeHandlerWithPointerAliasing aliasingTypeHandler =
@@ -193,7 +189,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
             pVariableClassification, logger, shutdownNotifier, aliasingTypeHandler, pDirection);
       }
     } else if (handlePointerAliasing) {
-      afmgr = null;
       final FormulaEncodingWithPointerAliasingOptions options = new FormulaEncodingWithPointerAliasingOptions(config);
       TypeHandlerWithPointerAliasing aliasingTypeHandler = new TypeHandlerWithPointerAliasing(pLogger, pMachineModel, options);
       typeHandler = aliasingTypeHandler;
@@ -202,7 +197,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           aliasingTypeHandler, pDirection);
 
     } else {
-      afmgr = null;
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
       typeHandler = new CtoFormulaTypeHandler(pLogger, pMachineModel);
       converter = new CtoFormulaConverter(options, fmgr, pMachineModel,
@@ -305,7 +299,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
             useNondetFlags,
             handleHeapArray,
             fmgr,
-            afmgr,
             converter,
             typeHandler,
             shutdownNotifier,
@@ -486,7 +479,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
             useNondetFlags,
             handleHeapArray,
             fmgr,
-            afmgr,
             converter,
             typeHandler,
             shutdownNotifier,
