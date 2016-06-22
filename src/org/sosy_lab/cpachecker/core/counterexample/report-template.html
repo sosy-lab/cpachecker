@@ -780,7 +780,6 @@ div pre{
         $scope.clickedCFAElement = function($event){
             var element = $event.currentTarget.id;
             if (document.getElementById(element).classList.contains("edge")){
-                $rootScope.$broadcast("ChangeTab", 3);
                 var line;
                 var source;
                 if (element.split("->")[1] > 100000 || element.split("->")[0].substring("cfa-".length) > 100000){
@@ -868,24 +867,37 @@ div pre{
     }]);
 
 
-    app.controller('SourceController', ['$rootScope', '$scope', function($rootScope, $scope){
+    app.controller('SourceController', ['$rootScope', '$scope', '$location', '$anchorScroll',
+                                        function($rootScope, $scope, $location, $anchorScroll){
         //available sourcefiles
         $scope.sourceFiles = sourceFiles;
         $scope.selectedSourceFile = 0;
         $scope.lineMarked = false;
 
         $scope.$on('clickedErrorpathElement', function(event, lineNumber){
-            $scope.markSource($rootScope.errorPathData[lineNumber].line);
+            var line = $rootScope.errorPathData[lineNumber].line;
+            $scope.markSource(line);
+            $scope.jumpToSource(line);
         });
         $scope.$on('clickedErrorpathButton', function(event, lineNumber){
-            $scope.markSource($rootScope.errorPathData[lineNumber].line);
+            var line = $rootScope.errorPathData[lineNumber].line;
+            $scope.markSource(line);
+            $scope.jumpToSource(line);
         });
         $scope.$on('clickedCFAEdge', function(event, line){
             $scope.markSource(line);
+            $scope.jumpToSource(line);
         });
         $scope.$on('clickedARGEdge', function(event, line){
             $scope.markSource(line);
+            $scope.jumpToSource(line);
         });
+
+        $scope.jumpToSource = function(line){
+            $scope.setTab(3);
+            $location.hash('source-' + line);
+            $anchorScroll();
+        };
 
         $scope.setSourceFile = function(value){
             $scope.selectedSourceFile = value;
@@ -907,6 +919,7 @@ div pre{
             var yMargin = Math.round((document.getElementById("externalFiles_section").offsetHeight/ 2)-50);
             sourceContent.parentNode.scrollTop = bcr.top + yScroll - box.top - yMargin;
             $scope.lineMarked = true;
+            $scope.markedLine = line;
         };
     }]);
 
