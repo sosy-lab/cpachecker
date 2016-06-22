@@ -143,6 +143,12 @@ body {
     width: 300px;
     zIndex : 50000
 }
+.dropdown-menu a:hover{
+    background-color: #71afff !important;
+}
+.dropdown-menu a{
+    cursor: pointer;
+}
 #externalFiles_section .popover{
     overflow: hidden;
 }
@@ -1116,8 +1122,8 @@ function init(){
                         Displayed CFA
                         <span class="caret"></span>
                     </button>
-                        <li ng-repeat="func in functions"><a ng-click="setCFAFunction($index)">{{func}}</a></li>
                     <ul class="dropdown-menu pre-scrollable">
+                        <li ng-repeat="func in functions" ng-class="{'active, disabled': cfaFunctionIsSet($index)}"><a ng-click="setCFAFunction($index)">{{func}}</a></li>
                     </ul>
                 </div>
                 <label>{{functions[selectedCFAFunction]}}</label>
