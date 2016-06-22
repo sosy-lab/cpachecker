@@ -296,6 +296,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     stats.maxSuccessors = Math.max(numSuccessors, stats.maxSuccessors);
 
     for (AbstractState successor : Iterables.consumingIterable(successors)) {
+      shutdownNotifier.shutdownIfNecessary();
       logger.log(Level.FINER, "Considering successor of current state");
       logger.log(Level.ALL, "Successor of", state, "\nis", successor);
 
@@ -365,6 +366,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
           logger.log(
               Level.FINER, "Considering", reached.size(), "states from reached set for merge");
           for (AbstractState reachedState : reached) {
+            shutdownNotifier.shutdownIfNecessary();
             AbstractState mergedState =
                 mergeOperator.merge(successor, reachedState, successorPrecision);
 

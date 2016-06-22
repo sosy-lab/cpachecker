@@ -23,9 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.refinement;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
@@ -33,9 +34,9 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.collect.FluentIterable;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 
 public class InfeasiblePrefix {
@@ -83,26 +84,21 @@ public class InfeasiblePrefix {
 
     List<Set<String>> simpleInterpolantSequence = new ArrayList<>();
     for (ValueAnalysisInterpolant itp : pInterpolantSequence) {
-      simpleInterpolantSequence.add(FluentIterable.from(itp.getMemoryLocations()).transform(MemoryLocation.FROM_MEMORYLOCATION_TO_STRING).toSet());
+      simpleInterpolantSequence.add(
+          FluentIterable.from(itp.getMemoryLocations())
+              .transform(MemoryLocation::getAsSimpleString)
+              .toSet());
     }
 
     return new InfeasiblePrefix(pInfeasiblePrefix, simpleInterpolantSequence);
   }
 
   public Set<String> extractSetOfIdentifiers() {
-    return FluentIterable.from(interpolantSequence).transformAndConcat(new Function<Set<String>, Iterable<String>>() {
-      @Override
-      public Iterable<String> apply(Set<String> itp) {
-        return itp;
-      }}).toSet();
+    return ImmutableSet.copyOf(Iterables.concat(interpolantSequence));
   }
 
   public int getNonTrivialLength() {
-    return FluentIterable.from(interpolantSequence).filter(new Predicate<Set<String>>() {
-      @Override
-      public boolean apply(Set<String> pInput) {
-        return !pInput.isEmpty();
-      }}).size();
+    return FluentIterable.from(interpolantSequence).filter(Predicates.not(Set::isEmpty)).size();
   }
 
   public int getDepthOfPivotState() {

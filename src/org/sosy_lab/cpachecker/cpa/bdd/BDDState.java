@@ -114,14 +114,16 @@ public class BDDState implements AbstractQueryableState,
 
   @Override
   public Object evaluateProperty(String pProperty) throws InvalidQueryException {
-    if (pProperty.equals("VALUES")) {
-      return manager.dumpRegion(this.currentState).toString();
-    } else if (pProperty.equals("VARSET")) {
-      return "(" + Joiner.on(", ").join(manager.getPredicates()) + ")";
-    } else if (pProperty.equals("VARSETSIZE")) {
-      return manager.getPredicates().size();
-    } else {
-      throw new InvalidQueryException("BDDCPA Element can only return the current values (\"VALUES\")");
+    switch (pProperty) {
+      case "VALUES":
+        return manager.dumpRegion(this.currentState).toString();
+      case "VARSET":
+        return "(" + Joiner.on(", ").join(manager.getPredicates()) + ")";
+      case "VARSETSIZE":
+        return manager.getPredicates().size();
+      default:
+        throw new InvalidQueryException(
+            "BDDCPA Element can only return the current values (\"VALUES\")");
     }
   }
 

@@ -33,7 +33,8 @@ public class JConstructorType extends JMethodType implements JType {
 
   private static final long serialVersionUID = -6996173000501454098L;
 
-  private static final JConstructorType UNRESOLVABLE_TYPE = new JConstructorType(JClassType.createUnresolvableType(), new ArrayList<JType>(), false);
+  private static final JConstructorType UNRESOLVABLE_TYPE =
+      new JConstructorType(JClassType.createUnresolvableType(), new ArrayList<>(), false);
 
   /**
    * Creates a new <code>JConstructorType</code> object with the given attributes.

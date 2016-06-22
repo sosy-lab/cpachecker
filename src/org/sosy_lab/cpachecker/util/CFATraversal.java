@@ -77,21 +77,11 @@ import java.util.Set;
  */
 public class CFATraversal {
 
-  private static final Function<CFANode, Iterable<CFAEdge>> FORWARD_EDGE_SUPPLIER
-      = new Function<CFANode, Iterable<CFAEdge>>() {
-          @Override
-          public Iterable<CFAEdge> apply(CFANode node) {
-            return CFAUtils.allLeavingEdges(node);
-          }
-      };
+  private static final Function<CFANode, Iterable<CFAEdge>> FORWARD_EDGE_SUPPLIER =
+      CFAUtils::allLeavingEdges;
 
-  private static final Function<CFANode, Iterable<CFAEdge>> BACKWARD_EDGE_SUPPLIER
-      = new Function<CFANode, Iterable<CFAEdge>>() {
-        @Override
-        public Iterable<CFAEdge> apply(CFANode node) {
-          return CFAUtils.allEnteringEdges(node);
-        }
-      };
+  private static final Function<CFANode, Iterable<CFAEdge>> BACKWARD_EDGE_SUPPLIER =
+      CFAUtils::allEnteringEdges;
 
   // function providing the outgoing edges for a CFANode
   private final Function<CFANode, Iterable<CFAEdge>> edgeSupplier;
@@ -114,8 +104,8 @@ public class CFATraversal {
    * the CFA, visiting all nodes and edges in a DFS-like strategy.
    */
   public static CFATraversal dfs() {
-    return new CFATraversal(FORWARD_EDGE_SUPPLIER, CFAUtils.TO_SUCCESSOR,
-        Predicates.<CFAEdge>alwaysFalse());
+    return new CFATraversal(
+        FORWARD_EDGE_SUPPLIER, CFAEdge::getSuccessor, Predicates.<CFAEdge>alwaysFalse());
   }
 
   /**
@@ -125,9 +115,9 @@ public class CFATraversal {
    */
   public CFATraversal backwards() {
     if (edgeSupplier == FORWARD_EDGE_SUPPLIER) {
-      return new CFATraversal(BACKWARD_EDGE_SUPPLIER, CFAUtils.TO_PREDECESSOR, ignoreEdge);
+      return new CFATraversal(BACKWARD_EDGE_SUPPLIER, CFAEdge::getPredecessor, ignoreEdge);
     } else if (edgeSupplier == BACKWARD_EDGE_SUPPLIER) {
-      return new CFATraversal(FORWARD_EDGE_SUPPLIER, CFAUtils.TO_SUCCESSOR, ignoreEdge);
+      return new CFATraversal(FORWARD_EDGE_SUPPLIER, CFAEdge::getSuccessor, ignoreEdge);
     } else {
       throw new AssertionError();
     }

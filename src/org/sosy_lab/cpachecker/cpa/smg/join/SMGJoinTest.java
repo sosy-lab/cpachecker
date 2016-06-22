@@ -29,7 +29,7 @@ import com.google.common.collect.Iterables;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.log.TestLogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -55,7 +55,7 @@ public class SMGJoinTest {
   static private final CFunctionDeclaration functionDeclaration2 = new CFunctionDeclaration(FileLocation.DUMMY, functionType, "bar", ImmutableList.<CParameterDeclaration>of());
   static private final CFunctionDeclaration functionDeclaration3 = new CFunctionDeclaration(FileLocation.DUMMY, functionType, "main", ImmutableList.<CParameterDeclaration>of());
 
-  SMGState dummyState = new SMGState(TestLogManager.getInstance(), MachineModel.LINUX32, false, false,
+  SMGState dummyState = new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX32, false, false,
       null, 4, false);
 
   private CLangSMG smg1;

@@ -29,7 +29,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
-import org.sosy_lab.common.log.TestLogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.solver.SolverContextFactory.Solvers;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.ArrayFormula;
@@ -67,7 +67,7 @@ public class SolverQuantifierTest extends SolverBasedTest0 {
     requireQuantifiers();
     requireRationals();
 
-    FormulaManagerView mgrv = new FormulaManagerView(mgr, config, TestLogManager.getInstance());
+    FormulaManagerView mgrv = new FormulaManagerView(mgr, config, LogManager.createTestLogManager());
     this.qfm = mgrv.getQuantifiedFormulaManager();
     imgr = mgrv.getIntegerFormulaManager();
 

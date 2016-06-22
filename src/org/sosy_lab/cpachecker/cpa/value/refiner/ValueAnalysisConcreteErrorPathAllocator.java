@@ -146,8 +146,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
      * representing each memory location, which would be necessary if we
      * wanted to exactly map each memory location to a LeftHandSide.*/
     Map<LeftHandSide, Address> variableAddresses =
-        generateVariableAddresses(
-            FluentIterable.from(pPath).transform(Pair.<ValueAnalysisState>getProjectionToFirst()));
+        generateVariableAddresses(FluentIterable.from(pPath).transform(Pair::getFirst));
 
     for (Pair<ValueAnalysisState, List<CFAEdge>> edgeStatePair : pPath) {
 

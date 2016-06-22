@@ -12,7 +12,6 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.common.rationals.LinearExpression;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -29,8 +28,7 @@ import java.util.logging.Level;
 
 public class ApronPolyhedraTest {
   static {
-    SetUp.init(
-        NativeLibraries.getNativeLibraryPath().resolve("apron").getAbsolutePath());
+    SetUp.init(NativeLibraries.getNativeLibraryPath().resolve("apron").toAbsolutePath().toString());
   }
 
   private PolyhedraWideningManager pwm;
@@ -38,7 +36,7 @@ public class ApronPolyhedraTest {
 
   @Before
   public void setUp() {
-    logger = TestLogManager.getInstance();
+    logger = LogManager.createTestLogManager();
     PolicyIterationStatistics stats = Mockito.mock(PolicyIterationStatistics.class);
 
     pwm = new PolyhedraWideningManager(stats, logger);

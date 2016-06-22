@@ -32,7 +32,6 @@ import static org.sosy_lab.common.Appenders.forIterable;
 import static org.sosy_lab.cpachecker.util.cwriter.LoopCollectingEdgeVisitor.getLoopsOfNode;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 
@@ -170,12 +169,10 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
 
     // only use a unique name where we are not inside a relevant loop
     if (loopsInPathToRecreate.isEmpty()
-        || !FluentIterable.from(loopsInPathToRecreate.keySet())
-                      .anyMatch(new Predicate<Loop>() {
-                            @Override
-                            public boolean apply(Loop loop) {
-                              return loop.getLoopNodes().contains(predecessor);
-                            }})) {
+        || !loopsInPathToRecreate
+            .keySet()
+            .stream()
+            .anyMatch(loop -> loop.getLoopNodes().contains(predecessor))) {
       functionName = getFreshFunctionName(functionStartNode);
     }
 
@@ -281,13 +278,10 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
   private String processSimpleEdge0(CFAEdge pCFAEdge, BasicBlock currentBlock, final ARGState state) {
 
     CFANode succ = pCFAEdge.getSuccessor();
-    Predicate<Loop> predicate = new Predicate<Loop>() {
-      @Override
-      public boolean apply(Loop loop) {
-        return loopsInPathToRecreate.containsKey(loop);
-      }
-    };
-    List<Loop> loopsAfter = from(getLoopsOfNode(loopStructure, succ)).filter(predicate).toList();
+    List<Loop> loopsAfter =
+        from(getLoopsOfNode(loopStructure, succ))
+            .filter(loopsInPathToRecreate::containsKey)
+            .toList();
 
     // we do not go into a loop that has to be uprolled, so just continue normally
     if (loopsAfter.isEmpty() || !loopsInPathToRecreate.get(loopsAfter.get(loopsAfter.size()-1)).contains(state)) {

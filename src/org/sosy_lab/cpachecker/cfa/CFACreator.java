@@ -31,16 +31,14 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 
+import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CParser.FileToParse;
@@ -101,6 +99,9 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -716,7 +717,7 @@ private boolean classifyNodes = false;
     Path file = Paths.get(fileDenotation);
 
     try {
-      Files.checkReadableFile(file);
+      MoreFiles.checkReadableFile(file);
     } catch (FileNotFoundException e) {
       throw new InvalidConfigurationException(e.getMessage());
     }
@@ -743,16 +744,17 @@ private boolean classifyNodes = false;
       return Iterables.getOnlyElement(cfas.values());
 
     } else if (sourceFiles.size() == 1) {
-      String filename = sourceFiles.get(0);
-
       // get the AAA part out of a filename like test/program/AAA.cil.c
-      filename = (Paths.get(filename)).getName(); // remove directory
+      Path path = Paths.get(sourceFiles.get(0)).getFileName();
+      if (path != null) {
+        String filename = path.toString(); // remove directory
 
-      int indexOfDot = filename.indexOf('.');
-      String baseFilename = indexOfDot >= 1 ? filename.substring(0, indexOfDot) : filename;
+        int indexOfDot = filename.indexOf('.');
+        String baseFilename = indexOfDot >= 1 ? filename.substring(0, indexOfDot) : filename;
 
-      // try function with same name as file
-      mainFunction = cfas.get(baseFilename);
+        // try function with same name as file
+        mainFunction = cfas.get(baseFilename);
+      }
     }
 
     if (mainFunction == null) {
@@ -910,15 +912,9 @@ v.addInitializer(initializer);
   }
 
   private void exportCFAAsync(final CFA cfa) {
-    // execute asynchronously, this may take several seconds for large programs on slow disks
-    Threads.newThread(new Runnable() {
-      @Override
-      public void run() {
-        // running the following in parallel is thread-safe
-        // because we don't modify the CFA from this point on
-        exportCFA(cfa);
-      }
-    }, "CFA export thread").start();
+    // Execute asynchronously, this may take several seconds for large programs on slow disks.
+    // This is safe because we don't modify the CFA from this point on.
+    Concurrency.newThread("BDD cleanup thread", () -> exportCFA(cfa)).start();
   }
 
   private void exportCFA(final CFA cfa) {
@@ -926,7 +922,7 @@ v.addInitializer(initializer);
 
     // write CFA to file
     if (exportCfa && exportCfaFile != null) {
-      try (Writer w = Files.openOutputFile(exportCfaFile)) {
+      try (Writer w = MoreFiles.openOutputFile(exportCfaFile, Charset.defaultCharset())) {
         DOTBuilder.generateDOT(w, cfa);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,
@@ -948,7 +944,7 @@ v.addInitializer(initializer);
     }
 
     if (exportFunctionCalls && exportFunctionCallsFile != null) {
-      try (Writer w = Files.openOutputFile(exportFunctionCallsFile)) {
+      try (Writer w = MoreFiles.openOutputFile(exportFunctionCallsFile, Charset.defaultCharset())) {
         FunctionCallDumper.dump(w, cfa);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,

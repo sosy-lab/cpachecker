@@ -132,11 +132,11 @@ class FunctionScope extends AbstractScope {
   }
 
   public void enterBlock() {
-    typesStack.addLast(new HashMap<String, CComplexTypeDeclaration>());
-    labelsStack.addLast(new HashMap<String, CVariableDeclaration>());
-    labelsNodeStack.addLast(new HashMap<String, CLabelNode>());
-    varsStack.addLast(new HashMap<String, CSimpleDeclaration>());
-    varsStackWitNewNames.addLast(new HashMap<String, CSimpleDeclaration>());
+    typesStack.addLast(new HashMap<>());
+    labelsStack.addLast(new HashMap<>());
+    labelsNodeStack.addLast(new HashMap<>());
+    varsStack.addLast(new HashMap<>());
+    varsStackWitNewNames.addLast(new HashMap<>());
     varsList.addLast(varsStack.getLast());
     varsListWithNewNames.addLast(varsStackWitNewNames.getLast());
   }

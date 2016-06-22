@@ -120,9 +120,15 @@ public class PolicyBound {
 
   @Override
   public boolean equals(Object other) {
-    if (this == other) return true;
-    if (other == null) return false;
-    if (other.getClass() != this.getClass()) return false;
+    if (this == other) {
+      return true;
+    }
+    if (other == null) {
+      return false;
+    }
+    if (other.getClass() != this.getClass()) {
+      return false;
+    }
     PolicyBound o = (PolicyBound) other;
     return
         predecessor.equals(o.predecessor)

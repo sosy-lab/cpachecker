@@ -1,5 +1,16 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra;
 
+import apron.Abstract1;
+import apron.Coeff;
+import apron.Environment;
+import apron.Lincons1;
+import apron.Linexpr1;
+import apron.Linterm1;
+import apron.Manager;
+import apron.MpqScalar;
+import apron.Polka;
+import apron.SetUp;
+
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
@@ -24,21 +35,9 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 
-import apron.Abstract1;
-import apron.Coeff;
-import apron.Environment;
-import apron.Lincons1;
-import apron.Linexpr1;
-import apron.Linterm1;
-import apron.Manager;
-import apron.MpqScalar;
-import apron.Polka;
-import apron.SetUp;
-
 public class PolyhedraWideningManager {
   static {
-    SetUp.init(
-        NativeLibraries.getNativeLibraryPath().resolve("apron").getAbsolutePath());
+    SetUp.init(NativeLibraries.getNativeLibraryPath().resolve("apron").toAbsolutePath().toString());
   }
 
   private final Manager manager;

@@ -23,18 +23,17 @@
  */
 package org.sosy_lab.cpachecker.util.refinement;
 
-import java.io.Serializable;
+import com.google.common.base.Optional;
+import com.google.common.collect.Ordering;
+
+import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.VariableClassification;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
-import java.util.TreeSet;
-
-import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.VariableClassification;
-
-import com.google.common.base.Optional;
 
 public class PrefixSelector {
 
@@ -46,10 +45,7 @@ public class PrefixSelector {
 
     List<Comparator<InfeasiblePrefix>> comparators = createComparators(pPrefixPreference);
 
-    TreeSet<InfeasiblePrefix> sortedPrefixes = new TreeSet<>(new ChainedComparator(comparators));
-    sortedPrefixes.addAll(pInfeasiblePrefixes);
-
-    return sortedPrefixes.first();
+    return Ordering.compound(comparators).min(pInfeasiblePrefixes);
   }
 
   public int obtainScoreForPrefixes(final List<InfeasiblePrefix> pPrefixes, final PrefixPreference pPreference) {
@@ -79,30 +75,6 @@ public class PrefixSelector {
     }
 
     return comparators;
-  }
-
-  private static class ChainedComparator implements Comparator<InfeasiblePrefix>, Serializable {
-
-    private static final long serialVersionUID = -6359291861139423226L;
-
-    private final List<Comparator<InfeasiblePrefix>> comparators;
-
-    public ChainedComparator(final List<Comparator<InfeasiblePrefix>> pComparators) {
-      comparators = pComparators;
-    }
-
-    @Override
-    public int compare(final InfeasiblePrefix onePrefix, final InfeasiblePrefix otherPrefix) {
-      for (Comparator<InfeasiblePrefix> comparator : comparators) {
-        int result = comparator.compare(onePrefix, otherPrefix);
-
-        if (result != 0) {
-          return result;
-        }
-      }
-
-      return 0;
-    }
   }
 
   public static final List<PrefixPreference> NO_SELECTION =
@@ -210,12 +182,7 @@ public class PrefixSelector {
     }
 
     public Comparator<InfeasiblePrefix> getComparator() {
-      return new Comparator<InfeasiblePrefix>() {
-
-        @Override
-        public int compare(InfeasiblePrefix onePrefix, InfeasiblePrefix otherPrefix) {
-          return computeScore(onePrefix) - computeScore(otherPrefix);
-        }};
+      return Comparator.comparingInt(this::computeScore);
     }
   }
 

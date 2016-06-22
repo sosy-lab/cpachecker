@@ -134,6 +134,15 @@ Coding:
   Use the valueOf() method, it may do caching.
 - Never call the String constructor.
   Strings do not need copying, and for other uses there is the valueOf() method.
+- Be very careful when implementing Comparator or Comparable!
+  The logic for comparison is typically very error prone.
+  For example, one must not use integer subtraction or integer negation,
+  because both can overflow and cause a wrong result.
+  Try to avoid implementing Comparators and instead use Guava's Ordering
+  or the Comparator utilities that exist since Java 8
+  (static methods on Comparator interface).
+  If you implement Comparator or Comparable, use Guava's ComparisonChain
+  or at least methods like Integer.compare for comparison.
 - Avoid Cloneable and clone(), use copy constructors instead if you need them
   (you don't if you use immutable classes).
 - Never swallow an exception.

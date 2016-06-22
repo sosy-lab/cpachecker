@@ -25,12 +25,13 @@ package org.sosy_lab.cpachecker.util;
 
 import com.google.common.collect.ImmutableMap;
 
-import org.sosy_lab.common.io.Path;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -68,7 +69,7 @@ public class PropertyFileParser {
 
   public void parse() throws InvalidPropertyFileException {
     String rawProperty = null;
-    try (BufferedReader br = propertyFile.asCharSource(Charset.defaultCharset()).openBufferedStream()) {
+    try (BufferedReader br = Files.newBufferedReader(propertyFile, Charset.defaultCharset())) {
       while ((rawProperty = br.readLine()) != null) {
         if (!rawProperty.isEmpty()) {
           properties.add(parsePropertyLine(rawProperty));

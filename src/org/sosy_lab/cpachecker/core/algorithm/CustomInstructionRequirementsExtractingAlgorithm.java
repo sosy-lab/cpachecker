@@ -23,19 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Queue;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -43,10 +32,8 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.io.PathCounterTemplate;
-import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -89,8 +76,21 @@ import org.sosy_lab.cpachecker.util.ci.CustomInstructionApplications;
 import org.sosy_lab.cpachecker.util.ci.CustomInstructionRequirementsWriter;
 import org.sosy_lab.cpachecker.util.ci.redundancyremover.RedundantRequirementsRemover;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Queue;
+import java.util.Set;
+import java.util.logging.Level;
 
 
 @Options(prefix="custominstructions")
@@ -278,7 +278,8 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
         input, Collections.singletonList("r"), shutdownNotifier);
 
     // find applied custom instructions in program
-    try (Writer aciDef = appliedCustomInstructionsDefinition.asCharSink(Charset.forName("UTF-8")).openStream()) {
+    try (Writer aciDef =
+        MoreFiles.openOutputFile(appliedCustomInstructionsDefinition, Charset.defaultCharset())) {
 
       // inspect all CFA edges potential candidates
       for (CFANode node : cfa.getAllNodes()) {
@@ -297,7 +298,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
       }
     }
 
-    try (Writer br = Files.openOutputFile(ciSpec)) {
+    try (Writer br = MoreFiles.openOutputFile(ciSpec, Charset.defaultCharset())) {
       // write signature
       br.write(ci.getSignature() + "\n");
       String ciString = ci.getFakeSMTDescription().getSecond();

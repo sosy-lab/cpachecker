@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.collect.Sets;
 import com.google.common.math.LongMath;
 
@@ -103,16 +102,14 @@ public class RCNFManager implements StatisticsProvider {
     DROP
   }
 
-  private final FormulaManagerView fmgr;
-  private final BooleanFormulaManager bfmgr;
+  private FormulaManagerView fmgr = null;
+  private BooleanFormulaManager bfmgr = null;
   private final RCNFConversionStatistics statistics;
   private final HashMap<BooleanFormula, Set<BooleanFormula>> conversionCache;
 
-  public RCNFManager(FormulaManagerView pFmgr, Configuration options)
+  public RCNFManager(Configuration options)
       throws InvalidConfigurationException{
     options.inject(this);
-    bfmgr = pFmgr.getBooleanFormulaManager();
-    fmgr = pFmgr;
     statistics = new RCNFConversionStatistics();
     conversionCache = new HashMap<>();
   }
@@ -120,8 +117,13 @@ public class RCNFManager implements StatisticsProvider {
   /**
    * @param input Input formula with at most one parent-level existential
    *              quantifier.
+   * @param pFmgr TODO
    */
-  public Set<BooleanFormula> toLemmas(BooleanFormula input) throws InterruptedException {
+  public Set<BooleanFormula> toLemmas(BooleanFormula input, FormulaManagerView pFmgr) throws InterruptedException {
+    Preconditions.checkNotNull(pFmgr);
+    fmgr = pFmgr;
+    bfmgr = pFmgr.getBooleanFormulaManager();
+
     Set<BooleanFormula> out = conversionCache.get(input);
     if (out != null) {
       statistics.conversionCacheHits++;
@@ -175,12 +177,7 @@ public class RCNFManager implements StatisticsProvider {
 
     Optional<BooleanFormula> body = fmgr.visit(quantifiedBodyExtractor, input);
     if (body.isPresent()) {
-      return fmgr.filterLiterals(body.get(), new Predicate<BooleanFormula>() {
-        @Override
-        public boolean apply(BooleanFormula input) {
-          return !hasBoundVariables(input);
-        }
-      });
+      return fmgr.filterLiterals(body.get(), input1 -> !hasBoundVariables(input1));
     } else {
 
       // Does not have quantified variables.

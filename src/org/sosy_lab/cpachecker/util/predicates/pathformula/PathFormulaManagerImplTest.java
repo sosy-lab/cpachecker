@@ -36,7 +36,7 @@ import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.log.TestLogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -99,13 +99,13 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
         .build();
 
     fmgr = new FormulaManagerView(
-        context.getFormulaManager(), config, TestLogManager.getInstance());
+        context.getFormulaManager(), config, LogManager.createTestLogManager());
 
     pfmgrFwd =
         new PathFormulaManagerImpl(
             fmgr,
             config,
-            TestLogManager.getInstance(),
+            LogManager.createTestLogManager(),
             ShutdownNotifier.createDummy(),
             MachineModel.LINUX32,
             Optional.<VariableClassification>absent(),
@@ -115,7 +115,7 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
         new PathFormulaManagerImpl(
             fmgr,
             configBackwards,
-            TestLogManager.getInstance(),
+            LogManager.createTestLogManager(),
             ShutdownNotifier.createDummy(),
             MachineModel.LINUX32,
             Optional.<VariableClassification>absent(),
@@ -125,7 +125,7 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
   private Triple<CFAEdge, CFAEdge, MutableCFA> createCFA() throws UnrecognizedCCodeException {
 
     CBinaryExpressionBuilder expressionBuilder = new CBinaryExpressionBuilder(
-        MachineModel.LINUX32, TestLogManager.getInstance()
+        MachineModel.LINUX32, LogManager.createTestLogManager()
     );
 
     String fName = "main";

@@ -27,7 +27,7 @@ import static com.google.common.truth.Truth.assert_;
 
 import org.junit.Test;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.common.log.TestLogManager;
+import org.sosy_lab.common.log.LogManager;
 
 
 public class ConverterTest {
@@ -50,7 +50,7 @@ public class ConverterTest {
       "(define-fun .def_178 (t t t) Bool (4))",
       };
 
-  private final LogManagerWithoutDuplicates logger = new LogManagerWithoutDuplicates(TestLogManager.getInstance());
+  private final LogManagerWithoutDuplicates logger = new LogManagerWithoutDuplicates(LogManager.createTestLogManager());
 
   @Test
   public void test1() throws Exception {

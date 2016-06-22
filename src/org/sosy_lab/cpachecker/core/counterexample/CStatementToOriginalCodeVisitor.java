@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
 
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 
 /**
@@ -88,13 +87,12 @@ enum CStatementToOriginalCodeVisitor implements CStatementVisitor<String, Runtim
 
     lASTString.append(parenthesize(pFunctionCallExpression.getFunctionNameExpression()));
     lASTString.append("(");
-    Joiner.on(", ").appendTo(lASTString, transform(pFunctionCallExpression.getParameterExpressions(), new Function<CExpression, String>() {
-
-      @Override
-      public String apply(CExpression pInput) {
-        return pInput.accept(CExpressionToOrinalCodeVisitor.INSTANCE);
-      }
-    }));
+    Joiner.on(", ")
+        .appendTo(
+            lASTString,
+            transform(
+                pFunctionCallExpression.getParameterExpressions(),
+                pInput -> pInput.accept(CExpressionToOrinalCodeVisitor.INSTANCE)));
     lASTString.append(")");
 
     return lASTString.toString();

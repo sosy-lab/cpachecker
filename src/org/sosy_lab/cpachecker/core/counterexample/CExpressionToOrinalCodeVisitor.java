@@ -26,6 +26,9 @@ package org.sosy_lab.cpachecker.core.counterexample;
 import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.transform;
 
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
@@ -57,9 +60,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
 
 public enum CExpressionToOrinalCodeVisitor implements CExpressionVisitor<String, RuntimeException> {
 
@@ -196,14 +196,8 @@ public enum CExpressionToOrinalCodeVisitor implements CExpressionVisitor<String,
 
     VISITOR_INSTANCE;
 
-    public static final Function<CInitializer, String> TO_CODE = new Function<CInitializer, String>() {
-
-      @Override
-      public String apply(CInitializer pArg0) {
-        return pArg0.accept(CInitializerToOriginalCodeVisitor.VISITOR_INSTANCE);
-      }
-
-    };
+    public static final Function<CInitializer, String> TO_CODE =
+        initializer -> initializer.accept(CInitializerToOriginalCodeVisitor.VISITOR_INSTANCE);
 
     @Override
     public String visit(CInitializerExpression pInitializerExpression) {
@@ -233,14 +227,8 @@ public enum CExpressionToOrinalCodeVisitor implements CExpressionVisitor<String,
 
     VISITOR_INSTANCE;
 
-    public static final Function<CDesignator, String> TO_CODE = new Function<CDesignator, String>() {
-
-      @Override
-      public String apply(CDesignator pArg0) {
-        return pArg0.accept(DesignatorToOriginalCodeVisitor.VISITOR_INSTANCE);
-      }
-
-    };
+    public static final Function<CDesignator, String> TO_CODE =
+        designator -> designator.accept(DesignatorToOriginalCodeVisitor.VISITOR_INSTANCE);
 
     @Override
     public String visit(CArrayDesignator pArrayDesignator) {

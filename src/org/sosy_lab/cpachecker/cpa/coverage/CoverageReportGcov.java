@@ -23,17 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.coverage;
 
-import java.io.IOException;
-import java.io.Writer;
-import java.util.Map;
-import java.util.logging.Level;
-
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.coverage.CoverageData.FileCoverage;
 import org.sosy_lab.cpachecker.cpa.coverage.CoverageData.FileCoverage.FunctionInfo;
+
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Map;
+import java.util.logging.Level;
 
 /**
  * Generate coverage information in Gcov format
@@ -58,7 +59,7 @@ class CoverageReportGcov {
 
     Map<String, FileCoverage> infos = pData.getInfosPerFile();
 
-    try (Writer w = Files.openOutputFile(pTarget)) {
+    try (Writer w = MoreFiles.openOutputFile(pTarget, Charset.defaultCharset())) {
 
       for (Map.Entry<String, FileCoverage> entry : infos.entrySet()) {
         String sourcefile = entry.getKey();
@@ -66,7 +67,7 @@ class CoverageReportGcov {
 
         //Convert ./test.c -> /full/path/test.c
         w.append(TEXTNAME + "\n");
-        w.append(SOURCEFILE + Paths.get(sourcefile).getAbsolutePath() + "\n");
+        w.append(SOURCEFILE + Paths.get(sourcefile).toAbsolutePath() + "\n");
 
         for (FunctionInfo info : fileInfos.allFunctions) {
           w.append(FUNCTION + info.firstLine + "," + info.name + "\n");

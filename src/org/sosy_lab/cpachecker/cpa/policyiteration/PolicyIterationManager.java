@@ -61,6 +61,7 @@ import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.Model;
 import org.sosy_lab.solver.api.OptimizationProverEnvironment;
+import org.sosy_lab.solver.api.OptimizationProverEnvironment.OptStatus;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 
 import java.util.ArrayList;
@@ -214,7 +215,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       }
     }
     loopStructure = loopStructureBuilder.build();
-    rcnfManager = new RCNFManager(fmgr, config);
+    rcnfManager = new RCNFManager(config);
 
     TargetLocationProvider targetProvider = new TargetLocationProviderImpl(
         pReachedSetFactory, pShutdownNotifier, pLogger, config, pCfa);
@@ -604,17 +605,17 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
         optEnvironment.addConstraint(consistencyConstraint);
 
-        OptimizationProverEnvironment.OptStatus result;
+        OptStatus result;
         try {
           statistics.optTimer.start();
           result = optEnvironment.check();
         } finally {
           statistics.optTimer.stop();
         }
-        if (result != OptimizationProverEnvironment.OptStatus.OPT) {
+        if (result != OptStatus.OPT) {
           shutdownNotifier.shutdownIfNecessary();
 
-          if (result == OptimizationProverEnvironment.OptStatus.UNSAT) {
+          if (result == OptStatus.UNSAT) {
             if (!runningCheapValueDetermination) {
               throw new CPATransferException("Inconsistent value determination "
                   + "problem");
@@ -623,6 +624,9 @@ public class PolicyIterationManager implements IPolicyIterationManager {
             logger.log(Level.INFO, "The val. det. problem is unsat,",
                 " switching to a more expensive strategy.");
             return Optional.absent();
+          } else if (result == OptStatus.UNDEF) {
+            logger.log(Level.WARNING, "Solver returned undefined status on the problem: ");
+            logger.log(Level.INFO, optEnvironment.toString());
           }
           throw new CPATransferException("Unexpected solver state");
         }
@@ -765,7 +769,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         return bfmgr.toConjunctionArgs(
             fmgr.applyTactic(formula, Tactic.TSEITIN_CNF), true);
       case "RCNF":
-        return rcnfManager.toLemmas(formula);
+        return rcnfManager.toLemmas(formula, fmgr);
       case "NONE":
         return ImmutableSet.of(formula);
       default:

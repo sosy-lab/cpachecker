@@ -23,9 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.util;
 
+import com.google.common.collect.Ordering;
+
 import java.io.Serializable;
 import java.util.Comparator;
-import java.util.Iterator;
 import java.util.SortedSet;
 
 /**
@@ -46,21 +47,6 @@ public class InternalSetComparator<E extends Comparable<? super E>> implements S
       if(pObj1.size()>pObj2.size()){
         return 1;
       }
-      if(pObj1.size()==pObj2.size()){
-        int n=pObj1.size();
-        Iterator<E> it1 = pObj1.iterator();
-        Iterator<E> it2 = pObj2.iterator();
-        for(int i=0;i<n;i++){
-          E elem1=it1.next();
-          E elem2=it2.next();
-
-
-          if(elem1.compareTo(elem2)!=0){
-            return elem1.compareTo(elem2);
-          }
-        }
-        return 0;
-      }
-      return 0;
+      return Ordering.<E>natural().lexicographical().compare(pObj1, pObj2);
     }
   }

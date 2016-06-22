@@ -23,18 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
+import com.google.common.base.Joiner;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+import org.sosy_lab.common.Concurrency;
+import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
+import org.sosy_lab.common.log.LogManager;
+
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
-
-import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
-import org.sosy_lab.common.concurrency.Threads;
-import org.sosy_lab.common.log.LogManager;
-
-import com.google.common.base.Joiner;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * This class implements a mechanism to forcefully terminate CPAchecker
@@ -73,30 +73,31 @@ class ForceTerminationOnShutdown implements Runnable {
     final Thread mainThread = Thread.currentThread();
     return new ShutdownRequestListener() {
 
-        @Override
-        public void shutdownRequested(final String pReason) {
-          if (forceTerminationOnShutdownThread.get() != null) {
-            logger.log(Level.WARNING, "Shutdown requested",
-                "(" + pReason + "),",
-                "but there is already a thread waiting to terminate the JVM.");
-            return;
-          }
-
-          logger.log(Level.WARNING, "Shutdown requested",
+      @Override
+      public void shutdownRequested(final String pReason) {
+        if (forceTerminationOnShutdownThread.get() != null) {
+          logger.log(
+              Level.WARNING,
+              "Shutdown requested",
               "(" + pReason + "),",
-              "waiting for termination.");
-          Thread t = Threads.newThread(new ForceTerminationOnShutdown(logger,
-                                                               mainThread,
-                                                               shutdownHook),
-                                "ForceTerminationOnShutdown", true);
-          boolean success = forceTerminationOnShutdownThread.compareAndSet(null, t);
-          if (success) {
-            t.start();
-          }
-          // Otherwise a second instance of such a thread was created in the meantime,
-          // we do not need to start our's.
+              "but there is already a thread waiting to terminate the JVM.");
+          return;
         }
-      };
+
+        logger.log(
+            Level.WARNING, "Shutdown requested", "(" + pReason + "),", "waiting for termination.");
+        Thread t =
+            Concurrency.newDaemonThread(
+                "ForceTerminationOnShutdown",
+                new ForceTerminationOnShutdown(logger, mainThread, shutdownHook));
+        boolean success = forceTerminationOnShutdownThread.compareAndSet(null, t);
+        if (success) {
+          t.start();
+        }
+        // Otherwise a second instance of such a thread was created in the meantime,
+        // we do not need to start our's.
+      }
+    };
   }
 
   /**

@@ -62,8 +62,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-@Options(prefix="cpa.composite")
-public final class CompositeTransferRelation implements TransferRelation {
+@Options(prefix = "cpa.composite")
+final class CompositeTransferRelation implements TransferRelation {
 
   @Option(secure=true, description="By enabling this option the CompositeTransferRelation"
       + " will compute abstract successors for as many edges as possible in one call. For"
@@ -78,17 +78,20 @@ public final class CompositeTransferRelation implements TransferRelation {
   private final ImmutableList<TransferRelation> transferRelations;
   private final CFA cfa;
   private final int size;
-  private int assumptionIndex = -1;
-  private int predicatesIndex = -1;
+  private final int assumptionIndex;
+  private final int predicatesIndex;
 
-  public CompositeTransferRelation(ImmutableList<TransferRelation> pTransferRelations,
-      Configuration pConfig, CFA pCFA) throws InvalidConfigurationException {
+  CompositeTransferRelation(
+      ImmutableList<TransferRelation> pTransferRelations, Configuration pConfig, CFA pCFA)
+      throws InvalidConfigurationException {
     pConfig.inject(this);
     transferRelations = pTransferRelations;
     cfa = pCFA;
     size = pTransferRelations.size();
 
     // prepare special case handling if both predicates and assumptions are used
+    int predicatesIndex = -1;
+    int assumptionIndex = -1;
     for (int i = 0; i < size; i++) {
       TransferRelation t = pTransferRelations.get(i);
       if (t instanceof PredicateTransferRelation) {
@@ -98,6 +101,8 @@ public final class CompositeTransferRelation implements TransferRelation {
         assumptionIndex = i;
       }
     }
+    this.predicatesIndex = predicatesIndex;
+    this.assumptionIndex = assumptionIndex;
   }
 
   @Override

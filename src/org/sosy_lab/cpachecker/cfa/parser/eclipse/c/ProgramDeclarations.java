@@ -314,7 +314,7 @@ public class ProgramDeclarations {
    * of structs).
    */
   private static boolean areEqualTypes(CType type1, CType type2) {
-    return areEqualTypes(type1, type2, new HashMap<Pair<CType, CType>, Boolean>());
+    return areEqualTypes(type1, type2, new HashMap<>());
   }
 
   private static boolean areEqualTypes(CType type1, CType type2, Map<Pair<CType, CType>, Boolean> foundTypes) {

@@ -23,18 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.util.logging.Level;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -44,6 +38,13 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
+
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.logging.Level;
 
 @Options(prefix="cpa.value")
 public class ValueAnalysisCPAStatistics implements Statistics {
@@ -94,7 +95,7 @@ public class ValueAnalysisCPAStatistics implements Statistics {
   private void exportPrecision(ReachedSet reached) {
     VariableTrackingPrecision consolidatedPrecision =
         VariableTrackingPrecision.joinVariableTrackingPrecisionsInReachedSet(reached);
-  try (Writer writer = Files.openOutputFile(precisionFile)) {
+    try (Writer writer = MoreFiles.openOutputFile(precisionFile, Charset.defaultCharset())) {
       consolidatedPrecision.serialize(writer);
     } catch (IOException e) {
       cpa.getLogger().logUserException(Level.WARNING, e, "Could not write value-analysis precision to file");

@@ -25,15 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.logging.Level;
+import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.configuration.Configuration;
@@ -42,9 +34,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Files.DeleteOnCloseFile;
-import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.MoreFiles.DeleteOnCloseFile;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
@@ -60,7 +51,17 @@ import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.util.CBMCExecutor;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 
-import com.google.common.collect.ImmutableList;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.logging.Level;
 
 /**
  * Counterexample checker that creates a C program for the counterexample
@@ -111,7 +112,7 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
 
       // This temp file will be automatically deleted when the try block terminates.
       // Suffix .i tells CBMC to not call the pre-processor on this file.
-      try (DeleteOnCloseFile tempFile = Files.createTempFile("path", ".i")) {
+      try (DeleteOnCloseFile tempFile = MoreFiles.createTempFile("path", ".i")) {
         return checkCounterexample(pRootState, pErrorPathStates, tempFile.toPath());
 
       } catch (IOException e) {
@@ -127,7 +128,7 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
     Appender pathProgram = PathToCTranslator.translatePaths(pRootState, pErrorPathStates);
 
     // write program to disk
-    try (Writer w = Files.openOutputFile(cFile)) {
+    try (Writer w = MoreFiles.openOutputFile(cFile, Charset.defaultCharset())) {
       pathProgram.appendTo(w);
     } catch (IOException e) {
       throw new CounterexampleAnalysisFailed("Could not write path program to file " + e.getMessage(), e);
@@ -154,7 +155,7 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
       cbmcArgs.add("--function");
       cbmcArgs.add(mainFunctionName + "_0");
 
-      cbmcArgs.add(cFile.getAbsolutePath());
+      cbmcArgs.add(cFile.toAbsolutePath().toString());
 
       cbmc = new CBMCExecutor(logger, cbmcArgs);
       exitCode = cbmc.join(timelimit.asMillis());

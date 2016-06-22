@@ -23,20 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
-import java.util.List;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
+import java.util.List;
 
-public class CompositeDomain implements AbstractDomain {
+class CompositeDomain implements AbstractDomain {
 
   private final ImmutableList<AbstractDomain> domains;
 
-  public CompositeDomain(ImmutableList<AbstractDomain> domains) {
+  CompositeDomain(ImmutableList<AbstractDomain> domains) {
       this.domains = domains;
   }
 

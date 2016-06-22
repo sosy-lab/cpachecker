@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core;
 
+import static com.google.common.base.Verify.verifyNotNull;
+
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -40,6 +42,7 @@ import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtractingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithmWithARGReplay;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
@@ -60,6 +63,8 @@ import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 /**
  * Factory class for the three core components of CPAchecker:
@@ -103,6 +108,15 @@ public class CoreComponentsFactory {
       description="restart the analysis using a different configuration after unknown result")
   private boolean useRestartingAlgorithm = false;
 
+  @Option(
+    secure = true,
+    name = "useParallelAnalyses",
+    description =
+        "Use analyses parallely. The resulting reachedset is the one of the first"
+        + " analysis finishing in time. All other analyses are terminated."
+  )
+  private boolean useParallelAlgorithm = false;
+
   @Option(secure=true,
       description="memorize previously used (incomplete) reached sets after a restart of the analysis")
   private boolean memorizeReachedAfterRestart = false;
@@ -145,7 +159,7 @@ public class CoreComponentsFactory {
 
   private final Configuration config;
   private final LogManager logger;
-  private final ShutdownManager shutdownManager;
+  private final @Nullable ShutdownManager shutdownManager;
   private final ShutdownNotifier shutdownNotifier;
 
   private final ReachedSetFactory reachedSetFactory;
@@ -154,15 +168,31 @@ public class CoreComponentsFactory {
   public CoreComponentsFactory(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     config = pConfig;
     logger = pLogger;
-    // new ShutdownManager, it is important for BMCAlgorithm that it gets a ShutdownManager
-    // that also affects the CPA it is used with
-    shutdownManager = ShutdownManager.createWithParent(pShutdownNotifier);
-    shutdownNotifier = shutdownManager.getNotifier();
 
     config.inject(this);
 
+    if (analysisNeedsShutdownManager()) {
+      shutdownManager = ShutdownManager.createWithParent(pShutdownNotifier);
+      shutdownNotifier = shutdownManager.getNotifier();
+    } else {
+      shutdownManager = null;
+      shutdownNotifier = pShutdownNotifier;
+    }
+
     reachedSetFactory = new ReachedSetFactory(config);
     cpaFactory = new CPABuilder(config, logger, shutdownNotifier, reachedSetFactory);
+  }
+
+  private boolean analysisNeedsShutdownManager() {
+    // BMCAlgorithm needs to get a ShutdownManager that also affects the CPA it is used with.
+    // We must not create such a new ShutdownManager if it is not needed,
+    // because otherwise the GC will throw it away and shutdowns will NOT WORK!
+    return !useProofCheckAlgorithm
+        && !useRestartingAlgorithm
+        && !useImpactAlgorithm
+        && !useRestartAlgorithmWithARGReplay
+        && !runCBMCasExternalTool
+        && useBMC;
   }
 
   public Algorithm createAlgorithm(final ConfigurableProgramAnalysis cpa,
@@ -189,6 +219,9 @@ public class CoreComponentsFactory {
     } else if (runCBMCasExternalTool) {
       algorithm = new ExternalCBMCAlgorithm(programDenotation, config, logger);
 
+    } else if (useParallelAlgorithm) {
+      algorithm = new ParallelAlgorithm(config, logger, shutdownNotifier, cfa, programDenotation);
+
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 
@@ -201,6 +234,7 @@ public class CoreComponentsFactory {
       }
 
       if (useBMC) {
+        verifyNotNull(shutdownManager);
         algorithm = new BMCAlgorithm(algorithm, cpa, config, logger, reachedSetFactory, shutdownManager, cfa);
       }
 
@@ -256,7 +290,7 @@ public class CoreComponentsFactory {
   public ReachedSet createReachedSet() {
     ReachedSet reached = reachedSetFactory.create();
 
-    if (useRestartingAlgorithm || useRestartAlgorithmWithARGReplay) {
+    if (useRestartingAlgorithm || useRestartAlgorithmWithARGReplay || useParallelAlgorithm) {
       // this algorithm needs an indirection so that it can change
       // the actual reached set instance on the fly
       if (memorizeReachedAfterRestart) {

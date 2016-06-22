@@ -37,10 +37,8 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Files.DeleteOnCloseFile;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.MoreFiles.DeleteOnCloseFile;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -59,6 +57,9 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Set;
 
 @Options(prefix="counterexample.checker")
@@ -110,7 +111,8 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       }
 
       // This temp file will be automatically deleted when the try block terminates.
-      try (DeleteOnCloseFile automatonFile = Files.createTempFile("counterexample-automaton", ".txt")) {
+      try (DeleteOnCloseFile automatonFile =
+          MoreFiles.createTempFile("counterexample-automaton", ".txt")) {
 
         return checkCounterexample(pRootState, pErrorState, pErrorPathStates,
             automatonFile.toPath());
@@ -124,7 +126,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
   private boolean checkCounterexample(ARGState pRootState, ARGState pErrorState, Set<ARGState> pErrorPathStates,
       Path automatonFile) throws IOException, CPAException, InterruptedException {
 
-    try (Writer w = Files.openOutputFile(automatonFile)) {
+    try (Writer w = MoreFiles.openOutputFile(automatonFile, Charset.defaultCharset())) {
       ARGUtils.producePathAutomaton(
           w,
           pRootState,

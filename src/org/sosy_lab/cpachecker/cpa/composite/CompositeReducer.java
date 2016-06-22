@@ -23,23 +23,22 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.util.Pair;
 
+import java.util.ArrayList;
+import java.util.List;
 
-public class CompositeReducer implements Reducer {
+class CompositeReducer implements Reducer {
 
   private final List<Reducer> wrappedReducers;
 
-  public CompositeReducer(List<Reducer> pWrappedReducers) {
+  CompositeReducer(List<Reducer> pWrappedReducers) {
     wrappedReducers = pWrappedReducers;
   }
 
@@ -76,7 +75,7 @@ public class CompositeReducer implements Reducer {
   public Object getHashCodeForState(AbstractState pElementKey, Precision pPrecisionKey) {
 
     List<AbstractState> elements = ((CompositeState)pElementKey).getWrappedStates();
-    List<Precision> precisions = ((CompositePrecision)pPrecisionKey).getPrecisions();
+    List<Precision> precisions = ((CompositePrecision) pPrecisionKey).getWrappedPrecisions();
 
     List<Object> result = new ArrayList<>(elements.size());
     int i = 0;
@@ -89,7 +88,7 @@ public class CompositeReducer implements Reducer {
   @Override
   public Precision getVariableReducedPrecision(Precision pPrecision,
       Block pContext) {
-    List<Precision> precisions = ((CompositePrecision)pPrecision).getPrecisions();
+    List<Precision> precisions = ((CompositePrecision) pPrecision).getWrappedPrecisions();
     List<Precision> result = new ArrayList<>(precisions.size());
 
     int i = 0;
@@ -102,8 +101,9 @@ public class CompositeReducer implements Reducer {
 
   @Override
   public Precision getVariableExpandedPrecision(Precision pRootPrecision, Block pRootContext, Precision pReducedPrecision) {
-    List<Precision> rootPrecisions = ((CompositePrecision)pRootPrecision).getPrecisions();
-    List<Precision> reducedPrecisions = ((CompositePrecision)pReducedPrecision).getPrecisions();
+    List<Precision> rootPrecisions = ((CompositePrecision) pRootPrecision).getWrappedPrecisions();
+    List<Precision> reducedPrecisions =
+        ((CompositePrecision) pReducedPrecision).getWrappedPrecisions();
     List<Precision> result = new ArrayList<>(rootPrecisions.size());
 
     int i = 0;
@@ -117,8 +117,8 @@ public class CompositeReducer implements Reducer {
 
   @Override
   public int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision) {
-    List<Precision> precisions = ((CompositePrecision)pPrecision).getPrecisions();
-    List<Precision> otherPrecisions = ((CompositePrecision)pOtherPrecision).getPrecisions();
+    List<Precision> precisions = ((CompositePrecision) pPrecision).getWrappedPrecisions();
+    List<Precision> otherPrecisions = ((CompositePrecision) pOtherPrecision).getWrappedPrecisions();
 
     int i = 0;
     int sum = 0;

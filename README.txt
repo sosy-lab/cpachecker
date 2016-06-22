@@ -52,10 +52,10 @@ Verifying a Program with CPAchecker
    This example can also be abbreviated to:
    scripts/cpa.sh -predicateAnalysis doc/examples/example.c
 
-   A Java 1.7 compatible JVM is necessary. If it is not in your PATH,
+   A Java 1.8 compatible JVM is necessary. If it is not in your PATH,
    you need to specify it in the environment variable JAVA.
-   Example: export JAVA=/usr/lib/jvm/java-7-openjdk-amd64/jre/bin/java
-   for 64bit OpenJDK 7 on Ubuntu.
+   Example: export JAVA=/usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java
+   for 64bit OpenJDK 8 on Ubuntu.
 
    On Windows (witout Cygwin), you need to use cpa.bat instead of cpa.sh (would work 
    within a Cygwin environment). Please take note that not all analysis 

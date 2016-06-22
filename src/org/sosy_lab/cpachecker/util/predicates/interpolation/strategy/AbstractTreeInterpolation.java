@@ -85,8 +85,8 @@ public abstract class AbstractTreeInterpolation<T> extends ITPStrategy<T> {
       final List<BooleanFormula> interpolants)
       throws SolverException, InterruptedException {
 
-    final List<BooleanFormula> formulas = Lists.transform(formulasWithStatesAndGroupdIds,
-        Triple.<BooleanFormula> getProjectionToFirst());
+    final List<BooleanFormula> formulas =
+        Lists.transform(formulasWithStatesAndGroupdIds, Triple::getFirst);
     final List<Integer> subtrees = buildTreeStructure(formulasWithStatesAndGroupdIds).getSecond();
 
     // The following four properties need to be checked for tree interpolants:

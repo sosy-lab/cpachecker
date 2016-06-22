@@ -25,12 +25,10 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getAllStatesOnPathsTo;
-import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -59,7 +57,9 @@ import org.sosy_lab.cpachecker.util.cwriter.LoopCollectingEdgeVisitor;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
@@ -153,7 +153,9 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   private final PrefixSelector prefixSelector;
   private final LogManager logger;
   private final BlockFormulaStrategy blockFormulaStrategy;
+  private final Solver solver;
   private final FormulaManagerView fmgr;
+  private final PathFormulaManager pfmgr;
   private final InterpolationManager interpolationManager;
   private final RefinementStrategy strategy;
 
@@ -162,7 +164,8 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       final LogManager pLogger,
       final Optional<LoopStructure> pLoopStructure,
       final BlockFormulaStrategy pBlockFormulaStrategy,
-      final FormulaManagerView pFmgr,
+      final Solver pSolver,
+      final PathFormulaManager pPfgmr,
       final InterpolationManager pInterpolationManager,
       final PathChecker pPathChecker,
       final PrefixProvider pPrefixProvider,
@@ -176,7 +179,9 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     logger = pLogger;
     loopStructure = pLoopStructure;
     blockFormulaStrategy = pBlockFormulaStrategy;
-    fmgr = pFmgr;
+    solver = pSolver;
+    fmgr = solver.getFormulaManager();
+    pfmgr = pPfgmr;
 
     interpolationManager = pInterpolationManager;
     pathChecker = pPathChecker;
@@ -230,6 +235,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     // directly stop the analysis from here, we need to remove the infeasible
     // error state from the reached set, and clear the waitlist
     if (shortcutForSafeProgram && invariantsManager.isProgramSafe()) {
+      invariantsManager.cancelAsyncInvariantGeneration();
       pReached.removeSubtree(allStatesTrace.getLastState());
       pReached.clearWaitlist();
       totalRefinement.stop();
@@ -305,6 +311,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
           return pathChecker.handleFeasibleCounterexample(allStatesTrace, counterexample, branchingOccurred);
         } finally {
           errorPathProcessing.stop();
+          invariantsManager.cancelAsyncInvariantGeneration();
         }
       }
 
@@ -359,7 +366,8 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     if (counterexample.isSpurious()) {
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
 
-      invariantsManager.findInvariants(allStatesTrace, abstractionStatesTrace, loopsInPath);
+      invariantsManager.findInvariants(
+          allStatesTrace, abstractionStatesTrace, loopsInPath, pfmgr, solver);
 
       // add invariant precision increment if necessary
       if (invariantsManager.shouldInvariantsBeUsedForRefinement()) {
@@ -481,11 +489,11 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   }
 
   static List<ARGState> filterAbstractionStates(ARGPath pPath) {
-    List<ARGState> result = from(pPath.asStatesList())
-      .skip(1)
-      .filter(Predicates.compose(PredicateAbstractState.FILTER_ABSTRACTION_STATES,
-                                 toState(PredicateAbstractState.class)))
-      .toList();
+    List<ARGState> result =
+        from(pPath.asStatesList())
+            .skip(1)
+            .filter(PredicateAbstractState.CONTAINS_ABSTRACTION_STATE)
+            .toList();
 
     assert from(result).allMatch(new Predicate<ARGState>() {
       @Override

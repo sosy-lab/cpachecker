@@ -860,7 +860,7 @@ class ASTConverter {
     } else {
       assert ownerType instanceof CCompositeType : "owner of field has no CCompositeType, but is a: " + ownerType.getClass() + " instead.";
 
-      wayToInnerField = getWayToInnerField(ownerType, fieldName, loc, new ArrayList<Pair<String, CType>>());
+      wayToInnerField = getWayToInnerField(ownerType, fieldName, loc, new ArrayList<>());
       if (!wayToInnerField.isEmpty()) {
         fullFieldReference = owner;
         boolean isPointerDereference = e.isPointerDereference();

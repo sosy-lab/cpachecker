@@ -34,7 +34,6 @@ import static org.sosy_lab.cpachecker.core.algorithm.bmc.AbstractLocationFormula
 import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getAllStatesOnPathsTo;
 import static org.sosy_lab.cpachecker.util.AbstractStates.EXTRACT_LOCATION;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
 import com.google.common.base.Function;
@@ -46,8 +45,6 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.io.CharSink;
-import com.google.common.io.FileWriteMode;
 
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -57,7 +54,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
-import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.ForwardingLogManager;
 import org.sosy_lab.common.log.LogManager;
@@ -92,7 +89,6 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 import org.sosy_lab.cpachecker.cpa.formulaslicing.LoopTransitionFinder;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.RCNFManager;
@@ -105,7 +101,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager;
 import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
-import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
@@ -124,6 +119,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.StringReader;
 import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -298,16 +294,13 @@ class InvariantsManager implements StatisticsProvider {
   )
   private int kInductionTries = 3;
 
-  private final Solver solver;
-  private final FormulaManagerView fmgr;
-  private final BooleanFormulaManager bfmgr;
-  private final PathFormulaManager pfmgr;
-  private final InterpolationManager imgr;
+  private Solver solver;
+  private FormulaManagerView fmgr;
+  private BooleanFormulaManager bfmgr;
+  private PathFormulaManager pfmgr;
 
-  private final InductiveWeakeningManager inductiveWeakeningMgr;
   private final RCNFManager semiCNFConverter;
   private final CFA cfa;
-  private final PrefixProvider prefixProvider;
 
   // TODO Configuration should not be used at runtime, only during constructor
   private final Configuration config;
@@ -324,13 +317,7 @@ class InvariantsManager implements StatisticsProvider {
   private final InvariantsSupplier cpaCheckerInvariantSupplierSingleton;
 
   public InvariantsManager(
-      Configuration pConfig,
-      LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier,
-      CFA pCfa,
-      Solver pSolver,
-      PathFormulaManager pPfmgr,
-      PrefixProvider pPrefixProvider)
+      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
       throws InvalidConfigurationException, CPAException {
     pConfig.inject(this);
 
@@ -340,25 +327,7 @@ class InvariantsManager implements StatisticsProvider {
 
     locationInvariantsCache = CacheBuilder.newBuilder().recordStats().build();
     cfa = pCfa;
-    solver = pSolver;
-    fmgr = solver.getFormulaManager();
-    bfmgr = fmgr.getBooleanFormulaManager();
-    pfmgr = pPfmgr;
-    semiCNFConverter = new RCNFManager(fmgr, pConfig);
-
-    imgr =
-        new InterpolationManager(
-            pPfmgr,
-            pSolver,
-            pCfa.getLoopStructure(),
-            pCfa.getVarClassification(),
-            pConfig,
-            pShutdownNotifier,
-            pLogger);
-
-    prefixProvider = pPrefixProvider;
-    inductiveWeakeningMgr = new InductiveWeakeningManager(pConfig, pSolver, pLogger,
-        pShutdownNotifier);
+    semiCNFConverter = new RCNFManager(pConfig);
 
     if (generationStrategy.contains(InvariantGenerationStrategy.ASYNC_CPA)) {
       asyncCPAInvariantSupplierSingleton = new AsyncCPAInvariantsSupplier();
@@ -474,7 +443,7 @@ class InvariantsManager implements StatisticsProvider {
 
   /**
    * This method returns the invariants computed for the given locations in
-   * {@link #findInvariants(ARGPath, List, Set)}
+   * {@link #findInvariants(ARGPath, List, Set, PathFormulaManager, Solver)}
    * in the given order.
    */
   public List<BooleanFormula> getInvariantsForRefinement() {
@@ -526,12 +495,20 @@ class InvariantsManager implements StatisticsProvider {
    * The computed invariants (if there are some) are cached for later usage in
    * precision adjustment.
    */
-  public void findInvariants(final ARGPath allStatesTrace,
-      final List<ARGState> abstractionStatesTrace, final Set<Loop> loopsInPath) {
+  public void findInvariants(
+      final ARGPath allStatesTrace,
+      final List<ARGState> abstractionStatesTrace,
+      final Set<Loop> loopsInPath,
+      final PathFormulaManager pPfmgr,
+      final Solver pSolver) {
     // shortcut if we do not need to compute anything
     if (!shouldInvariantsBeComputed()) {
       return;
     }
+    pfmgr = Preconditions.checkNotNull(pPfmgr);
+    solver = Preconditions.checkNotNull(pSolver);
+    fmgr = solver.getFormulaManager();
+    bfmgr = fmgr.getBooleanFormulaManager();
 
     List<Pair<PathFormula, CFANode>> argForPathFormulaBasedGeneration = new ArrayList<>();
     List<CFANode> listOfNodes = new ArrayList<>();
@@ -540,8 +517,7 @@ class InvariantsManager implements StatisticsProvider {
       CFANode node = extractLocation(state);
       // TODO what if loop structure does not exist?
       if (cfa.getLoopStructure().get().getAllLoopHeads().contains(node)) {
-        PredicateAbstractState predState =
-            extractStateByType(state, PredicateAbstractState.class);
+        PredicateAbstractState predState = PredicateAbstractState.getPredicateState(state);
         PathFormula pathFormula = predState.getPathFormula();
         argForPathFormulaBasedGeneration.add(Pair.of(pathFormula, node));
         listOfNodes.add(node);
@@ -799,12 +775,11 @@ class InvariantsManager implements StatisticsProvider {
 
       Set<BooleanFormula> lemmas =
           semiCNFConverter.toLemmas(
-              fmgr.uninstantiate(pBlockFormula.getFormula()));
+              fmgr.uninstantiate(pBlockFormula.getFormula()), fmgr);
 
       Set<BooleanFormula> inductiveLemmas =
-          inductiveWeakeningMgr.findInductiveWeakeningForRCNF(
-              ssa, loopFormula, lemmas
-          );
+          new InductiveWeakeningManager(config, solver, logger, shutdownNotifier)
+              .findInductiveWeakeningForRCNF(ssa, loopFormula, lemmas);
 
       if (lemmas.isEmpty()) {
         logger.log(Level.FINER, "Invariant for location", pLocation, "is true, ignoring it");
@@ -828,7 +803,7 @@ class InvariantsManager implements StatisticsProvider {
       BooleanFormula cnfFormula = bfmgr.and(semiCNFConverter.toLemmas
           (pPathFormula
           .getFormula
-          ()));
+          (), fmgr));
       Collection<BooleanFormula> conjuncts =
           bfmgr.visit(
               new DefaultBooleanFormulaVisitor<List<BooleanFormula>>() {
@@ -905,8 +880,7 @@ class InvariantsManager implements StatisticsProvider {
       // may be null when -noout is specified
       if (dumpInvariantGenerationAutomata && dumpInvariantGenerationAutomataFile != null) {
         Path logPath = dumpInvariantGenerationAutomataFile.getFreshPath();
-        CharSink file = logPath.asCharSink(Charset.defaultCharset(), FileWriteMode.APPEND);
-        file.openStream().append(spc).close();
+        MoreFiles.writeFile(logPath, Charset.defaultCharset(), spc);
       }
 
       Scope scope =
@@ -953,8 +927,7 @@ class InvariantsManager implements StatisticsProvider {
         // the last one will always be false, we don't need it here
         if (s != abstractionStatesTrace.get(abstractionStatesTrace.size() - 1)) {
           CFANode location = extractLocation(s);
-          PredicateAbstractState pas =
-              AbstractStates.extractStateByType(s, PredicateAbstractState.class);
+          PredicateAbstractState pas = PredicateAbstractState.getPredicateState(s);
           BooleanFormula invariant =
               invSup.getInvariantFor(location, fmgr, pfmgr, pas.getPathFormula());
           invariants.add(Pair.of(invariant, location));
@@ -964,7 +937,7 @@ class InvariantsManager implements StatisticsProvider {
 
       boolean wasSuccessful =
           !from(invariants)
-              .transform(Pair.<BooleanFormula>getProjectionToFirst())
+              .transform(Pair::getFirst)
               .allMatch(equalTo(fmgr.getBooleanFormulaManager().makeBoolean(true)));
 
       if (wasSuccessful) {
@@ -1015,7 +988,7 @@ class InvariantsManager implements StatisticsProvider {
         // if we found invariants at least one of them may not be "TRUE"
         boolean wasSuccessful =
             !from(invariants)
-                .transform(Pair.<BooleanFormula>getProjectionToFirst())
+                .transform(Pair::getFirst)
                 .allMatch(equalTo(fmgr.getBooleanFormulaManager().makeBoolean(true)));
         if (wasSuccessful) {
           for (Pair<BooleanFormula, CFANode> invariant : invariants) {
@@ -1046,15 +1019,25 @@ class InvariantsManager implements StatisticsProvider {
     private final List<ARGState> abstractionStatesTrace;
     private final List<InfeasiblePrefix> infeasiblePrefixes;
     private final List<AbstractLocationFormulaInvariant> foundInvariants = new ArrayList<>();
+    private final InterpolationManager imgr;
 
     private InvCandidateGenerator(ARGPath pPath, List<ARGState> pAbstractionStatesTrace)
-        throws CPAException, InterruptedException {
+        throws CPAException, InterruptedException, InvalidConfigurationException {
       argPath = pPath;
       abstractionNodes = from(pAbstractionStatesTrace).transform(EXTRACT_LOCATION).toList();
       elementsOnPath = getAllStatesOnPathsTo(argPath.getLastState());
       abstractionStatesTrace = pAbstractionStatesTrace;
+      imgr =
+          new InterpolationManager(
+              pfmgr,
+              solver,
+              cfa.getLoopStructure(),
+              cfa.getVarClassification(),
+              config,
+              shutdownNotifier,
+              logger);
 
-      infeasiblePrefixes = prefixProvider.extractInfeasiblePrefixes(argPath);
+      infeasiblePrefixes = new PredicateBasedPrefixProvider(config, logger, solver, pfmgr).extractInfeasiblePrefixes(argPath);
     }
 
     @Override
@@ -1275,7 +1258,7 @@ class InvariantsManager implements StatisticsProvider {
           new CPAcheckerInvariantGenerator(
               config,
               shutdownNotifier,
-              new OnlyWarningsLogmanager(logger.withComponentName("Async Invgen")),
+              new OnlyWarningsLogmanager(logger.withComponentName("CPAchecker Invgen")),
               cfa,
               ""));
     }

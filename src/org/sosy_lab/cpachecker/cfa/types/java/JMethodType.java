@@ -35,8 +35,8 @@ public class JMethodType extends AFunctionType implements JType {
 
   private static final long serialVersionUID = 1324108617808888102L;
 
-  private static final JMethodType UNRESOLVABLE_TYPE = new JMethodType(
-      JSimpleType.getUnspecified(), new ArrayList<JType>(), false);
+  private static final JMethodType UNRESOLVABLE_TYPE =
+      new JMethodType(JSimpleType.getUnspecified(), new ArrayList<>(), false);
 
   /**
    * Creates a new <code>JMethodType</code> object that stores the given information.

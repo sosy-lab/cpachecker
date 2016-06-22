@@ -25,18 +25,8 @@ package org.sosy_lab.cpachecker.pcc.strategy.parallel;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Stack;
-import java.util.concurrent.BrokenBarrierException;
-import java.util.concurrent.CyclicBarrier;
-import java.util.logging.Level;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
@@ -57,6 +47,18 @@ import org.sosy_lab.cpachecker.pcc.propertychecker.NoTargetStateChecker;
 import org.sosy_lab.cpachecker.pcc.strategy.SequentialReadStrategy;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
+
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Stack;
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ThreadFactory;
+import java.util.logging.Level;
 
 /**
  * Uses ProofChecker interface to check an ARG (certificate) in parallel.
@@ -103,9 +105,13 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
       CyclicBarrier barrier = new CyclicBarrier(numThreads);
       CommonResult result = new CommonResult(numThreads);
 
+      ThreadFactory threadFactory =
+          new ThreadFactoryBuilder()
+              .setNameFormat("ARGProofCheckerParallelStrategy-checkCertificate-%d")
+              .build();
       for (int i = 0; i < helper.length; i++) {
         helper[i] = new StateCheckingHelper(barrier, result, propChecker, checker);
-        helperThreads[i] = Threads.newThread(helper[i]);
+        helperThreads[i] = threadFactory.newThread(helper[i]);
         helperThreads[i].start();
       }
 

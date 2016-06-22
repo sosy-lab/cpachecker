@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.arg.graphExport;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ComparisonChain;
 
 import java.util.Objects;
 
@@ -55,18 +56,11 @@ public class Edge implements Comparable<Edge> {
 
   @Override
   public int compareTo(Edge pO) {
-    if (pO == this) {
-      return 0;
-    }
-    int comp = source.compareTo(pO.source);
-    if (comp != 0) {
-      return comp;
-    }
-    comp = target.compareTo(pO.target);
-    if (comp != 0) {
-      return comp;
-    }
-    return label.compareTo(pO.label);
+    return ComparisonChain.start()
+        .compare(source, pO.source)
+        .compare(target, pO.target)
+        .compare(label, pO.label)
+        .result();
   }
 
   @Override

@@ -36,8 +36,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -53,6 +52,8 @@ import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -215,24 +216,27 @@ public class CEXExporter {
       writeErrorPathFile(errorPathSourceFile, uniqueId, pathProgram);
     }
 
-    writeErrorPathFile(errorPathGraphFile, uniqueId, new Appender() {
-      @Override
-      public void appendTo(Appendable pAppendable) throws IOException {
-        ARGToDotWriter.write(pAppendable, rootState,
-                ARGUtils.CHILDREN_OF_STATE,
-                Predicates.in(pathElements),
-                isTargetPathEdge);
-      }
-    });
+    writeErrorPathFile(
+        errorPathGraphFile,
+        uniqueId,
+        (Appender)
+            (pAppendable) -> {
+              ARGToDotWriter.write(
+                  pAppendable,
+                  rootState,
+                  ARGState::getChildren,
+                  Predicates.in(pathElements),
+                  isTargetPathEdge);
+            });
 
-    writeErrorPathFile(errorPathAutomatonFile, uniqueId, new Appender() {
-      @Override
-      public void appendTo(Appendable pAppendable) throws IOException {
-        ARGUtils.producePathAutomaton(pAppendable, rootState, pathElements,
-                "ErrorPath" + uniqueId,
-                counterexample);
-      }
-    });
+    writeErrorPathFile(
+        errorPathAutomatonFile,
+        uniqueId,
+        (Appender)
+            (pAppendable) -> {
+              ARGUtils.producePathAutomaton(
+                  pAppendable, rootState, pathElements, "ErrorPath" + uniqueId, counterexample);
+            });
 
     for (Pair<Object, PathTemplate> info : counterexample.getAllFurtherInformation()) {
       if (info.getSecond() != null) {
@@ -240,15 +244,18 @@ public class CEXExporter {
       }
     }
 
-    writeErrorPathFile(errorPathAutomatonGraphmlFile, uniqueId, new Appender() {
-      @Override
-      public void appendTo(Appendable pAppendable) throws IOException {
-        witnessExporter.writeErrorWitness(pAppendable, rootState,
-                Predicates.in(pathElements),
-                isTargetPathEdge,
-                counterexample);
-      }
-    });
+    writeErrorPathFile(
+        errorPathAutomatonGraphmlFile,
+        uniqueId,
+        (Appender)
+            (pAppendable) -> {
+              witnessExporter.writeErrorWitness(
+                  pAppendable,
+                  rootState,
+                  Predicates.in(pathElements),
+                  isTargetPathEdge,
+                  counterexample);
+            });
   }
 
   private void writeErrorPathFile(PathTemplate template, int uniqueId, Object content) {
@@ -257,7 +264,7 @@ public class CEXExporter {
       Path file = template.getPath(uniqueId);
 
       try {
-        Files.writeFile(file, content);
+        MoreFiles.writeFile(file, Charset.defaultCharset(), content);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,
                 "Could not write information about the error path to file");

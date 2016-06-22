@@ -23,40 +23,30 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Writer;
-import java.math.BigInteger;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Queue;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.parsers.SAXParserFactory;
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
+import com.google.common.io.ByteSource;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CParser;
@@ -117,23 +107,35 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.base.Splitter;
-import com.google.common.base.Strings;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
-import com.google.common.io.ByteSource;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Writer;
+import java.math.BigInteger;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Queue;
+import java.util.Set;
+import java.util.logging.Level;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParserFactory;
 
 @Options(prefix="spec")
 public class AutomatonGraphmlParser {
@@ -203,7 +205,7 @@ public class AutomatonGraphmlParser {
    * Parses a specification from a file and returns the Automata found in the file.
    */
   public List<Automaton> parseAutomatonFile(Path pInputFile) throws InvalidConfigurationException {
-    return parseAutomatonFile(pInputFile.asByteSource());
+    return parseAutomatonFile(MoreFiles.asByteSource(pInputFile));
   }
 
   /**
@@ -677,7 +679,7 @@ public class AutomatonGraphmlParser {
       result.add(automaton);
 
       if (automatonDumpFile != null) {
-        try (Writer w = Files.openOutputFile(automatonDumpFile)) {
+        try (Writer w = MoreFiles.openOutputFile(automatonDumpFile, Charset.defaultCharset())) {
           automaton.writeDotFile(w);
         } catch (IOException e) {
           // logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
@@ -1397,11 +1399,12 @@ public class AutomatonGraphmlParser {
   }
 
   public static boolean isGraphmlAutomaton(Path pPath, LogManager pLogger) throws InvalidConfigurationException {
-    try (InputStream input = pPath.asByteSource().openStream()) {
+    try (InputStream input = Files.newInputStream(pPath)) {
       SAXParserFactory.newInstance().newSAXParser().parse(input, new DefaultHandler());
       return true;
     } catch (FileNotFoundException e) {
-      throw new InvalidConfigurationException("Invalid automaton file provided! File not found: " + pPath.getPath());
+      throw new InvalidConfigurationException(
+          "Invalid automaton file provided! File not found: " + pPath);
     } catch (IOException e) {
       throw new InvalidConfigurationException("Error while accessing automaton file", e);
     } catch (SAXException e) {
