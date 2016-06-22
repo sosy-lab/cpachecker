@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.weakening;
 
-import java.util.Optional;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.ShutdownNotifier;
@@ -231,7 +231,7 @@ public class CEXWeakeningManager {
             return Optional.of(operand);
           }
         }
-        return Optional.empty();
+        return Optional.absent();
       }
 
       private TraversalProcess selectChildren(List<BooleanFormula> operands) {
@@ -248,9 +248,13 @@ public class CEXWeakeningManager {
             if (depth >= leastRemovalsDepthLimit) {
               return TraversalProcess.custom(operands.iterator().next());
             }
-            BooleanFormula out =
-                Collections.min(
-                    operands, Comparator.comparingInt((f) -> recursivelyCallSelf(f).size()));
+            BooleanFormula out = Collections.min(operands, new Comparator<BooleanFormula>() {
+              @Override
+              public int compare(BooleanFormula o1, BooleanFormula o2) {
+                return Integer.compare(
+                    recursivelyCallSelf(o1).size(), recursivelyCallSelf(o2).size());
+              }
+            });
             return TraversalProcess.custom(out);
           default:
             throw new UnsupportedOperationException("Unexpected strategy");

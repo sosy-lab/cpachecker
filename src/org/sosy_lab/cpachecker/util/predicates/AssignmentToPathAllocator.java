@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -209,10 +211,20 @@ public class AssignmentToPathAllocator {
 
   private ConcreteExpressionEvaluator createPredicateAnalysisEvaluator(Iterable<ValueAssignment> pModel) {
 
-    Multimap<String, ValueAssignment> uninterpretedFunctions =
-        FluentIterable.from(pModel)
-            .filter(ValueAssignment::isFunction)
-            .index(ValueAssignment::getName);
+      Multimap<String, ValueAssignment> uninterpretedFunctions =
+
+
+         FluentIterable.from(pModel).filter(new Predicate<ValueAssignment>() {
+
+          @Override
+          public boolean apply(ValueAssignment pValAssignment) {
+            return pValAssignment.isFunction();
+          }}).index(new Function<ValueAssignment, String>() {
+
+            @Override
+            public String apply(ValueAssignment pValAssignment) {
+              return pValAssignment.getName();
+            }});
 
     return new PredicateAnalysisConcreteExpressionEvaluator(uninterpretedFunctions);
   }
@@ -599,7 +611,7 @@ public class AssignmentToPathAllocator {
     Map<Address, Object> heap;
 
     if (!memory.containsKey(heapName)) {
-      memory.put(heapName, new HashMap<>());
+      memory.put(heapName, new HashMap<Address, Object>());
     }
 
     heap = memory.get(heapName);

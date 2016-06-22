@@ -38,7 +38,9 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -46,11 +48,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.LoopInvariantsWriter;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsWriter;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter;
-import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
@@ -64,9 +66,6 @@ import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -222,7 +221,7 @@ class PredicateCPAStatistics extends AbstractStatistics {
     allPredicates.addAll(predicates.location.values());
     allPredicates.addAll(predicates.locationInstance.values());
 
-    try (Writer w = MoreFiles.openOutputFile(targetFile, Charset.defaultCharset())) {
+    try (Writer w = Files.openOutputFile(targetFile)) {
       precisionWriter.writePredicateMap(predicates.locationInstance,
           predicates.location, predicates.function, predicates.global,
           allPredicates, w);
@@ -240,12 +239,11 @@ class PredicateCPAStatistics extends AbstractStatistics {
     if (precisionStatistics) {
       MutablePredicateSets predicates = new MutablePredicateSets();
       {
-        Set<Precision> seenPrecisions = Collections.newSetFromMap(new IdentityHashMap<>());
+        Set<Precision> seenPrecisions = Collections.newSetFromMap(new IdentityHashMap<Precision, Boolean>());
 
         for (Precision precision : reached.getPrecisions()) {
-          PredicatePrecision preds =
-              Precisions.extractPrecisionByType(precision, PredicatePrecision.class);
-          if (preds != null && seenPrecisions.add(preds)) {
+          if (seenPrecisions.add(precision) && precision instanceof WrapperPrecision) {
+            PredicatePrecision preds = ((WrapperPrecision)precision).retrieveWrappedPrecision(PredicatePrecision.class);
             predicates.locationInstance.putAll(preds.getLocationInstancePredicates());
             predicates.location.putAll(preds.getLocalPredicates());
             predicates.function.putAll(preds.getFunctionPredicates());

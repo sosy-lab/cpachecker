@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.Types;
 
-import java.util.Optional;
+import com.google.common.base.Optional;
 
 /**
  * Factory for creating {@link SymbolicValue}s.

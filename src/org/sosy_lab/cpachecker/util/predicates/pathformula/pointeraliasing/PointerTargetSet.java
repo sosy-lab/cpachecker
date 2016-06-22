@@ -25,16 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ComparisonChain;
-import com.google.common.collect.Maps;
-
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
-import org.sosy_lab.common.collect.PersistentLinkedList;
-import org.sosy_lab.common.collect.PersistentList;
-import org.sosy_lab.common.collect.PersistentSortedMap;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-
 import java.io.IOException;
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
@@ -47,6 +37,15 @@ import java.util.Objects;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
+
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentLinkedList;
+import org.sosy_lab.common.collect.PersistentList;
+import org.sosy_lab.common.collect.PersistentSortedMap;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+
+import com.google.common.base.Joiner;
+import com.google.common.collect.Maps;
 
 @Immutable
 public final class PointerTargetSet implements Serializable {
@@ -88,10 +87,12 @@ public final class PointerTargetSet implements Serializable {
 
     @Override
     public int compareTo(final CompositeField other) {
-      return ComparisonChain.start()
-          .compare(this.compositeType, other.compositeType)
-          .compare(this.fieldName, other.fieldName)
-          .result();
+      final int result = this.compositeType.compareTo(other.compositeType);
+      if (result != 0) {
+        return result;
+      } else {
+        return this.fieldName.compareTo(other.fieldName);
+      }
     }
 
     @Override
@@ -224,21 +225,23 @@ public final class PointerTargetSet implements Serializable {
 
   private static final Joiner joiner = Joiner.on(" ");
 
+  // The following fields are modified in the derived class only
+
   // The set of known memory objects.
   // This includes allocated memory regions and global/local structs/arrays.
   // The key of the map is the name of the base (without the BASE_PREFIX).
   // There are also "fake" bases in the map for variables that have their address
   // taken somewhere but are not yet tracked.
-  private final PersistentSortedMap<String, CType> bases;
+  final PersistentSortedMap<String, CType> bases;
 
   // The last added memory region (used to create the chain of inequalities between bases).
-  private final String lastBase;
+  final String lastBase;
 
   // The set of "shared" fields that are accessed directly via pointers,
   // so they are represented with UFs instead of as variables.
-  private final PersistentSortedMap<CompositeField, Boolean> fields;
+  final PersistentSortedMap<CompositeField, Boolean> fields;
 
-  private final PersistentSortedMap<String, DeferredAllocationPool> deferredAllocations;
+  final PersistentSortedMap<String, DeferredAllocationPool> deferredAllocations;
 
   // The complete set of tracked memory locations.
   // The map key is the type of the memory location.
@@ -247,7 +250,7 @@ public final class PointerTargetSet implements Serializable {
   // for all values of i from this map).
   // This means that when a location is not present in this map,
   // its value is not tracked and might get lost.
-  private final PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
+  final PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
 
   private static final String BASE_PREFIX = "__ADDRESS_OF_";
 

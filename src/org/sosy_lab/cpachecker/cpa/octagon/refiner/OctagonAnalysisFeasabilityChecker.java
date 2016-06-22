@@ -23,21 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.octagon.refiner;
 
-import java.util.Optional;
+import static org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision.createStaticPrecision;
 
-import static org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision.createStaticPrecision;
-
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -49,9 +46,11 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.refinement.UseDefRelation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
+import com.google.common.base.Optional;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 
 public class OctagonAnalysisFeasabilityChecker {
 
@@ -105,8 +104,7 @@ public class OctagonAnalysisFeasabilityChecker {
   private FluentIterable<MemoryLocation> getMemoryLocationsFromUseDefRelation() {
     UseDefRelation useDefRelation = new UseDefRelation(foundPath, Collections.<String>emptySet(), false);
 
-    return FluentIterable.from(useDefRelation.getUsesAsQualifiedName())
-        .transform(MemoryLocation::valueOf);
+    return FluentIterable.from(useDefRelation.getUsesAsQualifiedName()).transform(MemoryLocation.FROM_STRING_TO_MEMORYLOCATION);
   }
 
   /**

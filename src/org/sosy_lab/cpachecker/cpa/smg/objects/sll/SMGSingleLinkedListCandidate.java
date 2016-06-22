@@ -23,29 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects.sll;
 
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGListCandidate;
-import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
 public class SMGSingleLinkedListCandidate implements SMGListCandidate {
 
   private final SMGObject startObject;
-  private final CType nfoType;
-  private final MachineModel model;
-  private final SMGSingleLinkedListShape shape;
+  private final int nfo;
+  private final int hfo;
 
-  public SMGSingleLinkedListCandidate(SMGObject pStartObject, int pNfo, int pHfo, CType pNfoType,
-      MachineModel pModel) {
+  public SMGSingleLinkedListCandidate(SMGObject pStartObject, int pNfo, int pHfo) {
     startObject = pStartObject;
-    nfoType = pNfoType;
-    model = pModel;
-    shape = new SMGSingleLinkedListShape(pHfo, pNfo);
-  }
-
-  public boolean hasRecursiveFieldType() {
-    return SMGUtils.isRecursiveOnOffset(nfoType, shape.getNfo(), model);
+    nfo = pNfo;
+    hfo = pHfo;
   }
 
   public SMGObject getStartObject() {
@@ -53,20 +43,16 @@ public class SMGSingleLinkedListCandidate implements SMGListCandidate {
   }
 
   public int getHfo() {
-    return shape.getHfo();
+    return hfo;
   }
 
   public int getNfo() {
-    return shape.getNfo();
-  }
-
-  public SMGSingleLinkedListShape getShape() {
-    return shape;
+    return nfo;
   }
 
   @Override
   public String toString() {
-    return "SMGSingleLinkedListCandidate [startObject=" + startObject + ", nfo=" + getNfo() + ", hfo="
-        + getHfo() + "]";
+    return "SMGSingleLinkedListCandidate [startObject=" + startObject + ", nfo=" + nfo + ", hfo="
+        + hfo + "]";
   }
 }

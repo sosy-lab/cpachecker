@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
@@ -736,12 +735,11 @@ final class SMGJoinValues {
 
     Integer resultPointer = null;
 
-    Set<SMGEdgePointsTo> edges = pDestSMG.getPtEdges(
-        SMGEdgePointsToFilter.targetObjectFilter(list).filterAtTargetOffset(ptEdge.getOffset())
-            .filterByTargetSpecifier(ptEdge.getTargetSpecifier()));
-
-    if (!edges.isEmpty()) {
-      resultPointer = Iterables.getOnlyElement(edges).getValue();
+    for (SMGEdgePointsTo edge : pDestSMG.getPTEdges().values()) {
+      if (edge.getObject() == list && edge.getOffset() == ptEdge.getOffset()
+          && ptEdge.getTargetSpecifier() == edge.getTargetSpecifier()) {
+        resultPointer = edge.getValue();
+      }
     }
 
     if(resultPointer == null) {
@@ -930,12 +928,11 @@ final class SMGJoinValues {
 
     Integer resultPointer = null;
 
-    Set<SMGEdgePointsTo> edges = pDestSMG.getPtEdges(
-        SMGEdgePointsToFilter.targetObjectFilter(list).filterAtTargetOffset(ptEdge.getOffset())
-            .filterByTargetSpecifier(ptEdge.getTargetSpecifier()));
-
-    if (!edges.isEmpty()) {
-      resultPointer = Iterables.getOnlyElement(edges).getValue();
+    for (SMGEdgePointsTo edge : pDestSMG.getPTEdges().values()) {
+      if (edge.getObject() == list && edge.getOffset() == ptEdge.getOffset()
+          && ptEdge.getTargetSpecifier() == edge.getTargetSpecifier()) {
+        resultPointer = edge.getValue();
+      }
     }
 
     if(resultPointer == null) {

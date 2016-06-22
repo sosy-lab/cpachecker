@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-import java.util.Optional;
+import com.google.common.base.Optional;
 
 public class CStatementEdge extends AStatementEdge {
 

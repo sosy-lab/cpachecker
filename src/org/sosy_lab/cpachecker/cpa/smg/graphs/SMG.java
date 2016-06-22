@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -34,7 +33,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
@@ -43,6 +41,7 @@ import java.util.BitSet;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -50,8 +49,8 @@ import java.util.Set;
 public class SMG {
   private Set<SMGObject> objects = new HashSet<>();
   private Set<Integer> values = new HashSet<>();
-  private SMGHasValueEdges hv_edges;
-  private SMGPointsToEdges pt_edges;
+  private Set<SMGEdgeHasValue> hv_edges = new HashSet<>();
+  private Map<Integer, SMGEdgePointsTo> pt_edges = new HashMap<>();
   private Map<SMGObject, Boolean> object_validity = new HashMap<>();
   private Map<SMGObject, SMG.ExternalObjectFlag> objectAllocationIdentity = new HashMap<>();
   private NeqRelation neq = new NeqRelation();
@@ -82,9 +81,6 @@ public class SMG {
   public SMG(final MachineModel pMachineModel) {
     SMGEdgePointsTo nullPointer = new SMGEdgePointsTo(nullAddress, nullObject, 0);
 
-    hv_edges = new SMGHasValueEdgeSet();
-    pt_edges = new SMGPointsToMap();
-
     addObject(nullObject);
     object_validity.put(nullObject, false);
 
@@ -103,13 +99,13 @@ public class SMG {
    */
   public SMG(final SMG pHeap) {
     machine_model = pHeap.machine_model;
-    hv_edges = pHeap.hv_edges.copy();
-    pt_edges = pHeap.pt_edges.copy();
+    hv_edges.addAll(pHeap.hv_edges);
     neq.putAll(pHeap.neq);
     symbolicRelations.putAll(pHeap.symbolicRelations);
     object_validity.putAll(pHeap.object_validity);
     objectAllocationIdentity.putAll(pHeap.objectAllocationIdentity);
     objects.addAll(pHeap.objects);
+    pt_edges.putAll(pHeap.pt_edges);
     values.addAll(pHeap.values);
   }
 
@@ -203,8 +199,19 @@ public class SMG {
     assert pObj.notNull();
 
     removeObject(pObj);
-    hv_edges.removeAllEdgesOfObject(pObj);
-    pt_edges.removeAllEdgesOfObject(pObj);
+    Iterator<SMGEdgeHasValue> hv_iter = hv_edges.iterator();
+    Iterator<SMGEdgePointsTo> pt_iter = pt_edges.values().iterator();
+    while (hv_iter.hasNext()) {
+      if (hv_iter.next().getObject() == pObj) {
+        hv_iter.remove();
+      }
+    }
+
+    while (pt_iter.hasNext()) {
+      if (pt_iter.next().getObject() == pObj) {
+        pt_iter.remove();
+      }
+    }
   }
 
   /**
@@ -241,7 +248,7 @@ public class SMG {
    * @param pEdge Points-To edge to add.
    */
   final public void addPointsToEdge(SMGEdgePointsTo pEdge) {
-    pt_edges.add(pEdge);
+    pt_edges.put(pEdge.getValue(), pEdge);
   }
 
   /**
@@ -252,7 +259,7 @@ public class SMG {
    * @param pEdge Has-Value edge to add
    */
   final public void addHasValueEdge(SMGEdgeHasValue pEdge) {
-    hv_edges.addEdge(pEdge);
+    hv_edges.add(pEdge);
   }
 
   /**
@@ -263,7 +270,7 @@ public class SMG {
    * @param pEdge Has-Value edge to remove
    */
   final public void removeHasValueEdge(SMGEdgeHasValue pEdge) {
-    hv_edges.removeEdge(pEdge);
+    hv_edges.remove(pEdge);
   }
 
   /**
@@ -276,7 +283,7 @@ public class SMG {
   final public void removePointsToEdge(int pValue) {
     assert pValue != 0;
 
-    pt_edges.removeEdgeWithValue(pValue);
+    pt_edges.remove(pValue);
   }
 
   /**
@@ -322,7 +329,8 @@ public class SMG {
    * Keeps consistency: no
    */
   public void replaceHVSet(Set<SMGEdgeHasValue> pNewHV) {
-    hv_edges.replaceHvEdges(pNewHV);
+    hv_edges.clear();
+    hv_edges.addAll(pNewHV);
   }
 
   /**
@@ -427,7 +435,7 @@ public class SMG {
    * @return Unmodifiable view on Has-Value edges set.
    */
   final public Set<SMGEdgeHasValue> getHVEdges() {
-    return hv_edges.getHvEdges();
+    return Collections.unmodifiableSet(hv_edges);
   }
 
   /**
@@ -437,27 +445,15 @@ public class SMG {
    * @return A set of Has-Value edges for which the criteria in p hold
    */
   final public Set<SMGEdgeHasValue> getHVEdges(SMGEdgeHasValueFilter pFilter) {
-    return Collections.unmodifiableSet(hv_edges.filter(pFilter));
-  }
-
-  public Set<SMGEdgePointsTo> getPtEdges(SMGEdgePointsToFilter pFilter) {
-    return ImmutableSet.copyOf(pt_edges.filter(pFilter));
-  }
-
-  protected SMGPointsToEdges getPTEdges() {
-    return pt_edges;
+    return Collections.unmodifiableSet(pFilter.filterSet(hv_edges));
   }
 
   /**
    * Getter for obtaining unmodifiable view on Points-To edges set. Constant.
    * @return Unmodifiable view on Points-To edges set.
    */
-  final public Map<Integer, SMGEdgePointsTo> getPTEdgesAsMap() {
-    return pt_edges.asMap();
-  }
-
-  final public Set<SMGEdgePointsTo> getPTEdgesAsSet() {
-    return pt_edges.asSet();
+  final public Map<Integer, SMGEdgePointsTo> getPTEdges() {
+    return Collections.unmodifiableMap(pt_edges );
   }
 
   /**
@@ -475,13 +471,12 @@ public class SMG {
    * TODO: Consistency check: no value can point to more objects
    */
   final public SMGObject getObjectPointedBy(Integer pValue) {
-    if (!values.contains(
-        pValue)) {
+    if ( ! values.contains(pValue)) {
       throw new IllegalArgumentException("Value [" + pValue + "] not in SMG");
     }
 
-    if (pt_edges.containsEdgeWithValue(pValue)) {
-      return pt_edges.getEdgeWithValue(pValue).getObject();
+    if (pt_edges.containsKey(pValue)) {
+      return pt_edges.get(pValue).getObject();
     } else {
       return null;
     }
@@ -555,7 +550,7 @@ public class SMG {
    * value exists, otherwise false.
    */
   public boolean isPointer(Integer value) {
-    return pt_edges.containsEdgeWithValue(value);
+    return pt_edges.containsKey(value);
   }
 
   /**
@@ -567,7 +562,7 @@ public class SMG {
    * value as source.
    */
   public SMGEdgePointsTo getPointer(Integer value) {
-    return pt_edges.getEdgeWithValue(value);
+    return pt_edges.get(value);
   }
 
   public boolean isCoveredByNullifiedBlocks(SMGEdgeHasValue pEdge) {
@@ -611,17 +606,17 @@ public class SMG {
     if (trackPredicates) {
       symbolicRelations.mergeValues(pV1, pV2);
     }
-
     removeValue(pV2);
-
-    Set<SMGEdgeHasValue> old_hv_edges = getHVEdges(SMGEdgeHasValueFilter.valueFilter(pV2));
-    for (SMGEdgeHasValue old_hve : old_hv_edges) {
-      SMGEdgeHasValue newHvEdge =
-          new SMGEdgeHasValue(old_hve.getType(), old_hve.getOffset(), old_hve.getObject(), pV1);
-      hv_edges.removeEdge(old_hve);
-      hv_edges.addEdge(newHvEdge);
+    Set<SMGEdgeHasValue> new_hv_edges = new HashSet<>();
+    for (SMGEdgeHasValue hv : hv_edges) {
+      if (hv.getValue() != pV2) {
+        new_hv_edges.add(hv);
+      } else {
+        new_hv_edges.add(new SMGEdgeHasValue(hv.getType(), hv.getOffset(), hv.getObject(), pV1));
+      }
     }
-
+    hv_edges.clear();
+    hv_edges.addAll(new_hv_edges);
     // TODO: Handle PT Edges: I'm not entirely sure how they should be handled
   }
 
@@ -643,13 +638,5 @@ public class SMG {
     public boolean isExternal() {
       return external;
     }
-  }
-
-  protected void clearValuesHvePte() {
-    values.clear();
-    hv_edges.clear();
-    pt_edges.clear();
-    neq.clear();
-    symbolicRelations.clear();
   }
 }

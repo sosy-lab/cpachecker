@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
+import java.util.Collection;
+import java.util.Deque;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -48,9 +48,9 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
-import java.util.Collection;
-import java.util.Deque;
-import java.util.Optional;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
 /**
  * Strongest post-operator based on symbolic value analysis.
@@ -92,8 +92,8 @@ public class ValueTransferBasedStrongestPostOperator
       final CFAEdge pOperation
   ) throws CPAException, InterruptedException {
 
-    ValueAnalysisState oldValues = pOrigin.getValueState();
-    ConstraintsState oldConstraints = pOrigin.getConstraintsState();
+    ValueAnalysisState oldValues = getValueStateOfCompositeState(pOrigin);
+    ConstraintsState oldConstraints = getConstraintsStateOfCompositeState(pOrigin);
 
 
     assert oldValues != null && oldConstraints != null;
@@ -102,7 +102,7 @@ public class ValueTransferBasedStrongestPostOperator
         valueTransfer.getAbstractSuccessorsForEdge(oldValues, pPrecision, pOperation);
 
     if (isContradiction(successors)) {
-      return Optional.empty();
+      return Optional.absent();
 
     } else {
       final ValueAnalysisState valuesSuccessor = Iterables.getOnlyElement(successors);
@@ -114,7 +114,7 @@ public class ValueTransferBasedStrongestPostOperator
               pOperation);
 
       if (isContradiction(constraintsSuccessors)) {
-        return Optional.empty();
+        return Optional.absent();
       }
 
       final ConstraintsState constraintsSuccessor =
@@ -124,14 +124,14 @@ public class ValueTransferBasedStrongestPostOperator
           strengthenConstraintsState(constraintsSuccessor, valuesSuccessor, pOperation);
 
       if (!constraintsStrengthenResult.isPresent()) {
-        return Optional.empty();
+        return Optional.absent();
 
       } else {
         Optional<ValueAnalysisState> valueStrengthenResult =
             strengthenValueState(valuesSuccessor, constraintsSuccessor, pPrecision, pOperation);
 
         if (!valueStrengthenResult.isPresent()) {
-          return Optional.empty();
+          return Optional.absent();
         }
 
         return Optional.of(
@@ -140,13 +140,23 @@ public class ValueTransferBasedStrongestPostOperator
     }
   }
 
+  private ValueAnalysisState getValueStateOfCompositeState(final ForgettingCompositeState pState) {
+    return pState.getValueState();
+  }
+
+  private ConstraintsState getConstraintsStateOfCompositeState(
+      final ForgettingCompositeState pState
+  ) {
+    return pState.getConstraintsState();
+  }
+
   @Override
   public ForgettingCompositeState handleFunctionCall(
       final ForgettingCompositeState pStateBeforeCall,
       final CFAEdge pEdge,
       final Deque<ForgettingCompositeState> pCallstack
   ) {
-    pCallstack.push(pStateBeforeCall);
+    pCallstack.addLast(pStateBeforeCall);
     return pStateBeforeCall;
   }
 
@@ -156,15 +166,15 @@ public class ValueTransferBasedStrongestPostOperator
       final CFAEdge pEdge,
       final Deque<ForgettingCompositeState> pCallstack
   ) {
-    final ForgettingCompositeState callState = pCallstack.pop();
+    final ForgettingCompositeState callState = pCallstack.removeLast();
 
     // Do not forget any information about constraints.
     // In constraints, IdExpressions are already resolved to symbolic expression and as such
     // independent of scope.
-    final ConstraintsState constraintsState = pNext.getConstraintsState();
+    final ConstraintsState constraintsState = getConstraintsStateOfCompositeState(pNext);
 
-    ValueAnalysisState currentValueState = pNext.getValueState();
-    ValueAnalysisState callStateValueState = callState.getValueState();
+    ValueAnalysisState currentValueState = getValueStateOfCompositeState(pNext);
+    ValueAnalysisState callStateValueState = getValueStateOfCompositeState(callState);
 
     currentValueState = currentValueState.rebuildStateAfterFunctionCall(
             callStateValueState, (FunctionExitNode) pEdge.getPredecessor());
@@ -179,7 +189,7 @@ public class ValueTransferBasedStrongestPostOperator
       final ARGPath pErrorPath,
       final Precision pPrecision
   ) {
-    ValueAnalysisState oldValueState = pNext.getValueState();
+    ValueAnalysisState oldValueState = getValueStateOfCompositeState(pNext);
 
     assert pPrecision instanceof VariableTrackingPrecision;
     ValueAnalysisState newValueState =
@@ -202,7 +212,7 @@ public class ValueTransferBasedStrongestPostOperator
                                  pPrecision);
 
     if (isContradiction(strengthenResult)) {
-      return Optional.empty();
+      return Optional.absent();
 
     } else {
       final AbstractState onlyState = Iterables.getOnlyElement(strengthenResult);
@@ -224,8 +234,12 @@ public class ValueTransferBasedStrongestPostOperator
                                        pOperation,
                                        SingletonPrecision.getInstance());
 
-    if (isContradiction(successors)) {
-      return Optional.empty();
+    if (successors == null) {
+      // nothing changed
+      return Optional.of(pConstraintsState);
+
+    } else if (isContradiction(successors)) {
+      return Optional.absent();
 
     } else {
       final AbstractState onlyState = Iterables.getOnlyElement(successors);

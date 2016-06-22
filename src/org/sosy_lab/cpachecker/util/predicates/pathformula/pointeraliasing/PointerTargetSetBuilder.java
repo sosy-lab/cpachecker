@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet.CompositeField;
@@ -183,11 +182,11 @@ public interface PointerTargetSetBuilder {
         final FormulaManagerView pFormulaManager,
         final PointerTargetSetManager pPtsMgr,
         final FormulaEncodingWithPointerAliasingOptions pOptions) {
-      bases = pointerTargetSet.getBases();
-      lastBase = pointerTargetSet.getLastBase();
-      fields = pointerTargetSet.getFields();
-      deferredAllocations = pointerTargetSet.getDeferredAllocations();
-      targets = pointerTargetSet.getTargets();
+      bases = pointerTargetSet.bases;
+      lastBase = pointerTargetSet.lastBase;
+      fields = pointerTargetSet.fields;
+      deferredAllocations = pointerTargetSet.deferredAllocations;
+      targets = pointerTargetSet.targets;
       formulaManager = pFormulaManager;
       ptsMgr = pPtsMgr;
       options = pOptions;
@@ -258,13 +257,7 @@ public interface PointerTargetSetBuilder {
 
       final BooleanFormula nextInequality = ptsMgr.getNextBaseAddressInequality(name, bases, lastBase);
       lastBase = name;
-      if (!options.trackFunctionPointers() && CTypes.isFunctionPointer(type)) {
-        // Avoid adding constraints about function addresses,
-        // otherwise we might track facts about function pointers for code like "if (p == &f)".
-        return formulaManager.getBooleanFormulaManager().makeBoolean(true);
-      } else {
-        return nextInequality;
-      }
+      return nextInequality;
     }
 
     @Override

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
-import java.util.Optional;
+import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
@@ -400,9 +400,7 @@ public class EdgeAnalyzer {
       operand2 =
           ExpressionToFormulaVisitor.makeCastFromArrayToPointerIfNecessary(
               operand2, pIastBinaryExpression.getCalculationType());
-      return Iterables.concat(
-          operand1.<Iterable<ALeftHandSide>, RuntimeException>accept(this),
-          operand2.<Iterable<ALeftHandSide>, RuntimeException>accept(this));
+      return Iterables.concat(operand1.accept(this), operand2.accept(this));
     }
 
     @Override

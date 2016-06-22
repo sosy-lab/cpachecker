@@ -25,35 +25,9 @@ package org.sosy_lab.cpachecker.cpa.bam;
 
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.toPercent;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
-
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
-import org.sosy_lab.common.io.PathTemplate;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
-import org.sosy_lab.cpachecker.util.Pair;
-
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -63,6 +37,33 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.PathTemplate;
+import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 /**
  * Prints some BAM related statistics
@@ -82,8 +83,13 @@ class BAMCPAStatistics implements Statistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path simplifiedArgFile = Paths.get("BlockedARGSimplified.dot");
 
-  private final Predicate<Pair<ARGState,ARGState>> highlightSummaryEdge = input ->
-    input.getFirst().getEdgeToChild(input.getSecond()) instanceof FunctionSummaryEdge;
+  private final Predicate<Pair<ARGState,ARGState>> highlightSummaryEdge = new Predicate<Pair<ARGState, ARGState>>() {
+    @Override
+    public boolean apply(Pair<ARGState, ARGState> input) {
+      final CFAEdge edge = input.getFirst().getEdgeToChild(input.getSecond());
+      return edge instanceof FunctionSummaryEdge;
+    }
+  };
 
   private final BAMCPA cpa;
   private final BAMDataManager data;
@@ -154,13 +160,13 @@ class BAMCPAStatistics implements Statistics {
     //Add to reached set all states from BAM cache
     Collection<ReachedSet> cachedStates = data.bamCache.getAllCachedReachedStates();
     for (ReachedSet set : cachedStates) {
-      set.forEach(
-          (state, precision) -> {
-            // Method 'add' adds state not only in list of reached states, but also in waitlist,
-            // so we should delete it.
-            reached.add(state, precision);
-            reached.removeOnlyFromWaitlist(state);
-          });
+      for (AbstractState state : set.asCollection()) {
+        /* Method 'add' add state not only in list of reached states, but also in waitlist,
+         * so we should delete it.
+         */
+        reached.add(state, set.getPrecision(state));
+        reached.removeOnlyFromWaitlist(state);
+      }
     }
 
     exportAllReachedSets(argFile, indexedArgFile, reached);
@@ -210,14 +216,13 @@ class BAMCPAStatistics implements Statistics {
   private void writeArg(final Path file,
                         final Multimap<ARGState, ARGState> connections,
                         final Set<ARGState> rootStates) {
-    try (Writer w = MoreFiles.openOutputFile(file, Charset.defaultCharset())) {
-      ARGToDotWriter.write(
-          w,
-          rootStates,
-          connections,
-          ARGState::getChildren,
-          Predicates.alwaysTrue(),
-          highlightSummaryEdge);
+    try (Writer w = Files.openOutputFile(file)) {
+      ARGToDotWriter.write(w,
+              rootStates,
+              connections,
+              ARGUtils.CHILDREN_OF_STATE,
+              Predicates.alwaysTrue(),
+              highlightSummaryEdge);
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, String.format("Could not write ARG to file: %s", file));
     }

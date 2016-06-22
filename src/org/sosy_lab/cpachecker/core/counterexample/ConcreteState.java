@@ -110,7 +110,13 @@ public final class ConcreteState {
     variableAddressMap = ImmutableMap.of();
     allocatedMemory = ImmutableMap.of();
     variables = ImmutableMap.of();
-    memoryNameAllocator = (pExp, pAddress) -> "";
+    memoryNameAllocator = new MemoryName() {
+
+      @Override
+      public String getMemoryName(CRightHandSide pExp, Address pAddress) {
+        return "";
+      }
+    };
 
     analysisConcreteExpressionEvaluation = new DefaultConcreteExpressionEvaluator();
   }

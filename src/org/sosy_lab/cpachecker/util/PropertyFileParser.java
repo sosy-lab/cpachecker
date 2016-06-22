@@ -25,13 +25,12 @@ package org.sosy_lab.cpachecker.util;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -69,7 +68,7 @@ public class PropertyFileParser {
 
   public void parse() throws InvalidPropertyFileException {
     String rawProperty = null;
-    try (BufferedReader br = Files.newBufferedReader(propertyFile, Charset.defaultCharset())) {
+    try (BufferedReader br = propertyFile.asCharSource(Charset.defaultCharset()).openBufferedStream()) {
       while ((rawProperty = br.readLine()) != null) {
         if (!rawProperty.isEmpty()) {
           properties.add(parsePropertyLine(rawProperty));
@@ -123,7 +122,6 @@ public class PropertyFileParser {
     VALID_MEMTRACK,
     OVERFLOW,
     DEADLOCK,
-    TERMINATION,
     ;
 
     private static ImmutableMap<String, PropertyType> AVAILABLE_PROPERTIES = ImmutableMap.<String, PropertyType>builder()
@@ -134,7 +132,6 @@ public class PropertyFileParser {
         .put("G valid-memtrack", PropertyType.VALID_MEMTRACK)
         .put("G ! overflow",     PropertyType.OVERFLOW)
         .put("G ! deadlock",     PropertyType.DEADLOCK)
-        .put("F end",            PropertyType.TERMINATION)
         .build();
   }
 }

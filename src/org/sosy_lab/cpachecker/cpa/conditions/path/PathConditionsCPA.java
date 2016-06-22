@@ -23,6 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.conditions.path;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+
+import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -52,9 +57,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
 
-import java.util.Collection;
-import java.util.Collections;
-
 /**
  * CPA for path conditions ({@link PathCondition}).
  * It can be configured to work with any condition that implements this interface.
@@ -62,9 +64,9 @@ import java.util.Collections;
 @Options(prefix="cpa.conditions.path")
 public class PathConditionsCPA implements ConfigurableProgramAnalysisWithBAM, AdjustableConditionCPA, StatisticsProvider {
 
-  @Option(secure = true, description = "The condition", name = "condition", required = true)
-  @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.cpa.conditions.path")
-  private PathCondition.Factory conditionClass;
+  @Option(secure=true, description="The condition", name="condition", required=true)
+  @ClassOption(packagePrefix="org.sosy_lab.cpachecker.cpa.conditions.path")
+  private Class<? extends PathCondition> conditionClass;
 
   private final PathCondition condition;
 
@@ -75,6 +77,12 @@ public class PathConditionsCPA implements ConfigurableProgramAnalysisWithBAM, Ad
           AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge) {
         return Collections.singleton(condition.getAbstractSuccessor(pState, pCfaEdge));
       }
+
+      @Override
+      public Collection<? extends AbstractState> strengthen(AbstractState pState,
+          List<AbstractState> pOtherStates, CFAEdge pCfaEdge, Precision pPrecision) {
+        return null;
+      }
     };
 
 
@@ -84,7 +92,10 @@ public class PathConditionsCPA implements ConfigurableProgramAnalysisWithBAM, Ad
 
   private PathConditionsCPA(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
-    condition = conditionClass.create(config);
+
+    Class<?>[] argumentTypes = { Configuration.class };
+    Object[] argumentValues = { config };
+    condition = Classes.createInstance(PathCondition.class, conditionClass, argumentTypes, argumentValues);
   }
 
   @Override

@@ -25,15 +25,18 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import static org.junit.Assert.assertEquals;
 
-import com.google.common.collect.SortedSetMultimap;
-import com.google.common.collect.TreeMultimap;
+import java.math.BigInteger;
+import java.util.Collections;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -63,7 +66,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.NumeralFormulaManagerView;
@@ -72,11 +75,9 @@ import org.sosy_lab.solver.api.NumeralFormula;
 import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.solver.test.SolverBasedTest0;
 
-import java.math.BigInteger;
-import java.util.Collections;
-import java.util.Optional;
-import java.util.SortedMap;
-import java.util.TreeMap;
+import com.google.common.base.Optional;
+import com.google.common.collect.SortedSetMultimap;
+import com.google.common.collect.TreeMultimap;
 
 /**
  * Testing the custom SSA implementation.
@@ -98,33 +99,33 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
         .build();
 
     fmgr = new FormulaManagerView(
-        context.getFormulaManager(), config, LogManager.createTestLogManager());
+        context.getFormulaManager(), config, TestLogManager.getInstance());
 
     pfmgrFwd =
         new PathFormulaManagerImpl(
             fmgr,
             config,
-            LogManager.createTestLogManager(),
+            TestLogManager.getInstance(),
             ShutdownNotifier.createDummy(),
             MachineModel.LINUX32,
-            Optional.empty(),
+            Optional.<VariableClassification>absent(),
             AnalysisDirection.FORWARD);
 
     pfmgrBwd =
         new PathFormulaManagerImpl(
             fmgr,
             configBackwards,
-            LogManager.createTestLogManager(),
+            TestLogManager.getInstance(),
             ShutdownNotifier.createDummy(),
             MachineModel.LINUX32,
-            Optional.empty(),
+            Optional.<VariableClassification>absent(),
             AnalysisDirection.BACKWARD);
   }
 
   private Triple<CFAEdge, CFAEdge, MutableCFA> createCFA() throws UnrecognizedCCodeException {
 
     CBinaryExpressionBuilder expressionBuilder = new CBinaryExpressionBuilder(
-        MachineModel.LINUX32, LogManager.createTestLogManager()
+        MachineModel.LINUX32, TestLogManager.getInstance()
     );
 
     String fName = "main";
@@ -250,7 +251,7 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
         ),
         new FunctionExitNode(name),
         Collections.<String>emptyList(),
-        Optional.empty()
+        Optional.<CVariableDeclaration>absent()
     );
 
     return main;

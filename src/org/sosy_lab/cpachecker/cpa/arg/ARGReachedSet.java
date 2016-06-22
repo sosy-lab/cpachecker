@@ -34,6 +34,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -115,10 +116,8 @@ public class ARGReachedSet {
    * {@link #adaptPrecision(Precision, Precision, Predicate)}).
    * @param e The root of the removed subtree, may not be the initial element.
    * @param p The new precision.
-   * @throws InterruptedException if operation is interrupted
    */
-  public void removeSubtree(ARGState e, Precision p, Predicate<? super Precision> pPrecisionType)
-      throws InterruptedException {
+  public void removeSubtree(ARGState e, Precision p, Predicate<? super Precision> pPrecisionType) {
     for (ARGState ae : removeSubtree0(e)) {
       mReached.updatePrecision(ae, adaptPrecision(mReached.getPrecision(ae), p, pPrecisionType));
       mReached.reAddToWaitlist(ae);
@@ -135,11 +134,9 @@ public class ARGReachedSet {
    * @param pState The root of the removed subtree, may not be the initial element.
    * @param pPrecisions The new precisions.
    * @param pPrecTypes the types of the precisions.
-   * @throws InterruptedException if operation is interrupted
    */
-  public void removeSubtree(
-      ARGState pState, List<Precision> pPrecisions, List<Predicate<? super Precision>> pPrecTypes)
-      throws InterruptedException {
+  public void removeSubtree(ARGState pState, List<Precision> pPrecisions,
+      List<Predicate<? super Precision>> pPrecTypes) {
 
     Preconditions.checkNotNull(pState);
     Preconditions.checkNotNull(pPrecisions);
@@ -235,14 +232,17 @@ public class ARGReachedSet {
       Predicate<? super Precision> pPrecisionType) {
     Map<Precision, Precision> precisionUpdateCache = Maps.newIdentityHashMap();
 
-    mReached.forEach(
-        (s, oldPrecision) -> {
-          Precision newPrecision =
-              precisionUpdateCache.computeIfAbsent(
-                  oldPrecision, oldPrec -> adaptPrecision(oldPrec, pNewPrecision, pPrecisionType));
+    for (AbstractState s : mReached) {
+      Precision oldPrecision = mReached.getPrecision(s);
 
-          mReached.updatePrecision(s, newPrecision);
-        });
+      Precision newPrecision = precisionUpdateCache.get(oldPrecision);
+      if (newPrecision == null) {
+        newPrecision = adaptPrecision(oldPrecision, pNewPrecision, pPrecisionType);
+        precisionUpdateCache.put(oldPrecision, newPrecision);
+      }
+
+      mReached.updatePrecision(s, newPrecision);
+    }
   }
 
   /**
@@ -290,11 +290,11 @@ public class ARGReachedSet {
       return;
     }
 
-    SetMultimap<ARGState, ARGState> successors =
-        ARGUtils.projectARG(e, ARGState::getChildren, ARGUtils.RELEVANT_STATE);
+    SetMultimap<ARGState, ARGState> successors = ARGUtils.projectARG(e,
+        ARGUtils.CHILDREN_OF_STATE, ARGUtils.RELEVANT_STATE);
 
-    SetMultimap<ARGState, ARGState> predecessors =
-        ARGUtils.projectARG(e, ARGState::getParents, ARGUtils.RELEVANT_STATE);
+    SetMultimap<ARGState, ARGState> predecessors = ARGUtils.projectARG(e,
+        ARGUtils.PARENTS_OF_STATE, ARGUtils.RELEVANT_STATE);
 
     try {
       refinementGraph.enterSubgraph("cluster_" + refinementNumber,
@@ -474,9 +474,8 @@ public class ARGReachedSet {
     }
 
     @Override
-    public void removeSubtree(
-        ARGState pE, Precision pP, Predicate<? super Precision> pPrecisionType)
-        throws InterruptedException {
+    public void removeSubtree(ARGState pE, Precision pP,
+        Predicate<? super Precision> pPrecisionType) {
       delegate.removeSubtree(pE, pP, pPrecisionType);
     }
   }

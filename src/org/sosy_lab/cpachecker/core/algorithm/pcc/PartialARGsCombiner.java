@@ -27,11 +27,20 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import java.io.PrintStream;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -64,20 +73,11 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import java.io.PrintStream;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 
 public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
@@ -506,8 +506,8 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
 
   private static class EdgeSuccessor implements Predicate<ARGState> {
 
-    private @Nullable CFAEdge edge;
-    private @Nullable ARGState predecessor;
+    private CFAEdge edge;
+    private ARGState predecessor;
 
 
     @Override

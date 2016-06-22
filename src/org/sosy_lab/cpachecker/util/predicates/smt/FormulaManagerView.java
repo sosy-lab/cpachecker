@@ -30,7 +30,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
-import java.util.Optional;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
@@ -44,7 +44,8 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
@@ -80,8 +81,6 @@ import org.sosy_lab.solver.visitors.TraversalProcess;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -93,7 +92,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 
 /**
  * This class is the central entry point for all formula creation
@@ -332,7 +330,7 @@ public class FormulaManagerView {
   public void dumpFormulaToFile(BooleanFormula f, Path outputFile) {
     if (outputFile != null) {
       try {
-        MoreFiles.writeFile(outputFile, Charset.defaultCharset(), this.dumpFormula(f));
+        Files.writeFile(outputFile, this.dumpFormula(f));
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Failed to save formula to file");
       }
@@ -876,13 +874,23 @@ public class FormulaManagerView {
    *  @see #instantiate(Formula, SSAMap)
    */
   public <F extends Formula> List<F> instantiate(List<F> pFormulas, final SSAMap pSsa) {
-    return pFormulas.stream().map(f -> instantiate(f, pSsa)).collect(Collectors.toList());
+    return Lists.transform(pFormulas,
+       new Function<F, F>() {
+         @Override
+         public F apply(F pF) {
+           // Apply 'instantiate'!
+           return instantiate(pF, pSsa);
+         }
+       });
   }
 
   public Set<String> instantiate(Iterable<String> pVariableNames, final SSAMap pSsa) {
-    return from(pVariableNames).transform(pArg0 -> {
-      Pair<String, Integer> parsedVar = parseName(pArg0);
-      return makeName(parsedVar.getFirst(), pSsa.getIndex(parsedVar.getFirst()));
+    return from(pVariableNames).transform(new Function<String, String>() {
+      @Override
+      public String apply(String pArg0) {
+        Pair<String, Integer> parsedVar = parseName(pArg0);
+        return makeName(parsedVar.getFirst(), pSsa.getIndex(parsedVar.getFirst()));
+      }
     }).toSet();
   }
 
@@ -905,17 +913,22 @@ public class FormulaManagerView {
    */
   public <F extends Formula> F instantiate(F pF, final SSAMap pSsa) {
     return wrap(getFormulaType(pF),
-        myFreeVariableNodeTransformer(unwrap(pF), new HashMap<>(),
-            pFullSymbolName -> {
-              final Pair<String, Integer> indexedSymbol = parseName(pFullSymbolName);
-              final int reInstantiateWithIndex = pSsa.getIndex(indexedSymbol.getFirst());
+        myFreeVariableNodeTransformer(unwrap(pF), new HashMap<Formula, Formula>(),
+            new Function<String, String>() {
 
-              if (reInstantiateWithIndex > 0) {
-                // OK, the variable has ALREADY an instance in the SSA, REPLACE it
-                return makeName(indexedSymbol.getFirst(), reInstantiateWithIndex);
-              } else {
-                // the variable is not used in the SSA, keep it as is
-                return pFullSymbolName;
+              @Override
+              public String apply(String pFullSymbolName) {
+
+                final Pair<String, Integer> indexedSymbol = parseName(pFullSymbolName);
+                final int reInstantiateWithIndex = pSsa.getIndex(indexedSymbol.getFirst());
+
+                if (reInstantiateWithIndex > 0) {
+                  // OK, the variable has ALREADY an instance in the SSA, REPLACE it
+                  return makeName(indexedSymbol.getFirst(), reInstantiateWithIndex);
+                } else {
+                  // the variable is not used in the SSA, keep it as is
+                  return pFullSymbolName;
+                }
               }
             })
         );
@@ -954,7 +967,13 @@ public class FormulaManagerView {
   public <F extends Formula> F uninstantiate(F f) {
     return wrap(getFormulaType(f),
         myFreeVariableNodeTransformer(unwrap(f), uninstantiateCache,
-            pArg0 -> parseName(pArg0).getFirst())
+            new Function<String, String>() {
+              @Override
+              public String apply(String pArg0) {
+                // Un-instantiated variable name
+                return parseName(pArg0).getFirst();
+              }
+            })
         );
   }
 
@@ -969,7 +988,8 @@ public class FormulaManagerView {
 
     return wrap(getFormulaType(pFormula),
         myFreeVariableNodeTransformer(unwrap(pFormula),
-            new HashMap<>(), pRenameFunction));
+            new HashMap<Formula, Formula>(),
+            pRenameFunction));
   }
 
   private <T extends Formula> T myFreeVariableNodeTransformer(
@@ -1143,7 +1163,7 @@ public class FormulaManagerView {
         new DefaultBooleanFormulaVisitor<Optional<BooleanFormula>>() {
       @Override
       protected Optional<BooleanFormula> visitDefault() {
-        return Optional.empty();
+        return Optional.absent();
       }
 
       @Override
@@ -1365,7 +1385,7 @@ public class FormulaManagerView {
     return booleanFormulaManager.makeVariable(pName);
   }
 
-  public <T extends Formula> T simplify(T input) throws InterruptedException {
+  public <T extends Formula> T simplify(T input) {
     return manager.simplify(input);
   }
 
@@ -1498,7 +1518,7 @@ public class FormulaManagerView {
 
             @Override
             protected Optional<Triple<BooleanFormula, T, T>> visitDefault(Formula f) {
-              return Optional.empty();
+              return Optional.absent();
             }
 
             @Override
@@ -1518,7 +1538,7 @@ public class FormulaManagerView {
                     wrap(targetType, elseBranch)
                 ));
               }
-              return Optional.empty();
+              return Optional.absent();
             }
           }, pF
       );

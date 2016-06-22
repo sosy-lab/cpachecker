@@ -50,6 +50,12 @@ public class ThreadingSortedWaitlist extends AbstractSortedWaitlist<Integer> {
   }
 
   public static WaitlistFactory factory(final WaitlistFactory pSecondaryStrategy) {
-    return () -> new ThreadingSortedWaitlist(pSecondaryStrategy);
+    return new WaitlistFactory() {
+
+      @Override
+      public Waitlist createWaitlistInstance() {
+        return new ThreadingSortedWaitlist(pSecondaryStrategy);
+      }
+    };
   }
 }

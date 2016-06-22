@@ -78,8 +78,7 @@ public class ARGSubtreeRemover {
 
   void removeSubtree(ARGReachedSet mainReachedSet, ARGPath pPath,
                      ARGState element, List<Precision> pNewPrecisions,
-                     List<Predicate<? super Precision>> pNewPrecisionTypes)
-      throws InterruptedException {
+                     List<Predicate<? super Precision>> pNewPrecisionTypes) {
 
     final ARGState firstState = (ARGState)mainReachedSet.asReachedSet().getFirstState();
     final ARGState lastState = (ARGState)mainReachedSet.asReachedSet().getLastState();
@@ -159,8 +158,7 @@ public class ARGSubtreeRemover {
 
   private void removeCachedSubtreeIfPossible(ARGState rootState, ARGState removeElement,
       List<Precision> pNewPrecisions,
-      List<Predicate<? super Precision>> pPrecisionTypes)
-      throws InterruptedException {
+      List<Predicate<? super Precision>> pPrecisionTypes) {
     if (removeElement.isDestroyed()) {
       logger.log(Level.FINER, "state was destroyed before");
       //apparently, removeElement was removed due to prior deletions
@@ -176,8 +174,7 @@ public class ARGSubtreeRemover {
    */
   private void removeCachedSubtree(ARGState rootState, ARGState removeElement,
                                    List<Precision> pNewPrecisions,
-                                   List<Predicate<? super Precision>> pPrecisionTypes)
-      throws InterruptedException {
+                                   List<Predicate<? super Precision>> pPrecisionTypes) {
     assert pNewPrecisions.size() == pPrecisionTypes.size();
     removeCachedSubtreeTimer.start();
     logger.log(Level.FINER, "Remove cached subtree for", removeElement, " issued with precision", pNewPrecisions);
@@ -279,8 +276,7 @@ public class ARGSubtreeRemover {
    * We remove all of them and create the "precise" entry for re-exploration.
    * We only update those blocks, where a nested block is imprecise. */
   private void ensureExactCacheHitsOnPath(ARGPath pPath, final ARGState pElement,
-      List<Precision> pNewPrecisions, Multimap<ARGState, ARGState> neededRemoveCachedSubtreeCalls)
-      throws InterruptedException {
+      List<Precision> pNewPrecisions, Multimap<ARGState, ARGState> neededRemoveCachedSubtreeCalls) {
     boolean cutStateFound = false;
     final Deque<Boolean> needsNewPrecisionEntries = new ArrayDeque<>();
     final Deque<Boolean> foundInnerUnpreciseEntries = new ArrayDeque<>();
@@ -343,7 +339,7 @@ public class ARGSubtreeRemover {
 
   /** This method creates a new precise entry if necessary, and returns whether the used entry needs a new precision. */
   private boolean createNewPreciseEntry(ARGState rootState, List<Precision> pNewPrecisions,
-      UnmodifiableReachedSet outerReachedSet) throws InterruptedException {
+      UnmodifiableReachedSet outerReachedSet) {
 
     // create updated precision
     ARGState initialState = (ARGState) rootState.getWrappedState();

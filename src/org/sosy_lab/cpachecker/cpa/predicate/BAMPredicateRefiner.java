@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -222,8 +223,7 @@ public abstract class BAMPredicateRefiner implements Refiner {
         callStacks.put(currentState, currentStacks.get(0));
 
         PathFormula currentFormula;
-        final PredicateAbstractState predicateElement =
-            PredicateAbstractState.getPredicateState(currentState);
+        final PredicateAbstractState predicateElement = extractStateByType(currentState, PredicateAbstractState.class);
         if (predicateElement.isAbstractionState()) {
           // abstraction element is the start of a new part of the ARG
 

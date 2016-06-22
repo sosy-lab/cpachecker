@@ -1,10 +1,12 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import com.google.common.base.Function;
-import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableTable;
-import com.google.common.collect.Table;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -14,13 +16,11 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Function;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableTable;
+import com.google.common.collect.Table;
 
 public class ValueDeterminationManager {
 
@@ -28,6 +28,7 @@ public class ValueDeterminationManager {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final LogManager logger;
+  private final TemplateManager templateManager;
   private final PathFormulaManager pfmgr;
   private final StateFormulaConversionManager stateFormulaConversionManager;
 
@@ -38,6 +39,7 @@ public class ValueDeterminationManager {
   public ValueDeterminationManager(
       FormulaManagerView fmgr,
       LogManager logger,
+      TemplateManager pTemplateManager,
       PathFormulaManager pPfmgr,
       StateFormulaConversionManager pStateFormulaConversionManager) {
 
@@ -45,6 +47,7 @@ public class ValueDeterminationManager {
     stateFormulaConversionManager = pStateFormulaConversionManager;
     this.bfmgr = fmgr.getBooleanFormulaManager();
     this.logger = logger;
+    templateManager = pTemplateManager;
     pfmgr = pPfmgr;
   }
 
@@ -180,14 +183,19 @@ public class ValueDeterminationManager {
       Set<String> visited,
       final Map<Template, PolicyBound> updated
   ) {
-    final Function<String, String> addPrefix = pInput -> prefix + pInput;
+    final Function<String, String> addPrefix = new Function<String, String>() {
+          @Override
+          public String apply(String pInput) {
+            return prefix + pInput;
+          }
+        };
     PathFormula policyFormula = bound.getFormula();
 
     PathFormula startPathFormula = stateFormulaConversionManager.getPathFormula(
         bound.getPredecessor(), fmgr, true);
 
     final Formula policyOutTemplate = fmgr.renameFreeVariablesAndUFs(
-        stateFormulaConversionManager.toFormula(pfmgr, fmgr, template, policyFormula), addPrefix);
+        templateManager.toFormula(pfmgr, fmgr, template, policyFormula), addPrefix);
     final Formula abstractDomainFormula =
         fmgr.makeVariable(fmgr.getFormulaType(policyOutTemplate),
             absDomainVarName(toState, template));
@@ -231,7 +239,7 @@ public class ValueDeterminationManager {
           incomingTemplate);
 
       Formula incomingTemplateFormula = fmgr.renameFreeVariablesAndUFs(
-          stateFormulaConversionManager.toFormula(
+          templateManager.toFormula(
               pfmgr, fmgr,
               incomingTemplate,
               startPathFormula

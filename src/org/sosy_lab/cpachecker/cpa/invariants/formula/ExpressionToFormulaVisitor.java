@@ -727,8 +727,14 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
           if (ci instanceof CompoundBitVectorInterval) {
             CompoundBitVectorInterval cbvi = (CompoundBitVectorInterval) ci;
             final AtomicBoolean overflows = new AtomicBoolean();
-            OverflowEventHandler overflowEventHandler = () -> overflows.set(true);
-            // cast to check for overflow, result is unused
+            OverflowEventHandler overflowEventHandler =
+                new OverflowEventHandler() {
+
+                  @Override
+                  public void signedOverflow() {
+                    overflows.set(true);
+                  }
+                };
             cbvi.cast(bitVectorInfo, false, overflowEventHandler);
             if (overflows.get()) {
               return InvariantsFormulaManager.INSTANCE.asConstant(

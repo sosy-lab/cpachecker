@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 
-import java.util.Optional;
+import com.google.common.base.Optional;
 
 
 public class AReturnStatementEdge extends AbstractCFAEdge {

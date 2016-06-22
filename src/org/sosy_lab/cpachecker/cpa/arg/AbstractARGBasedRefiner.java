@@ -65,12 +65,6 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
   private final ARGCPA argCpa;
   private final LogManager logger;
 
-  protected AbstractARGBasedRefiner(AbstractARGBasedRefiner pAbstractARGBasedRefiner) {
-    refiner = pAbstractARGBasedRefiner.refiner;
-    argCpa = pAbstractARGBasedRefiner.argCpa;
-    logger = pAbstractARGBasedRefiner.logger;
-  }
-
   protected AbstractARGBasedRefiner(ARGBasedRefiner pRefiner, ARGCPA pCpa, LogManager pLogger) {
     refiner = pRefiner;
     argCpa = pCpa;
@@ -98,7 +92,18 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
   }
 
   private static final Function<CFAEdge, String> pathToFunctionCalls
-        = arg ->  arg instanceof CFunctionCallEdge ? arg.toString() : null;
+        = new Function<CFAEdge, String>() {
+    @Override
+    public String apply(CFAEdge arg) {
+
+      if (arg instanceof CFunctionCallEdge) {
+        CFunctionCallEdge funcEdge = (CFunctionCallEdge)arg;
+        return funcEdge.toString();
+      } else {
+        return null;
+      }
+    }
+  };
 
   @Override
   public final boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {

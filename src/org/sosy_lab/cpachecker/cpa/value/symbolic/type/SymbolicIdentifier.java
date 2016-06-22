@@ -23,19 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
-import com.google.common.primitives.Longs;
-
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import java.util.Objects;
-import java.util.Optional;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Optional;
 
 /**
  * Identifier for basic symbolic values.
@@ -67,16 +60,16 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
   // this objects unique id for identifying it
   private final long id;
 
-  private final @Nullable MemoryLocation representedLocation;
+  private final Optional<MemoryLocation> representedLocation;
 
   public SymbolicIdentifier(long pId) {
     id = pId;
-    representedLocation = null;
+    representedLocation = Optional.absent();
   }
 
   private SymbolicIdentifier(final long pId, final MemoryLocation pRepresentedLocation) {
     id = pId;
-    representedLocation = checkNotNull(pRepresentedLocation);
+    representedLocation = Optional.of(pRepresentedLocation);
   }
 
   /**
@@ -97,7 +90,7 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
 
   @Override
   public Optional<MemoryLocation> getRepresentedLocation() {
-    return Optional.ofNullable(representedLocation);
+    return representedLocation;
   }
 
   @Override
@@ -107,8 +100,8 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
 
   @Override
   public String getRepresentation() {
-    if (representedLocation != null) {
-      return representedLocation.toString();
+    if (representedLocation.isPresent()) {
+      return representedLocation.get().toString();
     } else {
       return toString();
     }
@@ -120,13 +113,13 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(representedLocation) + ((int) (id ^ (id >>> 32)));
+    return getRepresentedLocation().hashCode() + ((int) (id ^ (id >>> 32)));
   }
 
   @Override
   public boolean equals(Object pOther) {
     return pOther instanceof SymbolicIdentifier && ((SymbolicIdentifier) pOther).id == id
-        && Objects.equals(representedLocation, ((SymbolicIdentifier) pOther).representedLocation);
+        && ((SymbolicIdentifier) pOther).getRepresentedLocation().equals(getRepresentedLocation());
   }
 
   @Override
@@ -161,7 +154,13 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
 
   @Override
   public int compareTo(SymbolicIdentifier o) {
-    return Longs.compare(getId(), o.getId());
+    if (getId() == o.getId()) {
+      return 0;
+    } else if (getId() > o.getId()) {
+      return 1;
+    } else {
+      return -1;
+    }
   }
 
 

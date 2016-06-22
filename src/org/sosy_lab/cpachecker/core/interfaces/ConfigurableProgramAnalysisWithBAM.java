@@ -23,11 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
-import javax.annotation.Nullable;
-
 public interface ConfigurableProgramAnalysisWithBAM extends
     ConfigurableProgramAnalysis {
 
-  @Nullable
   Reducer getReducer();
 }

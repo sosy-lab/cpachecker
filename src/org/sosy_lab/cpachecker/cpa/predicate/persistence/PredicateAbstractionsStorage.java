@@ -25,6 +25,28 @@ package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import java.util.Set;
+import java.util.StringTokenizer;
+import java.util.regex.Pattern;
+
+import javax.annotation.Nullable;
+
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.Converter;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.FormulaParser;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
@@ -33,39 +55,14 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-import org.sosy_lab.common.io.MoreFiles;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.predicates.precisionConverter.Converter;
-import org.sosy_lab.cpachecker.util.predicates.precisionConverter.FormulaParser;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.solver.api.BooleanFormula;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Map;
-import java.util.OptionalInt;
-import java.util.Set;
-import java.util.StringTokenizer;
-import java.util.regex.Pattern;
-
-import javax.annotation.Nullable;
-
 public class PredicateAbstractionsStorage {
 
   public static class AbstractionNode {
     private final int id;
-    private final OptionalInt locationId;
+    private final Optional<Integer> locationId;
     private final BooleanFormula formula;
 
-    public AbstractionNode(int pId, BooleanFormula pFormula, OptionalInt pLocationId) {
+    public AbstractionNode(int pId, BooleanFormula pFormula, Optional<Integer> pLocationId) {
       this.id = pId;
       this.formula = pFormula;
       this.locationId = pLocationId;
@@ -79,7 +76,7 @@ public class PredicateAbstractionsStorage {
       return id;
     }
 
-    public OptionalInt getLocationId() {
+    public Optional<Integer> getLocationId() {
       return locationId;
     }
 
@@ -116,7 +113,7 @@ public class PredicateAbstractionsStorage {
 
     if (pFile != null) {
       try {
-        MoreFiles.checkReadableFile(pFile);
+        Files.checkReadableFile(pFile);
         parseAbstractionTree();
       } catch (IOException e) {
         throw new PredicateParsingFailedException(e, "Init", 0);
@@ -124,15 +121,13 @@ public class PredicateAbstractionsStorage {
     }
   }
 
-  @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
   private void parseAbstractionTree() throws IOException, PredicateParsingFailedException {
     Multimap<Integer, Integer> resultTree = LinkedHashMultimap.create();
     Map<Integer, AbstractionNode> resultAbstractions = Maps.newTreeMap();
     Set<Integer> abstractionsWithParents = Sets.newTreeSet();
 
-    String source = abstractionsFile.getFileName().toString();
-    try (BufferedReader reader =
-        Files.newBufferedReader(abstractionsFile, StandardCharsets.US_ASCII)) {
+    String source = abstractionsFile.getName();
+    try (BufferedReader reader = abstractionsFile.asCharSource(StandardCharsets.US_ASCII).openBufferedStream()) {
 
       // first, read first section with initial set of function definitions
       Pair<Integer, String> defParsingResult = PredicatePersistenceUtils.parseCommonDefinitions(reader, abstractionsFile.toString());
@@ -141,7 +136,7 @@ public class PredicateAbstractionsStorage {
 
       String currentLine;
       int currentAbstractionId = -1;
-      OptionalInt currentLocationId = OptionalInt.empty();
+      Optional<Integer> currentLocationId = Optional.absent();
       Set<Integer> currentSuccessors = Sets.newTreeSet();
 
       AbstractionsParserState parserState = AbstractionsParserState.EXPECT_NODE_DECLARATION;
@@ -181,7 +176,7 @@ public class PredicateAbstractionsStorage {
             String token = declarationTokenizer.nextToken().trim();
             if (token.length() > 0) {
               if (token.startsWith("@")) {
-                currentLocationId = OptionalInt.of(Integer.parseInt(token.substring(1)));
+                currentLocationId = Optional.of(Integer.parseInt(token.substring(1)));
               } else {
                 int successorId = Integer.parseInt(token);
                 currentSuccessors.add(successorId);

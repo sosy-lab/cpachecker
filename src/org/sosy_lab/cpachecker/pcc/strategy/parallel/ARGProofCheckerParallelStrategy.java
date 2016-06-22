@@ -25,8 +25,18 @@ package org.sosy_lab.cpachecker.pcc.strategy.parallel;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Stack;
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CyclicBarrier;
+import java.util.logging.Level;
 
+import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
@@ -48,20 +58,6 @@ import org.sosy_lab.cpachecker.pcc.strategy.SequentialReadStrategy;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Stack;
-import java.util.concurrent.BrokenBarrierException;
-import java.util.concurrent.CyclicBarrier;
-import java.util.concurrent.ThreadFactory;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
-
 /**
  * Uses ProofChecker interface to check an ARG (certificate) in parallel.
  * Methods used for checking especially those implemented by ProofChecker used in checking must be
@@ -75,8 +71,8 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
   private ProofChecker checker;
   private PropertyChecker propChecker;
 
-  public ARGProofCheckerParallelStrategy(
-      Configuration pConfig, LogManager pLogger, @Nullable ProofChecker pChecker)
+  public ARGProofCheckerParallelStrategy(Configuration pConfig, LogManager pLogger,
+      ProofChecker pChecker)
       throws InvalidConfigurationException {
     super(pConfig, pLogger);
     checker = pChecker;
@@ -107,13 +103,9 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
       CyclicBarrier barrier = new CyclicBarrier(numThreads);
       CommonResult result = new CommonResult(numThreads);
 
-      ThreadFactory threadFactory =
-          new ThreadFactoryBuilder()
-              .setNameFormat("ARGProofCheckerParallelStrategy-checkCertificate-%d")
-              .build();
       for (int i = 0; i < helper.length; i++) {
         helper[i] = new StateCheckingHelper(barrier, result, propChecker, checker);
-        helperThreads[i] = threadFactory.newThread(helper[i]);
+        helperThreads[i] = Threads.newThread(helper[i]);
         helperThreads[i].start();
       }
 

@@ -1,7 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
 import com.google.common.base.Function;
-import java.util.Optional;
+import com.google.common.base.Optional;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -40,6 +41,9 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager;
 
 import java.util.Collection;
+import java.util.List;
+
+import javax.annotation.Nullable;
 
 
 public class FormulaSlicingCPA extends SingleEdgeTransferRelation
@@ -59,6 +63,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
       Configuration pConfiguration,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
+      ReachedSetFactory pReachedSetFactory,
       CFA cfa
   ) throws InvalidConfigurationException {
     Solver solver = Solver.create(pConfiguration, pLogger, pShutdownNotifier);
@@ -72,7 +77,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
 
     inductiveWeakeningManager = new InductiveWeakeningManager(pConfiguration, solver, pLogger,
         pShutdownNotifier);
-    RCNFManager = new RCNFManager(pConfiguration);
+    RCNFManager = new RCNFManager(formulaManager, pConfiguration);
     manager = new FormulaSlicingManager(
         pConfiguration,
         pathFormulaManager,
@@ -81,7 +86,9 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
         inductiveWeakeningManager,
         RCNFManager,
         solver,
-        pLogger);
+        pLogger,
+        pReachedSetFactory,
+        pShutdownNotifier);
     stopOperator = new StopSepOperator(this);
     mergeOperator = this;
   }
@@ -126,6 +133,13 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
       AbstractState state, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
     return manager.getAbstractSuccessors((SlicingState)state, cfaEdge);
+  }
+
+  @Override
+  public Collection<? extends AbstractState> strengthen(AbstractState state,
+      List<AbstractState> otherStates, @Nullable CFAEdge cfaEdge,
+      Precision precision) throws CPATransferException, InterruptedException {
+    return null;
   }
 
   @Override

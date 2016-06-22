@@ -23,14 +23,13 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.Nullable;
+
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /**
  * Interface for transfer relations.
@@ -93,16 +92,12 @@ public interface TransferRelation {
    * @param otherStates list of abstract states of all domains
    * @param cfaEdge null or an edge of the CFA
    * @param precision the precision to use during strengthening
-   * @return list of all abstract states which should replace the old one, empty list for bottom or.
-   * @throws CPATransferException If operation fails.
-   * @throws InterruptedException If operation is interrupted.
+   * @return list of all abstract states which should replace the old one, empty list for bottom or null for no change.
    */
-  default Collection<? extends AbstractState> strengthen(
+  public Collection<? extends AbstractState> strengthen(
       AbstractState state,
       List<AbstractState> otherStates,
       @Nullable CFAEdge cfaEdge,
       Precision precision)
-      throws CPATransferException, InterruptedException {
-    return Collections.singleton(state);
-  }
+      throws CPATransferException, InterruptedException;
 }

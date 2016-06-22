@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.util;
 
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA.ComparisonType;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
@@ -33,10 +37,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.util.AliasCreator.Environment;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
+import com.google.common.base.Optional;
 
 /**
  * Util class for {@link SymbolicValue}.

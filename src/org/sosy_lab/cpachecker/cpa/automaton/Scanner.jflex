@@ -2,10 +2,9 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java_cup.runtime.*;
 import java_cup.runtime.ComplexSymbolFactory.Location;
-import org.sosy_lab.common.io.MoreFiles;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -17,7 +16,7 @@ import java.util.List;
 import java.util.logging.Level;
 
 @javax.annotation.Generated("JFlex")
-@SuppressWarnings(value = { "all", "cast" })
+@SuppressWarnings(value = { "all" })
 @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = {"DLS_DEAD_LOCAL_STORE"})
 %%
 
@@ -45,26 +44,28 @@ import java.util.logging.Level;
     String fileName = pYytext.replaceFirst("#include ", "").trim();
     
     Path file = Paths.get(fileName);
-    Path currentFile = filesStack.peek();
-    file = currentFile.resolveSibling(file);
+    if (!file.isAbsolute()) {
+      Path currentFile = filesStack.peek();
+      file = Paths.get(currentFile.getParent().getPath(), file.getPath());    
+    }
 
     if (scannedFiles.contains(file)) {
       logger.log(Level.WARNING, "File \"" + file + "\" was referenced multiple times. Redundant or cyclic references were ignored.");
       return null;
     }
 
-    MoreFiles.checkReadableFile(file);
+    Files.checkReadableFile(file);
     scannedFiles.add(file);
     filesStack.push(file);
     return file;
   }
   
   private Location getStartLocation() {
-    return new Location(filesStack.peek().toString(), yyline+1,yycolumn+1-yylength());
+    return new Location(filesStack.peek().getPath(), yyline+1,yycolumn+1-yylength());
   }
 
   private Location getEndLocation() {
-    return new Location(filesStack.peek().toString(), yyline+1,yycolumn+1);
+    return new Location(filesStack.peek().getPath(), yyline+1,yycolumn+1);
   }
   
   private Symbol symbol(String name, int sym) {
@@ -78,7 +79,7 @@ import java.util.logging.Level;
   private void error() throws IOException {
     Location start = getStartLocation();
     StringBuilder msg = new StringBuilder();
-    msg.append(filesStack.getLast().toString());
+    msg.append(filesStack.getLast().getPath());
     msg.append(" (Illegal character <");
     msg.append(yytext());
     msg.append("> at column ");
@@ -123,7 +124,7 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
         "#include" {InputCharacter}+ 
         { Path file = getFile(yytext()); 
           if (file != null) {
-            yypushStream(Files.newBufferedReader(file, StandardCharsets.US_ASCII));
+            yypushStream(file.asCharSource(StandardCharsets.US_ASCII).openBufferedStream());
           }
         }
 <YYINITIAL> ";"                 { return symbol(";", AutomatonSym.SEMICOLON); }

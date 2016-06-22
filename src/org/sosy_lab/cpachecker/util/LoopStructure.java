@@ -253,7 +253,7 @@ public final class LoopStructure {
     }
 
     /**
-     * Get the set of all outgoing CFA edges,
+     * Get the set of all incoming CFA edges,
      * i.e., edges which connect a loop node with a non-loop CFA node inside the same function.
      * Although called functions are not considered loop nodes,
      * this set does not contain any edges from inside the loop to called functions.
@@ -313,21 +313,29 @@ public final class LoopStructure {
    */
   public ImmutableSet<CFANode> getAllLoopHeads() {
     if (loopHeads == null) {
-      loopHeads = from(loops.values()).transformAndConcat(Loop::getLoopHeads).toSet();
+      loopHeads = from(loops.values())
+          .transformAndConcat(new Function<Loop, Iterable<CFANode>>() {
+            @Override
+            public Iterable<CFANode> apply(Loop loop) {
+              return loop.getLoopHeads();
+            }
+          })
+          .toSet();
     }
     return loopHeads;
   }
 
   public ImmutableSet<Loop> getLoopsForLoopHead(final CFANode loopHead) {
     return from(loops.values())
-        .transform(
-            loop -> {
-              if (loop.getLoopHeads().contains(loopHead)) {
-                return loop;
-              } else {
-                return null;
-              }
-            })
+        .transform(new Function<Loop, Loop>() {
+          @Override
+          public Loop apply(Loop loop) {
+            if (loop.getLoopHeads().contains(loopHead)) {
+              return loop;
+            } else {
+              return null;
+            }
+          }})
         .filter(Predicates.notNull())
         .toSet();
   }
@@ -567,7 +575,12 @@ public final class LoopStructure {
     // We use the reverse post-order id of each node as the array index for that node,
     // because this id is unique, without gaps, and its minimum is 0.
     // It's important to not use the node number because it has large gaps.
-    final Function<CFANode, Integer> arrayIndexForNode = CFANode::getReversePostorderId;
+    final Function<CFANode, Integer> arrayIndexForNode = new Function<CFANode, Integer>() {
+        @Override
+        public Integer apply(CFANode n) {
+          return n.getReversePostorderId();
+        }
+      };
     // this is the size of the arrays
     int size = nodes.size();
 

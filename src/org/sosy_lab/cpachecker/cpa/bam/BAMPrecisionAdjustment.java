@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.base.Function;
-import java.util.Optional;
+import com.google.common.base.Optional;
 
 public class BAMPrecisionAdjustment implements PrecisionAdjustment {
 

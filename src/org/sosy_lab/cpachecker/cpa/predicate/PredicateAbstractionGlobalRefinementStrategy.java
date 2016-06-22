@@ -43,7 +43,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -161,7 +161,7 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
   }
 
   @Override
-  public void updatePrecisionAndARG() throws InterruptedException {
+  public void updatePrecisionAndARG() {
     PredicatePrecision newPrecision = computeNewPrecision();
 
     updateARG(newPrecision, refinementRoot);
@@ -172,16 +172,7 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
     newPredicates = null;
   }
 
-  @Override
-  public void resetGlobalRefinement() {
-    // reset reached set to null, for next global refinement
-    reached = null;
-    refinementRoot = null;
-    newPredicates = null;
-  }
-
-  protected void updateARG(PredicatePrecision pNewPrecision, ARGState pRefinementRoot)
-      throws InterruptedException {
+  protected void updateARG(PredicatePrecision pNewPrecision, ARGState pRefinementRoot) {
 
     argUpdate.start();
 
@@ -290,8 +281,8 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
       ARGState refinementRoot, UnmodifiableReachedSet reached) {
     return PredicatePrecision.unionOf(
         from(refinementRoot.getSubgraph())
-            .filter(not(ARGState::isCovered))
-            .transform(reached::getPrecision));
+            .filter(not(ARGState.IS_COVERED))
+            .transform(Precisions.forStateIn(reached)));
   }
 
   /**

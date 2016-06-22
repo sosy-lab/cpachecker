@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -117,11 +118,14 @@ public class CFADeclarationMover {
       secondRealFunctionEdge.add(declEndEdge);
     }
 
+    Iterator<CFAEdge> it = declarations.iterator();
+
     // insert declarations into the desired destination
-    for (CFAEdge decl : declarations) {
+    while (it.hasNext()) {
+      CFAEdge decl = it.next();
       CFANode middleNode = new CFANode(functionName);
       cfa.addNode(middleNode);
-      moveDeclEdgeToNewLocation((CDeclarationEdge) decl, actNode, middleNode);
+      moveDeclEdgeToNewLocation((CDeclarationEdge)decl, actNode, middleNode);
       actNode = middleNode;
     }
 
@@ -168,7 +172,7 @@ public class CFADeclarationMover {
       return edge;
     case ReturnStatementEdge:
       edge = new CReturnStatementEdge(((CReturnStatementEdge)edge).getRawStatement(),
-                                      ((CReturnStatementEdge)edge).getRawAST().orElse(null),
+                                      ((CReturnStatementEdge)edge).getRawAST().orNull(),
                                       edge.getFileLocation(),
                                       pred ,
                                       (FunctionExitNode) edge.getSuccessor());

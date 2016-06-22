@@ -23,10 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.refinement;
 
-import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
@@ -34,9 +33,9 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
 
 
 public class InfeasiblePrefix {
@@ -84,21 +83,26 @@ public class InfeasiblePrefix {
 
     List<Set<String>> simpleInterpolantSequence = new ArrayList<>();
     for (ValueAnalysisInterpolant itp : pInterpolantSequence) {
-      simpleInterpolantSequence.add(
-          FluentIterable.from(itp.getMemoryLocations())
-              .transform(MemoryLocation::getAsSimpleString)
-              .toSet());
+      simpleInterpolantSequence.add(FluentIterable.from(itp.getMemoryLocations()).transform(MemoryLocation.FROM_MEMORYLOCATION_TO_STRING).toSet());
     }
 
     return new InfeasiblePrefix(pInfeasiblePrefix, simpleInterpolantSequence);
   }
 
   public Set<String> extractSetOfIdentifiers() {
-    return ImmutableSet.copyOf(Iterables.concat(interpolantSequence));
+    return FluentIterable.from(interpolantSequence).transformAndConcat(new Function<Set<String>, Iterable<String>>() {
+      @Override
+      public Iterable<String> apply(Set<String> itp) {
+        return itp;
+      }}).toSet();
   }
 
   public int getNonTrivialLength() {
-    return FluentIterable.from(interpolantSequence).filter(Predicates.not(Set::isEmpty)).size();
+    return FluentIterable.from(interpolantSequence).filter(new Predicate<Set<String>>() {
+      @Override
+      public boolean apply(Set<String> pInput) {
+        return !pInput.isEmpty();
+      }}).size();
   }
 
   public int getDepthOfPivotState() {
@@ -111,7 +115,9 @@ public class InfeasiblePrefix {
 
       depth++;
     }
-    throw new AssertionError("There must be at least one trivial interpolant along the prefix");
+    assert false : "There must be at least one trivial interpolant along the prefix";
+
+    return -1;
   }
 
   public ARGPath getPath() {

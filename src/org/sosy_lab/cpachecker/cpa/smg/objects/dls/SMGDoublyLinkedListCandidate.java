@@ -23,43 +23,32 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects.dls;
 
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGListCandidate;
-import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
 
 public class SMGDoublyLinkedListCandidate implements SMGListCandidate {
 
   private final SMGObject startObject;
-  private final CType pfoType;
-  private final CType nfoType;
-  private final MachineModel model;
-  private final SMGDoublyLinkedListShape dllShape;
+  private final int hfo;
+  private final int pfo;
+  private final int nfo;
 
-  public SMGDoublyLinkedListCandidate(SMGObject pObject, int pHfo, int pPfo, int pNfo,
-      CType pPfoType, CType nNfoType, MachineModel pModel) {
+  public SMGDoublyLinkedListCandidate(SMGObject pObject, int pHfo, int pPfo, int pNfo) {
     startObject = pObject;
-    dllShape = new SMGDoublyLinkedListShape(pHfo, pPfo, pNfo);
-    pfoType = pPfoType;
-    nfoType = nNfoType;
-    model = pModel;
-  }
-
-  public boolean hasRecursiveFields() {
-    return SMGUtils.isRecursiveOnOffset(pfoType, dllShape.getPfo(), model)
-        && SMGUtils.isRecursiveOnOffset(nfoType, dllShape.getNfo(), model);
+    hfo = pHfo;
+    pfo = pPfo;
+    nfo = pNfo;
   }
 
   @Override
   public String toString() {
-    return "SMGDoublyLinkedListCandidate [startObject=" + startObject + ", hfo=" + dllShape.getHfo() + ", pfo="
-        + dllShape.getPfo() + ", nfo=" + dllShape.getNfo() + "]";
+    return "SMGDoublyLinkedListCandidate [startObject=" + startObject + ", hfo=" + hfo + ", pfo="
+        + pfo + ", nfo=" + nfo + "]";
   }
 
   public boolean isConsistentWith(SMGDoublyLinkedListCandidate other) {
-    return dllShape.equals(other.dllShape);
+    return hfo == other.hfo && nfo == other.nfo && pfo == other.pfo;
   }
 
   public SMGObject getObject() {
@@ -67,18 +56,14 @@ public class SMGDoublyLinkedListCandidate implements SMGListCandidate {
   }
 
   public int getHfo() {
-    return dllShape.getHfo();
+    return hfo;
   }
 
   public int getPfo() {
-    return dllShape.getPfo();
+    return pfo;
   }
 
   public int getNfo() {
-    return dllShape.getNfo();
-  }
-
-  public SMGDoublyLinkedListShape getDllShape() {
-    return dllShape;
+    return nfo;
   }
 }

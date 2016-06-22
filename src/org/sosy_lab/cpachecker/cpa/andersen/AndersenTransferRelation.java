@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.logging.Level;
 
 public class AndersenTransferRelation extends SingleEdgeTransferRelation {
@@ -108,6 +109,14 @@ public class AndersenTransferRelation extends SingleEdgeTransferRelation {
     } else {
       return Collections.singleton(successor);
     }
+  }
+
+  @Override
+  public Collection<? extends AbstractState> strengthen(AbstractState pElement, List<AbstractState> pElements,
+      CFAEdge pCfaEdge, Precision pPrecision)
+      throws UnrecognizedCCodeException {
+
+    return null;
   }
 
   private AndersenState handleStatement(AndersenState pElement, CStatement pExpression, CFAEdge pCfaEdge)

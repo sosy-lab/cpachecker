@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.isSimpleType;
 
+import com.google.common.base.Optional;
+
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -74,7 +76,7 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
@@ -92,7 +94,6 @@ import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -278,7 +279,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
                                  final Variable base,
                                  final List<Pair<CCompositeType, String>> fields,
                                  final SSAMapBuilder ssa,
-                                 final Constraints constraints) throws UnrecognizedCCodeException {
+                                 final Constraints constraints,
+                                 final PointerTargetSetBuilder pts) throws UnrecognizedCCodeException {
     final CType baseType = CTypeUtils.simplifyType(base.getType());
     if (baseType instanceof CArrayType) {
       throw new UnrecognizedCCodeException("Array access can't be encoded as a varaible", cfaEdge);
@@ -299,7 +301,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
                                     newBase,
                                     fields,
                                     ssa,
-                                    constraints);
+                                    constraints,
+                                    pts);
         }
         if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
           offset += getSizeof(memberType);
@@ -443,14 +446,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       }
     } else if (type instanceof CCompositeType) {
       final CCompositeType compositeType = (CCompositeType) type;
-      if (compositeType.getKind() == ComplexTypeKind.UNION) {
-        // If it is a union, we must make sure that the first member is initialized,
-        // but only if none of the members appear in alreadyAssigned.
-        // The way it is currently implemented this is very difficult to check,
-        // so for now we initialize none of the union members to be safe.
-        // TODO: add implicit initializers for union members
-        return;
-      }
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         final CType memberType = memberDeclaration.getType();
         final CLeftHandSide newLhs = new CFieldReference(lhs.getFileLocation(),

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.counterexample;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
@@ -37,7 +38,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.common.rationals.Rational;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
@@ -117,7 +117,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -218,9 +217,9 @@ public class AssumptionToEdgeAllocator {
   }
 
   private String handleReturnStatementComment(AReturnStatementEdge pCfaEdge, ConcreteState pConcreteState) {
-    Optional<? extends AExpression> returnExpression = pCfaEdge.getExpression();
-    if (returnExpression.isPresent() && returnExpression.get() instanceof CExpression) {
-      CExpression returnExp = (CExpression) returnExpression.get();
+
+    if (pCfaEdge.getExpression() instanceof CExpression) {
+      CExpression returnExp = (CExpression) pCfaEdge.getExpression();
 
       if (returnExp instanceof CLiteralExpression) {
         /*boring expression*/
@@ -569,11 +568,21 @@ public class AssumptionToEdgeAllocator {
               CPointerType.class));
     }
 
-    boolean leftIsAccepted = equalTypes || acceptedTypes.anyMatch(
-        pArg0 -> pArg0.isAssignableFrom(leftType.getClass()));
+    boolean leftIsAccepted = equalTypes || acceptedTypes.anyMatch(new Predicate<Class<? extends CType>>() {
 
-    boolean rightIsAccepted = equalTypes || acceptedTypes.anyMatch(
-        pArg0 -> pArg0.isAssignableFrom(rightType.getClass()));
+      @Override
+      public boolean apply(Class<? extends CType> pArg0) {
+        return pArg0.isAssignableFrom(leftType.getClass());
+      }
+    });
+
+    boolean rightIsAccepted = equalTypes || acceptedTypes.anyMatch(new Predicate<Class<? extends CType>>() {
+
+      @Override
+      public boolean apply(Class<? extends CType> pArg0) {
+        return pArg0.isAssignableFrom(rightType.getClass());
+      }
+    });
 
     if (!includeConstantsForPointers && (!leftIsAccepted || !rightIsAccepted)) {
       return null;

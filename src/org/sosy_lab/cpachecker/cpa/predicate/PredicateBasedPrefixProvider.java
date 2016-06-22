@@ -26,6 +26,11 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.GET_BLOCK_FORMULA;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner.filterAbstractionStates;
+import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -34,6 +39,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -50,9 +56,8 @@ import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.InterpolatingProverEnvironmentWithAssumptions;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.logging.Level;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 
 @Options(prefix="cpa.predicate.refinement")
 public class PredicateBasedPrefixProvider implements PrefixProvider {
@@ -233,11 +238,16 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
    * @return true, if all states in the path are abstraction states, else false
    */
   private boolean isSingleBlockEncoded(final ARGPath pPath) {
-    return from(pPath.asStatesList()).allMatch(PredicateAbstractState.CONTAINS_ABSTRACTION_STATE);
+    return from(pPath.asStatesList()).allMatch(isAbstractionState());
+  }
+
+  private Predicate<AbstractState> isAbstractionState() {
+    return Predicates.compose(PredicateAbstractState.FILTER_ABSTRACTION_STATES,
+        toState(PredicateAbstractState.class));
   }
 
   private boolean isAbstractionState(ARGState pCurrentState) {
-    return PredicateAbstractState.getPredicateState(pCurrentState).isAbstractionState();
+    return AbstractStates.toState(PredicateAbstractState.class).apply(pCurrentState).isAbstractionState();
   }
 
   private PathFormula makeEmpty(PathFormula formula) {

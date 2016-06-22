@@ -27,7 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static org.sosy_lab.cpachecker.util.CFAUtils.successorsOf;
 
-import java.util.Optional;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
@@ -36,6 +36,7 @@ import com.google.common.collect.MultimapBuilder.SetMultimapBuilder;
 import com.google.common.collect.SetMultimap;
 
 import org.sosy_lab.common.JSON;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -51,8 +52,6 @@ import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -214,8 +213,10 @@ public final class DOTBuilder2 {
     void writeFunctionFile(String funcname, Path outdir) throws IOException {
 
       try (Writer out =
-          Files.newBufferedWriter(
-              outdir.resolve("cfa__" + funcname + ".dot"), StandardCharsets.UTF_8)) {
+          outdir
+              .resolve("cfa__" + funcname + ".dot")
+              .asCharSink(StandardCharsets.UTF_8)
+              .openBufferedStream()) {
         out.write("digraph " + funcname + " {\n");
         StringBuilder outb = new StringBuilder();
 

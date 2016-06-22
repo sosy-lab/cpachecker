@@ -23,7 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.statistics;
 
-import com.google.common.collect.Iterables;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.configuration.Configuration;
@@ -31,18 +36,12 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-
-import java.io.IOException;
-import java.io.PrintStream;
-import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.logging.Level;
 
 /**
  * The StatisticsCPAStatistics implements the Statistics interface and takes care of printing out the analysis results.
@@ -73,7 +72,11 @@ public class StatisticsCPAStatistics implements Statistics  {
     } else {
       StatisticsState lastState = (StatisticsState)reached.getLastState();
       if (lastState == null) {
-        lastState = (StatisticsState)Iterables.getLast(reached);
+        for (AbstractState abstractState : reached.asCollection()) {
+          if (abstractState != null) {
+            lastState = (StatisticsState)reached.getLastState();
+          }
+        }
       }
 
       statistics = lastState.getStatistics();

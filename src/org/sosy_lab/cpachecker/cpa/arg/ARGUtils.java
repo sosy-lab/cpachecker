@@ -31,6 +31,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.base.Function;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -79,7 +80,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -127,8 +127,11 @@ public class ARGUtils {
 
     Set<ARGState> result = new HashSet<>();
 
-    for (AbstractState e : pReached) {
+    Iterator<AbstractState> it = pReached.iterator();
+    while (it.hasNext()) {
+      AbstractState e = it.next();
       ARGState state = AbstractStates.extractStateByType(e, ARGState.class);
+
       if (state.getParents().isEmpty()) {
         result.add(state);
       }
@@ -185,15 +188,16 @@ public class ARGUtils {
     states.add(currentARGState);
     seenElements.add(currentARGState);
 
-    Collection<PathPosition> tracePrefixesToAvoid =
-        Collections2.transform(
-            pOtherPathThan,
-            pArg0 -> {
-              PathPosition result = pArg0.reversePathIterator().getPosition();
-              CFANode expectedPostfixLoc = AbstractStates.extractLocation(pEndState);
-              Verify.verify(result.getLocation().equals(expectedPostfixLoc));
-              return result;
-            });
+    Collection<PathPosition> tracePrefixesToAvoid = Collections2.transform(pOtherPathThan,
+        new Function<ARGPath, PathPosition>() {
+          @Override
+          public PathPosition apply(ARGPath pArg0) {
+            PathPosition result = pArg0.reversePathIterator().getPosition();
+            CFANode expectedPostfixLoc = AbstractStates.extractLocation(pEndState);
+            Verify.verify(result.getLocation().equals(expectedPostfixLoc));
+            return result;
+          }
+    });
 
     // Get all traces from pTryCoverOtherStatesThan that start at the same location
     tracePrefixesToAvoid = getTracePrefixesBeforePostfix(tracePrefixesToAvoid, currentLocation);
@@ -238,7 +242,7 @@ public class ARGUtils {
     }
 
     if (!lastTransitionIsDifferent) {
-      return Optional.empty();
+      return Optional.absent();
     }
 
     return Optional.of(new ARGPath(Lists.reverse(states)));
@@ -287,25 +291,57 @@ public class ARGUtils {
     return new ARGPath(states);
   }
 
-  private static final Predicate<CFANode> IS_RELEVANT_LOCATION =
-      pInput ->
-          pInput.isLoopStart()
-              || pInput instanceof FunctionEntryNode
-              || pInput instanceof FunctionExitNode;
+  public static final Function<ARGState, Collection<ARGState>> CHILDREN_OF_STATE = new Function<ARGState, Collection<ARGState>>() {
+        @Override
+        public Collection<ARGState> apply(ARGState pInput) {
+          return pInput.getChildren();
+        }
+      };
 
-  private static final Predicate<Iterable<CFANode>> CONTAINS_RELEVANT_LOCATION =
-      nodes -> Iterables.any(nodes, IS_RELEVANT_LOCATION);
+  public static final Function<ARGState, Collection<ARGState>> PARENTS_OF_STATE = new Function<ARGState, Collection<ARGState>>() {
+        @Override
+        public Collection<ARGState> apply(ARGState pInput) {
+          return pInput.getParents();
+        }
+      };
 
-  private static final Predicate<AbstractState> AT_RELEVANT_LOCATION =
-      Predicates.compose(CONTAINS_RELEVANT_LOCATION, AbstractStates::extractLocations);
+  private static final Predicate<CFANode> IS_RELEVANT_LOCATION = new Predicate<CFANode>() {
+    @Override
+    public boolean apply(CFANode pInput) {
+      return pInput.isLoopStart()
+          || pInput instanceof FunctionEntryNode
+          || pInput instanceof FunctionExitNode;
+    }
+  };
+
+  private static final Predicate<Iterable<CFANode>> CONTAINS_RELEVANT_LOCATION = new Predicate<Iterable<CFANode>>() {
+    @Override
+    public boolean apply(Iterable<CFANode> nodes) {
+      return Iterables.any(nodes, IS_RELEVANT_LOCATION);
+    }
+  };
+
+  public static final Predicate<AbstractState> AT_RELEVANT_LOCATION = Predicates.compose(
+      CONTAINS_RELEVANT_LOCATION,
+      AbstractStates.EXTRACT_LOCATIONS);
 
   @SuppressWarnings("unchecked")
-  static final Predicate<ARGState> RELEVANT_STATE =
-      Predicates.or(
-          AbstractStates.IS_TARGET_STATE,
-          AT_RELEVANT_LOCATION,
-          pInput -> !pInput.wasExpanded(),
-          ARGState::shouldBeHighlighted);
+  public static final Predicate<ARGState> RELEVANT_STATE = Predicates.or(
+      AbstractStates.IS_TARGET_STATE,
+      AT_RELEVANT_LOCATION,
+      new Predicate<ARGState>() {
+          @Override
+          public boolean apply(ARGState pInput) {
+            return !pInput.wasExpanded();
+          }
+        },
+      new Predicate<ARGState>() {
+          @Override
+          public boolean apply(ARGState pInput) {
+            return pInput.shouldBeHighlighted();
+          }
+        }
+      );
 
   /**
    * Project the ARG to a subset of "relevant" states.
@@ -346,18 +382,17 @@ public class ARGUtils {
     ARGPathBuilder builder = ARGPath.builder();
     ARGState currentElement = root;
     while (!currentElement.isTarget()) {
-      Set<ARGState> children = Sets.newHashSet(currentElement.getChildren());
-      Set<ARGState> childrenInArg = Sets.intersection(children, arg).immutableCopy();
+      Collection<ARGState> children = currentElement.getChildren();
 
       ARGState child;
       CFAEdge edge;
-      switch (childrenInArg.size()) {
+      switch (children.size()) {
 
       case 0:
         throw new IllegalArgumentException("ARG target path terminates without reaching target state!");
 
       case 1: // only one successor, easy
-        child = Iterables.getOnlyElement(childrenInArg);
+        child = Iterables.getOnlyElement(children);
         edge = currentElement.getEdgeToChild(child);
         break;
 
@@ -370,10 +405,16 @@ public class ARGUtils {
 
         CFANode loc = AbstractStates.extractLocation(currentElement);
         if (!leavingEdges(loc).allMatch(Predicates.instanceOf(AssumeEdge.class))) {
-          throw new IllegalArgumentException("ARG branches where there is no AssumeEdge!");
+          Set<ARGState> candidates = Sets.intersection(Sets.newHashSet(children), arg).immutableCopy();
+          if (candidates.size() != 1) {
+            throw new IllegalArgumentException("ARG branches where there is no AssumeEdge!");
+          }
+          child = Iterables.getOnlyElement(candidates);
+          edge = currentElement.getEdgeToChild(child);
+          break;
         }
 
-        for (ARGState currentChild : childrenInArg) {
+        for (ARGState currentChild : children) {
           CFAEdge currentEdge = currentElement.getEdgeToChild(currentChild);
           if (((AssumeEdge)currentEdge).getTruthAssumption()) {
             trueEdge = currentEdge;
@@ -406,7 +447,13 @@ public class ARGUtils {
         break;
 
       default:
-        throw new IllegalArgumentException("ARG splits with more than two branches!");
+        Set<ARGState> candidates = Sets.intersection(Sets.newHashSet(children), arg).immutableCopy();
+        if (candidates.size() != 1) {
+          throw new IllegalArgumentException("ARG splits with more than two branches!");
+        }
+        child = Iterables.getOnlyElement(candidates);
+        edge = currentElement.getEdgeToChild(child);
+        break;
       }
 
       if (!arg.contains(child)) {

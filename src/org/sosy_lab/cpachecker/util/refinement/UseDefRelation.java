@@ -151,8 +151,7 @@ public class UseDefRelation {
 
   public Collection<String> getUsesAsQualifiedName() {
     Set<String> uses = new HashSet<>();
-    for (Set<ASimpleDeclaration> useSet :
-        FluentIterable.from(relation.values()).transform(Pair::getSecond).toSet()) {
+    for (Set<ASimpleDeclaration> useSet : FluentIterable.from(relation.values()).transform(Pair.<Set<ASimpleDeclaration>>getProjectionToSecond()).toSet()) {
       for (ASimpleDeclaration use : useSet) {
         uses.add(use.getQualifiedName());
       }
@@ -162,7 +161,7 @@ public class UseDefRelation {
   }
 
   public Set<ARGState> getUseDefStates() {
-    return FluentIterable.from(relation.keySet()).transform(Pair::getFirst).toSet();
+    return FluentIterable.from(relation.keySet()).transform(Pair.<ARGState>getProjectionToFirst()).toSet();
   }
 
   private void buildRelation(ARGPath path) {

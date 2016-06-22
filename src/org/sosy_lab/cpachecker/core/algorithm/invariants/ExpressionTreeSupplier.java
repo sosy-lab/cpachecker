@@ -48,5 +48,4 @@ public interface ExpressionTreeSupplier {
       return ExpressionTrees.getTrue();
     }
   }
-
 }

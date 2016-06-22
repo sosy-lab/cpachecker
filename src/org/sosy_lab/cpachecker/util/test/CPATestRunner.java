@@ -26,14 +26,12 @@ package org.sosy_lab.cpachecker.util.test;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.BasicLogManager;
-import org.sosy_lab.common.log.ConsoleLogFormatter;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.StringBuildingLogHandler;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 
 import java.util.Map;
-import java.util.logging.Level;
 
 /**
  * Helper class for running CPA tests.
@@ -49,9 +47,7 @@ public class CPATestRunner {
         .build();
 
     StringBuildingLogHandler stringLogHandler = new StringBuildingLogHandler();
-    stringLogHandler.setLevel(Level.INFO);
-    stringLogHandler.setFormatter(ConsoleLogFormatter.withoutColors());
-    LogManager logger = BasicLogManager.createWithHandler(stringLogHandler);
+    LogManager logger = new BasicLogManager(config, stringLogHandler);
 
     ShutdownManager shutdownManager = ShutdownManager.create();
     CPAchecker cpaChecker = new CPAchecker(config, logger, shutdownManager);

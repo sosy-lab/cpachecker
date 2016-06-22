@@ -82,14 +82,14 @@ public class CPAcheckerResult {
   /**
    * Return the final reached set.
    */
-  public @Nullable UnmodifiableReachedSet getReached() {
+  public UnmodifiableReachedSet getReached() {
     return reached;
   }
 
   /**
    * Return the CFA.
    */
-  public @Nullable CFA getCfa() {
+  public CFA getCfa() {
     return cfa;
   }
 

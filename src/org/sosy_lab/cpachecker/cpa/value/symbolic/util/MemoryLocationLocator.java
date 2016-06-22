@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.util;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressOfExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryAndExpression;
@@ -53,10 +57,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.UnarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Optional;
+import com.google.common.base.Optional;
 
 /**
  * Returns a <code>Collection</code> of all {@link MemoryLocation MemoryLocations} contained

@@ -23,13 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import java.util.Objects;
-import java.util.Optional;
+import com.google.common.base.Optional;
 
 /**
  * An expression containing {@link SymbolicValue}s.
@@ -45,7 +46,7 @@ public abstract class SymbolicExpression implements SymbolicValue {
   }
 
   protected SymbolicExpression() {
-    representedLocation = Optional.empty();
+    representedLocation = Optional.absent();
   }
 
   @Override

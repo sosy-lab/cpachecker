@@ -27,18 +27,13 @@ import static java.util.Collections.unmodifiableList;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
-import java.util.Optional;
+import com.google.common.base.Optional;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.IntegerOption;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -76,15 +71,7 @@ import java.util.logging.Level;
  * It does not define any strategy for using the interpolants to update the
  * abstraction, this is left to an instance of {@link GlobalRefinementStrategy}.
  */
-@Options(prefix="cpa.predicate.refinement.global")
 public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
-
-  @Option(secure = true,
-          description = "Instead of updating precision and arg we say that the refinement was not successful"
-              + " after N times of refining. A real error state is not necessary to be found. Use 0 for"
-              + " unlimited refinements (default).")
-  @IntegerOption(min = 0)
-  private int stopAfterNRefinements = 0;
 
   // statistics
   private final StatTimer totalTime = new StatTimer("Time for refinement");
@@ -102,9 +89,7 @@ public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
       final FormulaManagerView pFmgr,
       final GlobalRefinementStrategy pStrategy,
       final Solver pSolver,
-      final ARGCPA pArgcpa,
-      final Configuration pConfig) throws InvalidConfigurationException {
-    pConfig.inject(this);
+      final ARGCPA pArgcpa) {
 
     logger = pLogger;
     bfmgr = pFmgr.getBooleanFormulaManager();
@@ -134,9 +119,7 @@ public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
       Optional<ARGState> errorState = doPathWiseRefinement(argReachedSet, targets);
 
       // TODO fix handling of counterexamples
-      // + 1 for update count as the current interval is not finished
-      if (errorState.isPresent() || stopAfterNRefinements == totalTime.getUpdateCount() + 1) {
-        strategy.resetGlobalRefinement();
+      if (errorState.isPresent()) {
         return false;
       }
 
@@ -305,7 +288,7 @@ public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
         currentPath.remove(currentPath.size() - 1);
       }
     }
-    return Optional.empty();
+    return Optional.absent();
   }
 
   /**

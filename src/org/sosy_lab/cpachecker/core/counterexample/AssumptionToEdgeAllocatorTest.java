@@ -31,7 +31,9 @@ import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -52,7 +54,13 @@ public class AssumptionToEdgeAllocatorTest {
   private ConcreteState full;
   private static final String MEMORYNAME = "Test_Heap";
 
-  private MemoryName memoryName = (pExp, pAddress) -> MEMORYNAME;
+  private MemoryName memoryName = new MemoryName() {
+
+    @Override
+    public String getMemoryName(CRightHandSide pExp, Address pAddress) {
+      return MEMORYNAME;
+    }
+  };
 
   @Before
   public void setUp() throws Exception {
@@ -97,7 +105,7 @@ public class AssumptionToEdgeAllocatorTest {
 
     cfa = TestDataTools.makeCFA(cProgram);
     machineModel = cfa.getMachineModel();
-    logger = LogManager.createTestLogManager();
+    logger = TestLogManager.getInstance();
     empty = createEmptyState();
     full = createFullState();
     symbolic = createSymbolicState();

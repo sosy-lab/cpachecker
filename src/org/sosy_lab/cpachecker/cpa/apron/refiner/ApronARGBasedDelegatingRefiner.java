@@ -23,9 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.apron.refiner;
 
-import apron.ApronException;
-
-import com.google.common.collect.Multimap;
+import java.io.PrintStream;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -41,7 +44,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -49,6 +52,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.apron.ApronCPA;
+import org.sosy_lab.cpachecker.cpa.apron.ApronManager;
 import org.sosy_lab.cpachecker.cpa.apron.ApronState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -59,7 +63,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisPathInterpolator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.ApronManager;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
@@ -68,12 +71,9 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import java.io.PrintStream;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
+import com.google.common.collect.Multimap;
+
+import apron.ApronException;
 
 /**
  * Refiner implementation that delegates to {@link ValueAnalysisPathInterpolator},
@@ -232,9 +232,7 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
     }
   }
 
-  private boolean performApronAnalysisRefinement(
-      final ARGReachedSet reached, final OctagonAnalysisFeasabilityChecker checker)
-      throws InterruptedException {
+  private boolean performApronAnalysisRefinement(final ARGReachedSet reached, final OctagonAnalysisFeasabilityChecker checker) {
     UnmodifiableReachedSet reachedSet       = reached.asReachedSet();
     Precision precision                     = reachedSet.getPrecision(reachedSet.getLastState());
     VariableTrackingPrecision apronPrecision = (VariableTrackingPrecision) Precisions.asIterable(precision).filter(VariableTrackingPrecision.isMatchingCPAClass(ApronCPA.class)).get(0);

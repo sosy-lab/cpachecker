@@ -88,11 +88,11 @@ class GlobalScope extends AbstractScope {
 
   public GlobalScope() {
     this(
-        new HashMap<>(),
-        new HashMap<>(),
-        new HashMap<>(),
-        new HashMap<>(),
-        new HashMap<>(),
+        new HashMap<String, CSimpleDeclaration>(),
+        new HashMap<String, CSimpleDeclaration>(),
+        new HashMap<String, CFunctionDeclaration>(),
+        new HashMap<String, CComplexTypeDeclaration>(),
+        new HashMap<String, CTypeDefDeclaration>(),
         new ProgramDeclarations(),
         "",
         CProgramScope.empty());

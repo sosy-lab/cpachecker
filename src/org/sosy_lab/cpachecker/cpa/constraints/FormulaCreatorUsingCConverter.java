@@ -50,7 +50,7 @@ import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.NumeralFormula;
 
-import java.util.Optional;
+import com.google.common.base.Optional;
 
 /**
  * Creator for {@link Formula}s using a given {@link CtoFormulaConverter} for creating
@@ -252,7 +252,7 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
 
     @Override
     public Optional<? extends AAstNode> getRawAST() {
-      return Optional.empty();
+      return Optional.absent();
     }
 
     @Override

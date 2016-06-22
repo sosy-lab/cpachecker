@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking.Variable;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
@@ -173,7 +172,7 @@ public class ControlDependencyTrackerRelation extends ForwardingTransferRelation
       }
     }
 
-    return Collections.singleton(pState);
+    return null;
   }
 
 

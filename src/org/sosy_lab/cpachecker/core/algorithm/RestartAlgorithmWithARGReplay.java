@@ -23,11 +23,15 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.*;
 import static com.google.common.base.Strings.isNullOrEmpty;
 
-import com.google.common.base.Strings;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -36,20 +40,19 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
@@ -59,13 +62,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.logging.Level;
+import com.google.common.base.Strings;
 
 @Options(prefix="restartAlgorithmWithARGReplay")
 public class RestartAlgorithmWithARGReplay implements Algorithm, StatisticsProvider {
@@ -143,15 +140,9 @@ public class RestartAlgorithmWithARGReplay implements Algorithm, StatisticsProvi
   private final RestartAlgorithmStatistics stats;
   private final CFA cfa;
   private final Configuration globalConfig;
-  private final Specification specification;
 
-  public RestartAlgorithmWithARGReplay(
-      Configuration config,
-      LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier,
-      CFA pCfa,
-      Specification pSpecification)
-      throws InvalidConfigurationException {
+  public RestartAlgorithmWithARGReplay(Configuration config, LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier, CFA pCfa) throws InvalidConfigurationException {
     config.inject(this);
 
     if (configFiles.size() != 2) {
@@ -163,7 +154,6 @@ public class RestartAlgorithmWithARGReplay implements Algorithm, StatisticsProvi
     this.shutdownNotifier = pShutdownNotifier;
     this.cfa = pCfa;
     this.globalConfig = config;
-    specification = checkNotNull(pSpecification);
   }
 
   @Override
@@ -239,6 +229,9 @@ public class RestartAlgorithmWithARGReplay implements Algorithm, StatisticsProvi
     singleConfigBuilder.copyFrom(globalConfig);
     singleConfigBuilder.clearOption("restartAlgorithm.configFiles");
     singleConfigBuilder.loadFromFile(path);
+    if (globalConfig.hasProperty("specification")) {
+      singleConfigBuilder.copyOptionFrom(globalConfig, "specification");
+    }
     Configuration singleConfig = singleConfigBuilder.build();
     return singleConfig;
   }
@@ -246,8 +239,7 @@ public class RestartAlgorithmWithARGReplay implements Algorithm, StatisticsProvi
   private ConfigurableProgramAnalysis getCPA(ReachedSetFactory reachedSetFactory, Configuration singleConfig1)
       throws InvalidConfigurationException, CPAException {
     CPABuilder builder1 = new CPABuilder(singleConfig1, logger, shutdownNotifier, reachedSetFactory);
-    ConfigurableProgramAnalysis cpa1 =
-        builder1.buildCPAs(cfa, specification, new AggregatedReachedSets());
+    ConfigurableProgramAnalysis cpa1 = builder1.buildCPAWithSpecAutomatas(cfa);
     if (cpa1 instanceof StatisticsProvider) {
       ((StatisticsProvider)cpa1).collectStatistics(stats.getSubStatistics());
     }

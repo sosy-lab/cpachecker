@@ -1,9 +1,11 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.LinearExpression;
 import org.sosy_lab.common.rationals.Rational;
@@ -13,8 +15,6 @@ import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyAbstractedState;
 import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyBound;
 import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationStatistics;
 import org.sosy_lab.cpachecker.cpa.policyiteration.Template;
-import org.sosy_lab.cpachecker.util.ApronManager;
-import org.sosy_lab.cpachecker.util.ApronManager.AbstractDomain;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -32,8 +32,14 @@ import apron.Linexpr1;
 import apron.Linterm1;
 import apron.Manager;
 import apron.MpqScalar;
+import apron.Polka;
+import apron.SetUp;
 
 public class PolyhedraWideningManager {
+  static {
+    SetUp.init(
+        NativeLibraries.getNativeLibraryPath().resolve("apron").getAbsolutePath());
+  }
 
   private final Manager manager;
   private final Map<String, CIdExpression> types;
@@ -44,15 +50,20 @@ public class PolyhedraWideningManager {
       LogManager pLogger) {
     statistics = pStatistics;
     logger = pLogger;
-    ApronManager apronManager = new ApronManager(AbstractDomain.POLKA);
-
-    manager = apronManager.getManager();
+    manager = new Polka(false);
     types = new HashMap<>();
   }
 
   Manager getManager() {
     return manager;
   }
+
+  private static final Function<PolicyBound, Rational> DATA_GETTER = new Function<PolicyBound, Rational>() {
+    @Override
+    public Rational apply(PolicyBound input) {
+      return input.getBound();
+    }
+  };
 
   public Set<Template> generateWideningTemplates(
       PolicyAbstractedState oldState,
@@ -61,10 +72,10 @@ public class PolyhedraWideningManager {
     Set<Template> allTemplates = Sets.union(oldState.getAbstraction().keySet(),
         newState.getAbstraction().keySet());
     Map<Template, Rational> oldData = Maps.transformValues(oldState.getAbstraction(),
-        PolicyBound::getBound);
+        DATA_GETTER);
     Map<Template, Rational> newData = Maps.transformValues(
         newState.getAbstraction(),
-        PolicyBound::getBound);
+        DATA_GETTER);
 
     Abstract1 widened;
     try {
@@ -80,7 +91,7 @@ public class PolyhedraWideningManager {
     }
 
     Map<Template, Rational> generated = toTemplates(widened);
-    logger.log(Level.FINE, "Generated templates", generated);
+    logger.log(Level.INFO, "Generated templates", generated);
     Set<Template> diff = Sets.difference(generated.keySet(), allTemplates);
     Set<Template> out = new HashSet<>();
 
@@ -145,7 +156,7 @@ public class PolyhedraWideningManager {
       String varName = term.getVariable();
       Rational coeff = ofCoeff(term.getCoefficient());
 
-      out = out.add(LinearExpression.monomial(types.get(varName),  coeff));
+      out = out.add(LinearExpression.pair(types.get(varName),  coeff));
     }
 
     return Template.of(out);

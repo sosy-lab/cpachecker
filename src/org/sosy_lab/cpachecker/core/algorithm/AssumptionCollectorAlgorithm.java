@@ -37,7 +37,9 @@ import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -69,9 +71,6 @@ import org.sosy_lab.solver.api.BooleanFormulaManager;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
@@ -522,15 +521,14 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       if (exportAssumptions) {
         if (assumptionsFile != null) {
           try {
-            MoreFiles.writeFile(assumptionsFile, Charset.defaultCharset(), resultAssumption);
+            Files.writeFile(assumptionsFile, resultAssumption);
           } catch (IOException e) {
             logger.logUserException(Level.WARNING, e, "Could not write assumptions to file");
           }
         }
 
         if (assumptionAutomatonFile != null) {
-          try (Writer w =
-              MoreFiles.openOutputFile(assumptionAutomatonFile, Charset.defaultCharset())) {
+          try (Writer w = Files.openOutputFile(assumptionAutomatonFile)) {
            produceAssumptionAutomaton(w, pReached);
           } catch (IOException e) {
             logger.logUserException(Level.WARNING, e, "Could not write assumptions to file");

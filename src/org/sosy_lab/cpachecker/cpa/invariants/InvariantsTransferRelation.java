@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
-import java.util.Optional;
+import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
@@ -565,7 +565,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       }
       return Collections.singleton(result);
     }
-    return Collections.singleton(pElement);
+    return null;
   }
 
   private ExpressionToFormulaVisitor getExpressionToFormulaVisitor(final CFAEdge pEdge, final InvariantsState pState) {

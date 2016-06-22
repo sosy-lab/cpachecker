@@ -23,9 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
-import static com.google.common.base.Verify.verify;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+
+import javax.annotation.Nullable;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -33,15 +41,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.refinement.Interpolant;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Optional;
 
 /**
  * This class represents a Value-Analysis interpolant, itself, just a mere wrapper around a map
@@ -209,7 +209,7 @@ public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState>
 
     } else {
       return new ValueAnalysisState(
-          Optional.empty(),
+          Optional.<MachineModel>absent(),
           PathCopyingPersistentTreeMap.copyOf(assignment),
           PathCopyingPersistentTreeMap.copyOf(assignmentTypes));
     }
@@ -240,15 +240,8 @@ public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState>
         valueState.assignConstant(itp.getKey(), itp.getValue(), assignmentTypes.get(itp.getKey()));
         strengthened = true;
 
-      } else {
-        verify(
-            valueState.getValueFor(itp.getKey()).asNumericValue().longValue()
-                == itp.getValue().asNumericValue().longValue(),
-            "state and interpolant do not match in value for variable %s [state = %s != %s = itp] for state %s",
-            itp.getKey(),
-            valueState.getValueFor(itp.getKey()),
-            itp.getValue(),
-            argState.getStateId());
+      } else if(valueState.contains(itp.getKey()) && valueState.getValueFor(itp.getKey()).asNumericValue().longValue() != itp.getValue().asNumericValue().longValue()) {
+        assert false : "state and interpolant do not match in value for variable " + itp.getKey() + "[state = " + valueState.getValueFor(itp.getKey()).asNumericValue().longValue() + " != " + itp.getValue() + " = itp] for state " + argState.getStateId();
       }
     }
 

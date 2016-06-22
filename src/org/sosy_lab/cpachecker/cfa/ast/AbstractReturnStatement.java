@@ -27,7 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Objects;
 
-import java.util.Optional;
+import com.google.common.base.Optional;
 
 public abstract class AbstractReturnStatement extends AbstractAstNode implements AReturnStatement {
 

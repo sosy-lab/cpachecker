@@ -53,7 +53,8 @@ public class SequentialInterpolation<T> extends ITPStrategy<T> {
       final InterpolationManager.Interpolator<T> interpolator,
       final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStateAndGroupId)
       throws InterruptedException, SolverException {
-    final List<T> formulas = Lists.transform(formulasWithStateAndGroupId, Triple::getThird);
+    final List<T> formulas = Lists.transform(formulasWithStateAndGroupId,
+        Triple.<T> getProjectionToThird());
     final List<BooleanFormula> interpolants = Lists.newArrayListWithExpectedSize(formulas.size() - 1);
     for (int end_of_A = 0; end_of_A < formulas.size() - 1; end_of_A++) {
       // last iteration is left out because B would be empty

@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
-import com.google.common.collect.ImmutableList;
-
 import org.sosy_lab.cpachecker.core.defaults.BreakOnTargetsPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.SimplePrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
@@ -32,6 +30,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Alternative to {@link CompositeSimplePrecisionAdjustment} which is faster
@@ -46,8 +46,7 @@ class CompositeSimplePrecisionAdjustment extends SimplePrecisionAdjustment {
 
   private final ImmutableList<SimplePrecisionAdjustment> precisionAdjustments;
 
-  CompositeSimplePrecisionAdjustment(
-      ImmutableList<SimplePrecisionAdjustment> precisionAdjustments) {
+  public CompositeSimplePrecisionAdjustment(ImmutableList<SimplePrecisionAdjustment> precisionAdjustments) {
     this.precisionAdjustments = precisionAdjustments;
   }
 
@@ -55,7 +54,7 @@ class CompositeSimplePrecisionAdjustment extends SimplePrecisionAdjustment {
   public Action prec(AbstractState pElement, Precision pPrecision) throws CPAException {
     CompositeState comp = (CompositeState) pElement;
     CompositePrecision prec = (CompositePrecision) pPrecision;
-    assert (comp.getWrappedStates().size() == prec.getWrappedPrecisions().size());
+    assert (comp.getWrappedStates().size() == prec.getPrecisions().size());
     int dim = comp.getNumberOfStates();
 
     for (int i = 0; i < dim; ++i) {

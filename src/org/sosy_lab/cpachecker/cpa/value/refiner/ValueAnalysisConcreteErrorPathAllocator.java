@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -88,7 +89,13 @@ import java.util.Set;
 
 public class ValueAnalysisConcreteErrorPathAllocator {
 
-  private static final MemoryName MEMORY_NAME = (pExp, pAddress) -> "Value_Analysis_Heap";
+  private static final MemoryName MEMORY_NAME = new MemoryName() {
+
+    @Override
+    public String getMemoryName(CRightHandSide pExp, Address pAddress) {
+      return "Value_Analysis_Heap";
+    }
+  };
 
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 
@@ -139,7 +146,8 @@ public class ValueAnalysisConcreteErrorPathAllocator {
      * representing each memory location, which would be necessary if we
      * wanted to exactly map each memory location to a LeftHandSide.*/
     Map<LeftHandSide, Address> variableAddresses =
-        generateVariableAddresses(FluentIterable.from(pPath).transform(Pair::getFirst));
+        generateVariableAddresses(
+            FluentIterable.from(pPath).transform(Pair.<ValueAnalysisState>getProjectionToFirst()));
 
     for (Pair<ValueAnalysisState, List<CFAEdge>> edgeStatePair : pPath) {
 

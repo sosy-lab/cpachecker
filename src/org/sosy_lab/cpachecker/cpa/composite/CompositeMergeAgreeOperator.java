@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.cpa.composite;
 import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableList;
+import java.util.Collections;
+import java.util.Iterator;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -36,8 +36,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-import java.util.Collections;
-import java.util.Iterator;
+import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Provides a MergeOperator implementation that delegates to the component CPA.
@@ -52,15 +52,14 @@ import java.util.Iterator;
  * state covers the second input state. This implementation relies on that
  * guarantee and always assumes this is true.
  */
-class CompositeMergeAgreeOperator implements MergeOperator {
+public class CompositeMergeAgreeOperator implements MergeOperator {
 
   private static final Predicate<Object> NON_MERGEABLE_STATE = instanceOf(NonMergeableAbstractState.class);
 
   private final ImmutableList<MergeOperator> mergeOperators;
   private final ImmutableList<StopOperator> stopOperators;
 
-  CompositeMergeAgreeOperator(
-      ImmutableList<MergeOperator> mergeOperators, ImmutableList<StopOperator> stopOperators) {
+  public CompositeMergeAgreeOperator(ImmutableList<MergeOperator> mergeOperators, ImmutableList<StopOperator> stopOperators) {
     this.mergeOperators = mergeOperators;
     this.stopOperators  = stopOperators;
   }
@@ -87,7 +86,7 @@ class CompositeMergeAgreeOperator implements MergeOperator {
     Iterator<StopOperator> stopIter   = stopOperators.iterator();
     Iterator<AbstractState> comp1Iter = compSuccessorState.getWrappedStates().iterator();
     Iterator<AbstractState> comp2Iter = compReachedState.getWrappedStates().iterator();
-    Iterator<Precision> precIter = compPrecision.getWrappedPrecisions().iterator();
+    Iterator<Precision> precIter      = compPrecision.getPrecisions().iterator();
 
     boolean identicalStates = true;
     for (MergeOperator mergeOp : mergeOperators) {

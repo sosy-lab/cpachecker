@@ -513,4 +513,12 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       return false;
     }
   }
+
+  @Override
+  public Collection<? extends AbstractState> strengthen(AbstractState element,
+      List<AbstractState> otherElements, CFAEdge cfaEdge,
+      Precision precision) {
+    // strengthen should not be used with ThreadingTransfer
+    return null;
+  }
 }

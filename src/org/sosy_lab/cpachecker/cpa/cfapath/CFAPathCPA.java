@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.cfapath;
 
-import org.sosy_lab.common.annotations.Unmaintained;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -39,7 +38,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-@Unmaintained
 public class CFAPathCPA implements ConfigurableProgramAnalysis {
 
   private final CFAPathDomain mDomain;

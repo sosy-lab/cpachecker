@@ -40,6 +40,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -75,6 +77,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -92,7 +95,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
-import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.apron.ApronState.Type;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -139,6 +144,15 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
           builder.addAll(l.getLoopHeads());
     }
     loopHeads = builder.build();
+
+    // TODO the creation of the additional ApronManager which then is never used
+    // should not be necessary, however, without this constructor call the library
+    // does not work properly
+    try {
+      new ApronManager(Configuration.defaultConfiguration());
+    } catch (InvalidConfigurationException e) {
+      throw new AssertionError(e);
+    }
   }
 
   @Override
@@ -871,6 +885,12 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
   @Override
   protected Set<ApronState> handleFunctionSummaryEdge(CFunctionSummaryEdge cfaEdge) throws CPATransferException {
     return Collections.emptySet();
+  }
+
+  @Override
+  public Collection<? extends AbstractState> strengthen(AbstractState pState, List<AbstractState> pOtherStates,
+      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException, InterruptedException {
+    return null;
   }
 
   /**

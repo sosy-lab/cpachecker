@@ -245,7 +245,7 @@ public class BAMTransferRelation implements TransferRelation {
       // If only LoopBlocks are used, we can have recursive Loops, too.
 
       for (CFAEdge e : CFAUtils.leavingEdges(node).filter(CFunctionCallEdge.class)) {
-        for (Block block : Lists.transform(stack, Triple::getThird)) {
+        for (Block block : Lists.transform(stack, Triple.<Block>getProjectionToThird())) {
           if (block.getCallNodes().contains(e.getSuccessor())) {
             return true;
           }
@@ -323,8 +323,7 @@ public class BAMTransferRelation implements TransferRelation {
   /** This function returns expanded states for all reduced states and updates the caches. */
   protected List<AbstractState> expandResultStates(
           final Collection<Pair<AbstractState, Precision>> reducedResult,
-          final Block outerSubtree, final AbstractState state, final Precision precision)
-      throws InterruptedException {
+          final Block outerSubtree, final AbstractState state, final Precision precision) {
 
     logger.log(Level.FINEST, "Expanding states with initial state", state);
     logger.log(Level.FINEST, "Expanding states", reducedResult);

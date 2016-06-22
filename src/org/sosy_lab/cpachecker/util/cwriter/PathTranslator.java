@@ -28,6 +28,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.concat;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
 
+import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
@@ -35,7 +36,7 @@ import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
@@ -63,6 +64,14 @@ import java.util.Stack;
 
 
 public abstract class PathTranslator {
+
+  private static Function<CAstNode, String> RAW_SIGNATURE_FUNCTION = new Function<CAstNode, String>() {
+
+    @Override
+    public String apply(CAstNode pArg0) {
+      return pArg0.toASTString();
+    }
+  };
 
   protected final static CFunctionEntryNode extractFunctionCallLocation(ARGState state) {
     // We assume, that each node has one location.
@@ -322,7 +331,7 @@ public abstract class PathTranslator {
         } else if (ind == 1) {
           cond = "else if ";
         } else {
-          throw new AssertionError();
+          assert false;
         }
         ind++;
 
@@ -408,7 +417,7 @@ public abstract class PathTranslator {
 
     CFunctionCallEdge lFunctionCallEdge = (CFunctionCallEdge) pCFAEdge;
 
-    List<String> lArguments = Lists.transform(lFunctionCallEdge.getArguments(), CExpression::toASTString);
+    List<String> lArguments = Lists.transform(lFunctionCallEdge.getArguments(), RAW_SIGNATURE_FUNCTION);
     String lArgumentString = "(" + Joiner.on(", ").join(lArguments) + ")";
 
     CFunctionSummaryEdge summaryEdge = lFunctionCallEdge.getSummaryEdge();

@@ -23,16 +23,14 @@
  */
 package org.sosy_lab.cpachecker.core.waitlist;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.LinkedList;
+import java.util.Random;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-import java.util.LinkedList;
-import java.util.Random;
-
-import javax.annotation.Nullable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Waitlist that implements DFS behavior with random selection of branching path.
@@ -47,10 +45,10 @@ public class RandomPathWaitlist extends AbstractWaitlist<LinkedList<AbstractStat
 
   private final Random rand = new Random();
   private int successorsOfParent;
-  private @Nullable CFANode parent;
+  private CFANode parent;
 
   protected RandomPathWaitlist() {
-    super(new LinkedList<>());
+    super(new LinkedList<AbstractState>());
     successorsOfParent = 0;
   }
 

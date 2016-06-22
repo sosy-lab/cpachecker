@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -60,8 +59,6 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-import org.sosy_lab.cpachecker.util.predicates.invariants.ExpressionTreeInvariantSupplier;
-import org.sosy_lab.cpachecker.util.predicates.invariants.FormulaInvariantsSupplier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -79,8 +76,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 /**
  * Instances of this class are used to prove the safety of a program by
@@ -121,7 +116,7 @@ class KInductionProver implements AutoCloseable {
 
   private final InvariantGenerator invariantGenerator;
 
-  private @Nullable ProverEnvironment prover = null;
+  private ProverEnvironment prover = null;
 
   private InvariantSupplier invariantsSupplier;
 
@@ -214,13 +209,7 @@ class KInductionProver implements AutoCloseable {
       return invariantsSupplier;
     }
     try {
-      if (invariantGenerator instanceof KInductionInvariantGenerator) {
-        return ((KInductionInvariantGenerator) invariantGenerator).getSupplier();
-      } else {
-        // in the general case we have to retrieve the invariants from a reachedset
-        return new FormulaInvariantsSupplier(
-            invariantGenerator.get(), logger, cfa.getMachineModel());
-      }
+      return invariantGenerator.get();
     } catch (CPAException e) {
       logger.logUserException(Level.FINE, e, "Invariant generation failed.");
       invariantGenerationRunning = false;
@@ -239,7 +228,7 @@ class KInductionProver implements AutoCloseable {
       return expressionTreeSupplier;
     }
     try {
-      return new ExpressionTreeInvariantSupplier(invariantGenerator.get(), cfa);
+      return invariantGenerator.getAsExpressionTree();
     } catch (CPAException e) {
       logger.logUserException(Level.FINE, e, "Invariant generation failed.");
       invariantGenerationRunning = false;
@@ -291,7 +280,9 @@ class KInductionProver implements AutoCloseable {
     }
 
     invariant =
-        bfmgr.and(invariant, currentInvariantsSupplier.getInvariantFor(pLocation, pFMGR, pPFMGR, pContext));
+        bfmgr.and(
+            invariant,
+            currentInvariantsSupplier.getInvariantFor(pLocation, pFMGR, pPFMGR, pContext));
 
     return invariant;
   }
@@ -531,6 +522,9 @@ class KInductionProver implements AutoCloseable {
         ++numberOfSuccessfulProofs;
         confirmedCandidates.add(candidateInvariant);
         violationFormulas.remove(candidateInvariant);
+
+        // Try to inject the new invariant into the invariant generator
+        candidateInvariant.attemptInjection(invariantGenerator);
       }
       pop(); // Pop invariant successor violation
       pop(); // Pop invariant predecessor assertion

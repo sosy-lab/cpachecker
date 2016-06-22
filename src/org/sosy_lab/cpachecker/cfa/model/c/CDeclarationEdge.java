@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-import java.util.Optional;
+import com.google.common.base.Optional;
 
 public class CDeclarationEdge extends ADeclarationEdge {
 

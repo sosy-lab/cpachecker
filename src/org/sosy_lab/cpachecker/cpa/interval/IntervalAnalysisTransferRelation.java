@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.interval;
 
-import java.util.Optional;
+import com.google.common.base.Optional;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -456,6 +457,12 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
 
   private Interval evaluateInterval(IntervalAnalysisState readableState, CRightHandSide expression) throws UnrecognizedCCodeException {
     return expression.accept(new ExpressionValueVisitor(readableState, edge));
+  }
+
+  @Override
+  public Collection<? extends AbstractState> strengthen(AbstractState state, List<AbstractState> states,
+      CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException {
+    return null;
   }
 
   private Collection<IntervalAnalysisState> soleSuccessor(IntervalAnalysisState successor) {

@@ -23,9 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -33,6 +38,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -46,7 +52,7 @@ import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopNeverOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -68,16 +74,9 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.value")
 public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider, ProofChecker, ConfigurableProgramAnalysisWithConcreteCex {
@@ -152,19 +151,17 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   }
 
   private StopOperator initializeStopOperator() {
-    switch (stopType) {
-      case "SEP":
-        return new StopSepOperator(abstractDomain);
+    if (stopType.equals("SEP")) {
+      return new StopSepOperator(abstractDomain);
 
-      case "JOIN":
-        return new StopJoinOperator(abstractDomain);
+    } else if (stopType.equals("JOIN")) {
+      return new StopJoinOperator(abstractDomain);
 
-      case "NEVER":
-        return new StopNeverOperator();
-
-      default:
-        throw new AssertionError("unknown stop operator");
+    } else if (stopType.equals("NEVER")) {
+      return new StopNeverOperator();
     }
+
+    return null;
   }
 
   private VariableTrackingPrecision initializePrecision(Configuration config, CFA cfa) throws InvalidConfigurationException {
@@ -186,7 +183,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
 
     List<String> contents = null;
     try {
-      contents = Files.readAllLines(initialPrecisionFile, Charset.defaultCharset());
+      contents = initialPrecisionFile.asCharSource(Charset.defaultCharset()).readLines();
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Could not read precision from file named " + initialPrecisionFile);
       return mapping;

@@ -23,18 +23,21 @@
  */
 package org.sosy_lab.cpachecker.util.automaton;
 
+import java.util.Objects;
+
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
+
+import com.google.common.base.Optional;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableSet;
-
-import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.Specification;
-
-import java.util.Objects;
 
 public class CachingTargetLocationProvider implements TargetLocationProvider {
 
@@ -50,7 +53,7 @@ public class CachingTargetLocationProvider implements TargetLocationProvider {
                 @Override
                 public ImmutableSet<CFANode> load(CacheKey pCacheKey) {
                   return backingTargetLocationProvider.tryGetAutomatonTargetLocations(
-                      pCacheKey.node, pCacheKey.specification);
+                      pCacheKey.node, pCacheKey.automaton);
                 }
               });
 
@@ -58,38 +61,41 @@ public class CachingTargetLocationProvider implements TargetLocationProvider {
     this.backingTargetLocationProvider = pBackingTargetLocationProvider;
   }
 
-  public CachingTargetLocationProvider(
-      ShutdownNotifier pShutdownNotifier,
-      LogManager pLogManager,
-      CFA pCfa) {
-    this(new TargetLocationProviderImpl(pShutdownNotifier, pLogManager, pCfa));
+  public CachingTargetLocationProvider(ReachedSetFactory pReachedSetFactory, ShutdownNotifier pShutdownNotifier,
+      LogManager pLogManager, Configuration pConfig, CFA pCfa) {
+    this(new TargetLocationProviderImpl(pReachedSetFactory, pShutdownNotifier, pLogManager, pConfig, pCfa));
+  }
+
+  @Override
+  public ImmutableSet<CFANode> tryGetAutomatonTargetLocations(CFANode pRootNode) {
+    return tryGetAutomatonTargetLocations(pRootNode, Optional.<Automaton>absent());
   }
 
   @Override
   public ImmutableSet<CFANode> tryGetAutomatonTargetLocations(
-      CFANode pRootNode, Specification specification) {
-    return cache.getUnchecked(new CacheKey(pRootNode, specification));
+      CFANode pRootNode, Optional<Automaton> pAutomaton) {
+    return cache.getUnchecked(new CacheKey(pRootNode, pAutomaton));
   }
 
   private static class CacheKey {
 
     private final CFANode node;
 
-    private final Specification specification;
+    private final Optional<Automaton> automaton;
 
-    public CacheKey(CFANode pNode, Specification pSpecification) {
+    public CacheKey(CFANode pNode, Optional<Automaton> pAutomaton) {
       node = pNode;
-      specification = pSpecification;
+      automaton = pAutomaton;
     }
 
     @Override
     public String toString() {
-      return node + ": " + specification;
+      return node + ": " + automaton;
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(node, specification);
+      return Objects.hash(node, automaton);
     }
 
     @Override
@@ -99,7 +105,7 @@ public class CachingTargetLocationProvider implements TargetLocationProvider {
       }
       if (pObj instanceof CacheKey) {
         CacheKey other = (CacheKey) pObj;
-        return node.equals(other.node) && specification.equals(other.specification);
+        return node.equals(other.node) && automaton.equals(other.automaton);
       }
       return false;
     }

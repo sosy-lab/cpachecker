@@ -27,21 +27,22 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
-import java.util.Optional;
+import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Iterables;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
@@ -74,7 +75,6 @@ import org.sosy_lab.solver.api.Model.ValueAssignment;
 import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -196,15 +196,14 @@ public final class InterpolationManager {
     bfmgr = fmgr.getBooleanFormulaManager();
     pmgr = pPmgr;
     solver = pSolver;
-    loopStructure = pLoopStructure.orElse(null);
-    variableClassification = pVarClassification.orElse(null);
+    loopStructure = pLoopStructure.orNull();
+    variableClassification = pVarClassification.orNull();
 
     if (itpTimeLimit.isEmpty()) {
       executor = null;
     } else {
       // important to use daemon threads here, because we never have the chance to stop the executor
-      executor =
-          Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setDaemon(true).build());
+      executor = Executors.newSingleThreadExecutor(Threads.threadFactoryBuilder().setDaemon(true).build());
     }
 
     if (reuseInterpolationEnvironment) {
@@ -528,9 +527,9 @@ public final class InterpolationManager {
                                                                                                    loopStructure,
                                                                                                    fmgr);
     assert traceFormulas.size() == result.size();
-    assert ImmutableMultiset.copyOf(from(result).transform(Triple::getFirst))
+    assert ImmutableMultiset.copyOf(from(result).transform(Triple.<BooleanFormula>getProjectionToFirst()))
             .equals(ImmutableMultiset.copyOf(traceFormulas))
-        : "Ordered list does not contain the same formulas with the same count";
+            : "Ordered list does not contain the same formulas with the same count";
     return result;
   }
 
@@ -878,9 +877,8 @@ public final class InterpolationManager {
         }
       }
 
-      assert Iterables.elementsEqual(
-          from(traceFormulas).transform(Triple::getFirst),
-          from(currentlyAssertedFormulas).transform(Triple::getFirst));
+      assert Iterables.elementsEqual(from(traceFormulas).transform(Triple.getProjectionToFirst()),
+              from(currentlyAssertedFormulas).transform(Triple.getProjectionToFirst()));
 
       // we have to do the sat check every time, as it could be that also
       // with incremental checking it was missing (when the path is infeasible

@@ -25,23 +25,25 @@ package org.sosy_lab.cpachecker.core.counterexample;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
-import static java.nio.file.Files.isReadable;
 import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
 import com.google.common.base.Splitter;
 import com.google.common.io.Resources;
 
 import org.sosy_lab.common.JSON;
-import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathTemplate;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder2;
@@ -55,9 +57,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Writer;
 import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -84,6 +83,10 @@ public class ReportGenerator {
   )
   private String programs;
 
+  @Option(secure = true, name = "log.file", description = "name of the log file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path logFile = Paths.get("CPALog.txt");
+
   @Option(
     secure = true,
     name = "report.export",
@@ -103,14 +106,12 @@ public class ReportGenerator {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate counterExampleFiles = PathTemplate.ofFormatString("Counterexample.%d.html");
 
-  private final @Nullable Path logFile;
   private final List<String> sourceFiles;
 
-  public ReportGenerator(Configuration pConfig, LogManager pLogger, @Nullable Path pLogFile)
+  public ReportGenerator(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
     config = checkNotNull(pConfig);
     logger = checkNotNull(pLogger);
-    logFile = pLogFile;
     config.inject(this);
     sourceFiles = COMMA_SPLITTER.splitToList(programs);
   }
@@ -125,11 +126,11 @@ public class ReportGenerator {
     }
 
     Iterable<CounterexampleInfo> counterExamples =
-        Optionals.presentInstances(
+        Optional.presentInstances(
             from(pReached)
                 .filter(IS_TARGET_STATE)
                 .filter(ARGState.class)
-                .transform(ARGState::getCounterexampleInformation));
+                .transform(new ExtractCounterExampleInfo()));
 
     if (!counterExamples.iterator().hasNext()) {
       if (reportFile != null) {
@@ -156,17 +157,32 @@ public class ReportGenerator {
     }
   }
 
+  private static class ExtractCounterExampleInfo
+      implements Function<ARGState, Optional<CounterexampleInfo>> {
+
+    @Override
+    public Optional<CounterexampleInfo> apply(ARGState state) {
+      return state.getCounterexampleInformation();
+    }
+  }
+
   private void fillOutTemplate(
       @Nullable CounterexampleInfo counterExample,
       Path reportPath,
       CFA cfa,
       DOTBuilder2 dotBuilder,
       String statistics) {
+    try {
+      Files.createParentDirs(reportPath);
+    } catch (IOException e) {
+      logger.logUserException(WARNING, e, "Could not create report.");
+      return;
+    }
 
     try (BufferedReader template =
-            Resources.asCharSource(Resources.getResource(getClass(), HTML_TEMPLATE), Charsets.UTF_8)
+            Resources.asCharSource(Resources.getResource(HTML_TEMPLATE), Charsets.UTF_8)
                 .openBufferedStream();
-        Writer report = MoreFiles.openOutputFile(reportPath, Charsets.UTF_8)) {
+        Writer report = reportPath.asCharSink(Charset.defaultCharset()).openBufferedStream()) {
 
       String line;
       while (null != (line = template.readLine())) {
@@ -247,7 +263,8 @@ public class ReportGenerator {
   private void insertSource(Path sourcePath, Writer report, int sourceFileNumber)
       throws IOException {
 
-    if (isReadable(sourcePath)) {
+    if (sourcePath.exists()) {
+
       int iterator = 0;
       try (BufferedReader source =
           new BufferedReader(
@@ -299,8 +316,11 @@ public class ReportGenerator {
   }
 
   private void insertLog(Writer bufferedWriter) throws IOException {
-    if (logFile != null && Files.isReadable(logFile)) {
-      try (BufferedReader log = Files.newBufferedReader(logFile, Charset.defaultCharset())) {
+    if (logFile != null && logFile.exists()) {
+      try (BufferedReader log =
+          new BufferedReader(
+              new InputStreamReader(
+                  new FileInputStream(logFile.toFile()), Charset.defaultCharset()))) {
 
         int iterator = 0;
         String line;

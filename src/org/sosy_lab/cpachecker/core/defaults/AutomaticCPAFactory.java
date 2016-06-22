@@ -52,8 +52,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 
-import javax.annotation.Nullable;
-
 /**
  * CPAFactory implementation that can be used to automatically instantiate
  * classes with a single constructor that has parameters.
@@ -226,7 +224,7 @@ public class AutomaticCPAFactory implements CPAFactory {
     return this;
   }
 
-  public @Nullable <T> T get(Class<T> cls) {
+  public <T> T get(Class<T> cls) {
     return injects.getInstance(cls);
   }
 

@@ -743,7 +743,7 @@ public class OctagonState implements AbstractState {
 
     for (int i = 0; i < newState.variableToIndexMap.size(); i++) {
       if (newState.variableToIndexMap.inverse().get(i) == null) {
-        throw new AssertionError();
+        assert false;
       }
     }
     assert octagonManager.dimension(newState.octagon) == newState.sizeOfVariables();

@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
 import com.google.common.base.Function;
-import java.util.Optional;
+import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
@@ -390,7 +390,7 @@ public class MaterlisationStep {
       }
     }
 
-    return Optional.empty();
+    return Optional.absent();
   }
 
   public static class FieldsOfTemplate {

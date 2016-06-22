@@ -23,8 +23,9 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -43,11 +44,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 @Options
 public class ReachedSetStrategy extends SequentialReadStrategy {
@@ -57,12 +55,8 @@ public class ReachedSetStrategy extends SequentialReadStrategy {
   protected PropertyCheckerCPA cpa;
   protected final ShutdownNotifier shutdownNotifier;
 
-  public ReachedSetStrategy(
-      Configuration pConfig,
-      LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier,
-      @Nullable PropertyCheckerCPA pCpa)
-      throws InvalidConfigurationException {
+  public ReachedSetStrategy(Configuration pConfig, LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier, PropertyCheckerCPA pCpa) throws InvalidConfigurationException {
     super(pConfig, pLogger);
     cpa= pCpa;
     shutdownNotifier = pShutdownNotifier;

@@ -25,7 +25,6 @@ CPAchecker web page:
 # prepare for Python 3
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import collections
 import sys
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
@@ -69,12 +68,10 @@ def execute_benchmark(benchmark, output_handler):
             cloudInputFile = os.path.join(benchmark.log_folder, 'cloudInput.txt')
             util.write_file(cloudInput, cloudInputFile)
             output_handler.all_created_files.add(cloudInputFile)
-        meta_information = json.dumps({"tool": {"name": benchmark.tool_name,\
-                                                "revision": benchmark.tool_version, \
-                                                "benchexec-module" : benchmark.tool_module}, \
+        meta_information = json.dumps({"tool": {"name": benchmark.tool_name, "revision": benchmark.tool_version}, \
                                        "benchmark" : benchmark.name,
                                        "timestamp" : benchmark.instance,
-                                       "generator": "benchmark.vcloud.py"})
+                                        "generator": "benchmark.vcloud.py"})
 
         # install cloud and dependencies
         ant = subprocess.Popen(["ant", "resolve-benchmark-dependencies"],
@@ -167,10 +164,8 @@ def getCloudInput(benchmark):
                 toTabList([absBaseDir, absOutputDir, absWorkingDir]),
                 toTabList(requirements)
             ]
-    if benchmark.result_files_patterns:
-        if len(benchmark.result_files_patterns) > 1:
-            sys.exit("Multiple result-files patterns not supported in cloud mode.")
-        cloudInput.append(benchmark.result_files_patterns[0])
+    if benchmark.result_files_pattern:
+        cloudInput.append(benchmark.result_files_pattern)
 
     cloudInput.extend([
                 toTabList(numOfRunDefLinesAndPriorityStr),
@@ -210,7 +205,7 @@ def getBenchmarkDataForCloud(benchmark):
 
             # we assume, that VCloud-client only splits its input at tabs,
             # so we can use all other chars for the info, that is needed to run the tool.
-            argString = json.dumps(cmdline)
+            argString = json.dumps(cmdline) 
             assert not "\t" in argString # cannot call toTabList(), if there is a tab
 
             log_file = os.path.relpath(run.log_file, benchmark.log_folder)
@@ -326,7 +321,7 @@ IGNORED_VALUES = set(['command', 'timeLimit', 'coreLimit', 'returnvalue', 'exits
 """result values that are ignored because they are redundant"""
 
 def parseCloudRunResultFile(filePath):
-    values = collections.OrderedDict()
+    values = {}
 
     def parseTimeValue(s):
         if s[-1] != 's':

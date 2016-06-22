@@ -25,6 +25,9 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import static com.google.common.collect.FluentIterable.from;
 
+import java.util.Map;
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -41,11 +44,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import java.util.Map;
-import java.util.Objects;
-
-import javax.annotation.Nullable;
-
 
 public class ExpressionTreeLocationInvariant extends AbstractLocationFormulaInvariant
     implements ExpressionTreeCandidateInvariant {
@@ -56,7 +54,7 @@ public class ExpressionTreeLocationInvariant extends AbstractLocationFormulaInva
 
   private final String groupId;
 
-  private final @Nullable Map<ManagerKey, ToFormulaVisitor> visitorCache;
+  private final Map<ManagerKey, ToFormulaVisitor> visitorCache;
 
   public ExpressionTreeLocationInvariant(
       String pGroupId, CFANode pLocation, ExpressionTree<AExpression> pExpressionTree) {
@@ -64,10 +62,7 @@ public class ExpressionTreeLocationInvariant extends AbstractLocationFormulaInva
   }
 
   public ExpressionTreeLocationInvariant(
-      String pGroupId,
-      CFANode pLocation,
-      ExpressionTree<AExpression> pExpressionTree,
-      @Nullable Map<ManagerKey, ToFormulaVisitor> pVisitorCache) {
+      String pGroupId, CFANode pLocation, ExpressionTree<AExpression> pExpressionTree, Map<ManagerKey, ToFormulaVisitor> pVisitorCache) {
     super(pLocation);
     groupId = Objects.requireNonNull(pGroupId);
     location = Objects.requireNonNull(pLocation);

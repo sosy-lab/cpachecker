@@ -28,7 +28,6 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Cto
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
@@ -51,7 +50,6 @@ import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.logging.Level;
 
 
@@ -74,7 +72,7 @@ public class BAMPredicateReducer implements Reducer {
   @Override
   public AbstractState getVariableReducedState(
       AbstractState pExpandedState, Block pContext,
-      CFANode pLocation) throws InterruptedException {
+      CFANode pLocation) {
 
     PredicateAbstractState predicateElement = (PredicateAbstractState) pExpandedState;
 
@@ -85,11 +83,8 @@ public class BAMPredicateReducer implements Reducer {
       Region oldRegion = oldAbstraction.asRegion();
 
       Collection<AbstractionPredicate> predicates = pamgr.extractPredicates(oldRegion);
-    Collection<AbstractionPredicate> removePredicates =
-        Sets.difference(
-            new HashSet<>(predicates),
-            new HashSet<>(
-                cpa.getRelevantPredicatesComputer().getRelevantPredicates(pContext, predicates)));
+      Collection<AbstractionPredicate> removePredicates =
+          cpa.getRelevantPredicatesComputer().getIrrelevantPredicates(pContext, predicates);
 
       PathFormula pathFormula = predicateElement.getPathFormula();
 
@@ -107,7 +102,7 @@ public class BAMPredicateReducer implements Reducer {
   @Override
   public AbstractState getVariableExpandedState(
       AbstractState pRootState, Block pReducedContext,
-      AbstractState pReducedState) throws InterruptedException {
+      AbstractState pReducedState) {
 
     PredicateAbstractState rootState = (PredicateAbstractState) pRootState;
     PredicateAbstractState reducedState = (PredicateAbstractState) pReducedState;
@@ -293,7 +288,7 @@ public class BAMPredicateReducer implements Reducer {
 
   @Override
   public AbstractState getVariableExpandedStateForProofChecking(AbstractState pRootState, Block pReducedContext,
-      AbstractState pReducedState) throws InterruptedException {
+      AbstractState pReducedState) {
 
     PredicateAbstractState rootState = (PredicateAbstractState) pRootState;
     PredicateAbstractState reducedState = (PredicateAbstractState) pReducedState;

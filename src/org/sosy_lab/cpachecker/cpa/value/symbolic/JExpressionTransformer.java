@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
@@ -55,7 +56,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-import java.util.Optional;
+import com.google.common.base.Optional;
 
 /**
  * Class for transforming {@link JExpression} objects into their {@link SymbolicExpression} representation.
@@ -278,7 +279,7 @@ public class JExpressionTransformer extends ExpressionTransformer
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
     SymbolicExpression operand = pJCastExpression.getOperand().accept(this);
 
-    return factory.cast(operand, pJCastExpression.getCastType(), Optional.empty());
+    return factory.cast(operand, pJCastExpression.getCastType(), Optional.<MachineModel>absent());
   }
 
   @Override

@@ -24,11 +24,17 @@
 package org.sosy_lab.cpachecker.cpa.deterministic;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.LiveVariables.LIVE_DECL_EQUIVALENCE;
-import static org.sosy_lab.cpachecker.util.LiveVariables.TO_EQUIV_WRAPPER;
+import static org.sosy_lab.cpachecker.util.LiveVariables.*;
 
-import com.google.common.base.Equivalence.Wrapper;
-import com.google.common.collect.Iterables;
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
@@ -53,12 +59,14 @@ import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -68,13 +76,8 @@ import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import com.google.common.base.Equivalence.Wrapper;
+import com.google.common.collect.Iterables;
 
 public class DeterministicVariablesTransferRelation
   extends ForwardingTransferRelation<DeterministicVariablesState, DeterministicVariablesState, Precision> implements Statistics {
@@ -84,6 +87,22 @@ public class DeterministicVariablesTransferRelation
 
   private Set<CFANode> assumes = new HashSet<>();
   private Set<CFANode> nondetAssumes = new HashSet<>();
+
+  @Override
+  protected void setInfo(final AbstractState abstractState,
+      final Precision abstractPrecision,
+      final CFAEdge cfaEdge) {
+    super.setInfo(abstractState, abstractPrecision, cfaEdge);
+  }
+
+  @Override
+  protected Collection<DeterministicVariablesState> postProcessing(final @Nullable DeterministicVariablesState successor) {
+    if (successor == null) {
+      return Collections.emptySet();
+    }
+
+    return Collections.singleton(successor);
+  }
 
   @Override
   protected DeterministicVariablesState handleDeclarationEdge(final ADeclarationEdge pCfaEdge, final ADeclaration pDeclaration)
@@ -234,6 +253,12 @@ public class DeterministicVariablesTransferRelation
     } else {
       throw new CPATransferException("Missing case for if-then-else statement.");
     }
+  }
+
+  @Override
+  public Collection<? extends AbstractState> strengthen(final AbstractState pState, final List<AbstractState> pOtherStates,
+      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException, InterruptedException {
+    return null;
   }
 
   /**

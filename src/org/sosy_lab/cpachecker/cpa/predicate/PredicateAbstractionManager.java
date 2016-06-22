@@ -24,9 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Predicates.equalTo;
+import static com.google.common.base.Predicates.in;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -39,14 +40,13 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.NestedTimer;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier.TrivialInvariantSupplier;
+import org.sosy_lab.cpachecker.cpa.predicate.InvariantsManager.LocationInvariantSupplier;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage.AbstractionNode;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
@@ -71,11 +71,11 @@ import org.sosy_lab.solver.api.ProverEnvironment.AllSatCallback;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -83,7 +83,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -193,7 +192,7 @@ public class PredicateAbstractionManager {
   // 1: predicate is true
   private final Map<Pair<BooleanFormula, AbstractionPredicate>, Byte> cartesianAbstractionCache;
 
-  private final InvariantSupplier invariantSupplier;
+  private final LocationInvariantSupplier locationBasedInvariantSupplier;
 
   private final BooleanFormulaManagerView bfmgr;
 
@@ -208,7 +207,7 @@ public class PredicateAbstractionManager {
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      InvariantSupplier pInvariantsSupplier)
+      @Nullable LocationInvariantSupplier invariantsSupplier)
       throws InvalidConfigurationException, PredicateParsingFailedException {
     shutdownNotifier = pShutdownNotifier;
     config = pConfig;
@@ -222,7 +221,7 @@ public class PredicateAbstractionManager {
     rmgr = amgr.getRegionCreator();
     pfmgr = pPfmgr;
     solver = pSolver;
-    invariantSupplier = pInvariantsSupplier;
+    locationBasedInvariantSupplier = invariantsSupplier;
 
     if (cartesianAbstraction) {
       abstractionType = AbstractionType.CARTESIAN;
@@ -351,16 +350,23 @@ public class PredicateAbstractionManager {
     }
 
     // add invariants to abstraction formula if available
-    if (invariantSupplier != TrivialInvariantSupplier.INSTANCE) {
-      BooleanFormula invariant = invariantSupplier.getInvariantFor(location, fmgr, pfmgr, pathFormula);
+    Set<BooleanFormula> invariants;
+    if (locationBasedInvariantSupplier != null) {
+      invariants = locationBasedInvariantSupplier.getInvariantFor(location);
+    } else {
+      invariants = Collections.emptySet();
+    }
 
-      if (!bfmgr.isTrue(invariant)) {
-        AbstractionPredicate absPred = amgr.makePredicate(invariant);
+    if (!invariants.isEmpty()) {
+      Collection<AbstractionPredicate> invPredicates = new ArrayList<>();
+      for (BooleanFormula inv : invariants) {
+        AbstractionPredicate absPred = amgr.makePredicate(inv);
+        invPredicates.add(absPred);
         abs = rmgr.makeAnd(abs, absPred.getAbstractVariable());
-
-        // Calculate the set of predicates we still need to use for abstraction.
-        Iterables.removeIf(remainingPredicates, equalTo(absPred));
       }
+
+      // Calculate the set of predicates we still need to use for abstraction.
+      Iterables.removeIf(remainingPredicates, in(invPredicates));
     }
 
     try (ProverEnvironment thmProver = solver.newProverEnvironment()) {
@@ -443,7 +449,7 @@ public class PredicateAbstractionManager {
       fmgr.dumpFormulaToFile(f, dumpFile);
 
       dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "predicates", 0);
-      try (Writer w = MoreFiles.openOutputFile(dumpFile, Charset.defaultCharset())) {
+      try (Writer w = dumpFile.asCharSink(StandardCharsets.UTF_8).openBufferedStream()) {
         Joiner.on('\n').appendTo(w, pPredicates);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Failed to wrote predicates to file");
@@ -504,7 +510,7 @@ public class PredicateAbstractionManager {
           }
 
           if (an.getLocationId().isPresent()) {
-            if (location.getNodeNumber() != an.getLocationId().getAsInt()) {
+            if (location.getNodeNumber() != an.getLocationId().get()) {
               candidateIterator.remove();
               continue;
             }
@@ -731,7 +737,7 @@ public class PredicateAbstractionManager {
    *          with blockFormula as the block formula.
    */
   public AbstractionFormula buildAbstraction(final BooleanFormula f,
-      final PathFormula blockFormula) throws InterruptedException {
+      final PathFormula blockFormula) {
     Region r = amgr.convertFormulaToRegion(f);
     return makeAbstractionFormula(r, blockFormula.getSsa(), blockFormula);
   }
@@ -958,7 +964,7 @@ public class PredicateAbstractionManager {
       builder.startNewConjunction();
       for (BooleanFormula f : model) {
         Optional<BooleanFormula> inner = fmgr.stripNegation(f);
-        Region region = amgr.getPredicate(inner.orElse(f)).getAbstractVariable();
+        Region region = amgr.getPredicate(inner.or(f)).getAbstractVariable();
         if (inner.isPresent()) {
           // TODO: possible bug if the predicate itself contains the negation.
           builder.addNegativeRegion(region);
@@ -1063,8 +1069,7 @@ public class PredicateAbstractionManager {
     return new AbstractionFormula(fmgr, region, formula, instantiatedFormula, a1.getBlockFormula(), noAbstractionReuse);
   }
 
-  private AbstractionFormula makeAbstractionFormula(Region abs, SSAMap ssaMap, PathFormula blockFormula)
-      throws InterruptedException {
+  private AbstractionFormula makeAbstractionFormula(Region abs, SSAMap ssaMap, PathFormula blockFormula) {
     BooleanFormula symbolicAbs = amgr.convertRegionToFormula(abs);
     BooleanFormula instantiatedSymbolicAbs = fmgr.instantiate(symbolicAbs, ssaMap);
 
@@ -1084,8 +1089,7 @@ public class PredicateAbstractionManager {
    * @return A new abstraction similar to the old one without the predicates.
    */
   public AbstractionFormula reduce(AbstractionFormula oldAbstraction,
-      Collection<AbstractionPredicate> removePredicates, SSAMap ssaMap)
-      throws InterruptedException {
+      Collection<AbstractionPredicate> removePredicates, SSAMap ssaMap) {
     RegionCreator rmgr = amgr.getRegionCreator();
 
     Region newRegion = oldAbstraction.asRegion();
@@ -1106,8 +1110,7 @@ public class PredicateAbstractionManager {
    * @return A new abstraction similar to the old one with some more predicates.
    */
   public AbstractionFormula expand(Region reducedAbstraction, Region sourceAbstraction,
-      Collection<AbstractionPredicate> relevantPredicates, SSAMap newSSA, PathFormula blockFormula)
-      throws InterruptedException {
+      Collection<AbstractionPredicate> relevantPredicates, SSAMap newSSA, PathFormula blockFormula) {
     RegionCreator rmgr = amgr.getRegionCreator();
 
     for (AbstractionPredicate predicate : relevantPredicates) {

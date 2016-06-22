@@ -23,15 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates;
 
-import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.ImmutableSetMultimap.Builder;
-import com.google.common.collect.Sets;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
-import java.util.Set;
+import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.ImmutableSetMultimap.Builder;
+import com.google.common.collect.Sets;
 
 
 /**
@@ -82,23 +82,5 @@ public class RefineableOccurrenceComputer extends OccurrenceComputer implements 
   @Override
   public String toString() {
     return "RefineableOccurrenceComputer (" + definitelyRelevantPredicates + ")";
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (o == this) {
-      return true;
-    }
-    if (o instanceof RefineableOccurrenceComputer) {
-      RefineableOccurrenceComputer other = (RefineableOccurrenceComputer) o;
-      return definitelyRelevantPredicates.equals(other.definitelyRelevantPredicates)
-          && super.equals(o);
-    }
-    return false;
-  }
-
-  @Override
-  public int hashCode() {
-    return super.hashCode() * 17 + definitelyRelevantPredicates.hashCode();
   }
 }

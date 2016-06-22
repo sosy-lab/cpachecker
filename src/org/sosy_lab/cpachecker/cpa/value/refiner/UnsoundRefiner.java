@@ -41,5 +41,5 @@ public interface UnsoundRefiner extends Refiner {
    * the respective {@link ARGReachedSet#removeSubtree(ARGState)} method.
    *
    */
-  void forceRestart(ReachedSet reached) throws InterruptedException;
+  void forceRestart(ReachedSet reached);
 }

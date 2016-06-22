@@ -1,7 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
 import com.google.common.base.Joiner;
-import java.util.Optional;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -152,7 +152,7 @@ class SlicingAbstractedState
         SSAMap.emptySSAMap(),
         PointerTargetSet.emptyPointerTargetSet(),
         pFmgr,
-        Optional.empty(),
+        Optional.<SlicingIntermediateState>absent(),
         startingNode,
         ImmutableSet.<PathFormulaWithStartSSA>of());
   }

@@ -46,7 +46,7 @@ from time import time
 
 import requests
 from requests import HTTPError
-import urllib.parse
+import urllib.parse 
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
 from concurrent.futures import Future
@@ -169,16 +169,8 @@ try:
             self._state_receive_executor = ThreadPoolExecutor(max_workers=1)
 
         def _log_future_exception_and_fallback(self, result):
-            e = result.exception()
-            if e is not None:
-                if (self._shutdown and
-                        isinstance(e, AttributeError) and
-                        str(e) == "'NoneType' object has no attribute 'read'"):
-                    # This is harmless, it occurs because SSEClient reads on closed connection.
-                    logging.debug('Error during result processing:', exc_info=True)
-                else:
-                    logging.warning('Error during result processing:', exc_info=True)
-
+            if result.exception() is not None:
+                logging.warning('Error during result processing.', exc_info=True)
                 if not self._shutdown:
                     self._fall_back()
 
@@ -208,7 +200,7 @@ try:
                     params.append(("run", run_id))
 
                 headers = {"Accept-Encoding": "UTF-8"}
-
+                
                 logging.debug("Creating Server-Send Event connection.")
                 try:
                     self._sse_client = ShouldReconnectSeeClient(
@@ -339,7 +331,7 @@ class WebInterface:
             self._base64_user_pwd = base64.b64encode(user_pwd.encode("utf-8")).decode("utf-8")
         else:
             self._base64_user_pwd = None
-
+        
         self._unfinished_runs = {}
         self._unfinished_runs_lock = threading.Lock()
         self._downloading_result_futures = {}
@@ -455,9 +447,8 @@ class WebInterface:
 
         return self._create_and_add_run_future(run_id)
 
-    def submit(self, run, limits, cpu_model, result_files_pattern=None, meta_information=None, \
-               priority='IDLE', user_pwd=None, svn_branch=None, svn_revision=None,
-               result_files_patterns=[], required_files=[]):
+    def submit(self, run, limits, cpu_model, result_files_pattern, meta_information=None, \
+               priority='IDLE', user_pwd=None, svn_branch=None, svn_revision=None):
         """
         Submits a single run to the VerifierCloud.
         @note: flush() should be called after the submission of the last run.
@@ -473,31 +464,19 @@ class WebInterface:
         @param user_pwd: overrides the user name and password given in the constructor (optional)
         @param svn_branch: overrids the svn branch given in the constructor (optional)
         @param svn_revision: overrides the svn revision given in the constructor (optional)
-        @param result_files_patterns: list of result_files_pattern (optional)
-        @param required_files: list of additional file required to execute the run (optional)
         """
-        if result_files_pattern:
-            if result_files_patterns:
-                raise ValueError("Cannot specify result_files_pattern and result_files_patterns "
-                                 "at the same time.")
-            result_files_patterns = [result_files_pattern]
+        return self._submit(run, limits, cpu_model, result_files_pattern, meta_information,
+                            priority, user_pwd, svn_branch, svn_revision)
 
-        return self._submit(run, limits, cpu_model, required_files, result_files_patterns,
-                            meta_information, priority, user_pwd, svn_branch, svn_revision)
-
-    def _submit(self, run, limits, cpu_model, required_files, result_files_patterns,
-                    meta_information, priority, user_pwd, svn_branch, svn_revision, counter=0):
+    def _submit(self, run, limits, cpu_model, result_files_pattern, meta_information, 
+                priority, user_pwd, svn_branch, svn_revision, counter=0):
 
         params = []
         opened_files = [] # open file handles are passed to the request library
-
+        
         for programPath in run.sourcefiles:
             norm_path = self._normalize_path_for_cloud(programPath)
             params.append(('programTextHash', (norm_path, self._get_sha1_hash(programPath))))
-  
-        for required_file in required_files:
-            norm_path = self._normalize_path_for_cloud(required_file)
-            params.append(('requiredFileHash', (norm_path, self._get_sha1_hash(required_file))))
 
         params.append(('svnBranch', svn_branch or self._svn_branch))
         params.append(('revision', svn_revision or self._svn_revision))
@@ -517,12 +496,11 @@ class WebInterface:
         if cpu_model:
             params.append(('cpuModel', cpu_model))
 
-        if result_files_patterns:
-            for pattern in result_files_patterns:
-                params.append(('resultFilesPattern', pattern))
+        if result_files_pattern:
+            params.append(('resultFilesPattern', result_files_pattern))
         else:
             params.append(('resultFilesPattern', ''))
-
+        
         if priority:
             params.append(('priority', priority))
 
@@ -543,29 +521,22 @@ class WebInterface:
 
         for opened_file in opened_files:
             opened_file.close()
-
-        # program files or required files given as hash value are not known by the cloud system
+        
+        # program files given as hash value are not known by the cloud system
         if statusCode == 412 and counter < 1:
             headers = {"Content-Type": "application/octet-stream",
                    "Content-Encoding": "deflate"}
-            filePath = "files/"
 
             # upload all used program files
+            filePath = "files/"
             for programPath in run.sourcefiles:
                 with open(programPath, 'rb') as programFile:
                     compressedProgramText = zlib.compress(programFile.read(), 9)
                     self._request('POST', filePath, data=compressedProgramText, headers=headers,\
                                    expectedStatusCodes=[200, 204], user_pwd=user_pwd)
 
-            # upload all required files
-            for required_file_path in required_files:
-                with open(required_file_path, 'rb') as required_file:
-                    compressed_required_file = zlib.compress(required_file.read(), 9)
-                    self._request('POST', filePath, data=compressed_required_file, headers=headers,\
-                                   expectedStatusCodes=[200, 204], user_pwd=user_pwd)
-
             # retry submission of run
-            return self._submit(run, limits, cpu_model, required_files, result_files_patterns, meta_information,
+            return self._submit(run, limits, cpu_model, result_files_pattern, meta_information, 
                                 priority, user_pwd, svn_branch, svn_revision, counter + 1)
 
         else:
@@ -575,7 +546,7 @@ class WebInterface:
 
     def _handle_options(self, run, params, rlimits):
         opened_files = []
-
+        
         # TODO use code from CPAchecker module, it add -stats and sets -timelimit,
         # instead of doing it here manually, too
         if self._tool_name == "CPAchecker":
@@ -596,7 +567,7 @@ class WebInterface:
                         params.append(('heap', next(i)))
                     elif option == "-stack":
                         params.append(('stack', next(i)))
-
+                        
                     elif option == "-noout":
                         params.append(("option", "output.disable=true"))
                     elif option == "-outputpath":
@@ -640,11 +611,12 @@ class WebInterface:
                     elif option == "-config":
                         configPath = next(i)
                         tokens = configPath.split('/')
-                        if (tokens[0] == "config" and len(tokens) == 2):
-                            config = tokens[1].split('.')[0]
-                            params.append(('configuration', config))
-                        else:
-                            params.append(("option", "configuration.file=" + configPath))
+                        if not (tokens[0] == "config" and len(tokens) == 2):
+                            logging.warning('Configuration %s of run %s is not from the default config directory.',
+                                            configPath, run.identifier)
+                            return (configPath, opened_files)
+                        config = tokens[1].split('.')[0]
+                        params.append(('configuration', config))
 
                     elif option == "-setprop":
                         params.append(("option", next(i)))
@@ -664,7 +636,7 @@ class WebInterface:
         file = open(path, 'rb')
         params.append((name, (norm_path, file)))
         return file
-
+    
     def _normalize_path_for_cloud(self, path):
         norm_path = os.path.normpath(path)
         if '..' in norm_path or os.path.isabs(norm_path):
@@ -682,12 +654,7 @@ class WebInterface:
 
         params = {"groupId": self._group_id}
         path = "runs/flush"
-        (response, _) = self._request("POST", path, data=params, headers=headers, expectedStatusCodes=[200, 204])
-        run_collections = response.decode('utf-8').split("\n")
-        if len(run_collections) == 0:
-            logging.warning('No runs were submitted to the VerifierCloud before or a rate limit is hit.')
-        else:
-            logging.info('Submitted %s run collection: %s', len(run_collections), ",".join(run_collections))
+        self._request("POST", path, data=params, headers=headers, expectedStatusCodes=[200, 204])
 
         self._result_downloader.start()
 
@@ -736,7 +703,7 @@ class WebInterface:
                 # client error
                 if type(exception) is HTTPError and exception.response and  \
                     400 <= exception.response.status_code and exception.response.status_code <= 499:
-
+                    
                     attempts = self._download_attempts.pop(run_id, 1);
                     if attempts < 10:
                         self._download_attempts[run_id] = attempts + 1;
@@ -801,14 +768,14 @@ class WebInterface:
             auth = (user_pwd.split(":")[0], user_pwd.split(":")[1])
         else:
             auth = None
-
+        
         counter = 0
         while (counter < 5):
             counter += 1
             # send request
             try:
                 response = self._connection.request(method, url, data=data, files=files, headers=headers, auth=auth)
-
+                
             except Exception as e:
                 if (counter < 5):
                     logging.debug("Exception during %s request to %s: %s", method, path, e)
@@ -824,20 +791,20 @@ class WebInterface:
                 message = ""
                 if response.status_code == 401:
                     message = 'Error 401: Permission denied. Please check the URL given to --cloudMaster and specify credentials if necessary.'
-
+                
                 elif response.status_code == 404:
                     message = 'Error 404: Not found. Please check the URL given to --cloudMaster.'
-
+                    
                 elif response.status_code == 503:
                     message = 'Error 503: Service Unavailable.'
                     if counter < 5:
                         logging.debug(message)
                         sleep(60)
                         continue
-
+                    
                 else:
                     message += response.content.decode('UTF-8')
-
+                    
                 logging.warning(message)
                 raise requests.HTTPError(path, message, response=response)
 
@@ -880,12 +847,11 @@ def _handle_special_files(result_zip_file, files, output_path):
             result_zip_file.extract(file, output_path)
 
 
-def handle_result(zip_content, output_path, run_identifier, result_files_pattern=None,
+def handle_result(zip_content, output_path, run_identifier, result_files_pattern='*',
                   open_output_log=_open_output_log,
                   handle_run_info=_handle_run_info,
                   handle_host_info=_handle_host_info,
                   handle_special_files=_handle_special_files,
-                  result_files_patterns=['*'],
                   ):
     """
     Parses the given result ZIP archive: Extract meta information
@@ -893,11 +859,6 @@ def handle_result(zip_content, output_path, run_identifier, result_files_pattern
     The default handler functions print some relevant info and write it all to 'output_path'.
     @return: the return value of CPAchecker
     """
-    if result_files_pattern:
-        if result_files_patterns:
-            raise ValueError("Cannot specify result_files_pattern and result_files_patterns "
-                             "at the same time.")
-        result_files_patterns = [result_files_pattern]
 
     # unzip and read result
     return_value = None
@@ -906,7 +867,7 @@ def handle_result(zip_content, output_path, run_identifier, result_files_pattern
             with zipfile.ZipFile(io.BytesIO(zip_content)) as result_zip_file:
                 return_value = _handle_result(result_zip_file, output_path,
                     open_output_log, handle_run_info, handle_host_info, handle_special_files,
-                    result_files_patterns, run_identifier)
+                    result_files_pattern, run_identifier)
 
         except zipfile.BadZipfile:
             logging.warning('Server returned illegal zip file with results of run %s.', run_identifier)
@@ -922,7 +883,7 @@ def handle_result(zip_content, output_path, run_identifier, result_files_pattern
 
 def _handle_result(resultZipFile, output_path,
                    open_output_log, handle_run_info, handle_host_info, handle_special_files,
-                   result_files_patterns, run_identifier):
+                   result_files_pattern, run_identifier):
 
     files = set(resultZipFile.namelist())
 
@@ -953,13 +914,11 @@ def _handle_result(resultZipFile, output_path,
     handle_special_files(resultZipFile, files, output_path)
 
     # extract result files:
-    if result_files_patterns:
-        result_files = set()
-        for pattern in result_files_patterns:
-            result_files.update(fnmatch.filter(files, pattern))
-        result_files = result_files - SPECIAL_RESULT_FILES
-        if result_files:
-            resultZipFile.extractall(output_path, result_files)
+    if result_files_pattern:
+        files = files - SPECIAL_RESULT_FILES
+        files = fnmatch.filter(files, result_files_pattern)
+        if files:
+            resultZipFile.extractall(output_path, files)
 
     return return_value
 

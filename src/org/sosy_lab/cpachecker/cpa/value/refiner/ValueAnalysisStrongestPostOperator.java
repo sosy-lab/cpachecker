@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
-import com.google.common.collect.Iterables;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.Set;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -32,7 +35,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
@@ -43,11 +46,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.Optional;
-import java.util.Set;
+import com.google.common.base.Optional;
+import com.google.common.collect.Iterables;
 
 /**
  * Strongest post-operator using {@link ValueAnalysisTransferRelation}.
@@ -76,7 +76,7 @@ public class ValueAnalysisStrongestPostOperator implements StrongestPostOperator
         transfer.getAbstractSuccessorsForEdge(pOrigin, pPrecision, pOperation);
 
     if (successors.isEmpty()) {
-      return Optional.empty();
+      return Optional.absent();
 
     } else {
       return Optional.of(Iterables.getOnlyElement(successors));
@@ -86,7 +86,7 @@ public class ValueAnalysisStrongestPostOperator implements StrongestPostOperator
   @Override
   public ValueAnalysisState handleFunctionCall(ValueAnalysisState state, CFAEdge edge,
       Deque<ValueAnalysisState> callstack) {
-    callstack.push(state);
+    callstack.addLast(state);
     return state;
   }
 
@@ -94,7 +94,7 @@ public class ValueAnalysisStrongestPostOperator implements StrongestPostOperator
   public ValueAnalysisState handleFunctionReturn(ValueAnalysisState next, CFAEdge edge,
       Deque<ValueAnalysisState> callstack) {
 
-    final ValueAnalysisState callState = callstack.pop();
+    final ValueAnalysisState callState = callstack.removeLast();
     return next.rebuildStateAfterFunctionCall(callState, (FunctionExitNode)edge.getPredecessor());
   }
 

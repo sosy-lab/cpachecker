@@ -23,12 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
-import com.google.common.collect.ImmutableList;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -37,69 +48,102 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
+import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
+import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Optional;
 
-public class SMGFeasibilityChecker {
+public class SMGFeasibilityChecker implements FeasibilityChecker<SMGState> {
 
   private final LogManager logger;
-  private final SMGStrongestPostOperator strongestPostOp;
-  private final SMGState initialState;
-  private final SMGPrecision precision;
-  private final CFANode mainFunction;
-  private final Set<ControlAutomatonCPA> automatonCPA;
 
-  public SMGFeasibilityChecker(SMGStrongestPostOperator pStrongestPostOp, LogManager pLogger,
-      CFA pCfa, SMGState pInitialState, Set<ControlAutomatonCPA> pAutomatonCPA) {
+  private final StrongestPostOperator<SMGState> strongestPostOp;
+  private final SMGState initialState;
+  private final VariableTrackingPrecision precision;
+
+  private final CFANode mainFunction;
+
+  public SMGFeasibilityChecker(StrongestPostOperator<SMGState> pStrongestPostOp, LogManager pLogger, CFA pCfa,
+      Configuration pConfig, SMGState pInitialState) throws InvalidConfigurationException {
     strongestPostOp = pStrongestPostOp;
     initialState = pInitialState;
     logger = pLogger;
-    precision = SMGPrecision.createStaticPrecision(false, pLogger);
+    precision = VariableTrackingPrecision.createStaticPrecision(
+        pConfig, pCfa.getVarClassification(), SMGCPA.class);
+
     mainFunction = pCfa.getMainFunction();
-    automatonCPA = pAutomatonCPA;
+  }
+
+  @Override
+  public boolean isFeasible(ARGPath path) throws CPAException, InterruptedException {
+    return isFeasible(path, initialState);
+  }
+
+  @Override
+  public boolean isFeasible(
+      final ARGPath pPath,
+      final SMGState pStartingPoint) throws CPAException, InterruptedException {
+    return isFeasible(pPath, pStartingPoint, new ArrayDeque<SMGState>());
+  }
+
+  @Override
+  public boolean isFeasible(
+      final ARGPath pPath,
+      final SMGState pStartingPoint,
+      final Deque<SMGState> pCallstack) throws CPAException, InterruptedException {
+    return isReachable(pPath, pStartingPoint, pCallstack).isReachable();
   }
 
   private ReachabilityResult isReachable(
-       ARGPath pPath,
-       SMGState pStartingPoint,
-       SMGPrecision precision) throws CPAException, InterruptedException {
-
- // We don't want sideffects of smg transfer relation for smg state propagating.
-    SMGState start = new SMGState(pStartingPoint);
-    Collection<SMGState> next = new ArrayList<>();
-    next.add(start);
+      final ARGPath pPath,
+      final SMGState pStartingPoint,
+      final Deque<SMGState> pCallstack) throws CPAException, InterruptedException {
 
     try {
+      //TODO ugly, copying SMGState
+      // We don't want sideffects of smg transfer relation propagating.
+      SMGState next = new SMGState(pStartingPoint);
       CFAEdge edge = null;
 
       PathIterator iterator = pPath.fullPathIterator();
 
-      if (!iterator.hasNext()) {
-        Collection<SMGState> lastStates = ImmutableList.of(pStartingPoint);
-        return ReachabilityResult.isReachable(lastStates, null);
+      if(!iterator.hasNext()) {
+        return ReachabilityResult.isReachable(pStartingPoint, null);
       }
 
       while (iterator.hasNext()) {
         edge = iterator.getOutgoingEdge();
 
-        Collection<SMGState> successors =
+        if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+          next = strongestPostOp.handleFunctionCall(next, edge, pCallstack);
+        }
+
+        // we leave a function, so rebuild return-state before assigning the return-value.
+        if (!pCallstack.isEmpty() && edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+          next = strongestPostOp.handleFunctionReturn(next, edge, pCallstack);
+        }
+
+        Optional<SMGState> successors =
             strongestPostOp.getStrongestPost(next, precision, edge);
 
         // no successors => path is infeasible
-        if (!successors.isEmpty()) {
+        if (!successors.isPresent()) {
           logger.log(Level.FINE, "found path to be infeasible: ", iterator.getOutgoingEdge(),
               " did not yield a successor");
 
           return ReachabilityResult.isNotReachable();
         }
+
+        // extract singleton successor state
+        next = successors.get();
+
+        // some variables might be blacklisted or tracked by BDDs
+        // so perform abstraction computation here
+        next = strongestPostOp.performAbstraction(next, iterator.getOutgoingEdge().getSuccessor(), pPath, precision);
 
         iterator.advance();
       }
@@ -110,22 +154,22 @@ public class SMGFeasibilityChecker {
     }
   }
 
-  private boolean isTarget(Collection<SMGState> pLastStates, CFAEdge pLastEdge)
-          throws CPATransferException, InterruptedException {
+  private boolean isTarget(SMGState pLastState, CFAEdge pLastEdge, Set<ControlAutomatonCPA> pAutomaton)
+      throws CPATransferException, InterruptedException {
 
-    for (SMGState lastState : pLastStates) {
-      // prune unreachable to detect memory leak that was detected by abstraction
-      lastState.pruneUnreachable();
+    // prune unreachable to detect memory leak that was detected by abstraction
+    pLastState.pruneUnreachable();
 
-      for (ControlAutomatonCPA automaton : automatonCPA) {
-        if (isTarget(lastState, pLastEdge, automaton)) {
-          return true;
-        }
+    for (ControlAutomatonCPA automaton : pAutomaton) {
+      if (isTarget(pLastState, pLastEdge, automaton)) {
+        return true;
       }
     }
 
     return false;
   }
+
+
 
   private boolean isTarget(SMGState pLastState, CFAEdge pLastEdge, ControlAutomatonCPA pAutomaton) throws CPATransferException, InterruptedException {
 
@@ -149,7 +193,11 @@ public class SMGFeasibilityChecker {
       Collection<? extends AbstractState> strengthenResultForSuccessor =
           transferRelation.strengthen(successor, lastStateSingelton, pLastEdge, automatonPrecision);
 
-      strengthenResult.addAll(strengthenResultForSuccessor);
+      if (strengthenResultForSuccessor == null) {
+        strengthenResult.add(successor);
+      } else {
+        strengthenResult.addAll(strengthenResultForSuccessor);
+      }
     }
 
     for (AbstractState state : strengthenResult) {
@@ -161,24 +209,20 @@ public class SMGFeasibilityChecker {
     return false;
   }
 
-  public boolean isFeasible(ARGPath pPath) throws CPAException, InterruptedException {
-    return isFeasible(pPath, initialState);
+  @Override
+  public boolean isFeasible(ARGPath pPath, Set<ControlAutomatonCPA> pAutomaton) throws CPAException, InterruptedException {
+    return isFeasible(pPath, initialState, pAutomaton);
   }
 
-  public boolean isFeasible(ARGPath pPath, SMGState pStartingPoint)
-          throws CPAException, InterruptedException {
-    return isFeasible(pPath, pStartingPoint, precision);
-  }
+  @Override
+  public boolean isFeasible(ARGPath pPath, SMGState pStartingPoint, Set<ControlAutomatonCPA> pAutomaton)
+      throws CPAException, InterruptedException {
 
-  public boolean isFeasible(ARGPath pPath, SMGState pStartingPoint,
-      SMGPrecision pPrecision)
-          throws CPAException, InterruptedException {
+    ReachabilityResult result = isReachable(pPath, pStartingPoint, new ArrayDeque<SMGState>());
 
-    ReachabilityResult result = isReachable(pPath, pStartingPoint, pPrecision);
+    if(result.isReachable()) {
 
-    if (result.isReachable()) {
-
-      return isTarget(result.getLastState(), result.getLastEdge());
+      return isTarget(result.getLastState(), result.getLastEdge(), pAutomaton);
     } else {
       return false;
     }
@@ -189,12 +233,12 @@ public class SMGFeasibilityChecker {
     private static final ReachabilityResult NOT_REACHABLE = new ReachabilityResult(false, null, null);
 
     private final boolean isReachable;
-    private final Collection<SMGState> lastStates;
+    private final SMGState lastState;
     private final CFAEdge lastEdge;
 
-    private ReachabilityResult(boolean pIsReachable, Collection<SMGState> pLastStates, CFAEdge pLastEdge) {
+    private ReachabilityResult(boolean pIsReachable, SMGState pLastState, CFAEdge pLastEdge) {
       isReachable = pIsReachable;
-      lastStates = pLastStates;
+      lastState = pLastState;
       lastEdge = pLastEdge;
     }
 
@@ -202,9 +246,9 @@ public class SMGFeasibilityChecker {
       return isReachable;
     }
 
-    public Collection<SMGState> getLastState() {
+    public SMGState getLastState() {
       assert isReachable == true : "Getting the last state of the path is only supported if the last state is reachable.";
-      return lastStates;
+      return lastState;
     }
 
     public CFAEdge getLastEdge() {
@@ -212,28 +256,12 @@ public class SMGFeasibilityChecker {
       return lastEdge;
     }
 
-    public static ReachabilityResult isReachable(Collection<SMGState> lastStates, CFAEdge lastEdge) {
-      return new ReachabilityResult(true, lastStates, lastEdge);
+    public static ReachabilityResult isReachable(SMGState lastState, CFAEdge lastEdge) {
+      return new ReachabilityResult(true, lastState, lastEdge);
     }
 
     public static ReachabilityResult isNotReachable() {
       return NOT_REACHABLE;
     }
-  }
-
-  public boolean isFeasible(ARGPath pErrorPath, List<SMGState> pStartingPoints)
-      throws CPAException, InterruptedException {
-
-    boolean result = true;
-
-    for (SMGState start : pStartingPoints) {
-      result = result && isFeasible(pErrorPath, start);
-
-      if (!result) {
-        break;
-      }
-    }
-
-    return result;
   }
 }

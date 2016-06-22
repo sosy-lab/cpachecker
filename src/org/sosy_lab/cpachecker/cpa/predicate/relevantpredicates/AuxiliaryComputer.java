@@ -23,16 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates;
 
-import org.sosy_lab.cpachecker.cfa.blocks.Block;
-import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
+
+import org.sosy_lab.cpachecker.cfa.blocks.Block;
+import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 
 /**
@@ -65,9 +65,11 @@ public class AuxiliaryComputer extends AbstractRelevantPredicatesComputer<Collec
     // note: at this point, all relevant vars are in the waitlist, but will be copied into it later.
     while (!waitlist.isEmpty()) {
       ReferencedVariable var = waitlist.pop();
-      if (relevantVars.add(var.getName())) {
-        waitlist.addAll(var.getInfluencingVariables());
+      if (!relevantVars.add(var.getName())) {
+        // important: here each var is copied into relevant vars.
+        continue;
       }
+      waitlist.addAll(var.getInfluencingVariables());
     }
 
     return relevantVars;
@@ -94,10 +96,5 @@ public class AuxiliaryComputer extends AbstractRelevantPredicatesComputer<Collec
       }
     }
     return false;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    return o instanceof AuxiliaryComputer && super.equals(o);
   }
 }

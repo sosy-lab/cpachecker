@@ -149,8 +149,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
       }
 
       SMGSingleLinkedListCandidate candidate =
-          new SMGSingleLinkedListCandidate(pObject, nfo, hfo, hveNext.getType(),
-              smg.getMachineModel());
+          new SMGSingleLinkedListCandidate(pObject, nfo, hfo);
       candidates.get(pObject).put(nfo, candidate);
       candidateLength.put(candidate, 1);
       candidateSeqJoinStatus.put(candidate, SMGJoinStatus.EQUAL);
@@ -184,6 +183,9 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
       /* candidate not doubly linked with next object,
        * last object in sequence.
        */
+      candidate = new SMGSingleLinkedListCandidate(nextObject, nfo, hfo);
+      candidateLength.put(candidate, 1);
+      candidateSeqJoinStatus.put(candidate, SMGJoinStatus.EQUAL);
 
       if (!smg.isObjectValid(nextObject) || !(nextObject.getLevel() == startObject.getLevel())) {
         return;
@@ -202,16 +204,9 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
         return;
       }
 
-      SMGEdgeHasValue nextEdge = Iterables.getOnlyElement(nextObjectNextPointer);
-
-      if (!smg.isPointer(nextEdge.getValue())) {
+      if (!smg.isPointer(Iterables.getOnlyElement(nextObjectNextPointer).getValue())) {
         return;
       }
-
-      candidate = new SMGSingleLinkedListCandidate(nextObject, nfo, hfo, nextEdge.getType(),
-          smg.getMachineModel());
-      candidateLength.put(candidate, 1);
-      candidateSeqJoinStatus.put(candidate, SMGJoinStatus.EQUAL);
 
     } else {
       candidate = objectCandidates.get(nfo);

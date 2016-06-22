@@ -23,9 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.ci;
 
-import com.google.common.collect.Sets;
+import java.io.IOException;
+import java.io.Writer;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
 
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -46,13 +51,7 @@ import org.sosy_lab.cpachecker.util.ci.translators.PredicateRequirementsTranslat
 import org.sosy_lab.cpachecker.util.ci.translators.SignRequirementsTranslator;
 import org.sosy_lab.cpachecker.util.ci.translators.ValueRequirementsTranslator;
 
-import java.io.IOException;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
+import com.google.common.collect.Sets;
 
 public class CustomInstructionRequirementsWriter {
 
@@ -88,8 +87,7 @@ public class CustomInstructionRequirementsWriter {
     Pair<List<String>, String> fakeSMTDesc = pACI.getFakeSMTDescription();
     List<String> set = removeDuplicates(convertedRequirements.getFirst().getFirst(), convertedRequirements.getSecond().getFirst(), fakeSMTDesc.getFirst());
 
-    try (Writer br =
-        MoreFiles.openOutputFile(fileTemplate.getFreshPath(), Charset.defaultCharset())) {
+    try (Writer br = Files.openOutputFile(fileTemplate.getFreshPath())){
       for (String element : set) {
         br.write(element);
         br.write("\n");

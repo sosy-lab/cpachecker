@@ -174,11 +174,15 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedBooleanF
     NumeralFormula<CompoundInterval> op2 = pEqual.getOperand2();
     if (op1 instanceof Variable) {
       MemoryLocation memoryLocation = ((Variable<?>) op1).getMemoryLocation();
-      environment.putIfAbsent(memoryLocation, compoundIntervalFormulaManager.exclude(op2));
+      if (environment.get(memoryLocation) == null) {
+        environment.put(memoryLocation, compoundIntervalFormulaManager.exclude(op2));
+      }
     }
     if (op2 instanceof Variable) {
       MemoryLocation memoryLocation = ((Variable<?>) op2).getMemoryLocation();
-      environment.putIfAbsent(memoryLocation, compoundIntervalFormulaManager.exclude(op1));
+      if (environment.get(memoryLocation) == null) {
+        environment.put(memoryLocation, compoundIntervalFormulaManager.exclude(op1));
+      }
     }
 
     // Push inverted singletons, if any

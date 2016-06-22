@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import com.google.common.base.Function;
-import java.util.Optional;
+import com.google.common.base.Optional;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -90,14 +90,14 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
         new HashSet<SMGObject>());
 
     if (!matchResult.isMatch()) {
-      return Optional.empty();
+      return Optional.absent();
     }
 
     MatchResult matchResult2 = subSMGmatchSpecificShape(inputSMG2, rootObject2, mapping2, template,
         new HashSet<SMGObject>());
 
     if (!matchResult.isMatch()) {
-      return Optional.empty();
+      return Optional.absent();
     }
 
 
@@ -119,7 +119,7 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
       if(mapping1.containsKey(val)) {
         builder.putAbstractToConcretePointerMap(absVal, mapping1.get(val));
       } else {
-        return Optional.empty();
+        return Optional.absent();
       }
     }
 
@@ -134,7 +134,7 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
 
     for (SMGObject obj : pMatchResult2.getObjectsToBeRemovedForAbstractionInputSMG()) {
       if(mapping2.containsKey(obj) && !builder.getObjectsToBeRemovedForAbstraction().contains(mapping2.get(obj))) {
-        return Optional.empty();
+        return Optional.absent();
       }
     }
 

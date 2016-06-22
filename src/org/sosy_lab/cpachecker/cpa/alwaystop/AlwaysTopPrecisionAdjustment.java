@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
 import com.google.common.base.Function;
-import java.util.Optional;
+import com.google.common.base.Optional;
 
 enum AlwaysTopPrecisionAdjustment implements PrecisionAdjustment {
 

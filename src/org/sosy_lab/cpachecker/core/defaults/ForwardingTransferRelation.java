@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -127,31 +125,31 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
   private static final String NOT_IMPLEMENTED = "this method is not implemented";
 
   /** the given edge, not casted, for local access (like logging) */
-  protected @Nullable CFAEdge edge;
+  protected CFAEdge edge;
 
   /** the given state, casted to correct type, for local access */
-  protected @Nullable T state;
+  protected T state;
 
   /** the given precision, casted to correct type, for local access */
-  protected @Nullable P precision;
+  protected P precision;
 
   /** the function BEFORE the current edge */
-  protected @Nullable String functionName;
+  protected String functionName;
 
   protected CFAEdge getEdge() {
-    return checkNotNull(edge);
+    return edge;
   }
 
   protected T getState() {
-    return checkNotNull(state);
+    return state;
   }
 
   protected P getPrecision() {
-    return checkNotNull(precision);
+    return precision;
   }
 
   protected String getFunctionName() {
-    return checkNotNull(functionName);
+    return functionName;
   }
 
 
@@ -173,61 +171,30 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
 
     switch (cfaEdge.getEdgeType()) {
 
-      case AssumeEdge:
-        final AssumeEdge assumption = (AssumeEdge) cfaEdge;
-        successor =
-            handleAssumption(
-                assumption, assumption.getExpression(), assumption.getTruthAssumption());
-        break;
+    case AssumeEdge:
+      final AssumeEdge assumption = (AssumeEdge) cfaEdge;
+      successor = handleAssumption(assumption, assumption.getExpression(), assumption.getTruthAssumption());
+      break;
 
-      case FunctionCallEdge:
-        final FunctionCallEdge fnkCall = (FunctionCallEdge) cfaEdge;
-        final FunctionEntryNode succ = fnkCall.getSuccessor();
-        final String calledFunctionName = succ.getFunctionName();
-        successor =
-            handleFunctionCallEdge(
-                fnkCall, fnkCall.getArguments(), succ.getFunctionParameters(), calledFunctionName);
-        break;
+    case FunctionCallEdge:
+      final FunctionCallEdge fnkCall = (FunctionCallEdge) cfaEdge;
+      final FunctionEntryNode succ = fnkCall.getSuccessor();
+      final String calledFunctionName = succ.getFunctionName();
+      successor = handleFunctionCallEdge(fnkCall, fnkCall.getArguments(),
+          succ.getFunctionParameters(), calledFunctionName);
+      break;
 
-      case FunctionReturnEdge:
-        final String callerFunctionName = cfaEdge.getSuccessor().getFunctionName();
-        final FunctionReturnEdge fnkReturnEdge = (FunctionReturnEdge) cfaEdge;
-        final FunctionSummaryEdge summaryEdge = fnkReturnEdge.getSummaryEdge();
-        successor =
-            handleFunctionReturnEdge(
-                fnkReturnEdge, summaryEdge, summaryEdge.getExpression(), callerFunctionName);
-        break;
+    case FunctionReturnEdge:
+      final String callerFunctionName = cfaEdge.getSuccessor().getFunctionName();
+      final FunctionReturnEdge fnkReturnEdge = (FunctionReturnEdge) cfaEdge;
+      final FunctionSummaryEdge summaryEdge = fnkReturnEdge.getSummaryEdge();
+      successor = handleFunctionReturnEdge(fnkReturnEdge,
+          summaryEdge, summaryEdge.getExpression(), callerFunctionName);
 
-      case DeclarationEdge:
-        final ADeclarationEdge declarationEdge = (ADeclarationEdge) cfaEdge;
-        successor = handleDeclarationEdge(declarationEdge, declarationEdge.getDeclaration());
-        break;
+      break;
 
-      case StatementEdge:
-        final AStatementEdge statementEdge = (AStatementEdge) cfaEdge;
-        successor = handleStatementEdge(statementEdge, statementEdge.getStatement());
-        break;
-
-      case ReturnStatementEdge:
-        // this statement is a function return, e.g. return (a);
-        // note that this is different from return edge,
-        // this is a statement edge, which leads the function to the
-        // last node of its CFA, where return edge is from that last node
-        // to the return site of the caller function
-        final AReturnStatementEdge returnEdge = (AReturnStatementEdge) cfaEdge;
-        successor = handleReturnStatementEdge(returnEdge);
-        break;
-
-      case BlankEdge:
-        successor = handleBlankEdge((BlankEdge) cfaEdge);
-        break;
-
-      case CallToReturnEdge:
-        successor = handleFunctionSummaryEdge((FunctionSummaryEdge) cfaEdge);
-        break;
-
-      default:
-        throw new UnrecognizedCFAEdgeException(cfaEdge);
+    default:
+      successor = handleSimpleEdge(cfaEdge);
     }
 
     final Collection<T> result = postProcessing(successor);
@@ -254,10 +221,44 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     functionName = null;
   }
 
+  /** This function handles simple edges like Declarations, Statements,
+   * ReturnStatements and BlankEdges.
+   * They have in common, that they all can be part of an MultiEdge. */
+  protected S handleSimpleEdge(final CFAEdge cfaEdge) throws CPATransferException {
+
+    switch (cfaEdge.getEdgeType()) {
+    case DeclarationEdge:
+      final ADeclarationEdge declarationEdge = (ADeclarationEdge) cfaEdge;
+      return handleDeclarationEdge(declarationEdge, declarationEdge.getDeclaration());
+
+    case StatementEdge:
+      final AStatementEdge statementEdge = (AStatementEdge) cfaEdge;
+      return handleStatementEdge(statementEdge, statementEdge.getStatement());
+
+    case ReturnStatementEdge:
+      // this statement is a function return, e.g. return (a);
+      // note that this is different from return edge,
+      // this is a statement edge, which leads the function to the
+      // last node of its CFA, where return edge is from that last node
+      // to the return site of the caller function
+      final AReturnStatementEdge returnEdge = (AReturnStatementEdge) cfaEdge;
+      return handleReturnStatementEdge(returnEdge);
+
+    case BlankEdge:
+      return handleBlankEdge((BlankEdge) cfaEdge);
+
+    case CallToReturnEdge:
+      return handleFunctionSummaryEdge((FunctionSummaryEdge) cfaEdge);
+
+    default:
+      throw new UnrecognizedCFAEdgeException(cfaEdge);
+    }
+  }
+
   /** This is a fast check, if the edge should be analyzed.
    * It returns NULL for further processing,
    * otherwise the return-value for skipping. */
-  protected @Nullable Collection<T> preCheck() {
+  protected Collection<T> preCheck() {
     return null;
   }
 
@@ -275,8 +276,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
 
   /** This function handles assumptions like "if(a==b)" and "if(a!=0)".
    * If the assumption is not fulfilled, NULL should be returned. */
-  protected @Nullable S handleAssumption(
-      AssumeEdge cfaEdge, AExpression expression, boolean truthAssumption)
+  protected S handleAssumption(AssumeEdge cfaEdge, AExpression expression, boolean truthAssumption)
       throws CPATransferException {
 
     Pair<AExpression, Boolean> simplifiedExpression = simplifyAssumption(expression, truthAssumption);
@@ -302,8 +302,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    * @param truthAssumption indicates if this is the then or the else branch
    * @throws CPATransferException may be thrown in subclasses
    */
-  protected @Nullable S handleAssumption(
-      CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
+  protected S handleAssumption(CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
       throws CPATransferException {
     throw new AssertionError(NOT_IMPLEMENTED);
   }
@@ -316,8 +315,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    * @param truthAssumption indicates if this is the then or the else branch
    * @throws CPATransferException may be thrown in subclasses
    */
-  protected @Nullable S handleAssumption(
-      JAssumeEdge cfaEdge, JExpression expression, boolean truthAssumption)
+  protected S handleAssumption(JAssumeEdge cfaEdge, JExpression expression, boolean truthAssumption)
       throws CPATransferException {
     throw new AssertionError(NOT_IMPLEMENTED);
   }
@@ -608,6 +606,11 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     }
 
     return false;
+  }
+
+  @Deprecated
+  protected static String buildVarName(@Nullable final String function, final String var) {
+    return (function == null) ? var : function + "::" + var;
   }
 
   protected static Pair<AExpression, Boolean> simplifyAssumption(AExpression pExpression, boolean pAssumeTruth) {

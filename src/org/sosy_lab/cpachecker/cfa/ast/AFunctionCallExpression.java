@@ -25,13 +25,13 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import static com.google.common.collect.Iterables.transform;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
+import java.util.List;
+import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-import java.util.List;
-import java.util.Objects;
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 
 
 public abstract class AFunctionCallExpression extends AbstractRightHandSide {
@@ -77,7 +77,7 @@ public abstract class AFunctionCallExpression extends AbstractRightHandSide {
 
     lASTString.append(functionName.toParenthesizedASTString());
     lASTString.append("(");
-    Joiner.on(", ").appendTo(lASTString, transform(parameters, AExpression::toASTString));
+    Joiner.on(", ").appendTo(lASTString, transform(parameters, AExpression.TO_AST_STRING));
     lASTString.append(")");
 
     return lASTString.toString();

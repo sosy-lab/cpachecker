@@ -23,16 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.argReplay;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class ARGReplayTransferRelation extends SingleEdgeTransferRelation {
 
@@ -75,4 +77,13 @@ public class ARGReplayTransferRelation extends SingleEdgeTransferRelation {
       }
     }
   }
+
+  @Override
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState pState, List<AbstractState> pOtherStates,
+      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException, InterruptedException {
+
+    return Collections.singleton(pState);
+  }
+
 }

@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cfa.export;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
-import java.util.Optional;
+import com.google.common.base.Optional;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
@@ -57,7 +57,12 @@ public final class DOTBuilder {
   private static final int NODE_SHAPE_CHANGE_CHAR_LIMIT = 10;
 
   private static final Function<CFANode, String> DEFAULT_NODE_FORMATTER =
-      node -> "N" + node.getNodeNumber() + "\\n" + node.getReversePostorderId();
+      new Function<CFANode, String>() {
+        @Override
+        public String apply(CFANode node) {
+          return "N" + node.getNodeNumber() + "\\n" + node.getReversePostorderId();
+        }
+      };
 
 
   public static void generateDOT(Appendable sb, CFA cfa) throws IOException {

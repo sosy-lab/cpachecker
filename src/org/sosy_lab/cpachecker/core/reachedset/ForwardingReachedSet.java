@@ -25,15 +25,14 @@ package org.sosy_lab.cpachecker.core.reachedset;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.util.Pair;
-
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Set;
-import java.util.function.BiConsumer;
+
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 /**
  * Implementation of ReachedSet that forwards all calls to another instance.
@@ -105,11 +104,6 @@ public class ForwardingReachedSet implements ReachedSet {
   public Precision getPrecision(AbstractState pState)
       throws UnsupportedOperationException {
     return delegate.getPrecision(pState);
-  }
-
-  @Override
-  public void forEach(BiConsumer<? super AbstractState, ? super Precision> pAction) {
-    delegate.forEach(pAction);
   }
 
   @Override

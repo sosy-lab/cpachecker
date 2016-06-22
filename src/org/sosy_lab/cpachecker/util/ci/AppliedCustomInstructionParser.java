@@ -23,13 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.ci;
 
-import java.util.Optional;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
@@ -85,8 +86,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -142,7 +141,7 @@ public class AppliedCustomInstructionParser {
 
   private void writeCustomInstructionSpecification(final CustomInstruction ci,
       final Path signatureFile) throws IOException {
-    try (Writer br = MoreFiles.openOutputFile(signatureFile, Charset.defaultCharset())) {
+   try (Writer br = Files.openOutputFile(signatureFile)) {
       br.write(ci.getSignature() + "\n");
       String ciString = ci.getFakeSMTDescription().getSecond();
       br.write(ciString.substring(ciString.indexOf("a")-1,ciString.length()-1) + ";");
@@ -210,8 +209,8 @@ public class AppliedCustomInstructionParser {
    */
   protected ImmutableSet<CFANode> getCFANodes (final String[] pNodes, final CFAInfo cfaInfo) throws AppliedCustomInstructionParsingFailedException {
     ImmutableSet.Builder<CFANode> builder = new ImmutableSet.Builder<>();
-    for (String pNode : pNodes) {
-      builder.add(getCFANode(pNode, cfaInfo));
+    for (int i=0; i<pNodes.length; i++) {
+      builder.add(getCFANode(pNodes[i], cfaInfo));
     }
     return builder.build();
   }

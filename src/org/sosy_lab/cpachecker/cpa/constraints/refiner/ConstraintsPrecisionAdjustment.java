@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.ConstraintsPrec
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.base.Function;
-import java.util.Optional;
+import com.google.common.base.Optional;
 
 /**
  * {@link PrecisionAdjustment} for

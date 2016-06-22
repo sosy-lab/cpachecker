@@ -30,6 +30,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
+import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ArrayListMultimap;
@@ -49,12 +50,13 @@ import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -86,8 +88,6 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -259,8 +259,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   }
 
   @Override
-  protected final boolean performRefinementForState(BooleanFormula pInterpolant, ARGState interpolationPoint)
-      throws InterruptedException {
+  protected final boolean performRefinementForState(BooleanFormula pInterpolant, ARGState interpolationPoint) {
     checkState(newPredicates != null);
     checkArgument(!bfmgr.isTrue(pInterpolant));
 
@@ -284,8 +283,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
    * @return A set of predicates.
    */
   private final Collection<AbstractionPredicate> convertInterpolant(
-      final BooleanFormula pInterpolant, PathFormula blockFormula)
-      throws InterruptedException {
+      final BooleanFormula pInterpolant, PathFormula blockFormula) {
 
     BooleanFormula interpolant = pInterpolant;
 
@@ -333,12 +331,10 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   }
 
   @Override
-  protected final void finishRefinementOfPath(
-      ARGState pUnreachableState,
-      List<ARGState> pAffectedStates,
-      ARGReachedSet pReached,
+  protected final void finishRefinementOfPath(ARGState pUnreachableState,
+      List<ARGState> pAffectedStates, ARGReachedSet pReached,
       boolean pRepeatedCounterexample)
-      throws CPAException, InterruptedException {
+      throws CPAException {
 
     Pair<PredicatePrecision, ARGState> newPrecAndRefinementRoot =
         computeNewPrecision(pUnreachableState, pAffectedStates, pReached, pRepeatedCounterexample);
@@ -351,9 +347,8 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     newPredicates = null;
   }
 
-  protected void updateARG(
-      PredicatePrecision pNewPrecision, ARGState pRefinementRoot, ARGReachedSet pReached)
-      throws InterruptedException {
+  protected void updateARG(PredicatePrecision pNewPrecision, ARGState pRefinementRoot,
+      ARGReachedSet pReached) {
 
     argUpdate.start();
 
@@ -480,7 +475,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     if (dumpPredicates && dumpPredicatesFile != null) {
       Path precFile = dumpPredicatesFile.getPath(precisionUpdate.getUpdateCount());
-      try (Writer w = MoreFiles.openOutputFile(precFile, Charset.defaultCharset())) {
+      try (Writer w = Files.openOutputFile(precFile)) {
         precisionWriter.writePredicateMap(
             ImmutableSetMultimap.copyOf(newPredicates),
             ImmutableSetMultimap.<CFANode, AbstractionPredicate>of(),
@@ -562,8 +557,8 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       ARGState refinementRoot, UnmodifiableReachedSet reached) {
     return PredicatePrecision.unionOf(
         from(refinementRoot.getSubgraph())
-            .filter(not(ARGState::isCovered))
-            .transform(reached::getPrecision));
+            .filter(not(ARGState.IS_COVERED))
+            .transform(Precisions.forStateIn(reached)));
   }
 
   private boolean isValuePrecisionAvailable(final ARGReachedSet pReached, ARGState root) {
@@ -604,12 +599,30 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   private static Iterable<Map.Entry<String, AbstractionPredicate>> mergePredicatesPerFunction(
       Iterable<Map.Entry<LocationInstance, AbstractionPredicate>> predicates) {
     return from(predicates)
-        .transform(e -> Maps.immutableEntry(e.getKey().getFunctionName(), e.getValue()));
+        .transform(
+            new Function<
+                Map.Entry<LocationInstance, AbstractionPredicate>,
+                Map.Entry<String, AbstractionPredicate>>() {
+              @Override
+              public Map.Entry<String, AbstractionPredicate> apply(
+                  Map.Entry<LocationInstance, AbstractionPredicate> pInput) {
+                return Maps.immutableEntry(pInput.getKey().getFunctionName(), pInput.getValue());
+              }
+            });
   }
 
   private static Iterable<Map.Entry<CFANode, AbstractionPredicate>> mergePredicatesPerLocation(
       Iterable<Map.Entry<LocationInstance, AbstractionPredicate>> predicates) {
     return from(predicates)
-        .transform(e -> Maps.immutableEntry(e.getKey().getLocation(), e.getValue()));
+        .transform(
+            new Function<
+                Map.Entry<LocationInstance, AbstractionPredicate>,
+                Map.Entry<CFANode, AbstractionPredicate>>() {
+              @Override
+              public Map.Entry<CFANode, AbstractionPredicate> apply(
+                  Map.Entry<LocationInstance, AbstractionPredicate> pInput) {
+                return Maps.immutableEntry(pInput.getKey().getLocation(), pInput.getValue());
+              }
+            });
   }
 }

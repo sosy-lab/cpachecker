@@ -23,6 +23,11 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.arg;
 
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.logging.Level;
+
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -37,13 +42,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.pcc.propertychecker.NoTargetStateChecker;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
-
 @Options
 public class ARGProofCheckerStrategy extends AbstractARGStrategy {
 
@@ -53,11 +51,8 @@ public class ARGProofCheckerStrategy extends AbstractARGStrategy {
   private Set<ARGState> inWaitlist;
 
 
-  public ARGProofCheckerStrategy(
-      final Configuration pConfig,
-      final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier,
-      final @Nullable ProofChecker pChecker)
+  public ARGProofCheckerStrategy(final Configuration pConfig, final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier, final ProofChecker pChecker)
       throws InvalidConfigurationException {
     super(pConfig, pLogger, pChecker instanceof PropertyCheckerCPA ? ((PropertyCheckerCPA) pChecker).getPropChecker()
         : new NoTargetStateChecker(), pShutdownNotifier);

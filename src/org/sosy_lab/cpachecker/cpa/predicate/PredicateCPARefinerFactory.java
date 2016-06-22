@@ -23,10 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Preconditions.*;
 
-import java.util.Optional;
+import javax.annotation.Nullable;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -44,11 +43,12 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
 
-import javax.annotation.Nullable;
+import com.google.common.base.Optional;
 
 /**
  * Factory for {@link PredicateCPARefiner}, the base class for most refiners for the PredicateCPA.
@@ -131,6 +131,7 @@ public class PredicateCPARefinerFactory {
     LogManager logger = predicateCpa.getLogger();
     ShutdownNotifier shutdownNotifier = predicateCpa.getShutdownNotifier();
     Solver solver = predicateCpa.getSolver();
+    FormulaManagerView fmgr = solver.getFormulaManager();
     PathFormulaManager pfmgr = predicateCpa.getPathFormulaManager();
 
     CFA cfa = predicateCpa.getCfa();
@@ -139,7 +140,7 @@ public class PredicateCPARefinerFactory {
     Optional<LoopStructure> loopStructure = cfa.getLoopStructure();
 
     PredicateAbstractionManager predAbsManager = predicateCpa.getPredicateManager();
-    PredicateCPAInvariantsManager invariantsManager = predicateCpa.getInvariantsManager();
+    InvariantsManager invariantsManager = predicateCpa.getInvariantsManager();
 
     PrefixProvider prefixProvider = predicateCpa.getPrefixProvider();
     PrefixSelector prefixSelector = new PrefixSelector(variableClassification, loopStructure);
@@ -169,8 +170,7 @@ public class PredicateCPARefinerFactory {
             logger,
             loopStructure,
             bfs,
-            solver,
-            pfmgr,
+            fmgr,
             interpolationManager,
             pathChecker,
             prefixProvider,

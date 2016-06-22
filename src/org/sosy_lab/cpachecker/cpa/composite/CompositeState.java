@@ -25,9 +25,10 @@ package org.sosy_lab.cpachecker.cpa.composite;
 
 import static com.google.common.base.Preconditions.checkState;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
+import java.io.Serializable;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
@@ -36,10 +37,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 
-import java.io.Serializable;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 
 public class CompositeState implements AbstractWrapperState,
     Targetable, Partitionable, Serializable, Graphable {
@@ -51,7 +51,7 @@ public class CompositeState implements AbstractWrapperState,
     this.states = ImmutableList.copyOf(elements);
   }
 
-  int getNumberOfStates() {
+  public int getNumberOfStates() {
     return states.size();
   }
 

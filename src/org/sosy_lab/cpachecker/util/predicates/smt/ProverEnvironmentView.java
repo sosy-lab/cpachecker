@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.solver.SolverException;
@@ -33,7 +34,6 @@ import org.sosy_lab.solver.api.ProverEnvironment;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 
 import javax.annotation.Nullable;
 

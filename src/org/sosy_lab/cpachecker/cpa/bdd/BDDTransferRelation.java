@@ -28,7 +28,9 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -56,6 +58,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -70,7 +73,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
-import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
@@ -81,9 +86,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.math.BigInteger;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -598,6 +600,14 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     }
   }
 
+  @Override
+  public Collection<? extends AbstractState> strengthen(
+          AbstractState state, List<AbstractState> states, CFAEdge cfaEdge,
+          Precision precision) {
+    // do nothing
+    return null;
+  }
+
   /** THis function writes some information about tracked variables, number of partitions,... */
   void printStatistics(final PrintStream out) {
     final Set<Partition> intBool = varClass.getIntBoolPartitions();
@@ -631,7 +641,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     }
 
     if (dumpfile != null) { // option -noout
-      try (Writer w = MoreFiles.openOutputFile(dumpfile, Charset.defaultCharset())) {
+      try (Writer w = Files.openOutputFile(dumpfile)) {
         w.append("Boolean\n\n");
         w.append(trackedIntBool.toString());
         w.append("\n\nIntEq\n\n");

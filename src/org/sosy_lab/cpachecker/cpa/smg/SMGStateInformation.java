@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-
 import java.util.Map;
 import java.util.Set;
+
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 public class SMGStateInformation {
 
@@ -52,11 +52,6 @@ public class SMGStateInformation {
 
   public static SMGStateInformation of(Set<SMGEdgeHasValue> pHvEdges, Map<Integer, SMGEdgePointsTo> pPtEdges) {
     return new SMGStateInformation(pHvEdges, pPtEdges);
-  }
-
-  public static SMGStateInformation of(SMGEdgeHasValue pSmgEdgeHasValue,
-      Map<Integer, SMGEdgePointsTo> pPtEdges) {
-    return new SMGStateInformation(ImmutableSet.of(pSmgEdgeHasValue), pPtEdges);
   }
 
   public Map<Integer, SMGEdgePointsTo> getPtEdges() {

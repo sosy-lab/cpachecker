@@ -248,10 +248,4 @@ public class PredRelation {
           '}';
     }
   }
-
-  public void clear() {
-    smgExplicitValueRelation.clear();
-    smgValuesDependency.clear();
-    smgValuesRelation.clear();
-  }
 }

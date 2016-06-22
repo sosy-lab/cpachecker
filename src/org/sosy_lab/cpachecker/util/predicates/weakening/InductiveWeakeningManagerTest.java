@@ -40,6 +40,7 @@ import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -112,7 +113,7 @@ public class InductiveWeakeningManagerTest {
         )
     ).build();
     ShutdownNotifier notifier = ShutdownNotifier.createDummy();
-    LogManager logger = LogManager.createTestLogManager();
+    LogManager logger = TestLogManager.getInstance();
     Solver solver = Solver.create(config, logger, notifier);
     FormulaManagerView fmgr = solver.getFormulaManager();
     inductiveWeakeningManager = new InductiveWeakeningManager(

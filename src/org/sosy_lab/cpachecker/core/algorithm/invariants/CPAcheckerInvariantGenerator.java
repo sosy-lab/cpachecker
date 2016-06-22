@@ -32,31 +32,33 @@ import com.google.common.base.Preconditions;
 
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
-import org.sosy_lab.cpachecker.core.Specification;
+import org.sosy_lab.cpachecker.core.CoreComponentsFactory.SpecAutomatonCompositionType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator.LazyLocationMapping;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator.ReachedSetBasedExpressionTreeSupplier;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator.ReachedSetBasedInvariantSupplier;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Collections;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
@@ -95,7 +97,6 @@ public class CPAcheckerInvariantGenerator extends AbstractInvariantGenerator {
       Configuration config,
       ShutdownNotifier pShutdownNotifier,
       LogManager pLogger,
-      Specification specification,
       CFA pCfa,
       String pFilename)
       throws InvalidConfigurationException, IOException, CPAException {
@@ -103,17 +104,22 @@ public class CPAcheckerInvariantGenerator extends AbstractInvariantGenerator {
     logger = pLogger;
     cfa = pCfa;
 
-    Configuration invgenConfig = Configuration.builder().loadFromFile(configPath).build();
+    ConfigurationBuilder configBuilder = Configuration.builder().loadFromFile(configPath);
+    // we want the invariant generator to run with the same specification as the outside
+    // analysis, otherwise the invariants might be useless for us
+    if (config.hasProperty("specification")) {
+      configBuilder.copyOptionFrom(config, "specification");
+    }
+    Configuration invgenConfig = configBuilder.build();
 
     shutdownNotifier = ShutdownManager.createWithParent(pShutdownNotifier);
 
     CoreComponentsFactory componentsFactory =
-        new CoreComponentsFactory(
-            invgenConfig, logger, shutdownNotifier.getNotifier(), new AggregatedReachedSets());
+        new CoreComponentsFactory(invgenConfig, logger, shutdownNotifier.getNotifier());
     reached = componentsFactory.createReachedSet();
 
-    cpa = componentsFactory.createCPA(pCfa, specification);
-    algorithm = componentsFactory.createAlgorithm(cpa, pFilename, pCfa, specification);
+    cpa = componentsFactory.createCPA(pCfa, SpecAutomatonCompositionType.TARGET_SPEC);
+    algorithm = componentsFactory.createAlgorithm(cpa, pFilename, pCfa);
 
     formulaWriter = new StateToFormulaWriter(config, logger, shutdownNotifier.getNotifier(), cfa);
   }
@@ -126,7 +132,7 @@ public class CPAcheckerInvariantGenerator extends AbstractInvariantGenerator {
         cpa.getInitialPrecision(pInitialLocation, getDefaultPartition()));
 
     if (async) {
-      ExecutorService executor = Executors.newSingleThreadExecutor();
+      ExecutorService executor = Executors.newSingleThreadExecutor(Threads.threadFactory());
       executor.submit(computeInvariants());
       executor.shutdown();
     } else {
@@ -152,7 +158,7 @@ public class CPAcheckerInvariantGenerator extends AbstractInvariantGenerator {
           generationCompleted = true;
 
           if (invExportPath != null) {
-            try (Writer w = MoreFiles.openOutputFile(invExportPath, Charset.defaultCharset())) {
+            try (Writer w = Files.openOutputFile(invExportPath)) {
               formulaWriter.write(reached, w);
             } catch (IOException e) {
               logger.logUserException(Level.WARNING, e, "Could not write formulas to file");
@@ -177,13 +183,16 @@ public class CPAcheckerInvariantGenerator extends AbstractInvariantGenerator {
   }
 
   @Override
-  public AggregatedReachedSets get() throws CPAException, InterruptedException {
+  public InvariantSupplier get() throws CPAException, InterruptedException {
     if (generationCompleted) {
       checkState(programIsSafe || !reached.hasWaitingState());
       checkState(!reached.isEmpty());
-      return new AggregatedReachedSets(Collections.singleton(reached));
+      LazyLocationMapping lazyLocationMapping = new LazyLocationMapping(reached);
+      return new FormulaAndTreeSupplier(
+          new ReachedSetBasedInvariantSupplier(lazyLocationMapping, logger),
+          new ReachedSetBasedExpressionTreeSupplier(lazyLocationMapping, cfa));
     } else {
-      return new AggregatedReachedSets();
+      return InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
     }
   }
 }

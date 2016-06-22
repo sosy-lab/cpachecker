@@ -23,146 +23,130 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
-import com.google.common.collect.ImmutableSet;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.smg.SMGIntersectStates.SMGIntersectionResult;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoin;
+import org.sosy_lab.cpachecker.util.refinement.Interpolant;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.collect.ImmutableMap;
 
 
-public class SMGInterpolant {
+public class SMGInterpolant implements Interpolant<SMGState> {
 
-  private static final SMGInterpolant FALSE = new SMGInterpolant();
+  private static final SMGInterpolant FALSE = new SMGInterpolant(null, null, null, 0);
 
-  private final Set<SMGAbstractionBlock> abstractionBlock;
-  private final Set<SMGMemoryPath> trackedMemoryPaths;
-  private final Set<SMGState> smgStates;
+  private final Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues;
+  private final CLangSMG heap;
+  private final LogManager logger;
+  private final int externalAllocationSize;
 
-  private SMGInterpolant() {
-    abstractionBlock = ImmutableSet.of();
-    trackedMemoryPaths = ImmutableSet.of();
-    smgStates = ImmutableSet.of();
+
+  public SMGInterpolant(Map<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues,
+      CLangSMG pHeap,
+      LogManager pLogger, int pExternalAllocationSize) {
+
+    explicitValues = pExplicitValues;
+    heap = pHeap;
+    logger = pLogger;
+    externalAllocationSize = pExternalAllocationSize;
   }
 
-  public SMGInterpolant(Set<SMGState> pStates) {
-    smgStates = ImmutableSet.copyOf(pStates);
-    abstractionBlock = ImmutableSet.of();
+  @Override
+  public SMGState reconstructState() {
 
-    Set<SMGMemoryPath> memoryPaths = new HashSet<>();
-
-    for (SMGState state : smgStates) {
-      memoryPaths.addAll(state.getMemoryPaths());
-    }
-
-    trackedMemoryPaths = memoryPaths;
-  }
-
-  public SMGInterpolant(Set<SMGState> pStates, Set<SMGAbstractionBlock> pAbstractionBlock) {
-
-    smgStates = ImmutableSet.copyOf(pStates);
-    abstractionBlock = pAbstractionBlock;
-
-    Set<SMGMemoryPath> memoryPaths = new HashSet<>();
-
-    for (SMGState state : smgStates) {
-      memoryPaths.addAll(state.getMemoryPaths());
-    }
-
-    trackedMemoryPaths = memoryPaths;
-  }
-
-  public List<SMGState> reconstructStates() {
-
-    if (isFalse()) {
+    if(isFalse()) {
       throw new IllegalStateException("Can't reconstruct state from FALSE-interpolant");
     } else {
-      List<SMGState> smgStates = new ArrayList<>(this.smgStates.size());
-      for (SMGState state : smgStates) {
-        smgStates.add(new SMGState(state));
-      }
-
-      return smgStates;
+      // TODO Copy necessary?
+      return new SMGState(new HashMap<>(explicitValues), new CLangSMG(heap), logger,
+          externalAllocationSize, false);
     }
   }
 
-  public Set<SMGMemoryPath> getMemoryLocations() {
-    return trackedMemoryPaths;
+  @Override
+  public int getSize() {
+    return isTrivial() ? 0 : heap.getHVEdges().size();
   }
 
+  @Override
+  public Set<MemoryLocation> getMemoryLocations() {
+    return heap.getTrackedMemoryLocations();
+  }
+
+  @Override
   public boolean isTrue() {
-    /* No heap abstraction can be performed without hv-edges, thats
-     * why every interpolant without hv-edges is true.
-     */
-    return !isFalse() && trackedMemoryPaths.isEmpty();
+    return !isFalse() && heap.getHVEdges().isEmpty();
   }
 
+  @Override
   public boolean isFalse() {
-    return this == FALSE;
+    return heap == null;
   }
 
+  @Override
   public boolean isTrivial() {
     return isTrue() || isFalse();
   }
 
-  public SMGInterpolant join(SMGInterpolant pOtherInterpolant) {
-    if (isFalse() || pOtherInterpolant.isFalse()) {
+  @SuppressWarnings("unchecked")
+  @Override
+  public <T extends Interpolant<SMGState>> T join(T pOtherInterpolant) {
+    assert pOtherInterpolant instanceof SMGInterpolant;
+
+    SMGInterpolant other = (SMGInterpolant) pOtherInterpolant;
+
+    return (T) join0(other);
+  }
+
+  private SMGInterpolant join0(SMGInterpolant other) {
+
+    if (isFalse() || other.isFalse()) {
       return SMGInterpolant.FALSE;
     }
 
-    Set<SMGState> joinResult = new HashSet<>();
-    Set<SMGState> originalStatesNotJoint = new HashSet<>(smgStates);
+    SMGJoin join;
 
-    for (SMGState otherState : pOtherInterpolant.smgStates) {
-
-      SMGIntersectionResult result = SMGIntersectionResult.getNotDefinedInstance();
-
-      for (SMGState state : originalStatesNotJoint) {
-        result = state.intersectStates(otherState);
-
-        if(result.isDefined()) {
-          break;
-        }
-      }
-
-      if (result.isDefined()) {
-        originalStatesNotJoint.remove(result.getSmg1());
-        joinResult.add(result.getCombinationResult());
-      } else {
-        joinResult.add(otherState);
-      }
+    try {
+      join = new SMGJoin(heap, other.heap, this.reconstructState(), other.reconstructState());
+    } catch (SMGInconsistentException e) {
+      throw new IllegalStateException("Can't join interpolants due to: " + e.getMessage());
     }
 
-    joinResult.addAll(originalStatesNotJoint);
 
-    Set<SMGAbstractionBlock> jointAbstractionBlock = new HashSet<>(abstractionBlock);
-    jointAbstractionBlock.addAll(pOtherInterpolant.abstractionBlock);
-    return new SMGInterpolant(joinResult, jointAbstractionBlock);
+    Map<SMGKnownSymValue, SMGKnownExpValue> joinedExplicitValues = new HashMap<>();
+
+    //FIXME join of explicit values
+    joinedExplicitValues.putAll(explicitValues);
+    joinedExplicitValues.putAll(other.explicitValues);
+
+
+    return new SMGInterpolant(joinedExplicitValues, join.getJointSMG(), logger, externalAllocationSize);
   }
 
   public static SMGInterpolant createInitial(LogManager logger, MachineModel model,
       FunctionEntryNode pMainFunctionNode, int pExternalAllocationSize) {
-    SMGState initState = new SMGState(logger, model, false, false,
-        null, pExternalAllocationSize, false);
+    Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues = ImmutableMap.of();
+    CLangSMG heap = new CLangSMG(model);
+    AFunctionDeclaration mainFunction = pMainFunctionNode.getFunctionDefinition();
 
-    CFunctionEntryNode functionNode = (CFunctionEntryNode) pMainFunctionNode;
-    try {
-      initState.addStackFrame(functionNode.getFunctionDefinition());
-    } catch (SMGInconsistentException exc) {
-      logger.log(Level.SEVERE, exc.getMessage());
+    if (mainFunction instanceof CFunctionDeclaration) {
+      heap.addStackFrame((CFunctionDeclaration) mainFunction);
     }
 
-    return new SMGInterpolant(ImmutableSet.of(initState));
+    return new SMGInterpolant(explicitValues, heap, logger, pExternalAllocationSize);
   }
 
   public static SMGInterpolant getFalseInterpolant() {
@@ -175,92 +159,7 @@ public class SMGInterpolant {
     if (isFalse()) {
       return "FALSE";
     } else {
-      return "Tracked memory paths: " + trackedMemoryPaths.toString() + "\nAbstraction locks: "
-          + abstractionBlock.toString();
-    }
-  }
-
-  public static SMGInterpolant getTrueInterpolant(SMGInterpolant template) {
-
-    if (template.isFalse()) {
-      throw new IllegalArgumentException(
-        "Can't create true interpolant from a false interpolant template.");
-    }
-
-    SMGState templateState = template.smgStates.iterator().next();
-
-    SMGState newState = new SMGState(templateState);
-
-    newState.clearValues();
-
-    return new SMGInterpolant(ImmutableSet.of(newState));
-  }
-
-  public SMGPrecisionIncrement getPrecisionIncrement() {
-    return new SMGPrecisionIncrement(trackedMemoryPaths, abstractionBlock);
-  }
-
-  public static class SMGPrecisionIncrement {
-
-    private final Set<SMGMemoryPath> pathsToTrack;
-    private final Set<SMGAbstractionBlock> abstractionBlock;
-
-    public SMGPrecisionIncrement(Set<SMGMemoryPath> pPathsToTrack,
-        Set<SMGAbstractionBlock> pAbstractionBlock) {
-      pathsToTrack = pPathsToTrack;
-      abstractionBlock = pAbstractionBlock;
-    }
-
-    @Override
-    public String toString() {
-      return "SMGPrecisionIncrement [pathsToTrack=" + pathsToTrack + ", abstractionBlock="
-          + abstractionBlock + "]";
-    }
-
-    @Override
-    public int hashCode() {
-      final int prime = 31;
-      int result = 1;
-      result = prime * result + ((abstractionBlock == null) ? 0 : abstractionBlock.hashCode());
-      result = prime * result + ((pathsToTrack == null) ? 0 : pathsToTrack.hashCode());
-      return result;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-      if (this == obj) {
-        return true;
-      }
-      if (obj == null) {
-        return false;
-      }
-      if (getClass() != obj.getClass()) {
-        return false;
-      }
-      SMGPrecisionIncrement other = (SMGPrecisionIncrement) obj;
-      if (abstractionBlock == null) {
-        if (other.abstractionBlock != null) {
-          return false;
-        }
-      } else if (!abstractionBlock.equals(other.abstractionBlock)) {
-        return false;
-      }
-      if (pathsToTrack == null) {
-        if (other.pathsToTrack != null) {
-          return false;
-        }
-      } else if (!pathsToTrack.equals(other.pathsToTrack)) {
-        return false;
-      }
-      return true;
-    }
-
-    public Set<SMGMemoryPath> getPathsToTrack() {
-      return pathsToTrack;
-    }
-
-    public Set<SMGAbstractionBlock> getAbstractionBlock() {
-      return abstractionBlock;
+      return heap.toString() + "\n" + explicitValues.toString();
     }
   }
 }

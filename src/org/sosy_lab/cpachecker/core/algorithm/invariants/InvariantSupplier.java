@@ -26,12 +26,8 @@ package org.sosy_lab.cpachecker.core.algorithm.invariants;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
-
-import javax.annotation.Nullable;
 
 
 public interface InvariantSupplier {
@@ -41,9 +37,6 @@ public interface InvariantSupplier {
    * This method should be relatively cheap and do not block
    * (i.e., do not start an expensive invariant generation procedure).
    *
-   * Invariants returned by this supplier can be assumed to be correct in the given {@code pContext}
-   * e.g. respect the {@linkplain PointerTargetSet} and the {@link SSAMap}.
-   *
    * @param node The CFANode.
    * @param fmgr The formula manager which should be used for creating the invariant formula.
    * @param pfmgr The {@link PathFormulaManager} which should be used for creating the invariant formula.
@@ -51,10 +44,7 @@ public interface InvariantSupplier {
    * @return An invariant boolean formula without SSA indices.
    */
   BooleanFormula getInvariantFor(
-      CFANode node,
-      FormulaManagerView fmgr,
-      PathFormulaManager pfmgr,
-      @Nullable PathFormula pContext);
+      CFANode node, FormulaManagerView fmgr, PathFormulaManager pfmgr, PathFormula pContext);
 
   static enum TrivialInvariantSupplier implements InvariantSupplier {
     INSTANCE;

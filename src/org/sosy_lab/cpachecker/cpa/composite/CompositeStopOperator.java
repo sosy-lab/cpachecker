@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.cpa.composite;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.collect.ImmutableList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -35,15 +37,13 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import com.google.common.collect.ImmutableList;
 
-class CompositeStopOperator implements StopOperator, ForcedCoveringStopOperator {
+public class CompositeStopOperator implements StopOperator, ForcedCoveringStopOperator {
 
-  private final ImmutableList<StopOperator> stopOperators;
+  protected final ImmutableList<StopOperator> stopOperators;
 
-  CompositeStopOperator(ImmutableList<StopOperator> stopOperators) {
+  public CompositeStopOperator(ImmutableList<StopOperator> stopOperators) {
     this.stopOperators = stopOperators;
   }
 
@@ -65,7 +65,7 @@ class CompositeStopOperator implements StopOperator, ForcedCoveringStopOperator 
     checkArgument(compositeElements.size() == stopOperators.size(), "State with wrong number of component states given");
     List<AbstractState> compositeReachedStates = compositeReachedState.getWrappedStates();
 
-    List<Precision> compositePrecisions = compositePrecision.getWrappedPrecisions();
+    List<Precision> compositePrecisions = compositePrecision.getPrecisions();
 
     for (int idx = 0; idx < compositeElements.size(); idx++) {
       StopOperator stopOp = stopOperators.get(idx);
@@ -115,7 +115,7 @@ class CompositeStopOperator implements StopOperator, ForcedCoveringStopOperator 
 
     List<AbstractState> compositeElements = compositeState.getWrappedStates();
     List<AbstractState> compositeReachedStates = compositeReachedState.getWrappedStates();
-    List<Precision> compositePrecisions = compositePrecision.getWrappedPrecisions();
+    List<Precision> compositePrecisions = compositePrecision.getPrecisions();
 
     for (int idx = 0; idx < compositeElements.size(); idx++) {
       StopOperator stopOp = stopOperators.get(idx);

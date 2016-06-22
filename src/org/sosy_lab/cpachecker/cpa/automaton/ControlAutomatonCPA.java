@@ -23,12 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import java.io.IOException;
+import java.io.Writer;
+import java.util.Collection;
+import java.util.List;
+import java.util.logging.Level;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -65,14 +72,6 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.globalinfo.AutomatonInfo;
-
-import java.io.IOException;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.util.Collection;
-import java.util.List;
-import java.util.logging.Level;
 
 /**
  * This class implements an AutomatonAnalysis as described in the related Documentation.
@@ -156,9 +155,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
     pLogger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
 
     if (export && exportFile != null) {
-      try (Writer w =
-          MoreFiles.openOutputFile(
-              exportFile.getPath(automaton.getName()), Charset.defaultCharset())) {
+      try (Writer w = Files.openOutputFile(exportFile.getPath(automaton.getName()))) {
         automaton.writeDotFile(w);
       } catch (IOException e) {
         pLogger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");

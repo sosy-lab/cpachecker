@@ -23,17 +23,21 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import static com.google.common.base.Verify.verifyNotNull;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
-import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
+import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
-import com.google.common.base.Preconditions;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.PrintStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.Collection;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.AbstractMBean;
+import org.sosy_lab.common.Classes;
+import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -49,12 +53,13 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.value.refiner.UnsoundRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.InvalidComponentException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 
-import java.io.PrintStream;
-import java.util.Collection;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @Options(prefix="cegar")
 public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
@@ -134,17 +139,12 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
   private volatile int sizeOfReachedSetBeforeRefinement = 0;
 
-  @Option(
-    secure = true,
-    name = "refiner",
-    required = true,
-    description =
-        "Which refinement algorithm to use? "
-            + "(give class name, required for CEGAR) If the package name starts with "
-            + "'org.sosy_lab.cpachecker.', this prefix can be omitted."
-  )
+  @Option(secure=true, name="refiner", required = true,
+      description = "Which refinement algorithm to use? "
+      + "(give class name, required for CEGAR) If the package name starts with "
+      + "'org.sosy_lab.cpachecker.', this prefix can be omitted.")
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker")
-  private Refiner.Factory refinerFactory;
+  private Class<? extends Refiner> refiner = null;
 
   @Option(secure=true, name="globalRefinement", description="Whether to do refinement immediately after finding an error state, or globally after the ARG has been unrolled completely.")
   private boolean globalRefinement = false;
@@ -153,13 +153,55 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
   private final Algorithm algorithm;
   private final Refiner mRefiner;
 
+  // TODO Copied from CPABuilder, should be refactored into a generic implementation
+  private Refiner createInstance(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
+
+    // get factory method
+    Method factoryMethod;
+    try {
+      factoryMethod = refiner.getMethod("create", ConfigurableProgramAnalysis.class);
+    } catch (NoSuchMethodException e) {
+      throw new InvalidComponentException(refiner, "Refiner", "No public static method \"create\" with exactly one parameter of type ConfigurableProgramAnalysis.");
+    }
+
+    // verify signature
+    if (!Modifier.isStatic(factoryMethod.getModifiers())) {
+      throw new InvalidComponentException(refiner, "Refiner", "Factory method is not static");
+    }
+
+    String exception = Classes.verifyDeclaredExceptions(factoryMethod, CPAException.class, InvalidConfigurationException.class);
+    if (exception != null) {
+      throw new InvalidComponentException(refiner, "Refiner", "Factory method declares the unsupported checked exception " + exception + ".");
+    }
+
+    // invoke factory method
+    Object refinerObj;
+    try {
+      refinerObj = factoryMethod.invoke(null, pCpa);
+
+    } catch (IllegalAccessException e) {
+      throw new InvalidComponentException(refiner, "Refiner", "Factory method is not public.");
+
+    } catch (InvocationTargetException e) {
+      Throwable cause = e.getCause();
+      Throwables.propagateIfPossible(cause, CPAException.class, InvalidConfigurationException.class);
+
+      throw new UnexpectedCheckedException("instantiation of refiner " + refiner.getSimpleName(), cause);
+    }
+
+    if ((refinerObj == null) || !(refinerObj instanceof Refiner)) {
+      throw new InvalidComponentException(refiner, "Refiner", "Factory method did not return a Refiner instance.");
+    }
+
+    return (Refiner)refinerObj;
+  }
+
   public CEGARAlgorithm(Algorithm algorithm, ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
     config.inject(this);
-    verifyNotNull(refinerFactory);
     this.algorithm = algorithm;
     this.logger = logger;
 
-    mRefiner = refinerFactory.create(pCpa);
+    mRefiner = createInstance(pCpa);
     new CEGARMBean(); // don't store it because we wouldn't know when to unregister anyway
   }
 

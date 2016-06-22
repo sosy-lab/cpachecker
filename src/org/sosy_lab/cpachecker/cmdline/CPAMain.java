@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cmdline;
 
 import static java.util.logging.Level.WARNING;
-import static org.sosy_lab.common.io.DuplicateOutputStream.mergeStreams;
+import static org.sosy_lab.common.DuplicateOutputStream.mergeStreams;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
@@ -44,10 +44,11 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.log.LoggingOptions;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentException;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
@@ -62,14 +63,8 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.StringWriter;
 import java.net.URISyntaxException;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Map;
 import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 public class CPAMain {
 
@@ -80,7 +75,7 @@ public class CPAMain {
   public static void main(String[] args) {
     // initialize various components
     Configuration cpaConfig = null;
-    LoggingOptions logOptions;
+    LogManager logManager = null;
     String outputDirectory = null;
     try {
       try {
@@ -95,14 +90,13 @@ public class CPAMain {
         System.exit(ERROR_EXIT_CODE);
       }
 
-      logOptions = new LoggingOptions(cpaConfig);
+      logManager = new BasicLogManager(cpaConfig);
 
     } catch (InvalidConfigurationException e) {
       ERROR_OUTPUT.println("Invalid configuration: " + e.getMessage());
       System.exit(ERROR_EXIT_CODE);
       return;
     }
-    final LogManager logManager = BasicLogManager.create(logOptions);
     cpaConfig.enableLogging(logManager);
 
     // create everything
@@ -127,7 +121,7 @@ public class CPAMain {
       if (options.doPCC) {
         proofGenerator = new ProofGenerator(cpaConfig, logManager, shutdownNotifier);
       }
-      reportGenerator = new ReportGenerator(cpaConfig, logManager, logOptions.getOutputFile());
+      reportGenerator = new ReportGenerator(cpaConfig, logManager);
     } catch (InvalidConfigurationException e) {
       logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
       System.exit(ERROR_EXIT_CODE);
@@ -187,7 +181,7 @@ public class CPAMain {
         description="When checking for memory safety properties, "
             + "use this configuration file instead of the current one.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
-    private @Nullable Path memsafetyConfig = null;
+    private Path memsafetyConfig = null;
 
     @Option(secure=true, name="overflow.check",
         description="Whether to check for the overflow property "
@@ -198,25 +192,7 @@ public class CPAMain {
         description="When checking for the overflow property, "
             + "use this configuration file instead of the current one.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
-    private @Nullable Path overflowConfig = null;
-
-    @Option(secure=true, name="termination.check",
-        description="Whether to check for the termination property "
-            + "(this can be specified by passing an appropriate .prp file to the -spec parameter).")
-    private boolean checkTermination = false;
-
-    @Option(secure=true, name="termination.config",
-        description="When checking for the termination property, "
-            + "use this configuration file instead of the current one.")
-    @FileOption(Type.OPTIONAL_INPUT_FILE)
-    private @Nullable Path terminationConfig = null;
-
-    @Option(
-      secure = true,
-      name = CmdLineArguments.PRINT_USED_OPTIONS_OPTION,
-      description = "all used options are printed"
-    )
-    private boolean printUsedOptions = false;
+    private Path overflowConfig = null;
   }
 
   @Options
@@ -224,7 +200,7 @@ public class CPAMain {
     @Option(secure=true, name="analysis.programNames",
         //required=true, NOT required because we want to give a nicer user message ourselves
         description="A String, denoting the programs to be analyzed")
-    private @Nullable String programs;
+    private String programs;
 
     @Option(secure=true, name="configuration.dumpFile",
         description="Dump the complete configuration to a file.")
@@ -250,8 +226,7 @@ public class CPAMain {
       LogManager logManager) {
     if (options.configurationOutputFile != null) {
       try {
-        MoreFiles.writeFile(
-            options.configurationOutputFile, Charset.defaultCharset(), config.asPropertiesString());
+        Files.writeFile(options.configurationOutputFile, config.asPropertiesString());
       } catch (IOException e) {
         logManager.logUserException(Level.WARNING, e, "Could not dump configuration to file");
       }
@@ -322,25 +297,6 @@ public class CPAMain {
                             .clearOption("rootDirectory")
                             .build();
     }
-    if (options.checkTermination) {
-      if (options.terminationConfig == null) {
-        throw new InvalidConfigurationException(
-            "Verifying termination is not supported if option termination.config is not specified.");
-      }
-      config = Configuration.builder()
-                            .loadFromFile(options.terminationConfig)
-                            .setOptions(cmdLineOptions)
-                            .clearOption("termination.check")
-                            .clearOption("termination.config")
-                            .clearOption("output.disable")
-                            .clearOption("output.path")
-                            .clearOption("rootDirectory")
-                            .build();
-    }
-
-    if (options.printUsedOptions) {
-      config.dumpUsedOptionsTo(System.out);
-    }
 
     return Pair.of(config, outputDirectory);
   }
@@ -385,8 +341,8 @@ public class CPAMain {
 
     if (options.exportStatistics && options.exportStatisticsFile != null) {
       try {
-        MoreFiles.createParentDirs(options.exportStatisticsFile);
-        file = closer.register(Files.newOutputStream(options.exportStatisticsFile));
+        Files.createParentDirs(options.exportStatisticsFile);
+        file = closer.register(options.exportStatisticsFile.asByteSink().openStream());
       } catch (IOException e) {
         logManager.logUserException(Level.WARNING, e, "Could not write statistics to file");
       }
@@ -427,28 +383,18 @@ public class CPAMain {
 
       if (generated) {
         try {
-          Path pathToReportGenerator = getPathToReportGenerator();
-          if (pathToReportGenerator != null) {
-            stream.println("Run " + pathToReportGenerator + " to show graphical report.");
-          }
+          // TODO: relativize scriptsDir after AppEngine code is deleted
+          Path scriptsDir =
+              Paths.get(CPAMain.class.getProtectionDomain().getCodeSource().getLocation().toURI())
+                  .getParent()
+                  .resolve("scripts");
+          stream.println(
+              "Run " + scriptsDir.resolve("report-generator.py") + " to show graphical report.");
         } catch (SecurityException | URISyntaxException e) {
           logManager.logUserException(WARNING, e, "Could not find script for generating report.");
         }
       }
     }
-  }
-
-  private static @Nullable Path getPathToReportGenerator() throws URISyntaxException {
-    Path curDir = Paths.get("").toAbsolutePath();
-    Path codeDir =
-        Paths.get(CPAMain.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-
-    Path reportGenerator =
-        curDir.relativize(codeDir.resolveSibling("scripts").resolve("report-generator.py"));
-    if (Files.isExecutable(reportGenerator)) {
-      return reportGenerator;
-    }
-    return null;
   }
 
   @SuppressFBWarnings(value="DM_DEFAULT_ENCODING",

@@ -23,12 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.apron;
 
-import com.google.common.math.DoubleMath;
+import java.io.IOException;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
-import org.sosy_lab.cpachecker.util.ApronManager;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -39,15 +46,7 @@ import org.sosy_lab.solver.api.BitvectorFormulaManager;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 
-import java.io.IOException;
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.logging.Level;
+import com.google.common.math.DoubleMath;
 
 import apron.Abstract0;
 import apron.Dimchange;

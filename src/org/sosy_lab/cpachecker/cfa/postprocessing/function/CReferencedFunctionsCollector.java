@@ -81,6 +81,10 @@ class CReferencedFunctionsCollector {
     case BlankEdge:
       //nothing to do
       break;
+    case CallToReturnEdge:
+      //nothing to do
+      assert false;
+      break;
     case DeclarationEdge:
       CDeclaration declaration = ((CDeclarationEdge)edge).getDeclaration();
       if (declaration instanceof CVariableDeclaration) {
@@ -101,8 +105,9 @@ class CReferencedFunctionsCollector {
       statementEdge.getStatement().accept(collector);
       break;
 
-    default:
-      throw new AssertionError();
+      default:
+        assert false; // TODO should this be an assertionError directly?
+        break;
     }
   }
 

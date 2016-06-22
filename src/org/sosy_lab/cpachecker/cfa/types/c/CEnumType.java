@@ -118,7 +118,7 @@ public final class CEnumType implements CComplexType {
     lASTString.append(name);
 
     lASTString.append(" {\n  ");
-    Joiner.on(",\n  ").appendTo(lASTString, transform(enumerators, CEnumerator::toASTString));
+    Joiner.on(",\n  ").appendTo(lASTString, transform(enumerators, CEnumerator.TO_AST_STRING));
     lASTString.append("\n} ");
     lASTString.append(pDeclarator);
 

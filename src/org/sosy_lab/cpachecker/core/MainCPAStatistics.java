@@ -40,13 +40,15 @@ import com.google.common.collect.Multimaps;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Ordering;
 
-import org.sosy_lab.common.Concurrency;
+import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
@@ -62,6 +64,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.coverage.CoverageReport;
 import org.sosy_lab.cpachecker.util.resources.MemoryStatistics;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
@@ -70,9 +73,6 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
@@ -80,7 +80,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
-import javax.annotation.Nullable;
 import javax.management.JMException;
 
 @Options
@@ -110,7 +109,7 @@ class MainCPAStatistics implements Statistics {
   private final Configuration config;
   private final LogManager logger;
   private final Collection<Statistics> subStats;
-  private final @Nullable MemoryStatistics memStats;
+  private final MemoryStatistics memStats;
   private final CoverageReport coverageReport;
   private Thread memStatsThread;
 
@@ -123,8 +122,8 @@ class MainCPAStatistics implements Statistics {
   private long programCpuTime;
   private long analysisCpuTime = 0;
 
-  private @Nullable Statistics cfaCreatorStatistics;
-  private @Nullable CFA cfa;
+  private Statistics cfaCreatorStatistics;
+  private CFA cfa;
 
   public MainCPAStatistics(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
@@ -136,8 +135,7 @@ class MainCPAStatistics implements Statistics {
 
     if (monitorMemoryUsage) {
       memStats = new MemoryStatistics(pLogger);
-      memStatsThread =
-          Concurrency.newDaemonThread("CPAchecker memory statistics collector", memStats);
+      memStatsThread = Threads.newThread(memStats, "CPAchecker memory statistics collector", true);
       memStatsThread.start();
     } else {
       memStats = null;
@@ -287,7 +285,7 @@ class MainCPAStatistics implements Statistics {
     assert reached != null : "ReachedSet may be null only if analysis not yet started";
 
     if (exportReachedSet && pOutputFile != null) {
-      try (Writer w = MoreFiles.openOutputFile(pOutputFile, Charset.defaultCharset())) {
+      try (Writer w = Files.openOutputFile(pOutputFile)) {
 
         if (writeDotFormat) {
 
@@ -415,7 +413,7 @@ class MainCPAStatistics implements Statistics {
       out.println("    Avg states per location:     " + reachedSize / locs);
       out.println("    Max states per location:     " + mostFrequentLocationCount + " (at node " + mostFrequentLocation + ")");
 
-      Set<String> functions = from(locations).transform(CFANode::getFunctionName).toSet();
+      Set<String> functions = from(locations).transform(CFAUtils.GET_FUNCTION).toSet();
       out.println("  Number of reached functions:   " + functions.size() + " (" + StatisticsUtils.toPercent(functions.size(), cfa.getNumberOfFunctions()) + ")");
     }
 

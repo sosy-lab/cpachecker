@@ -81,7 +81,7 @@ public class BAMCEXSubgraphComputer {
    * @throws MissingBlockException for re-computing some blocks
    */
   BackwardARGState computeCounterexampleSubgraph(final ARGState target, final ARGReachedSet pMainReachedSet)
-      throws MissingBlockException, InterruptedException {
+      throws MissingBlockException {
     assert pMainReachedSet.asReachedSet().contains(target);
     BackwardARGState root = computeCounterexampleSubgraph(pMainReachedSet, Collections.singleton(new BackwardARGState(target)));
     assert pMainReachedSet.asReachedSet().getFirstState() == root.getARGState();
@@ -92,7 +92,7 @@ public class BAMCEXSubgraphComputer {
    * backwards from target (wrapped by newTreeTarget) towards the root of the reached set. */
   private BackwardARGState computeCounterexampleSubgraph(
       final ARGReachedSet reachedSet, final Collection<BackwardARGState> newTreeTargets)
-      throws MissingBlockException, InterruptedException {
+          throws MissingBlockException {
 
     // start by creating ARGElements for each node needed in the tree
     final Map<ARGState, BackwardARGState> finishedStates = new HashMap<>();
@@ -179,8 +179,7 @@ public class BAMCEXSubgraphComputer {
    */
   private void computeCounterexampleSubgraphForBlock(
           final BackwardARGState newExpandedRoot,
-          final Set<BackwardARGState> newExpandedTargets)
-      throws MissingBlockException, InterruptedException {
+          final Set<BackwardARGState> newExpandedTargets) throws MissingBlockException {
 
     ARGState expandedRoot = (ARGState) newExpandedRoot.getWrappedState();
     final ReachedSet reachedSet = data.initialStateToReachedSet.get(expandedRoot);

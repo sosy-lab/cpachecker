@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.expressions;
 
-import com.google.common.base.Preconditions;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -40,9 +43,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import com.google.common.base.Preconditions;
 
 public class ToFormulaVisitor
     extends CachingVisitor<AExpression, BooleanFormula, ToFormulaException> {
@@ -94,13 +95,15 @@ public class ToFormulaVisitor
     } else {
       throw new AssertionError("Unsupported expression type.");
     }
-    PathFormula clearContext =
-        context == null
-            ? pathFormulaManager.makeEmptyPathFormula()
-            : pathFormulaManager.makeEmptyPathFormula(context);
     PathFormula invariantPathFormula;
     try {
-      invariantPathFormula = pathFormulaManager.makeAnd(clearContext, edge);
+      if (context == null) {
+        invariantPathFormula =
+            pathFormulaManager.makeFormulaForPath(Collections.<CFAEdge>singletonList(edge));
+      } else {
+        PathFormula clearContext = pathFormulaManager.makeEmptyPathFormula(context);
+        invariantPathFormula = pathFormulaManager.makeAnd(clearContext, edge);
+      }
     } catch (CPATransferException e) {
       throw new ToFormulaException(e);
     } catch (InterruptedException e) {

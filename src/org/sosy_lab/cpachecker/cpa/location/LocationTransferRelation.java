@@ -32,8 +32,10 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateFactory;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 
 public class LocationTransferRelation implements TransferRelation {
 
@@ -47,10 +49,12 @@ public class LocationTransferRelation implements TransferRelation {
   public Collection<LocationState> getAbstractSuccessorsForEdge(
       AbstractState element, Precision prec, CFAEdge cfaEdge) {
 
-    CFANode node = ((LocationState) element).getLocationNode();
+    LocationState inputElement = (LocationState) element;
+    CFANode node = inputElement.getLocationNode();
 
     if (CFAUtils.allLeavingEdges(node).contains(cfaEdge)) {
       return Collections.singleton(factory.getState(cfaEdge.getSuccessor()));
+
     }
 
     return Collections.emptySet();
@@ -60,7 +64,20 @@ public class LocationTransferRelation implements TransferRelation {
   public Collection<LocationState> getAbstractSuccessors(AbstractState element,
       Precision prec) throws CPATransferException {
 
-    CFANode node = ((LocationState) element).getLocationNode();
-    return CFAUtils.successorsOf(node).transform(n -> factory.getState(n)).toList();
+    CFANode node = ((LocationState)element).getLocationNode();
+
+    List<LocationState> allSuccessors = new ArrayList<>(node.getNumLeavingEdges());
+
+    for (CFANode successor : CFAUtils.successorsOf(node)) {
+      allSuccessors.add(factory.getState(successor));
+    }
+
+    return allSuccessors;
+  }
+
+  @Override
+  public Collection<? extends AbstractState> strengthen(AbstractState element,
+      List<AbstractState> otherElements, CFAEdge cfaEdge, Precision precision) {
+    return null;
   }
 }

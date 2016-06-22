@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 import com.google.common.base.Joiner;
-import java.util.Optional;
+import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 
 /**
@@ -123,7 +123,7 @@ class Scope {
   }
 
   private void enterProgramScope() {
-    varsStack.addLast(new HashMap<>());
+    varsStack.addLast(new HashMap<String, JSimpleDeclaration>());
     varsList.addLast(varsStack.getLast());
   }
 
@@ -155,7 +155,7 @@ class Scope {
    */
   public void enterMethod(JMethodDeclaration methodDef) {
     currentMethodName = methodDef.getOrigName();
-    returnVariable = Optional.ofNullable(createFunctionReturnVariable(methodDef));
+    returnVariable = Optional.fromNullable(createFunctionReturnVariable(methodDef));
 
     enterBlock();
   }
@@ -247,7 +247,7 @@ class Scope {
    * enters a Block while traversing the JDT AST.
    */
   public void enterBlock() {
-    varsStack.addLast(new HashMap<>());
+    varsStack.addLast(new HashMap<String, JSimpleDeclaration>());
     varsList.addLast(varsStack.getLast());
   }
 

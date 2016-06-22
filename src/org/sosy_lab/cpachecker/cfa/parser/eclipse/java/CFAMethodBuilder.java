@@ -1616,7 +1616,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
         || innerStatementTyp == ASTNode.DO_STATEMENT;
 
     if (innerStatementIsLoop) {
-      registeredContinues.put(labelName, new LinkedList<>());
+      registeredContinues.put(labelName, new LinkedList<Pair<CFANode, ContinueStatement>>());
     }
 
     //  Skip to Body

@@ -42,7 +42,7 @@ public class ARGReducer implements Reducer {
   @Override
   public AbstractState getVariableReducedState(
       AbstractState pExpandedState, Block pContext,
-      CFANode pLocation) throws InterruptedException {
+      CFANode pLocation) {
 
     return new ARGState(wrappedReducer.getVariableReducedState(((ARGState) pExpandedState).getWrappedState(), pContext,
         pLocation), null);
@@ -51,7 +51,7 @@ public class ARGReducer implements Reducer {
   @Override
   public AbstractState getVariableExpandedState(
       AbstractState pRootState, Block pReducedContext,
-      AbstractState pReducedState) throws InterruptedException {
+      AbstractState pReducedState) {
 
     return new ARGState(wrappedReducer.getVariableExpandedState(((ARGState) pRootState).getWrappedState(),
         pReducedContext, ((ARGState) pReducedState).getWrappedState()), null);
@@ -88,7 +88,7 @@ public class ARGReducer implements Reducer {
 
   @Override
   public AbstractState getVariableExpandedStateForProofChecking(AbstractState pRootState, Block pReducedContext,
-      AbstractState pReducedState) throws InterruptedException {
+      AbstractState pReducedState) {
     return new ARGState(wrappedReducer.getVariableExpandedStateForProofChecking(
         ((ARGState) pRootState).getWrappedState(), pReducedContext, ((ARGState) pReducedState).getWrappedState()), null);
   }

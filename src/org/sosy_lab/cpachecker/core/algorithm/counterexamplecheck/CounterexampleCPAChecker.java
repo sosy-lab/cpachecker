@@ -27,7 +27,6 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.ShutdownManager;
@@ -38,17 +37,18 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
-import org.sosy_lab.common.io.MoreFiles.DeleteOnCloseFile;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Files.DeleteOnCloseFile;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
-import org.sosy_lab.cpachecker.core.Specification;
+import org.sosy_lab.cpachecker.core.CoreComponentsFactory.SpecAutomatonCompositionType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -59,11 +59,7 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
 import java.util.Set;
-
-import javax.annotation.Nullable;
 
 @Options(prefix="counterexample.checker")
 public class CounterexampleCPAChecker implements CounterexampleChecker {
@@ -86,16 +82,12 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       description = "File name where to put the path specification that is generated "
       + "as input for the counterexample check. A temporary file is used if this is unspecified.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private @Nullable Path specFile;
+  private Path specFile;
 
-  @Option(
-    secure = true,
-    name = "config",
-    required = true,
-    description = "configuration file for counterexample checks with CPAchecker"
-  )
+  @Option(secure=true, name="config",
+      description="configuration file for counterexample checks with CPAchecker")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-  private @Nullable Path configFile;
+  private Path configFile = Paths.get("config/valueAnalysis-no-cbmc.properties");
 
   public CounterexampleCPAChecker(Configuration config, LogManager logger,
       ShutdownNotifier pShutdownNotifier, CFA pCfa, String pFilename) throws InvalidConfigurationException {
@@ -118,8 +110,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       }
 
       // This temp file will be automatically deleted when the try block terminates.
-      try (DeleteOnCloseFile automatonFile =
-          MoreFiles.createTempFile("counterexample-automaton", ".txt")) {
+      try (DeleteOnCloseFile automatonFile = Files.createTempFile("counterexample-automaton", ".txt")) {
 
         return checkCounterexample(pRootState, pErrorState, pErrorPathStates,
             automatonFile.toPath());
@@ -133,36 +124,39 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
   private boolean checkCounterexample(ARGState pRootState, ARGState pErrorState, Set<ARGState> pErrorPathStates,
       Path automatonFile) throws IOException, CPAException, InterruptedException {
 
-    try (Writer w = MoreFiles.openOutputFile(automatonFile, Charset.defaultCharset())) {
+    try (Writer w = Files.openOutputFile(automatonFile)) {
       ARGUtils.producePathAutomaton(
           w,
           pRootState,
           pErrorPathStates,
           "CounterexampleToCheck",
-          pErrorState.getCounterexampleInformation().orElse(null));
+          pErrorState.getCounterexampleInformation().orNull());
     }
 
     CFANode entryNode = extractLocation(pRootState);
     LogManager lLogger = logger.withComponentName("CounterexampleCheck");
 
     try {
-      ConfigurationBuilder lConfigBuilder = Configuration.builder().loadFromFile(configFile);
+      ConfigurationBuilder lConfigBuilder = Configuration.builder()
+              .loadFromFile(configFile)
+              .setOption("specification", automatonFile.toAbsolutePath().toString());
 
       for (String option : OVERWRITE_OPTIONS) {
-        lConfigBuilder.copyOptionFromIfPresent(config, option);
+        if (config.hasProperty(option)) {
+          lConfigBuilder.copyOptionFrom(config, option);
+        } else {
+          lConfigBuilder.clearOption(option);
+        }
       }
 
       Configuration lConfig = lConfigBuilder.build();
       ShutdownManager lShutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
       ResourceLimitChecker.fromConfiguration(lConfig, lLogger, lShutdownManager).start();
 
-      Specification lSpecification =
-          Specification.fromFiles(ImmutableList.of(automatonFile), cfa, lConfig, lLogger);
       CoreComponentsFactory factory =
-          new CoreComponentsFactory(
-              lConfig, lLogger, lShutdownManager.getNotifier(), new AggregatedReachedSets());
-      ConfigurableProgramAnalysis lCpas = factory.createCPA(cfa, lSpecification);
-      Algorithm lAlgorithm = factory.createAlgorithm(lCpas, filename, cfa, lSpecification);
+          new CoreComponentsFactory(lConfig, lLogger, lShutdownManager.getNotifier());
+      ConfigurableProgramAnalysis lCpas = factory.createCPA(cfa, SpecAutomatonCompositionType.TARGET_SPEC);
+      Algorithm lAlgorithm = factory.createAlgorithm(lCpas, filename, cfa);
       ReachedSet lReached = factory.createReachedSet();
       lReached.add(
           lCpas.getInitialState(entryNode, StateSpacePartition.getDefaultPartition()),

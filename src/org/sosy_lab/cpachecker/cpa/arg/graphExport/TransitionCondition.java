@@ -23,12 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg.graphExport;
 
+import com.google.common.collect.MapDifference.ValueDifference;
+import com.google.common.collect.Maps;
+import com.google.common.collect.SortedMapDifference;
+
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 
-import java.util.Iterator;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 
@@ -111,23 +113,17 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
     if (this == pO) {
       return 0;
     }
-    Iterator<Map.Entry<KeyDef, String>> entryIterator = keyValues.entrySet().iterator();
-    Iterator<Map.Entry<KeyDef, String>> otherEntryIterator = pO.keyValues.entrySet().iterator();
-    while (entryIterator.hasNext() && otherEntryIterator.hasNext()) {
-      Map.Entry<KeyDef, String> entry = entryIterator.next();
-      Map.Entry<KeyDef, String> otherEntry = otherEntryIterator.next();
-      int compKey = entry.getKey().compareTo(otherEntry.getKey());
-      if (compKey != 0) {
-        return compKey;
-      }
-      int compVal = entry.getValue().compareTo(otherEntry.getValue());
-      if (compVal != 0) {
-        return compVal;
-      }
+    SortedMapDifference<KeyDef, String> differences = Maps.difference(keyValues, pO.keyValues);
+    if (differences.areEqual()) {
+      return 0;
     }
-    if (!entryIterator.hasNext()) {
+    if (differences.entriesOnlyOnLeft().isEmpty()) {
       return -1;
+    } else if (differences.entriesOnlyOnRight().isEmpty()) {
+      return 1;
     }
-    return 1;
+    ValueDifference<String> difference =
+        differences.entriesDiffering().values().iterator().next();
+    return difference.leftValue().compareTo(difference.rightValue());
   }
 }

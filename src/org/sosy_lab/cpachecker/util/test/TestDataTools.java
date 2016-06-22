@@ -25,9 +25,14 @@ package org.sosy_lab.cpachecker.util.test;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
+import java.io.IOException;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Nullable;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -35,7 +40,7 @@ import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -69,14 +74,9 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
-import java.io.IOException;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
 public class TestDataTools {
 
@@ -211,7 +211,7 @@ public class TestDataTools {
       ParserException, InterruptedException {
 
     CFACreator creator =
-        new CFACreator(config, LogManager.createTestLogManager(), ShutdownNotifier.createDummy());
+        new CFACreator(config, TestLogManager.getInstance(), ShutdownNotifier.createDummy());
 
     return creator.parseFileAndCreateCFA(cProgram);
   }
@@ -289,8 +289,7 @@ public class TestDataTools {
    * Convert a given string to a {@link CFA},
    * assuming it is a body of a single function.
    */
-  public static CFA toCFA(CFACreator creator, String... parts)
-      throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
+  public static CFA toCFA(CFACreator creator, String ... parts) throws Exception {
     return creator.parseFileAndCreateCFA(getProgram(parts));
   }
 

@@ -29,6 +29,9 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
 
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+import com.google.common.base.Predicate;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.UniqueIdGenerator;
@@ -37,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithDummyLocation;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -49,7 +51,6 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
@@ -166,20 +167,6 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
             && currentLoc.getEnteringSummaryEdge().getSuccessor().equals(childLoc)) { // Backwards
           return currentLoc.getEnteringSummaryEdge();
 
-        }
-      }
-    }
-
-    // check for dummy location
-    AbstractStateWithDummyLocation stateWithDummyLocation =
-        AbstractStates.extractStateByType(pChild, AbstractStateWithDummyLocation.class);
-    if (stateWithDummyLocation != null && stateWithDummyLocation.isDummyLocation()) {
-
-      for (CFAEdge enteringEdge : stateWithDummyLocation.getEnteringEdges()) {
-        for (CFANode currentLocation : currentLocs) {
-          if (enteringEdge.getPredecessor().equals(currentLocation)) {
-            return enteringEdge;
-          }
         }
       }
     }
@@ -342,7 +329,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
    */
   public Optional<CounterexampleInfo> getCounterexampleInformation() {
     checkState(isTarget());
-    return Optional.ofNullable(counterexample);
+    return Optional.fromNullable(counterexample);
   }
 
   // small and less important stuff
@@ -433,8 +420,23 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
   }
 
   private Iterable<Integer> stateIdsOf(Iterable<ARGState> elements) {
-    return from(elements).transform(ARGState::getStateId);
+    return from(elements).transform(TO_STATE_ID);
   }
+
+  private static final Function<ARGState, Integer> TO_STATE_ID = new Function<ARGState, Integer>() {
+    @Override
+    public Integer apply(ARGState pInput) {
+      return pInput.stateId;
+    }
+  };
+
+  public static final Predicate<ARGState> IS_COVERED =
+      new Predicate<ARGState>() {
+        @Override
+        public boolean apply(ARGState pInput) {
+          return pInput.isCovered();
+        }
+      };
 
   // removal from ARG
 

@@ -268,7 +268,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
                                     CFAEdge pCfaEdge, Precision pPrecision)
                                     throws CPATransferException {
     if (! (pElement instanceof AutomatonUnknownState)) {
-      return Collections.singleton(pElement);
+      return null;
     } else {
       totalStrengthenTime.start();
       AutomatonUnknownState lUnknownState = (AutomatonUnknownState)pElement;
@@ -285,7 +285,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
         Collection<List<AbstractState>> newCombinations = new HashSet<>();
         for (List<AbstractState> otherStates : strengtheningCombinations) {
           Collection<List<AbstractState>> newPartialCombinations = new ArrayList<>();
-          newPartialCombinations.add(new ArrayList<>());
+          newPartialCombinations.add(new ArrayList<AbstractState>());
           for (AbstractState otherState : otherStates) {
             AbstractState toAdd = otherState;
             if (otherState instanceof AutomatonUnknownState) {

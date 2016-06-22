@@ -34,7 +34,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
@@ -51,7 +51,7 @@ import org.sosy_lab.cpachecker.util.refinement.InterpolantManager;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import java.util.Optional;
+import com.google.common.base.Optional;
 
 /**
  * Edge interpolator for
@@ -200,7 +200,7 @@ public class ElementTestingSymbolicEdgeInterpolator
     IdentifierAssignment definiteAssignments = pState.getConstraintsState().getDefiniteAssignment();
 
     return new ForgettingCompositeState(pState.getValueState(),
-                                 new ConstraintsState(new HashSet<>(), definiteAssignments));
+                                 new ConstraintsState(new HashSet<Constraint>(), definiteAssignments));
   }
 
   private ForgettingCompositeState reduceConstraintsToNecessaryState(

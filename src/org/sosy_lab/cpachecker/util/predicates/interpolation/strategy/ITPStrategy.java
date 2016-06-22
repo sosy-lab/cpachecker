@@ -103,8 +103,8 @@ public abstract class ITPStrategy<T> {
       final List<BooleanFormula> interpolants)
       throws InterruptedException, SolverException {
 
-    final List<BooleanFormula> formulas =
-        Lists.transform(formulasWithStatesAndGroupdIds, Triple::getFirst);
+    final List<BooleanFormula> formulas = Lists.transform(formulasWithStatesAndGroupdIds,
+        Triple.<BooleanFormula> getProjectionToFirst());
 
     final int n = interpolants.size();
     assert n == (formulas.size() - 1);
@@ -177,15 +177,15 @@ public abstract class ITPStrategy<T> {
   }
 
   protected static <T1, T2> List<T1> projectToFirst(final List<Pair<T1, T2>> l) {
-    return Lists.transform(l, Pair::getFirst);
+    return Lists.transform(l, Pair.<T1> getProjectionToFirst());
   }
 
   protected static <T1, T2, T3> List<T3> projectToThird(final List<Triple<T1, T2, T3>> l) {
-    return Lists.transform(l, Triple::getThird);
+    return Lists.transform(l, Triple.<T3> getProjectionToThird());
   }
 
   protected static <T, S> List<S> projectToSecond(final List<Pair<T, S>> l) {
-    return Lists.transform(l, Pair::getSecond);
+    return Lists.transform(l, Pair.<S> getProjectionToSecond());
   }
 
   /**

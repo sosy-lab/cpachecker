@@ -23,23 +23,22 @@
  */
 package org.sosy_lab.cpachecker.util.coverage;
 
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.util.Map;
+import java.util.logging.Level;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.coverage.FileCoverageInformation.FunctionInfo;
-
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Map;
-import java.util.logging.Level;
 
 /**
  * Generate coverage information in Gcov format
@@ -83,7 +82,7 @@ class CoverageReportGcov implements CoverageWriter {
       return;
     }
 
-    try (Writer w = MoreFiles.openOutputFile(outputCoverageFile, Charset.defaultCharset())) {
+    try (Writer w = Files.openOutputFile(outputCoverageFile)) {
 
       for (Map.Entry<String, FileCoverageInformation> entry : pCoverage.entrySet()) {
         String sourcefile = entry.getKey();
@@ -91,7 +90,7 @@ class CoverageReportGcov implements CoverageWriter {
 
         //Convert ./test.c -> /full/path/test.c
         w.append(TEXTNAME + "\n");
-        w.append(SOURCEFILE + Paths.get(sourcefile).toAbsolutePath() + "\n");
+        w.append(SOURCEFILE + Paths.get(sourcefile).getAbsolutePath() + "\n");
 
         for (FunctionInfo info : fileInfos.allFunctions) {
           w.append(FUNCTION + info.firstLine + "," + info.name + "\n");

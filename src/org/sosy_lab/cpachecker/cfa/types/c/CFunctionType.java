@@ -93,7 +93,13 @@ public class CFunctionType extends AFunctionType implements CType {
 
   @Override
   public String toASTString(final String pDeclarator) {
-    return toASTString(pDeclarator, pInput -> pInput.toASTString(""));
+    return toASTString(pDeclarator,
+                       new Function<CType, String>() {
+                         @Override
+                         public String apply(final CType pInput) {
+                           return pInput.toASTString("");
+                         }
+                        });
   }
 
   public String toASTString(final String pDeclarator, final Function<? super CType, String> pTypeToString) {

@@ -24,11 +24,18 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.implicitCastToPointer;
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.isSimpleType;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.*;
 
-import com.google.common.base.Preconditions;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -42,29 +49,21 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import com.google.common.base.Preconditions;
 
 
 class AssignmentHandler {
@@ -99,18 +98,6 @@ class AssignmentHandler {
     errorConditions = pErrorConditions;
   }
 
-  /**
-   * Creates a formula to handle assignments.
-   *
-   * @param lhs The left hand side of an assignment.
-   * @param lhsForChecking The left hand side of an assignment to check.
-   * @param rhs Either {@code null} or the right hand side of the assignment.
-   * @param batchMode A flag indicating batch mode.
-   * @param destroyedTypes Either {@code null} or a set of destroyed types.
-   * @return A formula for the assignment.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
-   * @throws InterruptedException If the execution was interrupted.
-   */
   BooleanFormula handleAssignment(final CLeftHandSide lhs,
                                   final CLeftHandSide lhsForChecking,
                                   final @Nullable CRightHandSide rhs,
@@ -178,18 +165,9 @@ class AssignmentHandler {
     return result;
   }
 
-  /**
-   * Handles initialization assignments.
-   *
-   * @param variable The left hand side of the variable.
-   * @param assignments A list of assignment statements.
-   * @return A boolean formula for the assignment.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
-   * @throws InterruptedException It the execution was interrupted.
-   */
-  BooleanFormula handleInitializationAssignments(
-      final CLeftHandSide variable, final List<CExpressionAssignmentStatement> assignments)
-      throws UnrecognizedCCodeException, InterruptedException {
+  public BooleanFormula handleInitializationAssignments(final CLeftHandSide variable,
+                                                        final List<CExpressionAssignmentStatement> assignments)
+                                                            throws UnrecognizedCCodeException, InterruptedException {
     CExpressionVisitorWithPointerAliasing lhsVisitor = new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints, errorConditions, pts);
     final Location lhsLocation = variable.accept(lhsVisitor).asLocation();
     final Set<CType> updatedTypes = new HashSet<>();
@@ -210,19 +188,6 @@ class AssignmentHandler {
     return result;
   }
 
-  /**
-   * Creates a formula for an assignment.
-   *
-   * @param lvalueType The type of the lvalue.
-   * @param rvalueType The type of the rvalue.
-   * @param lvalue The location of the lvalue.
-   * @param rvalue The rvalue expression.
-   * @param useOldSSAIndices A flag indicating if we should use the old SSA indices or not.
-   * @param updatedTypes Either {@code null} or a set of updated types.
-   * @return A formula for the assignment.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
-   * @throws InterruptedException If the execution was interrupted.
-   */
   BooleanFormula makeAssignment(@Nonnull CType lvalueType,
                                 final @Nonnull CType rvalueType,
                                 final @Nonnull Location lvalue,
@@ -290,19 +255,6 @@ class AssignmentHandler {
     updateSSA(updatedTypes, ssa);
   }
 
-  /**
-   * Creates a formula for a destructive assignment.
-   *
-   * @param lvalueType The type of the lvalue.
-   * @param rvalueType The type of the rvalue.
-   * @param lvalue The location of the lvalue.
-   * @param rvalue The rvalue expression.
-   * @param useOldSSAIndices A flag indicating if we should use the old SSA indices or not.
-   * @param updatedTypes Either {@code null} or a set of updated types.
-   * @param updatedVariables Either {@code null} or a set of updated variables.
-   * @return A formula for the assignment.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
-   */
   private BooleanFormula makeDestructiveAssignment(@Nonnull CType lvalueType,
                                                    @Nonnull CType rvalueType,
                                                    final @Nonnull  Location lvalue,
@@ -427,19 +379,6 @@ class AssignmentHandler {
     }
   }
 
-  /**
-   * Creates a formula for a simple destructive assignment.
-   *
-   * @param lvalueType The type of the lvalue.
-   * @param rvalueType The type of the rvalue.
-   * @param lvalue The location of the lvalue.
-   * @param rvalue The rvalue expression.
-   * @param useOldSSAIndices A flag indicating if we should use the old SSA indices or not.
-   * @param updatedTypes Either {@code null} or a set of updated types.
-   * @param updatedVariables Either {@code null} or a set of updated variables.
-   * @return A formula for the assignment.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
-   */
   private BooleanFormula makeSimpleDestructiveAssignment(@Nonnull CType lvalueType,
                                                          @Nonnull CType rvalueType,
                                                          final @Nonnull Location lvalue,
@@ -450,8 +389,7 @@ class AssignmentHandler {
   throws UnrecognizedCCodeException {
     lvalueType = CTypeUtils.simplifyType(lvalueType);
     rvalueType = CTypeUtils.simplifyType(rvalueType);
-    // Arrays and functions are implicitly converted to pointers
-    rvalueType = implicitCastToPointer(rvalueType);
+    rvalueType = implicitCastToPointer(rvalueType); // Arrays and functions are implicitly converted to pointers
 
     Preconditions.checkArgument(isSimpleType(lvalueType),
                                 "To assign to/from arrays/structures/unions use makeDestructiveAssignment");
@@ -664,12 +602,6 @@ class AssignmentHandler {
     }
   }
 
-  /**
-   * Updates the SSA map.
-   *
-   * @param types A set of types that should be added to the SSA map.
-   * @param ssa The current SSA map.
-   */
   private void updateSSA(final @Nonnull Set<CType> types, final SSAMapBuilder ssa) {
     for (final CType type : types) {
       final String ufName = CToFormulaConverterWithPointerAliasing.getUFName(type);
@@ -677,14 +609,6 @@ class AssignmentHandler {
     }
   }
 
-  /**
-   * Shifts the array's lvalue.
-   *
-   * @param lvalue The lvalue location.
-   * @param offset The offset of the shift.
-   * @param lvalueElementType The type of the lvalue element.
-   * @return A tuple of location and type after the shift.
-   */
   private Pair<AliasedLocation, CType> shiftArrayLvalue(final AliasedLocation lvalue,
                                                         final int offset,
                                                         final CType lvalueElementType) {
@@ -693,15 +617,6 @@ class AssignmentHandler {
     return Pair.of(newLvalue, lvalueElementType);
   }
 
-  /**
-   * Shifts the array's rvalue.
-   *
-   * @param rvalue The rvalue expression.
-   * @param rvalueType The type of the rvalue.
-   * @param offset The offset of the shift.
-   * @param lvalueElementType The type of the lvalue element.
-   * @return A tuple of expression and type after the shift.
-   */
   private Pair<? extends Expression, CType> shiftArrayRvalue(final Expression rvalue,
                                                              final CType rvalueType,
                                                              final int offset,
@@ -730,15 +645,6 @@ class AssignmentHandler {
     }
   }
 
-  /**
-   * Shifts the composite lvalue.
-   *
-   * @param lvalue The lvalue location.
-   * @param offset The offset of the shift.
-   * @param memberName The name of the member.
-   * @param memberType The type of the member.
-   * @return A tuple of location and type after the shift.
-   */
   private Pair<? extends Location, CType> shiftCompositeLvalue(final Location lvalue,
                                                                final int offset,
                                                                final String memberName,
@@ -758,16 +664,6 @@ class AssignmentHandler {
 
   }
 
-  /**
-   * Shifts the composite rvalue.
-   *
-   * @param rvalue The rvalue expression.
-   * @param offset The offset of the shift.
-   * @param memberName The name of the member.
-   * @param rvalueType The type of the rvalue.
-   * @param memberType The type of the member.
-   * @return A tuple of expression and type after the shift.
-   */
   private Pair<? extends Expression, CType> shiftCompositeRvalue(final Expression rvalue,
                                                                  final int offset,
                                                                  final String memberName,

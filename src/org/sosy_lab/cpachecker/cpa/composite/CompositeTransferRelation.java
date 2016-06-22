@@ -62,8 +62,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-@Options(prefix = "cpa.composite")
-final class CompositeTransferRelation implements TransferRelation {
+@Options(prefix="cpa.composite")
+public final class CompositeTransferRelation implements TransferRelation {
 
   @Option(secure=true, description="By enabling this option the CompositeTransferRelation"
       + " will compute abstract successors for as many edges as possible in one call. For"
@@ -78,20 +78,17 @@ final class CompositeTransferRelation implements TransferRelation {
   private final ImmutableList<TransferRelation> transferRelations;
   private final CFA cfa;
   private final int size;
-  private final int assumptionIndex;
-  private final int predicatesIndex;
+  private int assumptionIndex = -1;
+  private int predicatesIndex = -1;
 
-  CompositeTransferRelation(
-      ImmutableList<TransferRelation> pTransferRelations, Configuration pConfig, CFA pCFA)
-      throws InvalidConfigurationException {
+  public CompositeTransferRelation(ImmutableList<TransferRelation> pTransferRelations,
+      Configuration pConfig, CFA pCFA) throws InvalidConfigurationException {
     pConfig.inject(this);
     transferRelations = pTransferRelations;
     cfa = pCFA;
     size = pTransferRelations.size();
 
     // prepare special case handling if both predicates and assumptions are used
-    int predicatesIndex = -1;
-    int assumptionIndex = -1;
     for (int i = 0; i < size; i++) {
       TransferRelation t = pTransferRelations.get(i);
       if (t instanceof PredicateTransferRelation) {
@@ -101,8 +98,6 @@ final class CompositeTransferRelation implements TransferRelation {
         assumptionIndex = i;
       }
     }
-    this.predicatesIndex = predicatesIndex;
-    this.assumptionIndex = assumptionIndex;
   }
 
   @Override
@@ -135,7 +130,7 @@ final class CompositeTransferRelation implements TransferRelation {
     CompositePrecision compositePrecision = (CompositePrecision)precision;
 
     Collection<CompositeState> results = new ArrayList<>(1);
-    getAbstractSuccessorForSimpleEdge(compositeState, compositePrecision, cfaEdge, results);
+    getAbstractSuccessorForEdge(compositeState, compositePrecision, cfaEdge, results);
 
     return results;
   }
@@ -311,13 +306,18 @@ final class CompositeTransferRelation implements TransferRelation {
 
       Collection<? extends AbstractState> lResultsList = lCurrentTransfer.strengthen(lCurrentElement, reachedState, cfaEdge, lCurrentPrecision);
 
-      resultCount *= lResultsList.size();
-      if (resultCount == 0) {
-        // shortcut
-        break;
-      }
+      if (lResultsList == null) {
+        lStrengthenResults.add(Collections.singleton(lCurrentElement));
+      } else {
+        resultCount *= lResultsList.size();
 
-      lStrengthenResults.add(lResultsList);
+        if (resultCount == 0) {
+          // shortcut
+          break;
+        }
+
+        lStrengthenResults.add(lResultsList);
+      }
     }
 
     // special case handling if we have predicate and assumption cpas
@@ -411,9 +411,8 @@ final class CompositeTransferRelation implements TransferRelation {
   public Collection<? extends AbstractState> strengthen(AbstractState element,
       List<AbstractState> otherElements, CFAEdge cfaEdge,
       Precision precision) {
-    // strengthen is only called by the composite CPA on its component CPAs,
-    // at some point we might want to pass this call through to support nested CompositeCPAs
-    return Collections.singletonList(element);
+    // strengthen is only called by the composite CPA on its component CPAs
+    return null;
   }
 
   boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors, List<ConfigurableProgramAnalysis> cpas) throws CPATransferException, InterruptedException {

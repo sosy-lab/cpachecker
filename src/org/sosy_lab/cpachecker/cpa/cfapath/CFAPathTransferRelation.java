@@ -23,15 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.cfapath;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Set;
 
 public class CFAPathTransferRelation extends SingleEdgeTransferRelation {
 
@@ -55,4 +56,13 @@ public class CFAPathTransferRelation extends SingleEdgeTransferRelation {
 
     return Collections.singleton(lSuccessor);
   }
+
+  @Override
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState pElement, List<AbstractState> pOtherElements,
+      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException {
+
+    return null;
+  }
+
 }

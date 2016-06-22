@@ -33,21 +33,27 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
 
   private final int minimumLength;
 
-  private final SMGDoublyLinkedListShape dllShape;
+  private final int hfo;
+  private final int nfo;
+  private final int pfo;
   private final int id = SMGValueFactory.getNewValue();
 
   public SMGDoublyLinkedList(int pSize, int pHfo, int pNfo, int pPfo,
       int pMinLength, int level) {
     super(pSize, "dls", level, SMGObjectKind.DLL);
 
-    dllShape = new SMGDoublyLinkedListShape(pHfo, pPfo, pNfo);
+    hfo = pHfo;
+    nfo = pNfo;
+    pfo = pPfo;
     minimumLength = pMinLength;
   }
 
   public SMGDoublyLinkedList(SMGDoublyLinkedList other) {
     super(other.getSize(), other.getLabel(), other.getLevel(), SMGObjectKind.DLL);
 
-    dllShape = other.dllShape;
+    hfo = other.hfo;
+    nfo = other.nfo;
+    pfo = other.pfo;
     minimumLength = other.minimumLength;
   }
 
@@ -68,16 +74,24 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
     if (this == obj) {
       return true;
     }
-
     if (obj == null) {
       return false;
     }
     if (getClass() != obj.getClass()) {
       return false;
     }
-
     SMGDoublyLinkedList other = (SMGDoublyLinkedList) obj;
-    return dllShape.equals(other.dllShape);
+    if (hfo != other.hfo) {
+      return false;
+    }
+    if (nfo != other.nfo) {
+      return false;
+    }
+    if (pfo != other.pfo) {
+      return false;
+    }
+
+    return true;
   }
 
   public int getMinimumLength() {
@@ -106,15 +120,15 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
   }
 
   public int getHfo() {
-    return dllShape.getHfo();
+    return hfo;
   }
 
   public int getNfo() {
-    return dllShape.getNfo();
+    return nfo;
   }
 
   public int getPfo() {
-    return dllShape.getPfo();
+    return pfo;
   }
 
   @Override
@@ -169,7 +183,7 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
 
   @Override
   public String toString() {
-    return "DLL(id=" + id + " size=" + getSize() + ", hfo=" + dllShape.getHfo() + ", nfo=" + dllShape.getNfo() + ", pfo=" + dllShape.getPfo()
+    return "DLL(id=" + id + " size=" + getSize() + ", hfo=" + hfo + ", nfo=" + nfo + ", pfo=" + pfo
         + ", len=" + minimumLength + ", level=" + getLevel() + ")";
   }
 

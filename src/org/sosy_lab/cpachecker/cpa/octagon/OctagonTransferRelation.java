@@ -65,6 +65,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -84,7 +85,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
-import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonState.Type;
 import org.sosy_lab.cpachecker.cpa.octagon.coefficients.IOctagonCoefficients;
 import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctagonIntervalCoefficients;
@@ -1089,6 +1092,13 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
   @Override
   protected Set<OctagonState> handleFunctionSummaryEdge(CFunctionSummaryEdge cfaEdge) throws CPATransferException {
     return Collections.emptySet();
+  }
+
+  @Override
+  public Collection<? extends AbstractState> strengthen(AbstractState pState, List<AbstractState> pOtherStates,
+      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException, InterruptedException {
+    // TODO Auto-generated method stub
+    return null;
   }
 
   class COctagonCoefficientVisitor extends DefaultCExpressionVisitor<Set<Pair<IOctagonCoefficients, OctagonState>>, CPATransferException>

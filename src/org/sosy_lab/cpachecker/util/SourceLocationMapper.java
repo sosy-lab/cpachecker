@@ -23,10 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util;
 
-import java.util.Optional;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
-import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
@@ -265,8 +264,21 @@ public class SourceLocationMapper {
 
     @Override
     public int compareTo(RowAndColumn pO) {
-      // Caution: inverted order here
-      return ComparisonChain.start().compare(pO.row, row).compare(pO.column, column).result();
+      if ((pO.row == this.row) && (pO.column == this.column)) {
+        return 0;
+      } else {
+        if (pO.row == this.row) {
+          if (pO.column > this.column) {
+            return 1;
+          } else {
+            return -1;
+          }
+        } else if (pO.row > this.row) {
+          return 1;
+        } else {
+          return -1;
+        }
+      }
     }
 
     @Override
