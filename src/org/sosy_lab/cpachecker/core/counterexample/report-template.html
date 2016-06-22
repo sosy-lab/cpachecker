@@ -1111,13 +1111,13 @@ function init(){
         </ul>
         <div class="fileContent" ng-show="tabIsSet(1)" ng-controller="CFAController">
             <div class="edit-line">
-                <div class="dropdown">
-                    <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                <div class="dropdown" id="dropdownMenu1">
+                    <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
                         Displayed CFA
                         <span class="caret"></span>
                     </button>
-                    <ul class="dropdown-menu">
                         <li ng-repeat="func in functions"><a ng-click="setCFAFunction($index)">{{func}}</a></li>
+                    <ul class="dropdown-menu pre-scrollable">
                     </ul>
                 </div>
                 <label>{{functions[selectedCFAFunction]}}</label>
@@ -1143,12 +1143,12 @@ function init(){
             </div>
             <div class="fileContent" ng-show="tabIsSet(3)" ng-controller="SourceController">
                 <div class="edit-line">
-                    <div class="dropdown">
-                        <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                    <div class="dropdown" id="dropdownMenu2">
+                        <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
                             Displayed Sourcefile
                             <span class="caret"></span>
                         </button>
-                        <ul class="dropdown-menu">
+                        <ul class="dropdown-menu pre-scrollable">
                             <li ng-repeat="file in sourceFiles"><a ng-click="setSourceFile($index)">{{file}}</a></li>
                         </ul>
                     </div>
