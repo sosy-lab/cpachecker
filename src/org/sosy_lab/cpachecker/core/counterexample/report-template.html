@@ -1113,6 +1113,7 @@ function init(){
         </div>
     </section>
     <section id="externalFiles_section">
+        <nav>
         <ul class="nav nav-pills">
             <li ng-class="{active: tabIsSet(1)}">
                 <a href ng-click="setTab(1)">CFA</a>
@@ -1137,6 +1138,7 @@ function init(){
                 </a>
         </ul>
         <div class="fileContent" ng-show="tabIsSet(1)" ng-controller="CFAController">
+        </nav>
             <div class="edit-line">
                 <div class="dropdown" id="dropdownMenu1">
                     <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
