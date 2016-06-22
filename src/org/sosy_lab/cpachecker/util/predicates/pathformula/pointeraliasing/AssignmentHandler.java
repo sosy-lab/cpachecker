@@ -652,7 +652,7 @@ class AssignmentHandler {
       final int newIndex,
       final FormulaType<?> type,
       final Formula address) {
-    return fmgr.makeEqual(
+    return fmgr.assignment(
         ffmgr.declareAndCallUninterpretedFunction(targetName, newIndex, type, address),
         ffmgr.declareAndCallUninterpretedFunction(targetName, oldIndex, type, address));
   }
