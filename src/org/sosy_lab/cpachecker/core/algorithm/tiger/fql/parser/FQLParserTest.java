@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser;
 import java.io.StringReader;
 
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class FQLParserTest {
@@ -175,6 +176,7 @@ public class FQLParserTest {
     Assert.assertEquals(lResult.toString(), "COVER ((\"NODES(ID)*\".{ x > 10 }).EDGES(@CALL(f))).\"PATHS(ID, 5)*\"");
   }
 
+  @Ignore
   @Test
   public void testFQLParserScanner014() throws Exception {
     String lInput = "IN @FILE('source.c') COVER \"NODES(ID)*\".{ x > 10 }.EDGES(@CALL(f)).\"PATHS(ID, 5)*\"";
@@ -186,6 +188,7 @@ public class FQLParserTest {
     Assert.assertEquals(lResult.toString(), "COVER ((\"NODES(COMPOSE(ID, @FILE('source.c')))*\".{ x > 10 }).EDGES(COMPOSE(@CALL(f), @FILE('source.c')))).\"PATHS(COMPOSE(ID, @FILE('source.c')), 5)*\"");
   }
 
+  @Ignore
   @Test
   public void testFQLParserScanner015() throws Exception {
     String lInput = "IN PRED(@FILE('source.c'), {y > 100}) COVER \"NODES(ID)*\".{ x > 10 }.EDGES(@CALL(f)).\"PATHS(ID, 5)*\"";
