@@ -84,6 +84,17 @@ class AssignmentHandler {
   private final Constraints constraints;
   private final ErrorConditions errorConditions;
 
+  /**
+   * Creates a new AssignmentHandler.
+   *
+   * @param pConv The C to SMT formula converter.
+   * @param pEdge The current edge of the CFA (for logging purposes).
+   * @param pFunction The name of the current function.
+   * @param pSsa The SSA map.
+   * @param pPts The underlying set of pointer targets.
+   * @param pConstraints Additional constraints.
+   * @param pErrorConditions Additional error conditions.
+   */
   AssignmentHandler(CToFormulaConverterWithPointerAliasing pConv, CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa,
       PointerTargetSetBuilder pPts, Constraints pConstraints, ErrorConditions pErrorConditions) {
     conv = pConv;
