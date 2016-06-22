@@ -150,7 +150,8 @@ body {
     cursor: pointer;
 }
 #externalFiles_section .popover{
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 #errorpath_section .fileContent {
@@ -1061,9 +1062,9 @@ function init(){
                 <button class="btn btn-warning" ng-click="clickedErrpathButton($event)">Start</button>
                 <button class="btn btn-success" ng-click="clickedErrpathButton($event)">Next</button>
             </div>
-            <button data-toggle="popover" data-placement="right" data-trigger="click" data-content="{{help_errorpath}}" class="btn btn-default btn-lg help_button" type="button">
+            <a tabindex="0" role="button" data-toggle="popover" data-placement="right" data-trigger="focus" data-content="{{help_errorpath}}" class="btn btn-default btn-lg help_button">
                 <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
-            </button>
+            </a>
             <div class="input-group input-group-sm">
                 <input type="text" ng-keydown="checkIfEnter($event)" class="form-control search-input" placeholder="Search for...">
                     <span class="input-group-btn">
@@ -1111,9 +1112,9 @@ function init(){
             <li ng-class="{active: tabIsSet(6)}">
                 <a href ng-click="setTab(6)">Configurations</a>
             </li>
-            <button data-toggle="popover" data-placement="right" data-trigger="click" data-content="{{help_externalFiles}}" class="btn btn-default btn-lg help_button" type="button">
+                <a tabindex="0" role="button" data-toggle="popover" data-placement="right" data-trigger="focus" data-content="{{help_externalFiles}}" class="btn btn-default btn-lg help_button">
                 <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
-            </button>
+                </a>
         </ul>
         <div class="fileContent" ng-show="tabIsSet(1)" ng-controller="CFAController">
             <div class="edit-line">
