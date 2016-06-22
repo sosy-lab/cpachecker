@@ -576,14 +576,8 @@ class AssignmentHandler {
         final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(conv.voidPointerFormulaType, target.getBaseName()),
                                                     fmgr.makeNumber(conv.voidPointerFormulaType, target.getOffset()));
         final BooleanFormula updateCondition = fmgr.makeEqual(targetAddress, lvalue);
-        final BooleanFormula retention = fmgr.makeEqual(ffmgr.declareAndCallUninterpretedFunction(ufName,
-                                                                                newIndex,
-                                                                                returnType,
-                                                                                targetAddress),
-                                                        ffmgr.declareAndCallUninterpretedFunction(ufName,
-                                                                                oldIndex,
-                                                                                returnType,
-                                                                                targetAddress));
+        final BooleanFormula retention =
+            makeRetentionConstraint(ufName, oldIndex, newIndex, returnType, targetAddress);
        constraints.addConstraint(bfmgr.or(updateCondition, retention));
       }
     }
@@ -591,14 +585,8 @@ class AssignmentHandler {
       conv.shutdownNotifier.shutdownIfNecessary();
       final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(conv.voidPointerFormulaType, target.getBaseName()),
                                                   fmgr.makeNumber(conv.voidPointerFormulaType, target.getOffset()));
-      constraints.addConstraint(fmgr.makeEqual(ffmgr.declareAndCallUninterpretedFunction(ufName,
-                                                                       newIndex,
-                                                                       returnType,
-                                                                       targetAddress),
-                                               ffmgr.declareAndCallUninterpretedFunction(ufName,
-                                                                       oldIndex,
-                                                                       returnType,
-                                                                       targetAddress)));
+      constraints.addConstraint(
+          makeRetentionConstraint(ufName, oldIndex, newIndex, returnType, targetAddress));
     }
   }
 
@@ -624,14 +612,10 @@ class AssignmentHandler {
         for (final PointerTarget spurious : pts.getSpuriousTargets(type, exact)) {
           final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(conv.voidPointerFormulaType, spurious.getBaseName()),
                                                       fmgr.makeNumber(conv.voidPointerFormulaType, spurious.getOffset()));
-          consequent = bfmgr.and(consequent, fmgr.makeEqual(ffmgr.declareAndCallUninterpretedFunction(ufName,
-                                                                                    newIndex,
-                                                                                    returnType,
-                                                                                    targetAddress),
-                                                            ffmgr.declareAndCallUninterpretedFunction(ufName,
-                                                                                    oldIndex,
-                                                                                    returnType,
-                                                                                    targetAddress)));
+          consequent =
+              bfmgr.and(
+                  consequent,
+                  makeRetentionConstraint(ufName, oldIndex, newIndex, returnType, targetAddress));
         }
       }
       constraints.addConstraint(bfmgr.or(negAntecedent, consequent));
@@ -652,18 +636,25 @@ class AssignmentHandler {
         final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(conv.voidPointerFormulaType, target.getBaseName()),
                                       fmgr.makeNumber(conv.voidPointerFormulaType, target.getOffset()));
         final Formula endAddress = fmgr.makePlus(startAddress, fmgr.makeNumber(conv.voidPointerFormulaType, size - 1));
-        constraints.addConstraint(bfmgr.or(bfmgr.and(fmgr.makeLessOrEqual(startAddress, targetAddress, false),
-                                                     fmgr.makeLessOrEqual(targetAddress, endAddress,false)),
-                                           fmgr.makeEqual(ffmgr.declareAndCallUninterpretedFunction(ufName,
-                                                                                  newIndex,
-                                                                                  returnType,
-                                                                                  targetAddress),
-                                           ffmgr.declareAndCallUninterpretedFunction(ufName,
-                                                                   oldIndex,
-                                                                   returnType,
-                                                                   targetAddress))));
+        constraints.addConstraint(
+            bfmgr.or(
+                bfmgr.and(
+                    fmgr.makeLessOrEqual(startAddress, targetAddress, false),
+                    fmgr.makeLessOrEqual(targetAddress, endAddress, false)),
+                makeRetentionConstraint(ufName, oldIndex, newIndex, returnType, targetAddress)));
       }
     }
+  }
+
+  private BooleanFormula makeRetentionConstraint(
+      final String targetName,
+      final int oldIndex,
+      final int newIndex,
+      final FormulaType<?> type,
+      final Formula address) {
+    return fmgr.makeEqual(
+        ffmgr.declareAndCallUninterpretedFunction(targetName, newIndex, type, address),
+        ffmgr.declareAndCallUninterpretedFunction(targetName, oldIndex, type, address));
   }
 
   /**
