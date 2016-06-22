@@ -298,16 +298,21 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
         reached = coreComponents.createReachedSet();
 
+        Collection<Statistics> subStats =
+            stats.getNewSubStatistics(
+                reached,
+                singleConfigFileName.toString(),
+                Iterables.getOnlyElement(
+                    FluentIterable.from(singleAnalysisOverallLimit.getResourceLimits())
+                        .filter(ThreadCpuTimeLimit.class),
+                    null));
+
+        if (cpa instanceof StatisticsProvider) {
+          ((StatisticsProvider) cpa).collectStatistics(subStats);
+        }
+
         if (algorithm instanceof StatisticsProvider) {
-          ((StatisticsProvider) algorithm)
-              .collectStatistics(
-                  stats.getNewSubStatistics(
-                      reached,
-                      singleConfigFileName.toString(),
-                      Iterables.getOnlyElement(
-                          FluentIterable.from(singleAnalysisOverallLimit.getResourceLimits())
-                              .filter(ThreadCpuTimeLimit.class),
-                          null)));
+          ((StatisticsProvider) algorithm).collectStatistics(subStats);
         }
 
         try {
