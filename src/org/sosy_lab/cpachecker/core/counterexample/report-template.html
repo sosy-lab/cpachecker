@@ -136,6 +136,13 @@ body {
     border-color: #00d415;
     font-family: monospace
 }
+#toaster{
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    width: 300px;
+    zIndex : 50000
+}
 #externalFiles_section .popover{
     overflow: hidden;
 }
@@ -314,8 +321,106 @@ div pre{
     <script type="text/javascript" src="https://www.sosy-lab.org/lib/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
     <script type="text/javascript" src="https://www.sosy-lab.org/lib/angularjs/1.5.5/angular.min.js" integrity="sha384-JhiEhwQjPEF1WJVY0yQaYOdN73Ml70AQwr+sq+zhSomAf4Fh0ImVDR8G9Ry0QokZ" crossorigin="anonymous"></script>
     <script type="text/javascript" src="https://www.sosy-lab.org/lib/google-code-prettify/2015-12-08-c67d802/prettify.js" integrity="sha384-uvP0LdNXVGNnAFf48ha9Ze5oJX136a8YERZm6nDnr/jAocGDVsfIj/N6I3h1wSj8" crossorigin="anonymous"></script>
-   
-	
+
+    <!-- Code for using toasts, taken and adjusted from https://github.com/scottoffen/jquery.toaster -->
+    <script type="text/javascript">
+        (function ($,undefined)
+        {
+            var toasting =
+            {
+                'noAutoDismisses' : ['warning', 'danger'],
+                'toastsActive' : 0,
+
+                'toast' :
+                {
+                    'template' :
+                    '<div class="alert alert-%priority% alert-dismissible" role="alert">' +
+                    '<button type="button" class="close" data-dismiss="alert">' +
+                    '<span aria-hidden="true">&times;</span>' +
+                    '<span class="sr-only">Close</span>' +
+                    '</button>' +
+                    '<span class="message"></span>' +
+                    '</div>',
+
+                    'defaults' :
+                    {
+                        'priority'  : 'success'
+                    },
+
+                    'fade' : 'slow',
+
+                    'display' : function ($toast)
+                    {
+                        toasting.toastsActive += 1;
+                        return $toast.fadeIn(toasting.toast.fade);
+                    },
+
+                    'remove' : function ($toast, callback)
+                    {
+                        toasting.toastsActive -= 1;
+                        return $toast.animate(
+                                {
+                                    opacity : '0'
+                                },
+                                {
+                                    duration : toasting.toast.fade,
+                                    complete : callback
+                                }
+                        );
+                    },
+
+                    'timeout'      : 3500
+                },
+
+                gettoaster : function ()
+                {
+                    return $('#toaster');
+                },
+
+                notify : function (message, priority)
+                {
+                    var $toaster = this.gettoaster();
+                    var $toast = $(toasting.toast.template.replace('%priority%', priority)).hide();
+
+                    $('.message', $toast).html(message);
+
+                    $toaster.append(toasting.toast.display($toast));
+
+                    if (toasting.noAutoDismisses.indexOf(priority) === -1)
+                    {
+                        setTimeout(function()
+                                   {
+                                       toasting.toast.remove($toast, function()
+                                       {
+                                           $toast.remove();
+                                       });
+                                   }, toasting.toast.timeout);
+                    }
+                }
+            };
+
+            $.toaster = function (options) {
+                if (typeof options !== 'object') {
+                    var values = Array.prototype.slice.call(arguments, 0);
+                    var labels = ['message', 'priority'];
+                    options = {};
+
+                    for (var i = 0, l = values.length; i < l; i += 1) {
+                        options[labels[i]] = values[i];
+                    }
+                }
+
+                var message  = ('message' in options) ? options.message : null;
+                var priority = (('priority' in options) && (typeof options.priority === 'string')) ? options.priority : toasting.toast.defaults.priority;
+
+                if (message !== null && toasting.toastsActive <= 0)
+                {
+                    toasting.notify(message, priority);
+                }
+            };
+        })(jQuery);
+    </script>
+
 	<script type="text/javascript">
 /**
 * Created by Magdalena Murr on 06.07.15.
@@ -683,6 +788,13 @@ div pre{
                 var func = document.getElementById(element).getElementsByTagName("text")[0].innerHTML;
                 $scope.setCFAFunction(functions.indexOf(func));
             }
+        };
+
+        $scope.singleClickedCFAElement = function($event){
+            $.toaster({
+                          message: 'Double-click CFA component to jump to position in source code.',
+                          priority: 'info'
+                      });
         };
 
         $scope.markCFAedge = function(index){
@@ -1055,5 +1167,8 @@ function init(){
             </div>
         </section>
     </div>
+
+    <div class="toaster" id="toaster"></div>
+
 </body>
 </html>
