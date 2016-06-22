@@ -452,7 +452,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private @Nullable Configuration createSingleConfig(Path singleConfigFileName, LogManager logger) {
+  @Nullable
+  private Configuration createSingleConfig(Path singleConfigFileName, LogManager logger) {
     try {
       ConfigurationBuilder singleConfigBuilder = Configuration.builder();
       singleConfigBuilder.copyFrom(globalConfig);
