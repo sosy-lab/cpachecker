@@ -160,8 +160,15 @@ body {
     overflow: auto;
 }
 #externalFiles_section .fileContent {
-    height: calc(100% - 50px);
+    position: fixed;
+    height: calc(100% - 50px); /* 100% - Header height */
+    width: 100%;
     margin: 5px;
+}
+
+#externalFiles_section div.content {
+    height: calc(100% - 100px - 2em); /* 100% - navigation - scrollbar */
+    width: calc(100% - 2em);
     overflow: auto;
 }
 table {
@@ -253,22 +260,18 @@ td:first-child {
     max-width: 270px;
 }
 .cfaContent{
-    margin: 20px;
-    margin-top: 45px;
     /* This is very important - otherwise right margin is not shown (and nodes cannot be centered) */
     display: inline-block;
 }
 .argContent{
-    margin: 20px;
-    margin-top: 45px;
     /* This is very important - otherwise right margin is not shown (and nodes cannot be centered) */
     display: inline-block;
 }
 .sourceContent{
-    margin-top: 45px;
+ /* Nothing special right now */
 }
 .edit-line{
-    position: fixed;
+    width: 100%;
     background-color: white;
     padding: 5px;
 }
@@ -1133,7 +1136,7 @@ function init(){
                     <input id="cfa-scalingField" type="number" min="0" max="200" ng-model="zoomFactorCFA" ng-change="setZoom('cfa-scalingField')"/>
                 </div>
             </div>
-            <div class="cfaContent">
+            <div class="cfaContent content">
                     <p>Run scripts/report-generator.py to display CFAs.</p><!--CFAFUNCTIONGRAPHS-->
                 </div>
             </div>
@@ -1144,7 +1147,7 @@ function init(){
                         <input id="arg-scalingField" type="number" min="0" max="200" ng-model="zoomFactorARG" ng-change="setZoom('arg-scalingField')"/>
                     </div>
                 </div>
-                <div class="argContent">
+                <div class="argContent content">
                     <p>Run scripts/report-generator.py to display ARG.</p><!--ARGGRAPHS-->
                 </div>
             </div>

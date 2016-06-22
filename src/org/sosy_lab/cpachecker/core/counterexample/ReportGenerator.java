@@ -255,9 +255,9 @@ public class ReportGenerator {
                   new FileInputStream(sourcePath.toFile()), Charset.defaultCharset()))) {
 
         report.write(
-            "<table class=\"sourceContent\" ng-show = \"sourceFileIsSet("
+            "<div class=\"sourceContent content\" ng-show = \"sourceFileIsSet("
                 + sourceFileNumber
-                + ")\">\n");
+                + ")\">\n<table>\n");
 
         String line;
         while (null != (line = source.readLine())) {
@@ -273,7 +273,7 @@ public class ReportGenerator {
           iterator++;
         }
 
-        report.write("</table>\n");
+        report.write("</table></div>\n");
 
       } catch (IOException e) {
         logger.logUserException(
