@@ -1538,7 +1538,8 @@ cpa.predicate.invariants.useStrongInvariantsOnly = true
 # Max. number of edge of the abstraction tree to prescan for reuse
 cpa.predicate.maxAbstractionReusePrescan = 1
 
-# The maximum length for arrays (elements beyond this will be ignored).
+# The maximum length for arrays (elements beyond this will be ignored). Use
+# -1 to disable the limit.
 cpa.predicate.maxArrayLength = 20
 
 # Maximum size of allocations for which all structure fields are regarded

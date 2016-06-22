@@ -23,13 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import com.google.common.collect.ImmutableSet;
+
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
-
-import com.google.common.collect.ImmutableSet;
 
 @Options(prefix="cpa.predicate")
 public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOptions {
@@ -67,7 +68,8 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
   @Option(secure=true, description = "The default length for arrays when the real length cannot be determined.")
   private int defaultArrayLength = 20;
 
-  @Option(secure=true, description = "The maximum length for arrays (elements beyond this will be ignored).")
+  @Option(secure=true, description = "The maximum length for arrays (elements beyond this will be ignored). Use -1 to disable the limit.")
+  @IntegerOption(min=-1)
   private int maxArrayLength = 20;
 
   @Option(secure=true, description = "Function that is used to free allocated memory.")
@@ -84,6 +86,10 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
   public FormulaEncodingWithPointerAliasingOptions(Configuration config) throws InvalidConfigurationException {
     super(config);
     config.inject(this, FormulaEncodingWithPointerAliasingOptions.class);
+
+    if (maxArrayLength == -1) {
+      maxArrayLength = Integer.MAX_VALUE;
+    }
   }
 
   public boolean hasSuperfluousParameters(final String name) {
