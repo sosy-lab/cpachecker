@@ -66,7 +66,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.QuantifiedFormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
@@ -106,12 +105,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
             + "This supports pointer aliasing and replaces the option \"handlePointerAliasing\"."
   )
   private boolean handleHeapArray = false;
-
-  @Option(secure = true, description = "Use quantifiers together with the heap-array converter. "
-      + "This requires the option \"handleHeapArray=true\" and a SMT solver that is capable of the "
-      + "theory of arrays and quantifiers (e.g. Z3 or PRINCESS). Universal quantifiers will only "
-      + "be introduced for array initializer statements.")
-  private boolean useQuantifiersOnArrays = false;
 
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";
   private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
@@ -170,23 +163,20 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     } else if (handleHeapArray) {
       final FormulaEncodingWithPointerAliasingOptions options =
           new FormulaEncodingWithPointerAliasingOptions(config);
+      if (options.useQuantifiersOnArrays()) {
+        try {
+          fmgr.getQuantifiedFormulaManager();
+        } catch (UnsupportedOperationException e) {
+          throw new InvalidConfigurationException("Cannot use quantifiers with current solver, either choose a different solver or disable quantifiers.");
+        }
+      }
+
       TypeHandlerWithPointerAliasing aliasingTypeHandler =
           new TypeHandlerWithPointerAliasing(pLogger, pMachineModel, options);
       typeHandler = aliasingTypeHandler;
 
-      if (useQuantifiersOnArrays) {
-        QuantifiedFormulaManagerView qfmgr = fmgr.getQuantifiedFormulaManager();
-        assert qfmgr != null : "To use the analysis with option \"cpa.predicate"
-              + ".useQuantifiersOnArrays=true\", you have to use a solver supporting quantifier "
-              + "theories!";
-
-        converter = new org.sosy_lab.cpachecker.util.predicates.pathformula.heaparray.CToFormulaConverterWithPointerAliasing(options, fmgr, pMachineModel,
-            pVariableClassification, logger, shutdownNotifier, aliasingTypeHandler, pDirection,
-            qfmgr);
-      } else {
-        converter = new org.sosy_lab.cpachecker.util.predicates.pathformula.heaparray.CToFormulaConverterWithPointerAliasing(options, fmgr, pMachineModel,
-            pVariableClassification, logger, shutdownNotifier, aliasingTypeHandler, pDirection);
-      }
+      converter = new org.sosy_lab.cpachecker.util.predicates.pathformula.heaparray.CToFormulaConverterWithPointerAliasing(options, fmgr, pMachineModel,
+          pVariableClassification, logger, shutdownNotifier, aliasingTypeHandler, pDirection);
     } else if (handlePointerAliasing) {
       final FormulaEncodingWithPointerAliasingOptions options = new FormulaEncodingWithPointerAliasingOptions(config);
       TypeHandlerWithPointerAliasing aliasingTypeHandler = new TypeHandlerWithPointerAliasing(pLogger, pMachineModel, options);

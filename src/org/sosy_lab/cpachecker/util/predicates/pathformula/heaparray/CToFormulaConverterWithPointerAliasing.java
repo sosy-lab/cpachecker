@@ -84,7 +84,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeH
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Variable;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.QuantifiedFormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
@@ -114,8 +113,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   final FormulaManagerView fmgr = super.fmgr;
   @SuppressWarnings("hiding")
   final BooleanFormulaManagerView bfmgr = super.bfmgr;
-
-  private final QuantifiedFormulaManagerView qfmgr;
   @SuppressWarnings("hiding")
   final MachineModel machineModel = super.machineModel;
   @SuppressWarnings("hiding")
@@ -138,44 +135,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * Creates a C to SMT formula converter with support for pointer aliasing. The heap is modelled
    * with SMT arrays.
    *
-   * @param pOptions                Additional configuration options.
-   * @param pFormulaManager         The formula manger for SMT formulae.
-   * @param machineModel            The machine model for the evaluation run.
-   * @param pVariableClassification An optional classification of variables.
-   * @param pLogManager             The main CPAchecker logger.
-   * @param pShutdownNotifier       A notifier for user shutdowns to stop long running algorithms.
-   * @param pTypeHandler            A handler for C types.
-   * @param pDirection              The direction of the analysis.
-   */
-  public CToFormulaConverterWithPointerAliasing(
-      final FormulaEncodingWithPointerAliasingOptions pOptions,
-      final FormulaManagerView pFormulaManager,
-      final MachineModel machineModel,
-      final Optional<VariableClassification> pVariableClassification,
-      final LogManager pLogManager,
-      final ShutdownNotifier pShutdownNotifier,
-      final TypeHandlerWithPointerAliasing pTypeHandler,
-      final AnalysisDirection pDirection) {
-
-    super(pOptions, pFormulaManager, machineModel, pVariableClassification,
-        pLogManager, pShutdownNotifier, pTypeHandler, pDirection);
-
-    variableClassification = pVariableClassification;
-    options = pOptions;
-    typeHandler = pTypeHandler;
-    ptsMgr = new PointerTargetSetManager(options, fmgr, typeHandler,
-        shutdownNotifier);
-
-    qfmgr = null;
-
-    voidPointerFormulaType = typeHandler.getFormulaTypeFromCType(CPointerType.POINTER_TO_VOID);
-    nullPointer = fmgr.makeNumber(voidPointerFormulaType, 0);
-  }
-
-  /**
-   * Creates a C to SMT formula converter with support for pointer aliasing. The heap is modelled
-   * with SMT arrays.
-   *
    * @param pOptions                      Additional configuration options.
    * @param pFormulaManager               The formula manager for SMT formulae.
    * @param pMachineModel                 The machine model for the evaluation run.
@@ -185,7 +144,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    *                                      algorithms.
    * @param pTypeHandler                  A handler for C types.
    * @param pDirection                    The direction of the analysis.
-   * @param pQuantifiedFormulaManagerView A formula manager supporting quantifiers.
    */
   public CToFormulaConverterWithPointerAliasing(
       final FormulaEncodingWithPointerAliasingOptions pOptions,
@@ -195,8 +153,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final LogManager pLogManager,
       final ShutdownNotifier pShutdownNotifier,
       final TypeHandlerWithPointerAliasing pTypeHandler,
-      final AnalysisDirection pDirection,
-      final QuantifiedFormulaManagerView pQuantifiedFormulaManagerView) {
+      final AnalysisDirection pDirection) {
 
     super(pOptions, pFormulaManager, pMachineModel, pVariableClassification, pLogManager,
         pShutdownNotifier, pTypeHandler, pDirection);
@@ -206,8 +163,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     typeHandler = pTypeHandler;
     ptsMgr = new PointerTargetSetManager(options, fmgr, typeHandler,
         shutdownNotifier);
-
-    qfmgr = pQuantifiedFormulaManagerView;
 
     voidPointerFormulaType = typeHandler.getFormulaTypeFromCType(CPointerType.POINTER_TO_VOID);
     nullPointer = fmgr.makeNumber(voidPointerFormulaType, 0);
@@ -941,12 +896,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       if (options.handleImplicitInitialization()) {
         assignments = expandAssignmentList(declaration, assignments);
       }
-      if (qfmgr == null || !(declarationType instanceof CArrayType)) {
-        result = assignmentHandler.handleInitializationAssignments(lhs, assignments);
-      } else {
-        result = assignmentHandler.handleInitializationAssignmentsWithQuantifier(
-            lhs, assignments, qfmgr, false);
-      }
+      result = assignmentHandler.handleInitializationAssignments(lhs, declarationType, assignments);
 
     } else {
       throw new UnrecognizedCCodeException("Unrecognized initializer", declarationEdge, initializer);

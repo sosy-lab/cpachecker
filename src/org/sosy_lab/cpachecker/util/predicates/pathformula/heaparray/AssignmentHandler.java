@@ -61,7 +61,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.QuantifiedFormulaManagerView;
 import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
@@ -204,13 +203,32 @@ class AssignmentHandler {
   /**
    * Handles initialization assignments.
    *
-   * @param variable The left hand side of the variable.
+   * @param variable The declared variable.
+   * @param declarationType The type of the declared variable.
    * @param assignments A list of assignment statements.
    * @return A boolean formula for the assignment.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    * @throws InterruptedException It the execution was interrupted.
    */
   BooleanFormula handleInitializationAssignments(
+      final CLeftHandSide variable, final CType declarationType, final List<CExpressionAssignmentStatement> assignments) throws UnrecognizedCCodeException, InterruptedException {
+    if (options.useQuantifiersOnArrays() && (declarationType instanceof CArrayType)) {
+      return handleInitializationAssignmentsWithQuantifier(variable, assignments, false);
+    } else {
+      return handleInitializationAssignmentsWithoutQuantifier(variable, assignments);
+    }
+  }
+
+  /**
+   * Handles initialization assignments.
+   *
+   * @param variable The left hand side of the variable.
+   * @param assignments A list of assignment statements.
+   * @return A boolean formula for the assignment.
+   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws InterruptedException It the execution was interrupted.
+   */
+  private BooleanFormula handleInitializationAssignmentsWithoutQuantifier(
       final CLeftHandSide variable, final List<CExpressionAssignmentStatement> assignments)
       throws UnrecognizedCCodeException, InterruptedException {
     CExpressionVisitorWithPointerAliasing lhsVisitor = new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints, errorConditions, pts);
@@ -238,22 +256,20 @@ class AssignmentHandler {
    * quantifier over the resulting SMT array.
    *
    * <p>If we cannot make an assignment of the form {@code <variable> = <value>}, we fall back to
-   * the normal initialization in {@link #handleInitializationAssignments(CLeftHandSide,
-   * List)}.</p>
+   * the normal initialization in
+   * {@link #handleInitializationAssignmentsWithoutQuantifier(CLeftHandSide, List)}.
    *
    * @param pLeftHandSide The left hand side of the statement. Needed for fallback scenario.
    * @param pAssignments A list of assignment statements.
-   * @param pQfmgr A formula manager with quantifier support.
    * @param pUseOldSSAIndices A flag indicating whether we will reuse SSA indices or not.
    * @return A boolean formula for the assignment.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
-   * @see #handleInitializationAssignments(CLeftHandSide, List)
+   * @see #handleInitializationAssignmentsWithoutQuantifier(CLeftHandSide, List)
    */
-  BooleanFormula handleInitializationAssignmentsWithQuantifier(
+  private BooleanFormula handleInitializationAssignmentsWithQuantifier(
       final @Nonnull CLeftHandSide pLeftHandSide,
       final @Nonnull List<CExpressionAssignmentStatement> pAssignments,
-      final @Nonnull QuantifiedFormulaManagerView pQfmgr,
       final boolean pUseOldSSAIndices)
       throws UnrecognizedCCodeException, InterruptedException {
 
@@ -288,7 +304,7 @@ class AssignmentHandler {
       //    ...
       //    const struct s s = { .x = 1 };
       //    struct t t = { .s = s };
-      return handleInitializationAssignments(pLeftHandSide, pAssignments);
+      return handleInitializationAssignmentsWithoutQuantifier(pLeftHandSide, pAssignments);
     } else {
       final String targetName = CToFormulaConverterWithPointerAliasing.getPointerAccessName(lhsType);
       final FormulaType<?> targetType = conv.getFormulaTypeFromCType(lhsType);
@@ -320,7 +336,7 @@ class AssignmentHandler {
       final BooleanFormula copyFormula =
           fmgr.makeEqual(newArray, oldArray);
 
-      return pQfmgr.forall(
+      return fmgr.getQuantifiedFormulaManager().forall(
           Collections.singletonList(counter),
           bfmgr.and(
               bfmgr.implication(bfmgr.and(rangeConstraint), selectFormula),

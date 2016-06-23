@@ -75,6 +75,12 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
   @Option(secure=true, description = "Function that is used to free allocated memory.")
   private String memoryFreeFunctionName = "free";
 
+  @Option(secure = true, description = "Use quantifiers together with the heap-array converter. "
+      + "This requires the option \"handleHeapArray=true\" and a SMT solver that is capable of the "
+      + "theory of arrays and quantifiers (e.g. Z3 or PRINCESS). Universal quantifiers will only "
+      + "be introduced for array initializer statements.")
+  private boolean useQuantifiersOnArrays = false;
+
   @Option(secure=true, description = "When a string literal initializer is encountered, initialize the contents of the char array "
                       + "with the contents of the string literal instead of just assigning a fresh non-det address "
                       + "to it")
@@ -154,6 +160,10 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
 
   public boolean isMemoryFreeFunction(final String name) {
     return memoryFreeFunctionName.equals(name);
+  }
+
+  public boolean useQuantifiersOnArrays() {
+    return useQuantifiersOnArrays;
   }
 
   public boolean handleStringLiteralInitializers() {
