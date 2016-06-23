@@ -223,9 +223,7 @@ public class PredicateCPA
             pfMgr,
             blk,
             predicateManager,
-            invariantsManager.appendToPathFormula()
-                ? invariantsManager
-                : TrivialInvariantSupplier.INSTANCE,
+            invariantsManager,
             predicateProvider);
 
     if (stopType.equals("SEP")) {
