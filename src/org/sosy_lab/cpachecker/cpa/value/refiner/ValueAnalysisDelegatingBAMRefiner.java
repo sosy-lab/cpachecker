@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.util.refinement.DelegatingARGBasedRefiner;
  */
 public abstract class ValueAnalysisDelegatingBAMRefiner implements Refiner {
 
-  @SuppressWarnings("unchecked")
   public static Refiner create(ConfigurableProgramAnalysis<?> cpa)
       throws InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
