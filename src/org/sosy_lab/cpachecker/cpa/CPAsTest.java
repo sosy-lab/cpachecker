@@ -80,7 +80,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @RunWith(Parameterized.class)
-@SuppressWarnings({"rawtypes", "unchecked"})
 public class CPAsTest {
 
   @Parameters(name = "{0}")
@@ -120,9 +119,9 @@ public class CPAsTest {
   private static FunctionEntryNode main;
 
   @Parameter(0)
-  public Class<ConfigurableProgramAnalysis> cpaClass;
+  public Class<ConfigurableProgramAnalysis<?>> cpaClass;
 
-  private ConfigurableProgramAnalysis cpa;
+  private ConfigurableProgramAnalysis<AbstractState> cpa;
 
   @BeforeClass
   public static void setup()
@@ -155,16 +154,17 @@ public class CPAsTest {
   }
 
   @Before
+  @SuppressWarnings("unchecked")
   public void instantiate()
       throws ReflectiveOperationException, InvalidConfigurationException, CPAException {
     Method factoryMethod = cpaClass.getMethod("factory");
 
-    Optional<ConfigurableProgramAnalysis> childCPA = createChildCpaIfNecessary(cpaClass);
+    Optional<ConfigurableProgramAnalysis<?>> childCPA = createChildCpaIfNecessary(cpaClass);
 
     CPAFactory factory = (CPAFactory) factoryMethod.invoke(null);
     childCPA.ifPresent(factory::setChild);
     try {
-      cpa =
+      cpa = (ConfigurableProgramAnalysis<AbstractState>)
           factory
               .setLogger(logManager)
               .setConfiguration(config)
@@ -179,7 +179,7 @@ public class CPAsTest {
     }
   }
 
-  private Optional<ConfigurableProgramAnalysis> createChildCpaIfNecessary(Class<?> cpaClass)
+  private Optional<ConfigurableProgramAnalysis<?>> createChildCpaIfNecessary (Class<?> cpaClass)
       throws InvalidConfigurationException, CPAException {
     if (cpaClass.equals(TerminationCPA.class)) {
       return Optional.of(
