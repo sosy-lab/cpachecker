@@ -142,6 +142,34 @@ public class PointerTargetSetManager {
   }
 
   /**
+   * Make a formula that represents a pointer access.
+   * @param targetName The name of the pointer access symbol as returned by {@link CToFormulaConverterWithPointerAliasing#getPointerAccessName(CType)}
+   * @param targetType The formula type of the value
+   * @param ssaIndex The SSA index for targetName
+   * @param address The address to access
+   * @return A formula representing {@code targetName@ssaIndex[address]}
+   */
+  protected Formula makePointerDereference(
+      final String targetName,
+      final FormulaType<?> targetType,
+      final int ssaIndex,
+      final Formula address) {
+    return ffmgr.declareAndCallUninterpretedFunction(targetName, ssaIndex, targetType, address);
+  }
+
+  /**
+   * Make a formula that represents a pointer access.
+   * @param targetName The name of the pointer access symbol as returned by {@link CToFormulaConverterWithPointerAliasing#getPointerAccessName(CType)}
+   * @param targetType The formula type of the value
+   * @param address The address to access
+   * @return A formula representing {@code targetName[address]}
+   */
+  protected Formula makePointerDereference(
+      final String targetName, final FormulaType<?> targetType, final Formula address) {
+    return ffmgr.declareAndCallUF(targetName, targetType, address);
+  }
+
+  /**
    * Create a formula that represents an assignment to a value via a pointer.
    * @param targetName The name of the pointer access symbol as returned by {@link CToFormulaConverterWithPointerAliasing#getPointerAccessName(CType)}
    * @param targetType The formula type of the value
@@ -532,7 +560,7 @@ public class PointerTargetSetManager {
     final String ufName = CToFormulaConverterWithPointerAliasing.getPointerAccessName(type);
     final int index = ssa.getIndex(ufName);
     final FormulaType<?> returnType = typeHandler.getFormulaTypeFromCType(type);
-    return ffmgr.declareAndCallUninterpretedFunction(ufName, index, returnType, address);
+    return makePointerDereference(ufName, returnType, index, address);
   }
 
 

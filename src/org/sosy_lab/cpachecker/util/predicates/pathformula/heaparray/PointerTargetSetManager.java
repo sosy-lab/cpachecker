@@ -155,6 +155,40 @@ class PointerTargetSetManager extends org.sosy_lab.cpachecker.util.predicates.pa
   }
 
   /**
+   * Make a formula that represents a pointer access.
+   * @param targetName The name of the pointer access symbol as returned by {@link CToFormulaConverterWithPointerAliasing#getPointerAccessName(CType)}
+   * @param targetType The formula type of the value
+   * @param ssaIndex The SSA index for targetName
+   * @param address The address to access
+   * @return A formula representing {@code targetName@ssaIndex[address]}
+   */
+  @Override
+  protected Formula makePointerDereference(
+      final String targetName,
+      final FormulaType<?> targetType,
+      final int ssaIndex,
+      final Formula address) {
+    final ArrayFormula<?, ?> arrayFormula =
+        afmgr.makeArray(targetName + "@" + ssaIndex, FormulaType.IntegerType, targetType);
+    return afmgr.select(arrayFormula, address);
+  }
+
+  /**
+   * Make a formula that represents a pointer access.
+   * @param targetName The name of the pointer access symbol as returned by {@link CToFormulaConverterWithPointerAliasing#getPointerAccessName(CType)}
+   * @param targetType The formula type of the value
+   * @param address The address to access
+   * @return A formula representing {@code targetName[address]}
+   */
+  @Override
+  protected Formula makePointerDereference(
+      final String targetName, final FormulaType<?> targetType, final Formula address) {
+    final ArrayFormula<?, ?> arrayFormula =
+        afmgr.makeArray(targetName, FormulaType.IntegerType, targetType);
+    return afmgr.select(arrayFormula, address);
+  }
+
+  /**
    * Create a formula that represents an assignment to a value via a pointer.
    * @param targetName The name of the pointer access symbol as returned by {@link CToFormulaConverterWithPointerAliasing#getPointerAccessName(CType)}
    * @param targetType The formula type of the value
@@ -549,10 +583,7 @@ class PointerTargetSetManager extends org.sosy_lab.cpachecker.util.predicates.pa
     final String ufName = CToFormulaConverterWithPointerAliasing.getPointerAccessName(type);
     final int index = ssa.getIndex(ufName);
     final FormulaType<?> returnType = typeHandler.getFormulaTypeFromCType(type);
-
-    final ArrayFormula<?, ?> arrayFormula = afmgr.makeArray(ufName + "@" + index,
-        FormulaType.IntegerType, returnType);
-    return afmgr.select(arrayFormula, address);
+    return makePointerDereference(ufName, returnType, index, address);
   }
 
 

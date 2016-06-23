@@ -52,7 +52,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expre
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
@@ -74,7 +73,6 @@ class AssignmentHandler {
   private final FormulaEncodingWithPointerAliasingOptions options;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
-  private final FunctionFormulaManagerView ffmgr;
 
   private final CToFormulaConverterWithPointerAliasing conv;
   private final CFAEdge edge;
@@ -102,7 +100,6 @@ class AssignmentHandler {
     options = conv.options;
     fmgr = conv.fmgr;
     bfmgr = conv.bfmgr;
-    ffmgr = conv.ffmgr;
 
     edge = pEdge;
     function = pFunction;
@@ -664,8 +661,8 @@ class AssignmentHandler {
       final FormulaType<?> type,
       final Formula address) {
     return fmgr.assignment(
-        ffmgr.declareAndCallUninterpretedFunction(targetName, newIndex, type, address),
-        ffmgr.declareAndCallUninterpretedFunction(targetName, oldIndex, type, address));
+        conv.ptsMgr.makePointerDereference(targetName, type, newIndex, address),
+        conv.ptsMgr.makePointerDereference(targetName, type, oldIndex, address));
   }
 
   /**

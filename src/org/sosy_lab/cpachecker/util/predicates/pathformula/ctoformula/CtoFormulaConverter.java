@@ -27,7 +27,6 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Cto
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.getRealFieldOwner;
 
 import com.google.common.base.CharMatcher;
-import java.util.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -117,6 +116,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -161,7 +161,7 @@ public class CtoFormulaConverter {
   protected final BooleanFormulaManagerView bfmgr;
   private final IntegerFormulaManagerView nfmgr;
   private final BitvectorFormulaManagerView efmgr;
-  protected final FunctionFormulaManagerView ffmgr;
+  final FunctionFormulaManagerView ffmgr;
   protected final LogManagerWithoutDuplicates logger;
   protected final ShutdownNotifier shutdownNotifier;
 

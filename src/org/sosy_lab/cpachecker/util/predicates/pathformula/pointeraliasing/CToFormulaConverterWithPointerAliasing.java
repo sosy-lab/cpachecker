@@ -81,7 +81,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormula
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
@@ -106,8 +105,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   final FormulaManagerView fmgr = super.fmgr;
   @SuppressWarnings("hiding")
   final BooleanFormulaManagerView bfmgr = super.bfmgr;
-  @SuppressWarnings("hiding")
-  final FunctionFormulaManagerView ffmgr = super.ffmgr;
   @SuppressWarnings("hiding")
   final MachineModel machineModel = super.machineModel;
   @SuppressWarnings("hiding")
@@ -171,7 +168,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * @return The base address for the formula.
    */
   Formula makeBaseAddressOfTerm(final Formula address) {
-    return ffmgr.declareAndCallUF("__BASE_ADDRESS_OF__", voidPointerFormulaType, address);
+    return ptsMgr.makePointerDereference("__BASE_ADDRESS_OF__", voidPointerFormulaType, address);
   }
 
   /**
@@ -272,7 +269,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     final String ufName = getPointerAccessName(type);
     final int index = getIndex(ufName, type, ssa);
     final FormulaType<?> returnType = getFormulaTypeFromCType(type);
-    return ffmgr.declareAndCallUninterpretedFunction(ufName, index, returnType, address);
+    return ptsMgr.makePointerDereference(ufName, returnType, index, address);
   }
 
   /**

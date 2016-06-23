@@ -86,7 +86,6 @@ class AssignmentHandler {
   private final FormulaEncodingWithPointerAliasingOptions options;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
-  private final ArrayFormulaManagerView afmgr;
 
   private final CToFormulaConverterWithPointerAliasing conv;
   private final CFAEdge edge;
@@ -114,7 +113,6 @@ class AssignmentHandler {
     options = conv.options;
     fmgr = conv.fmgr;
     bfmgr = conv.bfmgr;
-    afmgr = conv.afmgr;
 
     edge = pEdge;
     function = pFunction;
@@ -306,6 +304,7 @@ class AssignmentHandler {
           ifmgr.add(lowerBound, ifmgr.makeNumber(pAssignments.size()));
 
       final IntegerFormula counter = ifmgr.makeVariable(targetName + "@" + oldIndex + "@counter");
+      final ArrayFormulaManagerView afmgr = fmgr.getArrayFormulaManager();
       final ArrayFormula<?, ?> newArray =
           afmgr.makeArray(targetName + "@" + newIndex, FormulaType.IntegerType, targetType);
       final ArrayFormula<?, ?> oldArray =
@@ -315,7 +314,9 @@ class AssignmentHandler {
           makeRangeConstraint(ifmgr, counter, lowerBound, upperBound);
 
       final BooleanFormula selectFormula =
-          fmgr.makeEqual(afmgr.select(newArray, counter), rhsValue.getValue());
+          fmgr.makeEqual(
+              conv.ptsMgr.makePointerDereference(targetName, targetType, newIndex, counter),
+              rhsValue.getValue());
       final BooleanFormula copyFormula =
           fmgr.makeEqual(newArray, oldArray);
 
