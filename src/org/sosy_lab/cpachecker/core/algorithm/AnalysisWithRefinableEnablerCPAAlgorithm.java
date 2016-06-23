@@ -108,7 +108,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-@SuppressWarnings("rawtypes")
+//@SuppressWarnings("rawtypes")
 @Options(prefix="enabledanalysis")
 public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, StatisticsProvider{
 
@@ -152,7 +152,8 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
   }
 
 
-  public AnalysisWithRefinableEnablerCPAAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis cpa, CFA pCfa, LogManager logger,
+  public AnalysisWithRefinableEnablerCPAAlgorithm(Algorithm pAlgorithm,
+                                                  ConfigurableProgramAnalysis<?> cpa, CFA pCfa, LogManager logger,
       Configuration config, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     config.inject(this);
     algorithm = pAlgorithm;
