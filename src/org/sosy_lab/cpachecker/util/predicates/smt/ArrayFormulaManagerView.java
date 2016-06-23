@@ -23,14 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import javax.annotation.Nonnull;
-
 import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.ArrayFormulaManager;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.FormulaType.ArrayFormulaType;
+
+import javax.annotation.Nonnull;
 
 /**
  * Implements some methods for easier interaction with the formula manager for
@@ -117,6 +117,19 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
     return wrap(inputArrayType, result);
   }
 
+  public <
+          TI extends Formula,
+          TE extends Formula,
+          FTI extends FormulaType<TI>,
+          FTE extends FormulaType<TE>>
+      ArrayFormula<TI, TE> makeArray(
+          final @Nonnull String pName,
+          final int pSsaIndex,
+          final @Nonnull FTI pIndexType,
+          final @Nonnull FTE pElementType) {
+    return makeArray(FormulaManagerView.makeName(pName, pSsaIndex), pIndexType, pElementType);
+  }
+
   /**
    * {@inheritDoc}
    */
@@ -126,6 +139,13 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
       final @Nonnull String pName, final @Nonnull ArrayFormulaType<TI, TE> type) {
     return wrap(
         type, manager.makeArray(pName, (ArrayFormulaType<Formula, Formula>) unwrapType(type)));
+  }
+
+  public <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE> makeArray(
+      final @Nonnull String pName,
+      final int pSsaIndex,
+      final @Nonnull ArrayFormulaType<TI, TE> pType) {
+    return makeArray(FormulaManagerView.makeName(pName, pSsaIndex), pType);
   }
 
   /**

@@ -192,11 +192,9 @@ public class SSAMapMerger {
     assert pOldIndex < pNewIndex;
     final FormulaType<?> returnFormulaType = converter.getFormulaTypeFromCType(pReturnType);
     final ArrayFormula<?, ?> newArray =
-        afmgr.makeArray(
-            pFunctionName + "@" + pNewIndex, FormulaType.IntegerType, returnFormulaType);
+        afmgr.makeArray(pFunctionName, pNewIndex, FormulaType.IntegerType, returnFormulaType);
     final ArrayFormula<?, ?> oldArray =
-        afmgr.makeArray(
-            pFunctionName + "@" + pOldIndex, FormulaType.IntegerType, returnFormulaType);
+        afmgr.makeArray(pFunctionName, pOldIndex, FormulaType.IntegerType, returnFormulaType);
     return fmgr.makeEqual(newArray, oldArray);
   }
 
