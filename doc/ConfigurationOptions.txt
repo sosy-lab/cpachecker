@@ -2301,15 +2301,6 @@ invariantChecker.timeForInvariantCheck = 0ns
 # configuration file for invariant generation
 invariantGeneration.config = no default value
 
-# generate invariants in parallel to the normal analysis
-invariantGeneration.cpachecker.async = false
-
-# Configuration file for invariant generation with a full CPAchecker run.
-invariantGeneration.cpachecker.config.path = "config/invgen-components/pred-Invgen-restart-bitprecise.properties"
-
-# dump generated invariants
-invariantGeneration.cpachecker.invExportPath = no default value
-
 # Check candidate invariants in a separate thread asynchronously.
 invariantGeneration.kInduction.async = true
 
@@ -2351,6 +2342,11 @@ language = C
 # Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1
 # for infinite)
 limits.time.cpu = -1ns
+
+# Limit for thread cpu time used by CPAchecker. This option will in general
+# not work when multi-threading is used in more than one place, use only with
+# great caution! (use seconds or specify a unit; -1 for infinite)
+limits.time.cpu.thread = -1ns
 
 # Limit for wall time used by CPAchecker (use seconds or specify a unit; -1
 # for infinite)
