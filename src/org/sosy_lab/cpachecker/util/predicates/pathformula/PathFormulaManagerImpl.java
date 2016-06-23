@@ -179,6 +179,14 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           pVariableClassification, logger, shutdownNotifier, aliasingTypeHandler, pDirection);
     } else if (handlePointerAliasing) {
       final FormulaEncodingWithPointerAliasingOptions options = new FormulaEncodingWithPointerAliasingOptions(config);
+      if (options.useQuantifiersOnArrays()) {
+        try {
+          fmgr.getQuantifiedFormulaManager();
+        } catch (UnsupportedOperationException e) {
+          throw new InvalidConfigurationException("Cannot use quantifiers with current solver, either choose a different solver or disable quantifiers.");
+        }
+      }
+
       TypeHandlerWithPointerAliasing aliasingTypeHandler = new TypeHandlerWithPointerAliasing(pLogger, pMachineModel, options);
       typeHandler = aliasingTypeHandler;
       converter = new CToFormulaConverterWithPointerAliasing(options, fmgr,

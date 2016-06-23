@@ -883,8 +883,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       if (options.handleImplicitInitialization()) {
         assignments = expandAssignmentList(declaration, assignments);
       }
-
-      result = assignmentHandler.handleInitializationAssignments(lhs, assignments);
+      result = assignmentHandler.handleInitializationAssignments(lhs, declarationType, assignments);
 
     } else {
       throw new UnrecognizedCCodeException("Unrecognized initializer", declarationEdge, initializer);

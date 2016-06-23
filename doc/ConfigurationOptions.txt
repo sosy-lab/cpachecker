@@ -1809,9 +1809,8 @@ cpa.predicate.useParameterVariables = false
 # variables are also encoded with return-variables at function-exit.
 cpa.predicate.useParameterVariablesForGlobals = false
 
-# Use quantifiers together with the heap-array converter. This requires the
-# option "handleHeapArray=true" and a SMT solver that is capable of the
-# theory of arrays and quantifiers (e.g. Z3 or PRINCESS). Universal
+# Use quantifiers when encoding heap accesses. This requires an SMT solver
+# that is capable of quantifiers (e.g. Z3 or PRINCESS). Currently universal
 # quantifiers will only be introduced for array initializer statements.
 cpa.predicate.useQuantifiersOnArrays = false
 

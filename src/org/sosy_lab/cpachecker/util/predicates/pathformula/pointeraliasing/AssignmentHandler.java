@@ -28,6 +28,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasin
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.isSimpleType;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -52,9 +53,12 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expre
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.solver.api.IntegerFormulaManager;
+import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -191,13 +195,32 @@ class AssignmentHandler {
   /**
    * Handles initialization assignments.
    *
-   * @param variable The left hand side of the variable.
+   * @param variable The declared variable.
+   * @param declarationType The type of the declared variable.
    * @param assignments A list of assignment statements.
    * @return A boolean formula for the assignment.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    * @throws InterruptedException It the execution was interrupted.
    */
   BooleanFormula handleInitializationAssignments(
+      final CLeftHandSide variable, final CType declarationType, final List<CExpressionAssignmentStatement> assignments) throws UnrecognizedCCodeException, InterruptedException {
+    if (options.useQuantifiersOnArrays() && (declarationType instanceof CArrayType)) {
+      return handleInitializationAssignmentsWithQuantifier(variable, assignments, false);
+    } else {
+      return handleInitializationAssignmentsWithoutQuantifier(variable, assignments);
+    }
+  }
+
+  /**
+   * Handles initialization assignments.
+   *
+   * @param variable The left hand side of the variable.
+   * @param assignments A list of assignment statements.
+   * @return A boolean formula for the assignment.
+   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws InterruptedException It the execution was interrupted.
+   */
+  private BooleanFormula handleInitializationAssignmentsWithoutQuantifier(
       final CLeftHandSide variable, final List<CExpressionAssignmentStatement> assignments)
       throws UnrecognizedCCodeException, InterruptedException {
     CExpressionVisitorWithPointerAliasing lhsVisitor = new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints, errorConditions, pts);
@@ -218,6 +241,138 @@ class AssignmentHandler {
                              updatedTypes);
     }
     return result;
+  }
+
+  /**
+   * Handles an initialization assignments, i.e. an assignment with a C initializer, with using a
+   * quantifier over the resulting SMT array.
+   *
+   * <p>If we cannot make an assignment of the form {@code <variable> = <value>}, we fall back to
+   * the normal initialization in
+   * {@link #handleInitializationAssignmentsWithoutQuantifier(CLeftHandSide, List)}.
+   *
+   * @param pLeftHandSide The left hand side of the statement. Needed for fallback scenario.
+   * @param pAssignments A list of assignment statements.
+   * @param pUseOldSSAIndices A flag indicating whether we will reuse SSA indices or not.
+   * @return A boolean formula for the assignment.
+   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws InterruptedException If the execution was interrupted.
+   * @see #handleInitializationAssignmentsWithoutQuantifier(CLeftHandSide, List)
+   */
+  private BooleanFormula handleInitializationAssignmentsWithQuantifier(
+      final @Nonnull CLeftHandSide pLeftHandSide,
+      final @Nonnull List<CExpressionAssignmentStatement> pAssignments,
+      final boolean pUseOldSSAIndices)
+      throws UnrecognizedCCodeException, InterruptedException {
+
+    assert pAssignments.size() > 0 : "Cannot handle initialization assignments without an "
+        + "assignment right hand side.";
+    assert fmgr.getIntegerFormulaManager() != null : "Need a formula manager for "
+        + "integers to handle initialization assignments with quantifiers";
+
+    final IntegerFormulaManagerView ifmgr = fmgr.getIntegerFormulaManager();
+
+    final CType lhsType = CTypeUtils.simplifyType(
+        pAssignments.get(0).getLeftHandSide().getExpressionType());
+
+    final CExpressionVisitorWithPointerAliasing rhsVisitor =
+        new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints,
+            errorConditions, pts);
+    final Value rhsValue = pAssignments.get(0).getRightHandSide().accept(rhsVisitor).asValue();
+
+    final CExpressionVisitorWithPointerAliasing lhsVisitor =
+        new CExpressionVisitorWithPointerAliasing(
+            conv, edge, function, ssa, constraints, errorConditions, pts);
+    final Location lhsLocation = pLeftHandSide.accept(lhsVisitor).asLocation();
+
+    if (rhsValue == null
+        || !checkEqualityOfInitializers(pAssignments, rhsVisitor)
+        || !lhsLocation.isAliased()) {
+      // Fallback case, if we have no initialization of the form "<variable> = <value>"
+      // Example code snippet
+      // (cf. test/programs/simple/struct-initializer-for-composite-field_false-unreach-label.c)
+      //    struct s { int x; };
+      //    struct t { struct s s; };
+      //    ...
+      //    const struct s s = { .x = 1 };
+      //    struct t t = { .s = s };
+      return handleInitializationAssignmentsWithoutQuantifier(pLeftHandSide, pAssignments);
+    } else {
+      final String targetName = CToFormulaConverterWithPointerAliasing.getPointerAccessName(lhsType);
+      final FormulaType<?> targetType = conv.getFormulaTypeFromCType(lhsType);
+      final int oldIndex = conv.getIndex(targetName, lhsType, ssa);
+      final int newIndex =
+          pUseOldSSAIndices
+              ? conv.getIndex(targetName, lhsType, ssa)
+              : conv.getFreshIndex(targetName, lhsType, ssa);
+
+      final IntegerFormula lowerBound =
+          (IntegerFormula) ifmgr.unwrap(lhsLocation.asAliased().getAddress());
+      final IntegerFormula upperBound =
+          ifmgr.add(lowerBound, ifmgr.makeNumber(pAssignments.size()));
+
+      final IntegerFormula counter = ifmgr.makeVariable(targetName + "@" + oldIndex + "@counter");
+      final List<BooleanFormula> rangeConstraint =
+          makeRangeConstraint(ifmgr, counter, lowerBound, upperBound);
+
+      final Formula newDereference =
+          conv.ptsMgr.makePointerDereference(targetName, targetType, newIndex, counter);
+      final BooleanFormula assignNewValue = fmgr.assignment(newDereference, rhsValue.getValue());
+      final BooleanFormula copyOldValue =
+          fmgr.assignment(
+              newDereference,
+              conv.ptsMgr.makePointerDereference(targetName, targetType, oldIndex, counter));
+
+      return fmgr.getQuantifiedFormulaManager().forall(
+          Collections.singletonList(counter),
+          bfmgr.and(
+              bfmgr.implication(bfmgr.and(rangeConstraint), assignNewValue),
+              bfmgr.implication(bfmgr.not(bfmgr.and(rangeConstraint)), copyOldValue)));
+    }
+  }
+
+  /**
+   * Creates a list of {@code BooleanFormula}s that are range constraints for universal quantifiers.
+   *
+   * @param pIntegerFormulaManager A formula manager for integers.
+   * @param pVariable The index variable of the quantifier.
+   * @param pLowerBound The lower bound of the constraints.
+   * @param pUpperBound The upper bound of the constraints.
+   * @param <R> The type of the index variable.
+   * @return A list of constraint formulae.
+   */
+  private <R extends IntegerFormula> List<BooleanFormula> makeRangeConstraint(
+      final IntegerFormulaManager pIntegerFormulaManager,
+      final R pVariable,
+      final R pLowerBound,
+      final R pUpperBound) {
+    return ImmutableList.of(
+        pIntegerFormulaManager.greaterOrEquals(pVariable, pLowerBound),
+        pIntegerFormulaManager.lessOrEquals(pVariable, pUpperBound));
+  }
+
+  /**
+   * Checks, whether all assignments of an initializer have the same value.
+   *
+   * @param pAssignments The list of assignments.
+   * @param pRhsVisitor A visitor to evaluate the value of the right-hand side.
+   * @return Whether all assignments of an initializer have the same value.
+   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   */
+  private boolean checkEqualityOfInitializers(
+      final @Nonnull List<CExpressionAssignmentStatement> pAssignments,
+      final @Nonnull CExpressionVisitorWithPointerAliasing pRhsVisitor)
+      throws UnrecognizedCCodeException {
+    Value tmp = null;
+    for (CExpressionAssignmentStatement assignment : pAssignments) {
+      if (tmp == null) {
+        tmp = assignment.getRightHandSide().accept(pRhsVisitor).asValue();
+      }
+      if (!tmp.equals(assignment.getRightHandSide().accept(pRhsVisitor).asValue())) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**
