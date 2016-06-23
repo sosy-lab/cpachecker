@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expre
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetPattern;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Variable;
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
@@ -175,6 +176,10 @@ class AssignmentHandler {
     final Map<String, CType> lhsUsedDeferredAllocationPointers = lhsVisitor.getUsedDeferredAllocationPointers();
     pts.addEssentialFields(lhsVisitor.getInitializedFields());
     pts.addEssentialFields(lhsVisitor.getUsedFields());
+    // the pattern matching possibly aliased locations
+    final PointerTargetPattern pattern = lhsLocation.isUnaliasedLocation()
+        ? null
+        : PointerTargetPattern.forLeftHandSide(lhs, conv.typeHandler, conv.ptsMgr, edge, pts);
 
     if (conv.options.revealAllocationTypeFromLHS() || conv.options.deferUntypedAllocations()) {
       DynamicMemoryHandler memoryHandler = new DynamicMemoryHandler(conv, edge, ssa, pts, constraints, errorConditions);
@@ -188,6 +193,7 @@ class AssignmentHandler {
                           rhsType,
                           lhsLocation,
                           rhsExpression,
+                          pattern,
                           batchMode,
                           destroyedTypes);
 
@@ -221,7 +227,10 @@ class AssignmentHandler {
                                                        updatedTypes));
     }
     if (lhsLocation.isAliased()) {
-      updateSSA(updatedTypes, ssa);
+      finishAssignments(CTypeUtils.simplifyType(variable.getExpressionType()),
+                             lhsLocation.asAliased(),
+                             PointerTargetPattern.forLeftHandSide(variable, conv.typeHandler, conv.ptsMgr, edge, pts),
+                             updatedTypes);
     }
     return result;
   }
@@ -380,6 +389,7 @@ class AssignmentHandler {
                                 final @Nonnull CType rvalueType,
                                 final @Nonnull Location lvalue,
                                 final @Nonnull Expression rvalue,
+                                final @Nullable PointerTargetPattern pattern,
                                 final boolean useOldSSAIndices,
                                       @Nullable Set<CType> updatedTypes)
   throws UnrecognizedCCodeException, InterruptedException {
@@ -409,6 +419,9 @@ class AssignmentHandler {
 
     if (!useOldSSAIndices) {
       if (lvalue.isAliased()) {
+        addRetentionForAssignment(lvalueType,
+                                  lvalue.asAliased().getAddress(),
+                                  pattern, updatedTypes);
         if (updatedTypes == null) {
           assert isSimpleType(lvalueType) : "Should be impossible due to the first if statement";
           updatedTypes = Collections.singleton(lvalueType);
@@ -427,6 +440,16 @@ class AssignmentHandler {
       }
     }
     return result;
+  }
+
+  void finishAssignments(@Nonnull CType lvalueType,
+                         final @Nonnull AliasedLocation lvalue,
+                         final @Nonnull PointerTargetPattern pattern,
+                         final @Nonnull Set<CType> updatedTypes) throws InterruptedException {
+    addRetentionForAssignment(lvalueType,
+                              lvalue.asAliased().getAddress(),
+                              pattern, updatedTypes);
+    updateSSA(updatedTypes, ssa);
   }
 
   /**
@@ -654,6 +677,14 @@ class AssignmentHandler {
     }
 
     return result;
+  }
+
+  @SuppressWarnings("unused")
+  private void addRetentionForAssignment(@Nonnull CType lvalueType,
+                                         final @Nullable Formula startAddress,
+                                         final @Nonnull PointerTargetPattern pattern,
+                                         final Set<CType> typesToRetain) throws InterruptedException {
+    // not necessary for heap-array encoding
   }
 
   /**

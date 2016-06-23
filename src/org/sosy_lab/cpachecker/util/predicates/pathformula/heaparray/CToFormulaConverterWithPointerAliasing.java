@@ -131,7 +131,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   static final String FIELD_NAME_SEPARATOR = "$";
   private static final Map<CType, String> pointerNameCache = new IdentityHashMap<>();
 
-  private final TypeHandlerWithPointerAliasing typeHandler;
+  final TypeHandlerWithPointerAliasing typeHandler;
   final PointerTargetSetManager ptsMgr;
 
   final FormulaType<?> voidPointerFormulaType;
