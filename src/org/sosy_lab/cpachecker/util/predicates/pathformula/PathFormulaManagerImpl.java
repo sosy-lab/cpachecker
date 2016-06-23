@@ -98,14 +98,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Option(secure=true, description="Call 'simplify' on generated formulas.")
   private boolean simplifyGeneratedPathFormulas = false;
 
-  @Option(
-    secure = true,
-    description =
-        "Use the theory of arrays for heap memory abstraction. "
-            + "This supports pointer aliasing and replaces the option \"handlePointerAliasing\"."
-  )
-  private boolean handleHeapArray = false;
-
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";
   private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
       "^.*" + BRANCHING_PREDICATE_NAME + "(?=\\d+$)");
@@ -163,24 +155,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       logger.log(Level.WARNING,
           "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
 
-    } else if (handleHeapArray) {
-      useArraysInSSAMapMerge = true;
-      final FormulaEncodingWithPointerAliasingOptions options =
-          new FormulaEncodingWithPointerAliasingOptions(config);
-      if (options.useQuantifiersOnArrays()) {
-        try {
-          fmgr.getQuantifiedFormulaManager();
-        } catch (UnsupportedOperationException e) {
-          throw new InvalidConfigurationException("Cannot use quantifiers with current solver, either choose a different solver or disable quantifiers.");
-        }
-      }
-
-      TypeHandlerWithPointerAliasing aliasingTypeHandler =
-          new TypeHandlerWithPointerAliasing(pLogger, pMachineModel, options);
-      typeHandler = aliasingTypeHandler;
-
-      converter = new org.sosy_lab.cpachecker.util.predicates.pathformula.heaparray.CToFormulaConverterWithPointerAliasing(options, fmgr, pMachineModel,
-          pVariableClassification, logger, shutdownNotifier, aliasingTypeHandler, pDirection);
     } else if (handlePointerAliasing) {
       final FormulaEncodingWithPointerAliasingOptions options = new FormulaEncodingWithPointerAliasingOptions(config);
       if (options.useQuantifiersOnArrays()) {

@@ -1438,10 +1438,6 @@ cpa.predicate.handleArrays = false
 # Handle field access via extract and concat instead of new variables.
 cpa.predicate.handleFieldAccess = false
 
-# Use the theory of arrays for heap memory abstraction. This supports pointer
-# aliasing and replaces the option "handlePointerAliasing".
-cpa.predicate.handleHeapArray = false
-
 # If disabled, all implicitly initialized fields and elements are treated as
 # non-dets
 cpa.predicate.handleImplicitInitialization = true
