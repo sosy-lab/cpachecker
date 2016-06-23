@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.heaparray;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 
@@ -609,7 +611,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     }
 
     // Delegate
-    return Value.ofValue(delegate.visit(e));
+    return Value.ofValue(checkNotNull(delegate.visit(e)));
   }
 
   /**
