@@ -504,7 +504,7 @@ public class PointerTargetSetManager {
    */
   private Formula makeDereference(
       final CType type, final Formula address, final SSAMapBuilder ssa) {
-    final String ufName = CToFormulaConverterWithPointerAliasing.getUFName(type);
+    final String ufName = CToFormulaConverterWithPointerAliasing.getPointerAccessName(type);
     final int index = ssa.getIndex(ufName);
     final FormulaType<?> returnType = typeHandler.getFormulaTypeFromCType(type);
     return ffmgr.declareAndCallUninterpretedFunction(ufName, index, returnType, address);

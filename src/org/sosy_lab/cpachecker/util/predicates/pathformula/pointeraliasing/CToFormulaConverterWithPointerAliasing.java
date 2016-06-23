@@ -137,19 +137,31 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     nullPointer = fmgr.makeNumber(voidPointerFormulaType, 0);
   }
 
-  public static String getUFName(final CType type) {
-    String result = ufNameCache.get(type);
+  /**
+   * Returns the SMT symbol name for encoding a pointer access for a C type.
+   *
+   * @param type The type to get the symbol name for.
+   * @return The symbol name for the type.
+   */
+  public static String getPointerAccessName(final CType type) {
+    String result = pointerNameCache.get(type);
     if (result != null) {
       return result;
     } else {
-      result = UF_NAME_PREFIX + CTypeUtils.typeToString(type).replace(' ', '_');
-      ufNameCache.put(type, result);
+      result = POINTER_NAME_PREFIX + CTypeUtils.typeToString(type).replace(' ', '_');
+      pointerNameCache.put(type, result);
       return result;
     }
   }
 
-  public static boolean isUF(final String symbol) {
-    return symbol.startsWith(UF_NAME_PREFIX);
+  /**
+   * Checks, whether a symbol is a pointer access encoded in SMT.
+   *
+   * @param symbol The name of the symbol.
+   * @return Whether the symbol is a pointer access or not.
+   */
+  public static boolean isPointerAccessSymbol(final String symbol) {
+    return symbol.startsWith(POINTER_NAME_PREFIX);
   }
 
   /**
@@ -257,7 +269,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
                          final Formula address,
                          final SSAMapBuilder ssa) {
     type = CTypeUtils.simplifyType(type);
-    final String ufName = getUFName(type);
+    final String ufName = getPointerAccessName(type);
     final int index = getIndex(ufName, type, ssa);
     final FormulaType<?> returnType = getFormulaTypeFromCType(type);
     return ffmgr.declareAndCallUninterpretedFunction(ufName, index, returnType, address);
@@ -997,11 +1009,11 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
   private final Optional<VariableClassification> variableClassification;
 
-  static final String UF_NAME_PREFIX = "*";
+  private static final String POINTER_NAME_PREFIX = "*";
 
   static final String FIELD_NAME_SEPARATOR = "$";
 
-  private static final Map<CType, String> ufNameCache = new IdentityHashMap<>();
+  private static final Map<CType, String> pointerNameCache = new IdentityHashMap<>();
 
 
   // Overrides just for visibility in other classes of this package

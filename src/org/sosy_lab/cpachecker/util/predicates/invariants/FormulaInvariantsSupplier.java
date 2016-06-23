@@ -131,7 +131,7 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
     public Formula visitFreeVariable(Formula atom, String varName) {
       if (bases.containsKey(varName)) {
         CType baseType = bases.get(varName);
-        String uf = CToFormulaConverterWithPointerAliasing.getUFName(baseType);
+        String uf = CToFormulaConverterWithPointerAliasing.getPointerAccessName(baseType);
         String baseVarName = PointerTargetSet.getBaseName(varName);
         return ffmgr.declareAndCallUF(
             uf,

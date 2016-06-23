@@ -283,7 +283,7 @@ class AssignmentHandler {
       //    struct t t = { .s = s };
       return handleInitializationAssignments(pLeftHandSide, pAssignments);
     } else {
-      final String targetName = CToFormulaConverterWithHeapArray.getArrayName(lhsType);
+      final String targetName = CToFormulaConverterWithHeapArray.getPointerAccessName(lhsType);
       final FormulaType<?> targetType = conv.getFormulaTypeFromCType(lhsType);
       final int oldIndex = conv.getIndex(targetName, lhsType, ssa);
       final int newIndex =
@@ -615,7 +615,7 @@ class AssignmentHandler {
 
     assert !(lvalueType instanceof CFunctionType) : "Can't assign to functions";
 
-    final String targetName = !lvalue.isAliased() ? lvalue.asUnaliased().getVariableName() : CToFormulaConverterWithHeapArray.getArrayName(lvalueType);
+    final String targetName = !lvalue.isAliased() ? lvalue.asUnaliased().getVariableName() : CToFormulaConverterWithHeapArray.getPointerAccessName(lvalueType);
     final FormulaType<?> targetType = conv.getFormulaTypeFromCType(lvalueType);
     final int oldIndex = conv.getIndex(targetName, lvalueType, ssa);
     final int newIndex = useOldSSAIndices ?
@@ -663,7 +663,7 @@ class AssignmentHandler {
    */
   private void updateSSA(final @Nonnull Set<CType> types, final SSAMapBuilder ssa) {
     for (final CType type : types) {
-      final String ufName = CToFormulaConverterWithHeapArray.getArrayName(type);
+      final String ufName = CToFormulaConverterWithHeapArray.getPointerAccessName(type);
       conv.makeFreshIndex(ufName, type, ssa);
     }
   }

@@ -156,11 +156,11 @@ public class SSAMapMerger {
 
     if (useNondetFlags && symbolName.equals(NONDET_FLAG_VARIABLE)) {
       return makeSsaNondetFlagMerger(oldIndex, newIndex);
-    } else if (handleHeapArray && CToFormulaConverterWithHeapArray.isSMTArray(symbolName)) {
-      assert symbolName.equals(CToFormulaConverterWithHeapArray.getArrayName(symbolType));
+    } else if (handleHeapArray && CToFormulaConverterWithHeapArray.isPointerAccessSymbol(symbolName)) {
+      assert symbolName.equals(CToFormulaConverterWithHeapArray.getPointerAccessName(symbolType));
       return makeSsaArrayMerger(symbolName, symbolType, oldIndex, newIndex);
-    } else if (CToFormulaConverterWithPointerAliasing.isUF(symbolName)) {
-      assert symbolName.equals(CToFormulaConverterWithPointerAliasing.getUFName(symbolType));
+    } else if (CToFormulaConverterWithPointerAliasing.isPointerAccessSymbol(symbolName)) {
+      assert symbolName.equals(CToFormulaConverterWithPointerAliasing.getPointerAccessName(symbolType));
       return makeSsaUFMerger(symbolName, symbolType, oldIndex, newIndex, oldPts);
     } else {
       return makeSsaVariableMerger(symbolName, symbolType, oldIndex, newIndex);

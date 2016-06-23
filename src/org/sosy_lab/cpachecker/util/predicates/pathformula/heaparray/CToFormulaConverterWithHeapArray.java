@@ -129,7 +129,7 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
   private final Optional<VariableClassification> variableClassification;
   private static final String POINTER_NAME_PREFIX = "*";
   static final String FIELD_NAME_SEPARATOR = "$";
-  private static final Map<CType, String> arrayNameCache = new IdentityHashMap<>();
+  private static final Map<CType, String> pointerNameCache = new IdentityHashMap<>();
 
   private final TypeHandlerWithPointerAliasing typeHandler;
   final PointerTargetSetManagerHeapArray ptsMgr;
@@ -219,30 +219,30 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
   }
 
   /**
-   * Returns the SMT formula array name for a C type.
+   * Returns the SMT symbol name for encoding a pointer access for a C type.
    *
-   * @param pType The type to get an array name for.
-   * @return The array name for the type.
+   * @param type The type to get the symbol name for.
+   * @return The symbol name for the type.
    */
-  public static String getArrayName(final CType pType) {
-    String result = arrayNameCache.get(pType);
+  public static String getPointerAccessName(final CType type) {
+    String result = pointerNameCache.get(type);
     if (result != null) {
       return result;
     } else {
-      result = POINTER_NAME_PREFIX + CTypeUtils.typeToString(pType).replace(' ', '_');
-      arrayNameCache.put(pType, result);
+      result = POINTER_NAME_PREFIX + CTypeUtils.typeToString(type).replace(' ', '_');
+      pointerNameCache.put(type, result);
       return result;
     }
   }
 
   /**
-   * Checks, whether a symbol is an SMT array or not.
+   * Checks, whether a symbol is a pointer access encoded in SMT.
    *
-   * @param pSymbol The name of the symbol.
-   * @return Whether the symbol is an array or not.
+   * @param symbol The name of the symbol.
+   * @return Whether the symbol is a pointer access or not.
    */
-  public static boolean isSMTArray(final String pSymbol) {
-    return pSymbol.startsWith(POINTER_NAME_PREFIX);
+  public static boolean isPointerAccessSymbol(final String symbol) {
+    return symbol.startsWith(POINTER_NAME_PREFIX);
   }
 
   /**
@@ -352,7 +352,7 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
                          final Formula address,
                          final SSAMapBuilder ssa) {
     type = CTypeUtils.simplifyType(type);
-    final String ufName = getArrayName(type);
+    final String ufName = getPointerAccessName(type);
     final int index = getIndex(ufName, type, ssa);
     final FormulaType<?> returnType = getFormulaTypeFromCType(type);
     final ArrayFormula<?, ?> arrayFormula = afmgr.makeArray(ufName + "@" + index,

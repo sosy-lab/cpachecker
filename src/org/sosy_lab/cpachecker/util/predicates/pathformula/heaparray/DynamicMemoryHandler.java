@@ -364,7 +364,7 @@ class DynamicMemoryHandler {
       final SSAMapBuilder ssa, final CtoFormulaConverter conv) {
     return functionName
         + "_"
-        + CToFormulaConverterWithHeapArray.getArrayName(type)
+        + CToFormulaConverterWithHeapArray.getPointerAccessName(type)
         + MALLOC_INDEX_SEPARATOR
         + conv.makeFreshIndex(functionName, type, ssa);
   }
