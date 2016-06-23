@@ -129,6 +129,7 @@ public interface PointerTargetSetBuilder {
   final static class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
 
     private final FormulaManagerView formulaManager;
+    private final TypeHandlerWithPointerAliasing typeHandler;
     private final PointerTargetSetManager ptsMgr;
     private final FormulaEncodingWithPointerAliasingOptions options;
 
@@ -182,8 +183,10 @@ public interface PointerTargetSetBuilder {
      * @param pPtsMgr The PointerTargetSetManager
      * @param pOptions Additional configuration options.
      */
-    public RealPointerTargetSetBuilder(final PointerTargetSet pointerTargetSet,
+    public RealPointerTargetSetBuilder(
+        final PointerTargetSet pointerTargetSet,
         final FormulaManagerView pFormulaManager,
+        final TypeHandlerWithPointerAliasing pTypeHandler,
         final PointerTargetSetManager pPtsMgr,
         final FormulaEncodingWithPointerAliasingOptions pOptions) {
       bases = pointerTargetSet.getBases();
@@ -192,6 +195,7 @@ public interface PointerTargetSetBuilder {
       deferredAllocations = pointerTargetSet.getDeferredAllocations();
       targets = pointerTargetSet.getTargets();
       formulaManager = pFormulaManager;
+      typeHandler = pTypeHandler;
       ptsMgr = pPtsMgr;
       options = pOptions;
     }
@@ -226,7 +230,7 @@ public interface PointerTargetSetBuilder {
       bases = bases.putAndCopy(name, type); // To get proper inequalities
       final BooleanFormula nextInequality = ptsMgr.getNextBaseAddressInequality(name, bases, lastBase);
       // If type is incomplete, we can use a dummy size here because it is only used for the fake base.
-      int size = type.isIncomplete() ? 0 : ptsMgr.getSize(type);
+      int size = type.isIncomplete() ? 0 : typeHandler.getSizeof(type);
       bases = bases.putAndCopy(name, PointerTargetSetManager.getFakeBaseType(size)); // To prevent adding spurious targets when merging
       lastBase = name;
       return nextInequality;
@@ -331,7 +335,7 @@ public interface PointerTargetSetBuilder {
         for (int i = 0; i < length; ++i) {
           addTargets(base, arrayType.getType(), offset, containerOffset + properOffset,
                      composite, memberName);
-          offset += ptsMgr.getSize(arrayType.getType());
+          offset += typeHandler.getSizeof(arrayType.getType());
         }
       } else if (cType instanceof CCompositeType) {
         final CCompositeType compositeType = (CCompositeType) cType;
@@ -348,7 +352,7 @@ public interface PointerTargetSetBuilder {
             targets = ptsMgr.addToTargets(base, memberDeclaration.getType(), compositeType, offset, containerOffset + properOffset, targets, fields);
           }
           if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
-            offset += ptsMgr.getSize(memberDeclaration.getType());
+            offset += typeHandler.getSizeof(memberDeclaration.getType());
           }
         }
       }

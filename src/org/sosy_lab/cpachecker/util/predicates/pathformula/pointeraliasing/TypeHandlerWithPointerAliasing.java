@@ -63,6 +63,7 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
   /**
    * The method is used to speed up {@code sizeof} computation by caching sizes of declared composite types.
    * @param cType the type of which the size should be retrieved
+   * @return The size of a given type.
    */
   @Override
   public int getSizeof(CType cType) {
@@ -81,6 +82,10 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
 
   /**
    * The method is used to speed up member offset computation for declared composite types.
+   *
+   * @param compositeType The composite type.
+   * @param memberName The name of the member of the composite type.
+   * @return The offset of the member in the composite type.
    */
   int getOffset(CCompositeType compositeType, final String memberName) {
     compositeType = (CCompositeType) CTypeUtils.simplifyType(compositeType);

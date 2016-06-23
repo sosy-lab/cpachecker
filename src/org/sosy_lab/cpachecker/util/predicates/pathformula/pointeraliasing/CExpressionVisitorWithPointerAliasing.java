@@ -299,7 +299,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
         final String fieldName = e.getFieldName();
         usedFields.add(Pair.of((CCompositeType) fieldOwnerType, fieldName));
         final Formula offset = conv.fmgr.makeNumber(conv.voidPointerFormulaType,
-                                                    conv.ptsMgr.getOffset((CCompositeType) fieldOwnerType, fieldName));
+                                                    conv.typeHandler.getOffset((CCompositeType) fieldOwnerType, fieldName));
 
         final Formula address = conv.fmgr.makePlus(base.getAddress(), offset);
         addEqualBaseAddressConstraint(base.getAddress(), address);
@@ -460,7 +460,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
             final CCompositeType compositeType = (CCompositeType)CTypeUtils.simplifyType(pointerType.getType());
             usedFields.add(Pair.of(compositeType, fieldName));
             final Formula offset = conv.fmgr.makeNumber(conv.voidPointerFormulaType,
-                                                        conv.ptsMgr.getOffset(compositeType, fieldName));
+                                                        conv.typeHandler.getOffset(compositeType, fieldName));
             addressExpression = AliasedLocation.ofAddress(conv.fmgr.makePlus(base, offset));
             addEqualBaseAddressConstraint(base, addressExpression.getAddress());
           }

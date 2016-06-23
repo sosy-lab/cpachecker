@@ -362,8 +362,8 @@ class PointerTargetSetManager {
         makeValueImportConstraints(basesOnlyPts2.getSnapshot(), sharedFields, resultSSA);
 
     if (!sharedFields.isEmpty()) {
-      final PointerTargetSetBuilder resultPTSBuilder = new RealPointerTargetSetBuilder(
-          resultPTS, formulaManager, this, options);
+      final PointerTargetSetBuilder resultPTSBuilder =
+          new RealPointerTargetSetBuilder(resultPTS, formulaManager, typeHandler, this, options);
       for (final Pair<CCompositeType, String> sharedField : sharedFields) {
         resultPTSBuilder.addField(sharedField.getFirst(), sharedField.getSecond());
       }
@@ -589,30 +589,6 @@ class PointerTargetSetManager {
     return makePointerDereference(ufName, returnType, index, address);
   }
 
-
-
-  /**
-   * The method is used to speed up {@code sizeof} computation
-   * by caching sizes of declared composite types.
-   *
-   * @param cType The type to determine the size of.
-   * @return The size of a given type.
-   */
-  int getSize(CType cType) {
-    return typeHandler.getSizeof(cType);
-  }
-
-  /**
-   * The method is used to speed up member offset computation for declared composite types.
-   *
-   * @param compositeType The composite type.
-   * @param memberName The name of the member of the composite type.
-   * @return The offset of the member in the composite type.
-   */
-  int getOffset(CCompositeType compositeType, final String memberName) {
-    return typeHandler.getOffset(compositeType, memberName);
-  }
-
   /**
    * Gets the next base address.
    *
@@ -710,7 +686,7 @@ class PointerTargetSetManager {
       int offset = 0;
       for (int i = 0; i < length; ++i) {
         targets = addToTargets(base, arrayType.getType(), arrayType, offset, containerOffset + properOffset, targets, fields);
-        offset += getSize(arrayType.getType());
+        offset += typeHandler.getSizeof(arrayType.getType());
       }
     } else if (cType instanceof CCompositeType) {
       final CCompositeType compositeType = (CCompositeType) cType;
@@ -723,7 +699,7 @@ class PointerTargetSetManager {
           targets = addToTargets(base, memberDeclaration.getType(), compositeType, offset, containerOffset + properOffset, targets, fields);
         }
         if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
-          offset += getSize(memberDeclaration.getType());
+          offset += typeHandler.getSizeof(memberDeclaration.getType());
         }
       }
     } else {

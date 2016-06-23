@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 
 import java.io.Serializable;
 
@@ -67,12 +66,12 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
 
   static PointerTargetPattern forLeftHandSide(
       final CLeftHandSide lhs,
-      final CtoFormulaTypeHandler pTypeHandler,
-      final PointerTargetSetManager pPtsMgr,
+      final TypeHandlerWithPointerAliasing pTypeHandler,
       final CFAEdge pCfaEdge,
       final PointerTargetSetBuilder pPts)
       throws UnrecognizedCCodeException {
-    LvalueToPointerTargetPatternVisitor v = new LvalueToPointerTargetPatternVisitor(pTypeHandler, pPtsMgr, pCfaEdge, pPts);
+    LvalueToPointerTargetPatternVisitor v =
+        new LvalueToPointerTargetPatternVisitor(pTypeHandler, pCfaEdge, pPts);
     return lhs.accept(v);
   }
 
@@ -105,10 +104,10 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
     return properOffset;
   }
 
-  Integer getRemainingOffset(PointerTargetSetManager ptsMgr) {
+  Integer getRemainingOffset(TypeHandlerWithPointerAliasing typeHandler) {
     assert !matchRange : "Contradiction in target pattern: remaining offset";
     if (containerType != null && containerOffset != null && properOffset != null) {
-      return ptsMgr.getSize(containerType) - properOffset;
+      return typeHandler.getSizeof(containerType) - properOffset;
     } else {
       return null;
     }

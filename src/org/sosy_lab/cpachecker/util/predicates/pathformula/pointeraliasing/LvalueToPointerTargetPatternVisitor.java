@@ -40,23 +40,20 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 
 
 class LvalueToPointerTargetPatternVisitor
 extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeException> {
 
-  private final CtoFormulaTypeHandler typeHandler;
-  private final PointerTargetSetManager ptsMgr;
+  private final TypeHandlerWithPointerAliasing typeHandler;
   private final PointerTargetSetBuilder pts;
   private final CFAEdge cfaEdge;
 
-  LvalueToPointerTargetPatternVisitor(final CtoFormulaTypeHandler pTypeHandler,
-                                      final PointerTargetSetManager pPtsMgr,
-                                      final CFAEdge pCfaEdge,
-                                      final PointerTargetSetBuilder pPts) {
-   typeHandler = pTypeHandler;
-    ptsMgr = pPtsMgr;
+  LvalueToPointerTargetPatternVisitor(
+      final TypeHandlerWithPointerAliasing pTypeHandler,
+      final CFAEdge pCfaEdge,
+      final PointerTargetSetBuilder pPts) {
+    typeHandler = pTypeHandler;
     cfaEdge = pCfaEdge;
     pts = pPts;
   }
@@ -117,7 +114,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
           offset = tryEvaluateExpression(operand2);
         }
         if (result != null) {
-          final Integer remaining = result.getRemainingOffset(ptsMgr);
+          final Integer remaining = result.getRemainingOffset(typeHandler);
           if (offset != null && remaining != null && offset < remaining) {
             assert result.getProperOffset() != null : "Unexpected nondet proper offset";
             result.setProperOffset(result.getProperOffset() + offset);
@@ -224,7 +221,8 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
       final CType containerType = CTypeUtils.simplifyType(ownerExpression.getExpressionType());
       if (containerType instanceof CCompositeType) {
         assert  ((CCompositeType) containerType).getKind() != ComplexTypeKind.ENUM : "Enums are not composites!";
-        result.shift(containerType, ptsMgr.getOffset((CCompositeType) containerType, e.getFieldName()));
+        result.shift(
+            containerType, typeHandler.getOffset((CCompositeType) containerType, e.getFieldName()));
         return result;
       } else {
         throw new UnrecognizedCCodeException("Field owner expression has incompatible type", cfaEdge, e);

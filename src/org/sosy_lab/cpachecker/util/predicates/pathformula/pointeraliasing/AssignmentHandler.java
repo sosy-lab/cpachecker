@@ -170,7 +170,7 @@ class AssignmentHandler {
     // the pattern matching possibly aliased locations
     final PointerTargetPattern pattern = lhsLocation.isUnaliasedLocation()
         ? null
-        : PointerTargetPattern.forLeftHandSide(lhs, conv.typeHandler, conv.ptsMgr, edge, pts);
+        : PointerTargetPattern.forLeftHandSide(lhs, conv.typeHandler, edge, pts);
 
     if (conv.options.revealAllocationTypeFromLHS() || conv.options.deferUntypedAllocations()) {
       DynamicMemoryHandler memoryHandler = new DynamicMemoryHandler(conv, edge, ssa, pts, constraints, errorConditions);
@@ -239,7 +239,7 @@ class AssignmentHandler {
     if (lhsLocation.isAliased()) {
       finishAssignments(CTypeUtils.simplifyType(variable.getExpressionType()),
                              lhsLocation.asAliased(),
-                             PointerTargetPattern.forLeftHandSide(variable, conv.typeHandler, conv.ptsMgr, edge, pts),
+                             PointerTargetPattern.forLeftHandSide(variable, conv.typeHandler, edge, pts),
                              updatedTypes);
     }
     return result;
