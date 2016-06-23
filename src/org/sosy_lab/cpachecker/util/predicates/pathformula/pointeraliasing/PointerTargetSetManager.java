@@ -49,8 +49,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet.CompositeField;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
@@ -363,11 +363,13 @@ public class PointerTargetSetManager {
           currentFieldIndex += compositeType1.getMembers().size();
         } else {
           membersBuilder.add(new CCompositeTypeMemberDeclaration(compositeType1,
-                                                                 getUnitedFieldBaseName(currentFieldIndex++)));
+                                                                 getUnitedFieldBaseName(currentFieldIndex)));
+          currentFieldIndex++;
         }
       } else {
         membersBuilder.add(new CCompositeTypeMemberDeclaration(type1,
-                                                               getUnitedFieldBaseName(currentFieldIndex++)));
+                                                               getUnitedFieldBaseName(currentFieldIndex)));
+        currentFieldIndex++;
       }
       if (type2 instanceof CCompositeType) {
         final CCompositeType compositeType2 = (CCompositeType) type2;
@@ -376,15 +378,16 @@ public class PointerTargetSetManager {
             compositeType2.getMembers().get(0).getName().equals(getUnitedFieldBaseName(0))) {
           for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType2.getMembers()) {
             membersBuilder.add(new CCompositeTypeMemberDeclaration(memberDeclaration.getType(),
-                                                                   getUnitedFieldBaseName(currentFieldIndex++)));
+                                                                   getUnitedFieldBaseName(currentFieldIndex)));
+            currentFieldIndex++;
           }
         } else {
           membersBuilder.add(new CCompositeTypeMemberDeclaration(compositeType2,
-                                                                 getUnitedFieldBaseName(currentFieldIndex++)));
+                                                                 getUnitedFieldBaseName(currentFieldIndex)));
         }
       } else {
         membersBuilder.add(new CCompositeTypeMemberDeclaration(type2,
-                                                               getUnitedFieldBaseName(currentFieldIndex++)));
+                                                               getUnitedFieldBaseName(currentFieldIndex)));
       }
 
 

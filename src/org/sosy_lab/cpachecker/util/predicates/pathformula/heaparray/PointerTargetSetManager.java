@@ -377,11 +377,13 @@ class PointerTargetSetManager extends org.sosy_lab.cpachecker.util.predicates.pa
           currentFieldIndex += compositeType1.getMembers().size();
         } else {
           membersBuilder.add(new CCompositeTypeMemberDeclaration(compositeType1,
-                                                                 getUnitedFieldBaseName(currentFieldIndex++)));
+                                                                 getUnitedFieldBaseName(currentFieldIndex)));
+          currentFieldIndex++;
         }
       } else {
         membersBuilder.add(new CCompositeTypeMemberDeclaration(type1,
-                                                               getUnitedFieldBaseName(currentFieldIndex++)));
+                                                               getUnitedFieldBaseName(currentFieldIndex)));
+        currentFieldIndex++;
       }
       if (type2 instanceof CCompositeType) {
         final CCompositeType compositeType2 = (CCompositeType) type2;
@@ -390,13 +392,13 @@ class PointerTargetSetManager extends org.sosy_lab.cpachecker.util.predicates.pa
             compositeType2.getMembers().get(0).getName().equals(getUnitedFieldBaseName(0))) {
           for (@SuppressWarnings("unused") CCompositeTypeMemberDeclaration ignored : compositeType2.getMembers()) {
             membersBuilder.add(new CCompositeTypeMemberDeclaration(compositeType2,
-                                                                   getUnitedFieldBaseName(currentFieldIndex++)));
+                                                                   getUnitedFieldBaseName(currentFieldIndex)));
+            currentFieldIndex++;
           }
         } else {
           membersBuilder.add(new CCompositeTypeMemberDeclaration(compositeType2,
                                                                  getUnitedFieldBaseName(currentFieldIndex)));
         }
-
       } else {
         membersBuilder.add(new CCompositeTypeMemberDeclaration(type2,
                                                                getUnitedFieldBaseName(currentFieldIndex)));
