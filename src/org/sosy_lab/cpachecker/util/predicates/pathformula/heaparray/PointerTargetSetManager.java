@@ -29,6 +29,8 @@ import static org.sosy_lab.common.collect.PersistentSortedMaps.merge;
 import com.google.common.base.Equivalence;
 import com.google.common.collect.ImmutableList;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.CopyOnWriteSortedMap;
 import org.sosy_lab.common.collect.MapsDifference;
@@ -81,6 +83,7 @@ import javax.annotation.Nullable;
 /**
  * A manager for pointer target sets.
  */
+@SuppressFBWarnings("NM_SAME_SIMPLE_NAME_AS_SUPERCLASS")
 class PointerTargetSetManager extends org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetManager {
 
   private static final String UNITED_BASE_UNION_TAG_PREFIX = "__VERIFIER_base_union_of_";
