@@ -45,14 +45,16 @@ public class FQLSpecificationUtil {
 
   public static NondeterministicFiniteAutomaton<GuardedEdgeLabel> optimizeAutomaton(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton, boolean pUseAutomatonOptimization) {
     if (pUseAutomatonOptimization) {
-      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton1 = ToGuardedAutomatonTranslator.removeInfeasibleTransitions(pAutomaton);
-      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton2 = ToGuardedAutomatonTranslator.removeDeadEnds(lGoalAutomaton1);
+      // TODO: fix for condition coverage
+      // NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton1 = ToGuardedAutomatonTranslator.removeInfeasibleTransitions(pAutomaton);
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton2 = ToGuardedAutomatonTranslator.removeDeadEnds(pAutomaton);
       NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton3 = ToGuardedAutomatonTranslator.reduceEdgeSets(lGoalAutomaton2);
       NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton4 = ToGuardedAutomatonTranslator.removeEmptySelfLoops(lGoalAutomaton3);
-      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton5 = ToGuardedAutomatonTranslator.removeRedundantEdges(lGoalAutomaton4);
-      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton6 = ToGuardedAutomatonTranslator.removeSingleStutterEdges(lGoalAutomaton5);
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton5 = ToGuardedAutomatonTranslator.removeDeadEnds(lGoalAutomaton4);
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton6 = ToGuardedAutomatonTranslator.removeRedundantEdges(lGoalAutomaton5);
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton7 = ToGuardedAutomatonTranslator.removeSingleStutterEdges(lGoalAutomaton6);
 
-      return lGoalAutomaton6;
+      return lGoalAutomaton7;
     }
 
     return pAutomaton;

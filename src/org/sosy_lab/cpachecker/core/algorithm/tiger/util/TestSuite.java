@@ -466,8 +466,7 @@ public class TestSuite extends AlgorithmResult {
 
         PresenceCondition presenceCondition = coveringPresenceConditions.get(Pair.of(testcase, goal));
         if (presenceCondition != null) {
-          str.append(": " + pcm().dump(presenceCondition).toString().replace("@0", "")
-              .replace(" & TRUE", ""));
+          str.append(": " + pcm().dump(presenceCondition).toString().replace(" & TRUE", ""));
         }
         str.append("\n");
       }
@@ -500,8 +499,7 @@ public class TestSuite extends AlgorithmResult {
         PresenceCondition presenceCondition = infeasiblePresenceConditions.get(entry);
         if (presenceCondition != null) {
           str.append(": cannot be covered with PC ");
-          str.append(pcm().dump(presenceCondition).toString().replace("@0", "")
-              .replace(" & TRUE", ""));
+          str.append(pcm().dump(presenceCondition).toString().replace(" & TRUE", ""));
         }
         str.append("\n");
       }

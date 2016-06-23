@@ -505,7 +505,7 @@ public class TigerAlgorithm
     Pair<Boolean, LinkedList<Edges>> lInfeasibilityPropagation = initializeInfisabilityPropagation();
 
     Set<Goal> goalsToCover = testGoalUtils.extractTestGoalPatterns(fqlSpecification, lGoalPrediction,
-        lInfeasibilityPropagation, mCoverageSpecificationTranslator, optimizeGoalAutomata, useOmegaLabel);
+        lInfeasibilityPropagation, mCoverageSpecificationTranslator, optimizeGoalAutomata, useOmegaLabel, useTigerAlgorithm_with_pc);
     fillEdgeToTgaMapping(goalsToCover);
 
     statistics_numberOfTestGoals = goalsToCover.size();

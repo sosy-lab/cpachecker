@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering.InfeasibilityPropagation.Prediction;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
+import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton.State;
 
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -95,7 +96,8 @@ public class TestGoalUtils {
 
   public Set<Goal> extractTestGoalPatterns(FQLSpecification pFqlSpecification, Prediction[] pGoalPrediction,
       Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation,
-      CoverageSpecificationTranslator pCoverageSpecificationTranslator, boolean pOptimizeGoalAutomata, boolean pUseOmegaLabel) {
+      CoverageSpecificationTranslator pCoverageSpecificationTranslator,
+      boolean pOptimizeGoalAutomata, boolean pUseOmegaLabel, boolean removeFeaturesAsTestGoals) {
     LinkedList<ElementaryCoveragePattern> goalPatterns;
 
     if (pInfeasibilityPropagation.getFirst()) {
@@ -121,9 +123,12 @@ public class TestGoalUtils {
     Set<Goal> goalsToCover = Sets.newLinkedHashSet();
 
     for (int i = 0; i < goalPatterns.size(); i++) {
-      Goal lGoal = constructGoal(i + 1, goalPatterns.get(i), mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,
-          pOptimizeGoalAutomata, pUseOmegaLabel);
-      goalsToCover.add(lGoal);
+      ElementaryCoveragePattern pattern = goalPatterns.get(i);
+      Goal lGoal = constructGoal(i + 1, pattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,
+          pOptimizeGoalAutomata, pUseOmegaLabel, removeFeaturesAsTestGoals);
+      if (lGoal != null) {
+        goalsToCover.add(lGoal);
+      }
     }
 
     return goalsToCover;
@@ -180,18 +185,40 @@ public class TestGoalUtils {
    * @param pOmegaLabel
    * @param pUseAutomatonOptimization
    * @param pUseOmegaLabel
+   * @param pRemoveFeaturesAsTestGoals
    * @return
    */
-  public Goal constructGoal(int pIndex, ElementaryCoveragePattern pGoalPattern, GuardedEdgeLabel pAlphaLabel,
-      GuardedEdgeLabel pInverseAlphaLabel, GuardedLabel pOmegaLabel, boolean pUseAutomatonOptimization, boolean pUseOmegaLabel) {
+  public Goal constructGoal(int pIndex, ElementaryCoveragePattern pGoalPattern,
+      GuardedEdgeLabel pAlphaLabel,
+      GuardedEdgeLabel pInverseAlphaLabel, GuardedLabel pOmegaLabel,
+      boolean pUseAutomatonOptimization, boolean pUseOmegaLabel, boolean pRemoveFeaturesAsTestGoals) {
 
     NondeterministicFiniteAutomaton<GuardedEdgeLabel> automaton =
-        ToGuardedAutomatonTranslator.toAutomaton(pGoalPattern, pAlphaLabel, pInverseAlphaLabel, pOmegaLabel, pUseOmegaLabel);
+        ToGuardedAutomatonTranslator.toAutomaton(pGoalPattern, pAlphaLabel, pInverseAlphaLabel,
+            pOmegaLabel, pUseOmegaLabel);
+
+    // remove all automatons where features are test goals
+    if (pRemoveFeaturesAsTestGoals && isFeatureAutomaton(automaton)) {
+      return null;
+    }
+
     automaton = FQLSpecificationUtil.optimizeAutomaton(automaton, pUseAutomatonOptimization);
 
     Goal lGoal = new Goal(pIndex, pGoalPattern, automaton);
 
     return lGoal;
+  }
+
+  private boolean isFeatureAutomaton(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton) {
+    for (State state : pAutomaton.getStates()) {
+      for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge edge : pAutomaton
+          .getIncomingEdges(state)) {
+        String label = edge.getLabel().toString();
+        if (label.contains("__SELECTED_FEATURE_")) { return true; }
+      }
+    }
+
+    return false;
   }
 
 }
