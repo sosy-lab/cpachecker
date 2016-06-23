@@ -155,6 +155,31 @@ class PointerTargetSetManager extends org.sosy_lab.cpachecker.util.predicates.pa
   }
 
   /**
+   * Create a formula that represents an assignment to a value via a pointer.
+   * @param targetName The name of the pointer access symbol as returned by {@link CToFormulaConverterWithPointerAliasing#getPointerAccessName(CType)}
+   * @param targetType The formula type of the value
+   * @param oldIndex The old SSA index for targetName
+   * @param newIndex The new SSA index for targetName
+   * @param address The address where the value should be written
+   * @param value The value to write
+   * @return A formula representing an assignment of the form {@code targetName@newIndex[address] = value}
+   */
+  @Override
+  protected BooleanFormula makePointerAssignment(
+      final String targetName,
+      final FormulaType<?> targetType,
+      final int oldIndex,
+      final int newIndex,
+      final Formula address,
+      final Formula value) {
+    final ArrayFormula<?, ?> oldFormula =
+        afmgr.makeArray(targetName + "@" + oldIndex, FormulaType.IntegerType, targetType);
+    final ArrayFormula<?, ?> arrayFormula =
+        afmgr.makeArray(targetName + "@" + newIndex, FormulaType.IntegerType, targetType);
+    return formulaManager.makeEqual(arrayFormula, afmgr.store(oldFormula, address, value));
+  }
+
+  /**
    * Merges two {@link PointerTargetSet}s into one.
    *
    * @param pts1 The first {@code PointerTargetSet}.

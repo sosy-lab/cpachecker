@@ -660,12 +660,10 @@ class AssignmentHandler {
       }
     } else { // Aliased LHS
       if (rhs != null) {
-        final ArrayFormula<?, ?> oldFormula = afmgr.makeArray(targetName + "@" + oldIndex,
-            FormulaType.IntegerType, targetType);
-        final ArrayFormula<?, ?> arrayFormula = afmgr.makeArray(targetName + "@" + newIndex,
-            FormulaType.IntegerType, targetType);
-        result = fmgr.makeEqual(arrayFormula, afmgr.store(oldFormula,
-            lvalue.asAliased().getAddress(), rhs));
+        final Formula address = lvalue.asAliased().getAddress();
+        result =
+            conv.ptsMgr.makePointerAssignment(
+                targetName, targetType, oldIndex, newIndex, address, rhs);
       } else {
         result = bfmgr.makeBoolean(true);
       }

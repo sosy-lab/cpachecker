@@ -492,6 +492,7 @@ class AssignmentHandler {
 
     final String targetName = !lvalue.isAliased() ? lvalue.asUnaliased().getVariableName() : CToFormulaConverterWithPointerAliasing.getPointerAccessName(lvalueType);
     final FormulaType<?> targetType = conv.getFormulaTypeFromCType(lvalueType);
+    final int oldIndex = conv.getIndex(targetName, lvalueType, ssa);
     final int newIndex = useOldSSAIndices ?
             conv.getIndex(targetName, lvalueType, ssa) :
             conv.getFreshIndex(targetName, lvalueType, ssa);
@@ -510,12 +511,11 @@ class AssignmentHandler {
         updatedVariables.add(Variable.create(targetName, lvalueType));
       }
     } else { // Aliased LHS
-      final Formula lhs = ffmgr.declareAndCallUninterpretedFunction(targetName,
-                                                  newIndex,
-                                                  targetType,
-                                                  lvalue.asAliased().getAddress());
       if (rhs != null) {
-        result = fmgr.assignment(lhs, rhs);
+        final Formula address = lvalue.asAliased().getAddress();
+        result =
+            conv.ptsMgr.makePointerAssignment(
+                targetName, targetType, oldIndex, newIndex, address, rhs);
       } else {
         result = bfmgr.makeBoolean(true);
       }

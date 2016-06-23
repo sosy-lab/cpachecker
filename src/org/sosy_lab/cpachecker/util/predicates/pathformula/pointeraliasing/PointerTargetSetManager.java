@@ -142,6 +142,28 @@ public class PointerTargetSetManager {
   }
 
   /**
+   * Create a formula that represents an assignment to a value via a pointer.
+   * @param targetName The name of the pointer access symbol as returned by {@link CToFormulaConverterWithPointerAliasing#getPointerAccessName(CType)}
+   * @param targetType The formula type of the value
+   * @param oldIndex The old SSA index for targetName
+   * @param newIndex The new SSA index for targetName
+   * @param address The address where the value should be written
+   * @param value The value to write
+   * @return A formula representing an assignment of the form {@code targetName@newIndex[address] = value}
+   */
+  protected BooleanFormula makePointerAssignment(
+      final String targetName,
+      final FormulaType<?> targetType,
+      final int oldIndex,
+      final int newIndex,
+      final Formula address,
+      final Formula value) {
+    final Formula lhs =
+        ffmgr.declareAndCallUninterpretedFunction(targetName, newIndex, targetType, address);
+    return formulaManager.assignment(lhs, value);
+  }
+
+  /**
    * Merges two {@link PointerTargetSet}s into one.
    *
    * @param pts1 The first {@code PointerTargetSet}.
